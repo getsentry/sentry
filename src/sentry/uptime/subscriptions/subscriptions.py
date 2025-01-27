@@ -7,11 +7,9 @@ from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 
-from sentry import quotas
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
@@ -27,7 +25,6 @@ from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
 )
-from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 
@@ -38,24 +35,6 @@ MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
     pass
-
-
-class UptimeMonitorNoSeatAvailable(Exception):
-    """
-    Indicates that the quotes system is unable to allocate a seat for the new
-    uptime monitor.
-    """
-
-    result: SeatAssignmentResult | None
-    """
-    The assignment result. In rare cases may be None when there is a race
-    condition and seat assignment is not accepted after passing the assignment
-    check.
-    """
-
-    def __init__(self, result: SeatAssignmentResult | None) -> None:
-        super().__init__()
-        self.result = result
 
 
 def retrieve_uptime_subscription(
@@ -230,17 +209,10 @@ def get_or_create_project_uptime_subscription(
     )
 
     # Update status. This may have the side effect of removing or creating a
-    # remote subscription. When a new monitor is created we will ensure seat
-    # assignment, which may cause the monitor to be disabled if there are no
-    # available seat assignments.
+    # remote subscription.
     match status:
         case ObjectStatus.ACTIVE:
-            try:
-                enable_project_uptime_subscription(uptime_monitor, ensure_assignment=created)
-            except UptimeMonitorNoSeatAvailable:
-                # No need to do anything if we failed to handle seat
-                # assignment. The monitor will be created, but not enabled
-                pass
+            enable_project_uptime_subscription(uptime_monitor)
         case ObjectStatus.DISABLED:
             disable_project_uptime_subscription(uptime_monitor)
 
@@ -305,8 +277,7 @@ def update_project_uptime_subscription(
         remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
     # Update status. This may have the side effect of removing or creating a
-    # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
-    # assignment fails.
+    # remote subscription.
     match status:
         case ObjectStatus.DISABLED:
             disable_project_uptime_subscription(uptime_monitor)
@@ -324,8 +295,6 @@ def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscriptio
         return
 
     uptime_monitor.update(status=ObjectStatus.DISABLED)
-    quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
-
     uptime_subscription = uptime_monitor.uptime_subscription
 
     # Are there any other project subscriptions associated to the subscription
@@ -341,35 +310,14 @@ def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscriptio
         delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def enable_project_uptime_subscription(
-    uptime_monitor: ProjectUptimeSubscription, ensure_assignment: bool = False
-):
+def enable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
     """
-    Enable a project uptime subscription. If the uptime subscription was
+    Re-enables a project uptime subscription. If the uptime subscription was
     also disabled it will be re-activated and the remote subscription will be
     published.
-
-    This method will attempt seat assignment via the quotas system. If There
-    are no available seats the monitor will be disabled and a
-    `UptimeMonitorNoSeatAvailable` will be raised.
-
-    By default if the monitor is already marked as ACTIVE this function is a
-    no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
-    if not ensure_assignment and uptime_monitor.status != ObjectStatus.DISABLED:
+    if uptime_monitor.status != ObjectStatus.DISABLED:
         return
-
-    seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
-    if not seat_assignment.assignable:
-        disable_project_uptime_subscription(uptime_monitor)
-        raise UptimeMonitorNoSeatAvailable(seat_assignment)
-
-    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, uptime_monitor)
-    if outcome != Outcome.ACCEPTED:
-        # Race condition, we were unable to assign the seat even though the
-        # earlier assignment check indicated assignability
-        disable_project_uptime_subscription(uptime_monitor)
-        raise UptimeMonitorNoSeatAvailable(None)
 
     uptime_monitor.update(status=ObjectStatus.ACTIVE)
     uptime_subscription = uptime_monitor.uptime_subscription
