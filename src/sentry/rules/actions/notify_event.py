@@ -29,7 +29,7 @@ class NotifyEventAction(EventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         group = event.group
 
         for plugin_ in self.get_plugins():

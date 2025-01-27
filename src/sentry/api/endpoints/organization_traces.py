@@ -113,7 +113,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
 
 
 @contextmanager
-def handle_span_query_errors() -> Generator[None, None, None]:
+def handle_span_query_errors() -> Generator[None]:
     with handle_query_errors():
         try:
             yield

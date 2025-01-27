@@ -6,6 +6,6 @@ from sentry.api import base
 
 
 @contextlib.contextmanager
-def override_pagination_limit(n: int) -> Generator[None, None, None]:
+def override_pagination_limit(n: int) -> Generator[None]:
     with mock.patch.object(base, "PAGINATION_DEFAULT_PER_PAGE", n):
         yield

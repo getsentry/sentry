@@ -70,7 +70,7 @@ class RegionDirectoryTest(TestCase):
 
     @staticmethod
     @contextmanager
-    def _in_global_state(directory: RegionDirectory) -> Generator[None, None, None]:
+    def _in_global_state(directory: RegionDirectory) -> Generator[None]:
         with get_test_env_directory().swap_state(tuple(directory.regions)):
             yield
 

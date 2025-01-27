@@ -4,9 +4,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Union
-
-from typing_extensions import TypeIs
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeIs, TypeVar, Union
 
 from sentry.utils.services import Service
 
