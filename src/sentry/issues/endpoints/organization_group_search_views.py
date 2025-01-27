@@ -109,7 +109,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 validate_projects(organization, request.user, view)
             except ValidationError as e:
                 sentry_sdk.capture_message(e.args[0])
-                return Response({"detail": e.args[0]}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
 
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
@@ -122,8 +122,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             ):
                 sentry_sdk.capture_exception(e)
                 return Response(
-                    {"detail": "One or more projects do not exist"},
                     status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "One or more projects do not exist"},
                 )
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
