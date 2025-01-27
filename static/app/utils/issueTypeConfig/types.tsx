@@ -37,8 +37,16 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
-    allEvents: string;
+    eventUnits: string;
     resolution: string;
+  };
+  /**
+   * Should show detector section in the sidebar
+   * Optionally set a custom title for it
+   */
+  detector: DisabledWithReasonConfig & {
+    ctaText?: string;
+    title?: string;
   };
   /**
    * Is the "Open in Discover" button available for this issue
@@ -59,7 +67,11 @@ export type IssueTypeConfig = {
     title: string;
     helpText?: string;
   } | null;
-  filterAndSearchHeader: DisabledWithReasonConfig;
+  header: {
+    filterAndSearch: DisabledWithReasonConfig;
+    tagDistribution: DisabledWithReasonConfig;
+    timelineSummary: DisabledWithReasonConfig;
+  };
   /**
    * Is the Issue Summary available for this issue
    */
