@@ -124,7 +124,7 @@ jobs:
         run: make run-acceptance
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: |
           devservices logs
 

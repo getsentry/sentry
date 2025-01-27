@@ -69,7 +69,7 @@ jobs:
           yarn add ts-node && make test-api-docs
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: devservices logs
 
   backend-test:
@@ -110,7 +110,7 @@ jobs:
           make test-python-ci
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: devservices logs
 
       - name: Collect test data
@@ -158,7 +158,7 @@ jobs:
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: devservices logs
 
       # Upload coverage data even if running the tests step fails since
@@ -194,7 +194,7 @@ jobs:
           make test-cli
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: devservices logs
 
       # Upload coverage data even if running the tests step fails since
@@ -267,7 +267,7 @@ jobs:
           ./.github/workflows/scripts/migration-check.sh
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: devservices logs
 
   monolith-dbs:
@@ -294,7 +294,7 @@ jobs:
           make test-monolith-dbs
 
       - name: Inspect failure
-        if: failure()
+        if: failure() && command -v devservices
         run: devservices logs
 
       - name: Collect test data
