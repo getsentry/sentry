@@ -215,7 +215,7 @@ def fetch_items_from_tempest(
     offset: int,
     limit: int = POLL_LIMIT,
     attach_screenshot: bool = False,
-    time_out: int = 120,
+    time_out: int = 235,
 ) -> Response:
     payload = {
         "org_id": org_id,
