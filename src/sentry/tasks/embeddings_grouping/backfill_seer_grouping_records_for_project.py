@@ -73,7 +73,7 @@ def backfill_seer_grouping_records_for_project(
         )
         if not cohort:
             logger.info(
-                "reached the end of the projects in cohort",
+                "backfill_seer_grouping_records.cohort_finished",
                 extra={
                     "worker_number": worker_number,
                 },
@@ -89,7 +89,7 @@ def backfill_seer_grouping_records_for_project(
         return
 
     logger.info(
-        "backfill_seer_grouping_records",
+        "backfill_seer_grouping_records.task_start",
         extra={
             "current_project_id": current_project_id,
             "last_processed_group_id": last_processed_group_id_input,
@@ -228,9 +228,7 @@ def backfill_seer_grouping_records_for_project(
             "project_id": project.id,
             "error": e.message,
         }
-        logger.exception(
-            "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception", extra=extra
-        )
+        logger.exception("backfill_seer_grouping_records.bulk_event_lookup_exception", extra=extra)
         group_hashes_dict = {}
 
     if not group_hashes_dict:
@@ -332,7 +330,7 @@ def call_next_backfill(
         # call the backfill on next project
         if not cohort:
             logger.info(
-                "backfill finished, no cohort",
+                "backfill_seer_grouping_records.single_project_backfill_finished",
                 extra={"project_id": project_id},
             )
             return
@@ -345,7 +343,7 @@ def call_next_backfill(
 
         if batch_project_id is None and worker_number is None:
             logger.info(
-                "reached the end of the project list",
+                "backfill_seer_grouping_records.project_list_end",
                 extra={
                     "cohort_name": cohort,
                     "last_processed_project_index": last_processed_project_index,

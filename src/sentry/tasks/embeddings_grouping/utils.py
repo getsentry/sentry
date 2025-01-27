@@ -70,7 +70,7 @@ class GroupStacktraceData(TypedDict):
 def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project):
     if not snuba_results or not snuba_results[0].get("data"):
         logger.info(
-            "tasks.backfill_seer_grouping_records.results",
+            "backfill_seer_grouping_records.results",
             extra={
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
@@ -88,7 +88,7 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
             groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
         else:
             logger.info(
-                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                "backfill_seer_grouping_records.no_snuba_event",
                 extra={
                     "organization_id": project.organization.id,
                     "project_id": project.id,
@@ -327,7 +327,7 @@ def _make_snuba_call(project, snuba_requests, referrer):
             "error": message,
         }
         logger.exception(
-            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
+            "backfill_seer_grouping_records.snuba_query_limit_exceeded",
             extra=extra,
         )
         raise
@@ -343,7 +343,7 @@ def get_events_from_nodestore(
     # If nodestore returns no data
     if len(nodestore_events) == 0:
         logger.info(
-            "tasks.backfill_seer_grouping_records.no_data",
+            "backfill_seer_grouping_records.no_data",
             extra={
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
@@ -551,7 +551,7 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
                     delete_seer_grouping_records_by_hash.delay(project.id, [parent_hash])
 
                 logger.exception(
-                    "tasks.backfill_seer_grouping_records.invalid_parent_group",
+                    "backfill_seer_grouping_records.invalid_parent_group",
                     extra={
                         "project_id": project.id,
                         "group_id": group.id,
@@ -664,7 +664,7 @@ def lookup_group_data_stacktrace_bulk(
                             "event_id": event_id,
                         }
                         logger.error(
-                            "tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra
+                            "backfill_seer_grouping_records.event_lookup_error", extra=extra
                         )
                         continue
                     event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
