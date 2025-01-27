@@ -53,6 +53,7 @@ export function ToolbarSaveAs() {
     onAction: () => {
       trackAnalytics('trace_explorer.save_as', {
         save_type: 'alert',
+        ui_source: 'toolbar',
         organization,
       });
     },
@@ -90,6 +91,7 @@ export function ToolbarSaveAs() {
 
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'dashboard',
+            ui_source: 'toolbar',
             organization,
           });
           return addToDashboard(index);
@@ -118,6 +120,7 @@ export function ToolbarSaveAs() {
 
         trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',
+          ui_source: 'toolbar',
           organization,
         });
         return addToDashboard(0);

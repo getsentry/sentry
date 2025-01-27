@@ -100,6 +100,7 @@ export type TracingEventParameters = {
   'trace_explorer.remove_span_condition': {};
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard';
+    ui_source: 'toolbar' | 'chart';
   };
   'trace_explorer.search_failure': {
     error: string;
