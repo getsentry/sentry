@@ -11,12 +11,17 @@ export interface WidgetLayoutProps {
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
+  forceShowActions?: boolean;
   height?: number;
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
   return (
-    <Frame aria-label={props.ariaLabel} height={props.height}>
+    <Frame
+      aria-label={props.ariaLabel}
+      height={props.height}
+      forceShowActions={props.forceShowActions}
+    >
       <Header>
         {props.Title && <Fragment>{props.Title}</Fragment>}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
@@ -43,7 +48,7 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')<{height?: number}>`
+const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -66,12 +71,14 @@ const Frame = styled('div')<{height?: number}>`
     box-shadow: ${p => p.theme.dropShadowLight};
   }
 
-  &:not(:hover):not(:focus-within) {
+  ${p =>
+    !p.forceShowActions &&
+    `&:not(:hover):not(:focus-within) {
     ${TitleHoverItems} {
       opacity: 0;
-      ${p => p.theme.visuallyHidden}
+      ${p.theme.visuallyHidden}
     }
-  }
+  }`}
 `;
 
 const Header = styled('div')`
