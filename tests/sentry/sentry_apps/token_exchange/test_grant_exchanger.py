@@ -3,13 +3,13 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -39,35 +39,35 @@ class TestGrantExchanger(TestCase):
         other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.grant_exchanger.run()
 
     def test_request_user_owns_api_grant(self):
         self.grant_exchanger.user = self.create_user()
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.grant_exchanger.run()
 
     def test_grant_must_be_active(self):
         self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.grant_exchanger.run()
 
     def test_grant_must_exist(self):
         self.grant_exchanger.code = "123"
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.grant_exchanger.run()
 
     @patch("sentry.models.ApiGrant.application", side_effect=ApiApplication.DoesNotExist)
     def test_application_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.grant_exchanger.run()
 
     @patch("sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist)
     def test_sentry_app_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.grant_exchanger.run()
 
     def test_deletes_grant_on_successful_exchange(self):

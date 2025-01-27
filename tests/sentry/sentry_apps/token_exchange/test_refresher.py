@@ -2,13 +2,13 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.refresher import Refresher
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -50,22 +50,22 @@ class TestRefresher(TestCase):
         assert refresh_token is not None
         self.refresher.refresh_token = refresh_token
 
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.refresher.run()
 
     @patch("sentry.models.ApiToken.objects.get", side_effect=ApiToken.DoesNotExist)
     def test_token_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.refresher.run()
 
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
     def test_api_application_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.refresher.run()
 
     @patch("sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist)
     def test_sentry_app_must_exist(self, _):
-        with pytest.raises(APIUnauthorized):
+        with pytest.raises(SentryAppIntegratorError):
             self.refresher.run()
 
     @patch("sentry.analytics.record")
