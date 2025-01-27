@@ -11,7 +11,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
-import IssueList from 'sentry/views/issueList/overview';
+import IssueList from 'sentry/views/issueList/overviewFc';
 
 jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () =>
@@ -37,7 +37,7 @@ describe('IssueList -> Polling', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps, router} = initializeOrg({
+  const {organization, project, routerProps} = initializeOrg({
     organization: {
       access: ['project:releases'],
     },
@@ -63,7 +63,13 @@ describe('IssueList -> Polling', function () {
   /* helpers */
   const renderComponent = async () => {
     render(<IssueList {...routerProps} {...defaultProps} />, {
-      router,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {query: 'is:unresolved'},
+        },
+      },
     });
 
     await Promise.resolve();

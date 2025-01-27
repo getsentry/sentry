@@ -30,7 +30,6 @@ import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
@@ -43,6 +42,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -152,6 +152,7 @@ const parsePageQueryParam = (location: Location, defaultPage: number = 0) => {
 function IssueListOverviewFc({router}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -554,14 +555,15 @@ function IssueListOverviewFc({router}: Props) {
               redirect = `/organizations/${organization.slug}/issues/${id}/`;
             }
 
-            browserHistory.replace(
+            navigate(
               normalizeUrl({
                 pathname: redirect,
                 query: {
                   referrer: 'issue-list',
                   ...extractSelectionParameters(location.query),
                 },
-              })
+              }),
+              {replace: true}
             );
             return;
           }
@@ -627,15 +629,16 @@ function IssueListOverviewFc({router}: Props) {
       });
     },
     [
-      api,
-      fetchCounts,
-      fetchStats,
-      query,
-      sort,
-      location.query,
-      organization,
       realtimeActive,
+      sort,
+      api,
+      organization,
       requestParams,
+      fetchStats,
+      fetchCounts,
+      navigate,
+      location.query,
+      query,
       resumePolling,
     ]
   );
@@ -822,7 +825,7 @@ function IssueListOverviewFc({router}: Props) {
     }
 
     if (path !== location.pathname || !isEqual(query, location.query)) {
-      browserHistory.push({
+      navigate({
         pathname: normalizeUrl(path),
         query: queryData,
       });
