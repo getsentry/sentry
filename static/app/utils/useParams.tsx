@@ -15,6 +15,7 @@ type ParamKeys =
   | 'appId'
   | 'appSlug'
   | 'authId'
+  | 'codeId'
   | 'dataExportId'
   | 'eventId'
   | 'fineTuneType'
