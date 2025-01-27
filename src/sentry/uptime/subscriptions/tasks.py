@@ -32,6 +32,8 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     except UptimeSubscription.DoesNotExist:
         metrics.incr("uptime.subscriptions.create.subscription_does_not_exist", sample_rate=1.0)
         return
+
+    # May happen if a uptime subscription was created and then immediately disabled
     if subscription.status != UptimeSubscription.Status.CREATING.value:
         metrics.incr("uptime.subscriptions.create.incorrect_status", sample_rate=1.0)
         return

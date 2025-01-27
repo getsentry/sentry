@@ -6,6 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -223,6 +224,25 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         uptime_monitor.refresh_from_db()
         assert resp.data == serialize(uptime_monitor, self.user)
         assert uptime_monitor.status == ObjectStatus.ACTIVE
+
+    @mock.patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=False, reason="Assignment failed in test"),
+    )
+    def test_status_enable_no_seat_assignment(self, _mock_check_assign_seat):
+        uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
+        resp = self.get_error_response(
+            self.organization.slug,
+            uptime_monitor.project.slug,
+            uptime_monitor.id,
+            name="test_2",
+            status="active",
+        )
+
+        # Monitor was not enabled
+        uptime_monitor.refresh_from_db()
+        assert uptime_monitor.status == ObjectStatus.DISABLED
+        assert resp.data == [ErrorDetail(string="Assignment failed in test", code="invalid")]
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
