@@ -134,8 +134,24 @@ class BaseRequestParser(ABC):
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
     ) -> Mapping[str, RegionResult]:
-        """
-        Used to handle the requests on a given list of regions (synchronously).
+        self.ensure_control_silo()
+        
+        if not regions:
+            logger.info(
+                "integration.regions.empty",
+                extra={
+                    "provider": self.provider,
+                    "path": self.request.path,
+                }
+            )
+            return {
+                "default": RegionResult(
+                    response=self.get_default_missing_integration_response()
+                )
+            }
+
+        region_to_response_map = {}
+
         Returns a mapping of region name to response/exception.
         """
         self.ensure_control_silo()
@@ -296,20 +312,28 @@ class BaseRequestParser(ABC):
                 }
             )
             if not integration:
-                integration = self.get_integration_from_request()
-            if not integration:
-                raise Integration.DoesNotExist()
+                try:
+                    integration = self.get_integration_from_request()
+                except Exception as e:
+                    logger.info(
+                        "integration.request.invalid",
+                        extra={
+                            "error": str(e),
+                            "provider": self.provider,
+                        }
+                    )
+                    return []
+
+            is_valid, error_message = self._check_integration_status(integration)
+            if not is_valid:
+                logger.info(
+                    "integration.status.invalid",
+                    extra={"error": error_message, "integration_id": integration.id}
+                )
+                return []
 
             lifecycle.add_extra("integration_id", integration.id)
-
-            organization_integrations = OrganizationIntegration.objects.filter(
-                integration_id=integration.id,
-                status=ObjectStatus.ACTIVE,
-            )
-
-            if organization_integrations.count() == 0:
-                raise OrganizationIntegration.DoesNotExist()
-
+            organization_integrations = OrganizationIntegration.objects.filter(integration_id=integration.id, status=ObjectStatus.ACTIVE)
             organization_ids = [oi.organization_id for oi in organization_integrations]
             return organization_mapping_service.get_many(organization_ids=organization_ids)
 
@@ -319,11 +343,50 @@ class BaseRequestParser(ABC):
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
         """
-        if not organizations:
-            organizations = self.get_organizations_from_integration()
+
+    def get_default_missing_integration_response(self) -> HttpResponse:
+        return HttpResponse(
+            status=400,
+            content={
+                "error": "integration_not_found",
+                "detail": "No active integration found for this request",
+                "provider": self.provider,
+            },
+        )
 
         region_names = find_regions_for_orgs([org.id for org in organizations])
         return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)
+
+    def _check_integration_status(self, integration: Integration | RpcIntegration) -> tuple[bool, str]:
+        """
+        Check if the integration and its organization links are valid.
+        Returns (is_valid, error_message)
+        """
+        if not integration:
+            return False, "Integration not found"
+
+        if integration.status != ObjectStatus.ACTIVE:
+            return False, f"Integration {integration.id} is not active"
+
+        organization_integrations = OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+        )
+
+        if organization_integrations.count() == 0:
+            return False, f"No organizations found for integration {integration.id}"
+
+        active_integrations = organization_integrations.filter(
+            status=ObjectStatus.ACTIVE,
+        )
+
+        if active_integrations.count() == 0:
+            return False, f"No active organization links found for integration {integration.id}"
+
+        return True, ""
+
+    def get_organizations_from_integration(
+        self, integration: Integration | RpcIntegration | None = None
+    ) -> Sequence[RpcOrganizationSummary]:
