@@ -338,6 +338,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert open_period["isOpen"] is True
         assert open_period["lastChecked"] > time
 
+
 class GroupUpdateTest(APITestCase):
     def test_resolve(self) -> None:
         self.login_as(user=self.user)
