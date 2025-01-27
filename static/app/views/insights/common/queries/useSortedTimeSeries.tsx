@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import type {Series} from 'sentry/types/echarts';
 import type {
   Confidence,
@@ -22,6 +24,10 @@ import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from '../../../dashboards/utils/isEventsStats';
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
 type SeriesMap = {
@@ -105,9 +111,9 @@ export const useSortedTimeSeries = <
 
   const isFetchingOrLoading = result.isPending || result.isFetching;
 
-  const data: SeriesMap = isFetchingOrLoading
-    ? {}
-    : transformToSeriesMap(result.data, yAxis);
+  const data: SeriesMap = useMemo(() => {
+    return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis);
+  }, [isFetchingOrLoading, result.data, yAxis]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -118,22 +124,6 @@ export const useSortedTimeSeries = <
     meta: result.data?.meta,
   };
 };
-
-export function isEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is EventsStats {
-  return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
-}
-
-function isMultiSeriesEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is MultiSeriesEventsStats {
-  if (typeof obj !== 'object' || obj === null) {
-    return false;
-  }
-
-  return Object.values(obj).every(series => isEventsStats(series));
-}
 
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
@@ -170,7 +160,7 @@ export function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[series.seriesName] = [series];
         return acc;
       }, {});
@@ -180,9 +170,13 @@ export function transformToSeriesMap(
   // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
   // to enable sorting.
   const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
-  Object.keys(result).forEach(seriesName => {
-    const {order: groupOrder, ...groupData} = result[seriesName]!;
-    processedResults.push([seriesName, groupOrder || 0, groupData]);
+  Object.keys(result).forEach(groupName => {
+    const {order: groupOrder, ...groupData} = result[groupName]!;
+    processedResults.push([
+      groupName,
+      groupOrder || 0,
+      groupData as MultiSeriesEventsStats,
+    ]);
   });
 
   return processedResults
@@ -212,7 +206,7 @@ function processSingleEventStats(
   if (seriesName) {
     const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   }
 

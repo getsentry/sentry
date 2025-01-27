@@ -75,7 +75,7 @@ export function NativeContent({
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         indexMap[frameIdx] = false;
       }
     });
@@ -89,7 +89,7 @@ export function NativeContent({
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         countMap[frameIdx] = count;
         count = 0;
       } else {
@@ -177,6 +177,9 @@ export function NativeContent({
     0
   );
 
+  const firstInAppFrameIndex = frames[newestFirst ? 'findLastIndex' : 'findIndex'](
+    frame => frame.inApp
+  );
   let convertedFrames = frames
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
@@ -222,6 +225,7 @@ export function NativeContent({
           isHoverPreviewed,
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
+          isFirstInAppFrame: firstInAppFrameIndex === frameIndex,
           isUsedForGrouping,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
