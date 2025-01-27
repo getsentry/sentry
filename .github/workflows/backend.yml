@@ -108,11 +108,6 @@ jobs:
           use-new-devservices: true
           mode: backend-ci
 
-      - name: Test failure
-        run: |
-          echo "test failure"
-          exit 1
-
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
