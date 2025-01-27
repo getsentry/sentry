@@ -446,7 +446,7 @@ export function renderTraceAsLinkable(widget?: Widget) {
       organization,
       traceSlug: String(data.trace),
       dateSelection,
-      timestamp: getTimeStampFromTableDateField(data.timestamp),
+      timestamp: getTimeStampFromTableDateField(data['max(timestamp)'] ?? data.timestamp),
       location: widget
         ? {
             ...location,
