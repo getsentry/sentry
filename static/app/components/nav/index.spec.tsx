@@ -159,19 +159,12 @@ describe('Nav', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       const links = within(container).getAllByRole('link');
-      expect(links).toHaveLength(8);
-      [
-        'Traces',
-        'Logs',
-        'Metrics',
-        'Profiles',
-        'Replays',
-        'Discover',
-        'Releases',
-        'Crons',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      expect(links).toHaveLength(7);
+      ['Traces', 'Logs', 'Profiles', 'Replays', 'Discover', 'Releases', 'Crons'].forEach(
+        (title, index) => {
+          expect(links[index]).toHaveAccessibleName(title);
+        }
+      );
     });
   });
 

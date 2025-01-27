@@ -557,7 +557,6 @@ describe('Dashboards > Detail', function () {
         'Transactions',
         'Issues',
         'Releases',
-        'Metrics',
       ]);
     });
 
@@ -593,7 +592,6 @@ describe('Dashboards > Detail', function () {
         'Errors and Transactions',
         'Issues',
         'Releases',
-        'Metrics',
       ]);
     });
 

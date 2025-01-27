@@ -374,14 +374,13 @@ describe('Sidebar', function () {
       });
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(25);
+      expect(links).toHaveLength(24);
 
       [
         'Issues',
         'Projects',
         /Explore/,
         /Traces/,
-        /Metrics/,
         'Profiles',
         'Replays',
         'Discover',
