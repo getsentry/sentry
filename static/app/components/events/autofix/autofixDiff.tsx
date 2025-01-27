@@ -578,22 +578,20 @@ export function AutofixDiff({
   }
 
   return (
-    <div>
-      <DiffsColumn>
-        {diff.map(file => (
-          <FileDiff
-            key={file.path}
-            file={file}
-            groupId={groupId}
-            runId={runId}
-            repoId={repoId}
-            editable={editable}
-            previousDefaultStepIndex={previousDefaultStepIndex}
-            previousInsightCount={previousInsightCount}
-          />
-        ))}
-      </DiffsColumn>
-    </div>
+    <DiffsColumn>
+      {diff.map(file => (
+        <FileDiff
+          key={file.path}
+          file={file}
+          groupId={groupId}
+          runId={runId}
+          repoId={repoId}
+          editable={editable}
+          previousDefaultStepIndex={previousDefaultStepIndex}
+          previousInsightCount={previousInsightCount}
+        />
+      ))}
+    </DiffsColumn>
   );
 }
 
