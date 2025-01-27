@@ -4,10 +4,12 @@ from rest_framework.response import Response
 from sentry import deletions
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.utils.errors import SentryAppError
 
 
 @region_silo_endpoint
@@ -24,7 +26,9 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
                 service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
-            return Response(status=404)
+            raise SentryAppError(
+                ResourceDoesNotExist("Could not find the given external issue"), status_code=404
+            )
 
         deletions.exec_sync(platform_external_issue)
 

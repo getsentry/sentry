@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -16,6 +17,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
+from sentry.sentry_apps.utils.errors import SentryAppError
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -40,7 +42,9 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
-            return Response(status=404)
+            raise SentryAppError(
+                ResourceDoesNotExist("Could not find issue from given groupId"), status_code=404
+            )
 
         serializer = PlatformExternalIssueSerializer(data=request.data)
         if serializer.is_valid():

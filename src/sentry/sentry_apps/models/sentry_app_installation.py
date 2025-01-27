@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, overload
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
-from jsonschema import ValidationError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
@@ -19,6 +18,7 @@ from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.projects.services.project import RpcProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
@@ -230,7 +230,6 @@ def prepare_ui_component(
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | RpcSentryAppComponent | None:
-    from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer
 
     if values is None:
@@ -240,6 +239,7 @@ def prepare_ui_component(
             component=component, install=installation, project_slug=project_slug, values=values
         ).run()
         return component
-    except (APIError, ValidationError):
+    except (SentryAppIntegratorError, SentryAppError):
         # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
+        # TODO(christinarlong): Alert 3p that their component is failing
         return None

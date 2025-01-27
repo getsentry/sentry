@@ -12,6 +12,7 @@ from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 
 
 @dataclass
@@ -34,7 +35,7 @@ class AlertRuleActionCreator:
 
     def _make_external_request(self, uri=None):
         if uri is None:
-            raise APIError("Sentry App request url not found")
+            raise SentryAppIntegratorError(APIError("Sentry App request url not found"))
         response = AlertRuleActionRequester(
             install=self.install,
             uri=uri,

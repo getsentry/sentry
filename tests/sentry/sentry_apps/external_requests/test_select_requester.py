@@ -1,10 +1,9 @@
 import pytest
 import responses
-from jsonschema import ValidationError
 
-from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -70,7 +69,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(SentryAppIntegratorError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -91,7 +90,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(SentryAppIntegratorError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -107,7 +106,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(APIError):
+        with pytest.raises(SentryAppIntegratorError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -130,7 +129,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(APIError) as exception_info:
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -138,7 +137,7 @@ class TestSelectRequester(TestCase):
             ).run()
         assert (
             str(exception_info.value)
-            == f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+            == f"Something went wrong while fetching Select FormField options from {self.sentry_app.slug}"
         )
 
     @responses.activate
@@ -152,7 +151,7 @@ class TestSelectRequester(TestCase):
             status=200,
         )
 
-        with pytest.raises(ValidationError) as exception_info:
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -161,11 +160,12 @@ class TestSelectRequester(TestCase):
 
         assert (
             str(exception_info.value)
-            == f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {uri}"
+            == f"Invalid response format for Select FormField options in {self.sentry_app.slug} from uri: {uri}"
         )
 
     @responses.activate
     def test_validation_error_message_missing_field(self):
+        uri = "/get-issues"
         responses.add(
             method=responses.GET,
             url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
@@ -173,13 +173,14 @@ class TestSelectRequester(TestCase):
             status=200,
         )
 
-        with pytest.raises(ValidationError) as exception_info:
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
-                uri="/get-issues",
+                uri=uri,
             ).run()
 
         assert (
-            str(exception_info.value) == "Missing `value` or `label` in option data for SelectField"
+            str(exception_info.value)
+            == f"Missing `value` or `label` in options data for uri: {uri}"
         )
