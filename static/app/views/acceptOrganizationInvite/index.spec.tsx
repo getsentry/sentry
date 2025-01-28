@@ -60,7 +60,7 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton!);
     expect(acceptMock).toHaveBeenCalled();
-    expect(router.replace).toHaveBeenCalledWith('/org-slug/');
+    expect(window.location.href).toBe('/org-slug/');
   });
 
   it('can accept invitation on customer-domains', async function () {
@@ -100,7 +100,7 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton!);
     expect(acceptMock).toHaveBeenCalled();
-    expect(router.replace).toHaveBeenCalledWith('/org-slug/');
+    expect(window.location.href).toBe('/org-slug/');
   });
 
   it('renders error message', function () {

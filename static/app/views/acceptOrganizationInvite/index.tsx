@@ -13,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
@@ -85,7 +84,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncComponent<Props, State> {
           method: 'POST',
         });
       }
-      browserHistory.replace(`/${this.state.inviteDetails.orgSlug}/`);
+      // This forces a hard refresh, needed for the app to refetch the initial config
+      // Please see https://github.com/getsentry/sentry/blob/5f1fef10806db1d4d048912702f5c12cb38c2c08/static/app/bootstrap/index.tsx#L20
+      window.location.href = `/${this.state.inviteDetails.orgSlug}/`;
     } catch {
       this.setState({acceptError: true});
     }

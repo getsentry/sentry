@@ -141,6 +141,12 @@ function App({children, params}: Props) {
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
+    // Skip loading organization-related data before the user is logged in,
+    // because it triggers a 401 error in the UI.
+    if (!config.shouldPreloadData) {
+      return undefined;
+    }
+
     loadOrganizations();
     checkInternalHealth();
 
@@ -169,7 +175,13 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, user]);
+  }, [
+    loadOrganizations,
+    checkInternalHealth,
+    config.messages,
+    user,
+    config.shouldPreloadData,
+  ]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -237,6 +249,18 @@ function App({children, params}: Props) {
     return children;
   }
 
+  const renderOrganizationContextProvider = useCallback(
+    (content: React.ReactNode) => {
+      // Skip loading organization-related data before the user is logged in,
+      // because it triggers a 401 error in the UI.
+      if (!config.shouldPreloadData) {
+        return content;
+      }
+      return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
+    },
+    [config.shouldPreloadData]
+  );
+
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
@@ -245,7 +269,7 @@ function App({children, params}: Props) {
     <Profiler id="App" onRender={onRenderCallback}>
       <LastKnownRouteContextProvider>
         <RouteAnalyticsContextProvider>
-          <OrganizationContextProvider>
+          {renderOrganizationContextProvider(
             <AsyncSDKIntegrationContextProvider>
               <GlobalFeedbackForm>
                 <GlobalDrawer>
@@ -258,7 +282,7 @@ function App({children, params}: Props) {
                 </GlobalDrawer>
               </GlobalFeedbackForm>
             </AsyncSDKIntegrationContextProvider>
-          </OrganizationContextProvider>
+          )}
         </RouteAnalyticsContextProvider>
       </LastKnownRouteContextProvider>
     </Profiler>
