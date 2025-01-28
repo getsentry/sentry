@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
 import {
   isNavItemActive,
-  isSubmenuItemActive,
   makeLinkPropsFromTo,
   type NavSidebarItem,
   resolveNavItemTo,
@@ -18,12 +17,10 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconLightning,
-  IconProject,
   IconQuestion,
   IconSearch,
   IconSettings,
-  IconSiren,
+  IconStats,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -107,7 +104,6 @@ function SidebarMenu({item, children, onClick}: SidebarItemProps) {
 function SidebarLink({children, item, onClick}: SidebarItemProps) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
   const to = resolveNavItemTo(item);
   if (!to) {
     throw new Error(
@@ -120,10 +116,10 @@ function SidebarLink({children, item, onClick}: SidebarItemProps) {
     <NavLink
       {...linkProps}
       onClick={onClick}
-      className={isActive || isSubmenuActive ? 'active' : undefined}
+      className={isActive ? 'active' : undefined}
       aria-current={isActive ? 'page' : undefined}
     >
-      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+      <InteractionStateLayer hasSelectedBackground={isActive} />
       {children}
     </NavLink>
   );
@@ -146,43 +142,12 @@ export function PrimaryNavigationItems() {
         />
         <SidebarItem
           item={{
-            label: t('Projects'),
-            icon: <IconProject />,
-            analyticsKey: 'projects',
-            to: `/${prefix}/projects/`,
-          }}
-        />
-        <SidebarItem
-          item={{
             label: t('Explore'),
             icon: <IconSearch />,
             analyticsKey: 'explore',
             to: `/${prefix}/traces/`,
           }}
         />
-        <Feature features={['performance-view']}>
-          <SidebarItem
-            item={{
-              label: t('Insights'),
-              icon: <IconGraph />,
-              analyticsKey: 'insights-domains',
-              to: `/${prefix}/insights/frontend/`,
-            }}
-          />
-        </Feature>
-        <Feature
-          features={['performance-view']}
-          hookName="feature-disabled:performance-sidebar-item"
-        >
-          <SidebarItem
-            item={{
-              label: t('Perf.'),
-              icon: <IconLightning />,
-              analyticsKey: 'performance',
-              to: `/${prefix}/performance/`,
-            }}
-          />
-        </Feature>
         <Feature
           features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
           hookName="feature-disabled:dashboards-sidebar-item"
@@ -197,14 +162,16 @@ export function PrimaryNavigationItems() {
             }}
           />
         </Feature>
-        <SidebarItem
-          item={{
-            label: t('Alerts'),
-            icon: <IconSiren />,
-            analyticsKey: 'alerts',
-            to: `/${prefix}/alerts/rules/`,
-          }}
-        />
+        <Feature features={['performance-view']}>
+          <SidebarItem
+            item={{
+              label: t('Insights'),
+              icon: <IconGraph />,
+              analyticsKey: 'insights-domains',
+              to: `/${prefix}/insights/frontend/`,
+            }}
+          />
+        </Feature>
       </SidebarBody>
       <SidebarFooter>
         <SidebarItem
@@ -236,6 +203,14 @@ export function PrimaryNavigationItems() {
                 to: `mailto:${ConfigStore.get('supportEmail')}`,
               },
             ],
+          }}
+        />
+        <SidebarItem
+          item={{
+            label: t('Stats'),
+            icon: <IconStats />,
+            analyticsKey: 'stats',
+            to: `/${prefix}/stats/`,
           }}
         />
         <SidebarItem
