@@ -80,8 +80,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
 
-  // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-  const formatSeriesName: (string) => string = name => {
+  const formatSeriesName: (string: string) => string = name => {
     return props.aliases?.[name] ?? name;
   };
 
