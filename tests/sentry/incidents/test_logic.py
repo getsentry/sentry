@@ -76,6 +76,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
@@ -396,7 +397,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
-        assert alert_rule.snuba_query is not None
         if alert_rule.snuba_query.subscriptions.exists():
             assert alert_rule.snuba_query.subscriptions.get().project == self.project
             assert alert_rule.snuba_query.subscriptions.all().count() == 1
@@ -433,7 +433,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             resolve_threshold=resolve_threshold,
             event_types=event_types,
         )
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.user_id is None
@@ -472,7 +471,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             resolve_threshold=resolve_threshold,
             event_types=event_types,
         )
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.user_id is None
@@ -532,7 +530,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             comparison_delta=comparison_delta,
             detection_type=AlertRuleDetectionType.PERCENT,
         )
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
         assert (
@@ -552,7 +549,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.PerformanceMetrics,
         )
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
@@ -589,7 +585,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Metrics,
         )
 
-        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
@@ -613,7 +608,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
-        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -648,7 +642,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.sensitivity == self.dynamic_metric_alert_settings["sensitivity"]
         assert alert_rule.seasonality == self.dynamic_metric_alert_settings["seasonality"]
         assert alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
@@ -859,7 +852,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == ""
 
     def test_delete_projects(self):
@@ -873,7 +865,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_alert_rule(alert_rule, projects=[self.project])
         # NOTE: subscribing alert rule to projects creates a new subscription per project
-        assert alert_rule.snuba_query is not None
         subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert subscriptions.count() == 1
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
@@ -889,13 +880,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         project_updates = [self.project, new_project]
         with self.tasks():
             update_alert_rule(alert_rule, projects=project_updates, query=query_update)
-        assert alert_rule.snuba_query is not None
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         updated_projects = alert_rule.projects.all()
         assert {sub.project for sub in updated_subscriptions} == set(project_updates)
         assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
-            assert sub.snuba_query is not None
             assert sub.snuba_query.query == query_update
 
     def test_with_attached_incident(self):
@@ -943,7 +932,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert rule_snapshot.id != updated_rule.id
             assert rule_snapshot.snuba_query_id != updated_rule.snuba_query_id
             assert rule_snapshot.name == updated_rule.name
-            assert rule_snapshot.snuba_query is not None
             assert rule_snapshot.snuba_query.query == "level:error"
             assert rule_snapshot.snuba_query.time_window == 600
             assert rule_snapshot.threshold_type == AlertRuleThresholdType.ABOVE.value
@@ -1074,7 +1062,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.PerformanceMetrics,
         )
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
@@ -1116,7 +1103,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Metrics,
         )
 
-        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
@@ -1124,7 +1110,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         time_window = 90
         updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
-        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
@@ -1148,7 +1133,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
-        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1159,7 +1143,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         time_window = 90
         updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
 
-        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1185,10 +1168,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.resolution == 1800
         updated_alert_rule = update_alert_rule(alert_rule, comparison_delta=90)
-        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1214,13 +1195,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.resolution == 1800
         time_window = 30
         updated_alert_rule = update_alert_rule(
             alert_rule, time_window=time_window, comparison_delta=90
         )
-        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1420,7 +1399,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=60,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
-        assert dynamic_rule.snuba_query is not None
         snuba_query = SnubaQuery.objects.get(id=dynamic_rule.snuba_query_id)
         assert dynamic_rule.snuba_query.resolution == 60 * 60
         assert mock_seer_request.call_count == 1
@@ -2136,14 +2114,12 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
             disable_alert_rule(self.alert_rule)
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
-            assert alert_rule.snuba_query is not None
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
 
             enable_alert_rule(self.alert_rule)
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.PENDING.value
-            assert alert_rule.snuba_query is not None
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
@@ -2158,7 +2134,6 @@ class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
             disable_alert_rule(self.alert_rule)
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
             assert alert_rule.status == AlertRuleStatus.DISABLED.value
-            assert alert_rule.snuba_query is not None
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
 
@@ -2545,7 +2520,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         channel_id = "channel-id"
         responses.add(
             method=responses.GET,
-            url=f"https://discord.com/api/v10/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json=metadata,
         )
         action = create_alert_rule_trigger_action(
@@ -2842,7 +2817,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_opsgenie(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
@@ -2889,7 +2864,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_opsgenie_not_existing(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         integration, _ = self.create_provider_integration_for(
@@ -2916,7 +2891,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2938,7 +2912,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -2962,7 +2936,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_invalid_channel_id(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "****bad****"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2982,7 +2955,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        responses.add(method=responses.GET, url=f"{base_url}/channels/{channel_id}", status=404)
+        responses.add(
+            method=responses.GET, url=f"{DISCORD_BASE_URL}/channels/{channel_id}", status=404
+        )
 
         with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
@@ -2995,7 +2970,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_bad_response(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3016,7 +2990,10 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
-            method=responses.GET, url=f"{base_url}/channels/{channel_id}", body="Error", status=500
+            method=responses.GET,
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
+            body="Error",
+            status=500,
         )
 
         with pytest.raises(InvalidTriggerActionError):
@@ -3047,7 +3024,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_discord_timeout(self, mock_validate_channel_id):
         mock_validate_channel_id.side_effect = ApiTimeoutError("Discord channel lookup timed out")
 
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3069,7 +3045,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -3087,7 +3063,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_channel_not_in_guild(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3109,7 +3084,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": "other-guild",
                 "name": f"{guild_name}",
@@ -3128,7 +3103,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_unsupported_type(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3150,7 +3124,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -3171,7 +3145,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_supported_priority(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}

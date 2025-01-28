@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 import urllib3
 
+from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -747,12 +748,28 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "field": ["environment", "count()"],
                 "project": self.project.id,
                 "environment": "prod",
+                "orderby": "environment",
                 "dataset": self.dataset,
             }
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {"environment": "prod", "count()": 1},
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["environment", "count()"],
+                "project": self.project.id,
+                "environment": ["prod", "test"],
+                "orderby": "environment",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"environment": "prod", "count()": 1},
+            {"environment": "test", "count()": 1},
         ]
 
     def test_transaction(self):
@@ -1035,6 +1052,114 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "count():>1 OR avg(measurements.lcp):>3000",
             ]
         )
+
+    def test_pagination_samples(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "a"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "b"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "a",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        assert links["next"]["href"] is not None
+        response = self.client.get(links["next"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "b",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+        assert links["previous"]["href"] is not None
+        response = self.client.get(links["previous"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "a",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+    def test_precise_timestamps(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["precise.start_ts", "precise.finish_ts"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        start = self.ten_mins_ago.timestamp()
+        finish = start + 1
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "precise.start_ts": start,
+                "precise.finish_ts": finish,
+            },
+        ]
 
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):

@@ -27,8 +27,8 @@ import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import IssueListContainer from 'sentry/views/issueList';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
+import {IssueNavigation} from 'sentry/views/issues/navigation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -1794,7 +1794,11 @@ function buildRoutes() {
   );
 
   const domainViewRoutes = (
-    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+    <Route
+      path={`/${DOMAIN_VIEW_BASE_URL}/`}
+      withOrgPath
+      component={make(() => import('sentry/views/insights/navigation'))}
+    >
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
@@ -1900,6 +1904,16 @@ function buildRoutes() {
     </Route>
   );
 
+  const exploreRoutes = (
+    <Route
+      path="/explore/"
+      component={make(() => import('sentry/views/explore/navigation'))}
+      withOrgPath
+    >
+      <Route path="logs" component={make(() => import('sentry/views/explore/logs'))} />
+    </Route>
+  );
+
   const userFeedbackRoutes = (
     <Route
       path="/user-feedback/"
@@ -1921,114 +1935,76 @@ function buildRoutes() {
     </Route>
   );
 
-  const issueListRoutes = (
-    <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
-      <IndexRoute component={errorHandler(OverviewWrapper)} />
-      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
-      {traceViewRoute}
-    </Route>
+  const issueTabs = (
+    <Fragment>
+      <IndexRoute
+        component={make(
+          () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+          <GroupEventDetailsLoading />
+        )}
+      />
+      <Route
+        path={TabPaths[Tab.REPLAYS]}
+        component={make(() => import('sentry/views/issueDetails/groupReplays'))}
+      />
+      <Route
+        path={TabPaths[Tab.ACTIVITY]}
+        component={make(() => import('sentry/views/issueDetails/groupActivity'))}
+      />
+      <Route
+        path={TabPaths[Tab.EVENTS]}
+        component={make(() => import('sentry/views/issueDetails/groupEvents'))}
+      />
+      <Route
+        path={TabPaths[Tab.OPEN_PERIODS]}
+        component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
+      />
+      <Route
+        path={TabPaths[Tab.TAGS]}
+        component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
+      />
+      <Route
+        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
+        component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
+      />
+      <Route
+        path={TabPaths[Tab.USER_FEEDBACK]}
+        component={make(() => import('sentry/views/issueDetails/groupUserFeedback'))}
+      />
+      <Route
+        path={TabPaths[Tab.ATTACHMENTS]}
+        component={make(() => import('sentry/views/issueDetails/groupEventAttachments'))}
+      />
+      <Route
+        path={TabPaths[Tab.SIMILAR_ISSUES]}
+        component={make(
+          () =>
+            import('sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab')
+        )}
+      />
+      <Route
+        path={TabPaths[Tab.MERGED]}
+        component={make(
+          () => import('sentry/views/issueDetails/groupMerged/groupMergedTab')
+        )}
+      />
+    </Fragment>
   );
 
-  // Once org issues is complete, these routes can be nested under
-  // /organizations/:orgId/issues
-  const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    const hoc = forCustomerDomain ? withDomainRequired : (x: any) => x;
-    return (
-      <Fragment>
-        <IndexRoute
-          component={hoc(
-            make(
-              () =>
-                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-              <GroupEventDetailsLoading />
-            )
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.REPLAYS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupReplays')))}
-        />
-        <Route
-          path={TabPaths[Tab.ACTIVITY]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupActivity')))}
-        />
-        <Route
-          path={TabPaths[Tab.EVENTS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
-        />
-        <Route
-          path={TabPaths[Tab.TAGS]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
-          )}
-        />
-        <Route
-          path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-          component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
-        />
-        <Route
-          path={TabPaths[Tab.USER_FEEDBACK]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupUserFeedback'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.ATTACHMENTS]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventAttachments'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.SIMILAR_ISSUES]}
-          component={hoc(
-            make(
-              () =>
-                import(
-                  'sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab'
-                )
-            )
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.MERGED]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupMerged/groupMergedTab'))
-          )}
-        />
-      </Fragment>
-    );
-  };
-  const issueDetailsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => (
-    <Fragment>
-      {issueTabs({forCustomerDomain})}
-      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
-        {issueTabs({forCustomerDomain})}
-      </Route>
-    </Fragment>
-  );
-  const issueDetailsRoutes = (
-    <Fragment>
+  const issueRoutes = (
+    <Route path="/issues" component={errorHandler(IssueNavigation)} withOrgPath>
+      <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
       <Route
-        path="/organizations/:orgId/issues/:groupId/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/issueDetails/groupDetails'))
-        )}
+        path=":groupId/"
+        component={make(() => import('sentry/views/issueDetails/groupDetails'))}
         key="org-issues-group-id"
       >
-        {issueDetailsChildRoutes({forCustomerDomain: false})}
+        {issueTabs}
+        <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
       </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/issues/:groupId/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/issueDetails/groupDetails'))
-          )}
-          key="orgless-issues-group-id-route"
-        >
-          {issueDetailsChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
-    </Fragment>
+      {traceViewRoute}
+    </Route>
   );
 
   // These are the "manage" pages. For sentry.io, these are _different_ from
@@ -2306,8 +2282,7 @@ function buildRoutes() {
       {dashboardRoutes}
       {userFeedbackRoutes}
       {feedbackv2Routes}
-      {issueListRoutes}
-      {issueDetailsRoutes}
+      {issueRoutes}
       {alertRoutes}
       {cronsRoutes}
       {replayRoutes}
@@ -2317,6 +2292,7 @@ function buildRoutes() {
       {performanceRoutes}
       {domainViewRoutes}
       {tracesRoutes}
+      {exploreRoutes}
       {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}

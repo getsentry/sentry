@@ -35,7 +35,7 @@ class Icon extends Component<Props, State> {
         size={size}
         src={this.state.imgSrc || undefined}
         onError={() => {
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
         }}
       />

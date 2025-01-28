@@ -25,6 +25,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -236,7 +237,7 @@ function WidgetBuilder({
   const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
 
@@ -316,6 +317,8 @@ function WidgetBuilder({
     trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
+      builder_version: WidgetBuilderVersion.PAGE,
+      from: source,
     });
 
     if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
@@ -547,16 +550,6 @@ function WidgetBuilder({
   function handleDisplayTypeOrAnnotationChange<
     F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    if (value) {
-      trackAnalytics('dashboards_views.widget_builder.change', {
-        from: source,
-        field,
-        value,
-        widget_type: widgetType,
-        organization,
-        new_widget: !isEditing,
-      });
-    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -579,6 +572,7 @@ function WidgetBuilder({
       widget_type: widgetType,
       organization,
       new_widget: !isEditing,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -589,7 +583,7 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
@@ -913,6 +907,7 @@ function WidgetBuilder({
         organization,
         data_set: widgetData.widgetType ?? defaultWidgetType,
         new_widget: false,
+        builder_version: WidgetBuilderVersion.PAGE,
       });
       return;
     }
@@ -924,6 +919,7 @@ function WidgetBuilder({
       organization,
       data_set: widgetData.widgetType ?? defaultWidgetType,
       new_widget: true,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
   }
 
@@ -1197,6 +1193,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.title}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'title',
+                                            value: '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                     <StyledTextAreaField
                                       name="description"
@@ -1213,6 +1223,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.description}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'description',
+                                            value: '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                   </NameWidgetStep>
                                   <VisualizationStep
@@ -1227,6 +1251,18 @@ function WidgetBuilder({
                                       handleDisplayTypeOrAnnotationChange(
                                         'displayType',
                                         newDisplayType
+                                      );
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          from: source,
+                                          field: 'displayType',
+                                          value: newDisplayType,
+                                          widget_type: widgetType,
+                                          organization,
+                                          new_widget: !isEditing,
+                                          builder_version: WidgetBuilderVersion.PAGE,
+                                        }
                                       );
                                     }}
                                     isWidgetInvalid={!state.queryConditionsValid}

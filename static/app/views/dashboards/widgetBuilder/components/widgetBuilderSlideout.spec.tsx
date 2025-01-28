@@ -11,7 +11,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -263,52 +263,6 @@ describe('WidgetBuilderSlideout', () => {
     });
 
     expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
-  });
-
-  it('should save the widget from the widget builder with loading messages if the widget is valid', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/widgets/',
-      method: 'POST',
-      body: {},
-      statusCode: 200,
-    });
-
-    render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSlideout
-          dashboard={DashboardFixture([])}
-          dashboardFilters={{release: undefined}}
-          isWidgetInvalid
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
-          isOpen
-          openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
-        />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        router: RouterFixture({
-          location: LocationFixture({
-            query: {
-              field: [],
-              yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-              title: 'Widget Title',
-            },
-          }),
-        }),
-      }
-    );
-
-    await userEvent.click(await screen.findByText('Add Widget'));
-
-    await waitFor(() => {
-      expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
-    });
   });
 
   it('clears the alias when dataset changes', async () => {

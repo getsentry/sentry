@@ -36,22 +36,28 @@ const BASE_CONFIG: IssueTypeConfig = {
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
+  header: {
+    filterAndSearch: {enabled: true},
+    tagDistribution: {enabled: true},
+    timelineSummary: {enabled: false},
+  },
   customCopy: {
     resolution: t('Resolved'),
-    allEvents: t('All Events'),
+    eventUnits: t('Events'),
   },
   attachments: {enabled: false},
   autofix: false,
   eventAndUserCounts: {enabled: true},
+  detector: {enabled: false},
   events: {enabled: true},
   logLevel: {enabled: false},
   mergedIssues: {enabled: false},
-  filterAndSearchHeader: {enabled: true},
   performanceDurationRegression: {enabled: false},
   profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
+  showOpenPeriods: false,
   similarIssues: {enabled: false},
   spanEvidence: {enabled: false},
   stacktrace: {enabled: true},
@@ -64,6 +70,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   resources: null,
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
+  useOpenPeriodChecks: false,
 };
 
 const issueTypeConfig: Config = {
@@ -121,7 +128,7 @@ export const getConfigForIssueType = (
 ): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
-      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)
+      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
   const categoryMap = issueTypeConfig[issueCategory];

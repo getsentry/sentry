@@ -566,9 +566,9 @@ class EventView {
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key] ?? defaults[key];
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
@@ -581,9 +581,9 @@ class EventView {
     const dateTimeKeys = ['start', 'end'];
 
     for (const key of dateTimeKeys) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key];
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key];
 
       if (currentValue && otherValue) {
@@ -692,7 +692,7 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       output[field] = undefined;
     }
 
@@ -717,9 +717,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1132,7 +1132,7 @@ class EventView {
       'interval',
     ];
     for (const key of remove) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       delete payload[key];
     }
 
@@ -1249,9 +1249,9 @@ class EventView {
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1260,7 +1260,7 @@ class EventView {
 
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
-      query: cloneDeep(output as any),
+      query: cloneDeep(output),
     };
   }
 
@@ -1285,9 +1285,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1447,7 +1447,7 @@ class EventView {
       if (selectedOption && !selectedOption.disabled) {
         return display;
       }
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
     }
 
@@ -1532,9 +1532,9 @@ export const isAPIPayloadSimilar = (
   }
 
   for (const key of currentKeys) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const currentValue = current[key];
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const otherValue = other[key];
     if (key === 'field') {
       if (!isFieldsSimilar(currentValue, otherValue)) {

@@ -530,8 +530,7 @@ describe('Performance > TransactionSummary', function () {
     ProjectsStore.reset();
     jest.clearAllMocks();
 
-    // Cleanup clientWidth mock
-    // @ts-expect-error
+    // @ts-expect-error Cleanup clientWidth mock
     delete HTMLElement.prototype.clientWidth;
   });
 

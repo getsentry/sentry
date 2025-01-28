@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
 export function instrumentUserEvent(): void {
-  const pkg = loadModule('@testing-library/user-event') as any;
+  const pkg = loadModule<any>('@testing-library/user-event');
   ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action));
 }
 
