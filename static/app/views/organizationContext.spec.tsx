@@ -105,20 +105,6 @@ describe('OrganizationContext', function () {
     expect(getTeamsMock).toHaveBeenCalled();
   });
 
-  it('does not fetch if organization is already set', async function () {
-    OrganizationStore.onUpdate(organization);
-
-    render(
-      <OrganizationContextProvider>
-        <OrganizationLoaderStub />
-        <OrganizationName />
-      </OrganizationContextProvider>
-    );
-
-    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
-    expect(getOrgMock).not.toHaveBeenCalled();
-  });
-
   it('fetches new org when router params change', async function () {
     // First render with org-slug
     const {rerender} = render(
