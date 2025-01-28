@@ -24,6 +24,10 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  CellActionKind,
+  getSearchInExploreTarget,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 interface EventTagTreeRowConfig {
@@ -146,6 +150,8 @@ function EventTagsTreeRowDropdown({
   });
   const isIssueDetailsRoute = location.pathname.includes(`issues/${event.groupID}/`);
 
+  // ADD CHECK FOR FEATURE FLAG!!!!!!!
+
   return (
     <TreeValueDropdown
       preventOverflowOptions={{padding: 4}}
@@ -188,6 +194,17 @@ function EventTagsTreeRowDropdown({
             pathname: `/organizations/${organization.slug}/issues/`,
             query,
           },
+        },
+        {
+          key: 'view-traces',
+          label: t('Search explore with this tag value'),
+          to: getSearchInExploreTarget(
+            organization,
+            location,
+            originalTag.key,
+            originalTag.value,
+            CellActionKind.INCLUDE
+          ),
         },
         {
           key: 'copy-value',

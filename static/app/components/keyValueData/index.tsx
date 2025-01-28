@@ -276,7 +276,7 @@ export const Subject = styled('div')`
   min-width: 100px;
 `;
 
-const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
+export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};

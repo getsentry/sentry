@@ -1,4 +1,10 @@
+import type {Location} from 'history';
+
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 export function getProfileMeta(event: EventTransaction | null) {
   const profileId = event?.contexts?.profile?.profile_id;
@@ -16,4 +22,42 @@ export function getProfileMeta(event: EventTransaction | null) {
     };
   }
   return null;
+}
+
+export enum CellActionKind {
+  INCLUDE = 'include',
+  EXCLUDE = 'exclude',
+  GREATER_THAN = 'greater_than',
+  LESS_THAN = 'less_than',
+}
+
+export function getSearchInExploreTarget(
+  organization: Organization,
+  location: Location,
+  key: string,
+  value: string,
+  kind: CellActionKind
+) {
+  const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
+  const search = new MutableSearch('');
+
+  if (kind === CellActionKind.INCLUDE) {
+    search.setFilterValues(key, [value]);
+  } else if (kind === CellActionKind.EXCLUDE) {
+    search.setFilterValues(`!${key}`, [`${value}`]);
+  } else if (kind === CellActionKind.GREATER_THAN) {
+    search.setFilterValues(key, [`>${value}`]);
+  } else {
+    search.setFilterValues(key, [`<${value}`]);
+  }
+
+  return {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/traces/`),
+    query: {
+      start,
+      end,
+      statsPeriod,
+      query: search.formatString(),
+    },
+  };
 }

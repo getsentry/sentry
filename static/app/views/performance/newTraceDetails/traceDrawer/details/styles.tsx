@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -18,6 +18,7 @@ import KeyValueData, {
   CardPanel,
   type KeyValueDataContentProps,
   Subject,
+  ValueSection,
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
@@ -30,6 +31,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCircleFill,
+  IconEllipsis,
   IconFocus,
   IconJson,
   IconOpen,
@@ -45,9 +47,14 @@ import type {Project} from 'sentry/types/project';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {
+  SentryNumberTags,
+  SentryStringTags,
+} from 'sentry/views/explore/contexts/spanTagsContext';
 
 import {traceAnalytics} from '../../traceAnalytics';
 import {useTransaction} from '../../traceApi/useTransaction';
@@ -71,6 +78,8 @@ import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
+
+import {CellActionKind, getSearchInExploreTarget} from './utils';
 
 const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
@@ -713,6 +722,142 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
+export enum CellActionValueKind {
+  TAG = 'tag',
+  MEASUREMENT = 'measurement',
+  ADDITIONAL_DATA = 'additional_data',
+  SENTRY_TAG = 'sentry_tag',
+}
+
+type CellActionProps = {
+  rowKey: string;
+  rowValue: React.ReactNode;
+  kind?: CellActionValueKind;
+};
+
+function isValidNumber(node: React.ReactNode): boolean {
+  if (typeof node === 'number') {
+    return true;
+  }
+
+  if (typeof node === 'string') {
+    const parsed = parseFloat(node);
+    return !Number.isNaN(parsed);
+  }
+
+  return false;
+}
+
+function CellAction({
+  rowKey: tagKey,
+  rowValue,
+  kind = CellActionValueKind.SENTRY_TAG,
+}: CellActionProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const hasNewTraceUi = useHasTraceNewUi();
+  const [isVisible, setIsVisible] = useState(false);
+
+  if (!hasNewTraceUi || !rowValue) {
+    return null;
+  }
+
+  // We assume that tags, measurements and additional data (span.data) are dyanamic lists of searchable keys in explore.
+  // Any other key must exist in the sentry tags list to be deemed searchable.
+  const searchableSentryTags = [...SentryStringTags, ...SentryNumberTags];
+
+  if (
+    kind === CellActionValueKind.SENTRY_TAG &&
+    (!searchableSentryTags.includes(tagKey) ||
+      typeof rowValue !== 'string' ||
+      typeof rowValue !== 'number')
+  ) {
+    return null;
+  }
+
+  const dropdownOptions = [
+    {
+      key: 'include',
+      label: t('Search explore with this value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        tagKey,
+        rowValue.toString(),
+        CellActionKind.INCLUDE
+      ),
+    },
+    {
+      key: 'exclude',
+      label: t('Search explore without this value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        tagKey,
+        rowValue.toLocaleString(),
+        CellActionKind.EXCLUDE
+      ),
+    },
+  ];
+
+  if (isValidNumber(rowValue)) {
+    dropdownOptions.push(
+      {
+        key: 'includeGreaterThan',
+        label: t('Search explore with values greater than'),
+        to: getSearchInExploreTarget(
+          organization,
+          location,
+          tagKey,
+          rowValue.toString(),
+          CellActionKind.GREATER_THAN
+        ),
+      },
+      {
+        key: 'includeLessThan',
+        label: t('Search explore with values less than'),
+        to: getSearchInExploreTarget(
+          organization,
+          location,
+          tagKey,
+          rowValue.toString(),
+          CellActionKind.LESS_THAN
+        ),
+      }
+    );
+  }
+
+  return (
+    <TreeValueDropdown
+      preventOverflowOptions={{padding: 4}}
+      className={isVisible ? '' : 'invisible'}
+      position="bottom-end"
+      size="xs"
+      onOpenChange={isOpen => setIsVisible(isOpen)}
+      triggerProps={{
+        'aria-label': t('Cell Action Menu'),
+        icon: <IconEllipsis />,
+        showChevron: false,
+        className: 'trigger-button',
+      }}
+      items={dropdownOptions}
+    />
+  );
+}
+
+const TreeValueDropdown = styled(DropdownMenu)`
+  display: block;
+  margin: 1px;
+  height: 20px;
+  .trigger-button {
+    height: 20px;
+    min-height: 20px;
+    padding: 0 ${space(0.75)};
+    border-radius: ${space(0.5)};
+    z-index: 1;
+  }
+`;
+
 function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
@@ -1136,8 +1281,24 @@ const CardWrapper = styled('div')`
   }
 
   ${Subject} {
+    display: flex;
+    align-items: center;
     @container (width < 350px) {
       max-width: 200px;
+    }
+  }
+
+  ${ValueSection} {
+    align-items: center;
+  }
+
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
     }
   }
 `;
@@ -1230,6 +1391,7 @@ const TraceDrawerComponents = {
   Highlights,
   Actions,
   NodeActions,
+  CellAction,
   Table,
   IconTitleWrapper,
   IconBorder,
