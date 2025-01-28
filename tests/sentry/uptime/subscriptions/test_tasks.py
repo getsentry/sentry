@@ -80,6 +80,7 @@ class ConfigPusherTestMixin(UptimeTestCase):
 
     def assert_redis_config(self, region: str, sub: UptimeSubscription | str):
         region_config = get_region_config(region)
+        assert region_config is not None
         cluster: RedisCluster | StrictRedis = redis.redis_clusters.get_binary(
             region_config.config_redis_cluster
         )
@@ -89,15 +90,20 @@ class ConfigPusherTestMixin(UptimeTestCase):
         else:
             action = "delete"
             subscription_id = sub
+        assert subscription_id is not None
         config_key, update_key = get_partition_keys(UUID(subscription_id))
         if isinstance(sub, UptimeSubscription):
-            assert msgpack.unpackb(
-                cluster.hget(config_key, subscription_id)
-            ) == uptime_subscription_to_check_config(sub, subscription_id)
+            config_bytes = cluster.hget(config_key, subscription_id)
+            assert config_bytes is not None
+            assert msgpack.unpackb(config_bytes) == uptime_subscription_to_check_config(
+                sub, subscription_id
+            )
         else:
             assert not cluster.hexists(config_key, subscription_id)
 
-        assert msgpack.unpackb(cluster.hget(update_key, subscription_id)) == {
+        update_bytes = cluster.hget(update_key, subscription_id)
+        assert update_bytes is not None
+        assert msgpack.unpackb(update_bytes) == {
             "action": action,
             "subscription_id": subscription_id,
         }
