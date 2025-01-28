@@ -221,29 +221,23 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
     the legacy AlertRule.
     """
     detector_triggers = DataCondition.objects.filter(condition_group=detector_data_condition_group)
-    if detector_triggers.count() > 1:
-        # there is a warning threshold for this detector, so we should resolve based on it
-        warning_data_condition = detector_triggers.filter(
-            condition_result=DetectorPriorityLevel.MEDIUM
-        ).first()
-        if warning_data_condition is None:
-            logger.error(
-                "more than one detector trigger in detector data condition group, but no warning condition exists",
-                extra={"detector_data_condition_group": detector_triggers},
-            )
-            return -1
+    warning_data_condition = detector_triggers.filter(
+        condition_result=DetectorPriorityLevel.MEDIUM
+    ).first()
+    if warning_data_condition is not None:
         resolve_threshold = warning_data_condition.comparison
     else:
-        # critical threshold value
-        critical_data_condition = detector_triggers.first()
+        critical_data_condition = detector_triggers.filter(
+            condition_result=DetectorPriorityLevel.HIGH
+        ).first()
         if critical_data_condition is None:
             logger.error(
-                "no data conditions exist for detector data condition group",
+                "no critical or warning data conditions exist for detector data condition group",
                 extra={"detector_data_condition_group": detector_triggers},
             )
             return -1
-        resolve_threshold = critical_data_condition.comparison
-
+        else:
+            resolve_threshold = critical_data_condition.comparison
     return resolve_threshold
 
 
