@@ -12,6 +12,7 @@ from sentry.sentry_apps.api.utils.webhook_requests import BufferedRequest
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 
 class _BufferedRequestAttrs(TypedDict):
@@ -30,6 +31,12 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     date: str
     responseCode: int
     organization: NotRequired[OrganizationResponse]
+    error_id: NotRequired[str]
+    error_url: NotRequired[str]
+    project_id: NotRequired[int]
+    request_body: NotRequired[str]
+    request_headers: NotRequired[Mapping[str, str]]
+    response_body: NotRequired[str]
 
 
 class SentryAppWebhookRequestSerializer(Serializer):
@@ -66,9 +73,25 @@ class SentryAppWebhookRequestSerializer(Serializer):
             "eventType": obj.data.event_type,
             "date": obj.data.date,
             "responseCode": response_code,
+            "project_id": obj.data.project_id,
         }
 
+        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
+            # add error data to display in Sentry app dashboard
+            data.update(
+                {
+                    "event_id": obj.data.error_id,
+                    "request_body": obj.data.request_body,
+                    "request_headers": obj.data.request_headers,
+                    "response_body": obj.data.response_body,
+                }
+            )
+
         if organization:
-            data["organization"] = {"name": organization.name, "slug": organization.slug}
+            data["organization"] = {
+                "name": organization.name,
+                "id": organization.id,
+                "slug": organization.slug,
+            }
 
         return data

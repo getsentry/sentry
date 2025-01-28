@@ -44,6 +44,11 @@ class SentryAppRequest(TypedDict):
     webhook_url: str
     organization_id: int
     event_type: str
+    error_id: str | None
+    project_id: int | None
+    request_body: str | None
+    request_headers: Mapping[str, str] | None
+    response_body: str | None
 
 
 class SentryAppWebhookRequestsBuffer:

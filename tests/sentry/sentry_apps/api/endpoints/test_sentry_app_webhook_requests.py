@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
+from unittest.mock import Mock
 
 from django.urls import reverse
+from requests.models import Response
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 pytestmark = [requires_snuba]
@@ -45,6 +48,12 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             organization=self.org, slug=self.published_app.slug, prevent_token_exchange=True
         )
 
+        self.mock_response = Mock(spec=Response)
+        self.mock_response.content = '{"content": "mock response content"}'
+        self.mock_request = Mock()
+        self.mock_request.body = "mock request body"
+        self.mock_response.request = self.mock_request
+
     @with_feature("organizations:sentry-app-webhook-requests")
     def test_superuser_sees_unowned_published_requests(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -57,7 +66,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             url=self.unowned_published_app.webhook_url,
         )
         buffer.add_request(
-            response_code=500,
+            response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
             url=self.unowned_published_app.webhook_url,
@@ -71,7 +80,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]["organization"]["slug"] == self.org.slug
         assert response.data[0]["sentryAppSlug"] == self.unowned_published_app.slug
-        assert response.data[0]["responseCode"] == 500
+        assert response.data[0]["responseCode"] == 200
 
     @with_feature("organizations:sentry-app-webhook-requests")
     def test_superuser_sees_unpublished_stats(self):
@@ -215,25 +224,44 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
     def test_errors_only_filter(self):
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        now = datetime.now()
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
             url=self.published_app.webhook_url,
         )
-        buffer.add_request(
-            response_code=500,
-            org_id=self.org.id,
-            event="issue.assigned",
-            url=self.published_app.webhook_url,
-        )
+        with freeze_time(now):
+            buffer.add_request(
+                response_code=500,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+                error_id="abc123",
+                project_id=1,
+                response=self.mock_response,
+                headers={
+                    "Content-Type": "application/json",
+                },
+            )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         errors_only_response = self.client.get(f"{url}?errorsOnly=true", format="json")
         assert errors_only_response.status_code == 200
         assert len(errors_only_response.data) == 1
-        assert errors_only_response.data[0]["sentryAppSlug"] == self.published_app.slug
-        assert errors_only_response.data[0]["responseCode"] == 500
+        assert errors_only_response.data[0] == {
+            "webhookUrl": self.published_app.webhook_url,
+            "sentryAppSlug": self.published_app.slug,
+            "eventType": "issue.assigned",
+            "responseCode": 500,
+            "project_id": 1,
+            "date": str(now) + "+00:00",
+            "event_id": "abc123",
+            "request_body": json.dumps(self.mock_request.body),
+            "request_headers": {"Content-Type": "application/json"},
+            "response_body": json.dumps(self.mock_response.content),
+            "organization": {"name": self.org.name, "id": self.org.id, "slug": self.org.slug},
+        }
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -278,7 +306,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             url=self.published_app.webhook_url,
         )
         buffer.add_request(
-            response_code=500,
+            response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
             url=self.published_app.webhook_url,
@@ -376,21 +404,21 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             )
         with freeze_time(now + timedelta(seconds=1)):
             buffer.add_request(
-                response_code=500,
+                response_code=200,
                 org_id=self.org.id,
                 event="installation.created",
                 url=self.published_app.webhook_url,
             )
         with freeze_time(now + timedelta(seconds=2)):
             buffer.add_request(
-                response_code=500,
+                response_code=200,
                 org_id=self.org.id,
                 event="issue.assigned",
                 url=self.published_app.webhook_url,
             )
         with freeze_time(now + timedelta(seconds=3)):
             buffer.add_request(
-                response_code=500,
+                response_code=200,
                 org_id=self.org.id,
                 event="installation.deleted",
                 url=self.published_app.webhook_url,
