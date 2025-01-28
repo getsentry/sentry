@@ -2329,6 +2329,17 @@ class ReplaysSnubaTestCase(TestCase):
         return transform_event_for_linking_payload(replay_id, event)
 
 
+@pytest.mark.snuba
+@requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
+class UptimeCheckSnubaTestCase(TestCase):
+    def store_uptime_check(self, uptime_check):
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+        )
+        assert response.status_code == 200
+
+
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
