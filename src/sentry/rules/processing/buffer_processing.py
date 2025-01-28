@@ -5,13 +5,13 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import islice
+from typing import ClassVar
 
 from celery import Task
 
 from sentry import buffer, options
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.db import models
-from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
@@ -30,6 +30,8 @@ class BufferHashKeys:
 
 
 class DelayedProcessingBase(ABC):
+    buffer_key: ClassVar[str]
+
     def __init__(self, project_id: int):
         self.project_id = project_id
 
@@ -67,7 +69,7 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-def process_project_alerts_in_batches(project_id: int, processing_type: str) -> None:
+def process_in_batches(project_id: int, processing_type: str) -> None:
     """
     This will check the number of alertgroup_to_event_data items in the Redis buffer for a project.
 
@@ -129,27 +131,25 @@ def process_project_alerts_in_batches(project_id: int, processing_type: str) -> 
             task.delay(project_id, batch_key)
 
 
-def process_project_ids(fetch_time: datetime, buffer_list_key: str, processing_type: str) -> None:
-    project_ids = buffer.backend.get_sorted_set(buffer_list_key, min=0, max=fetch_time.timestamp())
-    log_str = ", ".join(f"{project_id}: {timestamp}" for project_id, timestamp in project_ids)
-    log_name = f"{processing_type}.project_id_list"
-    logger.info(log_name, extra={"project_ids": log_str})
-
-    for project_id, _ in project_ids:
-        process_project_alerts_in_batches(project_id, processing_type)
-
-    buffer.backend.delete_key(buffer_list_key, min=0, max=fetch_time.timestamp())
-
-
-def process_delayed_alert_conditions() -> None:
+def process_buffer() -> None:
     fetch_time = datetime.now(tz=timezone.utc)
 
-    with metrics.timer("delayed_processing.process_all_conditions.duration"):
-        process_project_ids(fetch_time, PROJECT_ID_BUFFER_LIST_KEY, "delayed_processing")
+    for processing_type, handler in delayed_processing_registry.registrations.items():
+        with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
+            project_ids = buffer.backend.get_sorted_set(
+                handler.buffer_key, min=0, max=fetch_time.timestamp()
+            )
+            log_str = ", ".join(
+                f"{project_id}: {timestamp}" for project_id, timestamp in project_ids
+            )
+            log_name = f"{processing_type}.project_id_list"
+            logger.info(log_name, extra={"project_ids": log_str})
 
-    # with metrics.timer("delayed_workflow.process_all_conditions.duration"):
-    #     process_project_ids(fetch_time, WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, "delayed_workflow")
+            for project_id, _ in project_ids:
+                process_in_batches(project_id, processing_type)
+
+            buffer.backend.delete_key(handler.buffer_key, min=0, max=fetch_time.timestamp())
 
 
 if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
-    redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+    redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)

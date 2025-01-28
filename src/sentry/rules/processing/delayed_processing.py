@@ -34,6 +34,7 @@ from sentry.rules.processing.buffer_processing import (
     delayed_processing_registry,
 )
 from sentry.rules.processing.processor import (
+    PROJECT_ID_BUFFER_LIST_KEY,
     activate_downstream_actions,
     bulk_get_rule_status,
     is_condition_slow,
@@ -534,6 +535,8 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
 
 @delayed_processing_registry.register("delayed_processing")  # default delayed processing
 class DelayedRule(DelayedProcessingBase):
+    buffer_key = PROJECT_ID_BUFFER_LIST_KEY
+
     @property
     def hash_args(self) -> BufferHashKeys:
         return BufferHashKeys(model=Project, filters=FilterKeys(project_id=self.project_id))
