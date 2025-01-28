@@ -80,6 +80,7 @@ import {DEFAULT_STATS_PERIOD} from './data';
 import FiltersBar from './filtersBar';
 import {
   assignDefaultLayout,
+  assignTempId,
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
