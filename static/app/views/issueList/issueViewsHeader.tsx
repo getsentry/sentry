@@ -27,6 +27,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {
   generateTempViewId,
   type IssueView,
@@ -167,6 +168,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const navigate = useNavigate();
   const location = useLocation();
   const pageFilters = usePageFilters();
+  const user = useUser();
 
   const {newViewActive, setNewViewActive} = useContext(NewTabContext);
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
@@ -214,6 +216,11 @@ function IssueViewsIssueListHeaderTabsContent({
         environments: pageFilters.selection.environments,
         timeFilters: pageFilters.selection.datetime,
       })),
+    });
+
+    trackAnalytics('issue_views.page_filters_logged', {
+      user_id: user.id,
+      organization,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageFilters.selection]);
