@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 
+import type {Client} from 'sentry/api';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
 import type {highlightNode} from 'sentry/utils/replays/highlightNode';
@@ -58,7 +59,7 @@ type Result =
 
 const ZERO_OFFSET = {offsetMs: 0};
 
-function fromOffset({offsetSec}: any): Result {
+function fromOffset({offsetSec}: {offsetSec: undefined | string}): Result {
   if (offsetSec === undefined) {
     // Not using this strategy
     return undefined;
@@ -67,7 +68,13 @@ function fromOffset({offsetSec}: any): Result {
   return {offsetMs: Number(offsetSec) * 1000};
 }
 
-function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}: any): Result {
+function fromEventTimestamp({
+  eventTimestamp,
+  replayStartTimestampMs,
+}: {
+  eventTimestamp: undefined | string;
+  replayStartTimestampMs: Opts['replayStartTimestampMs'];
+}): Result {
   if (eventTimestamp === undefined) {
     // Not using this strategy
     return undefined;
@@ -96,7 +103,7 @@ async function fromListPageQuery({
   replayId,
   projectSlug,
   replayStartTimestampMs,
-}: any): Promise<Result> {
+}: Opts & {api: Client; listPageQuery: undefined | string}): Promise<Result> {
   if (listPageQuery === undefined) {
     // Not using this strategy
     return undefined;
@@ -153,7 +160,7 @@ async function fromListPageQuery({
   }
 }
 
-function useInitialTimeOffsetMs({
+export default function useInitialTimeOffsetMs({
   orgSlug,
   replayId,
   projectSlug,
@@ -213,5 +220,3 @@ function definedOrDefault<T>(dflt: T | undefined | Promise<T | undefined>) {
     return val ?? dflt;
   };
 }
-
-export default useInitialTimeOffsetMs;
