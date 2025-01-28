@@ -350,6 +350,11 @@ def normalize_stacktraces_for_grouping(
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
+        # Some SDKs (so far only Python, but could be extended to others in the future) send the
+        # running app's working directory as `project_root`, so it can be used when determining
+        # what's in and out of app
+        _add_project_root_rule_to_enhancements(data, grouping_config)
+
         with sentry_sdk.start_span(op=op, name="apply_modifications_to_frame"):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
