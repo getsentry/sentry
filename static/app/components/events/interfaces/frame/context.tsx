@@ -158,13 +158,13 @@ function Context({
             <code className={prismClassName}>
               {lines.map((line, i) => {
                 const contextLine = contextLines[i]!;
-                const isActive = activeLineNumber === contextLine[0]!;
+                const isActive = activeLineNumber === contextLine[0];
 
                 return (
                   <Fragment key={i}>
                     <ContextLineWrapper isActive={isActive} data-test-id="context-line">
                       <ContextLineNumber
-                        lineNumber={contextLine[0]!}
+                        lineNumber={contextLine[0]}
                         isActive={isActive}
                         coverage={lineCoverage[i]}
                       />

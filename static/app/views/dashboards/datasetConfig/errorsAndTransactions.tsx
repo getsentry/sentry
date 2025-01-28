@@ -279,7 +279,7 @@ export function transformEventsResponseToTable(
     ...data,
     meta: {...fields, ...otherMeta, fields},
   } as TableData;
-  return tableData as TableData;
+  return tableData;
 }
 
 export function filterYAxisAggregateParams(

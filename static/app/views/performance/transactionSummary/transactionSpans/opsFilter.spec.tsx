@@ -91,7 +91,7 @@ describe('Performance > Transaction Spans', function () {
     await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
     const item = await screen.findByText('op1');
     expect(item).toBeInTheDocument();
-    await userEvent.click(item!);
+    await userEvent.click(item);
     expect(handleOpChange).toHaveBeenCalledTimes(1);
     expect(handleOpChange).toHaveBeenCalledWith('op1');
   });

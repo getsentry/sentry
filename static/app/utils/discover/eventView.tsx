@@ -1260,7 +1260,7 @@ class EventView {
 
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
-      query: cloneDeep(output as any),
+      query: cloneDeep(output),
     };
   }
 

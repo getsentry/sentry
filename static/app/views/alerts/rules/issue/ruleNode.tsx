@@ -31,7 +31,6 @@ import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 interface FieldProps {
   data: Props['data'];
@@ -380,8 +379,8 @@ function RuleNode({
               <TicketRuleModal
                 {...deps}
                 formFields={node.formFields || {}}
-                link={node.link!}
-                ticketType={node.ticketType!}
+                link={node.link}
+                ticketType={node.ticketType}
                 instance={data}
                 index={index}
                 onSubmitAction={updateParentFromTicketRule}
@@ -406,8 +405,8 @@ function RuleNode({
               deps => (
                 <SentryAppRuleModal
                   {...deps}
-                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
-                  config={node.formFields as SchemaFormConfig}
+                  sentryAppInstallationUuid={node.sentryAppInstallationUuid}
+                  config={node.formFields}
                   appName={node.prompt ?? node.label}
                   onSubmitSuccess={updateParentFromSentryAppRule}
                   resetValues={data}

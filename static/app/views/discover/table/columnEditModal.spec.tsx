@@ -265,7 +265,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(
         within(countRow)
           .getAllByTestId('label')
-          .map(el => el!.textContent)
+          .map(el => el.textContent)
       ).toEqual(['count()']);
 
       const percentileRow = queryFields[2]!;
@@ -273,7 +273,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(
         within(percentileRow)
           .getAllByTestId('label')
-          .map(el => el!.textContent)
+          .map(el => el.textContent)
       ).toEqual(['percentile(…)', 'transaction.duration']);
       expect(within(percentileRow).getByDisplayValue('0.66')).toBeInTheDocument();
     });
@@ -301,7 +301,7 @@ describe('Discover -> ColumnEditModal', function () {
       await openMenu(0, 1);
 
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
-      const menuOptionsText = menuOptions.map(el => el!.textContent);
+      const menuOptionsText = menuOptions.map(el => el.textContent);
       expect(menuOptionsText).toContain('transaction.duration');
       expect(menuOptionsText).not.toContain('title');
     });

@@ -1,5 +1,4 @@
-import {useEffect, useState} from 'react';
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 

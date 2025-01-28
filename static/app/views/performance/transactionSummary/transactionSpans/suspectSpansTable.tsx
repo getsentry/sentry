@@ -50,7 +50,7 @@ export default function SuspectSpansTable(props: Props) {
       // Frequency is computed using the `uniq` function in ClickHouse.
       // Because it is an approximation, it can occasionally exceed the number of events.
       defined(suspectSpan.frequency) && defined(totals?.['count()'])
-        ? Math.min(1, suspectSpan.frequency / totals!['count()'])
+        ? Math.min(1, suspectSpan.frequency / totals['count()'])
         : null,
     avgOccurrences: suspectSpan.avgOccurrences,
     p50ExclusiveTime: suspectSpan.p50ExclusiveTime,

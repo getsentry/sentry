@@ -181,7 +181,7 @@ export function PerformanceLanding(props: Props) {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  const ViewComponent = fieldToViewMap[landingDisplay!.field];
+  const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
@@ -202,7 +202,7 @@ export function PerformanceLanding(props: Props) {
   return (
     <Layout.Page data-test-id="performance-landing-v3">
       <Tabs
-        value={landingDisplay!.field}
+        value={landingDisplay.field}
         onChange={field =>
           handleLandingDisplayChange(field, location, projects, organization, eventView)
         }
@@ -245,7 +245,7 @@ export function PerformanceLanding(props: Props) {
         <Layout.Body data-test-id="performance-landing-body">
           <Layout.Main fullWidth>
             <TabPanels>
-              <TabPanels.Item key={landingDisplay!.field}>
+              <TabPanels.Item key={landingDisplay.field}>
                 <MetricsCardinalityProvider
                   sendOutcomeAnalytics
                   organization={organization}

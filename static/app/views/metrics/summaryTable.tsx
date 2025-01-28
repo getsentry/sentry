@@ -31,7 +31,7 @@ export const SummaryTable = memo(function SummaryTable({
   onRowClick,
   onColorDotClick,
   onSortChange,
-  sort = DEFAULT_SORT_STATE as SortState,
+  sort = DEFAULT_SORT_STATE,
   onRowHover,
   onRowFilter,
 }: {
@@ -70,7 +70,7 @@ export const SummaryTable = memo(function SummaryTable({
       });
       if (sort.name === name) {
         if (sort.order === 'desc') {
-          onSortChange(DEFAULT_SORT_STATE as SortState);
+          onSortChange(DEFAULT_SORT_STATE);
         } else if (sort.order === 'asc') {
           onSortChange({
             name,

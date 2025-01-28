@@ -41,7 +41,7 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
           data[releaseName]?.data?.map(datum => {
             return {
               name: datum[0] * 1000,
-              value: datum[1]![0]!.count,
+              value: datum[1][0]!.count,
             } as SeriesDataUnit;
           }) ?? [],
         ...(primaryRelease === releaseName

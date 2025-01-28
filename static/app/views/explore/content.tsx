@@ -18,9 +18,8 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export function ExploreContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = limitMaxPickableDays(
-    organization!
-  );
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
 
   const location = useLocation();
   const navigate = useNavigate();

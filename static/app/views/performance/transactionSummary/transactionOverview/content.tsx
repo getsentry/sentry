@@ -406,7 +406,7 @@ function SummaryContent({
             eventView={eventView}
             totals={
               defined(totalValues?.['count()'])
-                ? {'count()': totalValues!['count()']}
+                ? {'count()': totalValues['count()']}
                 : null
             }
             projectId={projectId}

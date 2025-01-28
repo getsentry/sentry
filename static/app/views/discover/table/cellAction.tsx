@@ -129,7 +129,7 @@ export function excludeFromFilter(
   // existing conditions have already been set an verified by the user
   oldFilter.addFilterValues(
     negation,
-    currentNegations.filter(filterValue => !(value as string[]).includes(filterValue)),
+    currentNegations.filter(filterValue => !value.includes(filterValue)),
     false
   );
 

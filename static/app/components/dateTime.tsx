@@ -80,7 +80,7 @@ export function DateTime({
   return (
     <time {...props}>
       {utc
-        ? moment.utc(date as moment.MomentInput).format(formatString)
+        ? moment.utc(date).format(formatString)
         : moment.tz(date, forcedTimezone ?? options?.timezone ?? '').format(formatString)}
     </time>
   );

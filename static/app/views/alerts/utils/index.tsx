@@ -143,7 +143,7 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
 
   if (isCustomMetricAlert(aggregate)) {
     const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
+    const {unit} = parseMRI(mri);
     return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
@@ -167,7 +167,7 @@ export function alertTooltipValueFormatter(
 
   if (isCustomMetricAlert(aggregate)) {
     const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
+    const {unit} = parseMRI(mri);
     return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 

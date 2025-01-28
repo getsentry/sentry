@@ -179,7 +179,7 @@ export class WidgetParser {
   private async parseWidget() {
     this.parseLegendColumns();
 
-    const {title, requests = []} = this.importedWidget.definition as WidgetDefinition;
+    const {title, requests = []} = this.importedWidget.definition;
 
     const parsedRequests = requests.map(r => this.parseRequest(r));
     const parsedQueries = parsedRequests.flatMap(request => request.queries);
@@ -223,7 +223,7 @@ export class WidgetParser {
 
     const parsedQueries = queries
       .map(query => this.parseQuery(query))
-      .sort((a, b) => a!.name.localeCompare(b!.name));
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     if (response_format !== 'timeseries') {
       this.errors.push(

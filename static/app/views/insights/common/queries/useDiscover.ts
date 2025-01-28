@@ -10,12 +10,12 @@ import type {
   EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
+  OurlogsFields,
   SpanIndexedProperty,
   SpanIndexedResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-import type {OurlogsFields} from 'sentry/views/insights/types';
 
 interface UseMetricsOptions<Fields> {
   cursor?: string;

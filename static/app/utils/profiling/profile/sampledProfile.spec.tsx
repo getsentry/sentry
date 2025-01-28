@@ -125,10 +125,10 @@ describe('SampledProfile', () => {
 
     const root = firstCallee(profile.callTree)!;
 
-    expect(root!.totalWeight).toBe(2);
+    expect(root.totalWeight).toBe(2);
     expect(firstCallee(root)!.totalWeight).toBe(2);
 
-    expect(root!.selfWeight).toBe(0);
+    expect(root.selfWeight).toBe(0);
     expect(firstCallee(root)!.selfWeight).toBe(2);
   });
 

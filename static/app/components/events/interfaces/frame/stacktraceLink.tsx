@@ -260,7 +260,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
             match.config.provider.key,
-            match!.sourceUrl,
+            match.sourceUrl,
             frame.lineNo
           )}
           openInNewTab

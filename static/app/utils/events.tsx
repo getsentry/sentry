@@ -12,12 +12,7 @@ import type {
   Thread,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {
-  BaseGroup,
-  Group,
-  GroupActivityAssigned,
-  GroupTombstoneHelper,
-} from 'sentry/types/group';
+import type {BaseGroup, Group, GroupTombstoneHelper} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -406,7 +401,7 @@ function getAssignmentIntegration(group: Group) {
   }
   const assignmentAcitivies = group.activity.filter(
     activity => activity.type === GroupActivityType.ASSIGNED
-  ) as GroupActivityAssigned[];
+  );
   const integrationAssignments = assignmentAcitivies.find(
     activity => !!activity.data.integration
   );

@@ -207,7 +207,7 @@ export function useFocusArea({
       applyChartProps,
       overlay: hasFocusArea ? (
         <FocusAreaOverlay
-          rect={selection!}
+          rect={selection}
           onRemove={handleRemove}
           onZoom={handleZoomIn}
           chartRef={chartRef}
@@ -347,8 +347,8 @@ const getSelectionRange = (
   useFullYAxis: boolean,
   boundingRect: ValueRect
 ): SelectionRange => {
-  const startTimestamp = Math.min(...rect.coordRange![0]!);
-  const endTimestamp = Math.max(...rect.coordRange![0]!);
+  const startTimestamp = Math.min(...rect.coordRange[0]!);
+  const endTimestamp = Math.max(...rect.coordRange[0]!);
 
   const startDate = getDateString(Math.max(startTimestamp, boundingRect.xMin));
   const endDate = getDateString(Math.min(endTimestamp, boundingRect.xMax));

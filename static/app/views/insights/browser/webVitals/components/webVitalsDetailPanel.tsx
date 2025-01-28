@@ -96,11 +96,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     return data
       .map(row => ({
         ...row,
-        opportunity:
-          Math.round(
-            (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
-              sumWeights
-          ) / 100,
+        opportunity: Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {

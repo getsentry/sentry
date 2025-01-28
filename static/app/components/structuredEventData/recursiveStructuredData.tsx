@@ -213,10 +213,10 @@ export function RecursiveStructuredData({
       <div key={key}>
         <RecursiveStructuredData
           config={config}
-          meta={meta?.[key]!}
+          meta={meta?.[key]}
           objectKey={key}
           path={path + '.' + key}
-          value={value[key]!}
+          value={value[key]}
           withAnnotatedText={withAnnotatedText}
         />
         {i < keys.length - 1 ? <span>{','}</span> : null}

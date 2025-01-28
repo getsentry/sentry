@@ -584,7 +584,7 @@ export function parseTrace(
       return acc;
     }
 
-    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
+    if (hasEndTimestamp && span.timestamp > acc.traceEndTimestamp) {
       acc.traceEndTimestamp = span.timestamp;
       return acc;
     }

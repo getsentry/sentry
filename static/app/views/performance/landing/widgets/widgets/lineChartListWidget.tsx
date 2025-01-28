@@ -420,7 +420,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             ) {
               eventView.additionalConditions.addFilterValue(
                 SpanMetricsField.SPAN_DOMAIN,
-                provided.widgetData.list.data[selectedListIndex]![
+                provided.widgetData.list.data[selectedListIndex][
                   SpanMetricsField.SPAN_DOMAIN
                 ]!.toString(),
                 false
@@ -428,7 +428,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             } else {
               eventView.additionalConditions.addFilterValue(
                 SpanMetricsField.SPAN_GROUP,
-                provided.widgetData.list.data[selectedListIndex]![
+                provided.widgetData.list.data[selectedListIndex][
                   SpanMetricsField.SPAN_GROUP
                 ]!.toString()
               );

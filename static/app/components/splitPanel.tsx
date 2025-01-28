@@ -124,9 +124,7 @@ function SplitPanel(props: SplitPanelProps) {
     sizeStorageKey,
   });
 
-  const sizePct = `${
-    (Math.min(containerSize, max) / availableSize) * 100
-  }%` as `${number}%`;
+  const sizePct = `${(Math.min(containerSize, max) / availableSize) * 100}%` as const;
 
   const handleMouseDown = useCallback(
     (event: any) => {

@@ -181,7 +181,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   }, []);
 
   useEffect(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const statuses = Object.values<InviteStatus>(state.inviteStatus);
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
     // Don't track if no invites have been sent or invites are still sending

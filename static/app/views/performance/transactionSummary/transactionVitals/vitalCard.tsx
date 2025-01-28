@@ -245,7 +245,7 @@ class VitalCard extends Component<Props, State> {
       }
 
       const refPixelRect =
-        refDataRect === null ? null : asPixelRect(chartRef, refDataRect!);
+        refDataRect === null ? null : asPixelRect(chartRef, refDataRect);
       if (refPixelRect !== null && !isEqual(refPixelRect, this.state.refPixelRect)) {
         this.setState({refPixelRect});
       }
@@ -418,7 +418,7 @@ class VitalCard extends Component<Props, State> {
         y: 0,
       },
       this.state.refDataRect!,
-      this.state.refPixelRect!
+      this.state.refPixelRect
     );
     if (thresholdPixelBottom === null) {
       return null;
@@ -431,7 +431,7 @@ class VitalCard extends Component<Props, State> {
         y: Math.max(...chartData.map(data => data.count)) || 1,
       },
       this.state.refDataRect!,
-      this.state.refPixelRect!
+      this.state.refPixelRect
     );
     if (thresholdPixelTop === null) {
       return null;

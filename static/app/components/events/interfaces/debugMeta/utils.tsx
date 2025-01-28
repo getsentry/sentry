@@ -55,7 +55,7 @@ export function shouldSkipSection(filteredImages: Image[], images: Array<Image |
     return true;
   }
 
-  if ((definedImages as Image[]).every(image => image.type === 'proguard')) {
+  if (definedImages.every(image => image.type === 'proguard')) {
     return true;
   }
 

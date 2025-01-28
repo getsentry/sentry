@@ -36,17 +36,17 @@ describe('BreadcrumbsDataSection', function () {
     // Only summary crumbs should be visible by default
     const summaryCrumbTitles = [
       'Exception',
-      MOCK_BREADCRUMBS[5]!.category,
-      MOCK_BREADCRUMBS[4]!.category,
-      MOCK_BREADCRUMBS[3]!.category,
-      MOCK_BREADCRUMBS[2]!.category,
+      MOCK_BREADCRUMBS[5].category,
+      MOCK_BREADCRUMBS[4].category,
+      MOCK_BREADCRUMBS[3].category,
+      MOCK_BREADCRUMBS[2].category,
     ];
     for (const crumbTitle of summaryCrumbTitles) {
       expect(screen.getByText(crumbTitle)).toBeInTheDocument();
     }
     const hiddenCrumbTitles = [
-      MOCK_BREADCRUMBS[1]!.category,
-      MOCK_BREADCRUMBS[0]!.category,
+      MOCK_BREADCRUMBS[1].category,
+      MOCK_BREADCRUMBS[0].category,
     ];
     for (const crumbTitle of hiddenCrumbTitles) {
       expect(screen.queryByText(crumbTitle)).not.toBeInTheDocument();

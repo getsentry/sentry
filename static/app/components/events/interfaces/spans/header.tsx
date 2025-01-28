@@ -467,7 +467,7 @@ class TraceViewHeader extends Component<PropType, State> {
             defined(profiles.data.measurements?.cpu_usage) &&
             // Check that this profile has enough data points
             getDataPoints(
-              profiles.data.measurements!.cpu_usage,
+              profiles.data.measurements.cpu_usage,
               transactionDuration * MS_PER_S
             ).length >= MIN_DATA_POINTS;
 

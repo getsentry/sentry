@@ -5,7 +5,7 @@ import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/ta
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -178,9 +178,7 @@ export default function FeedbackSearch() {
         endpointParams,
       }).then(
         tagValues =>
-          (tagValues as TagValue[])
-            .filter(tagValue => tagValue.name !== '')
-            .map(({value}) => value),
+          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }

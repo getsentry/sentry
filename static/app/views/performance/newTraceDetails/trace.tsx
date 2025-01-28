@@ -556,7 +556,7 @@ function RenderTraceRow(props: {
 
   const registerSpanArrowRef = useCallback(
     (ref: any) => {
-      props.manager.registerArrowRef(ref, node.space!, virtualized_index);
+      props.manager.registerArrowRef(ref, node.space, virtualized_index);
     },
     [props.manager, node, virtualized_index]
   );
@@ -581,14 +581,14 @@ function RenderTraceRow(props: {
         organization: props.organization,
       });
       e.stopPropagation();
-      props.manager.onZoomIntoSpace(node.space!);
+      props.manager.onZoomIntoSpace(node.space);
     },
     [node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
     (_e: React.MouseEvent) => {
-      props.manager.onBringRowIntoView(node.space!);
+      props.manager.onBringRowIntoView(node.space);
     },
     [node.space, props.manager]
   );

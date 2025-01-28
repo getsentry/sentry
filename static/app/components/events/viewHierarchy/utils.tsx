@@ -115,7 +115,7 @@ export function getDeepestNodeAtPoint(
   const transformedPoint = vec2.transformMat3(vec2.create(), point, inverseMatrix);
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]!;
-    if (node!.rect.contains(transformedPoint)) {
+    if (node.rect.contains(transformedPoint)) {
       clickedNode = node;
     }
   }

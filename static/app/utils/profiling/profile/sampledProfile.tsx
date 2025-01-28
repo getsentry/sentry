@@ -25,7 +25,7 @@ function sortStacks(
     if (aStackI === bStackI) {
       continue;
     }
-    return aStackI! - bStackI!;
+    return aStackI - bStackI;
   }
   return 0;
 }

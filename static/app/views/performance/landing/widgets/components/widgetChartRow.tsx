@@ -58,7 +58,7 @@ function ChartRow(props: ChartRowProps) {
           key={index}
           index={index}
           chartHeight={chartHeight}
-          chartColor={palette[index]!}
+          chartColor={palette[index]}
           defaultChartSetting={allowedCharts[index]!}
           rowChartSettings={chartSettings}
           setRowChartSettings={setChartSettings}
