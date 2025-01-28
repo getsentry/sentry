@@ -97,19 +97,19 @@ Makefile                                                 @getsentry/owners-sentr
 /tests/sentry/runner/commands/test_backup.py             @getsentry/dev-infra
 
 ## Relocation - getsentry/team-ospo#153
-/src/sentry/analytics/events/relocation_*.py             @getsentry/dev-infra
-/src/sentry/api/endpoints/organization_fork.py           @getsentry/dev-infra
-/src/sentry/api/endpoints/relocation/                    @getsentry/dev-infra
-/src/sentry/api/serializers/models/relocation/           @getsentry/dev-infra
-/src/sentry/models/relocation/                           @getsentry/dev-infra
-/src/sentry/relocation/                                  @getsentry/dev-infra
-/src/sentry/tasks/relocation.py                          @getsentry/dev-infra
-/src/sentry/utils/relocation.py                          @getsentry/dev-infra
-/tests/sentry/api/endpoints/relocation                   @getsentry/dev-infra
-/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/dev-infra
-/tests/sentry/api/serializer/test_relocation.py          @getsentry/dev-infra
-/tests/sentry/tasks/test_relocation.py                   @getsentry/dev-infra
-/tests/sentry/utils/test_relocation.py                   @getsentry/dev-infra
+/src/sentry/analytics/events/relocation_*.py             @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/organization_fork.py           @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/relocation/                    @getsentry/hybrid-cloud
+/src/sentry/api/serializers/models/relocation/           @getsentry/hybrid-cloud
+/src/sentry/models/relocation/                           @getsentry/hybrid-cloud
+/src/sentry/relocation/                                  @getsentry/hybrid-cloud
+/src/sentry/tasks/relocation.py                          @getsentry/hybrid-cloud
+/src/sentry/utils/relocation.py                          @getsentry/hybrid-cloud
+/tests/sentry/api/endpoints/relocation                   @getsentry/hybrid-cloud
+/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/hybrid-cloud
+/tests/sentry/api/serializer/test_relocation.py          @getsentry/hybrid-cloud
+/tests/sentry/tasks/test_relocation.py                   @getsentry/hybrid-cloud
+/tests/sentry/utils/test_relocation.py                   @getsentry/hybrid-cloud
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
