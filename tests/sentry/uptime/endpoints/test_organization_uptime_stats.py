@@ -22,7 +22,9 @@ class OrganizationUptimeCheckIndexEndpointTest(
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.create_project_uptime_subscription(uptime_subscription=self.subscription)
+        self.project_uptime_subscription = self.create_project_uptime_subscription(
+            uptime_subscription=self.subscription
+        )
 
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
@@ -37,7 +39,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            uptime_subscription_id=[self.subscription_id],
+            project_uptime_subscription_id=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -45,7 +47,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         assert response.data is not None
         data = json.loads(json.dumps(response.data))
         assert data == {
-            self.subscription_id: [
+            str(self.project_uptime_subscription.id): [
                 [1736881458, {"failure": 0, "success": 0, "missed_window": 0}],
                 [1736967858, {"failure": 0, "success": 0, "missed_window": 0}],
                 [1737054258, {"failure": 0, "success": 0, "missed_window": 0}],
@@ -62,7 +64,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            uptime_subscription_id=[str(uuid.uuid4())],
+            project_uptime_subscription_id=[str(uuid.uuid4())],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -75,7 +77,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            uptime_subscription_id=[],
+            project_uptime_subscription_id=[],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -89,7 +91,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            uptime_subscription_id=[self.subscription_id],
+            project_uptime_subscription_id=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1h",
@@ -103,7 +105,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            uptime_subscription_id=[str(uuid.uuid4()) for _ in range(101)],
+            project_uptime_subscription_id=[str(uuid.uuid4()) for _ in range(101)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1h",

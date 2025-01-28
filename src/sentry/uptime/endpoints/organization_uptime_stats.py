@@ -44,25 +44,29 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         timerange_args = self._parse_args(request)
         projects = self.get_projects(request, organization)
 
-        uptime_subscription_ids = request.GET.getlist("uptime_subscription_id")
+        project_uptime_subscription_ids = request.GET.getlist("project_uptime_subscription_id")
 
-        if not uptime_subscription_ids:
-            return self.respond("No uptime subscription ids provided", status=400)
+        if not project_uptime_subscription_ids:
+            return self.respond("No project uptime subscription ids provided", status=400)
 
-        if len(uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+        if len(project_uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
             return self.respond(
-                f"Too many uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                f"Too many project uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
                 status=400,
             )
 
         try:
-            self._authorize_uptime_subscription_ids(uptime_subscription_ids, projects)
+            subscription_id_to_project_uptime_subscription_id, subscription_ids = (
+                self._authorize_and_map_project_uptime_subscription_ids(
+                    project_uptime_subscription_ids, projects
+                )
+            )
         except ValueError:
-            return self.respond("Invalid uptime subscription ids provided", status=400)
+            return self.respond("Invalid project uptime subscription ids provided", status=400)
 
         try:
             eap_response = self._make_eap_request(
-                organization, projects, uptime_subscription_ids, timerange_args
+                organization, projects, subscription_ids, timerange_args
             )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
@@ -70,25 +74,50 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         formatted_response = self._format_response(eap_response)
 
-        return self.respond(formatted_response)
+        # Map the response back to project uptime subscription ids
+        mapped_response = self._map_response_to_project_uptime_subscription_ids(
+            subscription_id_to_project_uptime_subscription_id, formatted_response
+        )
 
-    def _authorize_uptime_subscription_ids(
-        self, uptime_subscription_ids: list[str], projects: list[Project]
-    ) -> None:
+        return self.respond(mapped_response)
 
-        valid_subscription_ids = ProjectUptimeSubscription.objects.filter(
+    def _authorize_and_map_project_uptime_subscription_ids(
+        self, project_uptime_subscription_ids: list[str], projects: list[Project]
+    ) -> list[str]:
+        """
+        Authorize the project uptime subscription ids and return their corresponding subscription ids
+        we don't store the project uptime subscription id in snuba, so we need to map it to the subscription id
+        """
+        project_uptime_subscription_ids_ints = [int(id) for id in project_uptime_subscription_ids]
+        project_uptime_subscriptions = ProjectUptimeSubscription.objects.filter(
             project_id__in=[project.id for project in projects],
-            uptime_subscription__subscription_id__in=uptime_subscription_ids,
-        ).values_list("uptime_subscription__subscription_id", flat=True)
+            id__in=project_uptime_subscription_ids_ints,
+        ).values_list("id", "uptime_subscription__subscription_id")
 
-        if set(uptime_subscription_ids) != set(valid_subscription_ids):
-            raise ValueError("Invalid uptime subscription ids provided")
+        validated_project_uptime_subscription_ids = {
+            project_uptime_subscription[0]
+            for project_uptime_subscription in project_uptime_subscriptions
+        }
+        if set(project_uptime_subscription_ids_ints) != validated_project_uptime_subscription_ids:
+            raise ValueError("Invalid project uptime subscription ids provided")
+
+        subscription_id_to_project_uptime_subscription_id = {
+            project_uptime_subscription[1]: project_uptime_subscription[0]
+            for project_uptime_subscription in project_uptime_subscriptions
+        }
+
+        validated_subscription_ids = {
+            project_uptime_subscription[1]
+            for project_uptime_subscription in project_uptime_subscriptions
+        }
+
+        return subscription_id_to_project_uptime_subscription_id, validated_subscription_ids
 
     def _make_eap_request(
         self,
         organization: Organization,
         projects: list[Project],
-        uptime_subscription_ids: list[str],
+        subscription_ids: list[str],
         timerange_args: StatsArgsDict,
     ) -> TimeSeriesResponse:
         start_timestamp = Timestamp()
@@ -131,7 +160,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                         type=AttributeKey.Type.TYPE_STRING,
                     ),
                     op=ComparisonFilter.OP_IN,
-                    value=AttributeValue(val_str_array=StrArray(values=uptime_subscription_ids)),
+                    value=AttributeValue(val_str_array=StrArray(values=subscription_ids)),
                 )
             ),
         )
@@ -168,3 +197,16 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             ]
 
         return final_data
+
+    def _map_response_to_project_uptime_subscription_ids(
+        self,
+        subscription_id_to_project_uptime_subscription_id: dict[str, str],
+        formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
+    ) -> dict[str, list[tuple[int, dict[str, int]]]]:
+        """
+        Map the response back to project uptime subscription ids
+        """
+        return {
+            subscription_id_to_project_uptime_subscription_id[subscription_id]: data
+            for subscription_id, data in formatted_response.items()
+        }
