@@ -1906,10 +1906,12 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route
-      path="/explore/logs"
-      component={make(() => import('sentry/views/explore/logs'))}
+      path="/explore/"
+      component={make(() => import('sentry/views/explore/navigation'))}
       withOrgPath
-    />
+    >
+      <Route path="logs" component={make(() => import('sentry/views/explore/logs'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (
