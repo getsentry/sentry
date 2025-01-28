@@ -288,6 +288,7 @@ function useWidgetBuilderState(): {
 
           setThresholds(undefined);
           setQuery([config.defaultWidgetQuery.conditions]);
+          setLegendAlias([]);
           setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_FIELDS:
