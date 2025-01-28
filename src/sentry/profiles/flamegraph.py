@@ -86,7 +86,7 @@ class FlamegraphExecutor:
         self,
         *,
         snuba_params: SnubaParams,
-        data_source: Literal["functions", "transactions", "profiles"],
+        data_source: Literal["functions", "transactions", "profiles", "spans"],
         query: str,
         fingerprint: int | None = None,
     ):
