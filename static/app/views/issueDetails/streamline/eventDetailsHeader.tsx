@@ -18,6 +18,7 @@ import {
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
+import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {TimelineSummary} from 'sentry/views/issueDetails/streamline/timelineSummary';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -82,15 +83,22 @@ export function EventDetailsHeader({
           />
           <ToggleSidebar />
         </Flex>
-        <GraphSection>
-          <EventGraph event={event} group={group} style={{flex: 1}} />
-          <SectionDivider />
-          <IssueTagsPreview
-            groupId={group.id}
-            environments={environments}
-            project={project}
-          />
-        </GraphSection>
+        {!issueTypeConfig.showMetricGraph && (
+          <GraphSection>
+            <EventGraph event={event} group={group} style={{flex: 1}} />
+            <SectionDivider />
+            <IssueTagsPreview
+              groupId={group.id}
+              environments={environments}
+              project={project}
+            />
+          </GraphSection>
+        )}
+        {issueTypeConfig.showMetricGraph && (
+          <MetricChartSection>
+            <MetricIssueChart group={group} project={project} event={event} />
+          </MetricChartSection>
+        )}
         {issueTypeConfig.header.timelineSummary.enabled && (
           <TimelineSection group={group} />
         )}
@@ -147,6 +155,12 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const MetricChartSection = styled('div')`
+  grid-area: graph;
+  display: block;
   border-top: 1px solid ${p => p.theme.translucentBorder};
 `;
 
