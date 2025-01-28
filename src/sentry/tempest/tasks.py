@@ -230,7 +230,12 @@ def fetch_items_from_tempest(
     logger.info(
         "Tempest API request",
         extra={
-            "payload": payload,
+            "org_id": org_id,
+            "project_id": project_id,
+            "dsn": dsn,
+            "offset": offset,
+            "limit": limit,
+            "attach_screenshot": attach_screenshot,
             "endpoint": "/crashes",
         },
     )
