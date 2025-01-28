@@ -11,7 +11,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
-import IssueList from 'sentry/views/issueList/overviewFc';
+import IssueList from 'sentry/views/issueList/overview';
 
 jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () =>
