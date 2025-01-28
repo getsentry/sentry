@@ -2,10 +2,12 @@ from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 
 # Generated based on the response from the MsTeams API
-# Example: {"error":{"code":"ConversationBlockedByUser","message":"User blocked the conversation with the bot."}}"
+# Example: {"error":{"code":"ConversationBlockedByUser","message":"User blocked the conversation with the bot."}}
 MSTEAMS_HALT_ERROR_CODES = [
+    "BotDisabledByAdmin",
     "ConversationBlockedByUser",
     "ConversationNotFound",
+    "TenantNoPermission",
 ]
 
 
