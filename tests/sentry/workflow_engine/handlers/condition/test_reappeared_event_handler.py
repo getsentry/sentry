@@ -1,3 +1,6 @@
+import pytest
+from jsonschema import ValidationError
+
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
@@ -17,6 +20,24 @@ class TestReappearedEventCondition(ConditionTestCase):
         assert dc.comparison is True
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison=True,
+            condition_result=True,
+        )
+
+        dc.comparison = False
+        dc.save()
+
+        dc.comparison = {"time": "asdf"}
+        with pytest.raises(ValidationError):
+            dc.save()
+
+        dc.comparison = "hello"
+        with pytest.raises(ValidationError):
+            dc.save()
 
     def test(self):
         job = WorkflowJob(
