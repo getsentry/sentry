@@ -137,9 +137,6 @@ export function useAnalytics({
     isLoadingSubscriptionDetails,
   ]);
 
-  const resultMissingRoot =
-    tracesTableResult.result?.data?.data?.filter(trace => defined(trace.name)).length ??
-    0;
   useEffect(() => {
     if (
       queryType !== 'traces' ||
@@ -159,6 +156,10 @@ export function useAnalytics({
       'root duration',
       'timestamp',
     ];
+    const resultMissingRoot =
+      tracesTableResult.result?.data?.data?.filter(trace => !defined(trace.name))
+        .length ?? 0;
+
     trackAnalytics('trace.explorer.metadata', {
       organization,
       dataset,
@@ -186,8 +187,7 @@ export function useAnalytics({
     queryType,
     tracesTableResult.result.isPending,
     tracesTableResult.result.status,
-    tracesTableResult.result.data?.data?.length,
-    resultMissingRoot,
+    tracesTableResult.result.data?.data,
     timeseriesResult.isPending,
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,

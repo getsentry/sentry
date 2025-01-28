@@ -70,6 +70,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -291,6 +292,7 @@ function WidgetCard(props: Props) {
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
                   borderless={props.borderless}
+                  forceDescriptionTooltip={props.forceDescriptionTooltip}
                 />
               );
             }}
@@ -307,6 +309,7 @@ function WidgetCard(props: Props) {
             actions={actions}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
+            forceDescriptionTooltip={props.forceDescriptionTooltip}
           >
             <WidgetCardChartContainer
               location={location}
