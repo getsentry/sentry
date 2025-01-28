@@ -25,7 +25,6 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_data_from_snuba,
     get_events_from_nodestore,
     get_next_project_from_cohort,
-    initialize_backfill,
     send_group_and_stacktrace_to_seer,
     send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
@@ -117,16 +116,11 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
+    last_processed_project_index = (
+        last_processed_project_index_input if last_processed_project_index_input else 0
+    )
     try:
-        (
-            project,
-            last_processed_group_id,
-            last_processed_project_index,
-        ) = initialize_backfill(
-            current_project_id,
-            last_processed_group_id_input,
-            last_processed_project_index_input,
-        )
+        project = Project.objects.get_from_cache(id=current_project_id)
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
@@ -197,7 +191,7 @@ def backfill_seer_grouping_records_for_project(
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id, batch_size, worker_number, enable_ingestion
+        project, last_processed_group_id_input, batch_size, worker_number, enable_ingestion
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:

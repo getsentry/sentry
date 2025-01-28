@@ -131,21 +131,6 @@ def create_project_cohort(
     return list(project_cohort_list)
 
 
-@sentry_sdk.tracing.trace
-def initialize_backfill(
-    project_id: int,
-    last_processed_group_id: int | None,
-    last_processed_project_index: int | None,
-):
-    project = Project.objects.get_from_cache(id=project_id)
-
-    last_processed_project_index_ret = (
-        last_processed_project_index if last_processed_project_index else 0
-    )
-
-    return project, last_processed_group_id, last_processed_project_index_ret
-
-
 def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):
     """
     Return the filtered batch of group ids to be backfilled, the last group id in the raw batch,
