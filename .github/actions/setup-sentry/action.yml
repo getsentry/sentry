@@ -7,6 +7,10 @@ inputs:
     description: 'Directory where the sentry source is located'
     required: false
     default: '.'
+  python-version:
+    description: 'python version to install'
+    required: false
+    default: '3.13.1'
   mode:
     description: 'Mode to bring up by new devservices'
     required: false
