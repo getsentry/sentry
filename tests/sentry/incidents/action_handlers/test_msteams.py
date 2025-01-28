@@ -240,3 +240,30 @@ class MsTeamsActionHandlerTest(FireTest):
             getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_fire_metric_alert_halt(self, mock_record):
+        self.alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/d_s/activities",
+            status=403,
+            json={
+                "error": {
+                    "code": "ConversationBlockedByUser",
+                    "message": "User blocked the conversation with the bot.",
+                }
+            },
+        )
+
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
