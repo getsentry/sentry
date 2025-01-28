@@ -601,28 +601,6 @@ function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
   return entry.entryType === 'first-input';
 }
 
-function getNearestElementName(node: HTMLElement | undefined | null): string | undefined {
-  if (!node) {
-    return 'no-element';
-  }
-
-  let current: HTMLElement | null = node;
-  while (current && current !== document.body) {
-    const elementName =
-      current.dataset?.testId ??
-      current.dataset?.sentryComponent ??
-      current.dataset?.element;
-
-    if (elementName) {
-      return elementName;
-    }
-
-    current = current.parentElement;
-  }
-
-  return `${node.tagName.toLowerCase()}.${node.className ?? ''}`;
-}
-
 export function makeIssuesINPObserver(): PerformanceObserver | undefined {
   if (!supportsINP()) {
     return undefined;
@@ -639,15 +617,6 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
         if (entry.duration < 16) {
           return;
         }
-
-        Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
-          unit: 'millisecond',
-          tags: {
-            element: getNearestElementName(entry.target),
-            entryType: entry.entryType,
-            interaction: entry.name,
-          },
-        });
       }
     });
   });

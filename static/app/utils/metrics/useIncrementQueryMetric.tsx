@@ -28,9 +28,6 @@ export const useIncrementQueryMetric = (options: Options) => {
         isGrouped: !!mergedValues.groupBy?.length,
         isFiltered: !!mergedValues.query,
       };
-      Sentry.metrics.increment(metricName, 1, {
-        tags,
-      });
 
       const span = Sentry.getActiveSpan();
       if (span) {

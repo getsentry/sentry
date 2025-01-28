@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -76,7 +75,6 @@ export function MetricQueryContextMenu({
         trackAnalytics('ddm.widget.duplicate', {
           organization,
         });
-        Sentry.metrics.increment('ddm.widget.duplicate');
         duplicateWidget(widgetIndex);
       },
     };
@@ -91,7 +89,6 @@ export function MetricQueryContextMenu({
           organization,
           source: 'widget',
         });
-        Sentry.metrics.increment('ddm.widget.alert');
         createAlert?.();
       },
     };
@@ -130,7 +127,6 @@ export function MetricQueryContextMenu({
           organization,
           source: 'widget',
         });
-        Sentry.metrics.increment('ddm.widget.dashboard');
         createDashboardWidget?.();
       },
     };
@@ -144,7 +140,6 @@ export function MetricQueryContextMenu({
         trackAnalytics('ddm.widget.settings', {
           organization,
         });
-        Sentry.metrics.increment('ddm.widget.settings');
 
         if (!isVirtualMetric(metricsQuery)) {
           navigateTo(
@@ -166,7 +161,6 @@ export function MetricQueryContextMenu({
         trackAnalytics('ddm.widget.delete', {
           organization,
         });
-        Sentry.metrics.increment('ddm.widget.delete');
         removeWidget(widgetIndex);
       },
     };

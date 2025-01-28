@@ -1,10 +1,9 @@
-import {useEffect, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
 function TraceLoading() {
   return (
@@ -20,10 +19,6 @@ function TraceLoading() {
 function TraceError() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
-
-  useEffect(() => {
-    traceAnalytics.trackFailedToFetchTraceState();
-  }, []);
 
   return (
     <LoadingContainer animate error>
@@ -47,10 +42,6 @@ function TraceError() {
 function TraceEmpty() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
-
-  useEffect(() => {
-    traceAnalytics.trackEmptyTraceState();
-  }, []);
 
   return (
     <LoadingContainer animate>

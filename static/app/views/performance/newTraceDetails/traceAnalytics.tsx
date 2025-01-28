@@ -13,8 +13,6 @@ const trackTraceMetadata = (
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null
 ) => {
-  Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
-
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
   const projectSlugs = [
@@ -41,11 +39,6 @@ const trackTraceMetadata = (
     organization,
   });
 };
-
-const trackFailedToFetchTraceState = () =>
-  Sentry.metrics.increment('trace.failed_to_fetch_trace');
-
-const trackEmptyTraceState = () => Sentry.metrics.increment('trace.empty_trace');
 
 const trackLayoutChange = (layout: string, organization: Organization) =>
   trackAnalytics('trace.trace_layout.change', {
@@ -207,8 +200,6 @@ const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
   trackTraceShape,
-  trackEmptyTraceState,
-  trackFailedToFetchTraceState,
   // Drawer actions
   trackShowInView,
   trackViewEventJSON,

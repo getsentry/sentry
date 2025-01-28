@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -46,7 +45,6 @@ export function MetricFormulaContextMenu({
           trackAnalytics('ddm.widget.duplicate', {
             organization,
           });
-          Sentry.metrics.increment('ddm.widget.duplicate');
           duplicateWidget(widgetIndex);
         },
       },
@@ -75,7 +73,6 @@ export function MetricFormulaContextMenu({
             organization,
             source: 'widget',
           });
-          Sentry.metrics.increment('ddm.widget.dashboard');
           createDashboardWidget?.();
         },
       },
@@ -85,7 +82,6 @@ export function MetricFormulaContextMenu({
         label: t('Remove Equation'),
         disabled: !canDelete,
         onAction: () => {
-          Sentry.metrics.increment('ddm.widget.delete');
           removeWidget(widgetIndex);
         },
       },

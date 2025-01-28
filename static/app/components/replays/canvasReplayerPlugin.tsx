@@ -275,8 +275,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       errorHandler: (err: unknown) => {
         if (err instanceof Error) {
           Sentry.captureException(err);
-        } else {
-          Sentry.metrics.increment('replay.canvas_player.error_canvas_mutation');
         }
       },
     });
@@ -358,7 +356,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 function handleProcessEventError(err: unknown) {
   if (err instanceof InvalidCanvasNodeError) {
     // This can throw if mirror DOM is not ready
-    Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
     return;
   }
 

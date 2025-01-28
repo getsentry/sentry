@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import colorFn from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -61,12 +60,6 @@ export const SummaryTable = memo(function SummaryTable({
         organization,
         by: name ?? '(none)',
         order: sort.order,
-      });
-      Sentry.metrics.increment('ddm.widget.sort', 1, {
-        tags: {
-          by: name ?? '(none)',
-          order: sort.order,
-        },
       });
       if (sort.name === name) {
         if (sort.order === 'desc') {

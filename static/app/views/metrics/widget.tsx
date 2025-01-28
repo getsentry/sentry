@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
@@ -163,7 +162,6 @@ export const MetricWidget = memo(
     );
 
     const handleDisplayTypeChange = ({value}: SelectOption<MetricDisplayType>) => {
-      Sentry.metrics.increment('ddm.widget.display');
       onChange(index, {displayType: value});
     };
 
@@ -171,13 +169,6 @@ export const MetricWidget = memo(
       options: Array<SelectOption<MetricChartOverlayType>>
     ) => {
       const values = options.map(({value}) => value);
-
-      Sentry.metrics.increment('ddm.widget.overlay', 1, {
-        tags: {
-          releases: values.includes(MetricChartOverlayType.RELEASES),
-          samples: values.includes(MetricChartOverlayType.SAMPLES),
-        },
-      });
 
       onChange(index, {overlays: values});
     };
@@ -407,7 +398,6 @@ const MetricWidgetBody = memo(
 
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
-        Sentry.metrics.increment('ddm.enhance.zoom');
         updateDateTime(range, router, {save: true});
       },
       [router]
