@@ -415,7 +415,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome!] += group.totals['sum(quantity)']!;
+          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
         }
 
         if (

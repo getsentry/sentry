@@ -96,7 +96,7 @@ export function PagePerformanceTable() {
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
+    opportunity: (row.opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -262,13 +262,11 @@ export function PagePerformanceTable() {
           </AlignRight>
         );
       }
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return <AlignRight>{Math.round(row[key] * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
       if (row.opportunity !== undefined) {
-        return (
-          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
-        );
+        return <AlignRight>{Math.round(row.opportunity * 100) / 100}</AlignRight>;
       }
       return null;
     }

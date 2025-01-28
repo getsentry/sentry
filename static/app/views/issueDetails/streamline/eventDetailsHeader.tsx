@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {TimelineSummary} from 'sentry/views/issueDetails/streamline/timelineSummary';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventDetailsHeader({
@@ -37,9 +38,14 @@ export function EventDetailsHeader({
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  if (!issueTypeConfig.filterAndSearchHeader.enabled) {
+  if (!issueTypeConfig.header.filterAndSearch.enabled) {
     return null;
   }
+
+  const searchText = t(
+    'Filter %s\u2026',
+    issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
+  );
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -70,6 +76,8 @@ export function EventDetailsHeader({
             query={searchQuery}
             queryBuilderProps={{
               disallowFreeText: true,
+              placeholder: searchText,
+              label: searchText,
             }}
           />
           <ToggleSidebar />
@@ -83,6 +91,9 @@ export function EventDetailsHeader({
             project={project}
           />
         </GraphSection>
+        {issueTypeConfig.header.timelineSummary.enabled && (
+          <TimelineSection group={group} />
+        )}
       </FilterContainer>
     </PageErrorBoundary>
   );
@@ -92,10 +103,11 @@ const FilterContainer = styled('div')`
   padding-left: 24px;
   display: grid;
   grid-template-columns: auto auto minmax(100px, 1fr);
-  grid-template-rows: minmax(38px, auto) auto;
+  grid-template-rows: minmax(38px, auto) auto auto;
   grid-template-areas:
-    'env    date  search  toggle'
-    'graph  graph graph   graph';
+    'env      date      search    toggle'
+    'graph    graph     graph     graph'
+    'timeline timeline  timeline  timeline';
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
 `;
@@ -135,6 +147,13 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const TimelineSection = styled(TimelineSummary)`
+  grid-area: timeline;
+  padding: ${space(2)};
+  padding-right: 0;
   border-top: 1px solid ${p => p.theme.translucentBorder};
 `;
 

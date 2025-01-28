@@ -86,7 +86,7 @@ function isNonZeroValue(value: number | undefined) {
 function addSeriesPadding(data: Series['data']) {
   const hasNonZeroSibling = (index: number) => {
     return (
-      isNonZeroValue(data[index - 1]?.value!) || isNonZeroValue(data[index + 1]?.value)
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
     );
   };
   const paddingIndices = new Set<number>();

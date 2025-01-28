@@ -33,7 +33,7 @@ describe('FlamegraphDomRenderer', () => {
       [{name: 'function 0'}]
     );
 
-    const canvas = makeCanvasMock() as HTMLCanvasElement;
+    const canvas = makeCanvasMock();
 
     // @ts-expect-error parentElement is a mock so readonly does not apply
     canvas.parentElement = document.createElement('div');

@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {LinkButton} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
@@ -19,13 +18,13 @@ import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -40,41 +39,12 @@ const BACKEND_TAGS = [
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 const RTL_TAGS = ['transaction', 'url'];
 
-type TagSort = 'date' | 'count';
-const DEFAULT_SORT: TagSort = 'count';
-
 type Segment = {
   count: number;
   name: string | React.ReactNode;
   percentage: number;
   color?: string;
 };
-
-function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
-  const organization = useOrganization();
-  const location = useLocation();
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
-  useFetchIssueTagValues(
-    {
-      orgSlug: organization.slug,
-      groupId,
-      tagKey,
-      sort,
-      cursor: location.query.tagDrawerCursor as string | undefined,
-    },
-    {enabled}
-  );
-
-  useFetchIssueTag(
-    {
-      orgSlug: organization.slug,
-      groupId,
-      tagKey,
-    },
-    {enabled}
-  );
-}
 
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
@@ -367,7 +337,7 @@ const TagPreviewGrid = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.backgroundTertiary};
     color: ${p => p.theme.textColor};
   }
 `;
