@@ -88,28 +88,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     saveOnZoom: true,
   });
 
-  let completeSeries: TimeseriesData[] = props.timeseries;
-  const incompleteSeries: TimeseriesData[] = [];
-
-  if (dataCompletenessDelay > 0) {
-    completeSeries = [];
-
-    props.timeseries.forEach(timeserie => {
-      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
-        timeserie,
-        dataCompletenessDelay
-      );
-
-      if (completeSerie && completeSerie.data.length > 0) {
-        completeSeries.push(completeSerie);
-      }
-
-      if (incompleteSerie && incompleteSerie.data.length > 0) {
-        incompleteSeries.push(incompleteSerie);
-      }
-    });
-  }
-
   // TODO: There's a TypeScript indexing error here. This _could_ in theory be
   // `undefined`. We need to guard against this in the parent component, and
   // show an error.
@@ -137,6 +115,28 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // TODO: It would be smart, here, to check the units and convert if necessary
   const yAxisUnit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
+
+  let completeSeries: TimeseriesData[] = props.timeseries;
+  const incompleteSeries: TimeseriesData[] = [];
+
+  if (dataCompletenessDelay > 0) {
+    completeSeries = [];
+
+    props.timeseries.forEach(timeserie => {
+      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+        timeserie,
+        dataCompletenessDelay
+      );
+
+      if (completeSerie && completeSerie.data.length > 0) {
+        completeSeries.push(completeSerie);
+      }
+
+      if (incompleteSerie && incompleteSerie.data.length > 0) {
+        incompleteSeries.push(incompleteSerie);
+      }
+    });
+  }
 
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
