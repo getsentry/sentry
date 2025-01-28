@@ -11,7 +11,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -255,7 +254,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         )
         return values
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         raise IntegrationFeatureNotImplementedError
 
     def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:

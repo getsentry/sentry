@@ -19,7 +19,6 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode, control_silo_function
@@ -329,7 +328,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository

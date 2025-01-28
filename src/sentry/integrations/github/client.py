@@ -34,7 +34,6 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -376,7 +375,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repos()
+                for repo in self.get_repos(fetch_max_pages=True)
                 if not repo.get("archived")
             ]
             if not repositories:
@@ -491,14 +490,21 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         )
         return RepoTree(RepoAndBranch(full_name, branch), repo_files)
 
-    def get_repos(self) -> list[dict[str, Any]]:
+    def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
         """
+        args:
+         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self.get_with_pagination("/installation/repositories", response_key="repositories")
+        return self.get_with_pagination(
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
+        )
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
@@ -538,31 +544,19 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             output = []
 
             page_number = 1
-            logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
-            # XXX: Debugging code; remove afterward
-            if (
-                response_key
-                and response_key == "repositories"
-                and resp["total_count"] > 0
-                and not output
-            ):
-                logger.info("headers: %s", resp.headers)
-                logger.info("output: %s", output)
-                logger.info("next_link: %s", next_link)
-                logger.error("No list of repos even when there's some. Investigate.")
-
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
+                # If a per_page is specified, GitHub preserves the per_page value
+                # in the response headers.
                 resp = self.get(next_link)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
-                logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
 
@@ -619,7 +613,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(

@@ -119,9 +119,8 @@ def auto_source_code_config(
         return
 
     installation, organization_integration = get_installation(org)
-
     if not installation or not organization_integration:
-        logger.error("No installation or organization integration found.", extra=extra)
+        logger.info("No installation or organization integration found.", extra=extra)
         return
 
     trees = get_trees_for_org(installation, org, extra)

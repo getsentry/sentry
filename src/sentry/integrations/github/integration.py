@@ -239,7 +239,7 @@ class GitHubIntegration(
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
-            all_repos = self.get_client().get_repos()
+            all_repos = self.get_client().get_repos(fetch_max_pages=True)
             return [
                 {
                     "name": i["name"],

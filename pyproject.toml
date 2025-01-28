@@ -1,7 +1,7 @@
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
-target-version = ['py312']
+target-version = ['py313']
 
 [tool.isort]
 profile = "black"
@@ -47,7 +47,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
   "pydantic.mypy",
@@ -130,7 +130,6 @@ module = [
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
     "sentry.api.endpoints.organization_member.requests.invite.details",
-    "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.endpoints.organization_request_project_creation",
@@ -141,12 +140,10 @@ module = [
     "sentry.api.endpoints.project_release_files",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
-    "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.team_details",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.helpers.group_index.index",
     "sentry.api.invite_helper",
-    "sentry.api.issue_search",
     "sentry.api.paginator",
     "sentry.api.permissions",
     "sentry.api.serializers.models.auth_provider",
@@ -173,7 +170,6 @@ module = [
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.bitbucket.client",
     "sentry.integrations.bitbucket.integration",
-    "sentry.integrations.bitbucket.issues",
     "sentry.integrations.bitbucket_server.client",
     "sentry.integrations.bitbucket_server.integration",
     "sentry.integrations.example.integration",
@@ -189,14 +185,12 @@ module = [
     "sentry.integrations.jira.views.base",
     "sentry.integrations.jira.webhooks.base",
     "sentry.integrations.jira.webhooks.issue_updated",
-    "sentry.integrations.jira_server.client",
     "sentry.integrations.jira_server.integration",
     "sentry.integrations.metric_alerts",
     "sentry.integrations.msteams.actions.form",
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
     "sentry.integrations.msteams.notifications",
-    "sentry.integrations.notifications",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pagerduty.client",
     "sentry.integrations.pagerduty.integration",
@@ -211,8 +205,6 @@ module = [
     "sentry.integrations.utils.sync",
     "sentry.integrations.vercel.client",
     "sentry.integrations.vercel.integration",
-    "sentry.integrations.vercel.webhook",
-    "sentry.integrations.vsts.client",
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
     "sentry.integrations.vsts.repository",
@@ -238,9 +230,7 @@ module = [
     "sentry.rules.actions.integrations.base",
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
-    "sentry.rules.filters.assigned_to",
     "sentry.rules.history.preview",
-    "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
     "sentry.search.events.builder.errors",
@@ -249,7 +239,6 @@ module = [
     "sentry.search.events.datasets.metrics_layer",
     "sentry.search.events.filter",
     "sentry.search.snuba.executors",
-    "sentry.sentry_apps.installations",
     "sentry.sentry_metrics.indexer.postgres.postgres_v2",
     "sentry.shared_integrations.client.proxy",
     "sentry.snuba.errors",
@@ -268,9 +257,7 @@ module = [
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
     "sentry.web.frontend.react_page",
-    "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
-    "sentry_plugins.bitbucket.client",
     "sentry_plugins.bitbucket.mixins",
     "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
@@ -285,7 +272,6 @@ disable_error_code = [
     "attr-defined",
     "call-arg",
     "call-overload",
-    "dict-item",
     "index",
     "misc",
     "operator",

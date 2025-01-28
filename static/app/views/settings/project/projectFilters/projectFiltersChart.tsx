@@ -1,6 +1,3 @@
-import {Component} from 'react';
-
-import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -9,27 +6,39 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
-import withApi from 'sentry/utils/withApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
 type Props = {
-  api: Client;
-  organization: Organization;
   project: Project;
 };
 
-type State = {
-  blankStats: boolean;
-  error: boolean;
-  formattedData: Series[];
-  loading: boolean;
-  statsError: boolean;
-};
+function formatData(rawData: UsageSeries | undefined) {
+  if (!rawData || !rawData.groups?.length) {
+    return [];
+  }
 
+  const formattedData = rawData.groups
+    .filter(group => STAT_OPS[group.by.reason as keyof typeof STAT_OPS])
+    .map(group => {
+      const {title, color} = STAT_OPS[group.by.reason as keyof typeof STAT_OPS];
+      return {
+        seriesName: title,
+        color,
+        data: rawData.intervals
+          .map((interval, index) => ({
+            name: interval,
+            value: group.series['sum(quantity)']![index]!,
+          }))
+          .filter(dataPoint => !!dataPoint.value),
+      };
+    });
+
+  return formattedData;
+}
 const STAT_OPS = {
   'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
   cors: {title: 'CORS', color: theme.yellow300},
@@ -46,119 +55,62 @@ const STAT_OPS = {
   'chunk-load-error': {title: t('Chunk Load Errors'), color: theme.outcome.filtered},
 };
 
-class ProjectFiltersChart extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    error: false,
-    statsError: false,
-    formattedData: [],
-    blankStats: true,
-  };
+export function ProjectFiltersChart({project}: Props) {
+  const organization = useOrganization();
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.project !== this.props.project) {
-      this.fetchData();
+  const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
+    [
+      `/organizations/${organization.slug}/stats_v2/`,
+      {
+        query: {
+          project: project.id,
+          category: ['transaction', 'default', 'security', 'error'],
+          outcome: 'filtered',
+          field: 'sum(quantity)',
+          groupBy: 'reason',
+          interval: '1d',
+          statsPeriod: '30d',
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
     }
-  }
+  );
 
-  formatData(rawData: UsageSeries) {
-    const formattedData = rawData.groups
-      .filter(group => STAT_OPS[group.by.reason as keyof typeof STAT_OPS])
-      .map(group => {
-        const {title, color} = STAT_OPS[group.by.reason as keyof typeof STAT_OPS];
-        return {
-          seriesName: title,
-          color,
-          data: rawData.intervals
-            .map((interval, index) => ({
-              name: interval,
-              value: group.series['sum(quantity)']![index]!,
-            }))
-            .filter(dataPoint => !!dataPoint.value),
-        };
-      });
+  const formattedData = formatData(data);
+  const hasLoaded = !isPending && !isError;
+  const colors = formattedData.map(series => series.color || theme.gray200);
+  const blankStats = !formattedData.length;
 
-    if (formattedData.length > 0) {
-      this.setState({blankStats: false});
-    }
+  return (
+    <Panel>
+      <PanelHeader>{t('Events filtered in the last 30 days (by day)')}</PanelHeader>
 
-    return formattedData;
-  }
-
-  async getFilterStats() {
-    const {organization, project, api} = this.props;
-    const statsEndpoint = `/organizations/${organization.slug}/stats_v2/`;
-    const query = {
-      project: project.id,
-      category: ['transaction', 'default', 'security', 'error'],
-      outcome: 'filtered',
-      field: 'sum(quantity)',
-      groupBy: 'reason',
-      interval: '1d',
-      statsPeriod: '30d',
-    };
-
-    try {
-      const response = await api.requestPromise(statsEndpoint, {query});
-
-      this.setState({
-        formattedData: this.formatData(response),
-        error: false,
-        loading: false,
-      });
-    } catch {
-      this.setState({error: true, loading: false});
-    }
-  }
-
-  fetchData = () => {
-    this.getFilterStats();
-  };
-
-  render() {
-    const {loading, error, formattedData} = this.state;
-    const isLoading = loading || !formattedData;
-    const hasError = !isLoading && error;
-    const hasLoaded = !isLoading && !error;
-    const colors = formattedData
-      ? formattedData.map(series => series.color || theme.gray200)
-      : undefined;
-
-    return (
-      <Panel>
-        <PanelHeader>{t('Events filtered in the last 30 days (by day)')}</PanelHeader>
-
-        <PanelBody withPadding>
-          {isLoading && <Placeholder height="100px" />}
-          {hasError && <LoadingError onRetry={this.fetchData} />}
-          {hasLoaded && !this.state.blankStats && (
-            <MiniBarChart
-              series={formattedData}
-              colors={colors}
-              height={100}
-              isGroupedByDate
-              stacked
-              labelYAxisExtents
-            />
-          )}
-          {hasLoaded && this.state.blankStats && (
-            <EmptyMessage
-              title={t('Nothing filtered in the last 30 days.')}
-              description={t(
-                'Issues filtered as a result of your settings below will be shown here.'
-              )}
-            />
-          )}
-        </PanelBody>
-      </Panel>
-    );
-  }
+      <PanelBody withPadding>
+        {isPending && <Placeholder height="100px" />}
+        {isError && <LoadingError onRetry={refetch} />}
+        {hasLoaded && !blankStats && (
+          <MiniBarChart
+            series={formattedData}
+            colors={colors}
+            height={100}
+            isGroupedByDate
+            stacked
+            labelYAxisExtents
+          />
+        )}
+        {hasLoaded && blankStats && (
+          <EmptyMessage
+            title={t('Nothing filtered in the last 30 days.')}
+            description={t(
+              'Issues filtered as a result of your settings below will be shown here.'
+            )}
+          />
+        )}
+      </PanelBody>
+    </Panel>
+  );
 }
 
-export {ProjectFiltersChart};
-
-export default withApi(ProjectFiltersChart);
+export default ProjectFiltersChart;

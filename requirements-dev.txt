@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.14.2
-devservices>=1.0.12
+devservices>=1.0.13
 
 covdefaults>=2.3.0
 sentry-covdefaults-disable-branch-coverage>=1.0.2
@@ -29,7 +29,7 @@ black>=24.10.0
 flake8>=7
 flake8-bugbear>=22.10
 flake8-logging>=1.5
-pyupgrade>=3.17
+pyupgrade>=3.19.1
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
