@@ -18,7 +18,7 @@ from sentry.buffer.redis import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.buffer_processing import process_delayed_alert_conditions
+from sentry.rules.processing.buffer_processing import process_buffer
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -290,7 +290,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.rules.processing.delayed_processing.metrics.timer")
     def test_callback(self, mock_metrics_timer):
-        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
         self.buf.process_batch()
         assert mock_metrics_timer.call_count == 1
 
