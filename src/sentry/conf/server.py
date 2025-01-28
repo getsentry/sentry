@@ -3469,6 +3469,7 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_topic=Topic.UPTIME_CONFIGS,
+        config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),
 ]
