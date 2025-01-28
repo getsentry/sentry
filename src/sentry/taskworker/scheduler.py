@@ -186,7 +186,7 @@ class ScheduleSet:
         self._entries: list[ScheduleEntry] = []
         self._registry = registry
         self._run_storage = run_storage
-        self._heap: list[tuple[float, ScheduleEntry]] = []
+        self._heap: list[tuple[int, ScheduleEntry]] = []
 
     def add(self, task_config: ScheduleConfig) -> None:
         """Add a task to the scheduleset."""
