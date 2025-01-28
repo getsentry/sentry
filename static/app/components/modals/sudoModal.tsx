@@ -84,17 +84,16 @@ function SudoModal({
     superuserReason,
   } = state;
 
-  const {organizationPromise} = useContext(OrganizationLoaderContext);
+  const {bootstrapIsPending} = useContext(OrganizationLoaderContext);
   const location = useLocation();
 
   useEffect(() => {
     const getAuthenticators = async () => {
       try {
         // Await all preload requests
-        await Promise.allSettled([
-          organizationPromise,
-          ...Object.values(window.__sentry_preload),
-        ]);
+        // We have to wait for these requests to finish before we can sudo, otherwise
+        // we'll overwrite the session cookie with a stale one.
+        await Promise.allSettled(Object.values(window.__sentry_preload));
       } catch {
         // ignore errors
       }
@@ -115,8 +114,12 @@ function SudoModal({
       }
     };
 
+    if (bootstrapIsPending) {
+      return;
+    }
+
     getAuthenticators();
-  }, [api, organizationPromise]);
+  }, [api, bootstrapIsPending]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({

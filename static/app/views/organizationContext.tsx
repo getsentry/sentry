@@ -1,4 +1,4 @@
-import {createContext, type ReactNode, useContext, useEffect, useRef} from 'react';
+import {createContext, type ReactNode, useEffect, useRef} from 'react';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
@@ -18,7 +18,7 @@ import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 interface OrganizationLoaderContextProps {
-  organizationPromise: Promise<unknown> | null;
+  bootstrapIsPending: boolean;
 }
 
 interface Props {
@@ -34,23 +34,8 @@ export const OrganizationContext = createContext<Organization | null>(null);
  * Holds a function to load the organization.
  */
 export const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps>({
-  organizationPromise: null,
+  bootstrapIsPending: false,
 });
-
-/**
- * Ensures that an organization is loaded when the hook is used. This will only
- * be done on first render and if an organization is not already loaded.
- */
-export function useEnsureOrganization() {
-  const {organizationPromise} = useContext(OrganizationLoaderContext);
-
-  useEffect(() => {
-    async function fetchData() {
-      await organizationPromise;
-    }
-    fetchData();
-  }, [organizationPromise]);
-}
 
 /**
  * Context provider responsible for loading the organization into the
@@ -78,9 +63,9 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  useBootstrapOrganizationQuery(orgSlug);
-  useBootstrapTeamsQuery(orgSlug);
-  useBootstrapProjectsQuery(orgSlug);
+  const {isFetching: isOrganizationFetching} = useBootstrapOrganizationQuery(orgSlug);
+  const {isFetching: isTeamsFetching} = useBootstrapTeamsQuery(orgSlug);
+  const {isFetching: isProjectsFetching} = useBootstrapProjectsQuery(orgSlug);
 
   useEffect(() => {
     // Nothing to do if we already have the organization loaded
@@ -147,7 +132,12 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={{organizationPromise: null}}>
+    <OrganizationLoaderContext.Provider
+      value={{
+        bootstrapIsPending:
+          isOrganizationFetching || isTeamsFetching || isProjectsFetching,
+      }}
+    >
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
