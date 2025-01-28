@@ -1181,6 +1181,11 @@ register("symbolicate.symx-os-description-list", default=[], flags=FLAG_AUTOMATO
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# The poll limit for the tempest service.
+#
+# 348 every 5 min ~ 100k per day
+register("tempest.poll-limit", default=348, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # BEGIN ABUSE QUOTAS
 
 # Example:

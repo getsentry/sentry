@@ -34,12 +34,18 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
         return;
       }
 
+      // Clear selection if clicking the same text
+      if (selection?.referenceElement === target) {
+        setSelection(null);
+        return;
+      }
+
       setSelection({
         selectedText: clickedText,
         referenceElement: target,
       });
     },
-    [containerRef]
+    [containerRef, selection]
   );
 
   const clearSelection = useCallback(
