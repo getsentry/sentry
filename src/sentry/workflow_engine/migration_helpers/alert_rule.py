@@ -279,7 +279,7 @@ def migrate_resolve_threshold_data_conditions(
         resolve_threshold = get_resolve_threshold(detector_data_condition_group)
         if resolve_threshold == -1:
             # something went wrong
-            return None
+            raise UnresolvableResolveThreshold
 
     detector_trigger = DataCondition.objects.create(
         comparison=resolve_threshold,
