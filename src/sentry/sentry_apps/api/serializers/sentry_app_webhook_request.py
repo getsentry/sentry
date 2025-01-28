@@ -67,7 +67,11 @@ class SentryAppWebhookRequestSerializer(Serializer):
         }
 
     def serialize(
-        self, obj: BufferedRequest, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self,
+        obj: BufferedRequest,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SentryAppWebhookRequestSerializerResponse:
         organization = attrs.get("organization")
         response_code = obj.data.response_code

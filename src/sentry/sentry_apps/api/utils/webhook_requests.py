@@ -69,8 +69,8 @@ def get_buffer_requests_from_control(
 ) -> list[BufferedRequest]:
     control_buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
-    event = filter.get("event", None) if filter else None
-    errors_only = filter.get("errors_only", False) if filter else False
+    event = filter.get("event", None)
+    errors_only = filter.get("errors_only", False)
 
     unfiltered_requests = [
         serialize_rpc_sentry_app_request(req)
