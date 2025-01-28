@@ -3473,6 +3473,7 @@ UPTIME_REGIONS = [
         enabled=True,
     ),
 ]
+UPTIME_CONFIG_PARTITIONS = 128
 
 MARKETO: Mapping[str, Any] = {
     "base-url": os.getenv("MARKETO_BASE_URL"),
