@@ -1,4 +1,4 @@
-import {urlEncode} from '@sentry/utils';
+import {urlEncode} from '@sentry/core';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
