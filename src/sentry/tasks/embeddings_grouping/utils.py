@@ -146,11 +146,10 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
         .values_list("id", "data", "status", "last_seen", "times_seen")
         .order_by("-id")[:batch_size]
     )
+    backfill_batch_raw_length = len(groups_to_backfill_batch_raw)
 
     # Filter out groups that are pending deletion and have times_seen > 1 in memory so postgres won't make a bad query plan
-    # Get the last queried group id while we are iterating; even if it's not valid to be backfilled
-    # we want to keep the value to be used as an filter for the next batch
-    groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length = [], None, 0
+    groups_to_backfill_batch = []
     for group in groups_to_backfill_batch_raw:
         group_id, data, status, last_seen, times_seen = group
         if (
@@ -163,8 +162,14 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
             and times_seen > 1
         ):
             groups_to_backfill_batch.append((group_id, data))
-        batch_raw_end_group_id = group_id
-        backfill_batch_raw_length += 1
+
+    # Get the group id of the last group in the raw batch; even if it's not valid to be backfilled,
+    # we want to keep the value to be used as a filter for the next batch
+    batch_raw_end_group_id = (
+        None
+        if backfill_batch_raw_length == 0
+        else groups_to_backfill_batch_raw[backfill_batch_raw_length - 1][0]
+    )
 
     return groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length
 
