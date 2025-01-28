@@ -23,10 +23,6 @@ logger = logging.getLogger(__name__)
 CACHE_TTL_IN_SECONDS = 60 * 60 * 24 * 7
 
 
-def _get_project_flag_updated_cache_key(org_id: int, project_id: int) -> str:
-    return f"has-custom-metrics-flag-updated:{org_id}:{project_id}"
-
-
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,

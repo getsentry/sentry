@@ -7,10 +7,6 @@ export enum MetricDisplayType {
   BAR = 'bar',
 }
 
-export type MetricTag = {
-  key: string;
-};
-
 export type SortState = {
   name: 'name' | MetricAggregation | undefined;
   order: 'asc' | 'desc';
