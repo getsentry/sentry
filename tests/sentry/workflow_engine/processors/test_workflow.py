@@ -13,6 +13,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflow_triggers,
+    evaluate_workflows_action_filters,
     process_workflows,
 )
 from sentry.workflow_engine.types import WorkflowJob
@@ -243,3 +244,72 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_ids[0][0] == self.project.id
+
+
+class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
+    def setUp(self):
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
+        self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
+
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
+        )
+        self.job = WorkflowJob({"event": self.group_event})
+
+    def test_basic__no_filter(self):
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        assert set(triggered_actions) == {self.action}
+
+    def test_basic__with_filter__passes(self):
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_SEEN_COUNT,
+            comparison=1,
+            condition_result=True,
+        )
+
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        assert set(triggered_actions) == {self.action}
+
+    def test_basic__with_filter__filtered(self):
+        # Add a filter to the action's group
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_CREATED_BY_DETECTOR,
+            comparison=self.detector.id + 1,
+        )
+
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        assert not triggered_actions
+
+    def test_with_slow_conditions(self):
+        self.action_group.logic_type = DataConditionGroup.Type.ALL
+
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 7},
+        )
+
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_SEEN_COUNT,
+            comparison=1,
+            condition_result=True,
+        )
+        self.action_group.save()
+
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+
+        assert self.action_group.conditions.count() == 2
+
+        # The first condition passes, but the second is enqueued for later evaluation
+        assert not triggered_actions
+
+        # TODO @saponifi3d - Add a check to ensure the second condition is enqueued for later evaluation

@@ -12,10 +12,7 @@ from sentry.workflow_engine.models import (
     ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
-    Workflow,
 )
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
-from sentry.workflow_engine.types import WorkflowJob
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
@@ -82,37 +79,3 @@ def filter_recently_fired_workflow_actions(
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
     return filtered_actions
-
-
-def evaluate_workflows_action_filters(
-    workflows: set[Workflow],
-    job: WorkflowJob,
-) -> BaseQuerySet[Action]:
-    filtered_action_groups: set[DataConditionGroup] = set()
-    enqueued_conditions: list[DataCondition] = []
-
-    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids = {workflow.id for workflow in workflows}
-
-    action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=workflow_ids
-    ).distinct()
-
-    for action_condition in action_conditions:
-        evaluation, result, remaining_conditions = evaluate_condition_group(action_condition, job)
-
-        if evaluation:
-            if remaining_conditions:
-                # If there are remaining conditions for the action filter to evaluate,
-                # then return the list of conditions to enqueue
-                enqueued_conditions.extend(remaining_conditions)
-            else:
-                # if we don't have any other conditions to evaluate, add the action to the list
-                filtered_action_groups.add(action_condition)
-
-    # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
-
-    return filter_recently_fired_workflow_actions(actions, job["event"].group)
