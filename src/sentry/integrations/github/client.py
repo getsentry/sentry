@@ -497,6 +497,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
