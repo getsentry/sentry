@@ -360,10 +360,8 @@ def call_next_backfill(
             )
             return
 
-        cohort_projects = cohort
-
         batch_project_id, last_processed_project_index = get_next_project_from_cohort(
-            last_processed_project_index, cohort_projects
+            last_processed_project_index, cohort
         )
 
         if batch_project_id is None and worker_number is None:
