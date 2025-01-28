@@ -48,6 +48,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUSREASONTYPE_TIMEOUT,
     REQUESTTYPE_HEAD,
     CheckResult,
+    CheckStatus,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
@@ -3111,7 +3112,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
-        status: str = CHECKSTATUS_FAILURE,
+        status: CheckStatus = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
         uptime_region: str | None = "us-west",
     ) -> CheckResult:

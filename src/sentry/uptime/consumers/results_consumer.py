@@ -17,6 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.constants import ObjectStatus
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -177,6 +178,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         result: CheckResult,
         last_update_ms: int,
     ):
+        # Nothing to do if this subscription is disabled. Should mean there are
+        # other ProjectUptimeSubscription's that are not disabled that will use
+        # this result.
+        if project_subscription.status == ObjectStatus.DISABLED:
+            return
+
+        if not features.has("organizations:uptime", project_subscription.project.organization):
+            metrics.incr("uptime.result_processor.dropped_no_feature")
+            return
+
         metric_tags = {
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),

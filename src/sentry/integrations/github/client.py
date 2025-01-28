@@ -33,7 +33,6 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     filter_source_code_files,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -542,31 +541,19 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             output = []
 
             page_number = 1
-            logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
-            # XXX: Debugging code; remove afterward
-            if (
-                response_key
-                and response_key == "repositories"
-                and resp["total_count"] > 0
-                and not output
-            ):
-                logger.info("headers: %s", resp.headers)
-                logger.info("output: %s", output)
-                logger.info("next_link: %s", next_link)
-                logger.error("No list of repos even when there's some. Investigate.")
-
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
+                # If a per_page is specified, GitHub preserves the per_page value
+                # in the response headers.
                 resp = self.get(next_link)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
-                logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
 
@@ -623,7 +610,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(

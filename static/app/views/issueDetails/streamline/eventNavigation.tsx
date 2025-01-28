@@ -27,14 +27,6 @@ import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-const TabName: Partial<Record<Tab, string>> = {
-  [Tab.DETAILS]: t('Events'),
-  [Tab.EVENTS]: t('Events'),
-  [Tab.REPLAYS]: t('Replays'),
-  [Tab.ATTACHMENTS]: t('Attachments'),
-  [Tab.USER_FEEDBACK]: t('Feedback'),
-};
-
 interface IssueEventNavigationProps {
   event: Event | undefined;
   group: Group;
@@ -76,6 +68,18 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
+
+  const TabName: Partial<Record<Tab, string>> = {
+    [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.REPLAYS]: t('Replays'),
+    [Tab.ATTACHMENTS]: t('Attachments'),
+    [Tab.USER_FEEDBACK]: t('Feedback'),
+  };
+
+  const allEventsPath = issueTypeConfig.showOpenPeriods
+    ? `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`
+    : `${baseUrl}${TabPaths[Tab.EVENTS]}`;
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -184,19 +188,18 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             <IssueDetailsEventNavigation event={event} group={group} />
             <LinkButton
               to={{
-                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                pathname: allEventsPath,
                 query: location.query,
               }}
               size="xs"
               analyticsEventKey="issue_details.all_events_clicked"
               analyticsEventName="Issue Details: All Events Clicked"
             >
-              {issueTypeConfig.customCopy.allEvents || t('All Events')}
+              {t('All %s', issueTypeConfig.customCopy.eventUnits)}
             </LinkButton>
           </Fragment>
         )}
-
-        {currentTab === Tab.EVENTS && (
+        {(currentTab === Tab.EVENTS || currentTab === Tab.OPEN_PERIODS) && (
           <ButtonBar gap={1}>
             <LinkButton
               to={discoverUrl}
