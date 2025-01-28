@@ -13,7 +13,7 @@ from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
 class OrganizationUptimeCheckIndexEndpointTest(
     OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase
 ):
-    endpoint = "sentry-api-0-organization-uptime-check-index"
+    endpoint = "sentry-api-0-organization-uptime-stats"
 
     def mock_uptime_check(self, subscription_id: str | None, check_status: str):
         scheduled_time = datetime.now(timezone.utc) - timedelta(minutes=5)

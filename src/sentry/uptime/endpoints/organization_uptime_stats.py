@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationUptimeCheckIndexEndpoint(OrganizationEndpoint, StatsMixin):
+class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
