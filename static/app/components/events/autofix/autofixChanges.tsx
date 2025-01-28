@@ -141,7 +141,7 @@ const CopyContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundSecondary};
-  max-width: 30rem;
+  max-width: 25rem;
 `;
 
 const CopyButton = styled(Button)`
@@ -473,7 +473,7 @@ export function AutofixChanges({
                     View PR in {step.changes[0].repo_name}
                   </LinkButton>
                 ) : (
-                  <StyledScrollCarousel aria-label={t('View pull requests')}>
+                  <ScrollCarousel aria-label={t('View pull requests')}>
                     {step.changes.map(
                       change =>
                         change.pull_request?.pr_url && (
@@ -489,13 +489,13 @@ export function AutofixChanges({
                           </LinkButton>
                         )
                     )}
-                  </StyledScrollCarousel>
+                  </ScrollCarousel>
                 )
               ) : branchesMade ? (
                 step.changes.length === 1 && step.changes[0] ? (
                   <BranchButton change={step.changes[0]} />
                 ) : (
-                  <StyledScrollCarousel aria-label={t('Check out branches')}>
+                  <ScrollCarousel aria-label={t('Check out branches')}>
                     {step.changes.map(
                       change =>
                         change.branch_name && (
@@ -505,7 +505,7 @@ export function AutofixChanges({
                           />
                         )
                     )}
-                  </StyledScrollCarousel>
+                  </ScrollCarousel>
                 )
               ) : null}
             </HeaderWrapper>
@@ -527,8 +527,6 @@ export function AutofixChanges({
     </AnimatePresence>
   );
 }
-
-const StyledScrollCarousel = styled(ScrollCarousel)``;
 
 const PreviewContent = styled('div')`
   display: flex;

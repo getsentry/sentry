@@ -404,7 +404,7 @@ function CopyRootCauseButton({
     return null;
   }
   const text = formatRootCauseText(cause, customRootCause);
-  return <CopyToClipboardButton size="sm" borderless text={text} />;
+  return <CopyToClipboardButton size="sm" text={text} />;
 }
 
 function AutofixRootCauseDisplay({
