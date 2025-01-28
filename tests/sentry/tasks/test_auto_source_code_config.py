@@ -612,25 +612,21 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             )
         ],
     )
-    def test_auto_source_code_config_single_project(
-        self, mock_generate_code_mappings, mock_get_trees_for_org
-    ):
+    def test_auto_source_code_config_single_project(self, mock_generate_code_mappings):
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        for refactored_code_enabled in [True, False]:
-            with (
-                override_options({"github-app.get-trees-refactored-code": refactored_code_enabled}),
-                patch(
-                    "sentry.tasks.auto_source_code_config.identify_stacktrace_paths",
-                    return_value=["sentry/models/release.py", "sentry/tasks.py"],
-                ) as mock_identify_stacktraces,
-                self.tasks(),
-            ):
-                auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
+        with (
+            patch(
+                "sentry.tasks.auto_source_code_config.identify_stacktrace_paths",
+                return_value=["sentry/models/release.py", "sentry/tasks.py"],
+            ) as mock_identify_stacktraces,
+            self.tasks(),
+        ):
+            auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
 
-            assert mock_identify_stacktraces.call_count == 1
-            code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
-            assert code_mapping.automatically_generated is True
+        assert mock_identify_stacktraces.call_count == 1
+        code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
+        assert code_mapping.automatically_generated is True
 
     def test_skips_not_supported_platforms(self):
         event = self.create_event([{}], platform="elixir")
