@@ -537,7 +537,6 @@ class FlamegraphExecutor:
                         thread_id=row["thread.id"],
                         start=row["precise.start_ts"],
                         end=row["precise.finish_ts"],
-                        transaction_id=row["id"],
                     )
                     for row in results["data"]
                     if row["profiler.id"] is not None and row["thread.id"]
