@@ -36,7 +36,7 @@ class RabbitMq:
 Service = Union[Redis, RabbitMq, None]
 
 
-def check_service_memory(service: Service) -> Generator[ServiceMemory, None, None]:
+def check_service_memory(service: Service) -> Generator[ServiceMemory]:
     """
     This queries the given [`Service`] and returns the [`ServiceMemory`]
     for each of the individual servers that comprise the service.

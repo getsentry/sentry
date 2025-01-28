@@ -163,14 +163,19 @@ def format_crash_free_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
 
 
 def format_snuba_ts_data(
-    data: SnubaTSResult, query_columns: list[str], organization: Organization
+    data: SnubaTSResult,
+    query_columns: list[str],
+    organization: Organization,
+    transform_alias_to_input_format: bool = False,
 ) -> list[TimeSeriesPoint]:
     formatted_data: list[TimeSeriesPoint] = []
 
     serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
     serialized_result = serializer.serialize(
         data,
-        resolve_axis_column(query_columns[0]),
+        resolve_axis_column(
+            query_columns[0], transform_alias_to_input_format=transform_alias_to_input_format
+        ),
         allow_partial_buckets=False,
         zerofill_results=False,
         extra_columns=None,
@@ -197,7 +202,9 @@ def format_historical_data(
     if dataset == metrics_performance:
         return format_crash_free_data(data)
 
-    return format_snuba_ts_data(data, query_columns, organization)
+    return format_snuba_ts_data(
+        data, query_columns, organization, transform_alias_to_input_format=dataset == spans_rpc
+    )
 
 
 def get_dataset_from_label(dataset_label: str):
