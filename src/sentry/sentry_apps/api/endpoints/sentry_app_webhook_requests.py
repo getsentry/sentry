@@ -72,10 +72,8 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         :qparam string start: Optionally specify a date to begin at. Format must be YYYY-MM-DD HH:MM:SS
         :qparam string end: Optionally specify a date to end at. Format must be YYYY-MM-DD HH:MM:SS
         """
-        organization = organization_service.get(id=sentry_app.owner_id)
-        if organization is None or not features.has(
-            "organizations:sentry-app-webhook-requests", organization
-        ):
+        org = organization_service.get(id=sentry_app.owner_id)
+        if org is None or not features.has("organizations:sentry-app-webhook-requests", org):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = IncomingRequestSerializer(data=request.GET)

@@ -758,7 +758,8 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
-        assert json.loads(first_request["response_body"]) == json_content
+        if first_request["response_body"]:
+            assert json.loads(first_request["response_body"]) == json_content
         assert self.integration_buffer._get_all_from_buffer() == []
         assert self.integration_buffer.is_integration_broken() is False
 

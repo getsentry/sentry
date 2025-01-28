@@ -256,7 +256,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             "responseCode": 500,
             "project_id": 1,
             "date": str(now) + "+00:00",
-            "event_id": "abc123",
+            "error_id": "abc123",
             "request_body": json.dumps(self.mock_request.body),
             "request_headers": {"Content-Type": "application/json"},
             "response_body": json.dumps(self.mock_response.content),

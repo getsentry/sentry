@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, TypedDict, overload
+from typing import TYPE_CHECKING, NotRequired, TypedDict, overload
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -44,11 +44,11 @@ class SentryAppRequest(TypedDict):
     webhook_url: str
     organization_id: int
     event_type: str
-    error_id: str | None
-    project_id: int | None
-    request_body: str | None
-    request_headers: Mapping[str, str] | None
-    response_body: str | None
+    error_id: NotRequired[str | None]
+    project_id: NotRequired[int | None]
+    request_body: NotRequired[str | None]
+    request_headers: NotRequired[Mapping[str, str] | None]
+    response_body: NotRequired[str | None]
 
 
 class SentryAppWebhookRequestsBuffer:

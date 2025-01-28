@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, NotRequired, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer
 from sentry.hybridcloud.services.organization_mapping import (
     RpcOrganizationMapping,
@@ -22,6 +24,7 @@ class _BufferedRequestAttrs(TypedDict):
 class OrganizationResponse(TypedDict):
     name: str
     slug: str
+    id: int
 
 
 class SentryAppWebhookRequestSerializerResponse(TypedDict):
@@ -31,12 +34,11 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     date: str
     responseCode: int
     organization: NotRequired[OrganizationResponse]
-    error_id: NotRequired[str]
-    error_url: NotRequired[str]
-    project_id: NotRequired[int]
-    request_body: NotRequired[str]
-    request_headers: NotRequired[Mapping[str, str]]
-    response_body: NotRequired[str]
+    project_id: NotRequired[int | None]
+    error_id: NotRequired[str | None]
+    request_body: NotRequired[str | None]
+    request_headers: NotRequired[Mapping[str, str] | None]
+    response_body: NotRequired[str | None]
 
 
 class SentryAppWebhookRequestSerializer(Serializer):
@@ -44,7 +46,10 @@ class SentryAppWebhookRequestSerializer(Serializer):
         self.sentry_app = sentry_app
 
     def get_attrs(
-        self, item_list: Sequence[BufferedRequest], user: User | RpcUser, **kwargs: Any
+        self,
+        item_list: Sequence[BufferedRequest],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[BufferedRequest, _BufferedRequestAttrs]:
         organization_ids = {item.data.organization_id for item in item_list}
         organizations = organization_mapping_service.get_many(organization_ids=organization_ids)
@@ -73,14 +78,14 @@ class SentryAppWebhookRequestSerializer(Serializer):
             "eventType": obj.data.event_type,
             "date": obj.data.date,
             "responseCode": response_code,
-            "project_id": obj.data.project_id,
         }
 
         if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
             # add error data to display in Sentry app dashboard
             data.update(
                 {
-                    "event_id": obj.data.error_id,
+                    "project_id": obj.data.project_id,
+                    "error_id": obj.data.error_id,
                     "request_body": obj.data.request_body,
                     "request_headers": obj.data.request_headers,
                     "response_body": obj.data.response_body,
