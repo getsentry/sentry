@@ -28,7 +28,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
-import {IssuesWrapper} from 'sentry/views/issues/issuesWrapper';
+import {IssueNavigation} from 'sentry/views/issues/navigation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -1794,7 +1794,11 @@ function buildRoutes() {
   );
 
   const domainViewRoutes = (
-    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+    <Route
+      path={`/${DOMAIN_VIEW_BASE_URL}/`}
+      withOrgPath
+      component={make(() => import('sentry/views/insights/navigation'))}
+    >
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
@@ -1902,10 +1906,12 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route
-      path="/explore/logs"
-      component={make(() => import('sentry/views/explore/logs'))}
+      path="/explore/"
+      component={make(() => import('sentry/views/explore/navigation'))}
       withOrgPath
-    />
+    >
+      <Route path="logs" component={make(() => import('sentry/views/explore/logs'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (
@@ -1986,7 +1992,7 @@ function buildRoutes() {
   );
 
   const issueRoutes = (
-    <Route path="/issues" component={errorHandler(IssuesWrapper)} withOrgPath>
+    <Route path="/issues" component={errorHandler(IssueNavigation)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
       <Route
