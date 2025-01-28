@@ -51,7 +51,7 @@ function WidgetBuilderNameAndDescription({
             widget_type: state.dataset ?? '',
             builder_version: WidgetBuilderVersion.SLIDEOUT,
             field: 'title',
-            value: '',
+            value: state.title ?? '',
             new_widget: !isEditing,
             organization,
           });
@@ -88,7 +88,7 @@ function WidgetBuilderNameAndDescription({
               widget_type: state.dataset ?? '',
               builder_version: WidgetBuilderVersion.SLIDEOUT,
               field: 'description',
-              value: '',
+              value: state.description ?? '',
               new_widget: !isEditing,
               organization,
             });
