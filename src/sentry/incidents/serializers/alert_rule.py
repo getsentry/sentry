@@ -48,8 +48,8 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.workflow_engine.migration_helpers.alert_rule import (
-    dual_update_resolve_condition,
     dual_delete_migrated_alert_rule_trigger,
+    dual_update_resolve_condition,
     migrate_alert_rule,
     migrate_resolve_threshold_data_conditions,
 )

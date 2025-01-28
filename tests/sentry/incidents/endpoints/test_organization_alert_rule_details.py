@@ -810,7 +810,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
-        
+
       @with_feature("organizations:workflow-engine-metric-alert-processing")
       def test_delete_trigger_dual_update_resolve(self):
           """
