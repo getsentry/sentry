@@ -543,8 +543,15 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
         raise UnresolvableResolveThreshold
 
     data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
-    resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+    try:
+        resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+    except DataCondition.DoesNotExist:
+        # In the serializer, we call handle triggers before migrating the resolve data condition,
+        # so the resolve condition may not exist yet. Return early.
+        return None
     resolve_condition.update(comparison=resolve_threshold)
+
+    return resolve_condition
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:

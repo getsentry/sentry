@@ -116,6 +116,19 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
     ).exists()
 
 
+def assert_dual_written_resolution_threshold_equals(alert_rule, threshold):
+    # assert that a detector trigger exists with the correct threshold
+    assert DataCondition.objects.filter(
+        comparison=threshold,
+        condition_result=DetectorPriorityLevel.OK,
+        type=(
+            Condition.LESS_OR_EQUAL
+            if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+            else Condition.GREATER_OR_EQUAL
+        ),
+    ).exists()
+
+
 def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     condition_result = (
         DetectorPriorityLevel.MEDIUM
