@@ -5,7 +5,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 export default function useCurrentFeedbackProject() {
   const {feedbackSlug: projectSlug} = useLocationQuery({
-    fields: {feedbackSlug: val => decodeFeedbackSlug(val).projectSlug ?? ''},
+    fields: {feedbackSlug: (val: any) => decodeFeedbackSlug(val).projectSlug ?? ''},
   });
 
   return projectSlug;

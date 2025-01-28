@@ -1,4 +1,5 @@
 import {Fragment, lazy, useMemo, useRef} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
@@ -75,6 +76,8 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
+import MetricIssuesSection from '../metricIssuesSection';
+
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
@@ -89,7 +92,7 @@ export function EventDetailsContent({
   group,
   event,
   project,
-}: Required<EventDetailsContentProps>) {
+}: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -136,6 +139,9 @@ export function EventDetailsContent({
       {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
+      )}
+      {issueTypeConfig.tags.enabled && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
@@ -217,9 +223,15 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {!hasStreamlinedUI && issueTypeConfig.tags.enabled && (
-        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      {event.contexts?.metric_alert?.alert_rule_id && (
+        <MetricIssuesSection
+          organization={organization}
+          group={group}
+          event={event}
+          project={project}
+        />
       )}
+
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -227,51 +239,59 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       {/* Wrapping all stacktrace components since multiple could appear */}
-      <GuideAnchor
-        target="stacktrace"
-        position="top"
-        disabled={
-          !(
-            defined(eventEntries[EntryType.EXCEPTION]) ||
-            defined(eventEntries[EntryType.STACKTRACE]) ||
-            defined(eventEntries[EntryType.THREADS])
-          )
-        }
-      >
-        {defined(eventEntries[EntryType.EXCEPTION]) && (
-          <EntryErrorBoundary type={EntryType.EXCEPTION}>
-            <Exception
-              event={event}
-              data={eventEntries[EntryType.EXCEPTION].data}
-              projectSlug={project.slug}
-              group={group}
-              groupingCurrentLevel={groupingCurrentLevel}
-            />
-          </EntryErrorBoundary>
+      <ClassNames>
+        {({css}) => (
+          <GuideAnchor
+            target="stacktrace"
+            position="top"
+            disabled={
+              !(
+                defined(eventEntries[EntryType.EXCEPTION]) ||
+                defined(eventEntries[EntryType.STACKTRACE]) ||
+                defined(eventEntries[EntryType.THREADS])
+              )
+            }
+            // Prevent the container span from shrinking the content
+            containerClassName={css`
+              display: block !important;
+            `}
+          >
+            {defined(eventEntries[EntryType.EXCEPTION]) && (
+              <EntryErrorBoundary type={EntryType.EXCEPTION}>
+                <Exception
+                  event={event}
+                  data={eventEntries[EntryType.EXCEPTION].data}
+                  projectSlug={project.slug}
+                  group={group}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                />
+              </EntryErrorBoundary>
+            )}
+            {issueTypeConfig.stacktrace.enabled &&
+              defined(eventEntries[EntryType.STACKTRACE]) && (
+                <EntryErrorBoundary type={EntryType.STACKTRACE}>
+                  <StackTrace
+                    event={event}
+                    data={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
+                    groupingCurrentLevel={groupingCurrentLevel}
+                  />
+                </EntryErrorBoundary>
+              )}
+            {defined(eventEntries[EntryType.THREADS]) && (
+              <EntryErrorBoundary type={EntryType.THREADS}>
+                <Threads
+                  event={event}
+                  data={eventEntries[EntryType.THREADS].data}
+                  projectSlug={project.slug}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                  group={group}
+                />
+              </EntryErrorBoundary>
+            )}
+          </GuideAnchor>
         )}
-        {issueTypeConfig.stacktrace.enabled &&
-          defined(eventEntries[EntryType.STACKTRACE]) && (
-            <EntryErrorBoundary type={EntryType.STACKTRACE}>
-              <StackTrace
-                event={event}
-                data={eventEntries[EntryType.STACKTRACE].data}
-                projectSlug={projectSlug}
-                groupingCurrentLevel={groupingCurrentLevel}
-              />
-            </EntryErrorBoundary>
-          )}
-        {defined(eventEntries[EntryType.THREADS]) && (
-          <EntryErrorBoundary type={EntryType.THREADS}>
-            <Threads
-              event={event}
-              data={eventEntries[EntryType.THREADS].data}
-              projectSlug={project.slug}
-              groupingCurrentLevel={groupingCurrentLevel}
-              group={group}
-            />
-          </EntryErrorBoundary>
-        )}
-      </GuideAnchor>
+      </ClassNames>
       {defined(eventEntries[EntryType.DEBUGMETA]) && (
         <EntryErrorBoundary type={EntryType.DEBUGMETA}>
           <DebugMeta
@@ -399,18 +419,11 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled ? (
         <Fragment>
           {hasStreamlinedUI ? (
-            <Fragment>
-              <HighlightsDataSection
-                event={event}
-                project={project}
-                viewAllRef={tagsRef}
-              />
-              <EventTagsDataSection
-                event={event}
-                projectSlug={project.slug}
-                ref={tagsRef}
-              />
-            </Fragment>
+            <EventTagsDataSection
+              event={event}
+              projectSlug={project.slug}
+              ref={tagsRef}
+            />
           ) : (
             <div ref={tagsRef}>
               <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
@@ -419,7 +432,9 @@ export function EventDetailsContent({
         </Fragment>
       ) : null}
       <EventContexts group={group} event={event} />
-      <EventFeatureFlagList group={group} project={project} event={event} />
+      <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
+        <EventFeatureFlagList group={group} project={project} event={event} />
+      </ErrorBoundary>
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
@@ -458,6 +473,10 @@ export default function GroupEventDetailsContent({
 }: EventDetailsContentProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
+  if (hasStreamlinedUI) {
+    return <EventDetails event={event} group={group} project={project} />;
+  }
+
   if (!event) {
     return (
       <NotFoundMessage>
@@ -466,11 +485,7 @@ export default function GroupEventDetailsContent({
     );
   }
 
-  return hasStreamlinedUI ? (
-    <EventDetails event={event} group={group} project={project} />
-  ) : (
-    <EventDetailsContent group={group} event={event} project={project} />
-  );
+  return <EventDetailsContent group={group} event={event} project={project} />;
 }
 
 /**

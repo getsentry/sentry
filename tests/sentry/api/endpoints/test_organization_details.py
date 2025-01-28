@@ -341,6 +341,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
             assert response.data["isDynamicallySampled"]
+            assert "planSampleRate" in response.data
+            assert "desiredSampleRate" in response.data
 
         self.organization.update_option(
             "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
@@ -365,6 +367,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
             assert response.data["isDynamicallySampled"]
+            assert "planSampleRate" not in response.data
+            assert "desiredSampleRate" not in response.data
 
     def test_dynamic_sampling_custom_target_sample_rate(self):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
@@ -680,7 +684,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
@@ -729,6 +733,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "targetSampleRate": 0.1,
             "samplingMode": "organization",
             "rollbackEnabled": True,
+            "streamlineOnly": None,
         }
 
         # needed to set require2FA
@@ -817,7 +822,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")

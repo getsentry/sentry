@@ -9,8 +9,8 @@ jest.mock('moment-timezone', () => {
 });
 
 describe('Chart XAxis', function () {
-  let axisLabelFormatter;
-  let xAxisObj;
+  let axisLabelFormatter: (value: string | number, index: number) => string;
+  let xAxisObj!: ReturnType<typeof XAxis>;
   const props: XAxisProps = {
     isGroupedByDate: true,
     theme: lightTheme,
@@ -27,15 +27,16 @@ describe('Chart XAxis', function () {
             utc: false,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8 5:00 PM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8 5:00 PM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 8 5:00 PM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 8 5:00 PM');
         });
       });
 
@@ -47,15 +48,37 @@ describe('Chart XAxis', function () {
             utc: true,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9 12:00 AM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 9 12:00 AM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 9 12:00 AM');
+        });
+      });
+
+      describe('Multiline', () => {
+        beforeEach(function () {
+          xAxisObj = XAxis({
+            ...props,
+            useMultilineDate: true,
+            period: '7d',
+          });
+
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
+        });
+
+        it('formats axis label for first data point', function () {
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8\n5:00 PM');
+        });
+
+        it('formats axis label for second data point', function () {
+          expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 8\n5:00 PM');
         });
       });
     });
@@ -69,15 +92,16 @@ describe('Chart XAxis', function () {
             utc: false,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8 5:00 PM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8 5:00 PM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('5:00 PM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('5:00 PM');
         });
       });
 
@@ -89,15 +113,38 @@ describe('Chart XAxis', function () {
             utc: true,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9 12:00 AM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('12:00 AM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('12:00 AM');
+        });
+      });
+
+      describe('Multiline', () => {
+        beforeEach(function () {
+          xAxisObj = XAxis({
+            ...props,
+            useMultilineDate: true,
+            period: '24h',
+            utc: true,
+          });
+
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
+        });
+
+        it('formats axis label for first data point', function () {
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9\n12:00 AM');
+        });
+
+        it('formats axis label for second data point', function () {
+          expect(axisLabelFormatter(timestamp, 1)).toBe('12:00 AM');
         });
       });
     });

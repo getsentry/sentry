@@ -65,7 +65,7 @@
   },
   "post": {
     "tags": ["Releases"],
-    "description": "Upload a new organization release file.",
+    "description": "Upload a new file for the given release.\n\nUnlike other API requests, files must be uploaded using the traditional multipart/form-data content-type.\n\nRequests to this endpoint should use the region-specific domain eg. `us.sentry.io` or `de.sentry.io`.\n\nThe optional 'name' attribute should reflect the absolute path that this file will be referenced as. For example, in the case of JavaScript you might specify the full web URI.",
     "operationId": "Upload a New Organization Release File",
     "parameters": [
       {
@@ -135,6 +135,7 @@
       {
         "auth_token": ["project:releases"]
       }
-    ]
+    ],
+    "servers": [{ "url": "https://{region}.sentry.io" }]
   }
 }

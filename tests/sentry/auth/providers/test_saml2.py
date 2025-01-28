@@ -25,7 +25,7 @@ class DummySAML2Provider(SAML2Provider):
     name = "dummy"
 
     def get_saml_setup_pipeline(self):
-        pass
+        raise NotImplementedError
 
 
 @control_silo_test

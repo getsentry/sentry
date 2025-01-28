@@ -13,7 +13,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.decorators import email_verification_required, sudo_required
+from sentry.api.decorators import primary_email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
@@ -175,7 +175,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
-    @email_verification_required
+    @primary_email_verification_required
     def post(self, request: Request, user: User, interface_id: str) -> HttpResponse:
         """
         Enroll in authenticator interface

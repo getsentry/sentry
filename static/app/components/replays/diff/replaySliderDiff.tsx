@@ -2,33 +2,30 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
-import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
   minHeight?: `${number}px` | `${number}%`;
 }
 
-export function ReplaySliderDiff({
-  minHeight = '0px',
-  leftOffsetMs,
-  replay,
-  rightOffsetMs,
-}: Props) {
+const BORDER_WIDTH = 3;
+
+export function ReplaySliderDiff({minHeight = '0px'}: Props) {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
+
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
   const width = toPixels(viewDimensions.width);
@@ -36,8 +33,8 @@ export function ReplaySliderDiff({
   return (
     <Fragment>
       <DiffHeader>
-        <Before />
-        <After />
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </DiffHeader>
       <WithPadding>
         <Positioned style={{minHeight}} ref={positionedRef}>
@@ -71,7 +68,7 @@ function DiffSides({
   viewDimensions: {height: number; width: number};
   width: string | undefined;
 }) {
-  const rightSideElem = useRef<HTMLDivElement>(null);
+  const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
   const {onMouseDown: onDividerMouseDown} = useResizableDrawer({
@@ -79,16 +76,16 @@ function DiffSides({
     initialSize: viewDimensions.width / 2,
     min: 0,
     onResize: newSize => {
-      if (rightSideElem.current) {
-        rightSideElem.current.style.width =
+      const maxWidth = viewDimensions.width - BORDER_WIDTH;
+      if (beforeElemRef.current) {
+        beforeElemRef.current.style.width =
           viewDimensions.width === 0
             ? '100%'
-            : toPixels(Math.min(viewDimensions.width, viewDimensions.width - newSize)) ??
-              '0px';
+            : toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
       if (dividerElem.current) {
         dividerElem.current.style.left =
-          toPixels(Math.min(viewDimensions.width, newSize)) ?? '0px';
+          toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
     },
   });
@@ -112,19 +109,8 @@ function DiffSides({
   return (
     <Fragment>
       <ReplayPlayerPluginsContextProvider>
-        <ReplayPlayerEventsContextProvider replay={replay}>
+        <ReplayReaderProvider replay={replay}>
           <Cover style={{width}}>
-            <Placement style={{width}}>
-              <ReplayPlayerStateContextProvider>
-                <StyledNegativeSpaceContainer>
-                  <ReplayPlayerMeasurer measure="both">
-                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
-                  </ReplayPlayerMeasurer>
-                </StyledNegativeSpaceContainer>
-              </ReplayPlayerStateContextProvider>
-            </Placement>
-          </Cover>
-          <Cover ref={rightSideElem} style={{width: 0}}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <StyledNegativeSpaceContainer>
@@ -135,7 +121,18 @@ function DiffSides({
               </ReplayPlayerStateContextProvider>
             </Placement>
           </Cover>
-        </ReplayPlayerEventsContextProvider>
+          <Cover ref={beforeElemRef}>
+            <Placement style={{width}}>
+              <ReplayPlayerStateContextProvider>
+                <StyledNegativeSpaceContainer>
+                  <ReplayPlayerMeasurer measure="both">
+                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                  </ReplayPlayerMeasurer>
+                </StyledNegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </Placement>
+          </Cover>
+        </ReplayReaderProvider>
       </ReplayPlayerPluginsContextProvider>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
@@ -154,18 +151,20 @@ const Positioned = styled('div')`
 `;
 
 const Cover = styled('div')`
-  border: 3px solid;
+  border: ${BORDER_WIDTH}px solid;
   border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
   position: absolute;
-  right: 0px;
+  left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.red300};
+  border-color: ${p => p.theme.green300};
   & + & {
-    border-color: ${p => p.theme.green300};
-    border-left-color: transparent;
+    border: ${BORDER_WIDTH}px solid;
+    border-radius: ${space(0.5)} 0 0 ${space(0.5)};
+    border-color: ${p => p.theme.red300};
+    border-right-width: 0;
   }
 `;
 
@@ -174,7 +173,7 @@ const Placement = styled('div')`
   height: 100%;
   justify-content: center;
   position: absolute;
-  right: 0;
+  left: 0;
   top: 0;
   place-items: center;
 `;

@@ -21,7 +21,11 @@ import type {
   FieldDefinitionGetter,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  collapseTextTokens,
+  parseTokenKey,
+  recentSearchTypeToLabel,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
   type ParseResultToken,
@@ -131,12 +135,37 @@ function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusO
 }
 
 function calculateNextFocusForInsertedToken(item: Node<ParseResultToken>): FocusOverride {
-  const [, tokenTypeIndexStr] = item.key.toString().split(':');
-
-  const tokenTypeIndex = parseInt(tokenTypeIndexStr, 10);
+  const {index} = parseTokenKey(item.key.toString());
 
   return {
-    itemKey: `${Token.FREE_TEXT}:${tokenTypeIndex + 1}`,
+    itemKey: `${Token.FREE_TEXT}:${index + 1}`,
+  };
+}
+
+function calculateNextFocusForCommittedCustomValue({
+  value,
+  currentFocusedKey,
+}: {
+  currentFocusedKey: string;
+  value: string;
+}): FocusOverride | undefined {
+  const {tokenType, index} = parseTokenKey(currentFocusedKey.toString());
+
+  const parsedText = collapseTextTokens(parseSearch(value));
+  const numFreeTextTokens = Math.max(
+    parsedText?.filter((token: any) => token.type === Token.FREE_TEXT).length ?? 0
+  );
+
+  // We always expect there to be at least one free text token, so we subtract one
+  // to get the index of the next token to focus.
+  const diff = Math.max(0, numFreeTextTokens - 1);
+
+  if (diff <= 0) {
+    return undefined;
+  }
+
+  return {
+    itemKey: `${tokenType}:${index + diff}`,
   };
 }
 
@@ -409,11 +438,27 @@ function SearchQueryBuilderInputInternal({
           });
         }}
         onCustomValueBlurred={value => {
-          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
+          dispatch({
+            type: 'UPDATE_FREE_TEXT',
+            tokens: [token],
+            text: value,
+            focusOverride: calculateNextFocusForCommittedCustomValue({
+              currentFocusedKey: item.key.toString(),
+              value,
+            }),
+          });
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
+          dispatch({
+            type: 'UPDATE_FREE_TEXT',
+            tokens: [token],
+            text: value,
+            focusOverride: calculateNextFocusForCommittedCustomValue({
+              currentFocusedKey: item.key.toString(),
+              value,
+            }),
+          });
           resetInputValue();
 
           // Because the query does not change until a subsequent render,

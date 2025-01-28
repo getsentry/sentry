@@ -11,9 +11,10 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
-from sentry.snuba import metrics_performance
+from sentry.snuba import metrics_performance, spans_eap, spans_rpc
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
@@ -162,14 +163,19 @@ def format_crash_free_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
 
 
 def format_snuba_ts_data(
-    data: SnubaTSResult, query_columns: list[str], organization: Organization
+    data: SnubaTSResult,
+    query_columns: list[str],
+    organization: Organization,
+    transform_alias_to_input_format: bool = False,
 ) -> list[TimeSeriesPoint]:
     formatted_data: list[TimeSeriesPoint] = []
 
     serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
     serialized_result = serializer.serialize(
         data,
-        resolve_axis_column(query_columns[0]),
+        resolve_axis_column(
+            query_columns[0], transform_alias_to_input_format=transform_alias_to_input_format
+        ),
         allow_partial_buckets=False,
         zerofill_results=False,
         extra_columns=None,
@@ -196,7 +202,9 @@ def format_historical_data(
     if dataset == metrics_performance:
         return format_crash_free_data(data)
 
-    return format_snuba_ts_data(data, query_columns, organization)
+    return format_snuba_ts_data(
+        data, query_columns, organization, transform_alias_to_input_format=dataset == spans_rpc
+    )
 
 
 def get_dataset_from_label(dataset_label: str):
@@ -240,6 +248,8 @@ def fetch_historical_data(
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
+    elif dataset_label == "events_analytics_platform":
+        dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "metricsEnhanced"
@@ -263,6 +273,23 @@ def fetch_historical_data(
 
     if dataset == metrics_performance:
         return get_crash_free_historical_data(start, end, project, organization, granularity)
+    elif dataset in [spans_eap, spans_rpc]:
+        results = spans_rpc.run_timeseries_query(
+            params=snuba_params,
+            query_string=snuba_query.query,
+            y_axes=query_columns,
+            granularity_secs=granularity,
+            referrer=(
+                Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
+                if is_store_data_request
+                else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
+            ),
+            config=SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=False,
+            ),
+        )
+        return results
     else:
         event_types = get_event_types(snuba_query, event_types)
         snuba_query_string = get_snuba_query_string(snuba_query, event_types)

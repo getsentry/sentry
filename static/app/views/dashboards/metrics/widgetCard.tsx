@@ -32,14 +32,12 @@ import {
 } from 'sentry/views/dashboards/metrics/utils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {
-  WidgetCardContextMenuContainer,
-  WidgetCardPanel,
-  WidgetTitleRow,
-} from 'sentry/views/dashboards/widgetCard';
+import {WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
+import {WidgetCardContextMenuContainer} from 'sentry/views/dashboards/widgetCard/widgetCardContextMenuContainer';
+import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
 import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
 type Props = {
@@ -65,7 +63,7 @@ export function getWidgetTitle(expressions: DashboardMetricsExpression[]) {
   const filteredExpressions = expressions.filter(query => !query.isQueryOnly);
 
   if (filteredExpressions.length === 1) {
-    const firstQuery = filteredExpressions[0];
+    const firstQuery = filteredExpressions[0]!;
     if (isMetricsEquation(firstQuery)) {
       return (
         <Fragment>
@@ -243,7 +241,13 @@ export function MetricWidgetCard({
   );
 }
 
-function WidgetCardBody({children, isError, timeseriesData, renderErrorMessage, error}) {
+function WidgetCardBody({
+  children,
+  isError,
+  timeseriesData,
+  renderErrorMessage,
+  error,
+}: any) {
   if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');

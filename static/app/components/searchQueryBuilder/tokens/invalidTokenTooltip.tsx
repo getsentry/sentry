@@ -17,13 +17,15 @@ interface InvalidTokenTooltipProps extends Omit<TooltipProps, 'title'> {
 function getForceVisible({
   isFocused,
   isInvalid,
+  hasWarning,
   forceVisible,
 }: {
+  hasWarning: boolean;
   isFocused: boolean;
   isInvalid: boolean;
   forceVisible?: boolean;
 }) {
-  if (!isInvalid) {
+  if (!isInvalid && !hasWarning) {
     return false;
   }
 
@@ -43,6 +45,9 @@ export function InvalidTokenTooltip({
   ...tooltipProps
 }: InvalidTokenTooltipProps) {
   const invalid = 'invalid' in token ? token.invalid : null;
+  const warning = 'warning' in token ? token.warning : null;
+
+  const hasWarning = Boolean(warning);
   const isInvalid = Boolean(invalid);
   const isFocused =
     state.selectionManager.isFocused && state.selectionManager.focusedKey === item.key;
@@ -50,9 +55,9 @@ export function InvalidTokenTooltip({
   return (
     <Tooltip
       skipWrapper
-      forceVisible={getForceVisible({isFocused, isInvalid, forceVisible})}
+      forceVisible={getForceVisible({isFocused, isInvalid, hasWarning, forceVisible})}
       position="bottom"
-      title={invalid?.reason ?? t('This token is invalid')}
+      title={warning ?? invalid?.reason ?? t('This token is invalid')}
       {...tooltipProps}
     >
       {children}

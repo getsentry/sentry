@@ -1,5 +1,6 @@
 import {Component} from 'react';
-import {findDOMNode} from 'react-dom';
+
+import {uniqueId} from 'sentry/utils/guid';
 
 const ASPECT_RATIO = 16 / 9;
 
@@ -21,9 +22,6 @@ class SessionStackContextType extends Component<Props, State> {
   };
 
   componentDidMount() {
-    // eslint-disable-next-line react/no-find-dom-node
-    const domNode = findDOMNode(this) as HTMLElement;
-    this.parentNode = domNode.parentNode as HTMLElement;
     window.addEventListener('resize', () => this.setIframeSize(), false);
     this.setIframeSize();
   }
@@ -31,16 +29,17 @@ class SessionStackContextType extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('resize', () => this.setIframeSize(), false);
   }
-  parentNode?: HTMLElement;
+  iframeContainerId = uniqueId();
 
   getTitle = () => 'SessionStack';
 
   setIframeSize() {
-    if (this.state.showIframe || !this.parentNode) {
+    const parentNode = document.getElementById(this.iframeContainerId)?.parentElement;
+    if (!this.state.showIframe || !parentNode) {
       return;
     }
 
-    const parentWidth = this.parentNode.clientWidth;
+    const parentWidth = parentNode.clientWidth;
 
     this.setState({
       width: parentWidth,
@@ -64,7 +63,7 @@ class SessionStackContextType extends Component<Props, State> {
     }
 
     return (
-      <div className="panel-group">
+      <div className="panel-group" id={this.iframeContainerId}>
         {this.state.showIframe ? (
           <iframe
             src={session_url}

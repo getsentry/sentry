@@ -15,7 +15,7 @@ export function deviceNameMapper(model: string | undefined): string | null {
 
   const [identifier, ...rest] = model.split(' ');
 
-  const modelName = iOSDeviceMapping[identifier];
+  const modelName = iOSDeviceMapping[identifier!];
   return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }
 

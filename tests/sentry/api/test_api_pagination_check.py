@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import pytest
-from django.http import HttpRequest
+from django.test import RequestFactory
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,10 +17,6 @@ class APIPaginationCheckTestCase(TestCase):
                 self.access = "read"
 
             # Required to go through the dispatch method
-            def initialize_request(self, request, *args, **kwargs) -> Request:
-                return request
-
-            # Required to go through the dispatch method
             def check_permissions(self, request: Request) -> None:
                 pass
 
@@ -30,8 +26,7 @@ class APIPaginationCheckTestCase(TestCase):
         # Test the endpoint, assert there is a MissingPaginationError
         with pytest.raises(MissingPaginationError):
             endpoint = ExampleEndpoint()
-            request = Request(HttpRequest())
-            request.method = "GET"
+            request = RequestFactory().get("/")
             request.access = "read"
             ExampleEndpoint.dispatch(endpoint, request)
 
@@ -42,10 +37,6 @@ class APIPaginationCheckTestCase(TestCase):
                 self.access = "read"
 
             # Required to go through the dispatch method
-            def initialize_request(self, request, *args, **kwargs) -> Request:
-                return request
-
-            # Required to go through the dispatch method
             def check_permissions(self, request: Request) -> None:
                 pass
 
@@ -54,20 +45,15 @@ class APIPaginationCheckTestCase(TestCase):
 
         # Test the endpoint, assert there is no MissingPaginationError
         endpoint = GroupTagsEndpoint()
-        request = Request(HttpRequest())
-        request.method = "GET"
+        request = RequestFactory().get("/")
         request.access = "read"
         GroupTagsEndpoint.dispatch(endpoint, request)
 
     def test_empty_payload_with_pagination(self) -> None:
-        class ExampleEndpoint(TestCase, Endpoint):
+        class ExampleEndpoint(Endpoint):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self.access = "read"
-
-            # Required to go through the dispatch method
-            def initialize_request(self, request, *args, **kwargs) -> Request:
-                return request
 
             # Required to go through the dispatch method
             def check_permissions(self, request: Request) -> None:
@@ -84,7 +70,6 @@ class APIPaginationCheckTestCase(TestCase):
 
         # Test the endpoint, assert there is no MissingPaginationError
         endpoint = ExampleEndpoint()
-        request = Request(HttpRequest())
-        request.method = "GET"
+        request = RequestFactory().get("/")
         request.access = "read"
         ExampleEndpoint.dispatch(endpoint, request)

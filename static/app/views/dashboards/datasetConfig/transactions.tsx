@@ -5,13 +5,18 @@ import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {SPAN_OP_BREAKDOWN_FIELDS, TRANSACTION_FIELDS} from 'sentry/utils/discover/fields';
+import {
+  type QueryFieldValue,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  TRANSACTION_FIELDS,
+} from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryExtras,
   DiscoverQueryRequestParams,
@@ -25,11 +30,13 @@ import {
   shouldUseOnDemandMetrics,
 } from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {eventViewFromWidget} from '../utils';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
@@ -42,7 +49,6 @@ import {
   getCustomEventsFieldRenderer,
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
@@ -56,12 +62,18 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', '', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
+
 export type SeriesWithOrdering = [order: number, series: Series];
 
 export const TransactionsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
@@ -156,6 +168,21 @@ function getEventsRequest(
 ) {
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const url = `/organizations/${organization.slug}/events/`;
+
+  // To generate the target url for TRACE ID links we always include a timestamp,
+  // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
+  // max(timestamp) for the aggregate case as fields, to accomodate this.
+  if (
+    query.aggregates.length &&
+    query.columns.includes('trace') &&
+    !query.aggregates.includes('max(timestamp)') &&
+    !query.columns.includes('timestamp')
+  ) {
+    query.aggregates.push('max(timestamp)');
+  } else if (query.columns.includes('trace') && !query.columns.includes('timestamp')) {
+    query.columns.push('timestamp');
+  }
+
   const eventView = eventViewFromWidget('', query, pageFilters);
 
   const params: DiscoverQueryRequestParams = {

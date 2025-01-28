@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
@@ -54,6 +54,10 @@ class JavaScriptSdkLoader(BaseView):
     # large amount of organization related support utilities, but that ends up being a large refactor.
     def determine_active_organization(self, request: HttpRequest, organization_slug=None) -> None:
         pass
+
+    # Same as above
+    def get_context_data(self, request: HttpRequest, **kwargs) -> dict[str, Any]:
+        return {}
 
     def _get_loader_config(
         self, key: ProjectKey | None, sdk_version: Version | None

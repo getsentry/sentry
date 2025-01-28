@@ -21,6 +21,7 @@ export type IssueTypeConfig = {
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolve: DisabledWithReasonConfig;
     resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
@@ -33,9 +34,20 @@ export type IssueTypeConfig = {
    */
   autofix: boolean;
   /**
+   * Custom copy for actions and other UI elements
+   */
+  customCopy: {
+    allEvents: string;
+    resolution: string;
+  };
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;
+  /**
+   * Is the Event and User Counts shown for this issue
+   */
+  eventAndUserCounts: DisabledWithReasonConfig;
   /**
    * Is the Events tab show for this issue
    */
@@ -52,6 +64,10 @@ export type IssueTypeConfig = {
    * Is the Issue Summary available for this issue
    */
   issueSummary: DisabledWithReasonConfig;
+  /**
+   * Is the Log Level icon shown for this issue
+   */
+  logLevel: DisabledWithReasonConfig;
   /**
    * Is the Merged Issues tab shown for this issue
    */
@@ -92,6 +108,10 @@ export type IssueTypeConfig = {
    */
   showFeedbackWidget: boolean;
   /**
+   * showOpenPeriods
+   */
+  showOpenPeriods: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
@@ -112,6 +132,10 @@ export type IssueTypeConfig = {
    * Is the Tags tab show for this issue
    */
   tagsTab: DisabledWithReasonConfig;
+  /**
+   * Whether to use open periods for the last checked date
+   */
+  useOpenPeriodChecks: boolean;
   /**
    * Is the User Feedback tab shown for this issue
    */

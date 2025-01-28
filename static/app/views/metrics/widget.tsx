@@ -102,7 +102,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
   if (filteredQueries.length === 1) {
-    const firstQuery = filteredQueries[0];
+    const firstQuery = filteredQueries[0]!;
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
@@ -156,7 +156,7 @@ export const MetricWidget = memo(
     );
 
     const handleQueryChange = useCallback(
-      (queryIndex, data: Partial<MetricsWidget>) => {
+      (queryIndex: any, data: Partial<MetricsWidget>) => {
         onChange(queryIndex, data);
       },
       [onChange]
@@ -167,7 +167,9 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const handleOverlayChange = (options: SelectOption<MetricChartOverlayType>[]) => {
+    const handleOverlayChange = (
+      options: Array<SelectOption<MetricChartOverlayType>>
+    ) => {
       const values = options.map(({value}) => value);
 
       Sentry.metrics.increment('ddm.widget.overlay', 1, {
@@ -488,7 +490,7 @@ const MetricWidgetBody = memo(
     const setSeriesVisibility = useCallback(
       (series: FocusedMetricsSeries) => {
         setHoveredSeries('');
-        if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
+        if (focusedSeries?.length === 1 && focusedSeries[0]!.id === series.id) {
           onChange?.({
             focusedSeries: [],
           });
@@ -502,7 +504,7 @@ const MetricWidgetBody = memo(
     );
 
     const handleSortChange = useCallback(
-      newSort => {
+      (newSort: any) => {
         onChange?.({sort: newSort});
       },
       [onChange]
@@ -586,9 +588,9 @@ export function getChartTimeseries(
   const filteredQueries = queries.filter(isNotQueryOnly);
 
   const series = data.data.flatMap((group, index) => {
-    const query = filteredQueries[index];
-    const meta = data.meta[index];
-    const lastMetaEntry = meta[meta.length - 1];
+    const query = filteredQueries[index]!;
+    const meta = data.meta[index]!;
+    const lastMetaEntry = meta[meta.length - 1]!;
     const unit =
       (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
     const scalingFactor =
@@ -601,10 +603,10 @@ export function getChartTimeseries(
     const isMultiQuery = filteredQueries.length > 1;
 
     return group.map(entry => ({
-      unit: unit,
-      operation: operation,
+      unit,
+      operation,
       values: entry.series,
-      scalingFactor: scalingFactor,
+      scalingFactor,
       name: getMetricsSeriesName(query, entry.by, isMultiQuery),
       id: getMetricsSeriesId(query, entry.by),
       queryIndex: index,

@@ -37,7 +37,7 @@ export function FlamegraphUIFramesTooltip({
   hoveredNode,
 }: FlamegraphUIFramesTooltipProps) {
   const uiFramesInConfigSpace = useMemo<
-    {rect: Rect; type: UIFrames['frames'][0]['type']}[]
+    Array<{rect: Rect; type: UIFrames['frames'][0]['type']}>
   >(() => {
     const framesInConfigSpace = hoveredNode.map(frame => {
       return {
@@ -50,9 +50,9 @@ export function FlamegraphUIFramesTooltip({
 
   return (
     <BoundTooltip
-      bounds={canvasBounds}
       cursor={configSpaceCursor}
       canvas={uiFramesCanvas}
+      canvasBounds={canvasBounds}
       canvasView={uiFramesView}
     >
       {uiFramesInConfigSpace.map((frame, i) => {

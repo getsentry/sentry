@@ -81,7 +81,7 @@ class Container extends Component<Props> {
           showLoading={false}
           query={apiPayload.query}
           includePrevious={false}
-          yAxis={axisOptions.map(opt => opt.value)}
+          yAxis={axisOptions.map(opt => opt!.value)}
           partial
         >
           {({loading, reloading, errored, results}) => {
@@ -97,13 +97,13 @@ class Container extends Component<Props> {
               <Fragment>
                 <DoubleHeaderContainer>
                   {axisOptions.map((option, i) => (
-                    <div key={`${option.label}:${i}`}>
+                    <div key={`${option!.label}:${i}`}>
                       <HeaderTitle>
-                        {option.label}
+                        {option!.label}
                         <QuestionTooltip
                           position="top"
                           size="sm"
-                          title={option.tooltip}
+                          title={option!.tooltip}
                         />
                       </HeaderTitle>
                     </div>
@@ -132,8 +132,8 @@ class Container extends Component<Props> {
         </EventsRequest>
         <Footer
           api={api}
-          leftAxis={axisOptions[0].value}
-          rightAxis={axisOptions[1].value}
+          leftAxis={axisOptions[0]!.value}
+          rightAxis={axisOptions[1]!.value}
           organization={organization}
           eventView={eventView}
           location={location}

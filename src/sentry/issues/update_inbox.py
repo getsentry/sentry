@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
@@ -14,14 +15,14 @@ from sentry.models.project import Project
 from sentry.signals import issue_mark_reviewed
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 def update_inbox(
     in_inbox: bool,
-    group_list: list[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
-    http_referrer: str,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user: RpcUser | User | None,
     sender: Any,
 ) -> bool:
     """
@@ -39,10 +40,7 @@ def update_inbox(
         for group in group_list:
             # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(
-                group,
-                action=GroupInboxRemoveAction.MARK_REVIEWED,
-                user=acting_user,
-                referrer=http_referrer,
+                group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
             )
             if group.substatus != GroupSubStatus.ONGOING and group.status == GroupStatus.UNRESOLVED:
                 bulk_transition_group_to_ongoing(

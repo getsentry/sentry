@@ -5,11 +5,11 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
-import {RouteContext} from 'sentry/views/routeContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useLocation', () => {
   it('returns the current location object', function () {
-    let location;
+    let location: any;
     function HomePage() {
       location = useLocation();
       return null;
@@ -26,9 +26,9 @@ describe('useLocation', () => {
     };
 
     render(
-      <RouteContext.Provider value={routeContext}>
+      <TestRouteContext.Provider value={routeContext}>
         <HomePage />
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     expect(location.pathname).toBe('/mock-pathname/');

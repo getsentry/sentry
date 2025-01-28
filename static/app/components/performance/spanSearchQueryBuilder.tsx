@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -42,6 +43,7 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }
 
   return supportedAggregates.reduce((acc, item) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[item] = {
       key: item,
       name: item,
@@ -153,6 +155,7 @@ export function SpanSearchQueryBuilder({
 interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
   supportedAggregates?: AggregationKey[];
 }
 
@@ -164,7 +167,9 @@ export function EAPSpanSearchQueryBuilder({
   searchSource,
   numberTags,
   stringTags,
+  getFilterTokenWarning,
   supportedAggregates = [],
+  projects,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -176,8 +181,10 @@ export function EAPSpanSearchQueryBuilder({
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
 
-  const tags = useMemo(() => {
-    return {...functionTags, ...numberTags, ...stringTags};
+  const filterTags: TagCollection = useMemo(() => {
+    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    tags.has = getHasTag({...stringTags}); // TODO: add number tags
+    return tags;
   }, [numberTags, stringTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
@@ -213,7 +220,7 @@ export function EAPSpanSearchQueryBuilder({
           orgSlug: organization.slug,
           fieldKey: tag.key,
           search: queryString,
-          projectIds: selection.projects.map(String),
+          projectIds: (projects ?? selection.projects).map(String),
           endpointParams: normalizeDateTimeParams(selection.datetime),
           dataset: 'spans',
         });
@@ -222,17 +229,18 @@ export function EAPSpanSearchQueryBuilder({
         throw new Error(`Unable to fetch event field values: ${e}`);
       }
     },
-    [api, organization.slug, selection.projects, selection.datetime, numberTags]
+    [api, organization.slug, selection.projects, projects, selection.datetime, numberTags]
   );
 
   return (
     <SearchQueryBuilder
       placeholder={placeholderText}
-      filterKeys={tags}
+      filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
+      getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}

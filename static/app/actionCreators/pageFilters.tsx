@@ -319,7 +319,7 @@ export function initializeUrlState({
     if (projects && projects.length > 0) {
       // If there is a list of projects from URL params, select first project
       // from that list
-      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
+      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]!];
     } else {
       // When we have finished loading the organization into the props,  i.e.
       // the organization slug is consistent with the URL param--Sentry will

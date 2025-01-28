@@ -75,7 +75,7 @@ describe('MetricAlertDetails', () => {
       {router, organization}
     );
 
-    expect(await screen.findAllByText(rule.name)).toHaveLength(2);
+    expect(await screen.findByText(rule.name)).toBeInTheDocument();
     expect(screen.getByText('Change alert status to Resolved')).toBeInTheDocument();
     expect(screen.getByText(`#${incident.identifier}`)).toBeInTheDocument();
     // Related issues
@@ -130,7 +130,7 @@ describe('MetricAlertDetails', () => {
       {router, organization}
     );
 
-    expect(await screen.findAllByText(rule.name)).toHaveLength(2);
+    expect(await screen.findByText(rule.name)).toBeInTheDocument();
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -228,7 +228,7 @@ describe('MetricAlertDetails', () => {
       {router, organization}
     );
 
-    expect(await screen.findAllByText(rule.name)).toHaveLength(2);
+    expect(await screen.findByText(rule.name)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
       expect.stringContaining('dataset=errors')

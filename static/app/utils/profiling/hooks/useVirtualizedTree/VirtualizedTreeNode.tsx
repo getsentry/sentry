@@ -1,7 +1,7 @@
 export class VirtualizedTreeNode<T> {
   node: T;
   parent: VirtualizedTreeNode<T> | null;
-  children: VirtualizedTreeNode<T>[];
+  children: Array<VirtualizedTreeNode<T>>;
   expanded: boolean;
   depth: number;
 
@@ -34,7 +34,7 @@ export class VirtualizedTreeNode<T> {
 
       if (next.expanded) {
         for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+          queue.push(next.children[i]!);
         }
       }
       count++;
@@ -60,7 +60,7 @@ export class VirtualizedTreeNode<T> {
     this.expanded = value;
 
     // Collect the newly visible children.
-    const list: VirtualizedTreeNode<T>[] = [];
+    const list: Array<VirtualizedTreeNode<T>> = [];
     function visit(node: VirtualizedTreeNode<T>): void {
       if (opts?.expandChildren) {
         node.expanded = true;
@@ -73,12 +73,12 @@ export class VirtualizedTreeNode<T> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
+        visit(node.children[i]!);
       }
     }
 
     for (let i = 0; i < this.children.length; i++) {
-      visit(this.children[i]);
+      visit(this.children[i]!);
     }
 
     return list;

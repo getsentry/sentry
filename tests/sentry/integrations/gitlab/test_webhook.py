@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import orjson
 
 from fixtures.gitlab import (
@@ -14,6 +16,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 
@@ -119,6 +122,23 @@ class WebhookTest(GitLabTestCase):
         # organizations sharing an integration and not having the same
         # repositories enabled.
         assert response.status_code == 204
+
+    @patch("sentry.integrations.gitlab.webhooks.PushEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_push_event_failure_metric(self, mock_record, mock_event):
+        error = Exception("oops")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            self.url,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
 
     def test_push_event_multiple_organizations_one_missing_repo(self):
         # Create a repo on the primary organization
@@ -276,7 +296,27 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 204
         assert 0 == PullRequest.objects.count()
 
-    def test_merge_event_no_last_commit(self):
+    @patch("sentry.integrations.gitlab.webhooks.MergeEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_merge_event_failure_metric(self, mock_record, mock_event):
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+
+        error = Exception("oops")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_merge_event_no_last_commit(self, mock_record):
         payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
         # Remove required keys. There have been events in prod that are missing
@@ -292,6 +332,8 @@ class WebhookTest(GitLabTestCase):
         )
         assert response.status_code == 204
         assert 0 == PullRequest.objects.count()
+
+        assert_success_metric(mock_record)
 
     def test_merge_event_create_pull_request(self):
         self.create_repo("getsentry/sentry")

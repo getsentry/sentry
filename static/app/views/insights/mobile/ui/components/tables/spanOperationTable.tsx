@@ -158,7 +158,7 @@ export function SpanOperationTable({
       ),
   };
 
-  function renderBodyCell(column, row) {
+  function renderBodyCell(column: any, row: any) {
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
@@ -175,9 +175,11 @@ export function SpanOperationTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
-          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>
+            <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 

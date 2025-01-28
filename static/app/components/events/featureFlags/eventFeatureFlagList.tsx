@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   CardContainer,
   FeatureFlagDrawer,
@@ -24,7 +23,7 @@ import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -78,6 +77,7 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
@@ -91,30 +91,39 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const hasFlagContext = !!event.contexts.flags;
-  const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
-  const showCTA =
-    !hasFlagContext &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta');
-
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
       ? new Set()
       : new Set(suspectFlags.map(f => f.flag));
   }, [isSuspectError, isSuspectPending, suspectFlags]);
 
-  const hydratedFlags = useMemo(() => {
-    // Transform the flags array into something readable by the key-value component
-    // Reverse the flags to show newest at the top by default
-    const rawFlags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+  const hasFlagContext = Boolean(event.contexts?.flags?.values);
 
-    // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
-    const flags = rawFlags.filter(
-      f => f && typeof f === 'object' && 'flag' in f && 'result' in f
+  const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
+    // At runtime there's no type guarantees on the event flags. So we have to
+    // explicitly validate against SDK developer error or user-provided contexts.
+    const rawFlags = event.contexts?.flags?.values ?? [];
+    return rawFlags.filter(
+      (f): f is Required<FeatureFlag> =>
+        f &&
+        typeof f === 'object' &&
+        typeof f.flag === 'string' &&
+        typeof f.result === 'boolean'
     );
+  }, [event]);
 
-    return flags.map(f => {
+  const hasFlags = hasFlagContext && eventFlags.length > 0;
+
+  const showCTA =
+    !project.hasFlags &&
+    !hasFlagContext &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-cta');
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component.
+    // Reverse the flags to show newest at the top by default.
+    return eventFlags.toReversed().map((f: any) => {
       return {
         item: {
           key: f.flag,
@@ -131,7 +140,7 @@ export function EventFeatureFlagList({
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [event, suspectFlagNames]);
+  }, [suspectFlagNames, eventFlags]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -173,16 +182,22 @@ export function EventFeatureFlagList({
       trackAnalytics('flags.table_rendered', {
         organization,
         numFlags: hydratedFlags.length,
+        projectSlug: project.slug,
+        orgSlug: organization.slug,
       });
     }
-  }, [hasFlags, hydratedFlags.length, organization]);
+  }, [hasFlags, hydratedFlags.length, organization, project.slug]);
+
+  if (group.issueCategory !== IssueCategory.ERROR) {
+    return null;
+  }
 
   if (showCTA) {
     return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
-  // if contexts.flags is not set, hide the section
-  if (!hasFlagContext) {
+  // if contexts.flags is not set and project has not set up flags, hide the section
+  if (!hasFlagContext && !project.hasFlags) {
     return null;
   }
 
@@ -207,7 +222,11 @@ export function EventFeatureFlagList({
               ref={viewAllButtonRef}
               title={t('View All Flags')}
               onClick={() => {
-                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+                if (isDrawerOpen) {
+                  closeDrawer();
+                } else {
+                  onViewAllFlags();
+                }
               }}
             >
               {t('View All')}
@@ -240,28 +259,26 @@ export function EventFeatureFlagList({
   }
 
   return (
-    <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection
-        help={t(
-          "The last 100 flags evaluated in the user's session leading up to this event."
-        )}
-        isHelpHoverable
-        title={t('Feature Flags')}
-        type={SectionKey.FEATURE_FLAGS}
-        actions={actions}
-      >
-        {hasFlags ? (
-          <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card expandLeft contentItems={columnOne} />
-            <KeyValueData.Card expandLeft contentItems={columnTwo} />
-          </CardContainer>
-        ) : (
-          <StyledEmptyStateWarning withIcon>
-            {t('No feature flags were found for this event')}
-          </StyledEmptyStateWarning>
-        )}
-      </InterimSection>
-    </ErrorBoundary>
+    <InterimSection
+      help={t(
+        "The last 100 flags evaluated in the user's session leading up to this event."
+      )}
+      isHelpHoverable
+      title={t('Feature Flags')}
+      type={SectionKey.FEATURE_FLAGS}
+      actions={actions}
+    >
+      {hasFlags ? (
+        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+          <KeyValueData.Card expandLeft contentItems={columnOne} />
+          <KeyValueData.Card expandLeft contentItems={columnTwo} />
+        </CardContainer>
+      ) : (
+        <StyledEmptyStateWarning withIcon>
+          {t('No feature flags were found for this event')}
+        </StyledEmptyStateWarning>
+      )}
+    </InterimSection>
   );
 }
 

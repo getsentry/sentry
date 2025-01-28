@@ -64,8 +64,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
-    "cloudflare-pages",
-    "cloudflare-workers",
     "cordova",
     "dart",
     "deno",
@@ -119,6 +117,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node",
     "node-awslambda",
     "node-azurefunctions",
+    "node-cloudflare-pages",
+    "node-cloudflare-workers",
     "node-connect",
     "node-express",
     "node-fastify",
@@ -334,6 +334,9 @@ class Project(Model, PendingDeletionMixin):
 
         # This Project has sent insight llm monitoring spans
         has_insights_llm_monitoring: bool
+
+        # This Project has sent feature flags
+        has_flags: bool
 
         bitfield_default = 10
         bitfield_null = True

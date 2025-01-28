@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -13,16 +13,18 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -49,23 +51,27 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_SCREENS;
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const handleProjectChange = useCallback(() => {
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+    navigate(
+      {
+        ...location,
+        query: {
+          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+        },
       },
-    });
-  }, [location]);
+      {replace: true}
+    );
+  }, [location, navigate]);
   const {selection} = usePageFilters();
 
   const vitalItems: VitalItem[] = [
     {
-      title: t('Cold App Start'),
+      title: t('Avg. Cold App Start'),
       description: t('Average Cold App Start duration'),
       docs: t(
         'The average cold app start duration. A cold start usually occurs when the app launched for the first time, after a reboot or an app update.'
@@ -85,7 +91,7 @@ export function ScreensLandingPage() {
       getStatus: getColdAppStartPerformance,
     },
     {
-      title: t('Warm App Start'),
+      title: t('Avg. Warm App Start'),
       description: t('Average Warm App Start duration'),
       docs: t(
         'The average warm app start duration. A warm start usually occurs occurs when the app was already launched previously or the process was created beforehand.'
@@ -105,11 +111,9 @@ export function ScreensLandingPage() {
       getStatus: getWarmAppStartPerformance,
     },
     {
-      title: t('Slow Frames'),
-      description: t('Slow frames ratio'),
-      docs: t(
-        'The number of slow frames divided by the total number of frames rendered.'
-      ),
+      title: t('Slow Frame Rate'),
+      description: t('The percentage of frames that were slow.'),
+      docs: t('The percentage of slow frames out of all frames rendered.'),
       setup: undefined,
       platformDocLinks: {
         Android: 'https://developer.android.com/topic/performance/vitals/render',
@@ -119,16 +123,14 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `avg(mobile.slow_frames)`,
+      field: `division(mobile.slow_frames,mobile.total_frames)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
     {
-      title: t('Frozen Frames'),
-      description: t('Average number of frozen frames'),
-      docs: t(
-        'The number of frozen frames divided by the total number of frames rendered.'
-      ),
+      title: t('Frozen Frame Rate'),
+      description: t('The percentage of frames that were frozen.'),
+      docs: t('The percentage of frozen frames out of all frames rendered.'),
       setup: undefined,
       platformDocLinks: {
         Android: 'https://developer.android.com/topic/performance/vitals/render',
@@ -138,14 +140,16 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `avg(mobile.frozen_frames)`,
+      field: `division(mobile.frozen_frames,mobile.total_frames)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
     {
-      title: t('Frame Delay'),
+      title: t('Avg. Frame Delay'),
       description: t('Average frame delay'),
-      docs: t('The average delay divided by the total rendering time.'),
+      docs: t(
+        'The average total time of delay caused by frames which were not rendered on time.'
+      ),
       setup: undefined,
       platformDocLinks: {
         Android: 'https://developer.android.com/topic/performance/vitals/render',
@@ -160,7 +164,7 @@ export function ScreensLandingPage() {
       getStatus: getDefaultMetricPerformance,
     },
     {
-      title: t('TTID'),
+      title: t('Avg. TTID'),
       description: t('Average time to intial display.'),
       docs: t('The average time it takes until your app is drawing the first frame.'),
       setup: undefined,
@@ -178,7 +182,7 @@ export function ScreensLandingPage() {
       getStatus: getDefaultMetricPerformance,
     },
     {
-      title: t('TTFD'),
+      title: t('Avg. TTFD'),
       description: t('Average time to full display.'),
       docs: t('The average time it takes until your app is drawing the full content.'),
       setup: <TabbedCodeSnippet tabs={TTFD_SETUP} />,
@@ -232,6 +236,7 @@ export function ScreensLandingPage() {
   const metricsResult = useDiscoverQuery({
     eventView: metricsQueryView,
     location,
+    cursor: '',
     orgSlug: organization.slug,
     limit: 25,
     referrer: Referrer.SCREENS_METRICS,
@@ -254,6 +259,7 @@ export function ScreensLandingPage() {
   const spanMetricsResult = useDiscoverQuery({
     eventView: spanMetricsQueryView,
     location,
+    cursor: '',
     orgSlug: organization.slug,
     limit: 25,
     referrer: Referrer.SCREENS_METRICS,
@@ -264,23 +270,37 @@ export function ScreensLandingPage() {
       item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
 
     if (dataset.data) {
-      const row = dataset.data.data[0];
+      const row = dataset.data.data[0]!;
       const units = dataset.data.meta?.units;
       const fieldTypes = dataset.data.meta?.fields;
 
-      const value = row[item.field];
+      const value = row?.[item.field];
       const unit = units?.[item.field];
       const fieldType = fieldTypes?.[item.field];
 
       return {
         type: fieldType,
-        unit: unit,
-        value: value,
+        unit,
+        value,
       };
     }
 
     return undefined;
   };
+
+  const {openVitalsDrawer} = useMobileVitalsDrawer({
+    Component: <VitalDetailPanel vital={state.vital} status={state.status} />,
+    vital: state.vital,
+    onClose: () => {
+      setState({vital: undefined, status: undefined});
+    },
+  });
+
+  useEffect(() => {
+    if (state.vital) {
+      openVitalsDrawer();
+    }
+  });
 
   return (
     <ModulePageProviders moduleName="mobile-screens">
@@ -299,54 +319,50 @@ export function ScreensLandingPage() {
             headerActions={isProjectCrossPlatform && <PlatformSelector />}
             module={moduleName}
           />
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Container>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter onChange={handleProjectChange} />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-              </Container>
-              <PageAlert />
-              <ErrorBoundary mini>
+          <ModuleBodyUpsellHook moduleName={moduleName}>
+            <Layout.Body>
+              <Layout.Main fullWidth>
                 <Container>
-                  <Flex data-test-id="mobile-screens-top-metrics">
-                    {vitalItems.map(item => {
-                      const metricValue = metricValueFor(item);
-                      const status =
-                        (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
-
-                      return (
-                        <VitalCard
-                          onClick={() => {
-                            setState({
-                              vital: item,
-                              status: status,
-                            });
-                          }}
-                          key={item.field}
-                          title={item.title}
-                          description={item.description}
-                          statusLabel={status.description}
-                          status={status.score}
-                          formattedValue={status.formattedValue}
-                        />
-                      );
-                    })}
-                  </Flex>
-                  <ScreensOverview />
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
                 </Container>
-              </ErrorBoundary>
-            </Layout.Main>
-          </Layout.Body>
-          <VitalDetailPanel
-            vital={state.vital}
-            status={state.status}
-            onClose={() => {
-              setState({vital: undefined, status: undefined});
-            }}
-          />
+                <PageAlert />
+                <ErrorBoundary mini>
+                  <Container>
+                    <Flex data-test-id="mobile-screens-top-metrics">
+                      {vitalItems.map(item => {
+                        const metricValue = metricValueFor(item);
+                        const status =
+                          (metricValue && item.getStatus(metricValue, item.field)) ??
+                          STATUS_UNKNOWN;
+
+                        return (
+                          <VitalCard
+                            onClick={() => {
+                              setState({
+                                vital: item,
+                                status,
+                              });
+                            }}
+                            key={item.field}
+                            title={item.title}
+                            description={item.description}
+                            statusLabel={status.description}
+                            status={status.score}
+                            formattedValue={status.formattedValue}
+                          />
+                        );
+                      })}
+                    </Flex>
+                    <ScreensOverview />
+                  </Container>
+                </ErrorBoundary>
+              </Layout.Main>
+            </Layout.Body>
+          </ModuleBodyUpsellHook>
         </PageAlertProvider>
       </Layout.Page>
     </ModulePageProviders>

@@ -25,7 +25,7 @@ function GroupEventAttachmentsContainer() {
     isPending: isGroupPending,
     isError: isGroupError,
     refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId});
+  } = useGroup({groupId: params.groupId!});
 
   if (isGroupPending) {
     return <LoadingIndicator />;
@@ -45,7 +45,7 @@ function GroupEventAttachmentsContainer() {
     >
       <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
         <Layout.Main fullWidth>
-          <GroupEventAttachments project={group.project} groupId={group.id} />
+          <GroupEventAttachments project={group.project} group={group} />
         </Layout.Main>
       </StyledLayoutBody>
     </Feature>

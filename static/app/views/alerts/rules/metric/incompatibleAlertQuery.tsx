@@ -54,6 +54,7 @@ function incompatibleYAxis(eventView: EventView): boolean {
 
   const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
   // Allow empty parameters, allow all numeric parameters - eg. apdex(300)
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregation: Aggregation | undefined = AGGREGATIONS[column.function[0]];
   if (!aggregation) {
     return false;

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import patch
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 
 BAD_IP = "109.111.111.10"
@@ -110,11 +112,34 @@ class WebhookTest(WebhookBaseTest):
 class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 
-    def test_simple(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple(self, mock_record):
         self.create_repository()
 
         self.send_webhook()
         self.assert_commit()
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.bitbucket.webhook.PushEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_error_metric(self, mock_record, mock_event):
+        self.create_repository()
+
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        self.get_error_response(
+            self.organization_id,
+            raw_data=PUSH_EVENT_EXAMPLE,
+            extra_headers=dict(
+                HTTP_X_EVENT_KEY="repo:push",
+                REMOTE_ADDR=BITBUCKET_IP,
+            ),
+            status_code=500,
+        )
+
+        assert_failure_metric(mock_record, error)
 
     def test_anonymous_lookup(self):
         self.create_repository()

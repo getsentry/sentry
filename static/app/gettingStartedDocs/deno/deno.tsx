@@ -5,7 +5,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -175,6 +178,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

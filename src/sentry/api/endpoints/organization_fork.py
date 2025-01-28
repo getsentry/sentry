@@ -145,13 +145,14 @@ class OrganizationForkEndpoint(Endpoint):
         # We do not create a `RelocationFile` yet. Instead, we trigger a series of RPC calls (via
         # `uploading_start`, scheduled below) to create an export of the organization we are seeking
         # duplicate from the foreign region.
+        provenance = Relocation.Provenance.SAAS_TO_SAAS
         with atomic_transaction(using=(router.db_for_write(Relocation))):
             new_relocation: Relocation = Relocation.objects.create(
                 creator_id=request.user.id,
                 owner_id=owner.id,
                 step=Relocation.Step.UPLOADING.value,
-                scheduled_pause_at_step=get_autopause_value(),
-                provenance=Relocation.Provenance.SAAS_TO_SAAS,
+                scheduled_pause_at_step=get_autopause_value(provenance),
+                provenance=provenance,
                 want_org_slugs=[org_mapping.slug],
             )
 

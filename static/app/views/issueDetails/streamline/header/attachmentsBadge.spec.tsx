@@ -1,6 +1,7 @@
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,6 +13,11 @@ describe('AttachmentsBadge', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: TagsFixture(),
+      method: 'GET',
+    });
   });
 
   it('does not show up if there are no attachments', async () => {

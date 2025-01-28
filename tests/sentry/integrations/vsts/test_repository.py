@@ -170,10 +170,6 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
         self.login_as(self.user)
 
-    @cached_property
-    def provider(self):
-        return VstsRepositoryProvider("integrations:vsts")
-
     def tearDown(self):
         super().tearDown()
         responses.reset()

@@ -69,7 +69,9 @@ export default class PermissionsObserver extends Component<Props, State> {
     Object.keys(permissions).some((resource_name: string) => {
       if (
         comparePermissionLevels(
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           permissions[resource_name],
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           new_permissions[resource_name]
         ) > 0
       ) {

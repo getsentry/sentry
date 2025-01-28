@@ -61,7 +61,7 @@ export function transformStatsResponse<F extends string>(
   }
 
   if (yAxes.length === 1) {
-    const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0], rawData);
+    const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0]!, rawData);
     return {
       data: [series],
       meta,
@@ -130,8 +130,8 @@ export function transformSingleSeries<F extends string>(
           'milliseconds'
         )
       : type === 'string'
-        ? value => value || ''
-        : value => value;
+        ? (value: any) => value || ''
+        : (value: any) => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,

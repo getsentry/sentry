@@ -1,11 +1,8 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
-import Link from 'sentry/components/links/link';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,17 +18,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -49,8 +44,9 @@ import {
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-import {Subtitle} from 'sentry/views/profiling/landing/styles';
+
+import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -72,7 +68,6 @@ export function MessageSpanSamplesPanel() {
   const project = projects.find(p => query.project === p.id);
 
   const organization = useOrganization();
-  const {view} = useDomainViewFilters();
 
   const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
     undefined,
@@ -228,65 +223,20 @@ export function MessageSpanSamplesPanel() {
     });
   };
 
-  const handleClose = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        transaction: undefined,
-        transactionMethod: undefined,
-      },
-    });
-  };
-
-  const handleOpen = useCallback(() => {
-    if (query.transaction) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: ModuleName.QUEUE,
-      });
-    }
-  }, [organization, query.transaction]);
-
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
-        <ModuleLayout.Layout>
-          <ModuleLayout.Full>
-            <HeaderContainer>
-              {project ? (
-                <SpanSummaryProjectAvatar
-                  project={project}
-                  direction="left"
-                  size={40}
-                  hasTooltip
-                  tooltip={project.slug}
-                />
-              ) : (
-                <div />
-              )}
-              <TitleContainer>
-                <Subtitle>
-                  {messageActorType === MessageActorType.PRODUCER
-                    ? t('Producer')
-                    : t('Consumer')}
-                </Subtitle>
-                <Title>
-                  <Link
-                    to={`${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
-                      {
-                        project: query.project,
-                        transaction: query.transaction,
-                      }
-                    )}`}
-                  >
-                    {query.transaction}
-                  </Link>
-                </Title>
-              </TitleContainer>
-            </HeaderContainer>
-          </ModuleLayout.Full>
+      <DrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={query.transaction}
+          subtitle={
+            messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
+          }
+        />
+      </DrawerHeader>
 
+      <SampleDrawerBody>
+        <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <MetricsRibbonContainer>
               {messageActorType === MessageActorType.PRODUCER ? (
@@ -328,7 +278,7 @@ export function MessageSpanSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <DurationChart
+            <DurationChartWithSamples
               series={[
                 {
                   ...durationData[`avg(span.duration)`],
@@ -349,10 +299,6 @@ export function MessageSpanSamplesPanel() {
               }}
               isLoading={isDurationDataFetching}
               error={durationError}
-              filters={timeseriesFilters.getFilterKeys().reduce((acc, key) => {
-                acc[key] = timeseriesFilters.getFilterValues(key)[0];
-                return acc;
-              }, {})}
             />
           </ModuleLayout.Full>
 
@@ -404,7 +350,7 @@ export function MessageSpanSamplesPanel() {
             </Button>
           </ModuleLayout.Full>
         </ModuleLayout.Layout>
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
@@ -414,7 +360,7 @@ function ProducerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Partial<SpanMetricsResponse>[];
+  metrics: Array<Partial<SpanMetricsResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
@@ -440,7 +386,7 @@ function ConsumerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Partial<SpanMetricsResponse>[];
+  metrics: Array<Partial<SpanMetricsResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
@@ -500,32 +446,6 @@ const RETRY_COUNT_SELECT_OPTIONS = [
     };
   }),
 ];
-
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: grid;
-  grid-template-rows: auto auto auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
-  }
-`;
-
-const TitleContainer = styled('div')`
-  width: 100%;
-  overflow: hidden;
-`;
-
-const Title = styled('h4')`
-  overflow: inherit;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0;
-`;
 
 const MetricsRibbonContainer = styled('div')`
   display: flex;

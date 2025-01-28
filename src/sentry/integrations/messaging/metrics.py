@@ -43,6 +43,12 @@ class MessagingInteractionType(StrEnum):
 
     GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
+    SEND_INCIDENT_ALERT_NOTIFICATION = "SEND_INCIDENT_ALERT_NOTIFICATION"
+    SEND_ISSUE_ALERT_NOTIFICATION = "SEND_ISSUE_ALERT_NOTIFICATION"
+
+    SEND_ACTIVITY_NOTIFICATION = "SEND_ACTIVITY_NOTIFICATION"
+    SEND_GENERIC_NOTIFICATION = "SEND_GENERIC_NOTIFICATION"
+
 
 @dataclass
 class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
@@ -81,7 +87,6 @@ class MessageCommandHaltReason(StrEnum):
     # Team Linking
     LINK_FROM_CHANNEL = "link_from_channel"
     LINK_USER_FIRST = "link_user_first"
-    CHANNEL_ALREADY_LINKED = "channel_already_linked"
     TEAM_NOT_LINKED = "team_not_linked"
     INSUFFICIENT_ROLE = "insufficient_role"
 

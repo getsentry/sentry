@@ -12,6 +12,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.team import Team
 from sentry.users.models.user import User
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -19,17 +20,6 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_source import DataSource
-
-
-class QueryAggregations(Enum):
-    TOTAL = 0
-    UNIQUE_USERS = 1
-
-
-query_aggregation_to_snuba = {
-    QueryAggregations.TOTAL: ("count()", "", "count"),
-    QueryAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
-}
 
 
 @region_silo_model
@@ -114,7 +104,7 @@ class QuerySubscription(Model):
 
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", related_name="subscriptions")
     type = (
         models.TextField()
     )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.
@@ -153,7 +143,7 @@ class QuerySubscription(Model):
         return (subscription.pk, ImportKind.Inserted)
 
 
-@data_source_type_registry.register("snuba_query_subscription")
+@data_source_type_registry.register(DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription]):
     @staticmethod
     def bulk_get_query_object(

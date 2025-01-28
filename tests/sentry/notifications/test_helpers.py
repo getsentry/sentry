@@ -1,4 +1,3 @@
-import types
 from urllib.parse import parse_qs, urlparse
 
 from sentry.integrations.models.external_actor import ExternalActor
@@ -22,10 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
-
-
-def mock_event(*, transaction, data=None):
-    return types.SimpleNamespace(data=data or {}, transaction=transaction)
 
 
 class NotificationHelpersTest(TestCase):

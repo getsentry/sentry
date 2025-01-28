@@ -437,8 +437,11 @@ class OrganizationReleasesEndpoint(
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :param string version: a version identifier for this release.  Can
-                               be a version number, a commit hash etc.
+        :param string version: a version identifier for this release. Can
+                               be a version number, a commit hash etc. It cannot contain certain
+                               whitespace characters (`\\r`, `\\n`, `\\f`, `\\x0c`, `\\t`) or any
+                               slashes (`\\`, `/`). The version names `.`, `..` and `latest` are also
+                               reserved, and cannot be used.
         :param string ref: an optional commit reference.  This is useful if
                            a tagged version has been provided.
         :param url url: a URL that points to the release.  This can be the

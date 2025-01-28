@@ -10,7 +10,7 @@ import {
 import AccountClose from 'sentry/views/settings/account/accountClose';
 
 describe('AccountClose', function () {
-  let deleteMock;
+  let deleteMock: jest.Mock;
   const soloOrgSlug = 'solo-owner';
   const nonSingleOwnerSlug = 'non-single-owner';
 

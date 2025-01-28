@@ -1,5 +1,4 @@
 import re
-from collections.abc import Mapping
 from typing import TypedDict
 
 from drf_spectacular.types import OpenApiTypes
@@ -7,7 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.models.project import Project
-from sentry.utils.platform_categories import BACKEND, FRONTEND, MOBILE
+from sentry.utils.platform_categories import MOBILE
 
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
@@ -32,36 +31,25 @@ class HighlightContextField(serializers.Field):
 
 class HighlightPreset(TypedDict):
     tags: list[str]
-    context: Mapping[str, list[str]]
+    context: dict[str, list[str]]
 
 
-SENTRY_TAGS = ["handled", "level", "release", "environment"]
+DEFAULT_HIGHLIGHT_TAGS = ["handled", "level"]
+DEFAULT_HIGHLIGHT_CTX = {"trace": ["trace_id"]}
 
-BACKEND_HIGHLIGHTS: HighlightPreset = {
-    "tags": SENTRY_TAGS + ["url", "transaction", "status_code"],
-    "context": {"trace": ["trace_id"], "runtime": ["name", "version"]},
-}
-FRONTEND_HIGHLIGHTS: HighlightPreset = {
-    "tags": SENTRY_TAGS + ["url", "transaction", "browser", "user"],
-    "context": {"user": ["email"]},
-}
 MOBILE_HIGHLIGHTS: HighlightPreset = {
-    "tags": SENTRY_TAGS + ["mobile", "main_thread"],
-    "context": {"profile": ["profile_id"], "app": ["name"], "device": ["family"]},
+    "tags": DEFAULT_HIGHLIGHT_TAGS + ["mobile", "main_thread"],
+    "context": {**DEFAULT_HIGHLIGHT_CTX, "profile": ["profile_id"], "app": ["name"]},
 }
 FALLBACK_HIGHLIGHTS: HighlightPreset = {
-    "tags": SENTRY_TAGS,
-    "context": {"user": ["email"], "trace": ["trace_id"]},
+    "tags": DEFAULT_HIGHLIGHT_TAGS + ["url"],
+    "context": {**DEFAULT_HIGHLIGHT_CTX},
 }
 
 
 def get_highlight_preset_for_project(project: Project) -> HighlightPreset:
     if not project.platform or project.platform == "other":
         return FALLBACK_HIGHLIGHTS
-    elif project.platform in FRONTEND:
-        return FRONTEND_HIGHLIGHTS
-    elif project.platform in BACKEND:
-        return BACKEND_HIGHLIGHTS
     elif project.platform in MOBILE:
         return MOBILE_HIGHLIGHTS
     return FALLBACK_HIGHLIGHTS

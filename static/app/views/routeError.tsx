@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import type {Scope} from '@sentry/types';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {Alert} from 'sentry/components/alert';
@@ -114,7 +114,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
             link: (
               <a
                 onClick={() => {
-                  window.location.href = window.location.href;
+                  window.location.href = String(window.location.href);
                 }}
               />
             ),

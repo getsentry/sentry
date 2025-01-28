@@ -51,7 +51,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
         traceSlug: transaction.contexts?.trace?.trace_id ?? '',
         location,
         organization,
-        transactionName: transactionName,
+        transactionName,
       })
     : null;
 

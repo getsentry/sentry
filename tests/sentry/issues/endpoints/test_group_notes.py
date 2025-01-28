@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 
 
 class GroupNoteTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group = self.group
 
         activity = Activity.objects.create(
@@ -36,7 +36,7 @@ class GroupNoteTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
 
-    def test_note_merge(self):
+    def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
         now = datetime.datetime.now(datetime.UTC)
 
@@ -104,7 +104,7 @@ class GroupNoteTest(APITestCase):
 
 
 class GroupNoteCreateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group = self.group
 
         self.login_as(user=self.user)
@@ -125,7 +125,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
-    def test_with_mentions(self):
+    def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")
         user_on_team = self.create_user(email="hello@woof.com")
 
@@ -206,7 +206,7 @@ class GroupNoteCreateTest(APITestCase):
             reason=GroupSubscriptionReason.mentioned,
         ).exists()
 
-    def test_with_group_link(self):
+    def test_with_group_link(self) -> None:
         group = self.group
 
         integration = self.create_integration(

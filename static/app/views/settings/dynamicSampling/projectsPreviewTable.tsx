@@ -13,16 +13,20 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
-import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {
+  ProjectionSamplePeriod,
+  ProjectSampleCount,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const {useFormField} = organizationSamplingForm;
 
 interface Props {
   isLoading: boolean;
+  period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
 }
 
-export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
+export function ProjectsPreviewTable({isLoading, period, sampleCounts}: Props) {
   const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
     useFormField('targetSampleRate');
 
@@ -58,6 +62,7 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
       items: balancingItems,
     });
     return initialBalancedItems.reduce((acc, item) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[item.id] = item.sampleRate;
       return acc;
     }, {});
@@ -67,11 +72,13 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
     return balancedItems.map(item => ({
       ...item,
       sampleRate: formatPercent(item.sampleRate),
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       initialSampleRate: formatPercent(initialSampleRateById[item.id]),
     }));
   }, [balancedItems, initialSampleRateById]);
 
   const breakdownSampleRates = balancedItems.reduce((acc, item) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[item.id] = item.sampleRate;
     return acc;
   }, {});
@@ -98,6 +105,7 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
         rateHeader={t('Estimated Rate')}
         inputTooltip={t('To edit project sample rates, switch to manual sampling mode.')}
         emptyMessage={t('No active projects found in the selected period.')}
+        period={period}
         isEmpty={!sampleCounts.length}
         isLoading={isLoading}
         items={itemsWithFormattedNumbers}

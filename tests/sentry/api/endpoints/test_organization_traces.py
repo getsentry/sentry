@@ -281,8 +281,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
@@ -315,7 +313,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
-                string="Invalid per_page value. Cannot exceed 100.", code="parse_error"
+                string="Invalid per_page value. Must be between 1 and 100.", code="parse_error"
             ),
         }
 
@@ -816,8 +814,6 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
@@ -942,8 +938,6 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):

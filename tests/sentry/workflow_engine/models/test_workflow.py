@@ -1,19 +1,30 @@
-from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import WorkflowJob
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class WorkflowTest(TestCase):
+class WorkflowTest(BaseWorkflowTest):
     def setUp(self):
-        self.org = self.create_organization()
+        self.workflow, self.detector, self.detector_workflow, self.data_condition_group = (
+            self.create_detector_and_workflow()
+        )
+        self.data_condition = self.data_condition_group.conditions.first()
+        self.group, self.event, self.group_event = self.create_group_event()
+        self.job = WorkflowJob({"event": self.group_event})
 
-    def tearDown(self):
-        self.org.delete()
+    def test_evaluate_trigger_conditions__condition_new_event__True(self):
+        evaluation = self.workflow.evaluate_trigger_conditions(self.job)
+        assert evaluation is True
 
-    def test_create_simple_workflow(self):
-        workflow = Workflow.objects.create(name="test_workflow", organization=self.org)
+    def test_evaluate_trigger_conditions__condition_new_event__False(self):
+        # Update event to have been seen before
+        self.group_event.group.times_seen = 5
 
-        workflow.save()
-        workflow.refresh_from_db()
+        evaluation = self.workflow.evaluate_trigger_conditions(self.job)
+        assert evaluation is False
 
-        assert workflow.name == "test_workflow"
-        assert workflow.organization == self.org
+    def test_evaluate_trigger_conditions__no_conditions(self):
+        self.workflow.when_condition_group = None
+        self.workflow.save()
+
+        evaluation = self.workflow.evaluate_trigger_conditions(self.job)
+        assert evaluation is True

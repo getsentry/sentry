@@ -51,7 +51,7 @@ function BaseSliderThumb(
             transform: `translateX(${-state.getThumbPercent(index ?? 0) * 100}%)`,
           }}
         >
-          {getFormattedValue(state.values[index ?? 0])}
+          {getFormattedValue(state.values[index ?? 0]!)}
         </SliderThumbLabel>
       )}
       <VisuallyHidden>

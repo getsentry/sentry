@@ -96,16 +96,23 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
+      const parentTransaction = TraceTree.ParentTransaction(node);
+      if (parentTransaction) {
+        preserveNodes.add(parentTransaction);
+      }
+    }
+
+    for (const node of preserveLeafNodes) {
       const index = this.list.indexOf(node);
       if (index === -1) {
         continue;
       }
 
-      // Preserve the previous 3 nodes
+      // Preserve the previous 2 nodes
       let i = Math.max(index - 1, 0);
-      while (i > index - 4) {
+      while (i > index - 3) {
         if (this.list[i]) {
-          preserveNodes.add(this.list[i]);
+          preserveNodes.add(this.list[i]!);
         }
         i--;
       }
@@ -114,7 +121,7 @@ export class IssuesTraceTree extends TraceTree {
       let j = Math.min(index + 1, this.list.length - 1);
       while (j < index + 3) {
         if (this.list[j]) {
-          preserveNodes.add(this.list[j]);
+          preserveNodes.add(this.list[j]!);
         }
         j++;
       }
@@ -123,15 +130,15 @@ export class IssuesTraceTree extends TraceTree {
     let i = 0;
     while (i < this.list.length) {
       const start = i;
-      while (this.list[i] && !preserveNodes.has(this.list[i])) {
+      while (this.list[i] && !preserveNodes.has(this.list[i]!)) {
         i++;
       }
 
       if (i - start > 0) {
         const collapsedNode = new CollapsedNode(
-          this.list[start].parent!,
+          this.list[start]!.parent!,
           {type: 'collapsed'},
-          this.list[start].metadata
+          this.list[start]!.metadata
         );
 
         const removed = this.list.splice(start, i - start, collapsedNode);

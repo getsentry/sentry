@@ -8,13 +8,13 @@ import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 jest.mock('sentry/utils/useUrlParams', () => {
   const map = new Map();
-  return (name, dflt) => {
+  return (name: any, dflt: any) => {
     if (!map.has(name)) {
       map.set(name, dflt);
     }
     return {
       getParamValue: () => map.get(name),
-      setParamValue: value => {
+      setParamValue: (value: any) => {
         map.set(name, value);
       },
     };
@@ -23,7 +23,6 @@ jest.mock('sentry/utils/useUrlParams', () => {
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
-  feedbackFrames: [],
 } = hydrateErrors(
   ReplayRecordFixture({started_at: new Date('2023-06-09T12:00:00+00:00')}),
   [
@@ -58,7 +57,11 @@ const {
 );
 
 describe('useSortErrors', () => {
-  const items = [ERROR_1_JS_RANGEERROR, ERROR_3_JS_UNDEFINED, ERROR_2_NEXTJS_TYPEERROR];
+  const items = [
+    ERROR_1_JS_RANGEERROR!,
+    ERROR_3_JS_UNDEFINED!,
+    ERROR_2_NEXTJS_TYPEERROR!,
+  ];
 
   it('should the list by timestamp by default', () => {
     const {result} = renderHook(useSortErrors, {
@@ -71,9 +74,9 @@ describe('useSortErrors', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      ERROR_1_JS_RANGEERROR,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_3_JS_UNDEFINED,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
     ]);
   });
 
@@ -94,9 +97,9 @@ describe('useSortErrors', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      ERROR_3_JS_UNDEFINED,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_1_JS_RANGEERROR,
+      ERROR_3_JS_UNDEFINED!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_1_JS_RANGEERROR!,
     ]);
   });
 
@@ -117,17 +120,17 @@ describe('useSortErrors', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      ERROR_1_JS_RANGEERROR,
-      ERROR_3_JS_UNDEFINED,
-      ERROR_2_NEXTJS_TYPEERROR,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_3_JS_UNDEFINED!,
+      ERROR_2_NEXTJS_TYPEERROR!,
     ]);
   });
 
   it('should sort by project', () => {
     const mixedItems = [
-      ERROR_3_JS_UNDEFINED,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_1_JS_RANGEERROR,
+      ERROR_3_JS_UNDEFINED!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_1_JS_RANGEERROR!,
     ];
     const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items: mixedItems},
@@ -145,9 +148,9 @@ describe('useSortErrors', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      ERROR_3_JS_UNDEFINED,
-      ERROR_1_JS_RANGEERROR,
-      ERROR_2_NEXTJS_TYPEERROR,
+      ERROR_3_JS_UNDEFINED!,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
     ]);
 
     act(() => {

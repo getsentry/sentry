@@ -1,4 +1,4 @@
-import type {Event} from '@sentry/types';
+import type {Event} from '@sentry/core';
 
 /**
  * NOTE: These types are still considered Beta and subject to change.

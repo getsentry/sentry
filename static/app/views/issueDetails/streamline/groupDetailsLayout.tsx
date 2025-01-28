@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,10 +8,12 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  IssueDetailsContext,
+  useIssueDetailsReducer,
+} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
@@ -31,29 +32,31 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
-  const searchQuery = useEventQuery({group});
-  const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
+  const {issueDetails, dispatch} = useIssueDetailsReducer();
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
+  const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
-    <Fragment>
+    <IssueDetailsContext.Provider value={{...issueDetails, dispatch}}>
       <StreamlinedGroupHeader
         group={group}
         event={event ?? null}
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
       />
-      <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={sidebarOpen}>
+      <StyledLayoutBody
+        data-test-id="group-event-details"
+        sidebarOpen={issueDetails.isSidebarOpen}
+      >
         <div>
           <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
             <NavigationSidebarWrapper
               hasToggleSidebar={!issueTypeConfig.filterAndSearchHeader.enabled}
             >
-              <IssueEventNavigation event={event} group={group} query={searchQuery} />
+              <IssueEventNavigation event={event} group={group} />
               {/* Since the event details header is disabled, display the sidebar toggle here */}
               {!issueTypeConfig.filterAndSearchHeader.enabled && (
                 <ToggleSidebar size="sm" />
@@ -66,7 +69,7 @@ export function GroupDetailsLayout({
           <StreamlinedSidebar group={group} event={event} project={project} />
         ) : null}
       </StyledLayoutBody>
-    </Fragment>
+    </IssueDetailsContext.Provider>
   );
 }
 

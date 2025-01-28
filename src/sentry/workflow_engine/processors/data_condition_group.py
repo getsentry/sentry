@@ -1,11 +1,13 @@
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.types import ProcessedDataConditionResult
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 @cache_func_for_models(
@@ -18,18 +20,13 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
 
 def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
-    value: Any,
+    value: T,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate the conditions for a given group and value.
     """
     results = []
     conditions = get_data_conditions_for_group(data_condition_group.id)
-
-    # TODO - @saponifi3d
-    # Split the conditions into fast and slow conditions
-    # Evaluate the fast conditions first, if any are met, return early
-    # Enqueue the slow conditions to be evaluated later
 
     if len(conditions) == 0:
         # if we don't have any conditions, always return True
@@ -52,12 +49,14 @@ def evaluate_condition_group(
     if data_condition_group.logic_type == data_condition_group.Type.NONE:
         # if we get to this point, no conditions were met
         return True, []
+
     elif data_condition_group.logic_type == data_condition_group.Type.ANY:
         is_any_condition_met = any([result[0] for result in results])
 
         if is_any_condition_met:
             condition_results = [result[1] for result in results if result[0]]
             return is_any_condition_met, condition_results
+
     elif data_condition_group.logic_type == data_condition_group.Type.ALL:
         conditions_met = [result[0] for result in results]
         is_all_conditions_met = all(conditions_met)

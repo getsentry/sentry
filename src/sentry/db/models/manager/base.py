@@ -14,7 +14,6 @@ from django.db.models import Model
 from django.db.models.fields import Field
 from django.db.models.manager import Manager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
-from django.utils.encoding import smart_str
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
@@ -62,7 +61,7 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
     kwargs_bits = []
     for k, v in sorted(kwargs.items()):
         k = __prep_key(model, k)
-        v = smart_str(__prep_value(model, k, v))
+        v = __prep_value(model, k, v)
         kwargs_bits.append(f"{k}={v}")
     kwargs_bits_str = ":".join(kwargs_bits)
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -26,14 +26,13 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.integrations.utils.code_mapping import (
+from sentry.issues.auto_source_code_config.code_mapping import (
     MAX_CONNECTION_ERRORS,
     Repo,
     RepoTree,
     filter_source_code_files,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -95,7 +94,7 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
-        access_token = cast(str, data["token"])
+        access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
         integration.save()
@@ -141,7 +140,7 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
         is_expired = (
-            bool(expires_at) and datetime.strptime(cast(str, expires_at), "%Y-%m-%dT%H:%M:%S") < now
+            bool(expires_at) and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
         )
         should_refresh = not access_token or not expires_at or is_expired
 
@@ -257,14 +256,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest(self, repo: str, pull_number: str) -> Any:
-        """
-        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
-
-        Returns the pull request details
-        """
-        return self.get(f"/repos/{repo}/pulls/{pull_number}")
-
     def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
@@ -375,7 +366,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repositories(fetch_max_pages=True)
+                for repo in self.get_repos(fetch_max_pages=True)
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
@@ -501,7 +492,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         )
         return RepoTree(Repo(full_name, branch), repo_files)
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
+    def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
@@ -512,8 +503,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        # XXX: In order to speed up this function we will need to parallelize this
-        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         repos = self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
@@ -559,37 +548,21 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             output = []
 
             page_number = 1
-            logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
-            # XXX: Debugging code; remove afterward
-            if (
-                response_key
-                and response_key == "repositories"
-                and resp["total_count"] > 0
-                and not output
-            ):
-                logger.info("headers: %s", resp.headers)
-                logger.info("output: %s", output)
-                logger.info("next_link: %s", next_link)
-                logger.error("No list of repos even when there's some. Investigate.")
-
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
+                # If a per_page is specified, GitHub preserves the per_page value
+                # in the response headers.
                 resp = self.get(next_link)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
-                logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
-
-    def get_issues(self, repo: str) -> Sequence[Any]:
-        issues: Sequence[Any] = self.get(f"/repos/{repo}/issues")
-        return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
@@ -644,7 +617,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(

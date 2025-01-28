@@ -207,10 +207,14 @@ function SidebarItem({
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       setExpandedItemId(null);
-      !(to || href) && event.preventDefault();
+      if (!to && !href) {
+        event.preventDefault();
+      }
       recordAnalytics();
       onClick?.(id, event);
-      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+      if (showIsNew) {
+        localStorage.setItem(isNewSeenKey, 'true');
+      }
     },
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
@@ -335,7 +339,7 @@ export function isItemActive(
       !location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
     (item?.label === 'Performance' &&
-      location.pathname.includes('/performance/') &&
+      location.pathname.startsWith('/performance/') &&
       !location.pathname.startsWith('/settings/'))
   );
 }
@@ -390,7 +394,8 @@ const getActiveStyle = ({
 };
 
 const StyledSidebarItem = styled(Link, {
-  shouldForwardProp: p => !['isInFloatingAccordion', 'hasNewNav', 'index'].includes(p),
+  shouldForwardProp: p =>
+    !['isInFloatingAccordion', 'hasNewNav', 'index', 'organization'].includes(p),
 })`
   display: flex;
   color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
@@ -520,7 +525,7 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}) => {
+const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   if (!collapsed) {
     return '';
   }
@@ -539,6 +544,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
   `;
 };
 
+// @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;

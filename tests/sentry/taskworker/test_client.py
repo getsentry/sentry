@@ -6,8 +6,9 @@ from unittest.mock import patch
 import grpc
 import pytest
 from google.protobuf.message import Message
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_RETRY,
+    FetchNextTask,
     GetTaskResponse,
     SetTaskStatusResponse,
     TaskActivation,
@@ -75,7 +76,7 @@ class MockGrpcError(grpc.RpcError):
 def test_get_task_ok():
     channel = MockChannel()
     channel.add_response(
-        "/sentry_protos.sentry.v1.ConsumerService/GetTask",
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
         GetTaskResponse(
             task=TaskActivation(
                 id="abc123",
@@ -97,10 +98,35 @@ def test_get_task_ok():
         assert result.namespace == "testing"
 
 
+def test_get_task_with_namespace():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient("localhost:50051")
+        result = client.get_task(namespace="testing")
+
+        assert result
+        assert result.id
+        assert result.namespace == "testing"
+
+
 def test_get_task_not_found():
     channel = MockChannel()
     channel.add_response(
-        "/sentry_protos.sentry.v1.ConsumerService/GetTask",
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
         MockGrpcError(grpc.StatusCode.NOT_FOUND, "no pending task found"),
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
@@ -114,7 +140,7 @@ def test_get_task_not_found():
 def test_get_task_failure():
     channel = MockChannel()
     channel.add_response(
-        "/sentry_protos.sentry.v1.ConsumerService/GetTask",
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
         MockGrpcError(grpc.StatusCode.INTERNAL, "something bad"),
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
@@ -127,7 +153,7 @@ def test_get_task_failure():
 def test_update_task_ok_with_next():
     channel = MockChannel()
     channel.add_response(
-        "/sentry_protos.sentry.v1.ConsumerService/SetTaskStatus",
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
         SetTaskStatusResponse(
             task=TaskActivation(
                 id="abc123",
@@ -142,31 +168,63 @@ def test_update_task_ok_with_next():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051")
-        result = client.update_task("abc123", TASK_ACTIVATION_STATUS_RETRY)
+        result = client.update_task(
+            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+        )
         assert result
         assert result.id == "abc123"
+
+
+def test_update_task_ok_with_next_namespace():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(
+            task=TaskActivation(
+                id="abc123",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient("localhost:50051")
+        result = client.update_task(
+            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace="testing")
+        )
+        assert result
+        assert result.id == "abc123"
+        assert result.namespace == "testing"
 
 
 def test_update_task_ok_no_next():
     channel = MockChannel()
     channel.add_response(
-        "/sentry_protos.sentry.v1.ConsumerService/SetTaskStatus", SetTaskStatusResponse()
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus", SetTaskStatusResponse()
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051")
-        result = client.update_task("abc123", TASK_ACTIVATION_STATUS_RETRY)
+        result = client.update_task(
+            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+        )
         assert result is None
 
 
 def test_update_task_not_found():
     channel = MockChannel()
     channel.add_response(
-        "/sentry_protos.sentry.v1.ConsumerService/SetTaskStatus",
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
         MockGrpcError(grpc.StatusCode.NOT_FOUND, "no pending tasks found"),
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051")
-        result = client.update_task("abc123", TASK_ACTIVATION_STATUS_RETRY)
+        result = client.update_task(
+            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+        )
         assert result is None

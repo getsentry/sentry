@@ -141,11 +141,11 @@ class IntegrationExternalTeamMappings extends DeprecatedAsyncComponent<Props, St
    * If they search (but not select) after making a selection, and we didn't keep a running collection of results,
    * we wouldn't have the team to generate the endpoint from.
    */
-  combineResultsById = (resultList1, resultList2) => {
+  combineResultsById = (resultList1: any, resultList2: any) => {
     return uniqBy([...resultList1, ...resultList2], 'id');
   };
 
-  handleResults = (results, mappingKey?: string) => {
+  handleResults = (results: any, mappingKey?: string) => {
     if (mappingKey) {
       const {queryResults} = this.state;
       this.setState({
@@ -186,13 +186,12 @@ class IntegrationExternalTeamMappings extends DeprecatedAsyncComponent<Props, St
   };
 
   renderBody() {
-    const {integration, organization} = this.props;
+    const {integration} = this.props;
     const {teamsPageLinks} = this.state;
     return (
       <IntegrationExternalMappings
         type="team"
         integration={integration}
-        organization={organization}
         mappings={this.mappings}
         dataEndpoint={this.dataEndpoint}
         getBaseFormEndpoint={mapping => this.getBaseFormEndpoint(mapping)}

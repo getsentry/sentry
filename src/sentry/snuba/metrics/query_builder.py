@@ -45,7 +45,6 @@ from sentry.sentry_metrics.utils import (
     resolve_tag_key,
     resolve_tag_value,
     resolve_weak,
-    reverse_resolve,
     reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
@@ -613,11 +612,6 @@ def get_date_range(params: Mapping) -> tuple[datetime, datetime, int]:
     # caching is enabled on the snuba queries. Removed here for simplicity,
     # but we might want to reconsider once caching becomes an issue for metrics.
     return start, end, interval
-
-
-def parse_tag(use_case_id: UseCaseID, org_id: int, tag_string: str) -> str:
-    tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
-    return reverse_resolve(use_case_id, org_id, tag_key)
 
 
 def get_metric_object_from_metric_field(

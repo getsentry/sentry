@@ -308,7 +308,7 @@ function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
   const width = 150;
   const height = 24;
-  const lineColor = theme.charts.getColorPalette(1)[0];
+  const lineColor = theme.charts.getColorPalette(1)?.[0];
   return (
     <SparklineContainer data-test-id="sparkline" width={width} height={height}>
       <Sparklines data={data} width={width} height={height}>
@@ -397,7 +397,7 @@ export function VitalBar(props: VitalBarProps) {
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
     (Object.keys(counts) as Array<keyof typeof counts>).forEach(
-      countKey => (counts[countKey] += c[countKey])
+      countKey => (counts[countKey] += (c as any)[countKey])
     );
   });
 

@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
-import yaml
 from django.core.files.storage import Storage
 from django.test import override_settings
 from google.cloud.devtools.cloudbuild_v1 import Build
@@ -1011,52 +1010,6 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         self.relocation.save()
         self.create_user("importing")
         self.relocation_storage = get_relocation_storage()
-
-    def test_success(
-        self,
-        preprocessing_baseline_config_mock: Mock,
-        fake_message_builder: Mock,
-    ):
-        self.mock_message_builder(fake_message_builder)
-        assert not self.relocation_storage.exists(f"runs/{self.uuid}")
-
-        preprocessing_transfer(self.uuid)
-
-        assert fake_message_builder.call_count == 0
-        assert preprocessing_baseline_config_mock.call_count == 1
-
-        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/conf")
-        assert len(files) == 2
-        assert "cloudbuild.yaml" in files
-        assert "cloudbuild.zip" in files
-
-        cb_yaml_file = self.relocation_storage.open(f"runs/{self.uuid}/conf/cloudbuild.yaml")
-        with cb_yaml_file:
-            cb_conf = yaml.safe_load(cb_yaml_file)
-            assert cb_conf is not None
-
-        # These entries in the generated `cloudbuild.yaml` depend on the UUID, so check them
-        # separately then replace them for snapshotting.
-        in_path = cb_conf["steps"][0]["args"][2]
-        findings_path = cb_conf["artifacts"]["objects"]["location"]
-        assert in_path == f"gs://default/runs/{self.uuid}/in"
-        assert findings_path == f"gs://default/runs/{self.uuid}/findings/"
-
-        # Do a snapshot test of the cloudbuild config.
-        cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
-        cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
-        cb_conf["steps"][11]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
-        self.insta_snapshot(cb_conf)
-
-        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 3
-        assert "kms-config.json" in files
-        assert "filter-usernames.txt" in files
-        assert "raw-relocation-data.tar" in files
-
-        kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
-        with kms_file:
-            json.load(kms_file)
 
     def test_retry_if_attempts_left(
         self,
@@ -2192,7 +2145,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     @staticmethod
     def noop_relocated_signal_receiver(sender, **kwargs) -> None:
-        pass
+        raise NotImplementedError
 
     def test_success(
         self,

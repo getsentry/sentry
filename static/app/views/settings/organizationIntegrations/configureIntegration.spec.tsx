@@ -68,7 +68,7 @@ describe('OpsgenieMigrationButton', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Migrate Plugin'}));
 
-    expect(screen.queryByRole('button', {name: 'Confirm'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 

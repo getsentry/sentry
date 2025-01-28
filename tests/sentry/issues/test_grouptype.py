@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from datetime import timedelta
 from unittest.mock import patch
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
     DEFAULT_IGNORE_LIMIT,
-    ErrorGroupType,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -126,7 +126,6 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             category = GroupCategory.PERFORMANCE.value
             released = True
 
-        assert TestGroupType.is_visible(self.organization)
         assert TestGroupType.allow_post_process_group(self.organization)
         assert TestGroupType.allow_ingest(self.organization)
 
@@ -139,7 +138,6 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             category = GroupCategory.PERFORMANCE.value
             released = False
 
-        assert not TestGroupType.is_visible(self.organization)
         assert not TestGroupType.allow_post_process_group(self.organization)
         assert not TestGroupType.allow_ingest(self.organization)
 
@@ -152,8 +150,6 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             category = GroupCategory.PERFORMANCE.value
             released = False
 
-        with self.feature(TestGroupType.build_visible_feature_name()):
-            assert TestGroupType.is_visible(self.organization)
         with self.feature(TestGroupType.build_post_process_group_feature_name()):
             assert TestGroupType.allow_post_process_group(self.organization)
         with self.feature(TestGroupType.build_ingest_feature_name()):

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import TypedDict
 
+import sentry_sdk
 from django.db.models import Max
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
@@ -353,7 +354,24 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
     def validate_widget_type(self, widget_type):
-        return DashboardWidgetTypes.get_id_for_type_name(widget_type)
+        widget_type = DashboardWidgetTypes.get_id_for_type_name(widget_type)
+        if widget_type == DashboardWidgetTypes.DISCOVER or widget_type is None:
+            sentry_sdk.set_context(
+                "dashboard",
+                {
+                    "org_slug": self.context["organization"].slug,
+                },
+            )
+            sentry_sdk.capture_message("Created or updated widget with discover dataset.")
+            if features.has(
+                "organizations:deprecate-discover-widget-type",
+                self.context["organization"],
+                actor=self.context["request"].user,
+            ):
+                raise serializers.ValidationError(
+                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                )
+        return widget_type
 
     validate_id = validate_id
 
@@ -614,20 +632,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
             )
 
-        if features.has(
-            "organizations:dashboards-edit-access",
-            self.context["organization"],
-            actor=self.context["request"].user,
-        ):
-            permissions = data.get("permissions")
-            if permissions and self.instance:
-                currentUser = self.context["request"].user
-                # managers and owners
-                has_write_access = self.context["request"].access.has_scope("org:write")
-                if self.instance.created_by_id != currentUser.id and not has_write_access:
-                    raise serializers.ValidationError(
-                        "Only the Dashboard Creator may modify Dashboard Edit Access"
-                    )
+        permissions = data.get("permissions")
+        if permissions and self.instance:
+            currentUser = self.context["request"].user
+            # managers and owners
+            has_write_access = self.context["request"].access.has_scope("org:write")
+            if self.instance.created_by_id != currentUser.id and not has_write_access:
+                raise serializers.ValidationError(
+                    "Only the Dashboard Creator may modify Dashboard Edit Access"
+                )
 
         return data
 
@@ -700,12 +713,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_dashboard_filters(self.instance, validated_data)
 
-        if features.has(
-            "organizations:dashboards-edit-access",
-            self.context["organization"],
-            actor=self.context["request"].user,
-        ):
-            self.update_permissions(self.instance, validated_data)
+        self.update_permissions(self.instance, validated_data)
 
         schedule_update_project_configs(self.instance)
 
@@ -731,12 +739,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_dashboard_filters(instance, validated_data)
 
-        if features.has(
-            "organizations:dashboards-edit-access",
-            self.context["organization"],
-            actor=self.context["request"].user,
-        ):
-            self.update_permissions(instance, validated_data)
+        self.update_permissions(instance, validated_data)
 
         schedule_update_project_configs(instance)
 
@@ -850,6 +853,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.limit = data.get("limit", widget.limit)
         widget.dataset_source = data.get("dataset_source", widget.dataset_source)
         widget.detail = {"layout": data.get("layout", prev_layout)}
+
+        if widget.widget_type not in [
+            DashboardWidgetTypes.DISCOVER,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+            DashboardWidgetTypes.ERROR_EVENTS,
+        ]:
+            # Reset the discover split fields if the widget type is no longer
+            # a discover/errors/transactions widget
+            widget.discover_widget_split = None
+            widget.dataset_source = DatasetSourcesTypes.UNKNOWN.value
+
         widget.save()
 
         if "queries" in data:

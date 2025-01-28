@@ -77,8 +77,8 @@ export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) 
   const parts = field.split('_');
   return {
     histogramField: field,
-    bucketSize: parseInt(parts[parts.length - 3], 10),
-    offset: parseInt(parts[parts.length - 2], 10),
-    multiplier: parseInt(parts[parts.length - 1], 10),
+    bucketSize: parseInt(parts[parts.length - 3]!, 10),
+    offset: parseInt(parts[parts.length - 2]!, 10),
+    multiplier: parseInt(parts[parts.length - 1]!, 10),
   };
 }

@@ -16,7 +16,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -30,21 +30,25 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 function TimelineItem({
   item,
   handleDelete,
+  handleUpdate,
   group,
   teams,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
+  handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
 }) {
   const organization = useOrganization();
+  const [editing, setEditing] = useState(false);
   const authorName = item.user ? item.user.name : 'Sentry';
   const {title, message} = getGroupActivityItem(
     item,
@@ -66,8 +70,12 @@ function TimelineItem({
           <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
-          {item.type === GroupActivityType.NOTE && (
-            <TitleDropdown onDelete={() => handleDelete(item)} user={item.user} />
+          {item.type === GroupActivityType.NOTE && !editing && (
+            <TitleDropdown
+              onDelete={() => handleDelete(item)}
+              onEdit={() => setEditing(true)}
+              user={item.user}
+            />
           )}
         </Flex>
       }
@@ -82,7 +90,20 @@ function TimelineItem({
         )
       }
     >
-      {typeof message === 'string' ? (
+      {item.type === GroupActivityType.NOTE && editing ? (
+        <NoteInputWithStorage
+          itemKey={item.id}
+          storageKey={`groupinput:${item.id}`}
+          source="issue-details"
+          text={item.data.text}
+          noteId={item.id}
+          onUpdate={n => {
+            handleUpdate(item, n);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : typeof message === 'string' ? (
         <NoteWrapper>
           <NoteBody text={message} />
         </NoteWrapper>
@@ -143,11 +164,36 @@ export default function StreamlinedActivitySection({
             addErrorMessage(t('Failed to delete comment'));
           },
           onSuccess: () => {
-            trackAnalytics('issue_details.comment_deleted', {organization});
+            trackAnalytics('issue_details.comment_deleted', {
+              organization,
+              streamline: true,
+              org_streamline_only: organization.streamlineOnly ?? undefined,
+            });
             addSuccessMessage(t('Comment removed'));
           },
         }
       );
+    },
+    [group.activity, mutators, group.id, organization]
+  );
+
+  const handleUpdate = useCallback(
+    (item: GroupActivity, n: NoteType) => {
+      mutators.handleUpdate(n, item.id, group.activity, {
+        onError: () => {
+          addErrorMessage(t('Unable to update comment'));
+        },
+        onSuccess: data => {
+          const d = data as GroupActivityNote;
+          GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
+          addSuccessMessage(t('Comment updated'));
+          trackAnalytics('issue_details.comment_updated', {
+            organization,
+            streamline: true,
+            org_streamline_only: organization.streamlineOnly ?? undefined,
+          });
+        },
+      });
     },
     [group.activity, mutators, group.id, organization]
   );
@@ -163,7 +209,11 @@ export default function StreamlinedActivitySection({
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
-          trackAnalytics('issue_details.comment_created', {organization});
+          trackAnalytics('issue_details.comment_created', {
+            organization,
+            streamline: true,
+            org_streamline_only: organization.streamlineOnly ?? undefined,
+          });
           addSuccessMessage(t('Comment posted'));
         },
       });
@@ -176,9 +226,7 @@ export default function StreamlinedActivitySection({
       {!isDrawer && (
         <Flex justify="space-between" align="center">
           <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-          <TextLinkButton
-            borderless
-            size="zero"
+          <ViewButton
             aria-label={t('Open activity drawer')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
@@ -194,7 +242,7 @@ export default function StreamlinedActivitySection({
             }}
           >
             {t('View')}
-          </TextLinkButton>
+          </ViewButton>
         </Flex>
       )}
       <Timeline.Container>
@@ -215,6 +263,7 @@ export default function StreamlinedActivitySection({
               <TimelineItem
                 item={item}
                 handleDelete={handleDelete}
+                handleUpdate={handleUpdate}
                 group={group}
                 teams={teams}
                 key={item.id}
@@ -228,6 +277,7 @@ export default function StreamlinedActivitySection({
                 <TimelineItem
                   item={item}
                   handleDelete={handleDelete}
+                  handleUpdate={handleUpdate}
                   group={group}
                   teams={teams}
                   key={item.id}
@@ -283,12 +333,6 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
-`;
-
-const TextLinkButton = styled(LinkButton)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`

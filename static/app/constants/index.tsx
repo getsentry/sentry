@@ -121,8 +121,8 @@ export type PermissionChoice = {
 
 type PermissionObj = {
   choices: {
-    admin: PermissionChoice;
     'no-access': PermissionChoice;
+    admin?: PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
   };
@@ -197,6 +197,15 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       read: {label: 'Read', scopes: ['member:read']},
       write: {label: 'Read & Write', scopes: ['member:read', 'member:write']},
       admin: {label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin']},
+    },
+  },
+  {
+    resource: 'Alerts',
+    help: 'Manage Alerts',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['alerts:read']},
+      write: {label: 'Read & Write', scopes: ['alerts:read', 'alerts:write']},
     },
   },
 ];
@@ -421,7 +430,6 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
-export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

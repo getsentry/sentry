@@ -13,14 +13,12 @@ import {
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import WidgetQueries, {
-  flattenMultiSeriesDataWithGrouping,
-} from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg();
 
-  const renderWithProviders = component =>
+  const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MetricsResultsMetaProvider>
         <DashboardsMEPProvider>
@@ -212,7 +210,7 @@ describe('Dashboards > WidgetQueries', function () {
     // Child should be rendered and 2 requests should be sent.
     expect(await screen.findByTestId('child')).toBeInTheDocument();
     await waitFor(() => {
-      expect(error).toEqual('Bad request data');
+      expect(error).toBe('Bad request data');
     });
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
@@ -332,8 +330,8 @@ describe('Dashboards > WidgetQueries', function () {
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    await waitFor(() => expect(childProps?.tableResults?.[0].data).toHaveLength(1));
-    expect(childProps?.tableResults?.[0].meta).toBeDefined();
+    await waitFor(() => expect(childProps?.tableResults?.[0]!.data).toHaveLength(1));
+    expect(childProps?.tableResults?.[0]!.meta).toBeDefined();
   });
 
   it('can send multiple table queries', async function () {
@@ -399,8 +397,8 @@ describe('Dashboards > WidgetQueries', function () {
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
     await waitFor(() => expect(childProps?.tableResults).toHaveLength(2));
-    expect(childProps?.tableResults?.[0].data[0]['sdk.name']).toBeDefined();
-    expect(childProps?.tableResults?.[1].data[0].title).toBeDefined();
+    expect(childProps?.tableResults?.[0]!.data[0]!['sdk.name']).toBeDefined();
+    expect(childProps?.tableResults?.[1]!.data[0]!.title).toBeDefined();
   });
 
   it('can send big number result queries', async function () {
@@ -522,7 +520,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => expect(childProps?.loading).toEqual(false));
+    await waitFor(() => expect(childProps?.loading).toBe(false));
   });
 
   it('sets bar charts to 1d interval', async function () {
@@ -674,7 +672,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: DisplayType.LINE,
       interval: '5m',
     };
-    let childProps;
+    let childProps!: GenericWidgetQueriesChildrenProps;
     const {rerender} = renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -690,7 +688,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(childProps.loading).toEqual(false));
+    await waitFor(() => expect(childProps.loading).toBe(false));
 
     // Simulate a re-render with a new query alias
     rerender(
@@ -727,113 +725,9 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults[0].seriesName).toEqual(
+    expect(childProps.timeseriesResults![0]!.seriesName).toBe(
       'this query alias changed : count()'
     );
-  });
-
-  describe('multi-series grouped data', () => {
-    const [START, END] = [1647399900, 1647399901];
-    let mockCountData, mockCountUniqueData, mockRawResultData;
-
-    beforeEach(() => {
-      mockCountData = {
-        start: START,
-        end: END,
-        data: [
-          [START, [{'count()': 0}]],
-          [END, [{'count()': 0}]],
-        ],
-      };
-      mockCountUniqueData = {
-        start: START,
-        end: END,
-        data: [
-          [START, [{'count_unique()': 0}]],
-          [END, [{'count_unique()': 0}]],
-        ],
-      };
-      mockRawResultData = {
-        local: {
-          'count()': mockCountData,
-          'count_unique()': mockCountUniqueData,
-          order: 0,
-        },
-        prod: {
-          'count()': mockCountData,
-          'count_unique()': mockCountUniqueData,
-          order: 1,
-        },
-      };
-    });
-
-    it('combines group name and aggregate names in grouped multi series data', () => {
-      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, '');
-      expect(actual).toEqual([
-        [
-          0,
-          expect.objectContaining({
-            seriesName: 'local : count()',
-            data: expect.anything(),
-          }),
-        ],
-        [
-          0,
-          expect.objectContaining({
-            seriesName: 'local : count_unique()',
-            data: expect.anything(),
-          }),
-        ],
-        [
-          1,
-          expect.objectContaining({
-            seriesName: 'prod : count()',
-            data: expect.anything(),
-          }),
-        ],
-        [
-          1,
-          expect.objectContaining({
-            seriesName: 'prod : count_unique()',
-            data: expect.anything(),
-          }),
-        ],
-      ]);
-    });
-
-    it('prefixes with a query alias when provided', () => {
-      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, 'Query 1');
-      expect(actual).toEqual([
-        [
-          0,
-          expect.objectContaining({
-            seriesName: 'Query 1 > local : count()',
-            data: expect.anything(),
-          }),
-        ],
-        [
-          0,
-          expect.objectContaining({
-            seriesName: 'Query 1 > local : count_unique()',
-            data: expect.anything(),
-          }),
-        ],
-        [
-          1,
-          expect.objectContaining({
-            seriesName: 'Query 1 > prod : count()',
-            data: expect.anything(),
-          }),
-        ],
-        [
-          1,
-          expect.objectContaining({
-            seriesName: 'Query 1 > prod : count_unique()',
-            data: expect.anything(),
-          }),
-        ],
-      ]);
-    });
   });
 
   it('charts send metricsEnhanced requests', async function () {

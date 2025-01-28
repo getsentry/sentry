@@ -27,6 +27,7 @@ const metricTypeToReadable: Record<Exclude<MetricType, 'v'>, string> = {
 
 // Converts from "c" to "counter"
 export function getReadableMetricType(type?: string) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
@@ -265,6 +266,7 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
   }
 }
 
+// @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
 const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] ?? '';
 
 export function formatMetricUsingFixedUnit(

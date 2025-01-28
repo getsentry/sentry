@@ -66,6 +66,9 @@ export function TeamUnresolvedIssues({
   function getTotalUnresolved(projectId: number): number {
     const entries = Object.values(periodIssues?.[projectId] ?? {});
     const total = entries.reduce((acc, current) => acc + current.unresolved, 0);
+    if (total === 0) {
+      return 0;
+    }
 
     return Math.round(total / entries.length);
   }
@@ -76,8 +79,10 @@ export function TeamUnresolvedIssues({
   > = {};
   for (const projectId of Object.keys(periodIssues)) {
     const periodAvg = getTotalUnresolved(Number(projectId));
-    const projectPeriodEntries = Object.values(periodIssues?.[projectId] ?? {});
-    const today = projectPeriodEntries[projectPeriodEntries.length - 1]?.unresolved ?? 0;
+    const projectPeriodEntries = Object.entries(periodIssues?.[projectId] ?? {}).sort(
+      (a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime()
+    );
+    const today = projectPeriodEntries[0]?.[1]?.unresolved ?? 0;
     const percentChange = (today - periodAvg) / periodAvg;
     projectTotals[projectId] = {
       projectId,
@@ -100,13 +105,16 @@ export function TeamUnresolvedIssues({
     )
   );
   // Total by day for all projects
-  const totalByDay = allData.reduce((acc, [bucket, unresolved]) => {
-    if (acc[bucket] === undefined) {
-      acc[bucket] = 0;
-    }
-    acc[bucket] += unresolved;
-    return acc;
-  }, {});
+  const totalByDay = allData.reduce(
+    (acc, [bucket, unresolved]) => {
+      if (acc[bucket] === undefined) {
+        acc[bucket] = 0;
+      }
+      acc[bucket] += unresolved;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
 
@@ -153,7 +161,12 @@ export function TeamUnresolvedIssues({
               ]}
             >
               {groupedProjects.map(({project}, idx) => {
-                const totals = projectTotals[project.id] ?? {};
+                const totals = projectTotals[project.id] ?? {
+                  percentChange: 0,
+                  periodAvg: undefined,
+                  projectId: undefined,
+                  today: undefined,
+                };
 
                 if (idx >= COLLAPSE_COUNT && !isExpanded) {
                   return null;

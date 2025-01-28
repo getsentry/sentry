@@ -73,7 +73,7 @@ export function TransactionHighlights(props: HighlightProps) {
         })}
       >
         <StyledIconGraph type="area" size="xs" />
-        {t('View transaction summary')}
+        {t('View Summary')}
       </Link>
     </BodyContentWrapper>
   );

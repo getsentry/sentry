@@ -1,8 +1,6 @@
 import re
-from functools import cached_property
 from unittest.mock import patch
 
-from django.urls import reverse
 from django.utils.text import slugify
 
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -32,10 +30,6 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
         self.mock_experiment_get = patch.object(ExperimentManager, "get", return_value=1).start()
-
-    @cached_property
-    def path(self):
-        return reverse(self.endpoint, args=[self.organization.slug])
 
     def validate_team_with_suffix(self, team: Team):
         pattern = rf"^{self.t1}-[a-z]{{3}}$"

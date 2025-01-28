@@ -13,9 +13,9 @@ import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
-  headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
   tabs?: HeaderProps['tabs'];
@@ -39,8 +39,13 @@ export function MobileHeader({
   const hasMobileUi = isModuleEnabled(ModuleName.MOBILE_UI, organization);
 
   const modules = hasMobileScreens
-    ? [ModuleName.MOBILE_SCREENS]
-    : [ModuleName.APP_START, ModuleName.SCREEN_LOAD, ModuleName.SCREEN_RENDERING];
+    ? [ModuleName.MOBILE_SCREENS, ModuleName.HTTP]
+    : [
+        ModuleName.APP_START,
+        ModuleName.SCREEN_LOAD,
+        ModuleName.SCREEN_RENDERING,
+        ModuleName.HTTP,
+      ];
 
   if (!hasMobileScreens && hasMobileUi) {
     modules.push(ModuleName.MOBILE_UI);

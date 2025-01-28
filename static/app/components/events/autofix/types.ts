@@ -86,39 +86,34 @@ interface BaseStep {
   status: AutofixStatus;
   title: string;
   type: AutofixStepType;
+  active_comment_thread?: CommentThread | null;
   completedMessage?: string;
+  output_stream?: string | null;
+}
+
+export type CommentThread = {
+  id: string;
+  is_completed: boolean;
+  messages: CommentThreadMessage[];
+};
+
+export interface CommentThreadMessage {
+  content: string;
+  role: 'user' | 'assistant';
+  isLoading?: boolean;
 }
 
 export type CodeSnippetContext = {
   file_path: string;
   repo_name: string;
   snippet: string;
-};
-
-export type StacktraceContext = {
-  code_snippet: string;
-  col_no: number;
-  file_name: string;
-  function: string;
-  line_no: number;
-  repo_name: string;
-  vars_as_json: string;
-};
-
-export type BreadcrumbContext = {
-  body: string;
-  category: string;
-  data_as_json: string;
-  level: string;
-  type: string;
+  end_line?: number;
+  start_line?: number;
 };
 
 export type AutofixInsight = {
-  breadcrumb_context: BreadcrumbContext[];
-  codebase_context: CodeSnippetContext[];
   insight: string;
   justification: string;
-  stacktrace_context: StacktraceContext[];
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -145,6 +140,7 @@ export type AutofixCodebaseChange = {
   diff: FilePatch[];
   repo_name: string;
   title: string;
+  branch_name?: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
   repo_external_id?: string;

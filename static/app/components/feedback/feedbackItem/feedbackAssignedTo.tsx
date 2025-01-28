@@ -1,16 +1,13 @@
 import {useEffect} from 'react';
-import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import {Button} from 'sentry/components/button';
-import {DeprecatedAssigneeSelectorDropdown} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import type {EventOwners} from 'sentry/components/group/assignedTo';
-import {getAssignedToDisplayName, getOwnerList} from 'sentry/components/group/assignedTo';
-import {IconChevron, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {getOwnerList} from 'sentry/components/group/assignedTo';
+import {
+  AssigneeSelector,
+  useHandleAssigneeChange,
+} from 'sentry/components/group/assigneeSelector';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -18,16 +15,11 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  feedbackEvent: FeedbackEvent | undefined;
+  feedbackEvent: FeedbackEvent;
   feedbackIssue: Group;
-  showActorName: boolean;
 }
 
-export default function FeedbackAssignedTo({
-  feedbackIssue,
-  feedbackEvent,
-  showActorName,
-}: Props) {
+export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const project = feedbackIssue.project;
@@ -45,70 +37,25 @@ export default function FeedbackAssignedTo({
       enabled: Boolean(feedbackEvent),
     }
   );
-
-  const {assign} = useMutateFeedback({
-    feedbackIds: [feedbackIssue.id],
+  const {updateCached} = useFeedbackCache();
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
     organization,
-    projectIds: [feedbackIssue.project.id],
+    group: feedbackIssue,
+    onSuccess: assignedTo => {
+      updateCached([feedbackIssue.id], {assignedTo});
+    },
   });
 
   const owners = getOwnerList([], eventOwners, feedbackIssue.assignedTo);
 
-  // A new `key` will make the component re-render when showActorName changes
-  const key = showActorName ? 'showActor' : 'hideActor';
-
   return (
-    <DeprecatedAssigneeSelectorDropdown
-      key={key}
-      organization={organization}
-      disabled={false}
-      id={feedbackIssue.id}
-      assignedTo={feedbackIssue.assignedTo}
-      onAssign={() => {
-        assign(feedbackIssue.assignedTo);
-      }}
-      onClear={() => {
-        assign(null);
-      }}
-      owners={owners}
+    <AssigneeSelector
       group={feedbackIssue}
-      alignMenu="left"
-    >
-      {({isOpen, getActorProps}) => (
-        <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
-          <ActorWrapper>
-            {!feedbackIssue.assignedTo ? (
-              <IconUser size="sm" />
-            ) : (
-              <ActorAvatar
-                actor={feedbackIssue.assignedTo}
-                hasTooltip={false}
-                size={16}
-              />
-            )}
-            {showActorName ? (
-              <ActorName>
-                {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
-              </ActorName>
-            ) : null}
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
-          </ActorWrapper>
-        </Button>
-      )}
-    </DeprecatedAssigneeSelectorDropdown>
+      owners={owners}
+      assigneeLoading={assigneeLoading}
+      handleAssigneeChange={e => {
+        handleAssigneeChange(e);
+      }}
+    />
   );
 }
-
-const ActorWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  max-width: 150px;
-  line-height: 1;
-`;
-
-const ActorName = styled('div')`
-  line-height: 1.2;
-  ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeSmall};
-`;

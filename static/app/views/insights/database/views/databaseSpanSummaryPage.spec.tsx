@@ -13,7 +13,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table'],
+    features: ['insights-related-issues-table', 'insights-initial-modules'],
   });
   const group = GroupFixture();
 
@@ -230,6 +230,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -256,6 +257,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );

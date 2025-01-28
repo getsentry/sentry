@@ -23,6 +23,7 @@ export type Permissions = {
   Project: PermissionValue;
   Release: PermissionValue;
   Team: PermissionValue;
+  Alerts?: PermissionValue;
 };
 
 export type PermissionResource = keyof Permissions;
@@ -157,7 +158,7 @@ export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
   url: string;
-  params?: Array<string>;
+  params?: string[];
 };
 
 export enum Coverage {

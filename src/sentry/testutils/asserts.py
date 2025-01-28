@@ -1,5 +1,6 @@
 from django.http import StreamingHttpResponse
 
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.silo.base import SiloMode
@@ -54,9 +55,58 @@ def assert_org_audit_log_exists(**kwargs):
     assert org_audit_log_exists(**kwargs)
 
 
-def assert_org_audit_log_does_not_exist(**kwargs):
-    assert not org_audit_log_exists(**kwargs)
+"""
+Helper functions to assert integration SLO metrics
+"""
 
 
-def delete_all_org_audit_logs():
-    return AuditLogEntry.objects.all().delete()
+def assert_halt_metric(mock_record, error_msg):
+    (event_halts,) = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
+    )
+    if isinstance(error_msg, Exception):
+        assert isinstance(event_halts.args[1], type(error_msg))
+    else:
+        assert event_halts.args[1] == error_msg
+
+
+def assert_failure_metric(mock_record, error_msg):
+    (event_failures,) = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
+    )
+    if isinstance(error_msg, Exception):
+        assert isinstance(event_failures.args[1], type(error_msg))
+    else:
+        assert event_failures.args[1] == error_msg
+
+
+def assert_success_metric(mock_record):
+    event_success = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.SUCCESS
+    )
+    assert event_success
+
+
+def assert_slo_metric(
+    mock_record, event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS
+):
+    assert len(mock_record.mock_calls) == 2
+    start, end = mock_record.mock_calls
+    assert start.args[0] == EventLifecycleOutcome.STARTED
+    assert end.args[0] == event_outcome
+
+
+def assert_slo_metric_calls(
+    mock_calls, event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS
+):
+    start, end = mock_calls
+    assert start.args[0] == EventLifecycleOutcome.STARTED
+    assert end.args[0] == event_outcome
+
+
+def assert_middleware_metrics(middleware_calls):
+    start1, end1, start2, end2 = middleware_calls
+    assert start1.args[0] == EventLifecycleOutcome.STARTED
+    assert end1.args[0] == EventLifecycleOutcome.SUCCESS
+    assert start2.args[0] == EventLifecycleOutcome.STARTED
+    assert end2.args[0] == EventLifecycleOutcome.SUCCESS

@@ -45,9 +45,9 @@ export function FlamegraphChartTooltip({
 
   return series.length > 0 ? (
     <BoundTooltip
-      bounds={canvasBounds}
       cursor={configSpaceCursor}
       canvas={chartCanvas}
+      canvasBounds={canvasBounds}
       canvasView={chartView}
     >
       {series.map((p, i) => {
@@ -59,7 +59,7 @@ export function FlamegraphChartTooltip({
               />
               {p.name}:&nbsp;
               <FlamegraphTooltipTimelineInfo>
-                {chart.tooltipFormatter(p.points[0].y)}
+                {chart.tooltipFormatter(p.points[0]!.y)}
               </FlamegraphTooltipTimelineInfo>
             </FlamegraphTooltipFrameMainInfo>
           </React.Fragment>

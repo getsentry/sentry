@@ -244,6 +244,9 @@ class User(Model, AbstractBaseUser):
     def has_unverified_emails(self) -> bool:
         return self.get_unverified_emails().exists()
 
+    def has_verified_primary_email(self) -> bool:
+        return self.emails.filter(is_verified=True, email=self.email).exists()
+
     def has_usable_password(self) -> bool:
         if self.password == "" or self.password is None:
             # This is the behavior we've been relying on from Django 1.6 - 2.0.
@@ -272,6 +275,28 @@ class User(Model, AbstractBaseUser):
 
     def get_actor_identifier(self) -> str:
         return f"user:{self.id}"
+
+    def send_signed_url_confirm_email_singular(
+        self, email: str, signed_data: str, is_new_user: bool = False
+    ) -> None:
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            "user": self,
+            "url": absolute_uri(reverse("sentry-account-confirm-signed-email", args=[signed_data])),
+            "confirm_email": email,
+            "is_new_user": is_new_user,
+        }
+
+        msg = MessageBuilder(
+            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+            template="sentry/emails/confirm_email.txt",
+            html_template="sentry/emails/confirm_email.html",
+            type="user.confirm_email",
+            context=context,
+        )
+        msg.send_async([email])
 
     def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
         from sentry import options

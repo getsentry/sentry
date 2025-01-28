@@ -118,6 +118,14 @@ const organizationNavigation: NavigationSection[] = [
         show: ({organization}) =>
           !!organization && hasDynamicSamplingCustomFeature(organization),
       },
+      {
+        path: `${organizationSettingsPathPrefix}/feature-flags/`,
+        title: t('Feature Flags'),
+        description: t('Set up your provider webhooks'),
+        badge: () => <FeatureBadge type="beta" />,
+        show: ({organization}) =>
+          !!organization && organization.features.includes('feature-flag-ui'),
+      },
     ],
   },
   {

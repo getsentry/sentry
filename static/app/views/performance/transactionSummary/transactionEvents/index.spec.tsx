@@ -5,7 +5,6 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
@@ -18,7 +17,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-function WrappedComponent({data}) {
+function WrappedComponent({data}: {data: ReturnType<typeof initializeData>}) {
   return (
     <MEPSettingProvider>
       <TransactionEvents
@@ -200,7 +199,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
 
     await userEvent.click(p50);
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(data.router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: expect.objectContaining({showTransactions: 'p50'})})
     );
   });

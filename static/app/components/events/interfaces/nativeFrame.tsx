@@ -39,7 +39,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -49,9 +49,10 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
+  isFirstInAppFrame: boolean;
   isUsedForGrouping: boolean;
   platform: PlatformKey;
   registers: Record<string, string>;
@@ -59,8 +60,6 @@ type Props = {
   frameMeta?: Record<any, any>;
   hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
-  includeSystemFrames?: boolean;
-  isExpanded?: boolean;
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
   isShowFramesToggleExpanded?: boolean;
@@ -80,7 +79,6 @@ function NativeFrame({
   frame,
   nextFrame,
   prevFrame,
-  includeSystemFrames,
   isUsedForGrouping,
   maxLengthOfRelativeAddress,
   image,
@@ -89,10 +87,10 @@ function NativeFrame({
   event,
   components,
   hiddenFrameCount,
+  isFirstInAppFrame,
   isShowFramesToggleExpanded,
   isSubFrame,
   onShowFramesToggle,
-  isExpanded,
   platform,
   registersMeta,
   frameMeta,
@@ -104,7 +102,7 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
-  const {sectionData} = useEventDetails();
+  const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.DEBUGMETA),
@@ -134,16 +132,13 @@ function NativeFrame({
     (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
-  const expandable =
-    !leadsToApp || includeSystemFrames
-      ? isExpandable({
-          frame,
-          registers,
-          platform,
-          emptySourceNotation,
-          isOnlyFrame,
-        })
-      : false;
+  const expandable = isExpandable({
+    frame,
+    registers,
+    platform,
+    emptySourceNotation,
+    isOnlyFrame,
+  });
 
   const inlineFrame =
     prevFrame &&
@@ -155,7 +150,7 @@ function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
+  const [expanded, setExpanded] = useState(() => isOnlyFrame || isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
@@ -284,7 +279,6 @@ function NativeFrame({
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
           expandable={expandable}
-          expanded={expanded}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -424,10 +418,10 @@ function NativeFrame({
           <ExpandCell>
             {expandable && (
               <ToggleButton
+                type="button"
                 size="zero"
                 borderless
-                aria-label={t('Toggle Context')}
-                tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+                aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
                 icon={<Chevron size="medium" direction={expanded ? 'up' : 'down'} />}
               />
             )}
@@ -526,14 +520,13 @@ const FileName = styled('span')`
 
 const RowHeader = styled('span')<{
   expandable: boolean;
-  expanded: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
-  grid-template-rows: repeat(2, auto);
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Adjusted to account for the extra element */
+  grid-template-rows: 1fr; /* Ensures a single row */
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
@@ -548,7 +541,7 @@ const RowHeader = styled('span')<{
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
+    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Matches the updated desktop layout */
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }

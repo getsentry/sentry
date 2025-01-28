@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import type {ComponentProps, PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +8,7 @@ import ModalStore from 'sentry/stores/modalStore';
 
 describe('FeatureTourModal', function () {
   const onCloseModal = jest.fn();
-  const styledWrapper = styled(c => c.children);
+  const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const renderComponent = (
     props: Partial<ComponentProps<typeof FeatureDisabledModal>> = {}
   ) =>

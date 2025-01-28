@@ -121,7 +121,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
-        stacktrace={{...stacktrace, frames: [{...frames[0], inApp: true}, frames[1]]}}
+        stacktrace={{...stacktrace, frames: [{...frames[0]!, inApp: true}, frames[1]!]}}
       />
     );
     expect(
@@ -143,7 +143,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
-        stacktrace={{...stacktrace, frames: [{...frames[0], inApp: true}, frames[1]]}}
+        stacktrace={{...stacktrace, frames: [{...frames[0]!, inApp: true}, frames[1]!]}}
         chainedException
       />
     );
@@ -153,9 +153,9 @@ describe('ExceptionStacktraceContent', function () {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
 
     // inApp === true
-    expect(screen.getAllByRole('listitem')[1]).toHaveTextContent(frames[0].filename);
+    expect(screen.getAllByRole('listitem')[1]).toHaveTextContent(frames[0]!.filename);
 
     // inApp === false
-    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(frames[1].filename);
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(frames[1]!.filename);
   });
 });

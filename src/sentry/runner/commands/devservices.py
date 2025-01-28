@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     import docker
 
 CI = os.environ.get("CI") is not None
+USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
@@ -214,6 +215,9 @@ def devservices() -> None:
         click.echo("Assuming docker (CI).")
         return
 
+    if not USE_OLD_DEVSERVICES:
+        return
+
     if DARWIN:
         if USE_DOCKER_DESKTOP:
             click.echo("Using docker desktop.")
@@ -302,6 +306,13 @@ def up(
     You may also exclude services, for example: --exclude redis --exclude postgres.
     """
     from sentry.runner import configure
+
+    if not USE_OLD_DEVSERVICES:
+        click.secho(
+            "WARNING: `sentry devservices up` is deprecated. Please use `devservices up` instead. For more info about the revamped devservices, see https://github.com/getsentry/devservices.",
+            fg="yellow",
+        )
+        return
 
     configure()
 

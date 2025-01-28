@@ -34,7 +34,7 @@ import {
 
 export type SpanDescendantGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  continuingTreeDepths: Array<TreeDepthType>;
+  continuingTreeDepths: TreeDepthType[];
   didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -100,7 +100,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
   function renderSpanTreeConnector() {
     const {treeDepth: spanTreeDepth} = props;
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: React.ReactNode[] = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {

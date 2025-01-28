@@ -3,6 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TagsFixture} from 'sentry-fixture/tags';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -37,12 +38,10 @@ describe('StreamlinedGroupHeader', () => {
         url: '/organizations/org-slug/replay-count/',
         body: {},
       });
-
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/repos/`,
         body: {},
       });
-
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
         body: [],
@@ -50,6 +49,11 @@ describe('StreamlinedGroupHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
         body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+        body: TagsFixture(),
+        method: 'GET',
       });
     });
 

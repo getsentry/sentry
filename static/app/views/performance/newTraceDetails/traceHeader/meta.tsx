@@ -52,12 +52,13 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 interface MetaProps {
   meta: TraceMeta | undefined;
   organization: Organization;
+  representativeTransaction: TraceTree.Transaction | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 }
 
 export function Meta(props: MetaProps) {
-  const traceNode = props.tree.root.children[0];
+  const traceNode = props.tree.root.children[0]!;
 
   const uniqueErrorIssues = useMemo(() => {
     if (!traceNode) {
@@ -134,11 +135,16 @@ export function Meta(props: MetaProps) {
       ) : null}
       {traceNode ? (
         <MetaSection
-          headingText={t('Trace Duration')}
+          headingText={t('Root Duration')}
           rightAlignBody
           bodyText={
-            traceNode.space[1] > 0
-              ? getDuration(traceNode.space[1] / 1e3, 2, true)
+            props.representativeTransaction
+              ? getDuration(
+                  props.representativeTransaction.timestamp -
+                    props.representativeTransaction.start_timestamp,
+                  2,
+                  true
+                )
               : '\u2014'
           }
         />

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -18,9 +17,8 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventDetailsHeader({
@@ -35,8 +33,7 @@ export function EventDetailsHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({group});
-  const {baseUrl} = useGroupDetailsRoute();
+  const searchQuery = useEventQuery({groupId: group.id});
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -80,18 +77,11 @@ export function EventDetailsHeader({
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
-          <IssueTagsButton
-            aria-label={t('View issue tag distributions')}
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-              query: location.query,
-              replace: true,
-            }}
-            analyticsEventKey="issue_details.issue_tags_clicked"
-            analyticsEventName="Issue Details: Issue Tags Clicked"
-          >
-            {t('Issue Tags')}
-          </IssueTagsButton>
+          <IssueTagsPreview
+            groupId={group.id}
+            environments={environments}
+            project={project}
+          />
         </GraphSection>
       </FilterContainer>
     </PageErrorBoundary>
@@ -146,18 +136,6 @@ const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
   border-top: 1px solid ${p => p.theme.translucentBorder};
-`;
-
-const IssueTagsButton = styled(LinkButton)`
-  display: block;
-  flex: 0;
-  height: unset;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
-  text-align: center;
-  span {
-    white-space: unset;
-  }
 `;
 
 const SectionDivider = styled('div')`

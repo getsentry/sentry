@@ -20,15 +20,9 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
-from sentry.search.events.builder.spans_indexed import SpansEAPQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import (
-    resolve,
-    resolve_tag_key,
-    resolve_tag_value,
-    resolve_tag_values,
-)
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_values
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -161,6 +155,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        referrer: str = Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     ) -> TimeSeriesRequest:
         raise NotImplementedError
 
@@ -236,41 +231,6 @@ class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySu
     dataset = Dataset.Transactions
 
 
-class PerformanceSpansEAPSnqlEntitySubscription(BaseEventsAndTransactionEntitySubscription):
-    query_type = SnubaQuery.Type.PERFORMANCE
-    dataset = Dataset.EventsAnalyticsPlatform
-
-    def build_query_builder(
-        self,
-        query: str,
-        project_ids: list[int],
-        environment: Environment | None,
-        params: ParamsType | None = None,
-        skip_field_validation_for_entity_subscription_deletion: bool = False,
-    ) -> BaseQueryBuilder:
-        if params is None:
-            params = {}
-
-        params["project_id"] = project_ids
-
-        query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
-        if environment:
-            params["environment"] = environment.name
-
-        return SpansEAPQueryBuilder(
-            dataset=Dataset(self.dataset.value),
-            query=query,
-            selected_columns=[self.aggregate],
-            params=params,
-            offset=None,
-            limit=None,
-            config=QueryBuilderConfig(
-                skip_time_conditions=True,
-                skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
-            ),
-        )
-
-
 class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
     query_type = SnubaQuery.Type.PERFORMANCE
     dataset = Dataset.EventsAnalyticsPlatform
@@ -293,6 +253,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        referrer: str = Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     ) -> TimeSeriesRequest:
         if params is None:
             params = {}
@@ -312,12 +273,12 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
         )
 
-        rpc_request = get_timeseries_query(
+        rpc_request, _, _ = get_timeseries_query(
             params=snuba_params,
             query_string=query,
             y_axes=[self.aggregate],
             groupby=[],
-            referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+            referrer=referrer,
             config=SearchResolverConfig(),
             granularity_secs=self.time_window,
         )
@@ -353,7 +314,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
             # required in order to correctly clean up the custom metric alert subscriptions
             or features.has(
-                "custom-metrics-alerts-widgets-removal-info",
+                "organizations:custom-metrics-alerts-widgets-removal-info",
                 Organization.objects.get_from_cache(id=self.org_id),
             )
         )
@@ -392,12 +353,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             return string
 
         return resolve_tag_key(self._get_use_case_id(), self.org_id, string)
-
-    def resolve_tag_value_if_needed(self, string: str) -> str | int:
-        if self.use_metrics_layer:
-            return string
-
-        return resolve_tag_value(self._get_use_case_id(), self.org_id, string)
 
     def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[str | int]:
         if self.use_metrics_layer:

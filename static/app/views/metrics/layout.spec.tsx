@@ -57,7 +57,7 @@ describe('Metrics Layout', function () {
     expect(screen.getByText(/we are ending the beta/i)).toBeInTheDocument();
 
     // Main View: Displays the empty state.
-    expect(screen.queryByText(/track and solve what matters/i)).toBeInTheDocument();
+    expect(screen.getByText(/track and solve what matters/i)).toBeInTheDocument();
 
     expect(
       screen.getByRole('button', {name: 'View Performance Metrics'})
@@ -81,7 +81,7 @@ describe('Metrics Layout', function () {
     expect(screen.getByRole('button', {name: 'Read Docs'})).toBeInTheDocument();
 
     expect(
-      screen.queryByRole('button', {name: 'Set Up Custom Metric'})
+      screen.getByRole('button', {name: 'Set Up Custom Metric'})
     ).toBeInTheDocument();
   });
 

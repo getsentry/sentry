@@ -42,7 +42,7 @@ const defaultProps = {
   sort: '',
 };
 
-function WrappedComponent(props) {
+function WrappedComponent(props: any) {
   return (
     <Fragment>
       <GlobalModal />

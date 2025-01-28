@@ -32,6 +32,7 @@ from snuba_sdk import (
     OrderBy,
     Request,
 )
+from snuba_sdk.conditions import Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
@@ -42,8 +43,9 @@ from sentry.api.paginator import MAX_SNUBA_ELEMENTS, DateTimePaginator, Paginato
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -116,15 +118,6 @@ ENTITY_GROUP_ATTRIBUTES = "group_attributes"
 ENTITY_SEARCH_ISSUES = "search_issues"
 
 
-def map_field_name_from_format_search_filter(field: str) -> str:
-    """
-    Maps the field name we get from the format_search_filter to the field used in Suba
-    """
-    if field == "date":
-        return "timestamp"
-    return field
-
-
 @dataclass
 class TrendsParams:
     # (event or issue age_hours) / (event or issue halflife hours)
@@ -195,8 +188,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     It's used to keep the query logic out of the actual search backend,
     which can now just build query parameters and use the appropriate query executor to run the query
     """
-
-    TABLE_ALIAS = ""
 
     @property
     @abstractmethod
@@ -1820,6 +1811,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
+                        if features.has(
+                            "organizations:feature-flag-autocomplete", organization
+                        ) and has_tags_filter(condition.lhs):
+                            feature_condition = Condition(
+                                lhs=substitute_tags_filter(condition.lhs),
+                                op=condition.op,
+                                rhs=condition.rhs,
+                            )
+                            condition = Or(conditions=[condition, feature_condition])
+
                         where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
@@ -1950,3 +1951,34 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
+
+
+# This should update the search box so we can fetch the correct
+# issues.
+def has_tags_filter(condition: Column | Function) -> bool:
+    if isinstance(condition, Column):
+        if (
+            condition.entity.name == "events"
+            and condition.name.startswith("tags[")
+            and condition.name.endswith("]")
+        ):
+            return True
+    elif isinstance(condition, Function):
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return has_tags_filter(parameter)
+    return False
+
+
+def substitute_tags_filter(condition: Column | Function) -> bool:
+    if isinstance(condition, Column):
+        if condition.name.startswith("tags[") and condition.name.endswith("]"):
+            return Column(
+                name=f"flags[{condition.name[5:-1]}]",
+                entity=condition.entity,
+            )
+    elif isinstance(condition, Function):
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return substitute_tags_filter(parameter)
+    return condition

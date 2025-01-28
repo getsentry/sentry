@@ -1,8 +1,17 @@
+from __future__ import annotations
+
 import re
+from collections.abc import Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sentry.constants import TAG_LABELS
 from sentry.snuba.dataset import Dataset
 from sentry.utils.services import Service
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
+    from sentry.tagstore.types import GroupTagValue
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r"^[a-zA-Z0-9_\.:-]+$")
@@ -28,39 +37,30 @@ class TagStorage(Service):
         [
             "get_tag_key",
             "get_tag_keys",
-            "get_tag_value",
             "get_tag_values",
             "get_group_tag_key",
             "get_group_tag_keys",
-            "get_group_tag_value",
-            "get_group_tag_values",
             "get_group_list_tag_value",
             "get_generic_group_list_tag_value",
             "get_tag_keys_for_projects",
             "get_groups_user_counts",
             "get_generic_groups_user_counts",
-            "get_group_event_filter",
             "get_group_tag_value_count",
             "get_top_group_tag_values",
             "get_first_release",
             "get_last_release",
             "get_release_tags",
-            "get_group_tag_values_for_users",
             "get_group_tag_keys_and_top_values",
             "get_tag_value_paginator",
             "get_group_tag_value_paginator",
             "get_tag_value_paginator_for_projects",
             "get_group_tag_value_iter",
-            "get_group_tag_value_qs",
-            "get_group_seen_values_for_environments",
         ]
     )
 
     __all__ = (
         frozenset(
             [
-                "is_valid_key",
-                "is_valid_value",
                 "is_reserved_key",
                 "prefix_reserved_key",
                 "get_standardized_key",
@@ -70,17 +70,6 @@ class TagStorage(Service):
         )
         | __read_methods__
     )
-
-    def setup_merge(self, grouptagkey_model, grouptagvalue_model):
-        from sentry.tasks import merge
-
-        merge.EXTRA_MERGE_MODELS += [grouptagvalue_model, grouptagkey_model]
-
-    def is_valid_key(self, key):
-        return bool(TAG_KEY_RE.match(key))
-
-    def is_valid_value(self, value):
-        return "\n" not in value
 
     def is_reserved_key(self, key):
         return key in INTERNAL_TAG_KEYS
@@ -127,6 +116,7 @@ class TagStorage(Service):
         environment_id,
         status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
+        denylist=None,
         tenant_ids=None,
     ):
         """
@@ -150,12 +140,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_value(self, project_id, environment_id, key, value, tenant_ids=None):
-        """
-        >>> get_tag_value(1, 2, "key1", "value1")
-        """
-        raise NotImplementedError
-
     def get_tag_values(self, project_id, environment_id, key, tenant_ids=None):
         """
         >>> get_tag_values(1, 2, "key1")
@@ -174,20 +158,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value(
-        self, project_id, group_id, environment_id, key, value, tenant_ids=None
-    ):
-        """
-        >>> get_group_tag_value(1, 2, 3, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def get_group_tag_values(self, group, environment_id, key, tenant_ids=None):
-        """
-        >>> get_group_tag_values(group, 3, "key1")
-        """
-        raise NotImplementedError
-
     def get_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
@@ -199,14 +169,6 @@ class TagStorage(Service):
     def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
-        raise NotImplementedError
-
-    def get_group_event_filter(
-        self, project_id, group_id, environment_ids, tags, start, end, tenant_ids=None
-    ):
-        """
-        >>> get_group_event_filter(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
-        """
         raise NotImplementedError
 
     def get_tag_value_paginator(
@@ -249,15 +211,14 @@ class TagStorage(Service):
 
     def get_group_tag_value_iter(
         self,
-        group,
-        environment_ids,
-        key,
-        callbacks=(),
-        orderby="-first_seen",
+        group: Group,
+        environment_ids: list[int | None],
+        key: str,
+        orderby: str = "-first_seen",
         limit: int = 1000,
         offset: int = 0,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> list[GroupTagValue]:
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
         """
@@ -271,22 +232,16 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        """
-        >>> get_group_tag_value_qs(1, 2, 3, 'environment')
-        """
-        raise NotImplementedError
-
     def get_groups_user_counts(
         self,
-        project_ids,
-        group_ids,
-        environment_ids,
-        start=None,
-        end=None,
-        tenant_ids=None,
-        referrer=None,
-    ):
+        project_ids: Sequence[int],
+        group_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer: str = "tagstore.get_groups_user_counts",
+    ) -> dict[int, int]:
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])
         `start` and `end` are only used by the snuba backend
@@ -294,8 +249,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_generic_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
-    ):
+        self,
+        project_ids: Sequence[int],
+        group_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer: str = "tagstore.get_generic_groups_user_counts",
+    ) -> dict[int, int]:
         raise NotImplementedError
 
     def get_group_tag_value_count(self, group, environment_id, key, tenant_ids=None):
@@ -330,12 +292,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
-        """
-        >>> get_group_tag_values_for_users([EventUser(1), EventUser(2)])
-        """
-        raise NotImplementedError
-
     def get_group_tag_keys_and_top_values(
         self,
         group,
@@ -362,8 +318,3 @@ class TagStorage(Service):
                 tk.count = self.get_group_tag_value_count(group, environment_id, tk.key)
 
         return tag_keys
-
-    def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, start=None, end=None, tenant_ids=None
-    ):
-        raise NotImplementedError

@@ -12,7 +12,6 @@ from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.stacktraces.processing import StacktraceInfo
-from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
@@ -133,8 +132,8 @@ def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
             return True
 
     # check if there are any JVM or Proguard images
-    # TODO: Can this actually happen if the event platform
-    # is not "java"?
+    # we *do* hit this code path, likely for events that don't have platform
+    # `"java"` but contain Java view hierarchies.
     images = get_path(
         data,
         "debug_meta",
@@ -144,8 +143,6 @@ def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
     )
 
     if images:
-        metrics.incr("process.java.symbolicate.missing_platform", tags={platform: platform})
-
         return True
 
     return False

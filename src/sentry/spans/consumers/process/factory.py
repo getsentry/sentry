@@ -2,6 +2,7 @@ import dataclasses
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 import orjson
@@ -15,7 +16,15 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
+from arroyo.types import (
+    FILTERED_PAYLOAD,
+    BrokerValue,
+    Commit,
+    FilteredPayload,
+    Message,
+    Partition,
+    Value,
+)
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
@@ -196,7 +205,7 @@ def batch_write_to_redis(
 
 def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
     with sentry_sdk.start_transaction(op="process", name="spans.process.expand_segments") as txn:
-        buffered_segments: list[KafkaPayload | FilteredPayload] = []
+        buffered_segments: list[Value] = []
 
         for result in should_process_segments:
             timestamp = result.timestamp
@@ -235,7 +244,13 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
                             metrics.incr("performance.buffered_segments.max_payload_size_exceeded")
                             continue
 
-                        buffered_segments.append(KafkaPayload(None, payload_data, []))
+                        buffered_segments.append(
+                            Value(
+                                KafkaPayload(None, payload_data, []),
+                                {},
+                                datetime.fromtimestamp(timestamp),
+                            )
+                        )
 
     return buffered_segments
 

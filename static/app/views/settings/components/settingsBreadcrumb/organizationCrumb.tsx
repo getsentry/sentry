@@ -6,9 +6,9 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
@@ -19,6 +19,7 @@ import {CrumbLink} from '.';
 type Props = RouteComponentProps<{projectId?: string}, {}>;
 
 function OrganizationCrumb({params, routes, route, ...props}: Props) {
+  const navigate = useNavigate();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
 
@@ -53,7 +54,7 @@ function OrganizationCrumb({params, routes, route, ...props}: Props) {
     if (resolvedUrl.startsWith('http')) {
       window.location.assign(resolvedUrl);
     } else {
-      browserHistory.push(resolvedUrl);
+      navigate(resolvedUrl);
     }
   };
 

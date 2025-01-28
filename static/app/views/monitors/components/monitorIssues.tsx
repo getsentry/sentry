@@ -42,7 +42,7 @@ function MonitorIssuesEmptyMessage() {
   );
 }
 
-function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
+export function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
   const timeProps =
@@ -117,5 +117,3 @@ const ControlsWrapper = styled('div')`
   margin-bottom: ${space(1)};
   flex-wrap: wrap;
 `;
-
-export default MonitorIssues;

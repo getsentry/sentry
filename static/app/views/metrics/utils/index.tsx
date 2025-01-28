@@ -19,7 +19,7 @@ import {addToFilter, excludeFromFilter} from '../../discover/table/cellAction';
  */
 export function extendQueryWithGroupBys(
   query: string,
-  groupBys: (Record<string, string> | undefined)[]
+  groupBys: Array<Record<string, string> | undefined>
 ) {
   const mutableSearch = new MutableSearch(query);
 
@@ -52,7 +52,7 @@ export function ensureQuotedTextFilters(
   }
 
   for (let i = 0; i < parsedSearch.length; i++) {
-    const token = parsedSearch[i];
+    const token = parsedSearch[i]!;
     if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
       // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of its value
       if (!token.value.quoted) {
@@ -97,9 +97,11 @@ export function updateQueryWithSeriesFilter(
     if (!defined(value)) {
       return;
     }
-    updateType === MetricSeriesFilterUpdateType.ADD
-      ? addToFilter(mutableSearch, key, value)
-      : excludeFromFilter(mutableSearch, key, value);
+    if (updateType === MetricSeriesFilterUpdateType.ADD) {
+      addToFilter(mutableSearch, key, value);
+    } else {
+      excludeFromFilter(mutableSearch, key, value);
+    }
   });
 
   const extendedQuery = mutableSearch.formatString();

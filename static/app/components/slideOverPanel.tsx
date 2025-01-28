@@ -8,6 +8,7 @@ import {type AnimationProps, motion} from 'framer-motion';
 import {space} from 'sentry/styles/space';
 
 const PANEL_WIDTH = '50vw';
+const LEFT_SIDE_PANEL_WIDTH = '40vw';
 const PANEL_HEIGHT = '50vh';
 
 const OPEN_STYLES = {
@@ -27,6 +28,7 @@ type SlideOverPanelProps = {
   collapsed: boolean;
   ariaLabel?: string;
   className?: string;
+  'data-test-id'?: string;
   onOpen?: () => void;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
@@ -36,6 +38,7 @@ export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
   {
+    'data-test-id': testId,
     ariaLabel,
     collapsed,
     children,
@@ -75,6 +78,7 @@ function SlideOverPanel(
       aria-hidden={collapsed}
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
+      data-test-id={testId}
     >
       {children}
     </_SlideOverPanel>
@@ -90,10 +94,10 @@ const _SlideOverPanel = styled(motion.div, {
 }>`
   position: fixed;
 
-  top: ${space(2)};
-  right: 0;
+  top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
+  right: ${p => (p.slidePosition === 'left' ? space(2) : 0)};
   bottom: ${space(2)};
-  left: ${space(2)};
+  left: ${p => (p.slidePosition === 'left' ? 0 : space(2))};
 
   overflow: auto;
   pointer-events: auto;
@@ -135,7 +139,8 @@ const _SlideOverPanel = styled(motion.div, {
           : css`
               position: relative;
 
-              width: ${PANEL_WIDTH};
+              width: ${LEFT_SIDE_PANEL_WIDTH};
+              min-width: 450px;
               height: 100%;
 
               top: 0;

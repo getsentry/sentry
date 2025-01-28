@@ -82,7 +82,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               overlayIsOpen={isOpen}
               showSectionHeaders={!filterValue}
               size="sm"
-              style={{maxWidth: overlayProps.style.maxWidth}}
+              style={{maxWidth: overlayProps.style!.maxWidth}}
             />
             <Footer isMultiSelect={isMultiSelect} canUseWildcard={canUseWildcard} />
           </Fragment>

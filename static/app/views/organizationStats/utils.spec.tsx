@@ -116,7 +116,7 @@ describe('formatUsageWithUnits', function () {
       formatUsageWithUnits(1234 * BILLION, DATA_CATEGORY_INFO.attachment.plural, {
         isAbbreviated: true,
       })
-    ).toBe('1K GB');
+    ).toBe('1.2K GB');
 
     expect(
       formatUsageWithUnits(0, DATA_CATEGORY_INFO.attachment.plural, {

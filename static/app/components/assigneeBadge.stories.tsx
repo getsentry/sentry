@@ -42,7 +42,7 @@ export default storyBook('AssigneeBadge', story => {
     const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
 
     const team: Team = teams.length
-      ? teams[0]
+      ? teams[0]!
       : {
           id: '1',
           slug: 'team-slug',

@@ -6,12 +6,9 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.users.models.identity import Identity
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_halt_metric,
-)
 
 
 class MockCommitContextIntegration(CommitContextIntegration):
@@ -46,11 +43,7 @@ class CommitContextIntegrationTest(TestCase):
         result = self.integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
-        assert len(mock_record.mock_calls) == 2
-
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_missing_identity(self, mock_record):
@@ -61,10 +54,7 @@ class CommitContextIntegrationTest(TestCase):
 
         assert result == []
         assert len(mock_record.mock_calls) == 2
-
-        start, failure = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, Identity.DoesNotExist())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -77,11 +67,7 @@ class CommitContextIntegrationTest(TestCase):
         result = self.integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
-        assert len(mock_record.mock_calls) == 2
-
-        start, failure = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, IdentityNotValid())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -96,11 +82,7 @@ class CommitContextIntegrationTest(TestCase):
         result = self.integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
-        assert len(mock_record.mock_calls) == 2
-
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, ApiRateLimitedError(text="Rate limited"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -112,7 +94,4 @@ class CommitContextIntegrationTest(TestCase):
 
         assert result == []
         assert len(mock_record.mock_calls) == 2
-
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

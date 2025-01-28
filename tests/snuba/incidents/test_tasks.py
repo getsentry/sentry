@@ -1,6 +1,5 @@
 from copy import deepcopy
 from functools import cached_property
-from uuid import uuid4
 
 from arroyo.utils import metrics
 from confluent_kafka import Producer
@@ -104,10 +103,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             "session.timeout.ms": 6000,
         }
         return Producer(conf)
-
-    @cached_property
-    def topic(self):
-        return uuid4().hex
 
     def run_test(self, consumer):
         # Full integration test to ensure that when a subscription receives an update

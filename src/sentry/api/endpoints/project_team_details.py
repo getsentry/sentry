@@ -90,7 +90,12 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             event=audit_log.get_event_id("PROJECT_TEAM_ADD"),
             data={"team_slug": team.slug, "project_slug": project.slug},
         )
-        return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
+        return Response(
+            serialize(
+                project, request.user, ProjectWithTeamSerializer(collapse=["unusedFeatures"])
+            ),
+            status=201,
+        )
 
     @extend_schema(
         operation_id="Delete a Team from a Project",

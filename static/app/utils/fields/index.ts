@@ -81,6 +81,8 @@ export enum FieldKey {
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
   OS_NAME = 'os.name',
+  OS_DISTRIBUTION_NAME = 'os.distribution_name',
+  OS_DISTRIBUTION_VERSION = 'os.distribution_version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
@@ -436,7 +438,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         name: 'value',
         kind: 'value',
         dataType: FieldValueType.STRING,
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         options: CONDITIONS_ARGUMENTS,
         required: true,
       },
@@ -474,7 +476,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         kind: 'value',
         options: WEB_VITALS_QUALITY,
         dataType: FieldValueType.STRING,
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -1153,6 +1155,7 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 };
 
 type TraceFields =
+  | SpanIndexedField.IS_TRANSACTION
   | SpanIndexedField.SPAN_ACTION
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.SPAN_DOMAIN
@@ -1222,6 +1225,11 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     desc: t('The HTTP response status code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.IS_TRANSACTION]: {
+    desc: t('The span is also a transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -1520,6 +1528,16 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.OS_KERNEL_VERSION]: {
     desc: t('Version number'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OS_DISTRIBUTION_NAME]: {
+    desc: t('Distribution name'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OS_DISTRIBUTION_VERSION]: {
+    desc: t('Distribution version number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1837,6 +1855,8 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
@@ -1905,6 +1925,8 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
@@ -1967,6 +1989,8 @@ export const DISCOVER_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_LOCALE,
@@ -2325,6 +2349,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
+  FieldKey.TRACE,
   FieldKey.TRANSACTION,
   FeedbackFieldKey.URL,
   FieldKey.USER_EMAIL,
@@ -2394,25 +2419,32 @@ export const getFieldDefinition = (
   switch (type) {
     case 'replay':
       if (key in REPLAY_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_FIELD_DEFINITIONS[key];
       }
       if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'feedback':
       if (key in FEEDBACK_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return FEEDBACK_FIELD_DEFINITIONS[key];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'span':
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (SPAN_FIELD_DEFINITIONS[key]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return SPAN_FIELD_DEFINITIONS[key];
       }
 
@@ -2436,6 +2468,7 @@ export const getFieldDefinition = (
       return null;
     case 'event':
     default:
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
@@ -2453,7 +2486,7 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   );
 }
 
-export function isDeviceClass(key): boolean {
+export function isDeviceClass(key: any): boolean {
   return key === FieldKey.DEVICE_CLASS;
 }
 

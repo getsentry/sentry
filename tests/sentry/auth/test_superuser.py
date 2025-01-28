@@ -21,7 +21,6 @@ from sentry.auth.superuser import (
     SESSION_KEY,
     SUPERUSER_READONLY_SCOPES,
     SUPERUSER_SCOPES,
-    EmptySuperuserAccessForm,
     Superuser,
     SuperuserAccessFormInvalidJson,
     SuperuserAccessSerializer,
@@ -68,7 +67,7 @@ class SuperuserTestCase(TestCase):
         uid=UNSET,
         session_data=True,
         user=None,
-        method=None,
+        method="get",
     ):
         if user is None:
             user = self.superuser
@@ -206,9 +205,9 @@ class SuperuserTestCase(TestCase):
 
         superuser = Superuser(request, org_id=None)
 
-        with pytest.raises(EmptySuperuserAccessForm):
+        with pytest.raises(SuperuserAccessFormInvalidJson):
             superuser.set_logged_in(request.user)
-            assert superuser.is_active is False
+        assert superuser.is_active is False
 
     @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
     def test_not_expired_check_org_in_request(self):
@@ -272,7 +271,7 @@ class SuperuserTestCase(TestCase):
 
         with pytest.raises(SuperuserAccessFormInvalidJson):
             superuser.set_logged_in(request.user)
-            assert superuser.is_active is False
+        assert superuser.is_active is False
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)

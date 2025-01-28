@@ -4,7 +4,6 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
@@ -40,7 +39,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_no_last_processed_id(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -51,14 +49,13 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=None,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_post_success_no_last_processed_id_single_org(
         self, mock_backfill_seer_grouping_records
@@ -70,7 +67,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=None,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
@@ -81,83 +78,10 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_last_processed_id(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
         response = self.client.post(self.url, data={"last_processed_id": "8"})
-        assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(
-            current_project_id=self.project.id,
-            last_processed_group_id_input=8,
-            only_delete=False,
-            enable_ingestion=False,
-            skip_processed_projects=False,
-            skip_project_ids=None,
-        )
-
-    @patch(
-        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
-        return_value=True,
-    )
-    @patch(
-        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
-    )
-    @with_feature("projects:similarity-embeddings-backfill")
-    def test_post_success_only_delete(
-        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
-    ):
-        response = self.client.post(
-            self.url, data={"last_processed_id": "8", "only_delete": "true"}
-        )
-        assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(
-            current_project_id=self.project.id,
-            last_processed_group_id_input=8,
-            only_delete=True,
-            enable_ingestion=False,
-            skip_processed_projects=False,
-            skip_project_ids=None,
-        )
-
-    @patch(
-        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
-        return_value=True,
-    )
-    @patch(
-        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
-    )
-    @with_feature("projects:similarity-embeddings-backfill")
-    def test_post_success_enable_ingestion(
-        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
-    ):
-        response = self.client.post(
-            self.url, data={"last_processed_id": "8", "enable_ingestion": "true"}
-        )
-        assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(
-            current_project_id=self.project.id,
-            last_processed_group_id_input=8,
-            only_delete=False,
-            enable_ingestion=True,
-            skip_processed_projects=False,
-            skip_project_ids=None,
-        )
-
-    @patch(
-        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
-        return_value=True,
-    )
-    @patch(
-        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
-    )
-    @with_feature("projects:similarity-embeddings-backfill")
-    def test_post_success_skip_processed_projects(
-        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
-    ):
-        response = self.client.post(
-            self.url, data={"last_processed_id": "8", "skip_processed_projects": "true"}
-        )
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
             current_project_id=self.project.id,
@@ -175,7 +99,76 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
+    def test_post_success_only_delete(
+        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
+    ):
+        response = self.client.post(
+            self.url, data={"last_processed_id": "8", "only_delete": "true"}
+        )
+        assert response.status_code == 204, response.content
+        mock_backfill_seer_grouping_records.assert_called_with(
+            current_project_id=self.project.id,
+            last_processed_group_id_input=8,
+            only_delete=True,
+            enable_ingestion=False,
+            skip_processed_projects=True,
+            skip_project_ids=None,
+        )
+
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
+        return_value=True,
+    )
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
+    )
+    def test_post_success_enable_ingestion(
+        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
+    ):
+        response = self.client.post(
+            self.url, data={"last_processed_id": "8", "enable_ingestion": "true"}
+        )
+        assert response.status_code == 204, response.content
+        mock_backfill_seer_grouping_records.assert_called_with(
+            current_project_id=self.project.id,
+            last_processed_group_id_input=8,
+            only_delete=False,
+            enable_ingestion=True,
+            skip_processed_projects=True,
+            skip_project_ids=None,
+        )
+
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
+        return_value=True,
+    )
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
+    )
+    def test_post_success_skip_processed_projects(
+        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
+    ):
+        response = self.client.post(
+            self.url, data={"last_processed_id": "8", "reprocess_backfilled_projects": "true"}
+        )
+        assert response.status_code == 204, response.content
+        mock_backfill_seer_grouping_records.assert_called_with(
+            current_project_id=self.project.id,
+            last_processed_group_id_input=8,
+            only_delete=False,
+            enable_ingestion=False,
+            # reprocess_backfilled_projects changes the default
+            skip_processed_projects=False,
+            skip_project_ids=None,
+        )
+
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
+        return_value=True,
+    )
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
+    )
     def test_post_success_skip_project_ids(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -188,6 +181,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=8,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=[1],
         )

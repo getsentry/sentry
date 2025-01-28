@@ -23,6 +23,11 @@ describe('Incident Rules Create', () => {
       url: '/organizations/org-slug/events-meta/',
       body: {count: 5},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {},
+    });
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -242,6 +247,49 @@ describe('Incident Rules Create', () => {
           forceMetricsLayer: 'true',
           dataset: 'metricsEnhanced',
         },
+      })
+    );
+  });
+
+  it('does a 7 day query for confidence data on the EAP dataset', async () => {
+    const {organization, project, router} = initializeOrg({
+      organization: {features: ['alerts-eap']},
+    });
+
+    render(
+      <TriggersChart
+        api={api}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        query=""
+        timeWindow={1}
+        aggregate="count(span.duration)"
+        dataset={Dataset.EVENTS_ANALYTICS_PLATFORM}
+        triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        onDataLoaded={() => {}}
+        isQueryValid
+        showTotalCount
+        includeConfidence
+      />
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          statsPeriod: '9998m',
+          yAxis: 'count(span.duration)',
+        }),
       })
     );
   });

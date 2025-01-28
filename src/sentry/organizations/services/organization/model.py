@@ -6,12 +6,11 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from functools import cached_property
-from typing import Any
+from typing import Any, TypedDict
 
 from django.dispatch import Signal
 from django.utils import timezone
 from pydantic import Field, PrivateAttr
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
@@ -142,6 +141,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     token_expired: bool = False
     legacy_token: str = ""
     email: str = ""
+    invitation_link: str | None = None
 
     def get_audit_log_metadata(self, user_email: str | None = None) -> Mapping[str, Any]:
         from sentry.models.organizationmember import invite_status_names

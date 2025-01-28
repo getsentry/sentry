@@ -18,7 +18,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
   const {activateSidebar} = useFeatureFlagOnboarding();
 
-  function handleSetupButtonClick(e) {
+  function handleSetupButtonClick(e: any) {
     trackAnalytics('flags.setup_modal_opened', {organization});
     trackAnalytics('flags.cta_setup_button_clicked', {organization});
     activateSidebar(e);
@@ -81,7 +81,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
             </Button>
             <LinkButton
               priority="default"
-              href="https://docs.sentry.io/product/issues/issue-details/#feature-flags"
+              href="https://docs.sentry.io/product/explore/feature-flags/"
               external
             >
               {t('Read More')}

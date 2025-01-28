@@ -69,11 +69,11 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     Object.keys(data).forEach(key => {
       const value = {
         name: interval,
-        value: datum[key],
+        value: datum[key]!,
       };
 
       if (seriesByKey[key]) {
-        seriesByKey[key].data.push(value);
+        seriesByKey[key]!.data.push(value);
       } else {
         seriesByKey[key] = {
           seriesName: key,

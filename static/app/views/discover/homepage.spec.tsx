@@ -9,11 +9,11 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -21,7 +21,10 @@ import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
   const features = ['global-views', 'discover-query'];
-  let initialData, organization, mockHomepage, measurementsMetaMock;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let organization: ReturnType<typeof OrganizationFixture>;
+  let mockHomepage: jest.Mock;
+  let measurementsMetaMock: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -91,6 +94,10 @@ describe('Discover > Homepage', () => {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('renders the Discover banner', async () => {
@@ -127,9 +134,9 @@ describe('Discover > Homepage', () => {
     await screen.findByText('environment');
 
     // Only the environment field
-    expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
+    expect(screen.getAllByTestId('grid-head-cell')).toHaveLength(1);
     screen.getByText('Previous Period');
-    screen.getByText('event.type:error');
+    screen.getByRole('row', {name: 'event.type:error'});
     expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
   });
 
@@ -176,15 +183,17 @@ describe('Discover > Homepage', () => {
       />,
       {router: initialData.router, organization: initialData.organization}
     );
-    renderGlobalModal();
+    renderGlobalModal({router: initialData.router});
 
     await userEvent.click(await screen.findByText('Columns'));
 
-    await userEvent.click(screen.getByTestId('label'));
-    await userEvent.click(screen.getByText('event.type'));
-    await userEvent.click(screen.getByText('Apply'));
+    const modal = await screen.findByRole('dialog');
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    await userEvent.click(within(modal).getByTestId('label'));
+    await userEvent.click(within(modal).getByText('event.type'));
+    await userEvent.click(within(modal).getByText('Apply'));
+
+    expect(initialData.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/homepage/',
         query: expect.objectContaining({
@@ -519,7 +528,7 @@ describe('Discover > Homepage', () => {
       ],
     });
     initialData = initializeOrg({
-      organization: organization,
+      organization,
       router: {
         location: LocationFixture(),
       },
@@ -578,8 +587,8 @@ describe('Discover > Homepage', () => {
 
     await screen.findByText('environment');
 
-    expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
-    screen.getByText('event.type:error');
+    expect(screen.getAllByTestId('grid-head-cell')).toHaveLength(1);
+    screen.getByRole('row', {name: 'event.type:error'});
     expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
       'aria-selected',
       'true'
@@ -600,7 +609,7 @@ describe('Discover > Homepage', () => {
       ],
     });
     initialData = initializeOrg({
-      organization: organization,
+      organization,
       router: {
         location: LocationFixture(),
       },

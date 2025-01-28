@@ -6,6 +6,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappings from './integrationExternalMappings';
@@ -66,7 +67,7 @@ describe('IntegrationExternalMappings', function () {
     });
   };
 
-  it('renders empty if not mappings are provided or found', function () {
+  it('renders empty if not mappings are provided or found', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codeowners-associations/`,
       method: 'GET',
@@ -74,7 +75,6 @@ describe('IntegrationExternalMappings', function () {
     });
     const {container} = render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
@@ -89,6 +89,8 @@ describe('IntegrationExternalMappings', function () {
         router,
       }
     );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(container).toHaveTextContent('Set up External User Mappings.');
   });
 
@@ -96,7 +98,6 @@ describe('IntegrationExternalMappings', function () {
     createMockSuggestions();
     render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
@@ -123,7 +124,6 @@ describe('IntegrationExternalMappings', function () {
     createMockSuggestions();
     render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={MOCK_TEAM_MAPPINGS}
         type="team"
@@ -156,7 +156,6 @@ describe('IntegrationExternalMappings', function () {
     createMockSuggestions();
     render(
       <IntegrationExternalMappings
-        organization={organization}
         integration={GitHubIntegrationFixture()}
         mappings={MOCK_USER_MAPPINGS}
         type="user"
@@ -178,7 +177,7 @@ describe('IntegrationExternalMappings', function () {
     expect(onCreateMock).toHaveBeenCalled();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Remove user mapping'})[0]
+      screen.getAllByRole('button', {name: 'Remove user mapping'})[0]!
     );
     await userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();

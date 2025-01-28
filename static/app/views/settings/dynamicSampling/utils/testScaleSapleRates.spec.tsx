@@ -15,8 +15,8 @@ describe('scaleSampleRates', () => {
     const sampleRate = 0.4;
 
     const {scaledItems} = scaleSampleRates({items, sampleRate});
-    expect(scaledItems[0].sampleRate).toEqual(0.4);
-    expect(scaledItems[1].sampleRate).toEqual(0.4);
+    expect(scaledItems[0]!.sampleRate).toBe(0.4);
+    expect(scaledItems[1]!.sampleRate).toBe(0.4);
   });
 
   it('scales the sample rate from 100', () => {
@@ -28,8 +28,8 @@ describe('scaleSampleRates', () => {
     const sampleRate = 0.4;
 
     const {scaledItems} = scaleSampleRates({items, sampleRate});
-    expect(scaledItems[0].sampleRate).toEqual(0.4);
-    expect(scaledItems[1].sampleRate).toEqual(0.4);
+    expect(scaledItems[0]!.sampleRate).toBe(0.4);
+    expect(scaledItems[1]!.sampleRate).toBe(0.4);
   });
 
   it('scales the sample rate up', () => {

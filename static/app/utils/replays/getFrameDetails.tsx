@@ -43,6 +43,7 @@ import type {
   RawBreadcrumbFrame,
   ReplayFrame,
   SlowClickFrame,
+  SwipeFrame,
   TapFrame,
   WebVitalFrame,
 } from 'sentry/utils/replays/types';
@@ -73,7 +74,7 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
-const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
+const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     color: 'gray300',
     description: stripURLOrigin(frame.message ?? ''),
@@ -202,6 +203,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
+  }),
+  'ui.swipe': (frame: SwipeFrame) => ({
+    color: 'blue400',
+    description: frame.data,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Swipe',
+    icon: <IconTap size="xs" />,
   }),
   'ui.tap': (frame: TapFrame) => ({
     color: 'purple400',
@@ -429,7 +437,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = (frame): Details => ({
+const MAPPER_DEFAULT = (frame: any): Details => ({
   color: 'gray300',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,

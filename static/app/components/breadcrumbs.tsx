@@ -63,7 +63,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Array of crumbs that will be rendered
    */
-  crumbs: (Crumb | CrumbDropdown)[];
+  crumbs: Array<Crumb | CrumbDropdown>;
 
   /**
    * As a general rule of thumb we don't want the last item to be link as it most likely
@@ -87,7 +87,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   }
 
   if (!linkLastItem) {
-    const lastCrumb = crumbs[crumbs.length - 1];
+    const lastCrumb = crumbs[crumbs.length - 1]!;
     if (!isCrumbDropdown(lastCrumb)) {
       lastCrumb.to = null;
     }

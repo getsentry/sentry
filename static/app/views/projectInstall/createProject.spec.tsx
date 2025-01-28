@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
@@ -220,11 +219,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addSuccessMessage).toHaveBeenCalledWith(
-      tct('Created project [project]', {
-        project: 'testProj',
-      })
-    );
+    expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
   });
 
   it('should display error message on proj creation failure', async function () {
@@ -261,11 +256,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addErrorMessage).toHaveBeenCalledWith(
-      tct('Failed to create project [project]', {
-        project: 'apple-ios',
-      })
-    );
+    expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
   });
 
   it('should display success message when using member endpoint', async function () {
@@ -293,10 +284,7 @@ describe('CreateProject', function () {
       frameWorkModalMockRequests.experimentalprojectCreationMockRequest
     ).toHaveBeenCalledTimes(1);
     expect(addSuccessMessage).toHaveBeenCalledWith(
-      tct('Created [project] under new team [team]', {
-        project: 'testProj',
-        team: '#testTeam',
-      })
+      'Created testProj under new team #testTeam'
     );
   });
 
@@ -382,9 +370,7 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = OrganizationFixture({
-      features: ['messaging-integration-onboarding-project-creation'],
-    });
+    const organization = OrganizationFixture();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 

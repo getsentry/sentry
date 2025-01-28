@@ -17,21 +17,6 @@ import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
-const notSearchable = [
-  'sdk.blockAllMedia',
-  'sdk.errorSampleRate ',
-  'sdk.maskAllInputs',
-  'sdk.maskAllText',
-  'sdk.networkCaptureBodies',
-  'sdk.networkDetailHasUrls',
-  'sdk.networkRequestHasHeaders',
-  'sdk.networkResponseHasHeaders',
-  'sdk.sessionSampleRate',
-  'sdk.shouldRecordCanvas',
-  'sdk.useCompression',
-  'sdk.useCompressionOption',
-];
-
 function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
@@ -43,7 +28,12 @@ function TagPanel() {
     const unorderedTags = {
       ...tags,
       ...Object.fromEntries(
-        Object.entries(sdkOptions ?? {}).map(([key, value]) => ['sdk.' + key, [value]])
+        Object.entries(sdkOptions ?? {}).map(
+          ([key, value]) =>
+            key === 'name' || key === 'version'
+              ? ['sdk.' + key, [value]]
+              : ['sdk.replay.' + key, [value]] // specify tags from the replay sdk; these tags are not searchable
+        )
       ),
     };
 
@@ -51,6 +41,7 @@ function TagPanel() {
     const sortedTags = Object.keys(unorderedTags)
       .sort()
       .reduce((acc, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[key] = unorderedTags[key];
         return acc;
       }, {});
@@ -90,7 +81,7 @@ function TagPanel() {
                     key={key}
                     name={key}
                     values={values}
-                    generateUrl={notSearchable.includes(key) ? undefined : generateUrl}
+                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
                   />
                 ))}
               </KeyValueTable>

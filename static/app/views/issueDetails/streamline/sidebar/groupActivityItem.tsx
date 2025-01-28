@@ -332,7 +332,7 @@ export default function getGroupActivityItem(
                 release: (
                   <ActivityRelease
                     project={project}
-                    version={deployedReleases[0].version}
+                    version={deployedReleases[0]!.version}
                   />
                 ),
               }
@@ -357,7 +357,7 @@ export default function getGroupActivityItem(
                 release: (
                   <ActivityRelease
                     project={project}
-                    version={deployedReleases[0].version}
+                    version={deployedReleases[0]!.version}
                   />
                 ),
               }
@@ -493,8 +493,13 @@ export default function getGroupActivityItem(
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
+        let title = t('Created Issue');
+        if (data.new === true) {
+          title = t('Linked Issue');
+        }
+
         return {
-          title: t('Created Issue'),
+          title,
           message: tct('by [author] on [provider] titled [title]', {
             author,
             provider: data.provider,

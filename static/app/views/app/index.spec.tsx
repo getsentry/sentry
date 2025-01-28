@@ -9,7 +9,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import App from 'sentry/views/app';
 
-function HookWrapper(props) {
+function HookWrapper(props: any) {
   return (
     <div data-test-id="hook-wrapper">
       {props.children}
@@ -210,7 +210,7 @@ describe('App', function () {
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
-    expect(sentryUrl).toEqual('https://sentry.io');
+    expect(sentryUrl).toBe('https://sentry.io');
     expect(window.location.replace).toHaveBeenCalledWith('https://sentry.io');
     expect(window.location.replace).toHaveBeenCalledTimes(1);
   });

@@ -207,9 +207,9 @@ describe('parseStatsPeriod', function () {
   });
 
   it('should return default statsPeriod if it is not provided or is invalid', function () {
-    expect(parseStatsPeriod('invalid')).toEqual(undefined);
-    expect(parseStatsPeriod('24f')).toEqual(undefined);
-    expect(parseStatsPeriod('')).toEqual(undefined);
+    expect(parseStatsPeriod('invalid')).toBeUndefined();
+    expect(parseStatsPeriod('24f')).toBeUndefined();
+    expect(parseStatsPeriod('')).toBeUndefined();
     expect(parseStatsPeriod('24')).toEqual({period: '24', periodLength: 's'});
   });
 

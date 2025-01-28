@@ -10,7 +10,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
@@ -49,7 +48,11 @@ Future<void> main() async {
           : ''
       }
     },
-    appRunner: () => runApp(const MyApp()),
+    appRunner: () => runApp(
+      SentryWidget(
+        child: MyApp(),
+      ),
+    ),
   );
 
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
@@ -110,7 +113,11 @@ Future<void> main() async {
       options.dsn = '${params.dsn.public}';
       options.enableMetrics = true;
     },
-    appRunner: initApp, // Init your App.
+    appRunner: () => runApp(
+      SentryWidget(
+        child: MyApp(),
+      ),
+    ),
   );
 };`;
 
@@ -121,7 +128,11 @@ await SentryFlutter.init(
     options.experimental.replay.sessionSampleRate = 1.0;
     options.experimental.replay.onErrorSampleRate = 1.0;
   },
-  appRunner: () => runApp(MyApp()),
+  appRunner: () => runApp(
+      SentryWidget(
+        child: MyApp(),
+      ),
+    ),
 );
 `;
 
@@ -368,9 +379,6 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/flutter/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,

@@ -51,10 +51,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_NUMBER_LIST:
       const items = token.value.items;
 
-      if (items.length === 1 && items[0].value) {
+      if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0].value)}
+            {formatFilterValue(items[0]!.value)}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -66,6 +66,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
+                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
                 {formatFilterValue(item.value)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -205,11 +206,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   });
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
+  const tokenHasWarning = 'warning' in token && defined(token.warning);
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
+      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -265,7 +268,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   );
 }
 
-const FilterWrapper = styled('div')`
+const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
@@ -278,10 +281,18 @@ const FilterWrapper = styled('div')`
     outline: none;
   }
 
-  &[aria-invalid='true'] {
-    border-color: ${p => p.theme.red200};
-    background-color: ${p => p.theme.red100};
-  }
+  ${p =>
+    p.state === 'invalid'
+      ? `
+      border-color: ${p.theme.red200};
+      background-color: ${p.theme.red100};
+    `
+      : p.state === 'warning'
+        ? `
+      border-color: ${p.theme.gray300};
+      background-color: ${p.theme.gray100};
+    `
+        : ''}
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};

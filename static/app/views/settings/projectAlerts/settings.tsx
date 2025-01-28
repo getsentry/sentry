@@ -61,8 +61,12 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     return (
       <LoadingError
         onRetry={() => {
-          isProjectError && refetchProject();
-          isPluginListError && refetchPluginList();
+          if (isProjectError) {
+            refetchProject();
+          }
+          if (isPluginListError) {
+            refetchPluginList();
+          }
         }}
       />
     );
@@ -137,13 +141,13 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
             <JsonForm
               disabled={!canEditRule}
               title={t('Email Settings')}
-              fields={[fields.subjectTemplate]}
+              fields={[fields.subjectTemplate!]}
             />
 
             <JsonForm
               title={t('Digests')}
               disabled={!canEditRule}
-              fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
+              fields={[fields.digestsMinDelay!, fields.digestsMaxDelay!]}
               renderHeader={() => (
                 <PanelAlert type="info">
                   {t(

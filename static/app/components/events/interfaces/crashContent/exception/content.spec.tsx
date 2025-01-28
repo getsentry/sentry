@@ -136,7 +136,7 @@ describe('Exception Content', function () {
         newestFirst
         stackView={StackView.APP}
         event={event}
-        values={event.entries[0].data.values}
+        values={event.entries[0]!.data.values}
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
@@ -145,7 +145,7 @@ describe('Exception Content', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(
@@ -200,7 +200,7 @@ describe('Exception Content', function () {
         type={StackType.ORIGINAL}
         stackView={StackView.APP}
         event={event}
-        values={event.entries[0].data.values}
+        values={event.entries[0]!.data.values}
         projectSlug={project.slug}
       />
     );
@@ -242,7 +242,7 @@ describe('Exception Content', function () {
       platform: 'python' as const,
       stackView: StackView.APP,
       event,
-      values: event.entries[0].data.values,
+      values: event.entries[0]!.data.values,
       projectSlug: project.slug,
     };
 
@@ -252,9 +252,9 @@ describe('Exception Content', function () {
       const exceptions = screen.getAllByTestId('exception-value');
 
       // First exception should be the parent ExceptionGroup
-      expect(within(exceptions[0]).getByText('ExceptionGroup 1')).toBeInTheDocument();
+      expect(within(exceptions[0]!).getByText('ExceptionGroup 1')).toBeInTheDocument();
       expect(
-        within(exceptions[0]).getByRole('heading', {name: 'ExceptionGroup 1'})
+        within(exceptions[0]!).getByRole('heading', {name: 'ExceptionGroup 1'})
       ).toBeInTheDocument();
     });
 
@@ -263,7 +263,7 @@ describe('Exception Content', function () {
 
       const exceptions = screen.getAllByTestId('exception-value');
 
-      const exceptionGroupWithNoContext = exceptions[2];
+      const exceptionGroupWithNoContext = exceptions[2]!;
       expect(
         within(exceptionGroupWithNoContext).getByText('Related Exceptions')
       ).toBeInTheDocument();
@@ -273,7 +273,7 @@ describe('Exception Content', function () {
       render(<Content {...defaultProps} />);
 
       // There are 4 values, but 1 should be hidden
-      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
       await userEvent.click(
@@ -281,7 +281,7 @@ describe('Exception Content', function () {
       );
 
       // After expanding, ValueError should be visible
-      expect(screen.getAllByTestId('exception-value').length).toBe(4);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(4);
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
 
       await userEvent.click(
@@ -289,7 +289,7 @@ describe('Exception Content', function () {
       );
 
       // After collapsing, ValueError should be gone again
-      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
     });
 

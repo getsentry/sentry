@@ -77,15 +77,6 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return {"type": "divider"}
 
     @staticmethod
-    def get_static_action(action):
-        return {
-            "type": "static_select",
-            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
-            "option_groups": [option for option in action.option_groups],
-            "action_id": action.name,
-        }
-
-    @staticmethod
     def get_external_select_action(action, initial_option):
         action = {
             "type": "external_select",
