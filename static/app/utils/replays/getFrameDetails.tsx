@@ -42,6 +42,7 @@ import type {
   NavFrame,
   RawBreadcrumbFrame,
   ReplayFrame,
+  ScrollFrame,
   SlowClickFrame,
   SwipeFrame,
   TapFrame,
@@ -209,6 +210,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     description: frame.data,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Swipe',
+    icon: <IconTap size="xs" />,
+  }),
+  'ui.scroll': (frame: ScrollFrame) => ({
+    color: 'blue400',
+    description: frame.data,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Scroll',
     icon: <IconTap size="xs" />,
   }),
   'ui.tap': (frame: TapFrame) => ({
