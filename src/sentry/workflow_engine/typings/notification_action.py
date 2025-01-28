@@ -82,16 +82,16 @@ class BaseActionTranslator(ABC):
         """
         if self.blob_type:
             mapped_data = {}
-            for field_info in dataclasses.fields(self.blob_type):
-                mapping = self.field_mappings.get(field_info.name)
+            for field_name in (field.name for field in dataclasses.fields(self.blob_type)):
+                mapping = self.field_mappings.get(field_name)
                 # If a mapping is specified, use the source field value or default value
                 if mapping:
                     source_field = mapping.source_field
                     value = self.action.get(source_field, mapping.default_value)
                 # Otherwise, use the field value
                 else:
-                    value = self.action.get(field_info.name, "")
-                mapped_data[field_info.name] = value
+                    value = self.action.get(field_name, "")
+                mapped_data[field_name] = value
 
             blob_instance = self.blob_type(**mapped_data)
             return dataclasses.asdict(blob_instance)
