@@ -11,6 +11,10 @@ class GroupSearchViewSerializerResponse(TypedDict):
     query: str
     querySort: SORT_LITERALS
     position: int
+    projects: list[int]
+    isAllProjects: bool
+    environments: list[str]
+    timeFilters: dict
     dateCreated: str | None
     dateUpdated: str | None
 
@@ -24,6 +28,10 @@ class GroupSearchViewSerializer(Serializer):
             "query": obj.query,
             "querySort": obj.query_sort,
             "position": obj.position,
+            "projects": list(obj.projects.values_list("id", flat=True)),
+            "isAllProjects": obj.is_all_projects,
+            "environments": obj.environments,
+            "timeFilters": obj.time_filters,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
         }

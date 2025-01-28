@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -35,7 +36,7 @@ class TeamManager(BaseManager["Team"]):
     def get_for_user(
         self,
         organization: Organization,
-        user: User | RpcUser,
+        user: User | RpcUser | AnonymousUser,
         scope: str | None = None,
         is_team_admin: bool = False,
     ) -> Sequence[Team]:
