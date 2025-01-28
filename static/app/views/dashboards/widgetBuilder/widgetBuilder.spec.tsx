@@ -964,7 +964,12 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify({
+          ...defaultWidgetQuery,
+          aggregates: defaultWidgetQuery.aggregates.join(','),
+          fields: defaultWidgetQuery.fields?.join(','),
+          columns: defaultWidgetQuery.columns.join(','),
+        }),
         displayType: DisplayType.LINE,
         defaultTableColumns,
       },
@@ -1245,7 +1250,12 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify({
+          ...defaultWidgetQuery,
+          aggregates: defaultWidgetQuery.aggregates.join(','),
+          fields: defaultWidgetQuery.fields?.join(','),
+          columns: defaultWidgetQuery.columns.join(','),
+        }),
         defaultTableColumns,
         yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
       },
@@ -1526,7 +1536,12 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+          defaultWidgetQuery: qs.stringify({
+            ...defaultWidgetQuery,
+            aggregates: defaultWidgetQuery.aggregates.join(','),
+            fields: defaultWidgetQuery.fields?.join(','),
+            columns: defaultWidgetQuery.columns.join(','),
+          }),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
@@ -1566,7 +1581,12 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+          defaultWidgetQuery: qs.stringify({
+            ...defaultWidgetQuery,
+            aggregates: defaultWidgetQuery.aggregates.join(','),
+            fields: defaultWidgetQuery.fields?.join(','),
+            columns: defaultWidgetQuery.columns.join(','),
+          }),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
