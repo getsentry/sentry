@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import time
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -322,6 +323,18 @@ def run_taskworker(
     help="The namespace that the task is registered in",
     default=None,
 )
+@click.option(
+    "--flush-every-n-tasks",
+    type=int,
+    help="Pause every n tasks to allow the producer to flush",
+    default=2000,
+)
+@click.option(
+    "--flush-delay",
+    type=float,
+    help="The number of seconds to pause to allow the producer to flush",
+    default=0.1,
+)
 def taskbroker_send_tasks(
     task_function_path: str,
     args: str,
@@ -330,6 +343,8 @@ def taskbroker_send_tasks(
     bootstrap_servers: str,
     kafka_topic: str,
     namespace: str,
+    flush_every_n_tasks: int,
+    flush_delay: float,
 ) -> None:
     from sentry.conf.server import KAFKA_CLUSTERS, TASKWORKER_ROUTES
     from sentry.utils.imports import import_string
@@ -350,6 +365,12 @@ def taskbroker_send_tasks(
         func.delay(*task_args, **task_kwargs)
         if i > 0 and int((i / repeat) * 100) % 10 == 0:
             click.echo(message=f"{int((i / repeat) * 100)}%")
+
+        # The producer that this uses only flushes every 100ms, and so if too many tasks
+        # are sent at once, the local buffer wil fill up and start throwing errors.
+        # To avoid this, add a periodic sleep to allow the producer to flush.
+        if i % flush_every_n_tasks == 0:
+            time.sleep(flush_delay)
 
     click.echo(message=f"Successfully sent {repeat} messages.")
 
