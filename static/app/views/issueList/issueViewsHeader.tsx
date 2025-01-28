@@ -34,6 +34,7 @@ import {
   IssueViewsContext,
 } from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
+import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
@@ -191,6 +192,31 @@ function IssueViewsIssueListHeaderTabsContent({
     project,
     queryParams,
   ]);
+
+  const {mutate: updateViews} = useUpdateGroupSearchViews();
+
+  useEffect(() => {
+    const isAllProjects =
+      pageFilters.selection.projects.length === 1 &&
+      pageFilters.selection.projects[0] === -1;
+
+    const projects = isAllProjects ? [] : pageFilters.selection.projects;
+
+    updateViews({
+      orgSlug: organization.slug,
+      groupSearchViews: views.map(view => ({
+        id: view.id,
+        name: view.label,
+        query: view.query,
+        querySort: view.querySort,
+        projects,
+        isAllProjects,
+        environments: pageFilters.selection.environments,
+        timeFilters: pageFilters.selection.datetime,
+      })),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageFilters.selection]);
 
   // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
