@@ -4,12 +4,14 @@ import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
@@ -23,6 +25,8 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   repoId?: string;
 };
 
@@ -490,14 +494,21 @@ function FileDiff({
   runId,
   repoId,
   editable,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   repoId?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
@@ -516,8 +527,22 @@ function FileDiff({
           borderless
         />
       </FileHeader>
+      {selection && (
+        <AutofixHighlightPopup
+          selectedText={selection.selectedText}
+          referenceElement={selection.referenceElement}
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount - 1
+              : -1
+          }
+        />
+      )}
       {isExpanded && (
-        <DiffContainer>
+        <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
             return (
               <DiffHunkContent
@@ -539,7 +564,15 @@ function FileDiff({
   );
 }
 
-export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDiffProps) {
+export function AutofixDiff({
+  diff,
+  groupId,
+  runId,
+  repoId,
+  editable,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
   }
@@ -554,6 +587,8 @@ export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDif
           runId={runId}
           repoId={repoId}
           editable={editable}
+          previousDefaultStepIndex={previousDefaultStepIndex}
+          previousInsightCount={previousInsightCount}
         />
       ))}
     </DiffsColumn>
@@ -687,17 +722,21 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
   background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.translucentGray100};
-  color: ${p =>
-    p.isHovered ? p.theme.button.default.color : p.theme.translucentGray200};
+    p.isHovered ? p.theme.button.default.background : p.theme.background};
+  color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.textColor)};
   transition:
     background-color 0.2s ease-in-out,
     color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: ${p => p.theme.pink400}10;
+    color: ${p => p.theme.pink400};
+  }
 `;
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: 11rem;
+  bottom: ${space(2)};
   right: ${space(2)};
   left: calc(50% + ${space(2)});
   background: ${p => p.theme.backgroundElevated};

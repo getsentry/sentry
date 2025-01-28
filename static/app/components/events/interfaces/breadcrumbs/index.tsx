@@ -72,7 +72,7 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
     Object.keys(
       pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
     ).some(key => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const info = breadcrumb[key];
 
       if (!defined(info) || !String(info).trim()) {
@@ -168,7 +168,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
         breadcrumb?.level &&
         !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType]!.levels?.push(breadcrumb!.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb.level);
       }
     }
 
@@ -180,7 +180,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
 
     for (const indexType in types) {
       for (const indexLevel in types[indexType]!.levels) {
-        // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         const level = types[indexType]!.levels?.[indexLevel];
 
         if (filterLevels.some(f => f.value === `level-${level}`)) {

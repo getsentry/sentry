@@ -80,10 +80,10 @@ describe('PageParamsProvider', function () {
       dataset: undefined,
       fields: [
         'id',
-        'project',
         'span.op',
         'span.description',
         'span.duration',
+        'transaction',
         'timestamp',
       ],
       groupBys: ['span.op'],

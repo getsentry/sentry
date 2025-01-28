@@ -21,7 +21,6 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webV
 import {useProjectWebVitalsScoresTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
-import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -103,9 +102,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
       const scoreCount = projectScoresData?.data?.[0]?.[
         'count_scores(measurements.score.total)'
       ] as number;
-      const opportunity = scoreCount
-        ? ((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100
-        : 0;
+      const opportunity = scoreCount ? (listItem.opportunity ?? 0) * 100 : 0;
       return (
         <Fragment key={i}>
           <GrowLink

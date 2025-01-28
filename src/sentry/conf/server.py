@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -1764,6 +1763,10 @@ SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
+# Flag storage backend
+SENTRY_FLAGSTORE = os.environ.get("SENTRY_FLAGSTORE", "sentry.tagstore.snuba.SnubaFlagStorage")
+SENTRY_FLAGSTORE_OPTIONS: dict[str, Any] = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
@@ -1880,9 +1883,6 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
-
-# Secret key for OpenAI
-OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
@@ -2290,12 +2290,6 @@ SENTRY_USE_TASKBROKER = False
 # }
 
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-# ubuntu: aarch64
-ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
-
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
         {
@@ -2455,9 +2449,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "ports": {"50051/tcp": 50051},
             "environment": {
                 "TASKBROKER_KAFKA_CLUSTER": (
-                    "kafka-kafka-1"
-                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
-                    else "sentry_kafka"
+                    "sentry_kafka"
+                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
+                    else "kafka-kafka-1"
                 ),
             },
             "only_if": settings.SENTRY_USE_TASKBROKER,
@@ -2969,6 +2963,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "task-worker": "default",
+    "snuba-ourlogs": "default",
 }
 
 
@@ -3467,9 +3462,11 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_topic=Topic.UPTIME_CONFIGS,
+        config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),
 ]
+UPTIME_CONFIG_PARTITIONS = 128
 
 MARKETO: Mapping[str, Any] = {
     "base-url": os.getenv("MARKETO_BASE_URL"),

@@ -91,7 +91,7 @@ export function useTableStyles(
       event.preventDefault();
 
       // <GridResizer> is expected to be nested 1 level down from <GridHeadCell>
-      const cell = event.currentTarget!.parentElement;
+      const cell = event.currentTarget.parentElement;
       if (!cell) {
         return;
       }
@@ -109,7 +109,7 @@ export function useTableStyles(
         }
 
         const newWidth = Math.max(
-          MINIMUM_COLUMN_WIDTH,
+          minimumColumnWidth,
           initialWidth + (e.clientX - startX)
         );
 

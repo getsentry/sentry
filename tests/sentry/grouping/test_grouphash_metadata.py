@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -18,6 +19,7 @@ from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from sentry.utils import json
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
     GroupingInput,
@@ -150,6 +152,12 @@ def _assert_and_snapshot_results(
                 f"grouping.grouphashmetadata.event_hashing_metadata.{hash_basis}"
             )
         assert metric_names == expected_metric_names
+
+    # Convert any fingerprint value from json to a string before jsonifying the entire metadata dict
+    # to avoid a bunch of escaping which would be caused by double jsonification
+    if "fingerprint" in hashing_metadata:
+        _hashing_metadata: Any = hashing_metadata  # Alias for typing purposes
+        _hashing_metadata["fingerprint"] = str(json.loads(_hashing_metadata["fingerprint"]))
 
     lines.append("hash_basis: %s" % hash_basis)
     lines.append("hashing_metadata: %s" % to_json(hashing_metadata, pretty_print=True))

@@ -29,6 +29,25 @@ describe('EventSamplesTable', function () {
     };
 
     mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
+    });
   });
 
   it('uses a column name map to render column names', function () {

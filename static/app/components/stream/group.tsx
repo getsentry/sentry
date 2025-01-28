@@ -386,7 +386,7 @@ function BaseGroupRow({
     // Original state had an inbox reason
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
-    !group!.inbox &&
+    !group.inbox &&
     // Only apply reviewed on the "for review" tab
     isForReviewQuery(query);
 

@@ -297,7 +297,7 @@ type Props = WithRouterProps &
      * A function that returns a warning message for a given filter key
      * will only show a render a warning if the value is truthy
      */
-    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
+    // @ts-expect-error TS(7006): Parameter 'key' implicitly has an 'any' type.
     getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
@@ -1569,7 +1569,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   showDefaultSearches = async () => {
     const {query} = this.state;
-    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
+    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems;
 
     // Always clear searchTerm on showing default state.
     this.setState({searchTerm: ''});

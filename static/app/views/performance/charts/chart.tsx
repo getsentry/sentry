@@ -193,7 +193,7 @@ function Chart({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0]!, colors[1]!],
+    colors: [colors[0], colors[1]!],
     tooltip: {
       valueFormatter: (value: any, seriesName: any) => {
         return tooltipFormatter(

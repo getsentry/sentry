@@ -316,7 +316,7 @@ describe('EditHighlightsModal', function () {
       'Runtime: Name',
     ]);
     allHighlightCtxTitles.forEach(title => {
-      const previewCtxItem = within(previewSection).getByText(title) as HTMLElement;
+      const previewCtxItem = within(previewSection).getByText(title);
       const removeButton = previewCtxItem?.closest(
         "div[data-test-id='highlights-preview-ctx']"
       )?.previousSibling;

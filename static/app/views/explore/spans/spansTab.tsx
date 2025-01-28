@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,6 +13,7 @@ import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -37,6 +39,7 @@ import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -99,6 +102,7 @@ export function SpansTabContentImpl({
   });
   const tracesTableResult = useExploreTracesTable({
     query,
+    limit,
     enabled: queryType === 'traces',
   });
   const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
@@ -122,8 +126,18 @@ export function SpansTabContentImpl({
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
+  const [expanded, setExpanded] = useState(true);
+
+  useAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    tracesTableResult,
+    timeseriesResult,
+  });
+
   return (
-    <Body>
+    <Body withToolbar={expanded}>
       <TopSection>
         <StyledPageFilterBar condensed>
           <ProjectPageFilter />
@@ -164,14 +178,18 @@ export function SpansTabContentImpl({
                   }
                 : undefined
             }
-            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
             numberTags={numberTags}
             stringTags={stringTags}
           />
         )}
       </TopSection>
-      <ExploreToolbar extras={toolbarExtras} />
-      <MainSection fullWidth>
+      <SideSection>
+        <ExploreToolbar width={300} extras={toolbarExtras} />
+      </SideSection>
+      <MainSection>
         {(tableError || chartError) && (
           <Alert type="error" showIcon>
             {tableError || chartError}
@@ -191,8 +209,25 @@ export function SpansTabContentImpl({
           samplesTab={samplesTab}
           setSamplesTab={setSamplesTab}
         />
+        <Toggle withToolbar={expanded}>
+          <StyledButton
+            aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+            size="xs"
+            icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
+            onClick={() => setExpanded(!expanded)}
+          />
+        </Toggle>
       </MainSection>
     </Body>
+  );
+}
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
   );
 }
 
@@ -218,16 +253,15 @@ export function SpansTabContent(props: SpanTabProps) {
   );
 }
 
-const Body = styled(Layout.Body)`
-  gap: ${space(2)};
-
+const Body = styled(Layout.Body)<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 300px minmax(100px, auto);
-    gap: ${space(2)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: 400px minmax(100px, auto);
+    display: grid;
+    ${p =>
+      p.withToolbar
+        ? `grid-template-columns: 300px minmax(100px, auto);`
+        : `grid-template-columns: 0px minmax(100px, auto);`}
+    gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
+    transition: 700ms;
   }
 `;
 
@@ -237,20 +271,43 @@ const TopSection = styled('div')`
   grid-column: 1/3;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;
     margin-bottom: 0;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: minmax(400px, auto) 1fr;
-  }
 `;
 
-const MainSection = styled(Layout.Main)`
-  grid-column: 2/3;
+const SideSection = styled('aside')`
+  overflow: hidden;
+`;
+
+const MainSection = styled('section')`
+  position: relative;
+  max-width: 100%;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
+`;
+
+const Toggle = styled('div')<{withToolbar: boolean}>`
+  display: none;
+  position: absolute;
+  top: 5px;
+  left: ${p => (p.withToolbar ? '-17px' : '-31px')};
+  transition: 700ms;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    display: block;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  width: 28px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+`;
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
 `;

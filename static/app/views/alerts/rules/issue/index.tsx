@@ -680,7 +680,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
-      const id = (clonedState.rule as IssueAlertRule)[type]![idx]!.id;
+      const id = (clonedState.rule as IssueAlertRule)[type][idx]!.id;
       const newRule = {
         ...this.getInitialValue(type, id),
         id,
@@ -806,7 +806,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
         ? {
             ...condition,
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
           }
         : condition

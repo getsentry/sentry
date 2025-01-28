@@ -10,20 +10,16 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
-import TraceExplorerTabs from 'sentry/views/explore/tabBar';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export function ExploreContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = limitMaxPickableDays(
-    organization!
-  );
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,8 +32,6 @@ export function ExploreContent() {
       },
     });
   }, [location, navigate]);
-  const ourlogsEnabled = organization.features.includes('ourlogs-enabled');
-  const selectedTab = decodeScalar(location.query.exploreTab, 'spans');
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
@@ -72,17 +66,12 @@ export function ExploreContent() {
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
-            {ourlogsEnabled ? <TraceExplorerTabs selected={selectedTab} /> : null}
           </Layout.Header>
-          {ourlogsEnabled && selectedTab === 'logs' ? (
-            <LogsTabContent />
-          ) : (
-            <SpansTabContent
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
-          )}
+          <SpansTabContent
+            defaultPeriod={defaultPeriod}
+            maxPickableDays={maxPickableDays}
+            relativeOptions={relativeOptions}
+          />
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>

@@ -335,7 +335,7 @@ export class VirtualizedViewManager {
   ) {
     if (ref) {
       this.span_text[index] = {ref, text, space};
-      this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
+      this.drawSpanText(this.span_text[index], this.columns.list.column_nodes[index]);
     }
   }
 
@@ -352,7 +352,7 @@ export class VirtualizedViewManager {
       const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
       ref.style.setProperty(
         '--inverse-span-scale',
-        // @ts-ignore TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         isNaN(inverseScale) ? 1 : inverseScale
       );
     }
@@ -369,7 +369,7 @@ export class VirtualizedViewManager {
 
       if (scrollableElement) {
         scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-        this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
+        this.row_measurer.enqueueMeasure(node, scrollableElement);
         ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
       }
     }
@@ -379,9 +379,9 @@ export class VirtualizedViewManager {
     }
 
     if (ref && node) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.columns[column].column_refs[index] = ref;
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.columns[column].column_nodes[index] = node;
     }
   }
@@ -773,8 +773,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -832,8 +832,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = newTransform;
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1008,8 +1008,8 @@ export class VirtualizedViewManager {
       this.columns.list.translate[0] = x;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1034,8 +1034,8 @@ export class VirtualizedViewManager {
       const pos = startPosition + distance * eased;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1438,7 +1438,7 @@ export class VirtualizedViewManager {
     const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
     span_bar.ref.style.setProperty(
       '--inverse-span-scale',
-      // @ts-ignore TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+      // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
       isNaN(inverseScale) ? 1 : inverseScale
     );
   }
@@ -1584,7 +1584,7 @@ export class VirtualizedViewManager {
     if (this.last_list_column_width !== options.list_width) {
       container.style.setProperty(
         '--list-column-width',
-        // @ts-ignore TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         options.list_width
       );
       this.last_list_column_width = options.list_width;
@@ -1592,7 +1592,7 @@ export class VirtualizedViewManager {
     if (this.last_span_column_width !== options.span_list_width) {
       container.style.setProperty(
         '--span-column-width',
-        // @ts-ignore TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         options.span_list_width
       );
       this.last_span_column_width = options.span_list_width;
@@ -1644,7 +1644,7 @@ export class VirtualizedViewManager {
         const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
         invisible_bar.ref.style.setProperty(
           '--inverse-span-scale',
-          // @ts-ignore TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+          // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
           isNaN(inverseScale) ? 1 : inverseScale
         );
       }

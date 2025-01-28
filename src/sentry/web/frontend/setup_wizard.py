@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
@@ -88,7 +89,7 @@ class SetupWizardView(BaseView):
         ).order_by("-date_created")
 
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
-        region_data_map = defaultdict(lambda: defaultdict(list))
+        region_data_map: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
 
         org_mappings_map = {}
         for mapping in org_mappings:
@@ -189,7 +190,9 @@ def serialize_project(project: RpcProject, organization: dict, keys: list[dict])
     }
 
 
-def get_cache_data(mapping: OrganizationMapping, project: RpcProject, user: RpcUser):
+def get_cache_data(
+    mapping: OrganizationMapping, project: RpcProject, user: User | AnonymousUser | RpcUser
+):
     project_key = project_key_service.get_project_key(
         organization_id=mapping.organization_id,
         project_id=project.id,
@@ -231,7 +234,7 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
     return serialize(token)
 
 
-def get_org_token(mapping: OrganizationMapping, user: User | RpcUser):
+def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser):
     try:
         token_str = generate_token(
             mapping.slug, generate_region_url(region_name=mapping.region_name)

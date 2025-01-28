@@ -11,6 +11,8 @@ jest.mock('sentry/utils/analytics', () => ({
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
+import {NavContextProvider} from 'sentry/components/nav/context';
+import {SecondaryNav} from 'sentry/components/nav/secondary';
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
@@ -22,6 +24,7 @@ const ALL_AVAILABLE_FEATURES = [
   'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
+  'ourlogs-enabled',
   'performance-view',
   'performance-trace-explorer',
   'starfish-mobile-ui-module',
@@ -57,50 +60,9 @@ describe('Nav', function () {
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).getAllByRole('link');
-      expect(links).toHaveLength(8);
-
-      [
-        'Issues',
-        'Projects',
-        'Explore',
-        'Insights',
-        'Perf.',
-        'Boards',
-        'Alerts',
-        'Settings',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
-    });
-  });
-
-  describe('issues', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({
-            pathname: '/organizations/org-slug/issues/',
-            search: '?query=is:unresolved',
-          }),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
-
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-    });
-
-    it('includes expected submenu items', function () {
-      renderNav();
-      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = within(container).getAllByRole('link');
       expect(links).toHaveLength(6);
 
-      ['All', 'Error & Outage', 'Trend', 'Craftsmanship', 'Security', 'Feedback'].forEach(
+      ['Issues', 'Explore', 'Boards', 'Insights', 'Stats', 'Settings'].forEach(
         (title, index) => {
           expect(links[index]).toHaveAccessibleName(title);
         }
@@ -108,17 +70,41 @@ describe('Nav', function () {
     });
   });
 
-  describe('insights', function () {
+  describe('nav', function () {
     function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({
-            pathname: '/organizations/org-slug/insights/backend/',
-          }),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
+      render(
+        <NavContextProvider>
+          <Nav />
+          <SecondaryNav>
+            <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
+              Foo
+            </SecondaryNav.Item>
+          </SecondaryNav>
+        </NavContextProvider>,
+        {
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+          disableRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/issues/',
+              query: {query: 'is:unresolved'},
+            },
+          },
+        }
+      );
     }
+
+    it('displays primary navigation items', async function () {
+      renderNav();
+
+      expect(
+        await screen.findByRole('navigation', {name: 'Primary Navigation'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/'
+      );
+    });
 
     it('renders secondary navigation', async function () {
       renderNav();
@@ -127,50 +113,11 @@ describe('Nav', function () {
       ).toBeInTheDocument();
     });
 
-    it('includes expected submenu items', function () {
+    it('includes expected secondary nav items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = within(container).getAllByRole('link');
-      expect(links).toHaveLength(4);
-      ['Frontend', 'Backend', 'Mobile', 'AI'].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
-    });
-  });
-
-  describe('explore', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
-
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-    });
-
-    it('includes expected submenu items', function () {
-      renderNav();
-      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = within(container).getAllByRole('link');
-      expect(links).toHaveLength(7);
-      [
-        'Traces',
-        'Metrics',
-        'Profiles',
-        'Replays',
-        'Discover',
-        'Releases',
-        'Crons',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      const link = within(container).getByRole('link', {name: 'Foo'});
+      expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/foo/');
     });
   });
 

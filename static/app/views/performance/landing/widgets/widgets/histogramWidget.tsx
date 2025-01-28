@@ -80,7 +80,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
               isErrored={false}
               onFilterChange={onFilterChange}
               field={props.fields[0]!}
-              chartData={provided.widgetData.chart?.data?.[props.fields[0]!]!}
+              chartData={provided.widgetData.chart?.data?.[props.fields[0]!]}
               disableXAxis
               disableZoom
               disableChartPadding

@@ -37,6 +37,7 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
@@ -75,6 +76,7 @@ function WidgetBuilderSlideout({
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
+  const source = useDashboardWidgetSource();
 
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
@@ -86,6 +88,7 @@ function WidgetBuilderSlideout({
         builder_version: WidgetBuilderVersion.SLIDEOUT,
         new_widget: !isEditing,
         organization,
+        from: source,
       });
     }
     // Ignore isEditing because it won't change during the
@@ -272,5 +275,5 @@ const SlideoutBodyWrapper = styled('div')`
 `;
 
 const Section = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;

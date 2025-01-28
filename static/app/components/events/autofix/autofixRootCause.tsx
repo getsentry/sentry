@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
@@ -6,10 +6,11 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ExpandableInsightContext} from 'sentry/components/events/autofix/autofixInsightCards';
-import {AutofixShowMore} from 'sentry/components/events/autofix/autofixShowMore';
 import {
   type AutofixRepository,
   type AutofixRootCauseCodeContext,
@@ -23,7 +24,6 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCode, IconFocus, IconRefresh} from 'sentry/icons';
@@ -37,20 +37,39 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
+import AutofixHighlightPopup from './autofixHighlightPopup';
+import {useTextSelection} from './useTextSelection';
+
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
   groupId: string;
   repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   terminationReason?: string;
 };
 
-const contentAnimationProps: AnimationProps = {
-  exit: {opacity: 0},
-  initial: {opacity: 0},
-  animate: {opacity: 1},
-  transition: testableTransition({duration: 0.3}),
+const cardAnimationProps: AnimationProps = {
+  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
+  initial: {opacity: 0, height: 0, scale: 0.8},
+  animate: {opacity: 1, height: 'auto', scale: 1},
+  transition: testableTransition({
+    duration: 1.0,
+    height: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    scale: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    y: {
+      type: 'tween',
+      ease: 'easeOut',
+    },
+  }),
 };
 
 export function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
@@ -168,22 +187,64 @@ export function replaceHeadersWithBold(markdown: string) {
   return boldMarkdown;
 }
 
-function RootCauseDescription({cause}: {cause: AutofixRootCauseData}) {
+function RootCauseDescription({
+  cause,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: {
+  cause: AutofixRootCauseData;
+  groupId: string;
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(containerRef);
+
   return (
-    <CauseDescription
-      dangerouslySetInnerHTML={{
-        __html: marked(replaceHeadersWithBold(cause.description)),
-      }}
-    />
+    <CauseDescription>
+      <AnimatePresence>
+        {selection && (
+          <AutofixHighlightPopup
+            selectedText={selection.selectedText}
+            referenceElement={selection.referenceElement}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount - 1
+                : -1
+            }
+          />
+        )}
+      </AnimatePresence>
+      <div
+        ref={containerRef}
+        dangerouslySetInnerHTML={{
+          __html: marked(replaceHeadersWithBold(cause.description)),
+        }}
+      />
+    </CauseDescription>
   );
 }
 
 function RootCauseContext({
   cause,
   repos,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: {
   cause: AutofixRootCauseData;
+  groupId: string;
   repos: AutofixRepository[];
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
 }) {
   const unitTestFileExtension = cause.unit_test?.file_path
     ? getFileExtension(cause.unit_test.file_path)
@@ -191,6 +252,11 @@ function RootCauseContext({
   const unitTestLanguage = unitTestFileExtension
     ? getPrismLanguage(unitTestFileExtension)
     : undefined;
+
+  const reproductionRef = useRef<HTMLDivElement>(null);
+  const reproductionSelection = useTextSelection(reproductionRef);
+  const unitTestDescriptionRef = useRef<HTMLDivElement>(null);
+  const unitTestSelection = useTextSelection(unitTestDescriptionRef);
 
   return (
     <RootCauseContextContainer>
@@ -200,8 +266,25 @@ function RootCauseContext({
           title={'How to reproduce'}
           rounded
         >
+          <AnimatePresence>
+            {reproductionSelection && (
+              <AutofixHighlightPopup
+                selectedText={reproductionSelection.selectedText}
+                referenceElement={reproductionSelection.referenceElement}
+                groupId={groupId}
+                runId={runId}
+                stepIndex={previousDefaultStepIndex ?? 0}
+                retainInsightCardIndex={
+                  previousInsightCount !== undefined && previousInsightCount >= 0
+                    ? previousInsightCount - 1
+                    : -1
+                }
+              />
+            )}
+          </AnimatePresence>
           {cause.reproduction && (
             <CauseDescription
+              ref={reproductionRef}
               dangerouslySetInnerHTML={{
                 __html: marked(replaceHeadersWithBold(cause.reproduction)),
               }}
@@ -210,7 +293,24 @@ function RootCauseContext({
           {cause.unit_test && (
             <Fragment>
               <strong>{t('Unit test that reproduces this root cause:')}</strong>
+              <AnimatePresence>
+                {unitTestSelection && (
+                  <AutofixHighlightPopup
+                    selectedText={unitTestSelection.selectedText}
+                    referenceElement={unitTestSelection.referenceElement}
+                    groupId={groupId}
+                    runId={runId}
+                    stepIndex={previousDefaultStepIndex ?? 0}
+                    retainInsightCardIndex={
+                      previousInsightCount !== undefined && previousInsightCount >= 0
+                        ? previousInsightCount - 1
+                        : -1
+                    }
+                  />
+                )}
+              </AnimatePresence>
               <CauseDescription
+                ref={unitTestDescriptionRef}
                 dangerouslySetInnerHTML={{
                   __html: marked(replaceHeadersWithBold(cause.unit_test.description)),
                 }}
@@ -232,148 +332,79 @@ function RootCauseContext({
           rounded
           expandByDefault
         >
-          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+          <AutofixRootCauseCodeContexts
+            codeContext={cause.code_context}
+            repos={repos}
+            groupId={groupId}
+            runId={runId}
+            previousDefaultStepIndex={previousDefaultStepIndex}
+            previousInsightCount={previousInsightCount}
+          />
         </ExpandableInsightContext>
       )}
     </RootCauseContextContainer>
   );
 }
 
-function RootCauseContent({
-  selected,
-  children,
-}: {
-  children: ReactNode;
-  selected: boolean;
-}) {
-  return (
-    <ContentWrapper selected={selected}>
-      <AnimatePresence initial={false}>
-        {selected && (
-          <AnimationWrapper key="content" {...contentAnimationProps}>
-            {children}
-          </AnimationWrapper>
-        )}
-      </AnimatePresence>
-    </ContentWrapper>
-  );
-}
-
-export function SuggestedFixSnippet({
-  snippet,
-  linesToHighlight,
-  repos,
-  icon,
-}: {
-  linesToHighlight: number[];
-  repos: AutofixRepository[];
-  snippet: CodeSnippetContext;
-  icon?: React.ReactNode;
-}) {
-  function getSourceLink() {
-    if (!repos) {
-      return undefined;
-    }
-    const repo = repos.find(
-      r => r.name === snippet.repo_name && r.provider === 'integrations:github'
-    );
-    if (!repo) {
-      return undefined;
-    }
-    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}${
-      snippet.start_line && snippet.end_line
-        ? `#L${snippet.start_line}-L${snippet.end_line}`
-        : ''
-    }`;
+function formatRootCauseText(
+  cause: AutofixRootCauseData | undefined,
+  customRootCause?: string
+) {
+  if (!cause && !customRootCause) {
+    return '';
   }
-  const extension = getFileExtension(snippet.file_path);
-  const language = extension ? getPrismLanguage(extension) : undefined;
-  const sourceLink = getSourceLink();
 
-  return (
-    <CodeSnippetWrapper>
-      <StyledCodeSnippet
-        filename={snippet.file_path}
-        language={language}
-        hideCopyButton
-        linesToHighlight={linesToHighlight}
-        icon={icon}
-      >
-        {snippet.snippet}
-      </StyledCodeSnippet>
-      {sourceLink && (
-        <CodeLinkWrapper>
-          <Tooltip title={t('Open in GitHub')} skipWrapper>
-            <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
-              <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-            </OpenInLink>
-          </Tooltip>
-        </CodeLinkWrapper>
-      )}
-    </CodeSnippetWrapper>
-  );
+  if (customRootCause) {
+    return customRootCause;
+  }
+
+  if (!cause) {
+    return '';
+  }
+
+  const parts: string[] = [];
+
+  // Add title
+  parts.push(cause.title);
+  parts.push('\n\n');
+
+  // Add description
+  parts.push(cause.description);
+
+  // Add code snippets if available
+  if (cause.code_context?.length > 0) {
+    parts.push('\n\nRelevant code:\n');
+    cause.code_context.forEach((context, index) => {
+      parts.push(`\nSnippet #${index + 1}: ${context.title}\n`);
+      if (context.description) {
+        parts.push(`${context.description}\n`);
+      }
+      if (context.snippet?.snippet) {
+        parts.push(`File: ${context.snippet.file_path}\n`);
+        parts.push('```\n');
+        parts.push(context.snippet.snippet);
+        parts.push('\n```\n');
+      }
+    });
+  }
+
+  return parts.join('');
 }
 
-function CauseOption({
+function CopyRootCauseButton({
   cause,
-  selected,
-  setSelectedId,
-  repos,
+  customRootCause,
+  isEditing,
 }: {
-  cause: AutofixRootCauseData;
-  groupId: string;
-  repos: AutofixRepository[];
-  runId: string;
-  selected: boolean;
-  setSelectedId: (id: string) => void;
+  cause?: AutofixRootCauseData;
+  customRootCause?: string;
+  isEditing?: boolean;
 }) {
-  return (
-    <RootCauseOption selected={selected} onClick={() => setSelectedId(cause.id)}>
-      {!selected && <InteractionStateLayer />}
-      <RootCauseOptionHeader>
-        <TitleWrapper>
-          <IconFocus size="sm" />
-          <Title>{t('Potential Root Cause')}</Title>
-        </TitleWrapper>
-      </RootCauseOptionHeader>
-      <RootCauseContent selected={selected}>
-        <CauseTitle
-          dangerouslySetInnerHTML={{
-            __html: singleLineRenderer(cause.title),
-          }}
-        />
-        <RootCauseDescription cause={cause} />
-        <RootCauseContext cause={cause} repos={repos} />
-      </RootCauseContent>
-    </RootCauseOption>
-  );
-}
-
-function SelectedRootCauseOption({
-  selectedCause,
-  repos,
-}: {
-  codeContext: AutofixRootCauseCodeContext[];
-  repos: AutofixRepository[];
-  selectedCause: AutofixRootCauseData;
-}) {
-  return (
-    <RootCauseOption selected>
-      <RootCauseOptionHeader>
-        <TitleWrapper>
-          <IconFocus size="sm" />
-          <HeaderText>{t('Root Cause')}</HeaderText>
-        </TitleWrapper>
-      </RootCauseOptionHeader>
-      <CauseTitle
-        dangerouslySetInnerHTML={{
-          __html: singleLineRenderer(selectedCause.title),
-        }}
-      />
-      <RootCauseDescription cause={selectedCause} />
-      <RootCauseContext cause={selectedCause} repos={repos} />
-    </RootCauseOption>
-  );
+  if (isEditing) {
+    return null;
+  }
+  const text = formatRootCauseText(cause, customRootCause);
+  return <CopyToClipboardButton size="sm" text={text} />;
 }
 
 function AutofixRootCauseDisplay({
@@ -381,66 +412,78 @@ function AutofixRootCauseDisplay({
   groupId,
   runId,
   rootCauseSelection,
+  previousDefaultStepIndex,
+  previousInsightCount,
   repos,
 }: AutofixRootCauseProps) {
-  const [selectedId, setSelectedId] = useState(() => causes[0]!.id);
-  const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const {mutate: handleSelectFix, isPending} = useSelectCause({groupId, runId});
+  const [isEditing, setIsEditing] = useState(false);
+  const [customRootCause, setCustomRootCause] = useState('');
+  const cause = causes[0];
+
+  if (!cause) {
+    return <Alert type="error">{t('No root cause available.')}</Alert>;
+  }
 
   if (rootCauseSelection) {
     if ('custom_root_cause' in rootCauseSelection) {
       return (
         <CausesContainer>
           <CustomRootCausePadding>
-            <HeaderText>{t('Custom Root Cause')}</HeaderText>
+            <HeaderWrapper>
+              <HeaderText>
+                <IconFocus size="sm" />
+                {t('Custom Root Cause')}
+              </HeaderText>
+              <CopyRootCauseButton
+                customRootCause={rootCauseSelection.custom_root_cause}
+                isEditing={isEditing}
+              />
+            </HeaderWrapper>
             <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           </CustomRootCausePadding>
         </CausesContainer>
       );
     }
 
-    const selectedCause = causes.find(cause => cause.id === rootCauseSelection.cause_id);
+    const selectedCause = causes.find(c => c.id === rootCauseSelection.cause_id);
 
     if (!selectedCause) {
       return <Alert type="error">{t('Selected root cause not found.')}</Alert>;
     }
 
-    const otherCauses = causes.filter(cause => cause.id !== selectedCause.id);
-
     return (
       <CausesContainer>
         <ClippedBox clipHeight={408}>
-          <SelectedRootCauseOption
-            codeContext={selectedCause?.code_context}
-            selectedCause={selectedCause}
-            repos={repos}
-          />
-          {otherCauses.length > 0 && (
-            <AutofixShowMore title={t('Show unselected causes')}>
-              {otherCauses.map(cause => (
-                <RootCauseOption selected key={cause.id}>
-                  <RootCauseOptionHeader>
-                    <Title
-                      dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(t('Cause: %s', cause.title)),
-                      }}
-                    />
-                    <Button
-                      size="xs"
-                      onClick={() => handleSelectFix({causeId: cause.id})}
-                      busy={isPending}
-                      analyticsEventName="Autofix: Root Cause Fix Re-Selected"
-                      analyticsEventKey="autofix.root_cause_fix_selected"
-                      analyticsParams={{group_id: groupId}}
-                    >
-                      {t('Fix This Instead')}
-                    </Button>
-                  </RootCauseOptionHeader>
-                  <RootCauseDescription cause={cause} />
-                  <RootCauseContext cause={cause} repos={repos} />
-                </RootCauseOption>
-              ))}
-            </AutofixShowMore>
-          )}
+          <HeaderWrapper>
+            <HeaderText>
+              <IconFocus size="sm" />
+              {t('Root Cause')}
+            </HeaderText>
+            <CopyRootCauseButton cause={selectedCause} isEditing={isEditing} />
+          </HeaderWrapper>
+          <Content>
+            <CauseTitle
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(selectedCause.title),
+              }}
+            />
+            <RootCauseDescription
+              cause={selectedCause}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+            />
+            <RootCauseContext
+              cause={selectedCause}
+              repos={repos}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+            />
+          </Content>
         </ClippedBox>
       </CausesContainer>
     );
@@ -449,44 +492,84 @@ function AutofixRootCauseDisplay({
   return (
     <PotentialCausesContainer>
       <ClippedBox clipHeight={408}>
-        <OptionsPadding>
-          {causes.map(cause => (
-            <CauseOption
-              key={cause.id}
-              cause={cause}
-              selected={cause.id === selectedId}
-              setSelectedId={setSelectedId}
-              runId={runId}
-              groupId={groupId}
-              repos={repos}
+        <HeaderWrapper>
+          <HeaderText>
+            <IconFocus size="sm" />
+            {t('Root Cause')}
+          </HeaderText>
+          <ButtonBar gap={1}>
+            <CopyRootCauseButton cause={cause} isEditing={isEditing} />
+            <Button
+              size="sm"
+              onClick={() => {
+                if (isEditing) {
+                  setIsEditing(false);
+                  setCustomRootCause('');
+                } else {
+                  setIsEditing(true);
+                }
+              }}
+            >
+              {isEditing ? t('Cancel') : t('Edit')}
+            </Button>
+            <Button
+              size="sm"
+              priority="primary"
+              onClick={() => {
+                if (isEditing && customRootCause.trim()) {
+                  handleSelectFix({customRootCause: customRootCause.trim()});
+                } else if (!isEditing) {
+                  handleSelectFix({causeId: cause.id});
+                }
+              }}
+              busy={isPending}
+            >
+              {t('Find Fix')}
+            </Button>
+          </ButtonBar>
+        </HeaderWrapper>
+        <Content>
+          {isEditing ? (
+            <TextArea
+              value={customRootCause}
+              onChange={e => {
+                setCustomRootCause(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              rows={5}
+              autoFocus
+              placeholder={t('Propose your own root cause...')}
             />
-          ))}
-        </OptionsPadding>
+          ) : (
+            <Fragment>
+              <CauseTitle
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(cause.title),
+                }}
+              />
+              <RootCauseDescription
+                cause={cause}
+                groupId={groupId}
+                runId={runId}
+                previousDefaultStepIndex={previousDefaultStepIndex}
+                previousInsightCount={previousInsightCount}
+              />
+              <RootCauseContext
+                cause={cause}
+                repos={repos}
+                groupId={groupId}
+                runId={runId}
+                previousDefaultStepIndex={previousDefaultStepIndex}
+                previousInsightCount={previousInsightCount}
+              />
+            </Fragment>
+          )}
+        </Content>
       </ClippedBox>
     </PotentialCausesContainer>
   );
 }
-
-const cardAnimationProps: AnimationProps = {
-  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
-  initial: {opacity: 0, height: 0, scale: 0.8},
-  animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 1.0,
-    height: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    scale: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    y: {
-      type: 'tween',
-      ease: 'easeOut',
-    },
-  }),
-};
 
 export function AutofixRootCause(props: AutofixRootCauseProps) {
   if (props.causes.length === 0) {
@@ -512,14 +595,27 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   );
 }
 
-export function AutofixRootCauseCodeContexts({
-  codeContext,
+function CodeContextItem({
+  fix,
+  index,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
   repos,
 }: {
-  codeContext: AutofixRootCauseCodeContext[];
+  fix: AutofixRootCauseCodeContext;
+  groupId: string;
+  index: number;
   repos: AutofixRepository[];
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
 }) {
-  return codeContext?.map((fix, index) => (
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(descriptionRef);
+
+  return (
     <SuggestedFixWrapper key={fix.id}>
       <SuggestedFixHeader>
         <strong
@@ -528,7 +624,24 @@ export function AutofixRootCauseCodeContexts({
           }}
         />
       </SuggestedFixHeader>
-      <p
+      <AnimatePresence>
+        {selection && (
+          <AutofixHighlightPopup
+            selectedText={selection.selectedText}
+            referenceElement={selection.referenceElement}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount - 1
+                : -1
+            }
+          />
+        )}
+      </AnimatePresence>
+      <div
+        ref={descriptionRef}
         dangerouslySetInnerHTML={{
           __html: marked(fix.description),
         }}
@@ -541,6 +654,35 @@ export function AutofixRootCauseCodeContexts({
         />
       )}
     </SuggestedFixWrapper>
+  );
+}
+
+export function AutofixRootCauseCodeContexts({
+  codeContext,
+  repos,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: {
+  codeContext: AutofixRootCauseCodeContext[];
+  groupId: string;
+  repos: AutofixRepository[];
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
+}) {
+  return codeContext?.map((fix, index) => (
+    <CodeContextItem
+      key={fix.id}
+      fix={fix}
+      index={index}
+      groupId={groupId}
+      runId={runId}
+      previousDefaultStepIndex={previousDefaultStepIndex}
+      previousInsightCount={previousInsightCount}
+      repos={repos}
+    />
   ));
 }
 
@@ -553,100 +695,38 @@ const CausesContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+  padding-top: ${space(1)};
 `;
 
 const PotentialCausesContainer = styled(CausesContainer)`
   border: 2px solid ${p => p.theme.alert.info.border};
 `;
 
-const OptionsPadding = styled('div')`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
-  padding-top: ${space(1)};
+const Content = styled('div')`
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1)};
 `;
 
-const RootCauseOption = styled('div')<{selected: boolean}>`
-  background: ${p => (p.selected ? p.theme.background : p.theme.backgroundElevated)};
-  cursor: ${p => (p.selected ? 'default' : 'pointer')};
-  padding-top: ${space(1)};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const RootCauseContextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const RootCauseOptionHeader = styled('div')`
+const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 0 ${space(1)} ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
 `;
 
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+const HeaderText = styled('div')`
+  font-weight: bold;
   font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const CauseTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const CauseDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
-`;
-
-const SuggestedFixWrapper = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  p {
-    margin: ${space(1)} 0 0 0;
-  }
-`;
-
-const SuggestedFixHeader = styled('div')`
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const StyledCodeSnippet = styled(CodeSnippet)`
-  margin-top: ${space(2)};
-`;
-
-const ContentWrapper = styled(motion.div)<{selected: boolean}>`
-  display: grid;
-  grid-template-rows: ${p => (p.selected ? '1fr' : '0fr')};
-  transition: grid-template-rows 300ms;
-  will-change: grid-template-rows;
-
-  > div {
-    /* So that focused element outlines don't get cut off */
-    padding: 0 1px;
-    overflow: hidden;
-  }
-`;
-
-const AnimationWrapper = styled(motion.div)`
-  transform-origin: top center;
 `;
 
 const CustomRootCausePadding = styled('div')`
-  padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(1)} ${space(2)} ${space(1)};
 `;
 
 const fadeIn = keyframes`
@@ -687,7 +767,112 @@ const CodeSnippetWrapper = styled('div')`
   position: relative;
 `;
 
-const HeaderText = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+const CauseTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const CauseDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-top: ${space(1)};
+`;
+
+const SuggestedFixWrapper = styled('div')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+  p {
+    margin: ${space(1)} 0 0 0;
+  }
+`;
+
+const SuggestedFixHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const StyledCodeSnippet = styled(CodeSnippet)`
+  margin-top: ${space(2)};
+`;
+
+const AnimationWrapper = styled(motion.div)`
+  transform-origin: top center;
+`;
+
+const RootCauseContextContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+export function SuggestedFixSnippet({
+  snippet,
+  linesToHighlight,
+  repos,
+  icon,
+}: {
+  linesToHighlight: number[];
+  repos: AutofixRepository[];
+  snippet: CodeSnippetContext;
+  icon?: React.ReactNode;
+}) {
+  function getSourceLink() {
+    if (!repos) {
+      return null;
+    }
+    const repo = repos.find(
+      r => r.name === snippet.repo_name && r.provider === 'integrations:github'
+    );
+    if (!repo) {
+      return null;
+    }
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}${
+      snippet.start_line && snippet.end_line
+        ? `#L${snippet.start_line}-L${snippet.end_line}`
+        : ''
+    }`;
+  }
+  const extension = getFileExtension(snippet.file_path);
+  const language = extension ? getPrismLanguage(extension) : undefined;
+  const sourceLink = getSourceLink();
+
+  return (
+    <CodeSnippetWrapper>
+      <StyledCodeSnippet
+        filename={snippet.file_path}
+        language={language}
+        hideCopyButton
+        linesToHighlight={linesToHighlight}
+        icon={icon}
+      >
+        {snippet.snippet}
+      </StyledCodeSnippet>
+      {sourceLink && (
+        <CodeLinkWrapper>
+          <Tooltip title={t('Open in GitHub')} skipWrapper>
+            <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
+              <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+            </OpenInLink>
+          </Tooltip>
+        </CodeLinkWrapper>
+      )}
+    </CodeSnippetWrapper>
+  );
+}
+
+const TextArea = styled('textarea')`
+  width: 100%;
+  min-height: 150px;
+  border: none;
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.4;
+  resize: none;
+  overflow: hidden;
+  &:focus {
+    outline: none;
+  }
 `;
