@@ -12,9 +12,9 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
-    ExternalAPIConfigurationError,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
@@ -239,7 +239,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(ExternalAPIConfigurationError):
+            with pytest.raises(IntegrationInstallationConfigurationError):
                 self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
@@ -247,7 +247,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert start.args == (EventLifecycleOutcome.STARTED,)
             assert_halt_metric(
                 mock_record_event,
-                ExternalAPIConfigurationError(
+                IntegrationInstallationConfigurationError(
                     "Could not fetch issue create configuration from Jira."
                 ),
             )
