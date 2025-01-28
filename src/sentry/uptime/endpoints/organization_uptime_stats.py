@@ -141,12 +141,12 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def _format_response(
         self, response: TimeSeriesResponse
-    ) -> dict[str, list[tuple[int, dict[str, float]]]]:
+    ) -> dict[str, list[tuple[int, dict[str, int]]]]:
         """
         Formats the response from the EAP RPC request into a dictionary of subscription ids to a list of tuples
         of timestamps and a dictionary of check statuses to counts.
         """
-        formatted_data: dict[str, dict[int, dict[str, float]]] = {}
+        formatted_data: dict[str, dict[int, dict[str, int]]] = {}
 
         for timeseries in response.result_timeseries:
             subscription_id = timeseries.group_by_attributes["uptime_subscription_id"]
@@ -161,7 +161,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 value = int(data_point.data) if data_point.data_present else 0
                 formatted_data[subscription_id][bucket.seconds][status] = value
 
-        final_data: dict[str, list[tuple[int, dict[str, float]]]] = {}
+        final_data: dict[str, list[tuple[int, dict[str, int]]]] = {}
         for subscription_id, timestamps in formatted_data.items():
             final_data[subscription_id] = [
                 (ts, counts) for ts, counts in sorted(timestamps.items())
