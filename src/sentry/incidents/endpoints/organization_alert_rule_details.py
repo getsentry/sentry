@@ -90,7 +90,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
         try:
             trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
-            response = {"detail": e.message}
+            response = {"sentry_app": e.message}
             if public_context := e.public_context:
                 response.update({"context": public_context})
             return Response(response, status=e.status_code)

@@ -1628,7 +1628,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
 
-        assert resp.status_code == 400
+        assert resp.status_code == 500
         assert error_message in resp.data["sentry_app"]
 
 

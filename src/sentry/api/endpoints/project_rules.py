@@ -851,7 +851,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 kwargs["actions"]
             )
         except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
-            response = {}
+            response = {"actions": [e.message]}
             if public_context := e.public_context:
                 response.update({"context": public_context})
             return Response(response, status=e.status_code)

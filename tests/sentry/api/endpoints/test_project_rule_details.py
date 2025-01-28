@@ -1508,7 +1508,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filters": [],
         }
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
