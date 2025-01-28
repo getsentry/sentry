@@ -213,12 +213,21 @@ export function SpansTabContentImpl({
           <StyledButton
             aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
             size="xs"
-            icon={<IconChevron direction={expanded ? 'left' : 'right'} />}
+            icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
             onClick={() => setExpanded(!expanded)}
           />
         </Toggle>
       </MainSection>
     </Body>
+  );
+}
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
   );
 }
 
@@ -297,4 +306,8 @@ const StyledButton = styled(Button)`
   width: 28px;
   border-top-left-radius: 0px;
   border-bottom-left-radius: 0px;
+`;
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
 `;
