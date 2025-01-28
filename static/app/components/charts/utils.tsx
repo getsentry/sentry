@@ -349,7 +349,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
-    title: tableResult!.title ?? '',
+    title: tableResult.title ?? '',
     data: data.map(row => {
       return {
         name: row['geo.country_code'] as string,

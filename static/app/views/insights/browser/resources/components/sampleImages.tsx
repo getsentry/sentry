@@ -130,7 +130,7 @@ function SampleImagesChartPanelBody(props: {
         let src = resource[SPAN_DESCRIPTION]!;
         if (isRelativeUrl && hasRawDomain) {
           try {
-            const url = new URL(resource[SPAN_DESCRIPTION]!, resource[RAW_DOMAIN]!);
+            const url = new URL(resource[SPAN_DESCRIPTION]!, resource[RAW_DOMAIN]);
             src = url.href;
           } catch {
             Sentry.setContext('resource', {
