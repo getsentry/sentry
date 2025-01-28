@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from sentry.hybridcloud.rpc import RpcModel
 
@@ -18,7 +18,7 @@ class RpcSentryAppRequest(RpcModel):
     error_id: str | None = None
     project_id: int | None = None
     request_body: str | None = None
-    request_headers: Mapping[Any, Any] | None = None
+    request_headers: Mapping[str, str] | None = None
     response_body: str | None = None
 
 
