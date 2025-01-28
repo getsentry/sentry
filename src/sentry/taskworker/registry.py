@@ -44,9 +44,11 @@ class TaskNamespace:
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
-        self._producer: SingletonProducer = SingletonProducer(self.producer, max_futures=1000)
+        self._producer: SingletonProducer = SingletonProducer(
+            self._basic_producer, max_futures=1000
+        )
 
-    def producer(self) -> KafkaProducer:
+    def _basic_producer(self) -> KafkaProducer:
         cluster_name = get_topic_definition(self.topic)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         return KafkaProducer(producer_config)
