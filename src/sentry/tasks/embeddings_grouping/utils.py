@@ -152,17 +152,18 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
     # we want to keep the value to be used as an filter for the next batch
     groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length = [], None, 0
     for group in groups_to_backfill_batch_raw:
+        group_id, data, status, last_seen, times_seen = group
         if (
-            group[2]
+            status
             not in [
                 GroupStatus.PENDING_DELETION,
                 GroupStatus.DELETION_IN_PROGRESS,
             ]
-            and group[3] > datetime.now(UTC) - timedelta(days=90)
-            and group[4] > 1
+            and last_seen > datetime.now(UTC) - timedelta(days=90)
+            and times_seen > 1
         ):
-            groups_to_backfill_batch.append((group[0], group[1]))
-        batch_raw_end_group_id = group[0]
+            groups_to_backfill_batch.append((group_id, data))
+        batch_raw_end_group_id = group_id
         backfill_batch_raw_length += 1
 
     return groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length
