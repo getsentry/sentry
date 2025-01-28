@@ -85,7 +85,7 @@ export function MissingInstrumentationNodeDetails(
                   input={profiles?.type === 'resolved' ? profiles.data : null}
                   traceID={profileId || ''}
                 >
-                  <ProfilePreview event={event!} node={node} />
+                  <ProfilePreview event={event} node={node} />
                 </ProfileGroupProvider>
               )}
             </ProfileContext.Consumer>

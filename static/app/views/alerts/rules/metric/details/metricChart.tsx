@@ -25,7 +25,6 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -402,10 +401,7 @@ class MetricChart extends PureComponent<Props, State> {
                           period: `${timeWindow}`,
                         };
                         const endTime = formatTooltipDate(
-                          moment(pointX).add(
-                            parseInt(period!, 10),
-                            periodLength as StatsPeriodType
-                          ),
+                          moment(pointX).add(parseInt(period!, 10), periodLength),
                           'MMM D LT'
                         );
 

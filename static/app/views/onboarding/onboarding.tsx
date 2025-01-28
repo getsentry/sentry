@@ -397,7 +397,7 @@ function Onboarding(props: Props) {
               }
 
               // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]!);
+              goToStep(onboardingSteps[i]);
             }}
           />
         )}

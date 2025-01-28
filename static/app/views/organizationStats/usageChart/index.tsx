@@ -418,11 +418,11 @@ function UsageChartBody({
   const colors = categoryColors?.length
     ? categoryColors
     : [
-        theme.outcome[Outcome.ACCEPTED]!,
-        theme.outcome[Outcome.FILTERED]!,
-        theme.outcome[Outcome.RATE_LIMITED]!,
-        theme.outcome[Outcome.INVALID]!,
-        theme.outcome[Outcome.CLIENT_DISCARD]!,
+        theme.outcome[Outcome.ACCEPTED],
+        theme.outcome[Outcome.FILTERED],
+        theme.outcome[Outcome.RATE_LIMITED],
+        theme.outcome[Outcome.INVALID],
+        theme.outcome[Outcome.CLIENT_DISCARD],
         theme.chartOther, // Projected
       ];
 
