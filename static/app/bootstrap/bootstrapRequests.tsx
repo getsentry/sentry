@@ -93,6 +93,10 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   });
 }
 
+/**
+ * The TeamsStore expects a cursor, hasMore, and teams
+ * Since some of this information exists in headers, parse it into something we can serialize
+ */
 function createTeamsObject(response: ApiResult): {
   cursor: string | null;
   hasMore: boolean;

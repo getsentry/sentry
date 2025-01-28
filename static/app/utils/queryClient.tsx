@@ -22,7 +22,6 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours
     },
   },
 };
