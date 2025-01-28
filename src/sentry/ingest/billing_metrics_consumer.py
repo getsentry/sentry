@@ -70,7 +70,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = self._get_payload(message)
 
         self._produce_outcomes(payload)
-        self._flag_metric_received_for_project(payload)
 
         self.__next_step.submit(message)
 
