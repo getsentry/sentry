@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import UTC, datetime
+from typing import Any
 
 from django.conf import settings
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
@@ -131,7 +132,7 @@ class AlertRuleIndexMixin(Endpoint):
         try:
             trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
-            response = {"sentry_app": e.message}
+            response: dict[str, Any] = {"sentry_app": e.message}
             if public_context := e.public_context:
                 response.update({"context": public_context})
             return Response(response, status=e.status_code)

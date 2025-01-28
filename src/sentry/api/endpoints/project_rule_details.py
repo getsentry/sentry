@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -293,7 +294,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             try:
                 trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
             except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
-                response = {"actions": [e.message]}
+                response: dict[str, Any] = {"actions": [e.message]}
                 if public_context := e.public_context:
                     response.update({"context": public_context})
                 return Response(response, status=e.status_code)
