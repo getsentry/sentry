@@ -58,7 +58,7 @@ describe('PlatformPicker', function () {
   it('should clear the platform when clear is clicked', async function () {
     const props = {
       ...baseProps,
-      platform: 'java',
+      platform: 'javascript-react',
       setPlatform: jest.fn(),
     };
 
@@ -69,36 +69,25 @@ describe('PlatformPicker', function () {
   });
 
   it('platforms shall be sorted alphabetically', function () {
-    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="popular" />);
+    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="browser" />);
 
     const alphabeticallyOrderedPlatformNames = [
-      'Android',
       'Angular',
-      'ASP.NET Core',
+      'Astro',
       'Browser JavaScript',
-      'Django',
-      'Express',
-      'FastAPI',
-      'Flask',
-      'Flutter',
-      'Go',
-      'iOS',
-      'Java',
-      'Laravel',
-      'Nest.js',
+      'Dart',
+      'Ember',
+      'Gatsby',
       'Next.js',
-      'Node.js',
       'Nuxt',
-      'PHP',
-      'Python',
-      'Rails',
       'React',
-      'React Native',
-      'Ruby',
-      'Spring Boot',
+      'Remix',
+      'Solid',
+      'SolidStart',
+      'Svelte',
+      'SvelteKit',
       'Unity',
       'Vue',
-      '.NET',
     ];
 
     const platformNames = screen.getAllByRole('heading', {level: 3});

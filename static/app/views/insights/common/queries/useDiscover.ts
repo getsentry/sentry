@@ -10,6 +10,7 @@ import type {
   EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
+  OurlogsFields,
   SpanIndexedProperty,
   SpanIndexedResponse,
   SpanMetricsProperty,
@@ -36,6 +37,19 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
     DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
+};
+
+export const useOurlogs = <Fields extends Array<keyof OurlogsFields>>(
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
+) => {
+  const {data, ...rest} = useDiscover<Fields, OurlogsFields>(
+    options,
+    DiscoverDatasets.OURLOGS,
+    referrer
+  );
+  const castData = data as OurlogsFields[];
+  return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
@@ -71,7 +85,7 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   );
 };
 
-const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
+const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseMetricsOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
@@ -107,7 +121,7 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
-  const data = (result?.data ?? []) as Pick<ResponseType, T[number]>[];
+  const data = (result?.data ?? []) as Array<Pick<ResponseType, T[number]>>;
 
   return {
     ...result,

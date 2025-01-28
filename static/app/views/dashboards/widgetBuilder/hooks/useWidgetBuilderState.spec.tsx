@@ -71,12 +71,16 @@ describe('useWidgetBuilderState', () => {
     jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({title: 'new title'})})
+      expect.objectContaining({
+        query: expect.objectContaining({title: 'new title'}),
+      }),
+      {replace: true}
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -126,7 +130,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
-        })
+        }),
+        {replace: true}
       );
     });
 
@@ -635,7 +640,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
-        })
+        }),
+        {replace: true}
       );
     });
 
@@ -1347,7 +1353,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
-        })
+        }),
+        {replace: true}
       );
     });
   });

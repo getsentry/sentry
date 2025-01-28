@@ -31,7 +31,7 @@ export const SummaryTable = memo(function SummaryTable({
   onRowClick,
   onColorDotClick,
   onSortChange,
-  sort = DEFAULT_SORT_STATE as SortState,
+  sort = DEFAULT_SORT_STATE,
   onRowHover,
   onRowFilter,
 }: {
@@ -70,7 +70,7 @@ export const SummaryTable = memo(function SummaryTable({
       });
       if (sort.name === name) {
         if (sort.order === 'desc') {
-          onSortChange(DEFAULT_SORT_STATE as SortState);
+          onSortChange(DEFAULT_SORT_STATE);
         } else if (sort.order === 'asc') {
           onSortChange({
             name,
@@ -160,9 +160,9 @@ export const SummaryTable = memo(function SummaryTable({
           ? a.seriesName.localeCompare(b.seriesName)
           : b.seriesName.localeCompare(a.seriesName);
       }
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const aValue = a[name] ?? 0;
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const bValue = b[name] ?? 0;
 
       return order === 'asc' ? aValue - bValue : bValue - aValue;

@@ -17,7 +17,7 @@ import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
  * This is used in some integrations
  */
 export default class SelectCreatableField extends SelectField {
-  options: SelectValue<any>[] | undefined;
+  options: Array<SelectValue<any>> | undefined;
 
   constructor(props: any, context: any) {
     super(props, context);

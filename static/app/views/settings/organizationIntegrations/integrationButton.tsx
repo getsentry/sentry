@@ -40,12 +40,7 @@ function IntegrationButton({
 
   if (!userHasAccess) {
     return (
-      <RequestIntegrationButton
-        organization={organization}
-        name={provider.name}
-        slug={provider.slug}
-        type={type}
-      />
+      <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
   }
   if (provider.canAdd) {

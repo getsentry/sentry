@@ -164,7 +164,7 @@ export default function WizardField({
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
-            dataset: dataset as Dataset,
+            dataset,
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
@@ -194,7 +194,7 @@ export default function WizardField({
               options={menuOptions}
               disabled={disabled}
               onChange={(option: MenuOption) => {
-                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);

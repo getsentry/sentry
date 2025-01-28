@@ -110,9 +110,7 @@
         "auth_token": ["project:write"]
       }
     ],
-    "servers": [
-      {"url": "https://{region}.sentry.io"}
-    ]
+    "servers": [{ "url": "https://{region}.sentry.io" }]
   },
   "delete": {
     "tags": ["Projects"],

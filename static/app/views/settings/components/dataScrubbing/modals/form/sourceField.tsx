@@ -28,7 +28,7 @@ type Props = {
 
 type State = {
   activeSuggestion: number;
-  fieldValues: (SourceSuggestion | SourceSuggestion[])[];
+  fieldValues: Array<SourceSuggestion | SourceSuggestion[]>;
   help: string;
   hideCaret: boolean;
   showSuggestions: boolean;
@@ -103,8 +103,8 @@ class SourceField extends Component<Props, State> {
     return filteredSuggestions;
   }
 
-  // @ts-ignore TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
-  getNewSuggestions(fieldValues: (SourceSuggestion | SourceSuggestion[])[]) {
+  // @ts-expect-error TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
+  getNewSuggestions(fieldValues: Array<SourceSuggestion | SourceSuggestion[]>) {
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
     const penultimateFieldValue = fieldValues[fieldValues.length - 2]!;
 
@@ -168,7 +168,7 @@ class SourceField extends Component<Props, State> {
   }
 
   loadFieldValues(newValue: string) {
-    const fieldValues: (SourceSuggestion | SourceSuggestion[])[] = [];
+    const fieldValues: Array<SourceSuggestion | SourceSuggestion[]> = [];
 
     const splittedValue = newValue.split(' ');
 
@@ -256,8 +256,8 @@ class SourceField extends Component<Props, State> {
 
   getNewFieldValues(
     suggestion: SourceSuggestion
-  ): (SourceSuggestion | SourceSuggestion[])[] {
-    const fieldValues = [...this.state.fieldValues]!;
+  ): Array<SourceSuggestion | SourceSuggestion[]> {
+    const fieldValues = [...this.state.fieldValues];
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
     if (!defined(lastFieldValue)) {

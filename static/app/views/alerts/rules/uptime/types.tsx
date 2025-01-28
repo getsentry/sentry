@@ -1,4 +1,4 @@
-import type {Actor} from 'sentry/types/core';
+import type {Actor, ObjectStatus} from 'sentry/types/core';
 
 export enum UptimeMonitorStatus {
   OK = 1,
@@ -14,7 +14,7 @@ export enum UptimeMonitorMode {
 export interface UptimeRule {
   body: string | null;
   environment: string | null;
-  headers: [key: string, value: string][];
+  headers: Array<[key: string, value: string]>;
   id: string;
   intervalSeconds: number;
   method: string;
@@ -22,8 +22,9 @@ export interface UptimeRule {
   name: string;
   owner: Actor;
   projectSlug: string;
-  status: UptimeMonitorStatus;
+  status: ObjectStatus;
   timeoutMs: number;
   traceSampling: boolean;
+  uptimeStatus: UptimeMonitorStatus;
   url: string;
 }

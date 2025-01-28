@@ -42,7 +42,7 @@ import {
 
 interface DebugMetaProps {
   data: {
-    images: (Image | null)[];
+    images: Array<Image | null>;
   };
   event: Event;
   projectSlug: Project['slug'];
@@ -51,8 +51,8 @@ interface DebugMetaProps {
 
 interface FilterState {
   allImages: ImageWithCombinedStatus[];
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
 }
 
 const cache = new CellMeasurerCache({
@@ -62,7 +62,7 @@ const cache = new CellMeasurerCache({
 
 function applyImageFilters(
   images: ImageWithCombinedStatus[],
-  filterSelections: SelectOption<string>[],
+  filterSelections: Array<SelectOption<string>>,
   searchTerm: string
 ) {
   const selections = new Set(filterSelections.map(option => option.value));

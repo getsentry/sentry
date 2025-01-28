@@ -83,10 +83,10 @@ export function getRefRect(chartData: HistogramData): Rectangle | null {
     for (let j = i + 1; j < chartData.length; j++) {
       const data2 = chartData[j]!;
 
-      if (data1!.bin !== data2!.bin && data1!.count !== data2!.count) {
+      if (data1!.bin !== data2.bin && data1!.count !== data2.count) {
         return {
-          point1: {x: i, y: Math.min(data1!.count, data2!.count)},
-          point2: {x: j, y: Math.max(data1!.count, data2!.count)},
+          point1: {x: i, y: Math.min(data1!.count, data2.count)},
+          point2: {x: j, y: Math.max(data1!.count, data2.count)},
         };
       }
     }

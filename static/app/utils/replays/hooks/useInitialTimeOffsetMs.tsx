@@ -137,8 +137,8 @@ async function fromListPageQuery({
   }
   try {
     const firstResult = results.clicks.at(0)!;
-    const firstTimestamp = firstResult!.timestamp;
-    const nodeId = firstResult!.node_id;
+    const firstTimestamp = firstResult.timestamp;
+    const nodeId = firstResult.node_id;
     const firstTimestmpMs = new Date(firstTimestamp).getTime();
     return {
       highlight: {

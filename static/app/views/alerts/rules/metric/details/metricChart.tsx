@@ -25,7 +25,6 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -382,7 +381,7 @@ class MetricChart extends PureComponent<Props, State> {
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
-                        // @ts-ignore TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
+                        // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
                         const {marker, data: pointData} = pointSeries[0];
                         const seriesName =
                           formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
@@ -402,10 +401,7 @@ class MetricChart extends PureComponent<Props, State> {
                           period: `${timeWindow}`,
                         };
                         const endTime = formatTooltipDate(
-                          moment(pointX).add(
-                            parseInt(period!, 10),
-                            periodLength as StatsPeriodType
-                          ),
+                          moment(pointX).add(parseInt(period!, 10), periodLength),
                           'MMM D LT'
                         );
 
@@ -416,7 +412,7 @@ class MetricChart extends PureComponent<Props, State> {
                               )
                             : undefined;
 
-                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         const comparisonPointY = comparisonSeries?.data[1] as
                           | number
                           | undefined;
@@ -588,7 +584,7 @@ class MetricChart extends PureComponent<Props, State> {
         end={viableEndDate}
         query={query}
         interval={interval}
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >

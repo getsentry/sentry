@@ -8,6 +8,15 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.ISSUE_CATEGORY)
 class IssueCategoryConditionHandler(DataConditionHandler[WorkflowJob]):
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "value": {"type": "integer", "enum": [*GroupCategory]},
+        },
+        "required": ["value"],
+        "additionalProperties": False,
+    }
+
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         group = job["event"].group

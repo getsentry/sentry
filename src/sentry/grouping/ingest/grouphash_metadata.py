@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
-
-from typing_extensions import TypeIs
+from typing import Any, TypeIs, cast
 
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
@@ -41,7 +39,7 @@ from sentry.types.grouphash_metadata import (
     StacktraceHashingMetadata,
     TemplateHashingMetadata,
 )
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
@@ -318,7 +316,7 @@ def _get_fingerprint_hashing_metadata(
     metadata: FingerprintHashingMetadata = {
         # For simplicity, we stringify fingerprint values (which are always lists) to keep
         # `hashing_metadata` a flat structure
-        "fingerprint": str(contributing_variant.values),
+        "fingerprint": json.dumps(contributing_variant.values),
         "fingerprint_source": (
             "client"
             if not matched_rule

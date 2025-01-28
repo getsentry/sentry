@@ -19,7 +19,7 @@ import {addToFilter, excludeFromFilter} from '../../discover/table/cellAction';
  */
 export function extendQueryWithGroupBys(
   query: string,
-  groupBys: (Record<string, string> | undefined)[]
+  groupBys: Array<Record<string, string> | undefined>
 ) {
   const mutableSearch = new MutableSearch(query);
 

@@ -18,7 +18,6 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
-import {hasSetupWizardCreateProjectFeature} from 'sentry/views/setupWizard/utils/features';
 import {useCreateProjectFromWizard} from 'sentry/views/setupWizard/utils/useCreateProjectFromWizard';
 import {useOrganizationDetails} from 'sentry/views/setupWizard/utils/useOrganizationDetails';
 import {useOrganizationProjects} from 'sentry/views/setupWizard/utils/useOrganizationProjects';
@@ -87,10 +86,9 @@ export function WizardProjectSelection({
 
   const isCreationEnabled =
     orgDetailsRequest.data &&
+    canCreateProject(orgDetailsRequest.data) &&
     teamsRequest.data &&
     teamsRequest.data.length > 0 &&
-    hasSetupWizardCreateProjectFeature(orgDetailsRequest.data) &&
-    canCreateProject(orgDetailsRequest.data) &&
     platformParam;
 
   const updateWizardCacheMutation = useUpdateWizardCache(hash);

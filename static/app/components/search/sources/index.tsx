@@ -14,7 +14,7 @@ type Props = {
   children: (props: ChildProps) => React.ReactElement;
   params: {orgId: string};
   query: string;
-  sources: React.ComponentType<any>[];
+  sources: Array<React.ComponentType<any>>;
   searchOptions?: Fuse.IFuseOptions<any>;
 };
 

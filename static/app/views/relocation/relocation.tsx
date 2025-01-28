@@ -249,8 +249,8 @@ function RelocationOnboarding(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
-              // @ts-ignore TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
-              goToStep(onboardingSteps[i]!);
+              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
+              goToStep(onboardingSteps[i]);
             }}
           />
         )}

@@ -80,7 +80,7 @@ export function ExploreCharts({
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -300,6 +300,7 @@ export function useExtrapolationMeta({
     initialData: [],
     referrer: 'api.explore.spans-extrapolation-meta',
     enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    trackResponseAnalytics: false,
   });
 }
 
