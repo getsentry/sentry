@@ -1,14 +1,12 @@
 from django.utils.functional import empty
-from jsonschema import ValidationError
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.coreapi import APIError, APIUnauthorized
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -16,6 +14,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -34,6 +33,12 @@ def _extract_lazy_object(lo):
     return lo._wrapped
 
 
+class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
+    groupId = serializers.CharField(required=True, allow_null=False)
+    action = serializers.CharField(required=True, allow_null=False)
+    uri = serializers.CharField(required=True, allow_null=False)
+
+
 @region_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -44,8 +49,12 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
     def post(self, request: Request, installation) -> Response:
         data = request.data.copy()
 
-        if not {"groupId", "action", "uri"}.issubset(data.keys()):
-            return Response(status=400)
+        external_issue_action_serializer = SentryAppInstallationExternalIssueActionsSerializer(
+            data=data
+        )
+
+        if not external_issue_action_serializer.is_valid():
+            return Response(external_issue_action_serializer.errors, status=400)
 
         group_id = data.get("groupId")
         del data["groupId"]
@@ -56,34 +65,26 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
-            return Response(status=404)
+            raise SentryAppError(
+                message="Could not find the corresponding issue for the given groupId",
+                status_code=404,
+            )
 
         action = data.pop("action")
         uri = data.pop("uri")
 
-        try:
-            user = _extract_lazy_object(request.user)
-            if isinstance(user, User):
-                user = serialize_rpc_user(user)
+        user = _extract_lazy_object(request.user)
+        if isinstance(user, User):
+            user = serialize_rpc_user(user)
 
-            external_issue = IssueLinkCreator(
-                install=installation,
-                group=group,
-                action=action,
-                fields=data,
-                uri=uri,
-                user=user,
-            ).run()
-        except (APIError, ValidationError, APIUnauthorized) as e:
-            return Response({"error": str(e)}, status=400)
-        except Exception as e:
-            error_id = capture_exception(e)
-            return Response(
-                {
-                    "error": f"Something went wrong while trying to link issue. Sentry error ID: {error_id}"
-                },
-                status=500,
-            )
+        external_issue = IssueLinkCreator(
+            install=installation,
+            group=group,
+            action=action,
+            fields=data,
+            uri=uri,
+            user=user,
+        ).run()
 
         return Response(
             serialize(objects=external_issue, serializer=PlatformExternalIssueSerializer())

@@ -19,6 +19,11 @@ from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.projects.services.project import RpcProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
@@ -240,6 +245,12 @@ def prepare_ui_component(
             component=component, install=installation, project_slug=project_slug, values=values
         ).run()
         return component
-    except (APIError, ValidationError):
+    except (
+        APIError,
+        ValidationError,
+        SentryAppIntegratorError,
+        SentryAppError,
+        SentryAppSentryError,
+    ):
         # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
         return None
