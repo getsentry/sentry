@@ -123,7 +123,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
-        tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
+        tags = [["foo", "guux"], ["sentry:quit", "releaseme"]]
         contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
         for i in range(3):
             perf_event = self.create_performance_issue(
@@ -711,6 +711,88 @@ class RuleProcessorTestFilters(TestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
+
+    def test_env_picker_vs_filter(self):
+        now = datetime.now(UTC)
+        Rule.objects.filter(project=self.group_event.project).delete()
+        prod_env = self.create_environment(
+            self.project, name="production", organization=self.organization
+        )
+        beta_env = self.create_environment(
+            self.project, name="beta", organization=self.organization
+        )
+        oldest_adopted = self.create_release(
+            project=self.project,
+            version="test@2.0",
+            date_added=now - timedelta(days=2),
+            environments=[beta_env],
+            adopted=now - timedelta(days=2),
+        )
+
+        # last stable release
+        self.create_release(
+            project=self.project,
+            version="test@1.0",
+            date_added=now - timedelta(days=1),
+            environments=[prod_env],
+            adopted=now - timedelta(days=1),
+        )
+
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            },
+            {
+                "id": "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
+                "oldest_or_newest": "oldest",
+                "older_or_newer": "newer",
+                "environment": "production",
+            },
+        ]
+        env_filter = {
+            "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+            "attribute": "environment",
+            "match": "eq",
+            "value": "beta",
+        }
+        # rule where env is picked
+        self.create_project_rule(
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            environment_id=beta_env.id,
+        )
+        conditions.append(env_filter)
+        # rule where env is a filter
+        self.create_project_rule(
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+        )
+
+        event = self.store_event(
+            data={"release": oldest_adopted.version, "tags": [("environment", "beta")]},
+            project_id=self.project.id,
+        )
+        group_event = event.for_group(cast(Group, event.group))
+
+        rp = RuleProcessor(
+            group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 2
 
     def test_last_active_too_recent(self):
         Rule.objects.filter(project=self.group_event.project).delete()
