@@ -27,7 +27,6 @@ export function useBootstrapOrganizationQuery(orgSlug: string | null) {
 
   useEffect(() => {
     if (organizationQuery.data) {
-      console.log('updating org store');
       OrganizationStore.onUpdate(organizationQuery.data);
     }
     if (organizationQuery.error) {
@@ -59,7 +58,6 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
 
   useEffect(() => {
     if (projectsQuery.data) {
-      console.log('updating projects store');
       ProjectsStore.loadInitialData(projectsQuery.data);
     }
   }, [projectsQuery.data]);

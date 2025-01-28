@@ -2,6 +2,7 @@ import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persist
 import {persistQueryClient} from '@tanstack/react-query-persist-client';
 import {del as removeItem, get as getItem, set as setItem} from 'idb-keyval';
 
+import {SENTRY_RELEASE_VERSION} from 'sentry/constants';
 import {DEFAULT_QUERY_CLIENT_CONFIG, QueryClient} from 'sentry/utils/queryClient';
 
 /**
@@ -15,9 +16,18 @@ export const localStoragePersister = createAsyncStoragePersister({
   throttleTime: 10_000,
 });
 
+/**
+ * Attach the persister to the query client
+ * @link https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
+ */
 persistQueryClient({
   queryClient: appQueryClient,
   persister: localStoragePersister,
+  /**
+   * Clear cache on release version change
+   * Locally this does nothing, if you need to clear cache locally you can clear indexdb
+   */
+  buster: SENTRY_RELEASE_VERSION,
   dehydrateOptions: {
     // Persist a subset of queries to local storage
     shouldDehydrateQuery(query) {
