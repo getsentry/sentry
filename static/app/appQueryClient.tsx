@@ -20,11 +20,12 @@ persistQueryClient({
   persister: localStoragePersister,
   dehydrateOptions: {
     // Persist a subset of queries to local storage
-    shouldDehydrateQuery({queryKey}) {
+    shouldDehydrateQuery(query) {
+      // This could be extended later to persist other queries
       return (
-        Array.isArray(queryKey) &&
-        queryKey.length > 0 &&
-        queryKey.at(-1)?.persistToLocalStorage
+        Array.isArray(query.queryKey) &&
+        typeof query.queryKey[0] === 'string' &&
+        query.queryKey[0].startsWith('bootstrap-')
       );
     },
   },

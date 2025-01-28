@@ -1,4 +1,3 @@
-import type {ResponseMeta} from 'sentry/api';
 import type {Config} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
 
@@ -36,90 +35,8 @@ async function bootWithHydration() {
   window.__initialData = data;
 
   bootApplication(data);
-  preloadOrganizationData(data);
 
   return data;
-}
-
-async function promiseRequest(url: string) {
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json; charset=utf-8',
-        'Content-Type': 'application/json',
-        'sentry-trace': window.__initialData.initialTrace.sentry_trace,
-        baggage: window.__initialData.initialTrace.baggage,
-      },
-      credentials: 'include',
-      priority: 'high',
-    });
-    if (response.status >= 200 && response.status < 300) {
-      const text = await response.text();
-      const json = JSON.parse(text);
-      const responseMeta: ResponseMeta = {
-        status: response.status,
-        statusText: response.statusText,
-        responseJSON: json,
-        responseText: text,
-        getResponseHeader: (header: string) => response.headers.get(header),
-      };
-      return [json, response.statusText, responseMeta];
-    }
-    // eslint-disable-next-line no-throw-literal
-    throw [response.status, response.statusText];
-  } catch (error) {
-    // eslint-disable-next-line no-throw-literal
-    throw [error.status, error.statusText];
-  }
-}
-
-function preloadOrganizationData(config: Config) {
-  if (!config.shouldPreloadData) {
-    // Don't send requests if we're not supposed to preload data.
-    // See https://github.com/getsentry/sentry/blob/760afb3ab9d2bed669df2f2a01e58c438ceafa3c/src/sentry/web/client_config.py#L394-L418
-    return;
-  }
-  let slug = config.lastOrganization;
-  if (!slug && config.customerDomain) {
-    slug = config.customerDomain.subdomain;
-  }
-
-  let host = '';
-  if (config.links?.regionUrl && config.links?.regionUrl !== config.links?.sentryUrl) {
-    host = config.links.regionUrl;
-  }
-  // When running in 'dev-ui' mode we need to use /region/$region instead of
-  // subdomains so that webpack/vercel can proxy requests.
-  if (host && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?\:\/\/([^.]*)\.sentry.io/;
-    const domainmatch = host.match(domainpattern);
-    if (domainmatch) {
-      host = `/region/${domainmatch[1]}`;
-    }
-  }
-
-  function makeUrl(suffix: string) {
-    return host + '/api/0/organizations/' + slug + suffix;
-  }
-
-  const preloadPromises: Record<string, any> = {orgSlug: slug};
-  window.__sentry_preload = preloadPromises;
-  try {
-    if (!slug) {
-      return;
-    }
-    preloadPromises.organization = promiseRequest(
-      makeUrl('/?detailed=0&include_feature_flags=1')
-    );
-    preloadPromises.projects = promiseRequest(
-      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
-    );
-    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
-  } catch (e) {
-    // eslint-disable-next-line
-    console.error(e);
-  }
 }
 
 /**

@@ -41,3 +41,20 @@ export async function getPreloadedDataPromise(
   }
   return await wrappedFallback();
 }
+
+export function getPreloadedDataSimple(
+  name: 'organization' | 'projects' | 'teams',
+  slug: string
+): Promise<ApiResult | null> {
+  const data = window.__sentry_preload;
+  if (
+    !data ||
+    !data[name] ||
+    !data.orgSlug ||
+    data.orgSlug.toLowerCase() !== slug.toLowerCase()
+  ) {
+    return Promise.resolve(null);
+  }
+
+  return data[name];
+}
