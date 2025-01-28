@@ -442,6 +442,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-crons", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights uptime view
     manager.add("organizations:insights-uptime", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Removes performance landing page from sidebar and updates transaction summary breadcrumbs for insights
+    manager.add("organizations:insights-performance-landing-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the aggregate span waterfall view
@@ -624,6 +626,14 @@ def register_temporary_features(manager: FeatureManager):
     # Controls access to tempest features
     manager.add(
         "organizations:tempest-access",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
+
+    # Feature Flags Features.
+    manager.add(
+        "organizations:feature-flag-autocomplete",
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,
