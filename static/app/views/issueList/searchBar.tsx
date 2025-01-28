@@ -110,6 +110,9 @@ function IssueListSearchBar({
         sort: '-count' as const,
       };
 
+      const hasFeatureFlagSearch = organization.features.includes(
+        'feature-flag-autocomplete'
+      );
       const [eventsDatasetValues, issuePlatformDatasetValues, featureFlagValues] =
         await Promise.all([
           fetchTagValues({
@@ -120,9 +123,11 @@ function IssueListSearchBar({
             ...fetchTagValuesPayload,
             dataset: Dataset.ISSUE_PLATFORM,
           }),
-          fetchFeatureFlagValues({
-            ...fetchTagValuesPayload,
-          }),
+          hasFeatureFlagSearch
+            ? fetchFeatureFlagValues({
+                ...fetchTagValuesPayload,
+              })
+            : Promise.resolve([]),
         ]);
 
       const eventsAndIssuePlatformValues = mergeAndSortTagValues(
@@ -138,6 +143,7 @@ function IssueListSearchBar({
     [
       api,
       organization.slug,
+      organization.features,
       pageFilters.datetime.end,
       pageFilters.datetime.period,
       pageFilters.datetime.start,
