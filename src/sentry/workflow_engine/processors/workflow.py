@@ -74,6 +74,7 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
             if remaining_conditions:
                 workflows_to_enqueue.add(workflow)
             else:
+                # Only add workflows that have no remaining conditions to check
                 triggered_workflows.add(workflow)
 
     if workflows_to_enqueue:

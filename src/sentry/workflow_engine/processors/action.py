@@ -85,8 +85,9 @@ def filter_recently_fired_workflow_actions(
 
 
 def evaluate_workflows_action_filters(
-    workflows: set[Workflow], job: WorkflowJob
-) -> tuple[BaseQuerySet[Action], list[DataCondition]]:
+    workflows: set[Workflow],
+    job: WorkflowJob,
+) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
     enqueued_conditions: list[DataCondition] = []
 
@@ -114,4 +115,4 @@ def evaluate_workflows_action_filters(
         dataconditiongroupaction__condition_group__in=filtered_action_groups
     ).distinct()
 
-    return filter_recently_fired_workflow_actions(actions, job["event"].group), enqueued_conditions
+    return filter_recently_fired_workflow_actions(actions, job["event"].group)

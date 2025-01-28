@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.action import (
@@ -31,11 +31,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_basic__no_filter(self):
-        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
-            {self.workflow}, self.job
-        )
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
         assert set(triggered_actions) == {self.action}
-        assert remaining_conditions == []
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -45,11 +42,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
-            {self.workflow}, self.job
-        )
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
         assert set(triggered_actions) == {self.action}
-        assert remaining_conditions == []
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -59,25 +53,34 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
-            {self.workflow}, self.job
-        )
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
         assert not triggered_actions
-        assert remaining_conditions == []
 
     def test_with_slow_conditions(self):
-        slow_condition = self.create_data_condition(
+        self.action_group.logic_type = DataConditionGroup.Type.ALL
+
+        self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.EVENT_FREQUENCY_COUNT,
             comparison={"interval": "1d", "value": 7},
         )
 
-        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
-            {self.workflow}, self.job
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_SEEN_COUNT,
+            comparison=1,
+            condition_result=True,
         )
+        self.action_group.save()
 
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+
+        assert self.action_group.conditions.count() == 2
+
+        # The first condition passes, but the second is enqueued for later evaluation
         assert not triggered_actions
-        assert remaining_conditions == [slow_condition]
+
+        # TODO @saponifi3d - Add a check to ensure the second condition is enqueued for later evaluation
 
 
 @freeze_time("2024-01-09")
