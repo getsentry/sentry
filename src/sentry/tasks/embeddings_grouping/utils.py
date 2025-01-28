@@ -726,6 +726,6 @@ def get_next_project_from_cohort(last_processed_project_index, cohort_projects):
     next_project_index = last_processed_project_index + 1
     if next_project_index >= len(cohort_projects):
         return None, None
+
     project_id = cohort_projects[next_project_index]
-    last_processed_project_index = next_project_index
-    return project_id, last_processed_project_index
+    return project_id, next_project_index
