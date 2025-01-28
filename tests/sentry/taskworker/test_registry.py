@@ -118,7 +118,7 @@ def test_namespace_send_task_no_retry() -> None:
     assert activation.retry_state.max_attempts == 1
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
@@ -147,7 +147,7 @@ def test_namespace_send_task_with_retry() -> None:
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
@@ -172,7 +172,7 @@ def test_namespace_with_retry_send_task() -> None:
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
@@ -196,7 +196,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
 
     activation = simple_task.create_activation()
 
-    with patch.object(namespace, "producer") as mock_producer:
+    with patch.object(namespace, "_producer") as mock_producer:
         ret_value: Future[None] = Future()
         ret_value.set_result(None)
         mock_producer.produce.return_value = ret_value

@@ -1,12 +1,8 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
 import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/core';
-import {
-  _browserPerformanceTimeOriginMode,
-  browserPerformanceTimeOrigin,
-  timestampInSeconds,
-} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -605,28 +601,6 @@ function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
   return entry.entryType === 'first-input';
 }
 
-function getNearestElementName(node: HTMLElement | undefined | null): string | undefined {
-  if (!node) {
-    return 'no-element';
-  }
-
-  let current: HTMLElement | null = node;
-  while (current && current !== document.body) {
-    const elementName =
-      current.dataset?.testId ??
-      current.dataset?.sentryComponent ??
-      current.dataset?.element;
-
-    if (elementName) {
-      return elementName;
-    }
-
-    current = current.parentElement;
-  }
-
-  return `${node.tagName.toLowerCase()}.${node.className ?? ''}`;
-}
-
 export function makeIssuesINPObserver(): PerformanceObserver | undefined {
   if (!supportsINP()) {
     return undefined;
@@ -643,15 +617,6 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
         if (entry.duration < 16) {
           return;
         }
-
-        Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
-          unit: 'millisecond',
-          tags: {
-            element: getNearestElementName(entry.target),
-            entryType: entry.entryType,
-            interaction: entry.name,
-          },
-        });
       }
     });
   });
