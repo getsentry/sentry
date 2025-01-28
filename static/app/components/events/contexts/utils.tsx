@@ -41,7 +41,6 @@ import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
@@ -365,7 +364,7 @@ export function getContextIcon({
     case 'user':
       const user = userContextToActor(value);
       const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user as AvatarUser} size={iconSize} gravatar={false} />;
+      return <UserAvatar user={user} size={iconSize} gravatar={false} />;
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;

@@ -65,12 +65,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["fields"]["count()"] == "integer"
 
         rows = data[0:6]
         for test in zip(event_counts, rows):
@@ -87,6 +89,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "avg(measurements.lcp)",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
@@ -130,6 +133,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "statsPeriod": "7d",
                 "orderby": "-avg_measurements_lcp",
                 "sort": "-avg_measurements_lcp",
+                "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
@@ -173,12 +177,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count_unique(foo)",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["fields"]["count_unique(foo)"] == "integer"
 
         rows = data[0:6]
         for test in zip(event_counts, rows):
@@ -206,6 +212,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "p95()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
@@ -244,6 +251,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": ["count()", "p95()"],
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
@@ -257,6 +265,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         p95_rows = p95_data[0:6]
         for test in zip(event_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]
+        assert response.data["count()"]["meta"]["fields"]["count()"] == "integer"
+        assert response.data["p95()"]["meta"]["fields"]["p95()"] == "duration"
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder
@@ -285,6 +295,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": self.dataset,
+                    "transformAliasToInputFormat": 1,
                 },
             )
             assert response.status_code == 200, response.content
@@ -321,6 +332,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": self.dataset,
+                    "transformAliasToInputFormat": 1,
                 },
             )
             assert response.status_code == 200, response.content
@@ -355,6 +367,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": self.dataset,
+                    "transformAliasToInputFormat": 1,
                 },
             )
             assert response.status_code == 200, response.content
@@ -391,6 +404,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": self.dataset,
+                    "transformAliasToInputFormat": 1,
                 },
             )
             assert response.status_code == 200, response.content

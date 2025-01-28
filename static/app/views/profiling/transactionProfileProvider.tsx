@@ -38,7 +38,7 @@ export default function ProfileAndTransactionProvider(
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
-    projectSlug!,
+    projectSlug,
     profile.type === 'resolved' ? getTransactionId(profile.data) : null
   );
 

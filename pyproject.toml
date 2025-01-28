@@ -1,7 +1,7 @@
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
-target-version = ['py312']
+target-version = ['py313']
 
 [tool.isort]
 profile = "black"
@@ -47,7 +47,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
   "pydantic.mypy",
@@ -166,7 +166,6 @@ module = [
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
     "sentry.incidents.endpoints.organization_incident_index",
-    "sentry.incidents.subscription_processor",
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.bitbucket.client",
     "sentry.integrations.bitbucket.integration",
@@ -191,7 +190,6 @@ module = [
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
     "sentry.integrations.msteams.notifications",
-    "sentry.integrations.notifications",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pagerduty.client",
     "sentry.integrations.pagerduty.integration",
@@ -206,11 +204,8 @@ module = [
     "sentry.integrations.utils.sync",
     "sentry.integrations.vercel.client",
     "sentry.integrations.vercel.integration",
-    "sentry.integrations.vercel.webhook",
-    "sentry.integrations.vsts.client",
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
-    "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
     "sentry.issues.search",
     "sentry.middleware.auth",
@@ -234,7 +229,6 @@ module = [
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.history.preview",
-    "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
     "sentry.search.events.builder.errors",
@@ -243,7 +237,6 @@ module = [
     "sentry.search.events.datasets.metrics_layer",
     "sentry.search.events.filter",
     "sentry.search.snuba.executors",
-    "sentry.sentry_apps.installations",
     "sentry.sentry_metrics.indexer.postgres.postgres_v2",
     "sentry.shared_integrations.client.proxy",
     "sentry.snuba.errors",
@@ -263,7 +256,6 @@ module = [
     "sentry.web.frontend.base",
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.shared_group_details",
-    "sentry_plugins.bitbucket.client",
     "sentry_plugins.bitbucket.mixins",
     "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
@@ -278,7 +270,6 @@ disable_error_code = [
     "attr-defined",
     "call-arg",
     "call-overload",
-    "dict-item",
     "index",
     "misc",
     "operator",
