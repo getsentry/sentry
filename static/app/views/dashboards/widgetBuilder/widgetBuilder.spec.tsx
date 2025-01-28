@@ -999,7 +999,12 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify({
+          ...defaultWidgetQuery,
+          aggregates: defaultWidgetQuery.aggregates.join(','),
+          fields: defaultWidgetQuery.fields?.join(','),
+          columns: defaultWidgetQuery.columns.join(','),
+        }),
       },
     });
 

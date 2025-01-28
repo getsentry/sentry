@@ -887,7 +887,18 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+      defaultWidgetQuery: qs.stringify(
+        {
+          ...defaultWidgetQuery,
+          aggregates: defaultWidgetQuery.aggregates.join(','),
+          fields: defaultWidgetQuery.fields?.join(','),
+          columns: defaultWidgetQuery.columns.join(','),
+        },
+        {
+          sort: false,
+          strict: false,
+        }
+      ),
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
