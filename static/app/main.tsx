@@ -6,6 +6,7 @@ import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {
@@ -36,7 +37,9 @@ function Main() {
           <DemoHeader />
           <RouterProvider router={router} />
         </OnboardingContextProvider>
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+        {USE_REACT_QUERY_DEVTOOL && (
+          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+        )}
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );

@@ -51,6 +51,10 @@ const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
   : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
+// Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
+// features in the Sentry UI.
+const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+
 // Environment variables that are used by other tooling and should
 // not be user configurable.
 //
@@ -338,6 +342,7 @@ const appConfig: webpack.Configuration = {
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
     }),
 
     /**
