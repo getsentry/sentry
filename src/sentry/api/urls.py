@@ -2174,7 +2174,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-uptime-alert-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/uptime/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
         OrganizationUptimeStatsEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-stats",
     ),
