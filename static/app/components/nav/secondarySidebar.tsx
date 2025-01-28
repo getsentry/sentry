@@ -5,7 +5,13 @@ import {useNavContext} from 'sentry/components/nav/context';
 export function SecondarySidebar() {
   const {setSecondaryNavEl} = useNavContext();
 
-  return <SecondarySidebarWrapper ref={setSecondaryNavEl} />;
+  return (
+    <SecondarySidebarWrapper
+      ref={setSecondaryNavEl}
+      role="navigation"
+      aria-label="Secondary Navigation"
+    />
+  );
 }
 
 const SecondarySidebarWrapper = styled('div')`
