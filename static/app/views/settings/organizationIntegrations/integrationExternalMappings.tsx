@@ -144,7 +144,7 @@ function IntegrationExternalMappings(props: Props) {
             ...newlyAssociatedMappings.filter(
               map => map.externalName !== newMapping.externalName
             ),
-            newMapping as ExternalActorMapping,
+            newMapping,
           ]);
         }}
         isInline

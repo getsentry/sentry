@@ -1764,6 +1764,10 @@ SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
+# Flag storage backend
+SENTRY_FLAGSTORE = os.environ.get("SENTRY_FLAGSTORE", "sentry.tagstore.snuba.SnubaFlagStorage")
+SENTRY_FLAGSTORE_OPTIONS: dict[str, Any] = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
@@ -1880,9 +1884,6 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
-
-# Secret key for OpenAI
-OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
@@ -3468,6 +3469,7 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_topic=Topic.UPTIME_CONFIGS,
+        config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),
 ]

@@ -442,6 +442,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-crons", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights uptime view
     manager.add("organizations:insights-uptime", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Removes performance landing page from sidebar and updates transaction summary breadcrumbs for insights
+    manager.add("organizations:insights-performance-landing-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the aggregate span waterfall view
@@ -500,6 +502,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:uptime-create-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables uptime related settings for projects and orgs
     manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Disallows creation of uptime monitors
+    manager.add('organizations:uptime-create-disabled', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use ReplayClipPreview inside the User Feedback Details panel
     manager.add("organizations:user-feedback-replay-clip", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -527,6 +531,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable medium date range options on new explore page
     manager.add("organizations:visibility-explore-range-medium", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable explore multi query page
+    manager.add("organizations:explore-multi-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled unresolved issue webhook for organization
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable dual writing for metric alert issues (see: alerts create issues)
@@ -624,6 +630,14 @@ def register_temporary_features(manager: FeatureManager):
     # Controls access to tempest features
     manager.add(
         "organizations:tempest-access",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
+
+    # Feature Flags Features.
+    manager.add(
+        "organizations:feature-flag-autocomplete",
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,

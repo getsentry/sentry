@@ -127,7 +127,7 @@ export function CreateProjectsFooter({
         });
 
         clearIndicators();
-        setTimeout(() => onComplete(createProjectForPlatform!));
+        setTimeout(() => onComplete(createProjectForPlatform));
       } catch (err) {
         addErrorMessage(t('Failed to load SDK configuration'));
         Sentry.captureException(err);

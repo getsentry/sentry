@@ -73,7 +73,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
   }
 
   render() {
-    const {hooks, hookConfigs} = this.state as State;
+    const {hooks, hookConfigs} = this.state;
     const {organization} = this.props as Props;
     const access = new Set(organization.access);
     const features = new Set(organization.features);

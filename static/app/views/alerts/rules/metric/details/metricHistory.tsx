@@ -43,7 +43,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   );
 
   const triggeredActivity: ActivityType = criticalActivity
-    ? criticalActivity!
+    ? criticalActivity
     : warningActivity!;
   const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
 

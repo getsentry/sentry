@@ -163,8 +163,8 @@ class AnomalyDetectionStoreDataTest(
 
         result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
-        assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
-        assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
+        assert {"time": int(self.time_1_ts), "count()": 1} in result.data.get("data")
+        assert {"time": int(self.time_2_ts), "count()": 1} in result.data.get("data")
 
         formatted_result = format_historical_data(
             data=result,
