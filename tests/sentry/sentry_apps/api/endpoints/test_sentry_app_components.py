@@ -5,9 +5,9 @@ import responses
 
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
-from sentry.coreapi import APIError
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -164,7 +164,10 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_component_prep_errors_are_isolated(self, run):
-        run.side_effect = [APIError(), self.component2]
+        run.side_effect = [
+            SentryAppIntegratorError(message="zoinks!", public_context={"foo": "bar"}),
+            self.component2,
+        ]
 
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
@@ -177,7 +180,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
                 "schema": self.component1.schema,
-                "error": f"Encountered error: Invalid request, while preparing component: {str(self.component1.uuid)}",
+                "error": {"detail": "zoinks!", "context": {"foo": "bar"}},
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -227,7 +230,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
                 "schema": self.component1.schema,
-                "error": f"Encountered error: Something went wrong while getting SelectFields from {self.sentry_app1.slug}, while preparing component: {str(self.component1.uuid)}",
+                "error": {
+                    "detail": f"Something went wrong while getting options for Select FormField from {self.sentry_app1.slug}"
+                },
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -239,7 +244,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
-                "error": f"Encountered error: Something went wrong while getting SelectFields from {self.sentry_app2.slug}, while preparing component: {str(self.component2.uuid)}",
+                "error": {
+                    "detail": f"Something went wrong while getting options for Select FormField from {self.sentry_app2.slug}"
+                },
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -286,7 +293,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
                 "schema": self.component1.schema,
-                "error": f"Encountered error: Missing `value` or `label` in option data for SelectField, while preparing component: {str(self.component1.uuid)}",
+                "error": {
+                    "detail": "Missing `value` or `label` in option data for Select FormField"
+                },
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -298,7 +307,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
-                "error": f"Encountered error: Invalid response format for SelectField in {self.sentry_app2.slug} from uri: {component2_uris[0]}, while preparing component: {str(self.component2.uuid)}",
+                "error": {
+                    "detail": f"Invalid response format for Select FormField in {self.sentry_app2.slug} from uri: {component2_uris[0]}"
+                },
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -313,7 +324,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_component_prep_general_error(self, run, capture_exception):
-        run.side_effect = [Exception(":dead:"), KeyError("oh shit swip split snip")]
+        run.side_effect = [Exception(":dead:"), SentryAppSentryError("oh shit swip split snip")]
         capture_exception.return_value = 1
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
@@ -323,7 +334,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
                 "schema": self.component1.schema,
-                "error": f"Something went wrong while trying to link issue for component: {str(self.component1.uuid)}. Sentry error ID: {capture_exception.return_value}",
+                "error": {
+                    "detail": f"Something went wrong while trying to link issue for component: {str(self.component1.uuid)}. Sentry error ID: {capture_exception.return_value}"
+                },
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -335,7 +348,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
-                "error": f"Something went wrong while trying to link issue for component: {str(self.component2.uuid)}. Sentry error ID: {capture_exception.return_value}",
+                "error": {
+                    "detail": f"Something went wrong while trying to link issue for component: {str(self.component2.uuid)}. Sentry error ID: {capture_exception.return_value}"
+                },
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,

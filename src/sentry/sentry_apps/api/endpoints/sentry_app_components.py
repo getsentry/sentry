@@ -1,5 +1,6 @@
+from typing import Any
+
 import sentry_sdk
-from jsonschema import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,7 +10,6 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.coreapi import APIError
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -19,6 +19,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppCom
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -78,17 +79,17 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
 
-                        # APIError is for webhook request fails
-                        except (APIError, ValidationError) as e:
-                            errors[str(component.uuid)] = (
-                                f"Encountered error: {str(e)}, while preparing component: {str(component.uuid)}"
-                            )
+                        except (SentryAppIntegratorError, SentryAppError) as e:
+                            error_body: dict[str, Any] = {"detail": e.message}
+                            if public_context := e.public_context:
+                                error_body.update({"context": public_context})
+                            errors[str(component.uuid)] = error_body
 
                         except Exception as e:
                             error_id = sentry_sdk.capture_exception(e)
-                            errors[str(component.uuid)] = (
-                                f"Something went wrong while trying to link issue for component: {str(component.uuid)}. Sentry error ID: {error_id}"
-                            )
+                            errors[str(component.uuid)] = {
+                                "detail": f"Something went wrong while trying to link issue for component: {str(component.uuid)}. Sentry error ID: {error_id}"
+                            }
 
                         components.append(component)
         return self.paginate(
