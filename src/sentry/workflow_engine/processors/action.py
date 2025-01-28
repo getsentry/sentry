@@ -89,10 +89,15 @@ def evaluate_workflows_action_filters(
     ).distinct()
 
     for action_condition in action_conditions:
-        evaluation, result = evaluate_condition_group(action_condition, job)
+        evaluation, result, remaining_conditions = evaluate_condition_group(action_condition, job)
 
         if evaluation:
-            filtered_action_groups.add(action_condition)
+            if remaining_conditions:
+                # TODO @saponifi3d - enqueue remaining conditions (slow conditions) to be evaluated in bulk
+                pass
+            else:
+                # if we don't have any other conditions to evaluate, add the action to the list
+                filtered_action_groups.add(action_condition)
 
     # get the actions for any of the triggered data condition groups
     actions = Action.objects.filter(
