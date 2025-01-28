@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
+import {urlEncode} from '@sentry/core';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';

@@ -1,4 +1,4 @@
-import {urlEncode} from '@sentry/utils';
+import {urlEncode} from '@sentry/core';
 
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';

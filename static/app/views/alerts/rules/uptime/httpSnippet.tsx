@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {generateSentryTraceHeader} from '@sentry/utils';
+import {generateSentryTraceHeader} from '@sentry/core';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t} from 'sentry/locale';

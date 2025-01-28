@@ -1,4 +1,4 @@
-import {urlEncode} from '@sentry/utils';
+import {urlEncode} from '@sentry/core';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';

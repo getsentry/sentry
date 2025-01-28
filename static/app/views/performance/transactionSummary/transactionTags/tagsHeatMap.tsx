@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
-import {truncate} from '@sentry/utils';
+import {truncate} from '@sentry/core';
 import type {VisualMapComponentOption} from 'echarts';
 import type {Location} from 'history';
 import memoize from 'lodash/memoize';
