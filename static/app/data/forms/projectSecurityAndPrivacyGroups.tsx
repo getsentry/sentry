@@ -67,8 +67,6 @@ const formGroups: JsonFormObject[] = [
     title: t('Security & Privacy'),
     fields: [
       {
-        disabled: hasProjectWriteAndOrgOverride,
-        disabledReason: projectWriteAndOrgOverrideDisabledReason,
         name: 'storeCrashReports',
         type: 'select',
         label: t('Store Minidumps As Attachments'),
