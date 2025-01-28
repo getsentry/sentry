@@ -748,12 +748,28 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "field": ["environment", "count()"],
                 "project": self.project.id,
                 "environment": "prod",
+                "orderby": "environment",
                 "dataset": self.dataset,
             }
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {"environment": "prod", "count()": 1},
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["environment", "count()"],
+                "project": self.project.id,
+                "environment": ["prod", "test"],
+                "orderby": "environment",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"environment": "prod", "count()": 1},
+            {"environment": "test", "count()": 1},
         ]
 
     def test_transaction(self):
