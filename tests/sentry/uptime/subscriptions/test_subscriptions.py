@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from django.conf import settings
 from django.test import override_settings
 from pytest import raises
 
@@ -242,18 +243,21 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
                 slug="region1",
                 name="Region 1",
                 config_topic=Topic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_topic=Topic.UPTIME_RESULTS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region3",
                 name="Region 3",
                 config_topic=Topic.MONITORS_CLOCK_TASKS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=False,  # This one shouldn't be associated
             ),
         ]

@@ -9,6 +9,7 @@ from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
+from django.conf import settings
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
@@ -41,10 +42,10 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.utils import json
-from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
+from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
-class ProcessResultTest(ProducerTestMixin):
+class ProcessResultTest(ConfigPusherTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -434,7 +435,7 @@ class ProcessResultTest(ProducerTestMixin):
                     )
                 ]
             )
-            self.assert_producer_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
+            self.assert_config_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
 
     def test_multiple_project_subscriptions_with_disabled(self):
         """
@@ -849,12 +850,14 @@ class ProcessResultTest(ProducerTestMixin):
                 slug="region1",
                 name="Region 1",
                 config_topic=KafkaTopic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_topic=KafkaTopic.UPTIME_RESULTS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
         ]
@@ -873,7 +876,7 @@ class ProcessResultTest(ProducerTestMixin):
             self.send_result(result)
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
-            self.assert_producer_calls(
+            self.assert_config_calls(
                 (sub, kafka_definition.Topic.UPTIME_CONFIGS),
                 (sub, kafka_definition.Topic.UPTIME_RESULTS),
             )
@@ -890,12 +893,14 @@ class ProcessResultTest(ProducerTestMixin):
                 slug="region1",
                 name="Region 1",
                 config_topic=KafkaTopic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_topic=KafkaTopic.UPTIME_RESULTS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=False,
             ),
         ]
@@ -910,9 +915,10 @@ class ProcessResultTest(ProducerTestMixin):
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == {"region1"}
             assert sub.subscription_id
-            self.assert_producer_calls(
+            self.assert_config_calls(
                 (sub.subscription_id, kafka_definition.Topic.UPTIME_RESULTS),
                 (sub, kafka_definition.Topic.UPTIME_CONFIGS),
+                check_redis=False,
             )
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
@@ -926,6 +932,7 @@ class ProcessResultTest(ProducerTestMixin):
                 slug="region1",
                 name="Region 1",
                 config_topic=KafkaTopic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
         ]
@@ -940,4 +947,4 @@ class ProcessResultTest(ProducerTestMixin):
             self.send_result(result)
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == set()
-            self.assert_producer_calls()
+            self.assert_config_calls()
