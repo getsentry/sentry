@@ -206,7 +206,6 @@ module = [
     "sentry.integrations.vercel.integration",
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
-    "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
     "sentry.issues.search",
     "sentry.middleware.auth",
