@@ -31,6 +31,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     replays: {enabled: false},
     similarIssues: {enabled: false},
     showOpenPeriods: true,
+    showMetricGraph: true,
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,

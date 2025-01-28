@@ -120,6 +120,10 @@ export type IssueTypeConfig = {
    */
   showFeedbackWidget: boolean;
   /**
+   * show a graph of the metric over time for metric issues
+   */
+  showMetricGraph: boolean;
+  /**
    * showOpenPeriods
    */
   showOpenPeriods: boolean;
