@@ -93,7 +93,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // show an error.
   const firstSeries = props.timeseries[0]!;
 
-  let yAxisType: string;
+  let yAxisFieldType: string;
 
   const types = Array.from(
     new Set(
@@ -106,9 +106,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   ) as string[];
 
   if (types.length === 0 || types.length > 1) {
-    yAxisType = FALLBACK_TYPE;
+    yAxisFieldType = FALLBACK_TYPE;
   } else {
-    yAxisType = types[0]!;
+    yAxisFieldType = types[0]!;
   }
 
   const firstSeriesField = firstSeries?.field;
@@ -271,7 +271,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         animation: false,
         axisLabel: {
           formatter(value: number) {
-            return formatYAxisValue(value, yAxisType, yAxisUnit);
+            return formatYAxisValue(value, yAxisFieldType, yAxisUnit);
           },
         },
         axisPointer: {
