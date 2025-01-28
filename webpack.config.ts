@@ -72,7 +72,7 @@ const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Storybook related flag configuration
-const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES);
+const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
