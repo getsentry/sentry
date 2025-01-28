@@ -11,6 +11,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -115,5 +116,27 @@ describe('EventDetailsHeader', () => {
     expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
       replace: true,
     });
+  });
+
+  it('does not render timeline summary if disabled', async function () {
+    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    expect(screen.queryByText('Duration')).not.toBeInTheDocument();
+  });
+
+  it('renders timeline summary if enabled', async function () {
+    render(
+      <EventDetailsHeader
+        {...defaultProps}
+        group={GroupFixture({
+          issueCategory: IssueCategory.UPTIME,
+          issueType: IssueType.UPTIME_DOMAIN_FAILURE,
+        })}
+      />,
+      {organization, router}
+    );
+    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Duration')).toBeInTheDocument();
   });
 });

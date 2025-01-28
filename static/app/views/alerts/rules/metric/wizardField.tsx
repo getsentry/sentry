@@ -149,7 +149,7 @@ export default function WizardField({
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
-            dataset: dataset as Dataset,
+            dataset,
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});

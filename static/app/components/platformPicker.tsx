@@ -18,7 +18,7 @@ import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
@@ -86,7 +86,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     const subsetMatch = (platform: PlatformIntegration) =>
       platform.id.includes(filter) ||
       platform.name.toLowerCase().includes(filter) ||
-      filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
+      filterAliases[platform.id]?.some(alias => alias.includes(filter));
 
     const categoryMatch = (platform: PlatformIntegration) => {
       return currentCategory?.platforms?.has(platform.id);
