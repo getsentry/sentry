@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 
-function Layout({children}) {
+function Layout({children}: any) {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);

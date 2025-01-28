@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable, Mapping
 from hashlib import md5
 from re import Match
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from django.utils.encoding import force_bytes
@@ -41,6 +41,18 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     for value in values:
         result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
+
+
+def get_fingerprint_type(fingerprint: list[str]) -> Literal["default", "hybrid", "custom"]:
+    return (
+        "default"
+        if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
+        else (
+            "hybrid"
+            if any(is_default_fingerprint_var(entry) for entry in fingerprint)
+            else "custom"
+        )
+    )
 
 
 def bool_from_string(value: str) -> bool | None:

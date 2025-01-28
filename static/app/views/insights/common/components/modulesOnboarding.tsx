@@ -78,6 +78,7 @@ export function ModulesOnboarding({
 }
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
@@ -93,7 +94,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
               <ValueProp>
                 {emptyStateContent.valuePropDescription}
                 <ul>
-                  {emptyStateContent.valuePropPoints.map(point => (
+                  {emptyStateContent.valuePropPoints.map((point: any) => (
                     <li key={point?.toString()}>{point}</li>
                   ))}
                 </ul>
@@ -119,6 +120,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -479,5 +481,21 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  // XXX(epurkhiser): Crons does not use the insights onboarding component.
+  crons: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
+  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
+  uptime: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
   },
 };

@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 type RenderProps = {};
 
 export type PropMatrix<P extends RenderProps> = Partial<{
-  [Prop in keyof P]: P[Prop][];
+  [Prop in keyof P]: Array<P[Prop]>;
 }>;
 
 interface Props<P extends RenderProps> {
@@ -92,7 +92,7 @@ function replacer(this: any, _key: string, value: any) {
   return value;
 }
 
-function item(Component, props, sizingWindowProps) {
+function item(Component: any, props: any, sizingWindowProps: any) {
   const hasChildren = 'children' in props;
 
   if (hasChildren) {

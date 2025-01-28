@@ -4,7 +4,7 @@
  * These mocks are simple no-ops to make testing lazy-loaded components simpler.
  */
 
-const LazyLoad = ({children}) => children;
+const LazyLoad = ({children}: {children: React.ReactNode}) => children;
 
 export const forceCheck = jest.fn();
 

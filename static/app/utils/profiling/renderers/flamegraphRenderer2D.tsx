@@ -14,8 +14,8 @@ import {
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 function colorComponentsToRgba(color: number[]): string {
-  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
-    color[2] * 255
+  return `rgba(${Math.floor(color[0]! * 255)}, ${Math.floor(color[1]! * 255)}, ${Math.floor(
+    color[2]! * 255
   )}, ${color[3] ?? 1})`;
 }
 
@@ -92,7 +92,7 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
       );
 
       for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
+        queue.push(frame.children[i]!);
       }
     }
   }

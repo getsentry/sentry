@@ -1,10 +1,11 @@
 ---
-created: '2024-12-02T21:59:54.519184+00:00'
+created: '2024-12-17T22:46:35.856014+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
   hash: "d346ee37d19a2be6587e609075ca2d57"
+  contributing component: csp
   component:
     default*
       csp*

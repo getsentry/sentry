@@ -35,7 +35,6 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -221,6 +220,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     const {measurements} = detail.event;
 
     const measurementKeys = Object.keys(measurements ?? {})
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -233,10 +233,11 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
               abbreviation
             />
           </Row>
@@ -443,13 +444,6 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
-      {detail.event._metrics_summary ? (
-        <CustomMetricsEventData
-          projectId={detail.event.projectID}
-          metricsSummary={detail.event._metrics_summary}
-          startTimestamp={detail.event.startTimestamp}
-        />
-      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {project && (
         <EventAttachments event={detail.event} project={project} group={undefined} />
@@ -496,7 +490,7 @@ function SpanDetailsBody({
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={detail.event.projectSlug}
-          profileId={profileId || ''}
+          profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
             {profiles => (

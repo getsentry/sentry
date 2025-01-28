@@ -58,7 +58,7 @@ interface MetaProps {
 }
 
 export function Meta(props: MetaProps) {
-  const traceNode = props.tree.root.children[0];
+  const traceNode = props.tree.root.children[0]!;
 
   const uniqueErrorIssues = useMemo(() => {
     if (!traceNode) {

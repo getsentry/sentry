@@ -38,7 +38,7 @@ type HomepageQueryState = DeprecatedAsyncComponent['state'] & {
 class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
-  componentDidUpdate(_, prevState) {
+  componentDidUpdate(_: any, prevState: any) {
     const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
     const hasInitiallyLoaded = prevState.loading && !this.state.loading;
     const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
@@ -102,7 +102,7 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
     return endpoints;
   }
 
-  onRequestSuccess({stateKey, data}) {
+  onRequestSuccess({stateKey, data}: any) {
     const {organization} = this.props;
     // No homepage query results in a 204, returning an empty string
     if (stateKey === 'savedQuery' && data === '') {

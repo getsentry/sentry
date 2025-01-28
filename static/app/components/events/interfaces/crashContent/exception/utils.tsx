@@ -16,7 +16,7 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
 
   const parsedURL = safeURL(filename);
   if (parsedURL) {
-    filename = parsedURL.pathname.split('/').reverse()[0];
+    filename = parsedURL.pathname.split('/').reverse()[0]!;
   }
 
   return (
@@ -58,7 +58,7 @@ export const renderLinksInText = ({
   const urls = exceptionText.match(urlRegex) || [];
 
   const elements = parts.flatMap((part, index) => {
-    const url = urls[index];
+    const url = urls[index]!;
     const isUrlValid = isUrl(url);
 
     let link: ReactElement | undefined;

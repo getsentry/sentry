@@ -56,13 +56,18 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest import process_headers, track_initial_segment_event
+from sentry.replays.usecases.ingest import (
+    LOG_SAMPLE_RATE,
+    process_headers,
+    track_initial_segment_event,
+)
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -72,6 +77,7 @@ from sentry.replays.usecases.pack import pack
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
+logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 

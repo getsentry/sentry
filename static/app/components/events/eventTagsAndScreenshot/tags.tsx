@@ -52,13 +52,17 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     const availableFilters = useMemo(() => {
       return Object.keys(TagFilterData).filter(filter => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return event.tags.some(tag => TagFilterData[filter].has(tag.key));
       });
     }, [event.tags]);
 
+    // Prevent drawer button from appearing on performance pages
+    const isOnIssueDetails = location.pathname.includes('/issues/');
+
     const actions = (
       <ButtonBar gap={1}>
-        {hasStreamlinedUI && event.groupID && (
+        {hasStreamlinedUI && event.groupID && isOnIssueDetails && (
           <LinkButton
             to={{
               pathname: `${location.pathname}${TabPaths[Tab.TAGS]}`,

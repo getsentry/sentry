@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'cbor... Remove this comment to see the full error message
 import * as cbor from 'cbor-web';
 
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
@@ -56,14 +57,12 @@ class U2fInterface extends Component<Props, State> {
   componentDidMount() {
     const supported = !!window.PublicKeyCredential;
 
-    // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
 
     const isSafari =
       navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
 
     if (isSafari) {
-      // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
         deviceFailure: 'safari: requires interaction',
         isSafari,
@@ -76,7 +75,7 @@ class U2fInterface extends Component<Props, State> {
     }
   }
 
-  getU2FResponse(data) {
+  getU2FResponse(data: any) {
     if (!data.response) {
       return JSON.stringify(data);
     }
@@ -106,9 +105,9 @@ class U2fInterface extends Component<Props, State> {
     throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
   }
 
-  submitU2fResponse(promise) {
+  submitU2fResponse(promise: any) {
     promise
-      .then(data => {
+      .then((data: any) => {
         this.setState(
           {
             hasBeenTapped: true,
@@ -142,7 +141,7 @@ class U2fInterface extends Component<Props, State> {
           }
         );
       })
-      .catch(err => {
+      .catch((err: any) => {
         let failure = 'DEVICE_ERROR';
         // in some rare cases there is no metadata on the error which
         // causes this to blow up badly.
@@ -169,14 +168,14 @@ class U2fInterface extends Component<Props, State> {
       });
   }
 
-  webAuthnSignIn(publicKeyCredentialRequestOptions) {
+  webAuthnSignIn(publicKeyCredentialRequestOptions: any) {
     const promise = navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
     });
     this.submitU2fResponse(promise);
   }
 
-  webAuthnRegister(publicKey) {
+  webAuthnRegister(publicKey: any) {
     const promise = navigator.credentials.create({
       publicKey,
     });
@@ -190,10 +189,10 @@ class U2fInterface extends Component<Props, State> {
       );
       const challenge = cbor.decodeFirst(challengeArray);
       challenge
-        .then(data => {
+        .then((data: any) => {
           this.webAuthnSignIn(data);
         })
-        .catch(err => {
+        .catch((err: any) => {
           const failure = 'DEVICE_ERROR';
           Sentry.captureException(err);
           this.setState({
@@ -208,10 +207,10 @@ class U2fInterface extends Component<Props, State> {
       const challenge = cbor.decodeFirst(challengeArray);
       // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
       challenge
-        .then(data => {
+        .then((data: any) => {
           this.webAuthnRegister(data.publicKey);
         })
-        .catch(err => {
+        .catch((err: any) => {
           const failure = 'DEVICE_ERROR';
           Sentry.captureException(err);
           this.setState({

@@ -3,24 +3,23 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
-}
+export function ReplayTextDiff() {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
-export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
   const {data, isLoading} = useExtractPageHtml({
     replay,
-    offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
+    // Add 1 to each offset so we read the HTML just after the specified time
+    // and can therefore see the results of the mutations that happened at the
+    // requested times, instead of landing on those times directly.
+    offsetMsToStopAt: [leftOffsetMs + 1, rightOffsetMs + 1],
   });
 
   const [leftBody, rightBody] = useMemo(
@@ -32,7 +31,7 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
     <Container>
       {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
       <DiffHeader>
-        <Before>
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs}>
           <CopyToClipboardButton
             text={leftBody ?? ''}
             size="xs"
@@ -41,7 +40,7 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
             aria-label={t('Copy Before')}
           />
         </Before>
-        <After>
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs}>
           <CopyToClipboardButton
             text={rightBody ?? ''}
             size="xs"

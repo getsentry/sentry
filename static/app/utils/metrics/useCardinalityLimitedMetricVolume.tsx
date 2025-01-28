@@ -4,7 +4,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 
 type Props = {
-  projects: (number | string)[];
+  projects: Array<number | string>;
 };
 
 const CARDINALITY_QUERIES = [
@@ -41,7 +41,7 @@ export function useCardinalityLimitedMetricVolume({projects}: Props) {
   if (cardinalityQuery.data?.data[0]) {
     const data = cardinalityQuery.data.data[0].reduce(
       (acc, group) => {
-        acc[group.by.mri] = group.totals;
+        acc[group.by.mri!] = group.totals;
         return acc;
       },
       {} as Record<string, number>

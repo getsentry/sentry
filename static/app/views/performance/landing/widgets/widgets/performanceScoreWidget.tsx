@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
@@ -28,8 +28,8 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   const moduleURL = useModuleURL('vital');

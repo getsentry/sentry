@@ -21,6 +21,14 @@ import {
   MODULE_TITLE as CACHE_MODULE_TITLE,
 } from 'sentry/views/insights/cache/settings';
 import {
+  DATA_TYPE as CRONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as CRONS_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as CRONS_MODULE_DOC_LINK,
+  MODULE_FEATURES as CRONS_MODULE_FEATURES,
+  MODULE_TITLE as CRONS_MODULE_TITLE,
+  MODULE_VISIBLE_FEATURES as CRONS_MODULE_VISIBLE_FEATURES,
+} from 'sentry/views/insights/crons/settings';
+import {
   DATA_TYPE as DB_DATA_TYPE,
   DATA_TYPE_PLURAL as DB_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as DB_MODULE_DOC_LINK,
@@ -81,7 +89,16 @@ import {
   MODULE_FEATURES as QUEUE_MODULE_FEATURES,
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
-import {ModuleName} from 'sentry/views/insights/types';
+import {
+  DATA_TYPE as UPTIME_DATA_TYPE,
+  DATA_TYPE_PLURAL as UPTIME_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as UPTIME_MODULE_DOC_LINK,
+  MODULE_FEATURES as UPTIME_MODULE_FEATURES,
+  MODULE_TITLE as UPTIME_MODULE_TITLE,
+  MODULE_VISIBLE_FEATURES as UPTIME_MODULE_VISIBLE_FEATURES,
+} from 'sentry/views/insights/uptime/settings';
+
+import {ModuleName} from './types';
 
 export const INSIGHTS_TITLE = t('Insights');
 export const INSIGHTS_BASE_URL = 'insights';
@@ -103,6 +120,8 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_MODULE_TITLE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
+  [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
+  [ModuleName.CRONS]: CRONS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 
@@ -119,6 +138,8 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
+  [ModuleName.UPTIME]: UPTIME_DATA_TYPE,
+  [ModuleName.CRONS]: CRONS_DATA_TYPE,
   [ModuleName.OTHER]: '',
 };
 
@@ -135,6 +156,8 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
+  [ModuleName.UPTIME]: UPTIME_DATA_TYPE_PLURAL,
+  [ModuleName.CRONS]: CRONS_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
 };
 
@@ -151,9 +174,14 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
   [ModuleName.MOBILE_SCREENS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
+  [ModuleName.UPTIME]: UPTIME_MODULE_DOC_LINK,
+  [ModuleName.CRONS]: CRONS_MODULE_DOC_LINK,
   [ModuleName.OTHER]: '',
 };
 
+/**
+ * Features that control gating of modules, falling back to upsell style hooks.
+ */
 export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.DB]: DB_MODULE_FEATURES,
   [ModuleName.APP_START]: APP_STARTS_MODULE_FEATURES,
@@ -167,5 +195,28 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
   [ModuleName.MOBILE_SCREENS]: [MOBILE_SCREENS_MODULE_FEATURE],
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
+  [ModuleName.UPTIME]: UPTIME_MODULE_FEATURES,
+  [ModuleName.CRONS]: CRONS_MODULE_FEATURES,
   [ModuleName.OTHER]: [],
+};
+
+/**
+ * Features that control the visibility of modules.
+ */
+export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
+  [ModuleName.DB]: ['insights-entry-points'],
+  [ModuleName.APP_START]: ['insights-entry-points'],
+  [ModuleName.HTTP]: ['insights-entry-points'],
+  [ModuleName.RESOURCE]: ['insights-entry-points'],
+  [ModuleName.VITAL]: ['insights-entry-points'],
+  [ModuleName.CACHE]: ['insights-entry-points'],
+  [ModuleName.QUEUE]: ['insights-entry-points'],
+  [ModuleName.AI]: ['insights-entry-points'],
+  [ModuleName.SCREEN_LOAD]: ['insights-entry-points'],
+  [ModuleName.MOBILE_UI]: ['insights-entry-points'],
+  [ModuleName.MOBILE_SCREENS]: ['insights-entry-points'],
+  [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
+  [ModuleName.UPTIME]: ['insights-entry-points', ...UPTIME_MODULE_VISIBLE_FEATURES],
+  [ModuleName.CRONS]: ['insights-entry-points', ...CRONS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.OTHER]: ['insights-entry-points'],
 };

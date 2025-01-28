@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -18,9 +17,9 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {TimelineSummary} from 'sentry/views/issueDetails/streamline/timelineSummary';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventDetailsHeader({
@@ -35,14 +34,18 @@ export function EventDetailsHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({group});
-  const {baseUrl} = useGroupDetailsRoute();
+  const searchQuery = useEventQuery({groupId: group.id});
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  if (!issueTypeConfig.filterAndSearchHeader.enabled) {
+  if (!issueTypeConfig.header.filterAndSearch.enabled) {
     return null;
   }
+
+  const searchText = t(
+    'Filter %s\u2026',
+    issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
+  );
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -73,6 +76,8 @@ export function EventDetailsHeader({
             query={searchQuery}
             queryBuilderProps={{
               disallowFreeText: true,
+              placeholder: searchText,
+              label: searchText,
             }}
           />
           <ToggleSidebar />
@@ -80,19 +85,15 @@ export function EventDetailsHeader({
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
-          <IssueTagsButton
-            aria-label={t('View issue tag distributions')}
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-              query: location.query,
-              replace: true,
-            }}
-            analyticsEventKey="issue_details.issue_tags_clicked"
-            analyticsEventName="Issue Details: Issue Tags Clicked"
-          >
-            {t('Issue Tags')}
-          </IssueTagsButton>
+          <IssueTagsPreview
+            groupId={group.id}
+            environments={environments}
+            project={project}
+          />
         </GraphSection>
+        {issueTypeConfig.header.timelineSummary.enabled && (
+          <TimelineSection group={group} />
+        )}
       </FilterContainer>
     </PageErrorBoundary>
   );
@@ -102,10 +103,11 @@ const FilterContainer = styled('div')`
   padding-left: 24px;
   display: grid;
   grid-template-columns: auto auto minmax(100px, 1fr);
-  grid-template-rows: minmax(38px, auto) auto;
+  grid-template-rows: minmax(38px, auto) auto auto;
   grid-template-areas:
-    'env    date  search  toggle'
-    'graph  graph graph   graph';
+    'env      date      search    toggle'
+    'graph    graph     graph     graph'
+    'timeline timeline  timeline  timeline';
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
 `;
@@ -148,16 +150,11 @@ const GraphSection = styled('div')`
   border-top: 1px solid ${p => p.theme.translucentBorder};
 `;
 
-const IssueTagsButton = styled(LinkButton)`
-  display: block;
-  flex: 0;
-  height: unset;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
-  text-align: center;
-  span {
-    white-space: unset;
-  }
+const TimelineSection = styled(TimelineSummary)`
+  grid-area: timeline;
+  padding: ${space(2)};
+  padding-right: 0;
+  border-top: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const SectionDivider = styled('div')`

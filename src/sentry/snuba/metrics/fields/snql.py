@@ -225,14 +225,6 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Functio
     return _snql_on_tx_satisfaction_factory
 
 
-def _dist_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids: Sequence[int], alias: str | None = None
-) -> Function:
-    return _aggregation_on_tx_satisfaction_func_factory("countIf")(
-        org_id, satisfaction, metric_ids, alias
-    )
-
-
 def _set_count_aggregation_on_tx_satisfaction_factory(
     org_id: int, satisfaction: str, metric_ids: Sequence[int], alias: str | None = None
 ) -> Function:
@@ -783,16 +775,12 @@ def team_key_transaction_snql(
 
 
 def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -> SelectType:
+    use_case_id = UseCaseID.TRANSACTIONS
     return resolve_project_threshold_config(
-        tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
-            use_case_id, org_id, value
-        ),
-        column_name_resolver=lambda use_case_id, org_id, value: resolve_tag_key(
-            use_case_id, org_id, value
-        ),
+        tag_value_resolver=lambda org_id, value: resolve_tag_value(use_case_id, org_id, value),
+        column_name_resolver=lambda org_id, value: resolve_tag_key(use_case_id, org_id, value),
         project_ids=project_ids,
         org_id=org_id,
-        use_case_id=UseCaseID.TRANSACTIONS,
     )
 
 

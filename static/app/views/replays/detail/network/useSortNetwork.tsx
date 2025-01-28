@@ -9,7 +9,7 @@ interface SortConfig {
   getValue: (row: SpanFrame) => any;
 }
 
-const SortStrategies: Record<string, (row) => any> = {
+const SortStrategies: Record<string, (row: any) => any> = {
   method: row => row.data.method || 'GET',
   status: row => row.data.statusCode,
   description: row => row.description,

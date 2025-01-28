@@ -21,6 +21,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
@@ -28,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import type {
@@ -55,6 +57,12 @@ enum ResponseKeys {
   CREATED = 'dateCreated',
   FAVORITE = 'isFavorited',
 }
+
+const SortKeys = {
+  title: {asc: 'title', desc: '-title'},
+  dateCreated: {asc: 'dateCreated', desc: '-dateCreated'},
+  createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
+};
 
 type FavoriteButtonProps = {
   api: Client;
@@ -90,6 +98,11 @@ function FavoriteButton({
           setFavorited(!favorited);
           await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
           onDashboardsChange();
+          trackAnalytics('dashboards_manage.toggle_favorite', {
+            organization,
+            dashboard_id: dashboardId,
+            favorited: !favorited,
+          });
         } catch (error) {
           // If the api call fails, revert the state
           setFavorited(favorited);
@@ -107,13 +120,11 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-    ...(organization.features.includes('dashboards-edit-access')
-      ? [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]
-      : []),
+    {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
 
@@ -159,6 +170,45 @@ function DashboardTable({
       : {}),
   };
 
+  function renderHeadCell(column: GridColumnOrder<string>) {
+    if (column.key in SortKeys) {
+      const urlSort = decodeScalar(location.query.sort, 'mydashboards');
+      const isCurrentSort =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
+      const sortDirection =
+        !isCurrentSort || column.key === 'createdBy'
+          ? undefined
+          : urlSort.startsWith('-')
+            ? 'desc'
+            : 'asc';
+
+      return (
+        <SortLink
+          align={'left'}
+          title={column.name}
+          direction={sortDirection}
+          canSort
+          generateSortLink={() => {
+            const newSort = isCurrentSort
+              ? sortDirection === 'asc'
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SortKeys[column.key].desc
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SortKeys[column.key].asc
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SortKeys[column.key].asc;
+            return {
+              ...location,
+              query: {...location.query, sort: newSort},
+            };
+          }}
+        />
+      );
+    }
+    return column.name;
+  }
+
   const renderBodyCell = (
     column: GridColumnOrder<string>,
     dataRow: DashboardListItem
@@ -203,10 +253,7 @@ function DashboardTable({
       );
     }
 
-    if (
-      column.key === ResponseKeys.ACCESS &&
-      organization.features.includes('dashboards-edit-access')
-    ) {
+    if (column.key === ResponseKeys.ACCESS) {
       /* Handles POST request for Edit Access Selector Changes */
       const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
         const dashboardCopy = cloneDeep(dataRow);
@@ -277,6 +324,7 @@ function DashboardTable({
       );
     }
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <span>{dataRow[column.key]}</span>;
   };
 
@@ -289,6 +337,7 @@ function DashboardTable({
       columnSortBy={[]}
       grid={{
         renderBodyCell,
+        renderHeadCell: column => renderHeadCell(column),
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
           if (!organization.features.includes('dashboards-favourite')) {

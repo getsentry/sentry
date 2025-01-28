@@ -16,7 +16,7 @@ describe('DataDownload', function () {
     dataExportId: '721',
   };
 
-  const getDataExportDetails = (body, statusCode = 200) =>
+  const getDataExportDetails = (body: any, statusCode = 200) =>
     MockApiClient.addMockResponse({
       url: `/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/`,
       body,

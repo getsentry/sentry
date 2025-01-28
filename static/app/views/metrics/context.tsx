@@ -158,7 +158,7 @@ export function useMetricWidgets(defaultQuery: Record<string, any> | null) {
     (index: number, data: Partial<Omit<MetricsWidget, 'type'>>) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        const oldWidget = currentWidgets[index];
+        const oldWidget = currentWidgets[index]!;
 
         if (isMetricsQueryWidget(oldWidget)) {
           // Reset focused series if mri, query or groupBy changes
@@ -172,7 +172,7 @@ export function useMetricWidgets(defaultQuery: Record<string, any> | null) {
         }
 
         newWidgets[index] = {
-          ...currentWidgets[index],
+          ...currentWidgets[index]!,
           ...data,
         };
         return newWidgets;
@@ -185,7 +185,7 @@ export function useMetricWidgets(defaultQuery: Record<string, any> | null) {
     (index: number) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        const newWidget = {...currentWidgets[index]};
+        const newWidget = {...currentWidgets[index]!};
         newWidget.id = NO_QUERY_ID;
         newWidgets.splice(index + 1, 0, newWidget);
         return newWidgets;
@@ -197,7 +197,7 @@ export function useMetricWidgets(defaultQuery: Record<string, any> | null) {
   const addWidget = useCallback(
     (type: MetricExpressionType = MetricExpressionType.QUERY) => {
       const lastIndexOfSameType = currentWidgetsRef.current.findLastIndex(
-        w => w.type === type
+        (w: any) => w.type === type
       );
       if (lastIndexOfSameType > -1) {
         duplicateWidget(lastIndexOfSameType);
@@ -393,7 +393,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
           return currentWidgets.map(w => ({...w, focusedSeries: undefined}));
         });
       }
-      updateWidget(index, {isHidden: !widgets[index].isHidden});
+      updateWidget(index, {isHidden: !widgets[index]!.isHidden});
     },
     [isMultiChartMode, selectedWidgetIndex, setWidgets, updateWidget, widgets]
   );

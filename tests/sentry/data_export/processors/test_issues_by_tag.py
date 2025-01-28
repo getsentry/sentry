@@ -74,7 +74,6 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         assert IssuesByTagProcessor.get_lookup_key("user") == "sentry:user"
 
     def test_get_eventuser_callback(self):
-        user_callback = IssuesByTagProcessor.get_eventuser_callback(self.project.id)
         processor = IssuesByTagProcessor(
             project_id=self.project.id,
             group_id=self.group.id,
@@ -83,16 +82,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
             tenant_ids={"organization_id": 123, "referrer": "issues_by_tag"},
         )
         sample = processor.get_raw_data()[0]
-        user_callback([sample])
-        assert sample._eventuser == self.euser
-
-    def test_get_callbacks(self):
-        generic_callbacks = IssuesByTagProcessor.get_callbacks("generic", self.project.id)
-        assert isinstance(generic_callbacks, list)
-        assert len(generic_callbacks) == 0
-        user_callbacks = IssuesByTagProcessor.get_callbacks("user", self.project.id)
-        assert isinstance(user_callbacks, list)
-        assert len(user_callbacks) == 1
+        assert sample.eventuser == self.euser
 
     def test_serialize_row(self):
         processor = IssuesByTagProcessor(

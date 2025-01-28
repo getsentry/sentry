@@ -10,7 +10,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 describe('SearchBar', () => {
-  let eventsMock;
+  let eventsMock: any;
   const organization = OrganizationFixture();
 
   const testProps: SearchBarProps = {
@@ -157,10 +157,11 @@ describe('SearchBar', () => {
 
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    await userEvent.type(
-      screen.getByRole('textbox'),
-      'GET /my-endpoint{ArrowDown}{Enter}'
-    );
+    await userEvent.type(screen.getByRole('textbox'), 'GET /my-endpoint');
+
+    await screen.findByText('GET /my-endpoint');
+
+    await userEvent.keyboard('{ArrowDown}{Enter}');
 
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');

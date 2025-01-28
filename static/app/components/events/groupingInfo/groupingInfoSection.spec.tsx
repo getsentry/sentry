@@ -106,7 +106,7 @@ describe('EventGroupingInfo', function () {
       },
     });
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'default:XXXX'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'default:XXXX'})[0]!);
     await userEvent.click(screen.getByRole('option', {name: 'new:XXXX'}));
 
     // Should show new hash

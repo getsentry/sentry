@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -76,11 +78,17 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
   };
 
   return (
-    <UptimeAlertForm
-      organization={organization}
-      project={project}
-      rule={rule}
-      handleDelete={handleDelete}
-    />
+    <Main fullWidth>
+      <UptimeAlertForm
+        organization={organization}
+        project={project}
+        rule={rule}
+        handleDelete={handleDelete}
+      />
+    </Main>
   );
 }
+
+const Main = styled(Layout.Main)`
+  max-width: 1000px;
+`;

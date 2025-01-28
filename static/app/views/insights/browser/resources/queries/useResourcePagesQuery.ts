@@ -57,6 +57,6 @@ export const useResourcePagesQuery = (
     limit: 100,
   });
 
-  const pages = result?.data?.data.map(row => row.transaction.toString()).sort() || [];
+  const pages = result?.data?.data.map(row => row.transaction!.toString()).sort() || [];
   return {...result, data: pages};
 };

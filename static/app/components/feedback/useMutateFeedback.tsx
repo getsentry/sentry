@@ -52,7 +52,7 @@ export default function useMutateFeedback({
       const options = isSingleId
         ? {}
         : ids === 'all'
-          ? listQueryKey[1]!
+          ? listQueryKey?.[1]!
           : {query: {id: ids, project: projectIds}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
@@ -79,19 +79,8 @@ export default function useMutateFeedback({
     [mutation, feedbackIds]
   );
 
-  const assign = useCallback(
-    (
-      assignedTo: Actor | undefined,
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
-      mutation.mutate([feedbackIds, {assignedTo}], options);
-    },
-    [mutation, feedbackIds]
-  );
-
   return {
     markAsRead,
     resolve,
-    assign,
   };
 }

@@ -8,7 +8,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 describe('SuspectSpansQuery', function () {
-  let eventView, location;
+  let eventView: any, location: any;
   beforeEach(function () {
     eventView = EventView.fromSavedQuery({
       id: '',

@@ -19,6 +19,7 @@ export const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 export const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
 
 export const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   tags[key] = {
     ...FIELD_TAGS[key],
     kind: FieldKind.FIELD,
@@ -37,12 +38,15 @@ export const STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS = omit(
 );
 
 export const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   tags[key] = {name: key, kind: FieldKind.METRICS};
   return tags;
 }, {});
 
 export const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   tags[key] = {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     ...SEMVER_TAGS[key],
     kind: FieldKind.FIELD,
   };

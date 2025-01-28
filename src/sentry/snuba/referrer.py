@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 from sentry.utils import metrics
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @unique
-class Referrer(Enum):
+class Referrer(StrEnum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
@@ -95,7 +95,10 @@ class Referrer(Enum):
     API_DISCOVER_TRANSACTIONS_LIST = "api.discover.transactions-list"
     API_EVENTS_MEASUREMENTS = "api.events.measurements"
     API_EVENTS_VITALS = "api.events.vitals"
+    API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
+    API_GROUP_AI_AUTOFIX = "api.group_ai_autofix"
     API_GROUP_AI_SUMMARY = "api.group_ai_summary"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
@@ -107,6 +110,7 @@ class Referrer(Enum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+    API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -529,32 +533,32 @@ class Referrer(Enum):
 
     # Performance Cache Module
     API_PERFORMANCE_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
-        "api.performance.cache.landing-cache-throughput-chart",
+        "api.performance.cache.landing-cache-throughput-chart"
     )
     API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
-        "api.performance.cache.landing-cache-transaction-list",
+        "api.performance.cache.landing-cache-transaction-list"
     )
     API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
-        "api.performance.cache.landing-cache-transaction-duration",
+        "api.performance.cache.landing-cache-transaction-duration"
     )
 
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
-        "api.performance.cache.samples-cache-metrics-ribbon",
+        "api.performance.cache.samples-cache-metrics-ribbon"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
-        "api.performance.cache.samples-cache-transaction-duration-chart",
+        "api.performance.cache.samples-cache-transaction-duration-chart"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-transaction-duration",
+        "api.performance.cache.samples-cache-transaction-duration"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = (
-        "api.performance.cache.samples-cache-span-samples",
+        "api.performance.cache.samples-cache-span-samples"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-span-samples-transaction-duration",
+        "api.performance.cache.samples-cache-span-samples-transaction-duration"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
-        "api.performance.cache.samples-cache-hit-miss-chart",
+        "api.performance.cache.samples-cache-hit-miss-chart"
     )
 
     # Performance Queues Module
@@ -716,6 +720,8 @@ class Referrer(Enum):
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
+    ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"

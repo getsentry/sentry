@@ -7,10 +7,10 @@ import requests
 from django.conf import settings
 from pydantic import BaseModel
 
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
 
@@ -81,16 +81,12 @@ def get_autofix_state(
         }
     )
 
-    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        url,
+        f"{settings.SEER_AUTOFIX_URL}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(
-                salt,
-                body=body,
-            ),
+            **sign_with_seer_secret(body),
         },
     )
 
@@ -119,16 +115,12 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         }
     ).encode("utf-8")
 
-    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        url,
+        f"{settings.SEER_AUTOFIX_URL}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(
-                salt=salt,
-                body=body,
-            ),
+            **sign_with_seer_secret(body),
         },
     )
 

@@ -17,6 +17,8 @@ export enum ModuleName {
   MOBILE_UI = 'mobile-ui',
   MOBILE_SCREENS = 'mobile-screens',
   SCREEN_RENDERING = 'screen-rendering',
+  CRONS = 'crons',
+  UPTIME = 'uptime',
   OTHER = 'other',
 }
 
@@ -264,6 +266,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  IS_TRANSACTION = 'is_transaction',
 }
 
 export type SpanIndexedResponse = {
@@ -412,3 +415,9 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type OurlogsFields = {
+  'sentry.body': string;
+  'sentry.severity_text': string;
+  'sentry.timestamp': string;
+};

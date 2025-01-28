@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
@@ -37,21 +37,32 @@ export function useAddToDashboard() {
   const sampleFields = useExploreFields();
   const query = useExploreQuery();
 
+  const hasWidgetBuilderRedesign = organization.features.includes(
+    'dashboards-widget-builder-redesign'
+  );
+
   const getEventView = useCallback(
     (visualizeIndex: number) => {
-      const yAxes = visualizes[visualizeIndex].yAxes.slice(0, MAX_NUM_Y_AXES);
+      const yAxes = visualizes[visualizeIndex]!.yAxes.slice(0, MAX_NUM_Y_AXES);
 
-      let fields;
+      let fields: any;
       if (mode === Mode.SAMPLES) {
-        fields = sampleFields.filter(Boolean);
+        if (hasWidgetBuilderRedesign) {
+          // TODO: Handle the fields for the widget builder if we've selected the samples mode
+          fields = [];
+        } else {
+          fields = sampleFields.filter(Boolean);
+        }
       } else {
-        fields = [...groupBys, ...yAxes].filter(Boolean);
+        fields = [
+          ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
+        ].filter(Boolean);
       }
 
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Explore Widget'),
+        name: t('Custom Widget'),
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),
@@ -67,7 +78,17 @@ export function useAddToDashboard() {
       newEventView.dataset = dataset;
       return newEventView;
     },
-    [visualizes, mode, sampleFields, groupBys, query, dataset, selection, sortBys]
+    [
+      visualizes,
+      mode,
+      sampleFields,
+      groupBys,
+      query,
+      dataset,
+      selection,
+      sortBys,
+      hasWidgetBuilderRedesign,
+    ]
   );
 
   const addToDashboard = useCallback(
@@ -81,6 +102,7 @@ export function useAddToDashboard() {
         router,
         yAxis: eventView.yAxis,
         widgetType: WidgetType.SPANS,
+        source: DashboardWidgetSource.TRACE_EXPLORER,
       });
     },
     [organization, location, getEventView, router]

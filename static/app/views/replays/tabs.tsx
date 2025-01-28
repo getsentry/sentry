@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {TabList, Tabs} from 'sentry/components/tabs';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -14,7 +15,7 @@ interface Props {
 export default function ReplayTabs({selected}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const tabs = useMemo(
     () => [
@@ -35,7 +36,7 @@ export default function ReplayTabs({selected}: Props) {
   );
 
   return (
-    <Tabs value={selected}>
+    <Layout.HeaderTabs value={selected}>
       <TabList hideBorder>
         {tabs.map(tab => (
           <TabList.Item
@@ -51,6 +52,6 @@ export default function ReplayTabs({selected}: Props) {
           </TabList.Item>
         ))}
       </TabList>
-    </Tabs>
+    </Layout.HeaderTabs>
   );
 }

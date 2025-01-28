@@ -66,7 +66,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def assert_performance_issues(self, root):
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
-        pass
 
     def client_get(self, data, url=None):
         if url is None:

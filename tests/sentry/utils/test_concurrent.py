@@ -78,10 +78,7 @@ def test_future_broken_callback():
 
     callback = mock.Mock(side_effect=Exception("Boom!"))
 
-    try:
-        future_set.add_done_callback(callback)
-    except Exception:
-        assert False, "should not raise"
+    future_set.add_done_callback(callback)  # should not raise
 
     assert callback.call_count == 1
     assert callback.call_args == mock.call(future_set)
@@ -191,16 +188,15 @@ def test_synchronous_executor():
 
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
+    class SentinelException(ValueError):
+        pass
+
     def callable():
-        raise Exception(mock.sentinel.EXCEPTION)
+        raise SentinelException
 
     future = executor.submit(callable)
-    try:
+    with pytest.raises(SentinelException):
         future.result()
-    except Exception as e:
-        assert e.args[0] == mock.sentinel.EXCEPTION
-    else:
-        assert False, "expected future to raise"
 
 
 def test_threaded_same_priority_Tasks():

@@ -7,7 +7,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -51,9 +50,7 @@ function OrganizationRepositoriesContainer() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle
-        title={routeTitleGen(t('Repositories'), organization.slug, false)}
-      />
+      <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
       <OrganizationRepositories
         organization={organization}
         itemList={itemList!}

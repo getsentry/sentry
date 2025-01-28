@@ -108,10 +108,10 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
     () =>
       Array.from(projectEntries.entries()).map<ProjectSampleCount>(([key, value]) => {
         return {
-          project: projectBySlug[key],
+          project: projectBySlug[key]!,
           count: value.count,
           ownCount: value.ownCount,
-          subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
+          subProjects: value.subProjects.toSorted((a: any, b: any) => b.count - a.count),
         };
       }),
     [projectBySlug, projectEntries]

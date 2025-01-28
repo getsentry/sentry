@@ -13,7 +13,6 @@ import {
 
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 describe('groupEvents', () => {
@@ -143,7 +142,7 @@ describe('groupEvents', () => {
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {query: 'foo'},
         })

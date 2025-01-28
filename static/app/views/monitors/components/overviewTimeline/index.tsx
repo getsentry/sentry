@@ -6,6 +6,13 @@ import {
   setEnvironmentIsMuted,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
+import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
@@ -17,19 +24,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {DateNavigator} from '../timeline/dateNavigator';
-import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
-import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
-import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+import {CronServiceIncidents} from '../serviceIncidents';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
 
 interface Props {
   monitorList: Monitor[];
+  linkToAlerts?: boolean;
 }
 
-export function OverviewTimeline({monitorList}: Props) {
+export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
@@ -54,7 +59,7 @@ export function OverviewTimeline({monitorList}: Props) {
         return oldMonitorList;
       }
 
-      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const oldMonitor = oldMonitorList[oldMonitorIdx]!;
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
       const updatedMonitor = {
         ...oldMonitor,
@@ -109,7 +114,7 @@ export function OverviewTimeline({monitorList}: Props) {
     const queryKey = makeMonitorListQueryKey(organization, location.query);
     setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
       const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};
+      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx]!, status: resp.status};
 
       return oldMonitorList;
     });
@@ -142,7 +147,7 @@ export function OverviewTimeline({monitorList}: Props) {
         stickyCursor
         allowZoom
         showCursor
-        showIncidents
+        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
 
@@ -157,6 +162,7 @@ export function OverviewTimeline({monitorList}: Props) {
               handleToggleMuteEnvironment(monitor, env, isMuted)
             }
             onToggleStatus={handleToggleStatus}
+            linkToAlerts={linkToAlerts}
           />
         ))}
       </MonitorRows>

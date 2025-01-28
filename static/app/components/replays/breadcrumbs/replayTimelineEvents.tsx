@@ -163,9 +163,9 @@ const getBackgroundGradient = ({
   frameCount: number;
   theme: Theme;
 }) => {
-  const c0 = theme[colors[0]] ?? colors[0];
-  const c1 = theme[colors[1]] ?? colors[1] ?? c0;
-  const c2 = theme[colors[2]] ?? colors[2] ?? c1;
+  const c0 = theme[colors[0]!] ?? colors[0]!;
+  const c1 = theme[colors[1]!] ?? colors[1]! ?? c0;
+  const c2 = theme[colors[2]!] ?? colors[2]! ?? c1;
 
   if (frameCount === 1) {
     return `background: ${c0};`;

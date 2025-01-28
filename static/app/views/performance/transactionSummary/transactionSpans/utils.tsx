@@ -119,7 +119,7 @@ export function getSuspectSpanSortFromLocation(
 }
 
 export function getSuspectSpanSortFromEventView(eventView: EventView): SpanSortOption {
-  const sort = eventView.sorts.length ? eventView.sorts[0].field : DEFAULT_SORT;
+  const sort = eventView.sorts.length ? eventView.sorts[0]!.field : DEFAULT_SORT;
   return getSuspectSpanSort(sort);
 }
 

@@ -11,7 +11,9 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk import Scope, set_tag
 from sentry_sdk.tracing import Span
 
+from sentry import options
 from sentry.constants import DataCategory
+from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -24,10 +26,12 @@ from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
-logger = logging.getLogger("sentry.replays")
-
 CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1
+LOG_SAMPLE_RATE = 0.01
+
+logger = logging.getLogger("sentry.replays")
+logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 
 class ReplayRecordingSegment(TypedDict):
@@ -193,8 +197,9 @@ def track_initial_segment_event(
     if not project.flags.has_replays:
         first_replay_received.send_robust(project=project, sender=Project)
 
-    # Replay videos are not billed for now.
-    if is_replay_video:
+    # Beta customers will have a 2 months grace period post GA.
+    if should_skip_billing(org_id, is_replay_video):
+        metrics.incr("replays.billing-outcome-skipped")
         track_outcome(
             org_id=org_id,
             project_id=project_id,
@@ -218,6 +223,10 @@ def track_initial_segment_event(
             category=DataCategory.REPLAY,
             quantity=1,
         )
+
+
+def should_skip_billing(org_id: int, is_replay_video: bool) -> bool:
+    return is_replay_video and org_id in options.get("replay.replay-video.billing-skip-org-ids")
 
 
 @metrics.wraps("replays.usecases.ingest.process_headers")

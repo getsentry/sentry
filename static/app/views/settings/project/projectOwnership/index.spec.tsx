@@ -60,7 +60,7 @@ describe('Project Ownership', () => {
 
       expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit Rules'})).toBeEnabled();
-      // eslint-disable-next-line jest-dom/prefer-in-document
+
       expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);
     });
   });

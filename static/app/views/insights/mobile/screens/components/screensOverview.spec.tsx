@@ -164,6 +164,8 @@ describe('ScreensOverview', () => {
     render(<ScreensOverview />, {organization});
     await waitFor(() => {
       expect(transactionMetricsMock).toHaveBeenCalled();
+    });
+    await waitFor(() => {
       expect(spanMetricsMock).toHaveBeenCalled();
     });
   });

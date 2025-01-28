@@ -33,9 +33,9 @@ const TRANSACTION_NUMERIC_KEYS: TransactionKey[] = [
 const TRANSACTION_DURATION_KEYS: TransactionKey[] = ['transaction.duration'];
 
 const TRANSACTION_DURATION_SYNTHETIC_KEYS: TransactionKey[] = [
-  // @ts-expect-error
+  // @ts-expect-error TS(2322): Type '"duration"' is not assignable to type 'Trans... Remove this comment to see the full error message
   'duration',
-  // @ts-expect-error
+  // @ts-expect-error TS(2322): Type '"total_time"' is not assignable to type 'Tra... Remove this comment to see the full error message
   'total_time',
 ];
 
@@ -69,11 +69,11 @@ const SPAN_DURATION_KEYS: SpanKey[] = ['exclusive_time'];
 // The keys below are not real keys returned by the API, but are instead
 // mapped by the frontend to the correct keys for convenience and UX reasons
 const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = [
-  // @ts-expect-error
+  // @ts-expect-error TS(2322): Type '"duration"' is not assignable to type 'SpanK... Remove this comment to see the full error message
   'duration',
-  // @ts-expect-error
+  // @ts-expect-error TS(2322): Type '"total_time"' is not assignable to type 'Spa... Remove this comment to see the full error message
   'total_time',
-  // @ts-expect-error
+  // @ts-expect-error TS(2322): Type '"self_time"' is not assignable to type 'Span... Remove this comment to see the full error message
   'self_time',
 ];
 

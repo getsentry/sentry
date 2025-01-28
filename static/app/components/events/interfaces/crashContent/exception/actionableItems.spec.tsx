@@ -145,6 +145,18 @@ describe('Actionable Items', () => {
             'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
         },
       },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source: 'org-dartlang-sdk:///dart-sdk/lib/async/future_impl.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source: 'org-dartlang-sdk:///dart-sdk/lib/async/zone.dart',
+        },
+      },
     ];
 
     MockApiClient.addMockResponse({

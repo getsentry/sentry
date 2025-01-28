@@ -86,7 +86,7 @@ export const Queries = memo(function Queries({
 
   const handleEditQueryAlias = useCallback(
     (index: number) => {
-      const query = metricQueries[index];
+      const query = metricQueries[index]!;
       const alias = getMetricQueryName(query);
 
       onQueryChange({alias}, index);
@@ -96,7 +96,7 @@ export const Queries = memo(function Queries({
 
   const handleEditEquationAlias = useCallback(
     (index: number) => {
-      const equation = metricEquations[index];
+      const equation = metricEquations[index]!;
       const alias = getMetricQueryName(equation);
 
       onEquationChange({alias: alias ?? ''}, index);

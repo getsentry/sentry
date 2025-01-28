@@ -85,13 +85,13 @@ function Content({
 
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
-        ? [...theme.charts.getColorPalette(1)]
+        ? theme.charts.getColorPalette(1)
         : [filterToColor(currentFilter)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
     const tooltip = {
-      formatter(series) {
+      formatter(series: any) {
         const seriesData = toArray(series);
         let contents: string[] = [];
         if (!zoomError) {
@@ -144,7 +144,7 @@ function Content({
             yAxis={{
               type: 'value',
               axisLabel: {
-                formatter: value => formatPercentage(value, 0),
+                formatter: (value: any) => formatPercentage(value, 0),
               },
             }}
             series={[series]}

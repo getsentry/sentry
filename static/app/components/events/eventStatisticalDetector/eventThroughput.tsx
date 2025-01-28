@@ -98,9 +98,12 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
 
   const series = useMemo(() => {
     const result = transformEventStats(
-      stats.series.map(item => [item.timestamp, [{count: item.value / item.interval}]]),
+      stats.series.map((item: any) => [
+        item.timestamp,
+        [{count: item.value / item.interval}],
+      ]),
       'throughput()'
-    )[0];
+    )[0]!;
 
     result.markLine = {
       data: [
@@ -229,9 +232,9 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
       return [];
     }
 
-    const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'count()');
+    const rawData = functionStats?.data?.data?.find(({axis}: any) => axis === 'count()');
     const timestamps = functionStats?.data?.timestamps ?? [];
-    return timestamps.reduce((acc, timestamp, idx) => {
+    return timestamps.reduce((acc: any, timestamp: any, idx: any) => {
       const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
       const prev: DataBucket = acc[acc.length - 1];
       const value = rawData.values[idx];
@@ -293,7 +296,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
     if (data.length < 2) {
       return null;
     }
-    return data[1][0] - data[0][0];
+    return data[1]![0] - data[0]![0];
   }, [transactionStats?.data]);
 
   const transactionData = useMemo(() => {
@@ -305,7 +308,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
       const timestamp = curr[0];
       const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
       const prev = acc[acc.length - 1];
-      const value = curr[1][0].count;
+      const value = curr[1]![0]!.count;
 
       if (prev?.timestamp === bucket) {
         prev.value += value;

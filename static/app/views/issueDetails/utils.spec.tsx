@@ -82,4 +82,43 @@ describe('useHasStreamlinedUI', () => {
     const {result} = renderHook(useHasStreamlinedUI);
     expect(result.current).toBe(true);
   });
+
+  it('ignores preferences if organization option is set', () => {
+    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+
+    const streamlineOrg = OrganizationFixture({streamlineOnly: true});
+    jest.mocked(useOrganization).mockReturnValue(streamlineOrg);
+
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = false;
+    act(() => ConfigStore.set('user', user));
+
+    const {result: streamlineResult} = renderHook(useHasStreamlinedUI);
+    expect(streamlineResult.current).toBe(true);
+
+    const legacyOrg = OrganizationFixture({streamlineOnly: false});
+    jest.mocked(useOrganization).mockReturnValue(legacyOrg);
+
+    user.options.prefersIssueDetailsStreamlinedUI = true;
+    act(() => ConfigStore.set('user', user));
+
+    const {result: legacyResult} = renderHook(useHasStreamlinedUI);
+    expect(legacyResult.current).toBe(false);
+  });
+
+  it('ignores the option if unset', () => {
+    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    jest
+      .mocked(useOrganization)
+      .mockReturnValue(OrganizationFixture({streamlineOnly: null}));
+
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = true;
+    act(() => ConfigStore.set('user', user));
+
+    const {result: result} = renderHook(useHasStreamlinedUI);
+    expect(result.current).toBe(true);
+  });
 });

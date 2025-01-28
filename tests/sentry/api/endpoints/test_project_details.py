@@ -39,72 +39,6 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
-    rules = [
-        {
-            "sampleRate": 0.7,
-            "type": "trace",
-            "active": True,
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "name": "field1", "value": ["val"]},
-                    {"op": "glob", "name": "field1", "value": ["val"]},
-                ],
-            },
-            "id": -1,
-        },
-        {
-            "sampleRate": 0.8,
-            "type": "trace",
-            "active": True,
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "name": "field1", "value": ["val"]},
-                ],
-            },
-            "id": -1,
-        },
-    ]
-    if uniform_rule_last_position:
-        rules.append(
-            {
-                "sampleRate": 0.8,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-                "id": -1,
-            },
-        )
-    if multiple_uniform_rules:
-        new_rule_1 = {
-            "sampleRate": 0.22,
-            "type": "trace",
-            "condition": {
-                "op": "and",
-                "inner": [],
-            },
-            "id": -1,
-        }
-        rules.insert(0, new_rule_1)
-
-    return {
-        "rules": rules,
-    }
-
-
-def _remove_ids_from_dynamic_rules(dynamic_rules):
-    if dynamic_rules.get("next_id") is not None:
-        del dynamic_rules["next_id"]
-    for rule in dynamic_rules["rules"]:
-        del rule["id"]
-    return dynamic_rules
-
-
 def first_symbol_source_id(sources_json):
     sources = orjson.loads(sources_json)
     return sources[0]["id"]
@@ -1117,6 +1051,11 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
+    def test_store_crash_reports_inherit_organization_settings(self):
+        resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=None)
+        assert self.project.get_option("sentry:store_crash_reports") is None
+        assert resp.data["storeCrashReports"] is None
+
     def test_react_hydration_errors(self):
         options = {"filters:react-hydration-errors": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -2024,3 +1963,32 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             assert response.json()["dynamicSamplingBiases"][0]["non_field_errors"] == [
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
+
+    @with_feature("organizations:tempest-access")
+    def test_put_tempest_fetch_screenshots(self):
+        # assert default value is False, and that put request updates the value
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
+    def test_put_tempest_fetch_screenshots_without_feature_flag(self):
+        self.get_error_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+
+    @with_feature("organizations:tempest-access")
+    def test_get_tempest_fetch_screenshots_options(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    def test_get_tempest_fetch_screenshots_options_without_feature_flag(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" not in response.data

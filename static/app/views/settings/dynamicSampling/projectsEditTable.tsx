@@ -19,22 +19,27 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
-import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {
+  ProjectionSamplePeriod,
+  ProjectSampleCount,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
   editMode: 'single' | 'bulk';
   isLoading: boolean;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
+  period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
 }
 
 const {useFormField} = projectSamplingForm;
-const EMPTY_ARRAY = [];
+const EMPTY_ARRAY: any = [];
 
 export function ProjectsEditTable({
   isLoading: isLoadingProp,
   sampleCounts,
   editMode,
+  period,
   onEditModeChange,
 }: Props) {
   const {projects, fetching} = useProjects();
@@ -99,6 +104,7 @@ export function ProjectsEditTable({
       });
 
       const newProjectValues = scaledItems.reduce((acc, item) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[item.id] = formatPercent(item.sampleRate);
         return acc;
       }, {});
@@ -131,8 +137,8 @@ export function ProjectsEditTable({
           ownCount: item?.ownCount || 0,
           subProjects: item?.subProjects ?? EMPTY_ARRAY,
           project,
-          initialSampleRate: initialValue[project.id],
-          sampleRate: value[project.id],
+          initialSampleRate: initialValue[project.id]!,
+          sampleRate: value[project.id]!,
           error: error?.[project.id],
         };
       }),
@@ -260,6 +266,7 @@ export function ProjectsEditTable({
         canEdit={!isBulkEditEnabled}
         onChange={handleProjectChange}
         emptyMessage={t('No active projects found in the selected period.')}
+        period={period}
         isLoading={isLoading}
         items={activeItems}
         inactiveItems={inactiveItems}

@@ -45,13 +45,11 @@ describe('ErrorCounts', () => {
     });
   });
 
-  it('should render 0 when there are no errors in the array', async () => {
-    const errors = [];
-
-    render(<ErrorCounts replayErrors={errors} replayRecord={replayRecord} />, {
+  it('should render 0 when there are no errors in the array', () => {
+    render(<ErrorCounts replayErrors={[]} replayRecord={replayRecord} />, {
       organization,
     });
-    const countNode = await screen.getByLabelText('number of errors');
+    const countNode = screen.getByLabelText('number of errors');
     expect(countNode).toHaveTextContent('0');
   });
 
@@ -62,7 +60,7 @@ describe('ErrorCounts', () => {
       organization,
     });
 
-    const countNode = await screen.getByLabelText('number of errors');
+    const countNode = screen.getByLabelText('number of errors');
     expect(countNode).toHaveTextContent('1');
 
     const icon = await screen.findByTestId('platform-icon-javascript');
@@ -85,7 +83,7 @@ describe('ErrorCounts', () => {
       organization,
     });
 
-    const countNodes = await screen.getAllByLabelText('number of errors');
+    const countNodes = screen.getAllByLabelText('number of errors');
     expect(countNodes[0]).toHaveTextContent('1');
     expect(countNodes[1]).toHaveTextContent('2');
 
@@ -94,11 +92,11 @@ describe('ErrorCounts', () => {
     const pyIcon = await screen.findByTestId('platform-icon-python');
     expect(pyIcon).toBeInTheDocument();
 
-    expect(countNodes[0].parentElement).toHaveAttribute(
+    expect(countNodes[0]!.parentElement).toHaveAttribute(
       'href',
       '/mock-pathname/?f_e_project=my-js-app&t_main=errors'
     );
-    expect(countNodes[1].parentElement).toHaveAttribute(
+    expect(countNodes[1]!.parentElement).toHaveAttribute(
       'href',
       '/mock-pathname/?f_e_project=my-py-backend&t_main=errors'
     );
@@ -118,7 +116,7 @@ describe('ErrorCounts', () => {
       organization,
     });
 
-    const countNode = await screen.getByLabelText('total errors');
+    const countNode = screen.getByLabelText('total errors');
     expect(countNode).toHaveTextContent('6');
 
     const jsIcon = await screen.findByTestId('platform-icon-javascript');
@@ -127,7 +125,7 @@ describe('ErrorCounts', () => {
     const pyIcon = await screen.findByTestId('platform-icon-python');
     expect(pyIcon).toBeInTheDocument();
 
-    const plusOne = await screen.getByLabelText('hidden projects');
+    const plusOne = screen.getByLabelText('hidden projects');
     expect(plusOne).toHaveTextContent('+1');
 
     expect(countNode.parentElement).toHaveAttribute(

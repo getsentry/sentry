@@ -118,7 +118,7 @@ export class Frame {
           if (match?.groups) {
             const {maybeScopeOrPackage, maybePackage} = match.groups;
 
-            if (maybeScopeOrPackage.startsWith('@')) {
+            if (maybeScopeOrPackage!.startsWith('@')) {
               this.module = `${maybeScopeOrPackage}/${maybePackage}`;
             } else {
               this.module = match.groups.maybeScopeOrPackage;

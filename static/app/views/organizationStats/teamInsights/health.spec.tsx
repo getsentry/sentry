@@ -220,7 +220,7 @@ describe('TeamStatsHealth', () => {
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // Org owners can see all teams including ones they are not members of
-    expect(screen.queryByText('#internal')).toBeInTheDocument();
+    expect(screen.getByText('#internal')).toBeInTheDocument();
     await userEvent.click(screen.getByText('#internal'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: {team: team3.id}})

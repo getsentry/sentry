@@ -398,8 +398,8 @@ describe('ApiSource', function () {
       // The return values here are because of fuzzy search matching.
       // There are no members that match
       expect(mock.mock.calls[1][0].results).toHaveLength(6);
-      expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
     });
+    expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
 
@@ -412,8 +412,8 @@ describe('ApiSource', function () {
     await waitFor(() => {
       // Still have 4 results, but is re-ordered
       expect(mock.mock.calls[0][0].results).toHaveLength(6);
-      expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
     });
+    expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
   });
 
   describe('API queries', function () {

@@ -1,8 +1,11 @@
 import datetime
-import logging
 
 import pytest
 import sentry_sdk
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DEADLETTER,
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
+)
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import TaskNamespace
@@ -13,7 +16,7 @@ from sentry.utils import json
 
 
 def do_things() -> None:
-    logging.info("Ran do_things")
+    raise NotImplementedError
 
 
 @pytest.fixture
@@ -135,15 +138,16 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
     assert activation.retry_state.attempts == 0
-    assert activation.retry_state.discard_after_attempt == 1
+    assert activation.retry_state.max_attempts == 1
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
     activation = retry_task.create_activation()
     assert activation.taskname == "test.with_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
     assert activation.retry_state.attempts == 0
-    assert activation.retry_state.discard_after_attempt == 0
-    assert activation.retry_state.deadletter_after_attempt == 3
+    assert activation.retry_state.max_attempts == 3
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
     activation = timedelta_expiry_task.create_activation()
     assert activation.taskname == "test.with_timedelta_expires"
@@ -161,14 +165,14 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.retry_state
     assert activation.retry_state.at_most_once is True
     assert activation.retry_state.attempts == 0
-    assert activation.retry_state.discard_after_attempt == 1
-    assert activation.retry_state.deadletter_after_attempt == 0
+    assert activation.retry_state.max_attempts == 1
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
 
 def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
-        pass
+        raise NotImplementedError
 
     activation = with_parameters.create_activation("one", 22, org_id=99)
     params = json.loads(activation.parameters)
@@ -180,7 +184,7 @@ def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
 def test_create_activation_tracing(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
-        pass
+        raise NotImplementedError
 
     with sentry_sdk.start_transaction(op="test.task"):
         activation = with_parameters.create_activation("one", 22, org_id=99)

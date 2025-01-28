@@ -4,7 +4,6 @@ import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
-  categorizeDuration,
   findRangeOfMultiSeries,
   getDurationUnit,
   tooltipFormatter,
@@ -13,9 +12,11 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
+import {categorizeDuration} from './categorizeDuration';
+
 describe('tooltipFormatter()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // function, input, expected
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
@@ -35,7 +36,7 @@ describe('tooltipFormatter()', () => {
 
 describe('tooltipFormatterUsingAggregateOutputType()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // function, input, expected
       ['number', 0.1, '0.1'],
       ['integer', 0.125, '0.125'],
@@ -54,7 +55,7 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
 
 describe('axisLabelFormatter()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // type, input, expected
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
@@ -91,21 +92,21 @@ describe('axisLabelFormatter()', () => {
       const axisValues = [40 * SECOND, 50 * SECOND, 60 * SECOND, 70 * SECOND];
       const durationUnit = generateDurationUnit(axisValues);
       const labels = getAxisLabels(axisValues, durationUnit);
-      expect(labels.length).toBe(new Set(labels).size);
+      expect(labels).toHaveLength(new Set(labels).size);
     });
 
     it('should use the same duration unit', () => {
       const axisValues = [50 * MINUTE, 150 * MINUTE, 250 * MINUTE, 350 * MINUTE];
       const durationUnit = generateDurationUnit(axisValues);
       const labels = getAxisLabels(axisValues, durationUnit);
-      expect(labels.length).toBe(labels.filter(label => label.endsWith('hr')).length);
+      expect(labels).toHaveLength(labels.filter(label => label.endsWith('hr')).length);
     });
   });
 });
 
 describe('axisLabelFormatterUsingAggregateOutputType()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // type, input, expected
       ['number', 0.1, '0.1'],
       ['integer', 0.125, '0.125'],
@@ -155,7 +156,7 @@ describe('findRangeOfMultiSeries()', () => {
   });
 
   it('should find min and max when series is unordered', () => {
-    const mixedSeries = [series[1], series[0], series[2]];
+    const mixedSeries = [series[1]!, series[0]!, series[2]!];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 50});
   });
 
@@ -169,9 +170,9 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 0},
         ],
       },
-      series[1],
-      series[0],
-      series[2],
+      series[1]!,
+      series[0]!,
+      series[2]!,
     ];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 0});
   });
@@ -186,9 +187,9 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 10},
         ],
       },
-      series[1],
-      series[0],
-      series[2],
+      series[1]!,
+      series[0]!,
+      series[2]!,
     ];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: -10});
   });
@@ -219,7 +220,7 @@ describe('findRangeOfMultiSeries()', () => {
     const legend: LegendComponentOption = {
       selected: {'p100()': false, 'p95()': false, 'p50()': false},
     };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual(undefined);
+    expect(findRangeOfMultiSeries(series, legend)).toBeUndefined();
   });
 
   it('should ignore p100 series if not selected', () => {

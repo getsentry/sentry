@@ -6,16 +6,11 @@ from django.urls import NoReverseMatch, reverse
 from sentry.models.group import Group
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
-
-
-def format_project_event(project_id_or_slug, event_id):
-    return f"{project_id_or_slug}:{event_id}"
 
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
@@ -92,7 +87,6 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_simple_with_id(self):
         url = reverse(
             "sentry-api-0-organization-event-details",
@@ -214,7 +208,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         data = load_data("transaction")
         data["event_id"] = "d" * 32
         data["timestamp"] = before_now(minutes=1).isoformat()
-        data["start_timestamp"] = iso_format(before_now(minutes=1) - timedelta(seconds=5))
+        data["start_timestamp"] = (before_now(minutes=1) - timedelta(seconds=5)).isoformat()
         data["contexts"]["trace"]["description"] = "b" * 512
         self.store_event(data=data, project_id=self.project.id)
 
@@ -381,7 +375,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                             "avg(span.self_time)": 1.0,
                             "avg(span.duration)": 2.0,
                         }
-                    if span["op"] == "django.middlewares":
+                    if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
     def test_nan_column(self):
@@ -397,7 +391,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                 for span in entry["data"]:
                     if span["op"] == "db":
                         assert span[self.RESULT_COLUMN] == {"avg(span.self_time)": 1.0}
-                    if span["op"] == "django.middlewares":
+                    if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
     def test_invalid_column(self):

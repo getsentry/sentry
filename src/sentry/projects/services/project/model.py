@@ -4,10 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import OptionValue, RpcModel
@@ -49,6 +48,7 @@ class RpcProjectFlags(RpcModel):
     has_insights_caches: bool
     has_insights_queues: bool
     has_insights_llm_monitoring: bool
+    has_flags: bool
 
 
 class RpcProject(RpcModel):

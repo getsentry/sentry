@@ -20,7 +20,7 @@ describe('InstallWizard', function () {
     render(<InstallWizard onConfigured={jest.fn()} />);
   });
 
-  it('has no option selected when beacon.anonymous is unset', function () {
+  it('has no option selected when beacon.anonymous is unset', async function () {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture({
@@ -38,6 +38,7 @@ describe('InstallWizard', function () {
       }),
     });
     render(<InstallWizard onConfigured={jest.fn()} />);
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       screen.getByRole('radio', {
         name: 'Please keep my usage information anonymous',
@@ -50,7 +51,7 @@ describe('InstallWizard', function () {
     ).not.toBeChecked();
   });
 
-  it('has no option selected even when beacon.anonymous is set', function () {
+  it('has no option selected even when beacon.anonymous is set', async function () {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture({
@@ -68,6 +69,7 @@ describe('InstallWizard', function () {
       }),
     });
     render(<InstallWizard onConfigured={jest.fn()} />);
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       screen.getByRole('radio', {
         name: 'Please keep my usage information anonymous',

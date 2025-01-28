@@ -1,6 +1,6 @@
 import type {
   AxisPointerComponentOption,
-  ECharts,
+  ECharts as EChartsType,
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
@@ -122,10 +122,10 @@ export type EChartFinishedHandler = EChartEventHandler<{}>;
 
 export type EChartRenderedHandler = EChartEventHandler<{}>;
 
-type EchartBrushAreas = {
+type EchartBrushAreas = Array<{
   coordRange: number[][];
   range: number[][];
-}[];
+}>;
 
 export type EChartBrushStartHandler = EChartEventHandler<{
   areas: EchartBrushAreas;
@@ -143,3 +143,5 @@ export type EChartBrushSelectedHandler = EChartEventHandler<{
   brushId: string;
   type: 'brushselected';
 }>;
+
+export type ECharts = EChartsType;

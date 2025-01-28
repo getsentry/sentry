@@ -13,7 +13,11 @@ export const enum EventAttachmentFilter {
 
 type AttachmentFilterValue = `${EventAttachmentFilter}`;
 
-function GroupEventAttachmentsFilter() {
+interface GroupEventAttachmentsFilterProps {
+  onChange?: (filter: EventAttachmentFilter) => void;
+}
+
+function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -35,6 +39,7 @@ function GroupEventAttachmentsFilter() {
             },
             {replace: true}
           );
+          onChange?.(key as EventAttachmentFilter);
         }}
       >
         <SegmentedControl.Item key={EventAttachmentFilter.ALL}>

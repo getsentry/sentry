@@ -10,7 +10,7 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import useProjects from 'sentry/utils/useProjects';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
-jest.mock('sentry/utils/replays/hooks/useReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 jest.mock('sentry/utils/useProjects');
 
 describe('Breadcrumbs', () => {

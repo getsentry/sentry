@@ -43,7 +43,7 @@ interface BaseField {
   autosize?: boolean;
   choices?:
     | ((props: {[key: string]: any}) => void)
-    | readonly Readonly<[number | string, React.ReactNode]>[];
+    | ReadonlyArray<Readonly<[number | string, React.ReactNode]>>;
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
@@ -124,7 +124,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   filterOption?: ReturnType<typeof createFilter>;
   multiple?: boolean;
   noOptionsMessage?: () => string;
-  options?: SelectValue<any>[];
+  options?: Array<SelectValue<any>>;
 };
 
 type TextareaType = {type: 'textarea'} & {

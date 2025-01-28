@@ -21,6 +21,7 @@ import {getTraceTabTitle} from '../../traceState/traceTabs';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
+import {getProfileMeta} from './utils';
 
 export function MissingInstrumentationNodeDetails(
   props: TraceTreeNodeDetailsProps<MissingInstrumentationNode>
@@ -35,10 +36,12 @@ export function MissingInstrumentationNodeDetails(
   const {node, organization, onTabScrollToNode} = props;
   const event = node.previous.event ?? node.next.event ?? null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
+  const profileMeta = getProfileMeta(event) || '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasTraceNewUi}>
+    <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.LegacyTitleText>
@@ -57,43 +60,44 @@ export function MissingInstrumentationNodeDetails(
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
+        <TextBlock>
+          {tct(
+            'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
+            {
+              customInstrumentationLink: (
+                <ExternalLink href={getCustomInstrumentationLink(project)} />
+              ),
+            }
+          )}
+        </TextBlock>
 
-      <TextBlock>
-        {tct(
-          'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
-          {
-            customInstrumentationLink: (
-              <ExternalLink href={getCustomInstrumentationLink(project)} />
-            ),
-          }
-        )}
-      </TextBlock>
+        {event?.projectSlug ? (
+          <ProfilesProvider
+            orgSlug={organization.slug}
+            projectSlug={event?.projectSlug ?? ''}
+            profileMeta={profileMeta}
+          >
+            <ProfileContext.Consumer>
+              {profiles => (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <ProfilePreview event={event!} node={node} />
+                </ProfileGroupProvider>
+              )}
+            </ProfileContext.Consumer>
+          </ProfilesProvider>
+        ) : null}
 
-      {event?.projectSlug ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={event?.projectSlug ?? ''}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <ProfilePreview event={event!} node={node} />
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : null}
-
-      <TextBlock>
-        {t(
-          "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
-        )}
-      </TextBlock>
+        <TextBlock>
+          {t(
+            "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
+          )}
+        </TextBlock>
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
@@ -185,28 +189,29 @@ function LegacyMissingInstrumentationNodeDetails({
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.LegacyHeaderContainer>
+      <TraceDrawerComponents.BodyContainer>
+        {node.event?.projectSlug ? (
+          <ProfilesProvider
+            orgSlug={organization.slug}
+            projectSlug={node.event?.projectSlug ?? ''}
+            profileMeta={profileId || ''}
+          >
+            <ProfileContext.Consumer>
+              {profiles => (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <ProfilePreview event={node.event!} node={node} />
+                </ProfileGroupProvider>
+              )}
+            </ProfileContext.Consumer>
+          </ProfilesProvider>
+        ) : null}
 
-      {node.event?.projectSlug ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={node.event?.projectSlug ?? ''}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <ProfilePreview event={node.event!} node={node} />
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : null}
-
-      <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
+        <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }

@@ -116,7 +116,7 @@ export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
 }
 
-export function generateOrgSlugUrl(orgSlug) {
+export function generateOrgSlugUrl(orgSlug: any) {
   const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
   return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }

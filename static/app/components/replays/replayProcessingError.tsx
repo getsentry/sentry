@@ -22,7 +22,9 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
     Sentry.withScope(scope => {
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
-      sdk && scope.setTag('sdk.version', sdk.version);
+      if (sdk) {
+        scope.setTag('sdk.version', sdk.version);
+      }
       processingErrors.forEach(error => {
         Sentry.metrics.increment(`replay.processing-error`, 1, {
           tags: {

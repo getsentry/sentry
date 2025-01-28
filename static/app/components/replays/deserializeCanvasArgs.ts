@@ -23,7 +23,7 @@ function variableListFor(ctx: CanvasContexts, ctor: string) {
   if (!contextMap.has(ctor)) {
     contextMap.set(ctor, []);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+
   return contextMap.get(ctor) as any[];
 }
 

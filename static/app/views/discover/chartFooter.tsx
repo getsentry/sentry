@@ -15,7 +15,7 @@ export const PROCESSED_BASELINE_TOGGLE_KEY = 'show-processed-baseline';
 
 type Props = {
   displayMode: string;
-  displayOptions: SelectValue<string>[];
+  displayOptions: Array<SelectValue<string>>;
   eventView: EventView;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
@@ -23,7 +23,7 @@ type Props = {
   onTopEventsChange: (value: string) => void;
   topEvents: string;
   total: number | null;
-  yAxisOptions: SelectValue<string>[];
+  yAxisOptions: Array<SelectValue<string>>;
   yAxisValue: string[];
 };
 
@@ -52,7 +52,7 @@ export default function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
-  const topEventOptions: SelectValue<string>[] = [];
+  const topEventOptions: Array<SelectValue<string>> = [];
   for (let i = 1; i <= 10; i++) {
     topEventOptions.push({value: i.toString(), label: i.toString()});
   }
@@ -83,7 +83,7 @@ export default function ChartFooter({
         {TOP_EVENT_MODES.includes(displayMode) ? (
           <OptionSelector
             title={t('Y-Axis')}
-            selected={yAxisValue[0]}
+            selected={yAxisValue[0]!}
             options={yAxisOptions}
             onChange={yAxis => onAxisChange([yAxis])}
           />

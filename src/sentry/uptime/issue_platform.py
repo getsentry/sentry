@@ -45,7 +45,7 @@ def build_occurrence_from_result(
         ),
         IssueEvidence(
             name="Duration",
-            value=str(result["duration_ms"]),
+            value=f"{result["duration_ms"]}ms",
             important=False,
         ),
     ]

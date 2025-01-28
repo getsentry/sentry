@@ -12,7 +12,7 @@ export function RouteComponentPropsFixture<
     location: router.location,
     params: router.params as QueryParams & RouteParams,
     routes: router.routes,
-    route: router.routes[0],
+    route: router.routes[0]!,
     routeParams: router.params as RouteParams,
     router,
   };

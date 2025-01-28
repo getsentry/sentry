@@ -84,7 +84,7 @@ describe('WidgetParser', () => {
     ).parse();
     const {report, widget} = await result;
 
-    expect(report.outcome).toEqual('success');
+    expect(report.outcome).toBe('success');
     expect(report.errors).toEqual([]);
 
     expect(widget).toBeDefined();
@@ -121,7 +121,7 @@ describe('WidgetParser', () => {
     ).parse();
     const {report, widget} = await result;
 
-    expect(report.outcome).toEqual('success');
+    expect(report.outcome).toBe('success');
     expect(report.errors).toEqual([]);
 
     expect(widget?.queries).toHaveLength(2);
@@ -165,7 +165,7 @@ describe('WidgetParser', () => {
     ).parse();
     const {report, widget} = await result;
 
-    expect(report.outcome).toEqual('success');
+    expect(report.outcome).toBe('success');
     expect(widget).toEqual({
       displayType: 'line',
       limit: 10,
@@ -197,7 +197,7 @@ describe('WidgetParser', () => {
     ).parse();
     const {report} = await result;
 
-    expect(report.outcome).toEqual('error');
+    expect(report.outcome).toBe('error');
     expect(report.errors).toEqual([
       'widget - no parseable queries found',
       'widget.request.query - metric not found: sentry.unknown-metric',
@@ -212,7 +212,7 @@ describe('WidgetParser', () => {
     const result = new WidgetParser(widget, availableMetrics, 'test-org', false).parse();
     const {report} = await result;
 
-    expect(report.outcome).toEqual('warning');
+    expect(report.outcome).toBe('warning');
     expect(report.errors).toEqual([
       'widget.request.query - unsupported filter: not-a-tag',
     ]);
@@ -226,7 +226,7 @@ describe('WidgetParser', () => {
     const result = new WidgetParser(widget, availableMetrics, 'test-org', false).parse();
     const {report} = await result;
 
-    expect(report.outcome).toEqual('warning');
+    expect(report.outcome).toBe('warning');
     expect(report.errors).toEqual([
       'widget.request.query.filter - unsupported value: bar*, using bar',
     ]);
@@ -268,9 +268,9 @@ describe('parseDashboard', () => {
     );
     const {report, widgets} = result;
 
-    expect(report.length).toEqual(2);
-    expect(report[0].outcome).toEqual('success');
-    expect(widgets.length).toEqual(2);
+    expect(report).toHaveLength(2);
+    expect(report[0]!.outcome).toBe('success');
+    expect(widgets).toHaveLength(2);
   });
 
   it('should parse a dashboard and explode widgets', async () => {
@@ -296,9 +296,9 @@ describe('parseDashboard', () => {
     );
     const {report, widgets} = result;
 
-    expect(report.length).toEqual(2);
-    expect(report[0].outcome).toEqual('success');
-    expect(widgets.length).toEqual(2);
+    expect(report).toHaveLength(2);
+    expect(report[0]!.outcome).toBe('success');
+    expect(widgets).toHaveLength(2);
   });
 
   it('should parse a dashboard with formulas', async () => {
@@ -330,13 +330,13 @@ describe('parseDashboard', () => {
     );
 
     const {report, widgets} = result;
-    expect(report.length).toEqual(1);
-    expect(widgets.length).toEqual(1);
+    expect(report).toHaveLength(1);
+    expect(widgets).toHaveLength(1);
 
-    const queries = widgets[0].queries;
-    expect(queries.length).toEqual(5);
-    expect(queries[2].aggregates[0]).toEqual('equation|2 * $b');
-    expect(queries[3].aggregates[0]).toEqual('equation|$a + $b');
-    expect(queries[4].aggregates[0]).toEqual('equation|($b + $b) - $a');
+    const queries = widgets[0]!.queries;
+    expect(queries).toHaveLength(5);
+    expect(queries[2]!.aggregates[0]).toBe('equation|2 * $b');
+    expect(queries[3]!.aggregates[0]).toBe('equation|$a + $b');
+    expect(queries[4]!.aggregates[0]).toBe('equation|($b + $b) - $a');
   });
 });

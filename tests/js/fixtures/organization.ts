@@ -80,6 +80,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     relayPiiConfig: null,
     require2FA: false,
     requiresSso: false,
+    streamlineOnly: null,
     safeFields: [],
     samplingMode: 'organization',
     scrubIPAddresses: false,

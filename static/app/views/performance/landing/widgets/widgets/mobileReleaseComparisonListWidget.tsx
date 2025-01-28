@@ -80,7 +80,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
     ...results,
     isLoading: results.loading || results.reloading,
     isErrored: results.errored,
-    hasData: defined(data) && !!data.length && !!data[0].data.length,
+    hasData: defined(data) && !!data.length && !!data[0]!.data.length,
     data,
     previousData: results.previousTimeseriesData ?? undefined,
 
@@ -108,7 +108,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
 
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -202,7 +202,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           const partialDataParam = true;
 
           eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+            provided.widgetData.list.data[selectedListIndex]!.transaction as string,
           ]);
 
           eventView.dataset = DiscoverDatasets.METRICS;
@@ -311,7 +311,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           valueFormatter: value =>
             tooltipFormatterUsingAggregateOutputType(value, 'duration'),
         }}
-        // @ts-expect-error error does not exist on chart?
+        // @ts-expect-error TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
         error={provided.widgetData.chart.error}
         disableXAxis
         showLegend={false}

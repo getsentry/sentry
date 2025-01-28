@@ -77,10 +77,11 @@ export function SiblingAutogroupNodeDetails({
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.LegacyHeaderContainer>
+      <TraceDrawerComponents.BodyContainer>
+        <IssueList issues={issues} node={node} organization={organization} />
 
-      <IssueList issues={issues} node={node} organization={organization} />
-
-      <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
+        <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }

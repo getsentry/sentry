@@ -18,7 +18,7 @@ interface Props<AggregatableQueryKey, Data> {
    * Takes the buffered "aggregates" and outputs an ApiQueryKey.
    * Must not have side-effects.
    */
-  getQueryKey: (ids: ReadonlyArray<AggregatableQueryKey>) => ApiQueryKey;
+  getQueryKey: (ids: readonly AggregatableQueryKey[]) => ApiQueryKey;
 
   /**
    * Data reducer, to integrate new requests with the previous state
@@ -26,7 +26,7 @@ interface Props<AggregatableQueryKey, Data> {
   responseReducer: (
     prevState: undefined | Data,
     result: ApiResult,
-    aggregates: ReadonlyArray<AggregatableQueryKey>
+    aggregates: readonly AggregatableQueryKey[]
   ) => undefined | Data;
 
   /**
@@ -51,7 +51,7 @@ interface Props<AggregatableQueryKey, Data> {
 }
 
 function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[]) {
-  return ({queryKey}) => queryList.includes(queryKey[4] as AggregatableQueryKey);
+  return ({queryKey}: any) => queryList.includes(queryKey[4] as AggregatableQueryKey);
 }
 
 /**
@@ -73,7 +73,7 @@ function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[
  * - You will implement the props `getQueryKey(aggregates: Array<any>)` which
  *   takes the unique list of `aggregates` that have been passed into `buffer()`.
  *   The returned queryKey must have a stable url as the first array item.
- * - After after `buffer()` has stopped being called for BUFFER_WAIT_MS, or if
+ * - After `buffer()` has stopped being called for BUFFER_WAIT_MS, or if
  *   bufferLimit items are queued, then `getQueryKey()` function will be called.
  * - The new queryKey will be used to fetch some data.
  * - You will implement `responseReducer(prev: Data, result: ApiResult)` which

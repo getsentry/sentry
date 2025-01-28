@@ -341,6 +341,17 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
     id: str = "threads"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[StacktraceGroupingComponent] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class CSPGroupingComponent(
@@ -409,3 +420,17 @@ class SystemGroupingComponent(
     ]
 ):
     id: str = "system"
+
+
+ContributingComponent = (
+    ChainedExceptionGroupingComponent
+    | ExceptionGroupingComponent
+    | StacktraceGroupingComponent
+    | ThreadsGroupingComponent
+    | CSPGroupingComponent
+    | ExpectCTGroupingComponent
+    | ExpectStapleGroupingComponent
+    | HPKPGroupingComponent
+    | MessageGroupingComponent
+    | TemplateGroupingComponent
+)

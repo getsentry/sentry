@@ -80,6 +80,7 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_demo': {};
   'growth.demo_modal_clicked_signup': {};
+  'growth.email_form_pressed_back': {};
   'growth.end_modal_close': {};
   'growth.end_modal_more_tours': {};
   'growth.end_modal_restart_tours': {};
@@ -119,11 +120,7 @@ export type GrowthEventParameters = {
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
-  'invite_modal.invites_sent': InviteModal & {
-    failed_invites: number;
-    is_new_modal: boolean;
-    sent_invites: number;
-  };
+  'invite_modal.invites_sent': InviteModal;
   'invite_modal.opened': InviteModal & {
     can_invite: boolean;
     source?: string;
@@ -217,6 +214,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'sample_event.created': 'Sample Event Created',
   'sample_event.failed': 'Sample Event Failed',
   'assistant.guide_cued': 'Assistant Guide Cued',
+  'growth.email_form_pressed_back': 'Growth: Email Form Pressed Back',
   'growth.end_modal_more_tours': 'Growth: End Modal More Tours',
   'growth.end_modal_restart_tours': 'Growth: End Modal Restart Tours',
   'growth.end_modal_close': 'Growth: End Modal Close',

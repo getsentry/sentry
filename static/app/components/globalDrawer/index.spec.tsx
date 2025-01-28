@@ -67,6 +67,33 @@ describe('GlobalDrawer', function () {
     ).not.toBeInTheDocument();
   });
 
+  it('closes the drawer on URL change', async function () {
+    const {router} = render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">useDrawer hook</DrawerBody>
+          ),
+
+          options: {
+            ariaLabel,
+            shouldCloseOnLocationChange: location => {
+              return !location.pathname.includes('modal');
+            },
+          },
+        }}
+      />,
+      {disableRouterMocks: true, initialRouterConfig: {location: '/my-modal-view/'}}
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+    router.navigate('/some-other-path');
+    await waitForDrawerToHide(ariaLabel);
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
+  });
+
   it('calls onClose handler when close button is clicked', async function () {
     const closeSpy = jest.fn();
 

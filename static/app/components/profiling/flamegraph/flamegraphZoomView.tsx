@@ -29,10 +29,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
-import type {
-  ContinuousProfileGroup,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
@@ -86,7 +83,7 @@ interface FlamegraphZoomViewProps {
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
   flamegraphRenderer: FlamegraphRenderer | null;
   flamegraphView: CanvasView<Flamegraph> | null;
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   scheduler: CanvasScheduler;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<

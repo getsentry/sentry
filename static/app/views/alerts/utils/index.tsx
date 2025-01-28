@@ -28,9 +28,9 @@ import {AlertRuleStatus, CombinedAlertType} from '../types';
  * Gets start and end date query parameters from stats
  */
 export function getStartEndFromStats(stats: IncidentStats) {
-  const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
+  const start = getUtcDateString(stats.eventStats.data[0]![0] * 1000);
   const end = getUtcDateString(
-    stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
+    stats.eventStats.data[stats.eventStats.data.length - 1]![0] * 1000
   );
 
   return {start, end};
@@ -115,9 +115,11 @@ export function getQueryDatasource(
   }
 
   match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
-  if (match && Datasource[match[2].toUpperCase()]) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  if (match && Datasource[match[2]!.toUpperCase()]) {
     return {
-      source: Datasource[match[2].toUpperCase()],
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      source: Datasource[match[2]!.toUpperCase()],
       query: query.replace(match[0], '').trim(),
     };
   }
@@ -215,4 +217,21 @@ export function getTeamParams(team?: string | string[]): string[] {
   }
 
   return toArray(team);
+}
+
+/**
+ * Normalize an alert type string
+ */
+export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
+  if (alertType === undefined) {
+    return [];
+  }
+
+  if (alertType === '') {
+    return [];
+  }
+
+  const validTypes = new Set(Object.values(CombinedAlertType));
+
+  return [...validTypes.intersection(new Set(toArray(alertType)))];
 }

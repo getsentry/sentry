@@ -39,22 +39,6 @@ class TestSyncAssigneeInbound(TestCase):
                 user=self.test_user, email="test@example.com", is_verified=True
             ).exists()
 
-    def create_example_integration(self, organization, external_id):
-        self.example_integration = self.create_integration(
-            organization=organization,
-            external_id=external_id,
-            provider="example",
-            oi_params={
-                "config": {
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            },
-        )
-
     def assign_default_group_to_user(self, user: User, group: Group | None = None):
         group_to_update: Group = group or self.group
         GroupAssignee.objects.assign(group_to_update, serialize_rpc_user(user))

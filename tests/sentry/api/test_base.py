@@ -478,17 +478,22 @@ class PaginateTest(APITestCase):
             == '<http://testserver/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://testserver/?&cursor=0:100:0>; rel="next"; results="false"; cursor="0:100:0"'
         )
 
-    def test_invalid_per_page(self):
-        self.request.GET = {"per_page": "nope"}
-        response = self.view(self.request)
-        assert response.status_code == 400
-
     def test_invalid_cursor(self):
         self.request.GET = {"cursor": "no:no:no"}
         response = self.view(self.request)
         assert response.status_code == 400
 
-    def test_per_page_out_of_bounds(self):
+    def test_non_int_per_page(self):
+        self.request.GET = {"per_page": "nope"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
+    def test_per_page_too_low(self):
+        self.request.GET = {"per_page": "0"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
+    def test_per_page_too_high(self):
         self.request.GET = {"per_page": "101"}
         response = self.view(self.request)
         assert response.status_code == 400

@@ -55,7 +55,7 @@ function SentryMemberTeamSelectorField({
     <SelectField
       placeholder={placeholder}
       allowClear
-      onInputChange={value => {
+      onInputChange={(value: any) => {
         onMemberSearch(value);
         onTeamSearch(value);
       }}

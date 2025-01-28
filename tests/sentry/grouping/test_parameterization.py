@@ -241,8 +241,8 @@ def test_parameterize_regex_experiment():
         regex_pattern_keys=(),
         experiments=(FooExperiment,),
     )
-    input = "blah foobarbaz fooooo"
-    normalized = parameterizer.parameterize_all(input)
+    input_str = "blah foobarbaz fooooo"
+    normalized = parameterizer.parameterize_all(input_str)
     assert normalized == "blah <foo>barbaz <foo>ooo"
     assert len(parameterizer.get_successful_experiments()) == 1
     assert parameterizer.get_successful_experiments()[0] == FooExperiment
@@ -261,9 +261,9 @@ def test_parameterize_regex_experiment_cached_compiled():
             regex_pattern_keys=(),
             experiments=(FooExperiment,),
         )
-        input = "blah foobarbaz fooooo"
-        _ = parameterizer.parameterize_all(input)
-        _ = parameterizer.parameterize_all(input)
+        input_str = "blah foobarbaz fooooo"
+        _ = parameterizer.parameterize_all(input_str)
+        _ = parameterizer.parameterize_all(input_str)
 
     mocked_pattern.assert_called_once()
 

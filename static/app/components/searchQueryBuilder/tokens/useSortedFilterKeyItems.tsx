@@ -89,7 +89,7 @@ function getFilterSearchValues(
 // This will suggest a maximum of 3 options and will display them
 // at the top only if the score is better than any of the keys.
 function getValueSuggestionsFromSearchResult(
-  results: Fuse.FuseResult<FilterKeySearchItem>[]
+  results: Array<Fuse.FuseResult<FilterKeySearchItem>>
 ) {
   const suggestions = results
     .filter(result => result.item.type === 'value')
@@ -180,7 +180,7 @@ export function useSortedFilterKeyItems({
       .map(({item}) => item)
       .filter(item => item.type === 'key' && filterKeys[item.item.key])
       .map(({item}) => {
-        return createItem(filterKeys[item.key], getFieldDefinition(item.key));
+        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
       });
 
     if (includeSuggestions) {

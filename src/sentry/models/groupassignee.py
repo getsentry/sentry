@@ -134,12 +134,12 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         self,
         group: Group,
         assigned_to: Team | RpcUser | User,
-        acting_user: User | None = None,
+        acting_user: RpcUser | User | None = None,
         create_only: bool = False,
         extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
-    ):
+    ) -> dict[str, bool]:
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
@@ -204,9 +204,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def deassign(
         self,
         group: Group,
+        # XXX: Some callers do not pass an acting user but we should make it mandatory
         acting_user: User | RpcUser | None = None,
-        assigned_to: Team | RpcUser | None = None,
-        extra: dict[str, str] | None = None,
         assignment_source: AssignmentSource | None = None,
     ) -> None:
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
@@ -272,7 +271,7 @@ class GroupAssignee(Model):
 
     __repr__ = sane_repr("group_id", "user_id", "team_id")
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         assert not (self.user_id is not None and self.team_id is not None) and not (
             self.user_id is None and self.team_id is None
         ), "Must have Team or User, not both"

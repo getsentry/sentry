@@ -278,28 +278,28 @@ describe('useReplayData', () => {
 
     const mockErrorResponse1 = [
       ReplayErrorFixture({
-        id: ERROR_IDS[0],
+        id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse2 = [
       ReplayErrorFixture({
-        id: ERROR_IDS[1],
+        id: ERROR_IDS[1]!,
         issue: 'JAVASCRIPT-789Z',
         timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse3 = [
       ReplayErrorFixture({
-        id: ERROR_IDS[0],
+        id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse4 = [
       ReplayErrorFixture({
-        id: ERROR_IDS[1],
+        id: ERROR_IDS[1]!,
         issue: 'JAVASCRIPT-789Z',
         timestamp: startedAt.toISOString(),
       }),
@@ -416,7 +416,7 @@ describe('useReplayData', () => {
     });
     const mockErrorResponse = [
       ReplayErrorFixture({
-        id: ERROR_IDS[0],
+        id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),

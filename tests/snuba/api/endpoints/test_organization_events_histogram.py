@@ -11,7 +11,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
@@ -43,7 +43,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     breakdown_name = f"ops.{suffix_key}"
 
                     data["timestamp"] = start.isoformat()
-                    data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
+                    data["start_timestamp"] = (start - timedelta(seconds=i)).isoformat()
                     value = random.random() * (spec.end - spec.start) + spec.start
                     data["transaction"] = f"/measurement/{measurement_name}/value/{value}"
 

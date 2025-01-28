@@ -13,8 +13,6 @@ INSUFFICIENT_ACCESS = (
     "You must be a Sentry organization admin/manager/owner or a team admin to unlink a team."
 )
 
-ALLOWED_METHODS = ["GET", "POST"]
-
 
 def build_team_unlinking_url(
     integration: Integration,

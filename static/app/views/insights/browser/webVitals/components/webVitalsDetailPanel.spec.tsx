@@ -11,7 +11,8 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalsDetailPanel', function () {
   const organization = OrganizationFixture();
-  let eventsMock, eventsStatsMock;
+  let eventsMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -57,10 +58,10 @@ describe('WebVitalsDetailPanel', function () {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />, {
+    render(<WebVitalsDetailPanel webVital="lcp" />, {
       organization,
     });
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,

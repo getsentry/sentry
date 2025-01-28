@@ -1,8 +1,8 @@
 export type RawFlag = {
   action: string;
   createdAt: string;
-  createdBy: string;
-  createdByType: string;
+  createdBy: string | null | undefined;
+  createdByType: string | null | undefined;
   flag: string;
   id: number;
   tags: Record<string, any>;

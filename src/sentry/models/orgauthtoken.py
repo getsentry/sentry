@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, TypeGuard
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -8,6 +8,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.services.orgauthtoken import orgauthtoken_service
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
@@ -20,6 +21,10 @@ from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organization import Organization
 from sentry.utils.hashlib import sha1_text
+
+if TYPE_CHECKING:
+    from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
+
 
 MAX_NAME_LENGTH = 255
 
@@ -125,9 +130,10 @@ class OrgAuthToken(ReplicatedControlModel):
         )
 
 
-def is_org_auth_token_auth(auth: object) -> bool:
+def is_org_auth_token_auth(
+    auth: object,
+) -> TypeGuard[AuthenticatedToken | OrgAuthToken | OrgAuthTokenReplica]:
     """:returns True when an API token is hitting the API."""
-    from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
 
     if isinstance(auth, AuthenticatedToken):

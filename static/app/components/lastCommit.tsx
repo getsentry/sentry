@@ -38,7 +38,7 @@ function LastCommit({commit}: Props) {
       );
     }
 
-    let finalMessage = message.split(/\n/)[0];
+    let finalMessage = message.split(/\n/)[0]!;
     if (finalMessage.length > 100) {
       let truncated = finalMessage.substring(0, 90);
       const words = truncated.split(/ /);

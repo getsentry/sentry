@@ -41,6 +41,11 @@ def simple_task() -> None:
     logger.info("simple_task complete")
 
 
+@exampletasks.register(name="examples.simple_task_wait_delivery", wait_for_delivery=True)
+def simple_task_wait_delivery() -> None:
+    logger.info("simple_task_wait_delivery complete")
+
+
 @exampletasks.register(name="examples.retry_task", retry=Retry(times=2))
 def retry_task() -> None:
     raise RetryError

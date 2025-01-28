@@ -30,7 +30,7 @@ describe('Relocation Onboarding Container', function () {
     // be safe to ignore this error, but we should remove the mock once we move to react testing
     // library.
     //
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
   });
 
@@ -50,7 +50,7 @@ describe('Relocation Onboarding Container', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('should not render if feature disabled', async function () {
+  it('should not render if feature disabled', function () {
     const {routerProps, router, organization} = initializeOrg({
       router: {
         params: {step: '1'},
@@ -61,8 +61,6 @@ describe('Relocation Onboarding Container', function () {
       router,
       organization,
     });
-    expect(
-      await screen.queryByText("You don't have access to this feature")
-    ).toBeInTheDocument();
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 });

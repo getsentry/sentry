@@ -43,7 +43,6 @@ REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    queue="profiles.process",
     retry_backoff=True,
     retry_backoff_max=20,
     retry_jitter=True,
@@ -988,7 +987,11 @@ def _track_duration_outcome(
         key_id=None,
         outcome=Outcome.ACCEPTED,
         timestamp=datetime.now(timezone.utc),
-        category=DataCategory.PROFILE_DURATION,
+        category=(
+            DataCategory.PROFILE_DURATION_UI
+            if profile["platform"] in {"cocoa", "android", "javascript"}
+            else DataCategory.PROFILE_DURATION
+        ),
         quantity=duration_ms,
     )
 

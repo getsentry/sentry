@@ -60,7 +60,7 @@ export function useAggregateSpans({
   };
 
   return useApiQuery<{
-    data: {[fingerprint: string]: AggregateSpanRow}[];
+    data: Array<{[fingerprint: string]: AggregateSpanRow}>;
     meta: any;
   }>(
     [

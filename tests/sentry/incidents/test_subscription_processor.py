@@ -24,14 +24,12 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    alert_subscription_callback_registry,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -51,10 +49,7 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import (
-    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    AlertRuleActivationConditionType,
-)
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -65,7 +60,6 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import has_anomaly, translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -219,10 +213,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
 
     @cached_property
-    def activated_sub(self):
-        return self.activated_rule.snuba_query.subscriptions.filter(project=self.project).get()
-
-    @cached_property
     def other_sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
@@ -236,7 +226,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -255,40 +244,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @cached_property
     def rule(self):
         return self.create_rule_trigger_and_action(projects=[self.project, self.other_project])
-
-    @cached_property
-    def activated_rule(self):
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-            event_types=[
-                SnubaQueryEventType.EventType.ERROR,
-                SnubaQueryEventType.EventType.DEFAULT,
-            ],
-        )
-        rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-            activator="testing",
-        )
-        # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-        return rule
 
     @cached_property
     def comparison_rule_above(self):
@@ -329,16 +284,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.rule.alertruletrigger_set.get()
 
     @cached_property
-    def activated_trigger(self):
-        return self.activated_rule.alertruletrigger_set.get()
-
-    @cached_property
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
-
-    @cached_property
-    def activated_action(self):
-        return self.activated_trigger.alertruletriggeraction_set.get()
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
@@ -517,7 +464,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 5, timedelta(minutes=-3))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -558,7 +505,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -596,7 +543,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -645,7 +592,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(throughput_rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -686,7 +633,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(throughput_rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -975,33 +922,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
         )
         create_metric_issue_mock.assert_not_called()
-
-    def test_activated_alert(self):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
-        rule = self.activated_rule
-        trigger = self.activated_trigger
-        subscription = self.activated_sub
-        processor = self.send_update(
-            rule=rule, value=trigger.alert_threshold + 1, subscription=subscription
-        )
-        self.assert_trigger_counts(processor, self.activated_trigger, 0, 0)
-        incident = self.assert_active_incident(rule=rule, subscription=subscription)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(
-            incident, self.activated_trigger, TriggerStatus.ACTIVE
-        )
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.activated_action],
-            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
-        )
-        # assert that an incident was created _with_ an activation!
-        assert incident.activation
 
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
@@ -2195,7 +2115,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             )
 
         # Send Critical Update
-        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2262,7 +2181,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            assert rule.snuba_query is not None
             self.send_update(
                 rule,
                 trigger.alert_threshold + 5,
@@ -2328,7 +2246,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_slack_calls([])
 
         # Send update above critical
-        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2959,15 +2876,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         new_incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
-
-    def test_invoke_alert_subscription_callback(self):
-        mock = Mock()
-        alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS] = mock
-
-        self.send_update(self.rule, 1, subscription=self.sub)
-
-        assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.sub
 
     @with_feature("organizations:metric-issue-poc")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
@@ -3715,7 +3623,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        MetricsKeyIndexer.objects.all().delete()
         rule = self.crash_rate_alert_rule
         subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
         processor = SubscriptionProcessor(subscription)

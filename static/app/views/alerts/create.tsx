@@ -12,6 +12,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
@@ -28,6 +29,8 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import MonitorForm from 'sentry/views/monitors/components/monitorForm';
+import type {Monitor} from 'sentry/views/monitors/types';
 
 type RouteParams = {
   alertType?: AlertRuleType;
@@ -57,6 +60,7 @@ function Create(props: Props) {
   const alertType = params.alertType || AlertRuleType.METRIC;
 
   const sessionId = useRef(uniqueId());
+  const navigate = useNavigate();
 
   const isDuplicateRule = createFromDuplicate === 'true' && duplicateRuleId;
 
@@ -144,6 +148,19 @@ function Create(props: Props) {
           <Fragment>
             {alertType === AlertRuleType.UPTIME ? (
               <UptimeAlertForm {...props} />
+            ) : alertType === AlertRuleType.CRONS ? (
+              <MonitorForm
+                apiMethod="POST"
+                apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+                onSubmitSuccess={(data: Monitor) =>
+                  navigate(
+                    normalizeUrl(
+                      `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`
+                    )
+                  )
+                }
+                submitLabel={t('Create')}
+              />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}

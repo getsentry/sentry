@@ -53,7 +53,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -65,7 +65,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -157,8 +157,8 @@ function OnboardingContent({
     return window.location.hash;
   }, []);
   const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
-  const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
-  const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
+  const openFeatureProviders = Object.values(ProviderOptions);
+  const sdkProviders = Object.values(ProviderOptions);
 
   // First dropdown: OpenFeature providers
   const openFeatureProviderOptions = openFeatureProviders.map(provider => {
@@ -173,7 +173,7 @@ function OnboardingContent({
     value: string;
     label?: ReactNode;
     textValue?: string;
-  }>(openFeatureProviderOptions[0]);
+  }>(openFeatureProviderOptions[0]!);
 
   // Second dropdown: other SDK providers
   const sdkProviderOptions = sdkProviders.map(provider => {
@@ -188,7 +188,7 @@ function OnboardingContent({
     value: string;
     label?: ReactNode;
     textValue?: string;
-  }>(sdkProviderOptions[0]);
+  }>(sdkProviderOptions[0]!);
 
   const defaultTab: string = 'openFeature';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(

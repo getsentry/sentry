@@ -28,9 +28,6 @@ def mark_ok(checkin: MonitorCheckIn, succeeded_at: datetime) -> None:
     """
     monitor_env = checkin.monitor_environment
 
-    if monitor_env is None:
-        return None
-
     next_checkin = monitor_env.monitor.get_next_expected_checkin(succeeded_at)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(succeeded_at)
 

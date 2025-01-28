@@ -40,7 +40,7 @@ class DummyOAuth2Provider(OAuth2Provider):
         raise NotImplementedError
 
     def build_config(self, state):
-        pass
+        raise NotImplementedError
 
     def get_auth_pipeline(self):
         return [DummyOAuth2Login(), DummyOAuth2Callback()]

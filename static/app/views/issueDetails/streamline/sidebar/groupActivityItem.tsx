@@ -332,7 +332,7 @@ export default function getGroupActivityItem(
                 release: (
                   <ActivityRelease
                     project={project}
-                    version={deployedReleases[0].version}
+                    version={deployedReleases[0]!.version}
                   />
                 ),
               }
@@ -357,7 +357,7 @@ export default function getGroupActivityItem(
                 release: (
                   <ActivityRelease
                     project={project}
-                    version={deployedReleases[0].version}
+                    version={deployedReleases[0]!.version}
                   />
                 ),
               }
