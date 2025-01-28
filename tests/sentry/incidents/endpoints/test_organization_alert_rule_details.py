@@ -54,6 +54,9 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
+from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
+    assert_dual_written_resolution_threshold_equals,
+)
 
 pytestmark = [requires_snuba]
 
@@ -786,6 +789,37 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         assert len(resp.data["triggers"]) == 1
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_delete_trigger_dual_update_resolve(self):
+        """
+        If there is no explicit resolve threshold on an alert rule, then we need to dual update the
+        comparison on the DataCondition corresponding to alert resolution.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict.update({"resolveThreshold": None})
+        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        # the new resolution threshold should be the critical alert threshold
+        new_threshold = serialized_alert_rule["triggers"][0]["alertThreshold"]
+        old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        serialized_alert_rule["triggers"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"]) == 1
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")
