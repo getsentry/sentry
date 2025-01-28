@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import {defined} from 'sentry/utils';
 import {
   useExploreDataset,
   useExploreFields,
@@ -22,9 +25,10 @@ type Extras = 'dataset toggle';
 
 interface ExploreToolbarProps {
   extras?: Extras[];
+  width?: number;
 }
 
-export function ExploreToolbar({extras}: ExploreToolbarProps) {
+export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const dataset = useExploreDataset();
   const setDataset = useSetExploreDataset();
   const mode = useExploreMode();
@@ -36,7 +40,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
   const setSortBys = useSetExploreSortBys();
 
   return (
-    <div>
+    <Container width={width}>
       {extras?.includes('dataset toggle') && (
         <ToolbarDataset dataset={dataset} setDataset={setDataset} />
       )}
@@ -52,6 +56,10 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       />
       <ToolbarSaveAs />
       <ToolbarSuggestedQueries />
-    </div>
+    </Container>
   );
 }
+
+const Container = styled('div')<{width?: number}>`
+  ${p => defined(p.width) && `min-width: ${p.width}px;`}
+`;
