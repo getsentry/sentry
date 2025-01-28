@@ -1,6 +1,7 @@
 import {useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
+import debounce from 'lodash/debounce';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
@@ -37,6 +38,7 @@ import {
 import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
@@ -197,6 +199,21 @@ function IssueViewsIssueListHeaderTabsContent({
 
   const {mutate: updateViews} = useUpdateGroupSearchViews();
 
+  const debounceUpdateViews = useMemo(
+    () =>
+      debounce((groupSearchViews: UpdateGroupSearchViewPayload[]) => {
+        if (groupSearchViews) {
+          updateViews({
+            orgSlug: organization.slug,
+            groupSearchViews,
+          });
+        }
+      }, 10000),
+    [updateViews, organization.slug]
+  );
+
+  // This useEffect is here temporarily to start saving user's most recently used page filters
+  // to their views. This will be removed once the frontend is updated to use a view's page filters
   useEffect(() => {
     const isAllProjects =
       pageFilters.selection.projects.length === 1 &&
@@ -204,19 +221,20 @@ function IssueViewsIssueListHeaderTabsContent({
 
     const projects = isAllProjects ? [] : pageFilters.selection.projects;
 
-    updateViews({
-      orgSlug: organization.slug,
-      groupSearchViews: views.map(view => ({
-        id: view.id,
-        name: view.label,
-        query: view.query,
-        querySort: view.querySort,
-        projects,
-        isAllProjects,
-        environments: pageFilters.selection.environments,
-        timeFilters: pageFilters.selection.datetime,
-      })),
-    });
+    debounceUpdateViews(
+      views
+        .filter(view => view.isCommitted)
+        .map(view => ({
+          id: view.id,
+          name: view.label,
+          query: view.query,
+          querySort: view.querySort,
+          projects,
+          isAllProjects,
+          environments: pageFilters.selection.environments,
+          timeFilters: pageFilters.selection.datetime,
+        }))
+    );
 
     trackAnalytics('issue_views.page_filters_logged', {
       user_id: user.id,
