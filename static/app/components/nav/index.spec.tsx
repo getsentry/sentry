@@ -60,20 +60,13 @@ describe('Nav', function () {
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).getAllByRole('link');
-      expect(links).toHaveLength(8);
+      expect(links).toHaveLength(6);
 
-      [
-        'Issues',
-        'Projects',
-        'Explore',
-        'Insights',
-        'Perf.',
-        'Boards',
-        'Alerts',
-        'Settings',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      ['Issues', 'Explore', 'Boards', 'Insights', 'Stats', 'Settings'].forEach(
+        (title, index) => {
+          expect(links[index]).toHaveAccessibleName(title);
+        }
+      );
     });
   });
 
