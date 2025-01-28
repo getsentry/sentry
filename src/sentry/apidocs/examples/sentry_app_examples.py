@@ -8,28 +8,25 @@ class SentryAppExamples:
             value={
                 "allowedOrigins": [],
                 "author": "ACME Corp",
-                "avatars": [],
+                "avatars": {
+                    "avatarType": "avatar",
+                    "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
+                    "avatarUrl": "https://example.com/avatar.png",
+                    "color": False,
+                },
                 "events": ["issue"],
                 "isAlertable": False,
-                "metadata": {},
+                "metadata": "",
                 "name": " ACME Corp Integration",
                 "overview": None,
                 "popularity": 27,
                 "redirectUrl": None,
-                "schema": {
-                    "elements": [
-                        {
-                            "type": "alert-rule-action",
-                            "required_fields": [
-                                {"type": "text", "label": "Channel", "name": "channel"}
-                            ],
-                        }
-                    ]
-                },
+                "featureData": [],
+                "schema": "",
                 "scopes": ["event:read", "org:read"],
                 "slug": "acme-corp-integration",
                 "status": "unpublished",
-                "uuid": "c9c0e35f-6c17-480d-9788-31a7e174bd44",
+                "uuid": "77cebea3-019e-484d-8673-6c3969698827",
                 "verifyInstall": True,
                 "webhookUrl": "https://example.com/webhook",
                 "clientId": "ed06141686bb60102d878c607eff449fa9907fa7a8cb70f0d337a8fb0b6566c3",
@@ -47,33 +44,32 @@ class SentryAppExamples:
             value={
                 "allowedOrigins": [],
                 "author": "ACME Corp",
-                "avatars": [],
+                "avatars": {
+                    "avatarType": "avatar",
+                    "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
+                    "avatarUrl": "https://example.com/avatar.png",
+                    "color": False,
+                },
                 "events": ["issue"],
                 "isAlertable": False,
-                "metadata": {},
-                "name": "ACME Corp Integration",
+                "metadata": "",
+                "name": " ACME Corp Integration",
                 "overview": None,
                 "popularity": 27,
                 "redirectUrl": None,
-                "schema": {
-                    "elements": [
-                        {
-                            "type": "alert-rule-action",
-                            "required_fields": [
-                                {"type": "text", "label": "Channel", "name": "channel"}
-                            ],
-                        }
-                    ]
-                },
+                "featureData": [],
+                "schema": "",
                 "scopes": ["event:read", "org:read"],
                 "slug": "acme-corp-integration",
                 "status": "unpublished",
+                "uuid": "77cebea3-019e-484d-8673-6c3969698827",
                 "verifyInstall": True,
                 "webhookUrl": "https://example.com/webhook",
-                "owner": {"id": 42, "slug": "acme-corp"},
                 "clientId": "ed06141686bb60102d878c607eff449fa9907fa7a8cb70f0d337a8fb0b6566c3",
                 "clientSecret": "**********",
+                "owner": {"id": 42, "slug": "acme-corp"},
             },
             status_codes=["200"],
+            response_only=True,
         )
     ]
