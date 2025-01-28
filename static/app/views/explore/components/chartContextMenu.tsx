@@ -4,6 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -45,6 +46,14 @@ function ChartContextMenu({
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       interval,
     }),
+    onAction: () => {
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'alert',
+        ui_source: 'chart',
+        organization,
+      });
+      return undefined;
+    },
   }));
 
   const items: MenuItemProps[] = [];
@@ -74,7 +83,17 @@ function ChartContextMenu({
         </Feature>
       ),
       disabled: disableAddToDashboard,
-      onAction: !disableAddToDashboard ? () => addToDashboard(visualizeIndex) : undefined,
+      onAction: () => {
+        if (disableAddToDashboard) {
+          return undefined;
+        }
+        trackAnalytics('trace_explorer.save_as', {
+          save_type: 'dashboard',
+          ui_source: 'chart',
+          organization,
+        });
+        return addToDashboard(visualizeIndex);
+      },
     });
   }
 
