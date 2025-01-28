@@ -67,6 +67,8 @@ const formGroups: JsonFormObject[] = [
     title: t('Security & Privacy'),
     fields: [
       {
+        // The project settings cannot be overridden by the organization settings.
+        // It will only be disabled if the user does not have permission to edit.
         name: 'storeCrashReports',
         type: 'select',
         label: t('Store Minidumps As Attachments'),
