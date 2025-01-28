@@ -34,7 +34,6 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     ['key']
   ).map(tag => tag.key);
 
-  // TODO: flag[*] syntax not implemented yet by search backend.
   const eventTags = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.TAG),
     ['totalValues', 'key'],

@@ -189,10 +189,17 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with "flags[]" to avoid collisions with other tags and fields.
-      tag.key = `flags[${tag.key}]`;
-      tag.name = `flags[${tag.name}]`;
-      allTagsCollection[tag.key] = {...tag, kind: FieldKind.FEATURE_FLAG};
+      if (allTagsCollection[tag.key]) {
+        if (allTagsCollection[tag.key]!.kind === FieldKind.FEATURE_FLAG) {
+          allTagsCollection[tag.key]!.totalValues =
+            (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+        } else {
+          // When a feature flag collides with a custom tag, we only suggest the tag.
+          // Searching for such a flag will filter by both tag and flag.
+        }
+      } else {
+        allTagsCollection[tag.key] = {...tag, kind: FieldKind.FEATURE_FLAG};
+      }
     });
 
     for (const excludedTag of EXCLUDED_TAGS) {

@@ -237,9 +237,10 @@ export function fetchFeatureFlagValues({
 }): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
-  const query: Query = {};
-  query.dataset = Dataset.ERRORS;
-  query.useFlagsBackend = '1';
+  const query: Query = {
+    dataset: Dataset.ERRORS,
+    useFlagsBackend: '1',
+  };
 
   if (search) {
     query.query = search;
