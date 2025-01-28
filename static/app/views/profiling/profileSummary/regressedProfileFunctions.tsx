@@ -283,8 +283,8 @@ function RegressedFunctionDifferentialFlamegraph(
     query: {
       // specify the frame to focus, the flamegraph will switch
       // to the appropriate thread when these are specified
-      frameName: props.fn.function as string,
-      framePackage: props.fn.package as string,
+      frameName: props.fn.function,
+      framePackage: props.fn.package,
     },
   });
 
@@ -297,15 +297,9 @@ function RegressedFunctionDifferentialFlamegraph(
       </div>
       <div>
         <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_1 as number}
-          />
+          <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
           <ChangeArrow>{' \u2192 '}</ChangeArrow>
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_2 as number}
-          />
+          <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
         </Link>
       </div>
     </RegressedFunctionMainRow>
@@ -343,8 +337,8 @@ function RegressedFunctionBeforeAfterFlamechart(
           reference: example,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {rendered}
@@ -353,10 +347,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }
 
   let before = (
-    <PerformanceDuration
-      abbreviation
-      nanoseconds={props.fn.aggregate_range_1 as number}
-    />
+    <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
   );
   if (props.before) {
     before = (
@@ -368,8 +359,8 @@ function RegressedFunctionBeforeAfterFlamechart(
           reference: props.before,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {before}
@@ -378,10 +369,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }
 
   let after = (
-    <PerformanceDuration
-      abbreviation
-      nanoseconds={props.fn.aggregate_range_2 as number}
-    />
+    <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
   );
   if (props.after) {
     after = (
@@ -393,8 +381,8 @@ function RegressedFunctionBeforeAfterFlamechart(
           reference: props.after,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {after}

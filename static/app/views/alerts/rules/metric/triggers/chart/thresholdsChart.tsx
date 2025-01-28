@@ -119,7 +119,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       const thresholds = [
         resolveThreshold || null,
         ...triggers.map(t => t.alertThreshold || null),
-      ].filter(threshold => threshold !== null) as number[];
+      ].filter(threshold => threshold !== null);
       this.updateChartAxis(Math.min(...thresholds), Math.max(...thresholds));
     }
   };
