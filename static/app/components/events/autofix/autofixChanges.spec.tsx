@@ -145,7 +145,7 @@ describe('AutofixChanges', () => {
     );
 
     expect(
-      screen.getByRole('button', {name: 'Check out in owner/hello-world'})
+      screen.getByRole('button', {name: 'Copy branch in owner/hello-world'})
     ).toBeInTheDocument();
   });
 });
