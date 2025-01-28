@@ -70,6 +70,12 @@ class GroupStacktraceData(TypedDict):
 def filter_snuba_results(
     snuba_results, groups_to_backfill_with_no_embedding, project, worker_number
 ):
+    """
+    Not all of the groups in `groups_to_backfill_with_no_embedding` are guaranteed to have
+    corresponding snuba data. Filter both that and the snuba results to weed out groups which don't
+    have data in snuba.
+    """
+
     if not snuba_results or not snuba_results[0].get("data"):
         logger.info(
             "backfill_seer_grouping_records.empty_snuba_results",
@@ -80,12 +86,16 @@ def filter_snuba_results(
             },
         )
         return [], []
+    # First, filter out any results which have no data
     filtered_snuba_results: list[GroupEventRow] = [
         snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
     ]
 
-    groups_to_backfill_with_no_embedding_has_snuba_row = []
+    # Then get the group id from any results which do
     row_group_ids = {row["group_id"] for row in filtered_snuba_results}
+
+    # Finally, use these group ids to filter our original list
+    groups_to_backfill_with_no_embedding_has_snuba_row = []
     for group_id in groups_to_backfill_with_no_embedding:
         if group_id in row_group_ids:
             groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
@@ -108,8 +118,8 @@ def create_project_cohort(
     last_processed_project_id: int | None,
 ) -> list[int]:
     """
-    Create project cohort by the following calculation: project_id % threads == worker_number
-    to assign projects uniquely to available threads
+    Create project cohort by hashing and modding project ids, to assign projects uniquely to
+    the worker with the given number.
     """
     project_id_filter = Q()
     if last_processed_project_id is not None:
@@ -148,7 +158,8 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
     )
     backfill_batch_raw_length = len(groups_to_backfill_batch_raw)
 
-    # Filter out groups that are pending deletion and have times_seen > 1 in memory so postgres won't make a bad query plan
+    # Filter out groups that are pending deletion, are too old, or have times_seen > 1 in here
+    # rather than in the database so postgres won't make a bad query plan
     groups_to_backfill_batch = []
     for group in groups_to_backfill_batch_raw:
         group_id, data, status, last_seen, times_seen = group
