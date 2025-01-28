@@ -46,13 +46,13 @@ class OrganizationUptimeCheckIndexEndpointTest(
         data = json.loads(json.dumps(response.data))
         assert data == {
             self.subscription_id: [
-                [1736881458, {"failure": 0, "success": 0}],
-                [1736967858, {"failure": 0, "success": 0}],
-                [1737054258, {"failure": 0, "success": 0}],
-                [1737140658, {"failure": 0, "success": 0}],
-                [1737227058, {"failure": 0, "success": 0}],
-                [1737313458, {"failure": 0, "success": 0}],
-                [1737399858, {"failure": 3, "success": 3}],
+                [1736881458, {"failure": 0, "success": 0, "missed_window": 0}],
+                [1736967858, {"failure": 0, "success": 0, "missed_window": 0}],
+                [1737054258, {"failure": 0, "success": 0, "missed_window": 0}],
+                [1737140658, {"failure": 0, "success": 0, "missed_window": 0}],
+                [1737227058, {"failure": 0, "success": 0, "missed_window": 0}],
+                [1737313458, {"failure": 0, "success": 0, "missed_window": 0}],
+                [1737399858, {"failure": 3, "success": 3, "missed_window": 0}],
             ]
         }
 

@@ -153,11 +153,13 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             status = timeseries.group_by_attributes["check_status"]
 
             if subscription_id not in formatted_data:
-                formatted_data[subscription_id] = defaultdict(lambda: {"failure": 0, "success": 0})
+                formatted_data[subscription_id] = defaultdict(
+                    lambda: {"failure": 0, "success": 0, "missed_window": 0}
+                )
 
             for bucket, data_point in zip(timeseries.buckets, timeseries.data_points):
-                value = data_point.data if data_point.data_present else 0
-                formatted_data[subscription_id][bucket.seconds][status] = int(value)
+                value = int(data_point.data) if data_point.data_present else 0
+                formatted_data[subscription_id][bucket.seconds][status] = value
 
         final_data: dict[str, list[tuple[int, dict[str, float]]]] = {}
         for subscription_id, timestamps in formatted_data.items():
