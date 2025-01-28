@@ -83,12 +83,12 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def _authorize_and_map_project_uptime_subscription_ids(
         self, project_uptime_subscription_ids: list[str], projects: list[Project]
-    ) -> list[str]:
+    ) -> tuple[dict[str, int], list[str]]:
         """
         Authorize the project uptime subscription ids and return their corresponding subscription ids
         we don't store the project uptime subscription id in snuba, so we need to map it to the subscription id
         """
-        project_uptime_subscription_ids_ints = [int(id) for id in project_uptime_subscription_ids]
+        project_uptime_subscription_ids_ints = [int(_id) for _id in project_uptime_subscription_ids]
         project_uptime_subscriptions = ProjectUptimeSubscription.objects.filter(
             project_id__in=[project.id for project in projects],
             id__in=project_uptime_subscription_ids_ints,
@@ -97,6 +97,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         validated_project_uptime_subscription_ids = {
             project_uptime_subscription[0]
             for project_uptime_subscription in project_uptime_subscriptions
+            if project_uptime_subscription[0] is not None
         }
         if set(project_uptime_subscription_ids_ints) != validated_project_uptime_subscription_ids:
             raise ValueError("Invalid project uptime subscription ids provided")
@@ -104,12 +105,15 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         subscription_id_to_project_uptime_subscription_id = {
             project_uptime_subscription[1]: project_uptime_subscription[0]
             for project_uptime_subscription in project_uptime_subscriptions
+            if project_uptime_subscription[0] is not None
+            and project_uptime_subscription[1] is not None
         }
 
-        validated_subscription_ids = {
+        validated_subscription_ids = [
             project_uptime_subscription[1]
             for project_uptime_subscription in project_uptime_subscriptions
-        }
+            if project_uptime_subscription[1] is not None
+        ]
 
         return subscription_id_to_project_uptime_subscription_id, validated_subscription_ids
 
@@ -200,9 +204,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def _map_response_to_project_uptime_subscription_ids(
         self,
-        subscription_id_to_project_uptime_subscription_id: dict[str, str],
+        subscription_id_to_project_uptime_subscription_id: dict[str, int],
         formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
-    ) -> dict[str, list[tuple[int, dict[str, int]]]]:
+    ) -> dict[int, list[tuple[int, dict[str, int]]]]:
         """
         Map the response back to project uptime subscription ids
         """
