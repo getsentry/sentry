@@ -268,6 +268,7 @@ class DatabaseBackedAppService(AppService):
             error_type=result.get("error_type"),
             webhook_context=result.get("webhook_context"),
             public_context=result.get("public_context"),
+            status_code=result.get("status_code"),
         )
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:

@@ -38,6 +38,7 @@ class AlertRuleActionCreator:
                 message="Request url for alert-rule-action not found, please check your integration schema",
                 success=False,
                 error_type=SentryAppErrorType.INTEGRATOR,
+                status_code=500,
             )
         response = AlertRuleActionRequester(
             install=self.install,

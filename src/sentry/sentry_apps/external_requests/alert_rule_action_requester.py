@@ -27,6 +27,7 @@ class AlertRuleActionResult(TypedDict, total=False):
     error_type: SentryAppErrorType | None
     webhook_context: dict[str, Any] | None
     public_context: dict[str, Any] | None
+    status_code: int | None
 
 
 @dataclass
@@ -53,7 +54,7 @@ class AlertRuleActionRequester:
             error_type = "alert_rule_action.error"
             extras = {
                 "sentry_app_slug": self.sentry_app.slug,
-                "install_uuid": self.install.uuid,
+                "installation_uuid": self.install.uuid,
                 "uri": self.uri,
                 "error_message": str(e),
             }
@@ -67,6 +68,7 @@ class AlertRuleActionRequester:
                 message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
                 error_type=SentryAppErrorType.INTEGRATOR,
                 webhook_context={"error_type": "alert_rule_action.error", **extras},
+                status_code=500,
             )
         return AlertRuleActionResult(
             success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)

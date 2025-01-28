@@ -19,10 +19,16 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
     match error_type:
         case SentryAppErrorType.INTEGRATOR:
             raise SentryAppIntegratorError(
-                message=result.message, public_context=result.public_context
+                message=result.message,
+                public_context=result.public_context,
+                status_code=result.status_code,
             )
         case SentryAppErrorType.CLIENT:
-            raise SentryAppError(message=result.message, public_context=result.public_context)
+            raise SentryAppError(
+                message=result.message,
+                public_context=result.public_context,
+                status_code=result.status_code,
+            )
         case SentryAppErrorType.SENTRY:
             logger.error(
                 "create-failed",
@@ -34,4 +40,5 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
             )
             raise SentryAppSentryError(
                 message="Something went wrong during the alert rule action process!",
+                status_code=result.status_code,
             )
