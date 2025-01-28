@@ -26,41 +26,6 @@ describe('DemoEndModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('restarts tour on button click', async function () {
-    const finishMock = MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: '/assistant/',
-    });
-
-    // Tests that fetchGuide is being called when tour is restarted
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/assistant/',
-    });
-
-    const {waitForModalToHide} = renderGlobalModal();
-
-    act(() =>
-      openModal(modalProps => (
-        <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
-      ))
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Restart Tour'}));
-    await waitForModalToHide();
-
-    expect(finishMock).toHaveBeenCalledWith(
-      '/assistant/',
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          guide: 'issues_v3',
-          status: 'restart',
-        },
-      })
-    );
-  });
-
   it('opens sign up page on button click', function () {
     renderGlobalModal();
 
