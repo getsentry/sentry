@@ -80,11 +80,7 @@ export default function AddCodeOwnerModal({
 
   const [codeMappingId, setCodeMappingId] = useState<string | null>(null);
 
-  const {
-    data: codeownersFile,
-    isPending: isCodeownersFilePending,
-    isError: isCodeownersFileError,
-  } = useApiQuery<CodeownersFile>(
+  const {data: codeownersFile} = useApiQuery<CodeownersFile>(
     [`/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`],
     {staleTime: Infinity, enabled: Boolean(codeMappingId)}
   );
@@ -134,7 +130,7 @@ export default function AddCodeOwnerModal({
   if (isCodeMappingsPending || isIntegrationsPending) {
     return <LoadingIndicator />;
   }
-  if (isCodeMappingsError || isIntegrationsError || isCodeownersFileError) {
+  if (isCodeMappingsError || isIntegrationsError) {
     return <LoadingError />;
   }
 
@@ -147,7 +143,6 @@ export default function AddCodeOwnerModal({
             codeMappingId={codeMappingId}
             codeMappings={codeMappings}
             codeownersFile={codeownersFile}
-            isCodeownersFilePending={isCodeownersFilePending}
             mutation={mutation}
             organization={organization}
             setCodeMappingId={setCodeMappingId}
@@ -174,7 +169,6 @@ function ApplyCodeMappings({
   codeMappingId,
   codeMappings,
   codeownersFile,
-  isCodeownersFilePending,
   mutation,
   organization,
   setCodeMappingId,
@@ -182,7 +176,6 @@ function ApplyCodeMappings({
   codeMappingId: string | null;
   codeMappings: RepositoryProjectPathConfig[];
   codeownersFile: CodeownersFile | undefined;
-  isCodeownersFilePending: boolean;
   mutation: UseMutationResult<CodeOwner, RequestError, TCodeownersVariables, unknown>;
   organization: Organization;
   setCodeMappingId: Dispatch<SetStateAction<string | null>>;
@@ -208,10 +201,7 @@ function ApplyCodeMappings({
         {codeownersFile ? (
           <SourceFile codeownersFile={codeownersFile} />
         ) : (
-          <NoSourceFile
-            codeMappingId={codeMappingId}
-            isLoading={Boolean(codeMappingId) && isCodeownersFilePending}
-          />
+          <NoSourceFile />
         )}
         {mutation.isError && mutation.error.responseJSON?.raw ? (
           <ErrorMessage
@@ -282,32 +272,12 @@ function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
   );
 }
 
-function NoSourceFile({
-  codeMappingId,
-  isLoading,
-}: {
-  codeMappingId: string | null;
-  isLoading: boolean;
-}) {
-  if (isLoading) {
-    return (
-      <Container>
-        <LoadingIndicator mini />
-      </Container>
-    );
-  }
-  if (!codeMappingId) {
-    return null;
-  }
+function NoSourceFile() {
   return (
     <Panel>
       <NoSourceFileBody>
-        {codeMappingId ? (
-          <Fragment>
-            <IconNot size="md" color="red200" />
-            {t('No codeowner file found.')}
-          </Fragment>
-        ) : null}
+        <IconNot size="md" color="red200" />
+        {t('No codeowner file found.')}
       </NoSourceFileBody>
     </Panel>
   );
