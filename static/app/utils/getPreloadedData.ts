@@ -53,7 +53,7 @@ export function getPreloadedDataSimple(
     !data.orgSlug ||
     data.orgSlug.toLowerCase() !== slug.toLowerCase()
   ) {
-    return Promise.resolve(null);
+    return Promise.reject(new Error('Preloaded data not found or slug mismatch'));
   }
 
   return data[name];
