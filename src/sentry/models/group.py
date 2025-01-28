@@ -1054,6 +1054,25 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
             )
 
 
+def get_last_checked_for_open_period(group: Group) -> datetime:
+    from sentry.incidents.models.alert_rule import AlertRule
+    from sentry.issues.grouptype import MetricIssuePOC
+
+    event = group.get_latest_event()
+    last_checked = group.last_seen
+    if event and group.type == MetricIssuePOC.type_id:
+        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
+        if alert_rule_id:
+            try:
+                alert_rule = AlertRule.objects.get(id=alert_rule_id)
+                now = timezone.now()
+                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
+            except AlertRule.DoesNotExist:
+                pass
+
+    return last_checked
+
+
 def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
@@ -1079,37 +1098,39 @@ def get_open_periods_for_group(
     ).order_by("-datetime")[:query_limit]
 
     open_periods = []
+    start: datetime | None = None
     end: datetime | None = None
-    for activity in activities:
-        # Handle the case where the group is currently UNRESOLVED with an ongoing open period
-        if (
-            activity.type == ActivityType.SET_UNRESOLVED.value
-            and len(open_periods) == 0
-            and not end
-        ):
-            open_periods.append(
-                OpenPeriod(
-                    start=activity.datetime,
-                    end=None,
-                    duration=None,
-                    is_open=True,
-                )
+    last_checked = get_last_checked_for_open_period(group)
+
+    # Handle currently open period
+    if group.status == GroupStatus.UNRESOLVED and len(activities) > 0:
+        open_periods.append(
+            OpenPeriod(
+                start=activities[0].datetime,
+                end=None,
+                duration=None,
+                is_open=True,
+                last_checked=last_checked,
             )
+        )
+        activities = activities[1:]
+
+    for activity in activities:
         if activity.type == ActivityType.SET_RESOLVED.value:
             end = activity.datetime
-        elif activity.type == ActivityType.SET_UNRESOLVED.value and end is not None:
-            open_periods.append(
-                OpenPeriod(
-                    start=activity.datetime,
-                    end=end,
-                    duration=end - activity.datetime,
-                    is_open=False,
+        elif activity.type == ActivityType.SET_UNRESOLVED.value:
+            start = activity.datetime
+            if end is not None:
+                open_periods.append(
+                    OpenPeriod(
+                        start=start,
+                        end=end,
+                        duration=end - start,
+                        is_open=False,
+                        last_checked=end,
+                    )
                 )
-            )
-            end = None
-
-        if len(open_periods) == limit:
-            break
+                end = None
 
     # Add the very first open period, which has no UNRESOLVED activity for the group creation
     open_periods.append(
@@ -1118,12 +1139,14 @@ def get_open_periods_for_group(
             end=end if end else None,
             duration=end - group.first_seen if end else None,
             is_open=False if end else True,
+            last_checked=end if end else last_checked,
         )
     )
 
     if offset and limit:
-        open_periods = open_periods[offset : offset + limit]
-    elif limit:
-        open_periods = open_periods[:limit]
+        return open_periods[offset : offset + limit]
+
+    if limit:
+        return open_periods[:limit]
 
     return open_periods

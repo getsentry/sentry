@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.utils import timezone
 
 from sentry.issues.grouptype import MetricIssuePOC, ProfileFileIOGroupType
@@ -18,6 +20,15 @@ class GroupOpenPeriodsTest(APITestCase):
         self.group.type = MetricIssuePOC.type_id
         self.group.save()
 
+        self.alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
+        )
+        self.last_checked = timezone.now() - timedelta(
+            seconds=self.alert_rule.snuba_query.time_window
+        )
+
         self.url = f"/api/0/issues/{self.group.id}/open-periods/"
 
     def test_open_periods_flag_off(self) -> None:
@@ -34,21 +45,20 @@ class GroupOpenPeriodsTest(APITestCase):
     def test_open_periods_new_group(self) -> None:
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {
-                "start": self.group.first_seen,
-                "end": None,
-                "duration": None,
-                "isOpen": True,
-            }
-        ]
+        assert len(response.data) == 1
+        open_period = response.data[0]
+        assert open_period["start"] == self.group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+        assert open_period["lastChecked"] >= self.last_checked
 
     @with_feature("organizations:issue-open-periods")
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
         resolved_time = timezone.now()
-        Activity.objects.create(
+        activity = Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -63,6 +73,7 @@ class GroupOpenPeriodsTest(APITestCase):
                 "end": resolved_time,
                 "duration": resolved_time - self.group.first_seen,
                 "isOpen": False,
+                "lastChecked": activity.datetime,
             }
         ]
 
@@ -89,9 +100,9 @@ class GroupOpenPeriodsTest(APITestCase):
             datetime=unresolved_time,
         )
 
-        second_resolved_time = timezone.now()
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
+        second_resolved_time = timezone.now()
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
@@ -106,12 +117,14 @@ class GroupOpenPeriodsTest(APITestCase):
                 "end": second_resolved_time,
                 "duration": second_resolved_time - unresolved_time,
                 "isOpen": False,
+                "lastChecked": second_resolved_time,
             },
             {
                 "start": self.group.first_seen,
                 "end": resolved_time,
                 "duration": resolved_time - self.group.first_seen,
                 "isOpen": False,
+                "lastChecked": resolved_time,
             },
         ]
 
@@ -154,4 +167,5 @@ class GroupOpenPeriodsTest(APITestCase):
             "end": second_resolved_time,
             "duration": second_resolved_time - unresolved_time,
             "isOpen": False,
+            "lastChecked": second_resolved_time,
         }
