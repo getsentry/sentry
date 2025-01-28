@@ -25,7 +25,7 @@ export default function InfiniteListState<Data>({
     return loadingMessage();
   }
   if (status === 'error') {
-    return errorMessage({error: error as Error});
+    return errorMessage({error});
   }
 
   // It's fetching in the background if:
@@ -48,7 +48,7 @@ function LoadingMessage() {
 }
 
 function ErrorMessage({error}: {error: Error}) {
-  return <p>Error: {(error as Error).message}</p>;
+  return <p>Error: {error.message}</p>;
 }
 
 function BackgroundUpdatingMessage() {

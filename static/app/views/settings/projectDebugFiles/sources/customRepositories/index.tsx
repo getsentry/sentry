@@ -152,7 +152,7 @@ function CustomRepositories({
     const index = newRepositories.findIndex(item => item.id === repoId);
     newRepositories.splice(index, 1);
     persistData({
-      updatedItems: newRepositories as CustomRepo[],
+      updatedItems: newRepositories,
       refresh: false,
     });
   }

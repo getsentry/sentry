@@ -99,7 +99,7 @@ export function useMetricsIntervalParam() {
   const hasSetMetric = useMemo(
     () =>
       widgets.some(
-        widget => isMetricsQueryWidget(widget) && parseMRI(widget.mri)!.type === 's'
+        widget => isMetricsQueryWidget(widget) && parseMRI(widget.mri).type === 's'
       ),
     [widgets]
   );

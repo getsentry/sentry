@@ -53,7 +53,7 @@ function OrganizationRepositoriesContainer() {
       <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
       <OrganizationRepositories
         organization={organization}
-        itemList={itemList!}
+        itemList={itemList}
         onRepositoryChange={onRepositoryChange}
       />
       {itemListPageLinks && <Pagination pageLinks={itemListPageLinks} />}

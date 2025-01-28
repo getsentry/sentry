@@ -123,7 +123,7 @@ export const getConfigForIssueType = (
 ): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
-      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)
+      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
   const categoryMap = issueTypeConfig[issueCategory];

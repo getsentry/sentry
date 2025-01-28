@@ -84,7 +84,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   navigation: (frame: NavFrame) => ({
     color: 'green400',
-    description: stripURLOrigin((frame as NavFrame).data.to),
+    description: stripURLOrigin(frame.data.to),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -465,7 +465,7 @@ export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
     return `${type} ${action || ''}`.trim();
   }
   if ('message' in frame && frame.message) {
-    return frame.message as string; // TODO(replay): Included for backwards compat
+    return frame.message; // TODO(replay): Included for backwards compat
   }
   return 'description' in frame ? frame.description ?? '' : '';
 }
