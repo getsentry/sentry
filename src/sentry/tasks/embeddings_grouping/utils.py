@@ -204,10 +204,7 @@ def get_current_batch_groups_from_postgres(
             )
             project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
-        return (
-            groups_to_backfill_batch,
-            None,
-        )
+        return ([], None)
 
     groups_to_backfill_with_no_embedding = [
         group_id
