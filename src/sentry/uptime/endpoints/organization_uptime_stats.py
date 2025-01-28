@@ -28,6 +28,9 @@ from sentry.utils.snuba_rpc import timeseries_rpc
 logger = logging.getLogger(__name__)
 
 
+MAX_UPTIME_SUBSCRIPTION_IDS = 100
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
@@ -46,8 +49,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         if not uptime_subscription_ids:
             return self.respond("No uptime subscription ids provided", status=400)
 
+        if len(uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+            return self.respond(
+                f"Too many uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                status=400,
+            )
+
         try:
-            self._validate_uptime_subscription_ids(uptime_subscription_ids, projects)
+            self._authorize_uptime_subscription_ids(uptime_subscription_ids, projects)
         except ValueError:
             return self.respond("Invalid uptime subscription ids provided", status=400)
 
@@ -63,7 +72,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         return self.respond(formatted_response)
 
-    def _validate_uptime_subscription_ids(
+    def _authorize_uptime_subscription_ids(
         self, uptime_subscription_ids: list[str], projects: list[Project]
     ) -> None:
         project_subscriptions = ProjectUptimeSubscription.objects.filter(
@@ -85,7 +94,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         uptime_subscription_ids: list[str],
         timerange_args: StatsArgsDict,
     ) -> list[TimeSeriesResponse]:
-        # TODO: validate that these are valid uptime subscription ids
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(timerange_args["start"])
         end_timestamp = Timestamp()
@@ -126,14 +134,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                         type=AttributeKey.Type.TYPE_STRING,
                     ),
                     op=ComparisonFilter.OP_IN,
-                    value=AttributeValue(
-                        val_str_array=StrArray(
-                            values=[
-                                uptime_subscription_id
-                                for uptime_subscription_id in uptime_subscription_ids
-                            ]
-                        )
-                    ),
+                    value=AttributeValue(val_str_array=StrArray(values=uptime_subscription_ids)),
                 )
             ),
         )
