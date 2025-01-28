@@ -70,12 +70,15 @@ export function getWidgetEquation(equation: EquationParams): WidgetQuery {
 }
 
 export function encodeWidgetQuery(query: any) {
-  return qs.stringify({
-    ...query,
-    aggregates: query.aggregates.join(','),
-    fields: query.fields?.join(','),
-    columns: query.columns.join(','),
-  });
+  return qs.stringify(
+    {
+      ...query,
+      aggregates: query.aggregates.join(','),
+      fields: query.fields?.join(','),
+      columns: query.columns.join(','),
+    },
+    {strict: false}
+  );
 }
 
 export function getWidgetAsQueryParams(
