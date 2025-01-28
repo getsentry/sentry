@@ -1,5 +1,3 @@
-from typing import Any
-
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -92,10 +90,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
         try:
             trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
-            response: dict[str, Any] = {"sentry_app": e.message}
-            if public_context := e.public_context:
-                response.update({"context": public_context})
-            return Response(response, status=e.status_code)
+            e.response_from_exception()
 
         if get_slack_actions_with_async_lookups(organization, request.user, data):
             # need to kick off an async job for Slack
