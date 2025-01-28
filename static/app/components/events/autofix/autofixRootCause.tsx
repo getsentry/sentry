@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ExpandableInsightContext} from 'sentry/components/events/autofix/autofixInsightCards';
 import {
   type AutofixRepository,
@@ -345,6 +346,67 @@ function RootCauseContext({
   );
 }
 
+function formatRootCauseText(
+  cause: AutofixRootCauseData | undefined,
+  customRootCause?: string
+) {
+  if (!cause && !customRootCause) {
+    return '';
+  }
+
+  if (customRootCause) {
+    return customRootCause;
+  }
+
+  if (!cause) {
+    return '';
+  }
+
+  const parts: string[] = [];
+
+  // Add title
+  parts.push(cause.title);
+  parts.push('\n\n');
+
+  // Add description
+  parts.push(cause.description);
+
+  // Add code snippets if available
+  if (cause.code_context?.length > 0) {
+    parts.push('\n\nRelevant code:\n');
+    cause.code_context.forEach((context, index) => {
+      parts.push(`\nSnippet #${index + 1}: ${context.title}\n`);
+      if (context.description) {
+        parts.push(`${context.description}\n`);
+      }
+      if (context.snippet?.snippet) {
+        parts.push(`File: ${context.snippet.file_path}\n`);
+        parts.push('```\n');
+        parts.push(context.snippet.snippet);
+        parts.push('\n```\n');
+      }
+    });
+  }
+
+  return parts.join('');
+}
+
+function CopyRootCauseButton({
+  cause,
+  customRootCause,
+  isEditing,
+}: {
+  cause?: AutofixRootCauseData;
+  customRootCause?: string;
+  isEditing?: boolean;
+}) {
+  if (isEditing) {
+    return null;
+  }
+  const text = formatRootCauseText(cause, customRootCause);
+  return <CopyToClipboardButton size="sm" text={text} />;
+}
+
 function AutofixRootCauseDisplay({
   causes,
   groupId,
@@ -368,10 +430,16 @@ function AutofixRootCauseDisplay({
       return (
         <CausesContainer>
           <CustomRootCausePadding>
-            <HeaderText>
-              <IconFocus size="sm" />
-              {t('Custom Root Cause')}
-            </HeaderText>
+            <HeaderWrapper>
+              <HeaderText>
+                <IconFocus size="sm" />
+                {t('Custom Root Cause')}
+              </HeaderText>
+              <CopyRootCauseButton
+                customRootCause={rootCauseSelection.custom_root_cause}
+                isEditing={isEditing}
+              />
+            </HeaderWrapper>
             <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           </CustomRootCausePadding>
         </CausesContainer>
@@ -392,6 +460,7 @@ function AutofixRootCauseDisplay({
               <IconFocus size="sm" />
               {t('Root Cause')}
             </HeaderText>
+            <CopyRootCauseButton cause={selectedCause} isEditing={isEditing} />
           </HeaderWrapper>
           <Content>
             <CauseTitle
@@ -429,6 +498,7 @@ function AutofixRootCauseDisplay({
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar gap={1}>
+            <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <Button
               size="sm"
               onClick={() => {
@@ -642,8 +712,9 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  padding: 0 0 ${space(1)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+  gap: ${space(1)};
 `;
 
 const HeaderText = styled('div')`
