@@ -1,3 +1,4 @@
+from datetime import datetime
 from http.client import HTTPException
 from urllib.parse import urljoin
 
@@ -63,6 +64,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+    deprecation_date = datetime(2025, 1, 31)
 
     def get_api(self, project):
         return phabricator.Phabricator(
