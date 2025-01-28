@@ -13,7 +13,10 @@ logger = logging.getLogger("sentry.sentry_apps.alert_rule_action")
 
 def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> None:
     if result.error_type is None:
-        return None
+        raise SentryAppSentryError(
+            message="Missing error type from alert rule action creator response",
+            webhook_context={**result.dict()},
+        )
 
     error_type = SentryAppErrorType(result.error_type)
     match error_type:
@@ -21,6 +24,7 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
             raise SentryAppIntegratorError(
                 message=result.message,
                 public_context=result.public_context,
+                webhook_context=result.webhook_context,
                 status_code=result.status_code,
             )
         case SentryAppErrorType.CLIENT:
@@ -30,15 +34,9 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
                 status_code=result.status_code,
             )
         case SentryAppErrorType.SENTRY:
-            logger.error(
-                "create-failed",
-                extra={
-                    "message_str": result.message,
-                    "webhook_context": result.webhook_context if result.webhook_context else None,
-                    "public_context": result.public_context if result.public_context else None,
-                },
-            )
             raise SentryAppSentryError(
                 message="Something went wrong during the alert rule action process!",
                 status_code=result.status_code,
+                webhook_context=result.webhook_context,
+                public_context=result.public_context,
             )
