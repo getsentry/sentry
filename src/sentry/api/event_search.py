@@ -5,13 +5,12 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
-from typing_extensions import TypeIs
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
