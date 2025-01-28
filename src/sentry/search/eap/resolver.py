@@ -140,7 +140,7 @@ class SearchResolver:
         if not filters:
             return None
 
-        return TraceItemFilter(and_filter=AndFilter(filters=filters))
+        return TraceItemFilter(or_filter=OrFilter(filters=filters))
 
     def __resolve_query(
         self, querystring: str | None
