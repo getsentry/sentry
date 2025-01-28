@@ -30,6 +30,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.metrics import (
@@ -167,7 +168,9 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration):
+class GitHubIntegration(
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -233,25 +236,21 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         """
         args:
         * query - a query to filter the repositories by
-
-        kwargs:
         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
-        It uses page_size from the base class to specify how many items per page (max 100; default 30).
-        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
         if not query:
-            repos = self.get_client().get_repos(fetch_max_pages)
+            all_repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in [repo for repo in repos if not repo.get("archived")]
+                for i in all_repos
+                if not i.get("archived")
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -287,8 +286,8 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
             return False
         return True
 
-    # for derive code mappings - TODO(cathy): define in an ABC
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
+    # XXX: To be removed after we switch over to the new repo trees integration code
+    def get_trees_for_org_old(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         trees: dict[str, RepoTree] = {}
         domain_name = self.model.metadata["domain_name"]
         extra = {"metadata": self.model.metadata}
@@ -306,7 +305,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
+            trees = self.get_client().get_trees_for_org_deprecate(gh_org, cache_seconds)
 
         return trees
 

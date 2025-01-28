@@ -7,10 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
-from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.source_code_management.metrics import (
@@ -117,7 +116,6 @@ def auto_source_code_config(
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
-        logger.info("No stacktrace paths found.", extra=extra)
         return
 
     installation, organization_integration = get_installation(org)
@@ -125,7 +123,31 @@ def auto_source_code_config(
         logger.info("No installation or organization integration found.", extra=extra)
         return
 
-    trees = {}
+    trees = get_trees_for_org(installation, org, extra)
+    trees_helper = CodeMappingTreesHelper(trees)
+    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+    set_project_codemappings(code_mappings, organization_integration, project)
+
+
+def get_trees_for_org(
+    installation: IntegrationInstallation, org: Organization, extra: dict[str, Any]
+) -> dict[str, Any]:
+    trees: dict[str, Any] = {}
+    get_trees_method = None
+    if options.get("github-app.get-trees-refactored-code") and hasattr(
+        installation, "get_trees_for_org"
+    ):
+        get_trees_method = installation.get_trees_for_org
+    elif hasattr(installation, "get_trees_for_org_old"):
+        get_trees_method = installation.get_trees_for_org_old
+
+    if not get_trees_method:
+        logger.error(
+            "Installation does not have required method get_trees_for_org",
+            extra={"installation_type": type(installation).__name__, **extra},
+        )
+        return trees
+
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
@@ -134,29 +156,19 @@ def auto_source_code_config(
     ).capture() as lifecycle:
         try:
             with lock.acquire():
-                # This method is specific to the GithubIntegration
-                if not isinstance(installation, GitHubIntegration):
-                    return
-                trees = installation.get_trees_for_org()
+                trees = get_trees_method()
+                if not trees:
+                    lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
         except ApiError as error:
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
-            return
         except UnableToAcquireLock as error:
             extra["error"] = str(error)
             lifecycle.record_failure(error, extra)
-            return
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
-            return
 
-        if not trees:
-            lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
-            return
-
-    trees_helper = CodeMappingTreesHelper(trees)
-    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project)
+        return trees
 
 
 def identify_stacktrace_paths(data: NodeData) -> list[str]:
@@ -202,7 +214,7 @@ def get_installation(
     if len(integrations) == 0:
         return None, None
 
-    # XXX: We only operate on the first github integration for an organization.
+    # XXX: We only operate on the first integration for an organization.
     integration = integrations[0]
     organization_integration = integration_service.get_organization_integration(
         integration_id=integration.id, organization_id=organization.id
