@@ -135,6 +135,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 response = installation.create_issue(data)
             except ExternalAPIConfigurationError as e:
                 lifecycle.record_halt(e)
+                raise
             except Exception as e:
                 if isinstance(e, IntegrationFormError):
                     # Most of the time, these aren't explicit failures, they're
