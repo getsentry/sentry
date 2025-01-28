@@ -790,26 +790,16 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         assert len(resp.data["triggers"]) == 1
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_delete_trigger_dual_update_resolve(self):
-        """
-        If there is no explicit resolve threshold on an alert rule, then we need to dual update the
-        comparison on the DataCondition corresponding to alert resolution.
-        """
+    @mock.patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
+    def test_dual_delete_trigger(self, mock_dual_delete):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
 
         self.login_as(self.user)
-        alert_rule_dict = deepcopy(self.alert_rule_dict)
-        alert_rule_dict.update({"resolveThreshold": None})
-        alert_rule = self.new_alert_rule(data=alert_rule_dict)
-
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
-        # the new resolution threshold should be the critical alert threshold
-        new_threshold = serialized_alert_rule["triggers"][0]["alertThreshold"]
-        old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
-        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
 
         serialized_alert_rule["triggers"].pop(1)
 
@@ -817,9 +807,40 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
-
         assert len(resp.data["triggers"]) == 1
-        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        
+      @with_feature("organizations:workflow-engine-metric-alert-processing")
+      def test_delete_trigger_dual_update_resolve(self):
+          """
+          If there is no explicit resolve threshold on an alert rule, then we need to dual update the
+          comparison on the DataCondition corresponding to alert resolution.
+          """
+          self.create_member(
+              user=self.user, organization=self.organization, role="owner", teams=[self.team]
+          )
+
+          self.login_as(self.user)
+          alert_rule_dict = deepcopy(self.alert_rule_dict)
+          alert_rule_dict.update({"resolveThreshold": None})
+          alert_rule = self.new_alert_rule(data=alert_rule_dict)
+
+          serialized_alert_rule = self.get_serialized_alert_rule()
+          # the new resolution threshold should be the critical alert threshold
+          new_threshold = serialized_alert_rule["triggers"][0]["alertThreshold"]
+          old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+          assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+          serialized_alert_rule["triggers"].pop(1)
+
+          with self.feature("organizations:incidents"):
+              resp = self.get_success_response(
+                  self.organization.slug, alert_rule.id, **serialized_alert_rule
+              )
+
+          assert len(resp.data["triggers"]) == 1
+          assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")
@@ -937,7 +958,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data[0] == INVALID_TIME_WINDOW
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
-
         data2 = self.get_serialized_alert_rule()
         data2["query"] = "is:unresolved"
 
@@ -982,6 +1002,32 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 "Each trigger must have an associated action for this alert to fire."
             ]
         }
+
+    @mock.patch(
+        "sentry.incidents.serializers.alert_rule_trigger.dual_delete_migrated_alert_rule_trigger_action"
+    )
+    def test_dual_delete_action(self, mock_dual_delete):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_action = serialized_alert_rule["triggers"][1]["actions"].pop(1)
+        action = AlertRuleTriggerAction.objects.get(id=serialized_action["id"])
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"][1]["actions"]) == 1
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        assert mock_dual_delete.call_args_list[0][0][0] == action
 
     def test_update_trigger_action_type(self):
         self.create_member(
@@ -1699,6 +1745,33 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @patch(
+        "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule"
+    )
+    def test_dual_delete(self, mock_dual_delete):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
+
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+        assert AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        kwargs = mock_dual_delete.call_args_list[0][1]
+        assert kwargs["alert_rule"] == self.alert_rule
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
     def test_no_feature(self):
         self.create_member(
