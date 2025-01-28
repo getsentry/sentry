@@ -50,6 +50,10 @@ class MissingDataConditionGroup(Exception):
     pass
 
 
+class UnresolvableResolveThreshold(Exception):
+    pass
+
+
 def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
     if alert_rule_trigger_action.sentry_app_id:
         return Action.Type.SENTRY_APP
@@ -509,6 +513,38 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     detector_state.update(active=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
+
+
+def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None:
+    """
+    Helper method to update the detector trigger for a legacy resolution "trigger" if
+    no explicit resolution threshold is set on the alert rule.
+    """
+    # if the alert rule has a resolve threshold or if it hasn't been dual written, return early
+    if alert_rule.resolve_threshold is not None:
+        return None
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        # We attempted to dual delete a trigger that was not dual migrated
+        return None
+
+    detector = alert_rule_detector.detector
+    detector_data_condition_group = detector.workflow_condition_group
+    if detector_data_condition_group is None:
+        logger.error(
+            "detector_data_condition_group does not exist",
+            extra={"alert_rule_id": alert_rule.id},
+        )
+        raise MissingDataConditionGroup
+
+    resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+    if resolve_threshold == -1:
+        raise UnresolvableResolveThreshold
+
+    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
+    resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+    resolve_condition.update(comparison=resolve_threshold)
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:
