@@ -7,9 +7,17 @@ from django.utils import timezone
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.group import Group
-from sentry.workflow_engine.models import Action, ActionGroupStatus, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    ActionGroupStatus,
+    DataCondition,
+    DataConditionGroup,
+    Workflow,
+)
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.types import WorkflowJob
+
+EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
 def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
@@ -78,8 +86,9 @@ def filter_recently_fired_workflow_actions(
 
 def evaluate_workflows_action_filters(
     workflows: set[Workflow], job: WorkflowJob
-) -> BaseQuerySet[Action]:
+) -> tuple[BaseQuerySet[Action], list[DataCondition]]:
     filtered_action_groups: set[DataConditionGroup] = set()
+    enqueued_conditions: list[DataCondition] = []
 
     # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
     workflow_ids = {workflow.id for workflow in workflows}
@@ -93,8 +102,9 @@ def evaluate_workflows_action_filters(
 
         if evaluation:
             if remaining_conditions:
-                # TODO @saponifi3d - enqueue remaining conditions (slow conditions) to be evaluated in bulk
-                pass
+                # If there are remaining conditions for the action filter to evaluate,
+                # then return the list of conditions to enqueue
+                enqueued_conditions.extend(remaining_conditions)
             else:
                 # if we don't have any other conditions to evaluate, add the action to the list
                 filtered_action_groups.add(action_condition)
@@ -104,4 +114,4 @@ def evaluate_workflows_action_filters(
         dataconditiongroupaction__condition_group__in=filtered_action_groups
     ).distinct()
 
-    return filter_recently_fired_workflow_actions(actions, job["event"].group)
+    return filter_recently_fired_workflow_actions(actions, job["event"].group), enqueued_conditions

@@ -31,8 +31,11 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_basic__no_filter(self):
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
+            {self.workflow}, self.job
+        )
         assert set(triggered_actions) == {self.action}
+        assert remaining_conditions == []
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -42,8 +45,11 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
+            {self.workflow}, self.job
+        )
         assert set(triggered_actions) == {self.action}
+        assert remaining_conditions == []
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -53,8 +59,25 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
+            {self.workflow}, self.job
+        )
         assert not triggered_actions
+        assert remaining_conditions == []
+
+    def test_with_slow_conditions(self):
+        slow_condition = self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 7},
+        )
+
+        triggered_actions, remaining_conditions = evaluate_workflows_action_filters(
+            {self.workflow}, self.job
+        )
+
+        assert not triggered_actions
+        assert remaining_conditions == [slow_condition]
 
 
 @freeze_time("2024-01-09")
