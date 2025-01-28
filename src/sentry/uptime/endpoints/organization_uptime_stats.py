@@ -22,7 +22,7 @@ from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.utils.snuba_rpc import timeseries_rpc
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ MAX_UPTIME_SUBSCRIPTION_IDS = 100
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Crons"])
+@extend_schema(tags=["Uptime Monitors"])
 class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -61,30 +61,27 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             return self.respond("Invalid uptime subscription ids provided", status=400)
 
         try:
-            responses = self._make_eap_request(
+            eap_response = self._make_eap_request(
                 organization, projects, uptime_subscription_ids, timerange_args
             )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
 
-        formatted_response = self._format_response(responses)
+        formatted_response = self._format_response(eap_response)
 
         return self.respond(formatted_response)
 
     def _authorize_uptime_subscription_ids(
         self, uptime_subscription_ids: list[str], projects: list[Project]
     ) -> None:
-        project_subscriptions = ProjectUptimeSubscription.objects.filter(
+
+        valid_subscription_ids = ProjectUptimeSubscription.objects.filter(
             project_id__in=[project.id for project in projects],
-        ).values_list("uptime_subscription_id", flat=True)
+            uptime_subscription__subscription_id__in=uptime_subscription_ids,
+        ).values_list("uptime_subscription__subscription_id", flat=True)
 
-        subscriptions = UptimeSubscription.objects.filter(
-            id__in=project_subscriptions,
-            subscription_id__in=uptime_subscription_ids,
-        ).values_list("subscription_id", flat=True)
-
-        if set(uptime_subscription_ids) != set(subscriptions):
+        if set(uptime_subscription_ids) != set(valid_subscription_ids):
             raise ValueError("Invalid uptime subscription ids provided")
 
     def _make_eap_request(
@@ -93,7 +90,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         uptime_subscription_ids: list[str],
         timerange_args: StatsArgsDict,
-    ) -> list[TimeSeriesResponse]:
+    ) -> TimeSeriesResponse:
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(timerange_args["start"])
         end_timestamp = Timestamp()
@@ -139,10 +136,11 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             ),
         )
         responses = timeseries_rpc([request])
-        return responses
+        assert len(responses) == 1
+        return responses[0]
 
     def _format_response(
-        self, responses: list[TimeSeriesResponse]
+        self, response: TimeSeriesResponse
     ) -> dict[str, list[tuple[int, dict[str, float]]]]:
         """
         Formats the response from the EAP RPC request into a dictionary of subscription ids to a list of tuples
@@ -150,22 +148,16 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         """
         formatted_data: dict[str, dict[int, dict[str, float]]] = {}
 
-        for response in responses:
-            for timeseries in response.result_timeseries:
-                subscription_id = timeseries.group_by_attributes["uptime_subscription_id"]
-                status = timeseries.group_by_attributes["check_status"]
+        for timeseries in response.result_timeseries:
+            subscription_id = timeseries.group_by_attributes["uptime_subscription_id"]
+            status = timeseries.group_by_attributes["check_status"]
 
-                if subscription_id not in formatted_data:
-                    formatted_data[subscription_id] = defaultdict(
-                        lambda: {"failure": 0.0, "success": 0.0}
-                    )
+            if subscription_id not in formatted_data:
+                formatted_data[subscription_id] = defaultdict(lambda: {"failure": 0, "success": 0})
 
-                for bucket, data_point in zip(timeseries.buckets, timeseries.data_points):
-                    unix_ts = int(bucket.seconds)
-
-                    value = data_point.data if data_point.data_present else 0.0
-
-                    formatted_data[subscription_id][unix_ts][status] = value
+            for bucket, data_point in zip(timeseries.buckets, timeseries.data_points):
+                value = data_point.data if data_point.data_present else 0
+                formatted_data[subscription_id][bucket.seconds][status] = int(value)
 
         final_data: dict[str, list[tuple[int, dict[str, float]]]] = {}
         for subscription_id, timestamps in formatted_data.items():
