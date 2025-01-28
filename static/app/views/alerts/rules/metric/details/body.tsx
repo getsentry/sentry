@@ -65,6 +65,39 @@ interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   selectedIncident?: Incident | null;
 }
 
+export function getPeriodInterval(timePeriod: TimePeriodType, rule: MetricRule) {
+  const startDate = moment.utc(timePeriod.start);
+  const endDate = moment.utc(timePeriod.end);
+  const timeWindow = rule?.timeWindow;
+  const startEndDifferenceMs = endDate.diff(startDate);
+
+  if (
+    timeWindow &&
+    (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
+      // Special case 7 days * 1m interval over the api limit
+      startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
+  ) {
+    return `${timeWindow}m`;
+  }
+
+  return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
+}
+
+export function getFilter(rule: MetricRule): string[] | null {
+  const {aggregate, dataset, query} = rule;
+
+  if (
+    isCrashFreeAlert(dataset) ||
+    isCustomMetricAlert(aggregate) ||
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+  ) {
+    return query.trim().split(' ');
+  }
+
+  const eventType = extractEventTypeFilterFromRule(rule);
+  return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
+}
+
 export default function MetricDetailsBody({
   api,
   project,
@@ -77,43 +110,6 @@ export default function MetricDetailsBody({
   router,
   anomalies,
 }: MetricDetailsBodyProps) {
-  function getPeriodInterval() {
-    const startDate = moment.utc(timePeriod.start);
-    const endDate = moment.utc(timePeriod.end);
-    const timeWindow = rule?.timeWindow;
-    const startEndDifferenceMs = endDate.diff(startDate);
-
-    if (
-      timeWindow &&
-      (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
-        // Special case 7 days * 1m interval over the api limit
-        startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
-    ) {
-      return `${timeWindow}m`;
-    }
-
-    return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
-  }
-
-  function getFilter(): string[] | null {
-    if (!rule) {
-      return null;
-    }
-
-    const {aggregate, dataset, query} = rule;
-
-    if (
-      isCrashFreeAlert(dataset) ||
-      isCustomMetricAlert(aggregate) ||
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-    ) {
-      return query.trim().split(' ');
-    }
-
-    const eventType = extractEventTypeFilterFromRule(rule);
-    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
-  }
-
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
@@ -267,9 +263,9 @@ export default function MetricDetailsBody({
             formattedAggregate={formattedAggregate}
             organization={organization}
             project={project}
-            interval={getPeriodInterval()}
+            interval={getPeriodInterval(timePeriod, rule)}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
-            filter={getFilter()}
+            filter={getFilter(rule)}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
           <DetailWrapper>
