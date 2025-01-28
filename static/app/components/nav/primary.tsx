@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
 import {
   isNavItemActive,
-  isSubmenuItemActive,
   makeLinkPropsFromTo,
   type NavSidebarItem,
   resolveNavItemTo,
@@ -107,7 +106,6 @@ function SidebarMenu({item, children, onClick}: SidebarItemProps) {
 function SidebarLink({children, item, onClick}: SidebarItemProps) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
   const to = resolveNavItemTo(item);
   if (!to) {
     throw new Error(
@@ -120,10 +118,10 @@ function SidebarLink({children, item, onClick}: SidebarItemProps) {
     <NavLink
       {...linkProps}
       onClick={onClick}
-      className={isActive || isSubmenuActive ? 'active' : undefined}
+      className={isActive ? 'active' : undefined}
       aria-current={isActive ? 'page' : undefined}
     >
-      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+      <InteractionStateLayer hasSelectedBackground={isActive} />
       {children}
     </NavLink>
   );
