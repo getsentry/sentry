@@ -283,6 +283,17 @@ class GitHubActionTranslator(TicketActionTranslator):
         return GitHubDataBlob
 
 
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction"
+)
+class AzureDevOpsActionTranslator(TicketActionTranslator):
+    action_type = Action.Type.AZURE_DEVOPS
+
+    @property
+    def blob_type(self) -> type["DataBlob"]:
+        return AzureDevOpsDataBlob
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -315,13 +326,29 @@ class OnCallDataBlob(DataBlob):
 
 
 @dataclass
-class GitHubDataBlob(DataBlob):
+class TicketDataBlob(DataBlob):
+    """TicketDataBlob is a specific type that represents the data blob for a ticket creation action."""
+
+    # This is dynamic and can whatever customer config the customer setup on GitHub
+    dynamic_form_fields: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class GitHubDataBlob(TicketDataBlob):
     """
     GitHubDataBlob represents the data blob for a GitHub ticket creation action.
     """
 
-    repo: str
+    repo: str = ""
     assignee: str = ""  # Optional field, defaults to empty string
     labels: list[str] = field(default_factory=list)  # Optional field, defaults to empty list
-    # This is dynamic and can whatever customer config the customer setup on GitHub
-    dynamic_form_fields: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class AzureDevOpsDataBlob(TicketDataBlob):
+    """
+    AzureDevOpsDataBlob represents the data blob for an Azure DevOps ticket creation action.
+    """
+
+    project: str = ""
+    work_item_type: str = ""

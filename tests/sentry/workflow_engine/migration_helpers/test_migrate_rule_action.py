@@ -733,3 +733,160 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 0
+
+    def test_azure_devops_migration(self):
+        action_data = [
+            {
+                "integration": "999999",
+                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Test Octo"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Octopus"],
+                        ],
+                        "defaultValue": "12345678-90ab-cdef-0123-456789abcdef",
+                        "label": "Project",
+                        "placeholder": "12345678-90ab-cdef-0123-456789abcdef",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "work_item_type",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["Microsoft.VSTS.WorkItemTypes.Bug", "Bug"],
+                            ["Microsoft.VSTS.WorkItemTypes.Epic", "Epic"],
+                            ["Microsoft.VSTS.WorkItemTypes.Feature", "Feature"],
+                            ["Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
+                                "Code Review Request",
+                            ],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
+                                "Code Review Response",
+                            ],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"],
+                            ["Microsoft.VSTS.WorkItemTypes.Task", "Task"],
+                        ],
+                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
+                        "label": "Work Item Type",
+                        "placeholder": "Bug",
+                    },
+                ],
+                "project": "12345678-90ab-cdef-0123-456789abcdef",
+                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Bug",
+                "uuid": "7a48abdb-60d7-4d1c-ab00-0eedb2189933",
+            },
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-125"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-121"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-122"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-127"],
+                            ["99999999-90ab-cdef-0123-456789abcdef", "O-129"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-131"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-128"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-107"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-120"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-123"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-119"],
+                            ["cb72f217-bcb2-495c-b7ad-d6883e696990", "O-116"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-115"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Alpha Octo"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-126"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-102"],
+                            ["23ff99ca-92f2-492f-b8a1-d13ed66c465c", "O-124"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-114"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-112"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-108"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-000"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-101"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-104"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-110"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-111"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-130"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-117"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Design"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-118"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-109"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-106"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-103"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-105"],
+                        ],
+                        "defaultValue": "12345678-90ab-cdef-0123-456789abcdef",
+                        "label": "Project",
+                        "placeholder": "12345678-90ab-cdef-0123-456789abcdef",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "work_item_type",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["Microsoft.VSTS.WorkItemTypes.Bug", "Bug"],
+                            ["Microsoft.VSTS.WorkItemTypes.Epic", "Epic"],
+                            ["Microsoft.VSTS.WorkItemTypes.Feature", "Feature"],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.ProductBacklogItem",
+                                "Product Backlog Item",
+                            ],
+                            ["Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
+                                "Code Review Request",
+                            ],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
+                                "Code Review Response",
+                            ],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"],
+                            ["Microsoft.VSTS.WorkItemTypes.Task", "Task"],
+                        ],
+                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
+                        "label": "Work Item Type",
+                        "placeholder": "Bug",
+                    },
+                ],
+                "project": "23ff99ca-92f2-492f-b8a1-d13ed66c465c",
+                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Bug",
+                "uuid": "4d42b17d-911d-4085-be7f-cc5f32d66371",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_azure_devops_migration_malformed(self):
+        action_data = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 0
