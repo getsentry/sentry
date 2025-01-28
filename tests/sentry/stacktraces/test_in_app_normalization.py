@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
+from sentry.grouping.api import (
+    get_default_grouping_config_dict,
+    get_grouping_config_dict_for_project,
+    load_grouping_config,
+)
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.cases import TestCase
+from sentry.utils.safe import get_path
 
 
 def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set") -> dict[str, Any]:
@@ -130,6 +135,132 @@ class NormalizeInApptest(TestCase):
             assert (
                 frame_mix == expected_frame_mix
             ), f"Expected {expected_frame_mix}, got {frame_mix} with stacktrace `in-app` values {stacktrace_0_mix}, {stacktrace_1_mix}"
+
+
+class DynamicProjectRootRuleTest(TestCase):
+    def test_simple(self):
+        stacktrace = {
+            "frames": [
+                {
+                    "abs_path": "/path/to/app/root/some/in_app/path/app_file.py",
+                    "context_line": "do_app_stuff()",
+                },
+                {
+                    "abs_path": "/path/to/virtual/env/some/package/path/library_file.py",
+                    "context_line": "do_third_party_stuff()",
+                },
+            ]
+        }
+
+        event_with_project_root = make_event([stacktrace])
+        # TODO: For now this has to be added separately, since normalization strips it out
+        event_with_project_root["debug_meta"] = {"project_root": "/path/to/app/root"}
+
+        grouping_config = load_grouping_config(get_grouping_config_dict_for_project(self.project))
+        normalize_stacktraces_for_grouping(event_with_project_root, grouping_config)
+
+        # Without the dynamic rule, both frames would be `in_app: False`, as that's the default when
+        # no value is provided in the stacktrace.
+        frames = event_with_project_root["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is True
+        assert frames[1]["in_app"] is False
+
+    def test_applies_rule_in_edge_cases(self):
+        for project_root, frame_path in [
+            # Trailing slash
+            ("/path/to/app/root/", "/path/to/app/root/some/in_app/path/app_file.py"),
+            # Windows path
+            ("C:\\path\\to\\app\\root", "C:\\path\\to\\app\\root\\some\\in_app\\path\\app_file.py"),
+            # Windows path with a trailing backslash
+            (
+                "C:\\path\\to\\app\\root\\",
+                "C:\\path\\to\\app\\root\\some\\in_app\\path\\app_file.py",
+            ),
+        ]:
+            stacktrace = {
+                "frames": [
+                    {
+                        "abs_path": frame_path,
+                        "context_line": "do_app_stuff()",
+                    },
+                ]
+            }
+
+            event_with_project_root = make_event([stacktrace])
+            # TODO: For now this has to be added separately, since normalization strips it out
+            event_with_project_root["debug_meta"] = {"project_root": project_root}
+
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_project(self.project)
+            )
+            normalize_stacktraces_for_grouping(event_with_project_root, grouping_config)
+
+            # Without the dynamic rule, the frame would be `in_app: False`, as that's the default
+            # when no value is provided in the stacktrace.
+            frames = event_with_project_root["exception"]["values"][0]["stacktrace"]["frames"]
+            assert frames[0]["in_app"] is True, f"Case with project root {project_root} failed"
+
+    def test_applies_default_if_no_project_root(self):
+        stacktrace = {
+            "frames": [
+                {
+                    "abs_path": "/path/to/app/root/some/in_app/path/app_file.py",
+                    "context_line": "do_app_stuff()",
+                },
+                {
+                    "abs_path": "/path/to/virtual/env/some/package/path/library_file.py",
+                    "context_line": "do_third_party_stuff()",
+                },
+            ]
+        }
+
+        event_without_project_root = make_event([stacktrace])
+        assert get_path(event_without_project_root, "debug_meta", "project_root") is None
+
+        grouping_config = load_grouping_config(get_grouping_config_dict_for_project(self.project))
+        normalize_stacktraces_for_grouping(event_without_project_root, grouping_config)
+
+        # The default `in_app` value if none is provided in the stacktrace is False.
+        frames = event_without_project_root["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is False
+        assert frames[1]["in_app"] is False
+
+    def test_custom_rule_takes_precedence(self):
+        stacktrace = {
+            "frames": [
+                {
+                    "abs_path": "/path/to/app/root/some/in_app/path/app_file.py",
+                    "context_line": "do_app_stuff()",
+                },
+                {
+                    "abs_path": "/path/to/app/root/some/other/in_app/path/some_other_file.py",
+                    "context_line": "do_other_app_stuff()",
+                },
+            ]
+        }
+
+        event_with_project_root = make_event([stacktrace])
+        # TODO: For now this has to be added separately, since normalization strips it out
+        event_with_project_root["debug_meta"] = {"project_root": "/path/to/app/root"}
+
+        # First, normalize with no custom rules - both frames should come out as in-app because of
+        # the dynamically-created rule
+        grouping_config = load_grouping_config(get_grouping_config_dict_for_project(self.project))
+        normalize_stacktraces_for_grouping(event_with_project_root, grouping_config)
+
+        frames = event_with_project_root["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is True
+        assert frames[1]["in_app"] is True
+
+        # Now, add a custom rule and normalize again
+        self.project.update_option("sentry:grouping_enhancements", "path:**/app_file.py -app")
+        grouping_config = load_grouping_config(get_grouping_config_dict_for_project(self.project))
+        normalize_stacktraces_for_grouping(event_with_project_root, grouping_config)
+
+        # The first frame is now `in_app: False`, showing the custom rule won out
+        frames = event_with_project_root["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is False
+        assert frames[1]["in_app"] is True
 
 
 class MacOSInAppDetectionTest(TestCase):
