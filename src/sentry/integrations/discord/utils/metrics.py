@@ -4,6 +4,7 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 # https://discord.com/developers/docs/topics/opcodes-and-status-codes#json
 DISCORD_HALT_ERROR_CODES = [
     50001,  # Missing access
+    10003,  # Unknown Channel
 ]
 
 
