@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
+from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 import sentry_sdk
+from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -369,6 +372,42 @@ def normalize_stacktraces_for_grouping(
         else "system-only" if frame_mixes["system-only"] == len(stacktrace_frames) else "mixed"
     )
     data["metadata"] = event_metadata
+
+
+def _add_project_root_rule_to_enhancements(
+    event_data: MutableMapping[str, Any], grouping_config: StrategyConfiguration
+) -> None:
+    """
+    If the event's `debug_meta` entry includes `project_root`, use it to add an in-app rule to the
+    existing grouping config.
+
+    The new rule, if any, is added before existing rules (which include already-loaded custom
+    rules). That way, the new rule will apply first and custom rules will still have a chance to
+    override it.
+    """
+    from sentry.grouping.enhancer import Enhancements  # Prevent circular import by importing here
+
+    project_root = get_path(event_data, "debug_meta", "project_root")
+    if not project_root:
+        return
+
+    # Normalize the path before using it to create the rule
+    if "\\" in project_root:
+        project_root = PureWindowsPath(project_root).as_posix()
+    else:
+        project_root = Path(project_root).as_posix()
+
+    existing_rust_enhancements = grouping_config.enhancements.rust_enhancements
+    new_in_app_rule_enhancements = Enhancements.from_config_string(
+        f"path:{os.path.join(project_root, "**")} +app"
+    )
+
+    # Merge the new rule with the existing enhancements
+    merged_rust_enhancements = RustEnhancements.empty()
+    merged_rust_enhancements.extend_from(new_in_app_rule_enhancements.rust_enhancements)
+    merged_rust_enhancements.extend_from(existing_rust_enhancements)
+
+    grouping_config.enhancements.rust_enhancements = merged_rust_enhancements
 
 
 def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
