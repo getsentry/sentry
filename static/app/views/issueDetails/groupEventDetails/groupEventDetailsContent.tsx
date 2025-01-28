@@ -213,7 +213,8 @@ export function EventDetailsContent({
           organization={organization}
         />
       ) : null}
-      {group.issueCategory === IssueCategory.UPTIME && (
+
+      {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
       {group.issueCategory === IssueCategory.CRON && (

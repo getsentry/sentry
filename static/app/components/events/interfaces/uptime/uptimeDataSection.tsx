@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -30,32 +30,42 @@ const DOWNTIME_START_TYPES = [
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 
-export function UptimeDataSection({group, event, project}: Props) {
-  const organization = useOrganization();
-  const nowRef = useRef(new Date());
+export function useDowntimeDuration({group}: {group: Group}): {
+  durationMs: number;
+  endDate: Date;
+  startDate: Date;
+} {
+  const [now] = useState(() => new Date());
   const downtimeStartActivity = group.activity.find(activity =>
     DOWNTIME_START_TYPES.includes(activity.type)
   );
   const downtimeEndActivity = group.activity.find(activity =>
     DOWNTIME_TERMINAL_TYPES.includes(activity.type)
   );
-
-  const isResolved = group.status === GroupStatus.RESOLVED;
   const startDate = new Date(downtimeStartActivity?.dateCreated ?? group.firstSeen);
-  const endDate = isResolved
-    ? new Date(downtimeEndActivity?.dateCreated ?? group.lastSeen)
-    : nowRef.current;
+  const endDate =
+    group.status === GroupStatus.RESOLVED
+      ? new Date(downtimeEndActivity?.dateCreated ?? group.lastSeen)
+      : now;
 
   const durationMs = endDate.getTime() - startDate.getTime();
+  return {durationMs, startDate, endDate};
+}
 
-  const duration = (
+export function DowntimeDuration({group}: {group: Group}) {
+  const {durationMs, startDate, endDate} = useDowntimeDuration({group});
+  return (
     <Tooltip
       title={
         <DowntimeTooltipTitle>
           <DowntimeLabel>{t('From:')}</DowntimeLabel>
           <DateTime date={startDate} timeZone />
           <DowntimeLabel>{t('To:')}</DowntimeLabel>
-          {isResolved ? <DateTime date={endDate} timeZone /> : t('Now')}
+          {group.status === GroupStatus.RESOLVED ? (
+            <DateTime date={endDate} timeZone />
+          ) : (
+            t('Now')
+          )}
         </DowntimeTooltipTitle>
       }
       showUnderline
@@ -63,7 +73,11 @@ export function UptimeDataSection({group, event, project}: Props) {
       <Duration seconds={durationMs / 1000} />
     </Tooltip>
   );
+}
 
+export function UptimeDataSection({group, event, project}: Props) {
+  const organization = useOrganization();
+  const isResolved = group.status === GroupStatus.RESOLVED;
   const alertRuleId = event.tags.find(tag => tag.key === 'uptime_rule')?.value;
 
   return (
@@ -88,10 +102,10 @@ export function UptimeDataSection({group, event, project}: Props) {
     >
       {isResolved
         ? tct('Domain was down for [duration]', {
-            duration,
+            duration: <DowntimeDuration group={group} />,
           })
         : tct('Domain has been down for [duration]', {
-            duration,
+            duration: <DowntimeDuration group={group} />,
           })}
     </InterimSection>
   );
