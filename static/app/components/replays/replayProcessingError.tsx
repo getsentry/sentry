@@ -14,7 +14,7 @@ interface Props {
   className?: string;
 }
 
-export default function ReplayProcessingError({className, processingErrors}: Props) {
+export default function ReplayProcessingError({className}: Props) {
   const {replay} = useReplayContext();
   const {sdk} = replay?.getReplay() || {};
 
@@ -25,20 +25,8 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
       if (sdk) {
         scope.setTag('sdk.version', sdk.version);
       }
-      processingErrors.forEach(error => {
-        Sentry.metrics.increment(`replay.processing-error`, 1, {
-          tags: {
-            'sdk.version': sdk?.version ?? 'unknown',
-            // There are only 2 different error types
-            type:
-              error.toLowerCase() === 'missing meta frame'
-                ? 'missing-meta-frame'
-                : 'insufficient-replay-frames',
-          },
-        });
-      });
     });
-  }, [processingErrors, sdk]);
+  }, [sdk]);
 
   return (
     <StyledAlert type="error" showIcon className={className}>
