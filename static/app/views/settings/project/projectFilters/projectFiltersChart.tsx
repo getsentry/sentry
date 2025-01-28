@@ -1,3 +1,5 @@
+import startCase from 'lodash/startCase';
+
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -7,6 +9,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,18 +19,38 @@ type Props = {
   project: Project;
 };
 
+const STAT_OPS = {
+  'browser-extensions': theme.gray200,
+  cors: theme.yellow300,
+  'error-message': theme.purple300,
+  'discarded-hash': theme.gray200,
+  'invalid-csp': theme.blue300,
+  'ip-address': theme.red200,
+  'legacy-browsers': theme.gray200,
+  localhost: theme.blue300,
+  'release-version': theme.purple200,
+  'web-crawlers': theme.red300,
+  'filtered-transaction': theme.yellow400,
+  'react-hydration-errors': theme.outcome.filtered,
+  'chunk-load-error': theme.outcome.filtered,
+};
+
 function formatData(rawData: UsageSeries | undefined) {
   if (!rawData || !rawData.groups?.length) {
     return [];
   }
 
   const formattedData = rawData.groups
-    .filter(group => STAT_OPS[group.by.reason as keyof typeof STAT_OPS])
     .map(group => {
-      const {title, color} = STAT_OPS[group.by.reason as keyof typeof STAT_OPS];
+      const reason = group.by.reason;
+
+      if (!defined(reason)) {
+        return undefined;
+      }
+
       return {
-        seriesName: title,
-        color,
+        seriesName: startCase(String(reason)),
+        color: STAT_OPS[reason as keyof typeof STAT_OPS] ?? theme.gray200,
         data: rawData.intervals
           .map((interval, index) => ({
             name: interval,
@@ -35,25 +58,11 @@ function formatData(rawData: UsageSeries | undefined) {
           }))
           .filter(dataPoint => !!dataPoint.value),
       };
-    });
+    })
+    .filter(defined);
 
   return formattedData;
 }
-const STAT_OPS = {
-  'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
-  cors: {title: 'CORS', color: theme.yellow300},
-  'error-message': {title: t('Error Message'), color: theme.purple300},
-  'discarded-hash': {title: t('Discarded Issue'), color: theme.gray200},
-  'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},
-  'ip-address': {title: t('IP Address'), color: theme.red200},
-  'legacy-browsers': {title: t('Legacy Browser'), color: theme.gray200},
-  localhost: {title: t('Localhost'), color: theme.blue300},
-  'release-version': {title: t('Release'), color: theme.purple200},
-  'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
-  'filtered-transaction': {title: t('Health Check'), color: theme.yellow400},
-  'react-hydration-errors': {title: t('Hydration Errors'), color: theme.outcome.filtered},
-  'chunk-load-error': {title: t('Chunk Load Errors'), color: theme.outcome.filtered},
-};
 
 export function ProjectFiltersChart({project}: Props) {
   const organization = useOrganization();
@@ -80,7 +89,7 @@ export function ProjectFiltersChart({project}: Props) {
 
   const formattedData = formatData(data);
   const hasLoaded = !isPending && !isError;
-  const colors = formattedData.map(series => series.color || theme.gray200);
+  const colors = formattedData.map(series => series.color);
   const blankStats = !formattedData.length;
 
   return (
