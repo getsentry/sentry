@@ -1,5 +1,6 @@
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
+import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import IssueListOverviewFc from 'sentry/views/issueList/overviewFc';
 
@@ -11,8 +12,16 @@ export function OverviewWrapper(props: OverviewWrapperProps) {
   const organization = useOrganization();
 
   if (organization.features.includes('issue-stream-functional-refactor')) {
-    return <IssueListOverviewFc {...props} />;
+    return (
+      <IssueListContainer>
+        <IssueListOverviewFc {...props} />
+      </IssueListContainer>
+    );
   }
 
-  return <IssueListOverview {...props} />;
+  return (
+    <IssueListContainer>
+      <IssueListOverview {...props} />
+    </IssueListContainer>
+  );
 }
