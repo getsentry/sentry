@@ -24,7 +24,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_current_batch_groups_from_postgres,
     get_data_from_snuba,
     get_events_from_nodestore,
-    get_project_for_batch,
+    get_next_project_from_cohort,
     initialize_backfill,
     send_group_and_stacktrace_to_seer,
     send_group_and_stacktrace_to_seer_multithreaded,
@@ -368,7 +368,7 @@ def call_next_backfill(
 
         cohort_projects = cohort
 
-        batch_project_id, last_processed_project_index = get_project_for_batch(
+        batch_project_id, last_processed_project_index = get_next_project_from_cohort(
             last_processed_project_index, cohort_projects
         )
 
