@@ -2966,7 +2966,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
-        assert data_packet_list[0].query_id == self.sub.id
+        assert data_packet_list[0].query_id == str(self.sub.id)
         assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
 
 
