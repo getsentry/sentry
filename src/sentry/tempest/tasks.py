@@ -227,6 +227,14 @@ def fetch_items_from_tempest(
         "attach_screenshot": attach_screenshot,
     }
 
+    logger.info(
+        "Tempest API request",
+        extra={
+            "payload": payload,
+            "endpoint": "/crashes",
+        },
+    )
+
     response = requests.post(
         url=settings.SENTRY_TEMPEST_URL + "/crashes",
         headers={"Content-Type": "application/json"},
