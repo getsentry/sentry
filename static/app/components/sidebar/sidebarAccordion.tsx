@@ -62,7 +62,7 @@ function SidebarAccordion({
   const isActive = isItemActive(itemProps);
   const hasMainLink = Boolean(itemProps.to);
 
-  const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
+  const childSidebarItems = findChildElementsInTree(children, SidebarItem.displayName);
 
   const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
@@ -205,7 +205,7 @@ function findChildElementsInTree(
       typeof child.type === 'string'
         ? child.type
         : 'displayName' in child.type
-          ? (child.type.displayName as string) // `.displayName` is added by `babel-plugin-add-react-displayname` in production builds
+          ? (child.type.displayName as string) // `.displayName` is added manually
           : child.type.name; // `.name` is available in development builds
 
     if (currentComponentName === componentName) {
