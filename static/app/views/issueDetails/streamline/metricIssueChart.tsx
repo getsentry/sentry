@@ -1,7 +1,8 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, lazy, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
+import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -11,7 +12,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import MetricChart from 'sentry/views/alerts/rules/metric/details/metricChart';
 import {
   getFilter,
   getPeriodInterval,
@@ -24,6 +24,10 @@ import {
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
+
+const MetricChart = lazy(
+  () => import('sentry/views/alerts/rules/metric/details/metricChart')
+);
 
 export function MetricIssueChart({
   event,
@@ -96,7 +100,8 @@ export function MetricIssueChart({
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
 
   return (
-    <MetricChart
+    <LazyLoad
+      LazyComponent={MetricChart}
       api={api}
       rule={rule}
       timePeriod={timePeriod}
