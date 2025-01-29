@@ -1192,7 +1192,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
-        # Run every 5 minute
+        # Run every minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
