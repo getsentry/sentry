@@ -908,6 +908,33 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.thresholds).toBeUndefined();
     });
+
+    it('resets the legend alias when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.LINE,
+            legendAlias: ['test'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendAlias).toEqual(['test']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.legendAlias).toEqual([]);
+    });
   });
 
   describe('fields', () => {
