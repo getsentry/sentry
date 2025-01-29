@@ -117,8 +117,40 @@ MetricUnit = Literal[
     "terabyte",
     "petabyte",
     "exabyte",
+    "ratio",
     "none",
 ]
+
+
+def is_metric_unit(s: str) -> TypeIs[MetricUnit]:
+    return s in {
+        "nanosecond",
+        "microsecond",
+        "millisecond",
+        "second",
+        "minute",
+        "hour",
+        "day",
+        "week",
+        "bit",
+        "byte",
+        "kibibyte",
+        "mebibyte",
+        "gibibyte",
+        "tebibyte",
+        "pebibyte",
+        "exbibyte",
+        "kilobyte",
+        "megabyte",
+        "gigabyte",
+        "terabyte",
+        "petabyte",
+        "exabyte",
+        "ratio",
+        "none",
+    }
+
+
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal[
     "counter",
