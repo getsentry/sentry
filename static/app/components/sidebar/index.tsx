@@ -51,6 +51,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {
   AI_LANDING_SUB_PATH,
@@ -72,7 +73,10 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {
+  getPerformanceBaseUrl,
+  platformToDomainView,
+} from 'sentry/views/performance/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -134,6 +138,8 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
+  const {selection} = usePageFilters();
+  const {projects: projectList} = useProjects();
   const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -288,6 +294,12 @@ function Sidebar() {
     </Feature>
   );
 
+  const hasPerfLandingRemovalFlag = organization?.features.includes(
+    'insights-performance-landing-removal'
+  );
+  const view = hasPerfLandingRemovalFlag
+    ? platformToDomainView(projectList, selection.projects)
+    : undefined;
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
@@ -302,7 +314,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={`${getPerformanceBaseUrl(organization.slug)}/`}
+        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
         id="performance"
       />
     </Feature>

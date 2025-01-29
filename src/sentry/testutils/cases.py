@@ -2329,6 +2329,43 @@ class ReplaysSnubaTestCase(TestCase):
         return transform_event_for_linking_payload(replay_id, event)
 
 
+@pytest.mark.snuba
+@requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
+class UptimeCheckSnubaTestCase(TestCase):
+    def store_uptime_check(self, uptime_check):
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+        )
+        assert response.status_code == 200
+
+    def store_snuba_uptime_check(self, subscription_id: str | None, check_status: str):
+        scheduled_time = datetime.now() - timedelta(minutes=5)
+        timestamp = scheduled_time + timedelta(seconds=1)
+        http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
+
+        self.store_uptime_check(
+            {
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "retention_days": 30,
+                "region": f"region_{random.randint(1, 3)}",
+                "environment": "production",
+                "subscription_id": subscription_id,
+                "guid": str(uuid.uuid4()),
+                "scheduled_check_time_ms": int(scheduled_time.timestamp() * 1000),
+                "actual_check_time_ms": int(timestamp.timestamp() * 1000),
+                "duration_ms": random.randint(1, 1000),
+                "status": check_status,
+                "status_reason": None,
+                "trace_id": str(uuid.uuid4()),
+                "request_info": {
+                    "status_code": http_status,
+                },
+            }
+        )
+
+
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):

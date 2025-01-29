@@ -11,11 +11,11 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
-    Repo,
     create_code_mapping,
 )
 from sentry.models.organization import Organization
@@ -116,7 +116,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         code_mapping = CodeMapping(
             stacktrace_root=stack_root,
             source_path=source_root,
-            repo=Repo(name=repo_name, branch=branch),
+            repo=RepoAndBranch(name=repo_name, branch=branch),
         )
         new_code_mapping = create_code_mapping(organization_integration, project, code_mapping)
         return self.respond(
