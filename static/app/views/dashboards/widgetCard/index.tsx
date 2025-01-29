@@ -407,10 +407,10 @@ function useTimeRangeWarning(props: {widget: Widget}) {
   }
 
   if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
-    // This message applies if the user has selected a time range >30d because we can't guarantee
-    // the query will successfully run for a time range >30d at this time.
+    // This message applies if the user has selected a time range >30d because we truncate the
+    // snuba response to 30 days to reduce load on the system.
     return t(
-      "Spans-based widgets can only visualize the last 30d of data currently. We're working on ramping this up."
+      "Spans-based widgets have been truncated to 30 days of data. We're working on ramping this up."
     );
   }
 
