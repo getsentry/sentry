@@ -20,7 +20,6 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
-    COMPARISON_INTERVALS,
     DEFAULT_COMPARISON_INTERVAL,
     BaseEventFrequencyCondition,
     ComparisonType,
@@ -28,6 +27,8 @@ from sentry.rules.conditions.event_frequency import (
     percent_increase,
 )
 from sentry.rules.processing.buffer_processing import (
+    COMPARISON_INTERVALS_VALUES,
+    EVENT_LIMIT,
     BufferHashKeys,
     DelayedProcessingBase,
     FilterKeys,
@@ -49,8 +50,6 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
-EVENT_LIMIT = 100
-COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
 
 class UniqueConditionQuery(NamedTuple):

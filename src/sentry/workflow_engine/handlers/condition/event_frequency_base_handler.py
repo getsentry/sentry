@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, Self, TypedDict
 
 from django.db.models import QuerySet
 
@@ -23,6 +23,12 @@ class _QSTypedDict(TypedDict):
 
 
 class BaseEventFrequencyConditionHandler(ABC):
+    @property
+    @abstractmethod
+    def base_handler(self) -> type[Self]:
+        # frequency and percent conditions can share the same base handler to query Snuba
+        raise NotImplementedError
+
     @property
     @abstractmethod
     def intervals(self) -> dict[str, tuple[str, timedelta]]:

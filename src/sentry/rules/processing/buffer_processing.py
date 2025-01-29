@@ -9,13 +9,21 @@ from typing import ClassVar
 
 from celery import Task
 
-from sentry import buffer, options
+from sentry import buffer, nodestore, options
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.db import models
+from sentry.eventstore.models import Event
+from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
+from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import metrics
+from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
 logger = logging.getLogger("sentry.delayed_processing")
+
+EVENT_LIMIT = 100
+COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
 
 @dataclass
@@ -47,6 +55,27 @@ class DelayedProcessingBase(ABC):
 
 
 delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
+
+
+def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
+    node_id_to_event_id = {
+        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
+    }
+    node_ids = list(node_id_to_event_id.keys())
+    fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+
+    bulk_data = {}
+    for node_id_chunk in chunked(node_ids, EVENT_LIMIT):
+        bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        bulk_data.update(bulk_results)
+
+    return {
+        node_id_to_event_id[node_id]: Event(
+            event_id=node_id_to_event_id[node_id], project_id=project_id, data=data
+        )
+        for node_id, data in bulk_data.items()
+        if data is not None
+    }
 
 
 def fetch_alertgroup_to_event_data(
