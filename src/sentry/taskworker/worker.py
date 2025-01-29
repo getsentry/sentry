@@ -336,11 +336,19 @@ class TaskWorker:
             if not self._child_tasks.full():
                 fetch_next = FetchNextTask(namespace=self._namespace)
 
-            next_task = self.client.update_task(
-                task_id=result.task_id,
-                status=result.status,
-                fetch_next_task=fetch_next,
-            )
+            try:
+                next_task = self.client.update_task(
+                    task_id=result.task_id,
+                    status=result.status,
+                    fetch_next_task=fetch_next,
+                )
+            except grpc.RpcError as e:
+                logger.exception(
+                    "taskworker.drain_result.update_task_failed",
+                    extra={"task_id": result.task_id, "error": e},
+                )
+                return False
+
             if next_task:
                 try:
                     self._child_tasks.put(next_task, block=False)
