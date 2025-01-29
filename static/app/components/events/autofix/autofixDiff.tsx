@@ -25,8 +25,6 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
-  previousDefaultStepIndex?: number;
-  previousInsightCount?: number;
   repoId?: string;
 };
 
@@ -564,15 +562,7 @@ function FileDiff({
   );
 }
 
-export function AutofixDiff({
-  diff,
-  groupId,
-  runId,
-  repoId,
-  editable,
-  previousDefaultStepIndex,
-  previousInsightCount,
-}: AutofixDiffProps) {
+export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
   }
@@ -587,8 +577,6 @@ export function AutofixDiff({
           runId={runId}
           repoId={repoId}
           editable={editable}
-          previousDefaultStepIndex={previousDefaultStepIndex}
-          previousInsightCount={previousInsightCount}
         />
       ))}
     </DiffsColumn>
@@ -722,21 +710,17 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
   background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.background};
-  color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.textColor)};
+    p.isHovered ? p.theme.button.default.background : p.theme.translucentGray100};
+  color: ${p =>
+    p.isHovered ? p.theme.button.default.color : p.theme.translucentGray200};
   transition:
     background-color 0.2s ease-in-out,
     color 0.2s ease-in-out;
-
-  &:hover {
-    background-color: ${p => p.theme.pink400}10;
-    color: ${p => p.theme.pink400};
-  }
 `;
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: ${space(2)};
+  bottom: 11rem;
   right: ${space(2)};
   left: calc(50% + ${space(2)});
   background: ${p => p.theme.backgroundElevated};
