@@ -18,7 +18,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.subscription_id = str(uuid.uuid4())
+        self.subscription_id = uuid.uuid4().hex
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
