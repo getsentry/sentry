@@ -44,7 +44,7 @@ interface BaseField {
   choices?:
     | ((props: {[key: string]: any}) => void)
     | ReadonlyArray<Readonly<[number | string, React.ReactNode]>>;
-  confirm?: {[key: string]: React.ReactNode};
+  confirm?: {[key: string]: React.ReactNode | boolean};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);
@@ -62,7 +62,6 @@ interface BaseField {
   hideLabel?: boolean;
   // TODO(ts): FormField prop?
   inline?: boolean;
-  isDangerous?: boolean;
   label?: React.ReactNode | (() => React.ReactNode);
   /**
    * May be used to give the field an aria-label when the field's label is a
