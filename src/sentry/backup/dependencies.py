@@ -28,10 +28,10 @@ from sentry.utils import json
 # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
 DELETED_FIELDS: dict[str, set[str]] = {
-    # These fields were removed in 2023 but we need them to support exports from older sentry versions.
-    "sentry.team": {"actor"},
+    # These fields were removed in 2024 but we need them to support exports from older sentry versions.
+    "sentry.team": {"actor", "org_role"},
     "sentry.rule": {"owner"},
-    "sentry.alertrule": {"owner"},
+    "sentry.alertrule": {"owner", "include_all_projects"},
     "sentry.grouphistory": {"actor"},
 }
 
