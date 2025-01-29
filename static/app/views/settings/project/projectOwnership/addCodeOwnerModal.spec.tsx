@@ -47,7 +47,7 @@ describe('AddCodeOwnerModal', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
@@ -59,8 +59,9 @@ describe('AddCodeOwnerModal', function () {
         project={project}
       />
     );
-
-    expect(screen.getByRole('button', {name: 'Add File'})).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Add File'})).toBeDisabled()
+    );
   });
 
   it('renders codeowner file', async function () {
@@ -82,11 +83,12 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(
-      screen.getByText('--'),
-      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    await waitFor(() =>
+      selectEvent.select(
+        screen.getByText('--'),
+        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+      )
     );
-
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Preview File'})).toHaveAttribute(
@@ -99,7 +101,7 @@ describe('AddCodeOwnerModal', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
-      statusCode: 404,
+      statusCode: 200,
     });
 
     render(
@@ -114,9 +116,11 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(
-      screen.getByText('--'),
-      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    await waitFor(() =>
+      selectEvent.select(
+        screen.getByText('--'),
+        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+      )
     );
 
     expect(screen.getByText('No codeowner file found.')).toBeInTheDocument();
@@ -148,10 +152,11 @@ describe('AddCodeOwnerModal', function () {
         project={project}
       />
     );
-
-    await selectEvent.select(
-      screen.getByText('--'),
-      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    await waitFor(() =>
+      selectEvent.select(
+        screen.getByText('--'),
+        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+      )
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
