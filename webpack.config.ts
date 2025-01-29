@@ -417,6 +417,12 @@ const appConfig: webpack.Configuration = {
     }),
   ],
 
+  resolveLoader: {
+    alias: {
+      'type-loader': path.resolve(__dirname, 'static/app/views/stories/type-loader.ts'),
+    },
+  },
+
   resolve: {
     alias: {
       sentry: path.join(staticPrefix, 'app'),
