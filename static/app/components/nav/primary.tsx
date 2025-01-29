@@ -8,10 +8,9 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
 import {
-  isNavItemActive,
+  isLinkActive,
   makeLinkPropsFromTo,
   type NavSidebarItem,
-  resolveNavItemTo,
 } from 'sentry/components/nav/utils';
 import {
   IconDashboard,
@@ -48,12 +47,8 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 }
 
 function SidebarItem({item}: SidebarItemProps) {
-  const to = resolveNavItemTo(item);
-  const SidebarChild = to ? SidebarLink : SidebarMenu;
+  const SidebarChild = item.to ? SidebarLink : SidebarMenu;
   const organization = useOrganization();
-
-  const FeatureGuard = item.feature ? Feature : Fragment;
-  const featureGuardProps: any = item.feature ?? {};
 
   const recordAnalytics = useCallback(
     () =>
@@ -62,14 +57,12 @@ function SidebarItem({item}: SidebarItemProps) {
   );
 
   return (
-    <FeatureGuard {...featureGuardProps}>
-      <SidebarItemWrapper>
-        <SidebarChild item={item} key={item.label} onClick={recordAnalytics}>
-          {item.icon}
-          <span>{item.label}</span>
-        </SidebarChild>
-      </SidebarItemWrapper>
-    </FeatureGuard>
+    <SidebarItemWrapper>
+      <SidebarChild item={item} key={item.label} onClick={recordAnalytics}>
+        {item.icon}
+        <span>{item.label}</span>
+      </SidebarChild>
+    </SidebarItemWrapper>
   );
 }
 
@@ -103,14 +96,14 @@ function SidebarMenu({item, children, onClick}: SidebarItemProps) {
 
 function SidebarLink({children, item, onClick}: SidebarItemProps) {
   const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const to = resolveNavItemTo(item);
-  if (!to) {
+  if (!item.to) {
     throw new Error(
       `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
     );
   }
-  const linkProps = makeLinkPropsFromTo(to);
+
+  const isActive = isLinkActive(item.to, location.pathname);
+  const linkProps = makeLinkPropsFromTo(item.to);
 
   return (
     <NavLink
