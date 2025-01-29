@@ -367,7 +367,7 @@ export function getOnboardingTasks({
 export function getMergedTasks({organization, projects, onboardingContext}: Options) {
   const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
   const serverTasks = isDemoModeEnabled()
-    ? getDemoWalkthroughTasks(organization)
+    ? getDemoWalkthroughTasks()
     : organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
