@@ -82,6 +82,7 @@ export enum DataCategory {
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
   PROFILE_CHUNKS = 'profileChunks',
+  UPTIME = 'uptime',
 }
 
 /**
@@ -103,6 +104,7 @@ export enum DataCategoryExact {
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
+  UPTIME = 'uptime',
 }
 
 export interface DataCategoryInfo {
