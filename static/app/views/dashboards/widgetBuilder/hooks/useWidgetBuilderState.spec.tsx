@@ -1170,6 +1170,32 @@ describe('useWidgetBuilderState', () => {
       // The y-axis takes priority
       expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
     });
+
+    it('ensures that default sort is not an equation', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['equation|count()+1', 'count()'],
+          },
+        })
+      );
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'browser.name', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+    });
   });
 
   describe('yAxis', () => {
