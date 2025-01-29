@@ -40,6 +40,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
+  isAllowedSelection: boolean;
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
@@ -64,6 +65,7 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
+  isAllowedSelection,
   query,
   timeseriesResult,
 }: ExploreChartsProps) {
@@ -74,6 +76,7 @@ export function ExploreCharts({
 
   const extrapolationMetaResults = useExtrapolationMeta({
     dataset,
+    isAllowedSelection,
     query,
   });
 
@@ -268,9 +271,11 @@ export function ExploreCharts({
 
 export function useExtrapolationMeta({
   dataset,
+  isAllowedSelection,
   query,
 }: {
   dataset: DiscoverDatasets;
+  isAllowedSelection: boolean;
   query: string;
 }) {
   const {selection} = usePageFilters();
@@ -299,7 +304,7 @@ export function useExtrapolationMeta({
     eventView: extrapolationMetaEventView,
     initialData: [],
     referrer: 'api.explore.spans-extrapolation-meta',
-    enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    enabled: isAllowedSelection && dataset === DiscoverDatasets.SPANS_EAP_RPC,
     trackResponseAnalytics: false,
   });
 }
