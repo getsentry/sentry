@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -133,15 +133,8 @@ def get_trees_for_org(
     installation: IntegrationInstallation, org: Organization, extra: dict[str, Any]
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
-    get_trees_method = None
-    if options.get("github-app.get-trees-refactored-code") and hasattr(
-        installation, "get_trees_for_org"
-    ):
-        get_trees_method = installation.get_trees_for_org
-    elif hasattr(installation, "get_trees_for_org_old"):
-        get_trees_method = installation.get_trees_for_org_old
-
-    if not get_trees_method:
+    if not hasattr(installation, "get_trees_for_org"):
+        # XXX: We should not get to this point, thus, report it as an error
         logger.error(
             "Installation does not have required method get_trees_for_org",
             extra={"installation_type": type(installation).__name__, **extra},
@@ -156,7 +149,7 @@ def get_trees_for_org(
     ).capture() as lifecycle:
         try:
             with lock.acquire():
-                trees = get_trees_method()
+                trees = installation.get_trees_for_org()
                 if not trees:
                     lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
         except ApiError as error:

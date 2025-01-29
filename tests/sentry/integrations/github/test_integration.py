@@ -977,7 +977,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
 
