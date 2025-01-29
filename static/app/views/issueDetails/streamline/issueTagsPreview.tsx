@@ -26,7 +26,7 @@ import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroup
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {HIGHLIGHT_TAGS, usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
+import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -40,6 +40,8 @@ const BACKEND_TAGS = [
 ];
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 const RTL_TAGS = ['transaction', 'url'];
+
+const HIGHLIGHT_TAGS = ['handled', 'level', 'mobile', 'main_thread', 'url'];
 
 type Segment = {
   count: number;

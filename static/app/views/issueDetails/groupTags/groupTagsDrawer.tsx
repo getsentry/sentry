@@ -34,7 +34,7 @@ import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistributi
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {HIGHLIGHT_TAGS, useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function GroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
@@ -74,8 +74,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
   });
 
   const highlightTagKeys = useMemo(() => {
-    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-    return tagKeys.filter(tag => !HIGHLIGHT_TAGS.includes(tag));
+    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
   }, [detailedProject, project]);
 
   const tagValues = useMemo(
