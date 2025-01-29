@@ -573,7 +573,14 @@ function IssueListOverview({router}: Props) {
           }
           GroupStore.add(data);
 
-          await fetchStats(data.map((group: BaseGroup) => group.id));
+          if (data.length === 0) {
+            trackAnalytics('issue_search.empty', {
+              organization,
+              search_type: 'issues',
+              search_source: 'main_search',
+              query,
+            });
+          }
 
           const hits = resp.getResponseHeader('X-Hits');
           const newQueryCount =
@@ -583,29 +590,22 @@ function IssueListOverview({router}: Props) {
             typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
           const newPageLinks = resp.getResponseHeader('Link');
 
-          fetchCounts(newQueryCount, fetchAllCounts);
-
           setError(null);
           setIssuesLoading(false);
           setQueryCount(newQueryCount);
           setQueryMaxCount(newQueryMaxCount);
           setPageLinks(newPageLinks !== null ? newPageLinks : '');
 
+          fetchCounts(newQueryCount, fetchAllCounts);
+
+          // Need to wait for stats request to finish before saving to cache
+          await fetchStats(data.map((group: BaseGroup) => group.id));
           IssueListCacheStore.save(requestParams, {
             groups: GroupStore.getState() as Group[],
             queryCount: newQueryCount,
             queryMaxCount: newQueryMaxCount,
             pageLinks: newPageLinks ?? '',
           });
-
-          if (data.length === 0) {
-            trackAnalytics('issue_search.empty', {
-              organization,
-              search_type: 'issues',
-              search_source: 'main_search',
-              query,
-            });
-          }
         },
         error: err => {
           trackAnalytics('issue_search.failed', {
