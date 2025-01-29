@@ -57,6 +57,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     },
   });
   const [search, setSearch] = useState('');
+
   const {
     data = [],
     isPending,
