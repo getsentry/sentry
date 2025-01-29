@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -43,17 +42,14 @@ import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
 import type {TimePeriodType} from './constants';
-import {
-  API_INTERVAL_POINTS_LIMIT,
-  SELECTOR_RELATIVE_PERIODS,
-  TIME_WINDOWS,
-} from './constants';
+import {SELECTOR_RELATIVE_PERIODS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
+import {getFilter, getPeriodInterval} from './utils';
 
-interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
+export interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   api: Client;
   location: Location;
   organization: Organization;
@@ -63,39 +59,6 @@ interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   project?: Project;
   rule?: MetricRule;
   selectedIncident?: Incident | null;
-}
-
-export function getPeriodInterval(timePeriod: TimePeriodType, rule: MetricRule) {
-  const startDate = moment.utc(timePeriod.start);
-  const endDate = moment.utc(timePeriod.end);
-  const timeWindow = rule?.timeWindow;
-  const startEndDifferenceMs = endDate.diff(startDate);
-
-  if (
-    timeWindow &&
-    (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
-      // Special case 7 days * 1m interval over the api limit
-      startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
-  ) {
-    return `${timeWindow}m`;
-  }
-
-  return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
-}
-
-export function getFilter(rule: MetricRule): string[] | null {
-  const {aggregate, dataset, query} = rule;
-
-  if (
-    isCrashFreeAlert(dataset) ||
-    isCustomMetricAlert(aggregate) ||
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-  ) {
-    return query.trim().split(' ');
-  }
-
-  const eventType = extractEventTypeFilterFromRule(rule);
-  return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
 }
 
 export default function MetricDetailsBody({

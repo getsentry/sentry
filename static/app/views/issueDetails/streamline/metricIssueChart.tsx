@@ -10,12 +10,12 @@ import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import MetricChart from 'sentry/views/alerts/rules/metric/details/metricChart';
 import {
   getFilter,
   getPeriodInterval,
-} from 'sentry/views/alerts/rules/metric/details/body';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import MetricChart from 'sentry/views/alerts/rules/metric/details/metricChart';
+} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
   Dataset,
   type MetricRule,
