@@ -8,7 +8,9 @@ import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('Button', story => {
-  story('Default', () => <Button>Default Button</Button>);
+  story('Default', () => {
+    return <Button>Default Button</Button>;
+  });
 
   story('onClick', () => {
     const [clickCount, setClickCount] = useState(0);

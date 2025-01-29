@@ -6,15 +6,40 @@ import type {LoaderContext} from 'webpack';
  *
  * @param {LoaderContext<any>} this loader context
  * @param {string} source source file as string
- * @returns {docgen.ComponentDoc}
+ * @returns {void}
  */
 export default function typeloader(this: LoaderContext<any>, _source: string) {
   const callback = this.async();
-  const entries = docgen.parse(this.resourcePath, {});
+  const entries = docgen.parse(this.resourcePath, {
+    shouldExtractLiteralValuesFromEnum: true,
+    // componentNameResolver?: ComponentNameResolver;
+    // shouldRemoveUndefinedFromOptional?: boolean;
+    shouldExtractValuesFromUnion: true,
+    savePropValueAsString: true,
+    shouldRemoveUndefinedFromOptional: true,
+    skipChildrenPropWithoutDoc: false, // ensure props.children are included in the types
+    // savePropValueAsString?: boolean;
+    // shouldIncludePropTagMap?: boolean;
+    // shouldIncludeExpression: true, // enabling this causes circular expression errors when attempting to serialize to JSON
+    // customComponentTypes?: string[];
+  });
 
   if (!entries) {
     return callback(null, 'export default {}');
   }
 
-  return callback(null, `export default ${JSON.stringify(entries)}`);
+  const typeIndex: Record<string, TypeLoader.ComponentDocWithFilename> = entries.reduce(
+    (acc, entry) => {
+      if (entry.displayName && typeof entry.displayName === 'string') {
+        acc[entry.displayName] = {
+          ...entry,
+          filename: this.resourcePath,
+        };
+      }
+      return acc;
+    },
+    {} as Record<string, TypeLoader.ComponentDocWithFilename>
+  );
+
+  return callback(null, `export default ${JSON.stringify(typeIndex)}`);
 }
