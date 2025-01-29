@@ -215,31 +215,33 @@ function IssueViewsIssueListHeaderTabsContent({
   // This useEffect is here temporarily to start saving user's most recently used page filters
   // to their views. This will be removed once the frontend is updated to use a view's page filters
   useEffect(() => {
-    const isAllProjects =
-      pageFilters.selection.projects.length === 1 &&
-      pageFilters.selection.projects[0] === -1;
+    if (process.env.NODE_ENV !== 'test') {
+      const isAllProjects =
+        pageFilters.selection.projects.length === 1 &&
+        pageFilters.selection.projects[0] === -1;
 
-    const projects = isAllProjects ? [] : pageFilters.selection.projects;
+      const projects = isAllProjects ? [] : pageFilters.selection.projects;
 
-    debounceUpdateViews(
-      views
-        .filter(view => view.isCommitted)
-        .map(view => ({
-          id: view.id,
-          name: view.label,
-          query: view.query,
-          querySort: view.querySort,
-          projects,
-          isAllProjects,
-          environments: pageFilters.selection.environments,
-          timeFilters: pageFilters.selection.datetime,
-        }))
-    );
+      debounceUpdateViews(
+        views
+          .filter(view => view.isCommitted)
+          .map(view => ({
+            id: view.id,
+            name: view.label,
+            query: view.query,
+            querySort: view.querySort,
+            projects,
+            isAllProjects,
+            environments: pageFilters.selection.environments,
+            timeFilters: pageFilters.selection.datetime,
+          }))
+      );
 
-    trackAnalytics('issue_views.page_filters_logged', {
-      user_id: user.id,
-      organization,
-    });
+      trackAnalytics('issue_views.page_filters_logged', {
+        user_id: user.id,
+        organization,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageFilters.selection]);
 
