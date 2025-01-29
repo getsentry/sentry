@@ -39,7 +39,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(self.project_uptime_subscription.id)],
+            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -64,7 +64,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(uuid.uuid4())],
+            projectUptimeSubscriptionId=[str(uuid.uuid4())],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -77,7 +77,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[],
+            projectUptimeSubscriptionId=[],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -91,7 +91,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(self.project_uptime_subscription.id)],
+            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1h",
@@ -105,7 +105,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(uuid.uuid4()) for _ in range(101)],
+            projectUptimeSubscriptionId=[str(uuid.uuid4()) for _ in range(101)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1h",
