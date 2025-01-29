@@ -28,9 +28,11 @@ export default function Stories() {
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate({query: {query: e.target.value, name: location.query.name}});
+      navigate({
+        query: {...location.query, query: e.target.value, name: location.query.name},
+      });
     },
-    [location.query.name, navigate]
+    [location.query, navigate]
   );
 
   useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
@@ -254,7 +256,7 @@ export class StoryTreeNode {
       yield {node, path};
 
       for (const child of Object.values(node.children)) {
-        yield* recurse(child, [...path, node]);
+        yield* recurse(child, path.concat(node));
       }
     }
 
