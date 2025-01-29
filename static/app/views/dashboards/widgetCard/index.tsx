@@ -406,19 +406,11 @@ function useTimeRangeWarning(props: {widget: Widget}) {
     return null;
   }
 
-  if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 60) {
-    // We have applied a 60d truncation to requests to the spans dataset >60d
-    // due to load on the system.
-    return t(
-      "Spans-based widgets have been truncated to 60 days of data. We're working on ramping this up."
-    );
-  }
-
   if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
-    // This message applies if the user has selected a time range >30d because we can't guarantee
-    // the query will successfully run for a time range >30d at this time.
+    // This message applies if the user has selected a time range >30d because we truncate the
+    // snuba response to 30 days to reduce load on the system.
     return t(
-      "Spans-based widgets can only reliably visualize the last 30d of data at the moment. We're working on ramping this up."
+      "Spans-based widgets have been truncated to 30 days of data. We're working on ramping this up."
     );
   }
 
