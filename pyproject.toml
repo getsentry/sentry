@@ -217,7 +217,6 @@ module = [
     "sentry.shared_integrations.client.proxy",
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
-    "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.query_builder",
     "sentry.snuba.spans_metrics",
     "sentry.tasks.auth",
