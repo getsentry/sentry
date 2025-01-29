@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
     name="sentry.tempest.tasks.poll_tempest",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=4 * 60,
-    time_limit=4 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -34,8 +34,8 @@ def poll_tempest(**kwargs):
     name="sentry.tempest.tasks.fetch_latest_item_id",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=1 * 60,
-    time_limit=1 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def fetch_latest_item_id(credentials_id: int) -> None:
     # FIXME: Try catch this later
@@ -120,8 +120,8 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     name="sentry.tempest.tasks.poll_tempest_crashes",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=4 * 60,
-    time_limit=4 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def poll_tempest_crashes(credentials_id: int) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
@@ -212,9 +212,9 @@ def fetch_items_from_tempest(
     client_secret: str,
     dsn: str,
     offset: int,
-    limit: int = 348,
+    limit: int = 10,
     attach_screenshot: bool = False,
-    time_out: int = 235,
+    time_out: int = 50,  # Since there is a timeout of 45s in the middleware anyways
 ) -> Response:
     payload = {
         "org_id": org_id,
