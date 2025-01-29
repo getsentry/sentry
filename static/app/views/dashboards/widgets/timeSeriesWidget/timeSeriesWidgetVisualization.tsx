@@ -41,6 +41,7 @@ import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
 import {ReleaseSeries} from './releaseSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
+import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 type VisualizationType = 'area' | 'line' | 'bar';
@@ -317,19 +318,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
-
-export const FALLBACK_TYPE = 'number';
-
-const FALLBACK_UNIT_FOR_FIELD_TYPE = {
-  number: null,
-  integer: null,
-  date: null,
-  duration: DurationUnit.MILLISECOND,
-  percentage: null,
-  string: null,
-  size: SizeUnit.BYTE,
-  rate: RateUnit.PER_SECOND,
-} satisfies Record<AggregationOutputType, DurationUnit | SizeUnit | RateUnit | null>;
 
 const SeriesConstructors: Record<VisualizationType, SeriesConstructor> = {
   area: AreaChartWidgetSeries,

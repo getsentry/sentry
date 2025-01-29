@@ -18,7 +18,7 @@ import {
 } from '../common/typePredicates';
 import type {TimeseriesData} from '../common/types';
 
-import {FALLBACK_TYPE} from './timeSeriesWidgetVisualization';
+import {FALLBACK_TYPE} from './settings';
 
 export function scaleTimeSeriesData(
   timeserie: Readonly<TimeseriesData>,
