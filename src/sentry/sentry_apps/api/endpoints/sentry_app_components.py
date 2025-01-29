@@ -88,7 +88,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                             errors.append(str(component.uuid))
                         except (SentryAppSentryError, Exception) as e:
                             logger.info(
-                                "component-preperation-error",
+                                "component-preparation-error",
                                 exc_info=e,
                                 extra={
                                     "component_uuid": component.uuid,
