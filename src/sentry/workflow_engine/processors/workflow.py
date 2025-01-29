@@ -78,10 +78,10 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
 
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(job)
-        if evaluation:
-            if remaining_conditions:
-                workflows_to_enqueue.add(workflow)
-            else:
+        if remaining_conditions:
+            workflows_to_enqueue.add(workflow)
+        else:
+            if evaluation:
                 # Only add workflows that have no remaining conditions to check
                 triggered_workflows.add(workflow)
 
@@ -108,13 +108,13 @@ def evaluate_workflows_action_filters(
     for action_condition in action_conditions:
         evaluation, result, remaining_conditions = evaluate_condition_group(action_condition, job)
 
-        if evaluation:
-            if remaining_conditions:
-                # If there are remaining conditions for the action filter to evaluate,
-                # then return the list of conditions to enqueue
-                enqueued_conditions.extend(remaining_conditions)
-            else:
-                # if we don't have any other conditions to evaluate, add the action to the list
+        if remaining_conditions:
+            # If there are remaining conditions for the action filter to evaluate,
+            # then return the list of conditions to enqueue
+            enqueued_conditions.extend(remaining_conditions)
+        else:
+            # if we don't have any other conditions to evaluate, add the action to the list
+            if evaluation:
                 filtered_action_groups.add(action_condition)
 
     # get the actions for any of the triggered data condition groups
