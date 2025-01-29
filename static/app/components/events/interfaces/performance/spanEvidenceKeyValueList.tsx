@@ -245,7 +245,7 @@ function MainThreadFunctionEvidence({
 
     if (evidenceData.transactionName) {
       const transactionSummaryLocation = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectID: event.projectID,
         transaction: evidenceData.transactionName,
         query: {},
@@ -466,7 +466,7 @@ const makeTransactionNameRow = (
   projectSlug?: string
 ) => {
   const transactionSummaryLocation = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectID: event.projectID,
     transaction: event.title,
     query: {},
