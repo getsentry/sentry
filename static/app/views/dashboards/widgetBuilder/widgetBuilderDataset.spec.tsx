@@ -1,4 +1,3 @@
-import * as qs from 'query-string';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
@@ -929,7 +928,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },
@@ -981,7 +980,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },
@@ -1032,7 +1031,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },

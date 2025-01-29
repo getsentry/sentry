@@ -68,7 +68,12 @@ export function getWidgetEquation(equation: EquationParams): WidgetQuery {
 }
 
 export function encodeWidgetQuery(query: any) {
-  return urlEncode(query);
+  return urlEncode({
+    ...query,
+    aggregates: query.aggregates.join(','),
+    fields: query.fields?.join(','),
+    columns: query.columns.join(','),
+  });
 }
 
 export function getWidgetAsQueryParams(
