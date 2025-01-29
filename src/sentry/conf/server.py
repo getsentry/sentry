@@ -1352,6 +1352,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
+# Schedules for taskworker tasks to be spawned on.
+TASKWORKER_SCHEDULES: dict[str, dict[str, Any]] = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
