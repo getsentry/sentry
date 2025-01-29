@@ -794,7 +794,7 @@ export function getTargetForTransactionSummaryLink(
   }
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(dataRow.transaction),
     projectID,
     query: nextView?.getPageFiltersQuery() || {},
