@@ -48,6 +48,7 @@ class NotificationActionHandler(ActionHandler):
                 detector.type,
                 extra={"detector_id": detector.id, "action_id": action.id},
             )
+            # Maybe metrics here?
 
 
 @group_type_notification_registry.register(ErrorGroupType.slug)

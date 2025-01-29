@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.handlers.action.notification import NotificationActionHandler
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
@@ -53,3 +54,18 @@ class TestNotificationActionHandler(BaseWorkflowTest):
 
         mock_registry_get.assert_called_once_with(MetricIssuePOC.slug)
         mock_handler.assert_called_once_with(self.job, self.action, self.detector)
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.group_type_notification_registry.get",
+        side_effect=NoRegistrationExistsError,
+    )
+    @mock.patch("sentry.workflow_engine.handlers.action.notification.logger")
+    def test_execute_unknown_group_type(self, mock_logger, mock_registry_get):
+        """Test that execute does nothing when detector has no group_type"""
+        NotificationActionHandler.execute(self.job, self.action, self.detector)
+
+        mock_logger.exception.assert_called_once_with(
+            "No notification handler found for detector type: %s",
+            self.detector.type,
+            extra={"detector_id": self.detector.id, "action_id": self.action.id},
+        )
