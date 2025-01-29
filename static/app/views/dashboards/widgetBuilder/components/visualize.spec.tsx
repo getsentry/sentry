@@ -5,16 +5,13 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import * as analyticsModule from 'sentry/utils/analytics';
+import * as useCustomMeasurementsModule from 'sentry/utils/useCustomMeasurements';
+import * as useNavigateModule from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-
-jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
-jest.mock('sentry/utils/useNavigate');
+import * as useSpanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
@@ -25,14 +22,20 @@ describe('Visualize', () => {
       features: ['dashboards-widget-builder-redesign', 'performance-view'],
     });
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
+    jest.spyOn(useCustomMeasurementsModule, 'default').mockReturnValue({
       customMeasurements: {},
     });
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.spyOn(useSpanTagsModule, 'useSpanTags').mockReturnValue({});
 
     mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    jest.spyOn(useNavigateModule, 'useNavigate').mockReturnValue(mockNavigate);
+
+    jest.spyOn(analyticsModule, 'trackAnalytics').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('renders basic aggregates correctly from the URL params', async () => {
@@ -936,30 +939,32 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
-        if (type === 'number') {
+      jest
+        .spyOn(useSpanTagsModule, 'useSpanTags')
+        .mockImplementation((type?: 'string' | 'number') => {
+          if (type === 'number') {
+            return {
+              'span.duration': {
+                key: 'span.duration',
+                name: 'span.duration',
+                kind: 'measurement',
+              },
+              'tags[anotherNumericTag,number]': {
+                key: 'anotherNumericTag',
+                name: 'anotherNumericTag',
+                kind: 'measurement',
+              },
+            } as TagCollection;
+          }
+
           return {
-            'span.duration': {
-              key: 'span.duration',
-              name: 'span.duration',
-              kind: 'measurement',
-            },
-            'tags[anotherNumericTag,number]': {
-              key: 'anotherNumericTag',
-              name: 'anotherNumericTag',
-              kind: 'measurement',
+            'span.description': {
+              key: 'span.description',
+              name: 'span.description',
+              kind: 'tag',
             },
           } as TagCollection;
-        }
-
-        return {
-          'span.description': {
-            key: 'span.description',
-            name: 'span.description',
-            kind: 'tag',
-          },
-        } as TagCollection;
-      });
+        });
     });
 
     it('shows numeric tags as primary options for chart widgets', async () => {
