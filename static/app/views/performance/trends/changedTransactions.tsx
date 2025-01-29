@@ -577,7 +577,7 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
     projectID,

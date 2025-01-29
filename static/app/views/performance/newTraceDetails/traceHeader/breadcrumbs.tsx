@@ -94,11 +94,7 @@ function getPerformanceBreadCrumbs(
   const crumbs: Crumb[] = [];
 
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
-  const transactionSummaryUrl = getTransactionSummaryBaseUrl(
-    organization.slug,
-    view,
-    true
-  );
+  const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
   crumbs.push({
     label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),

@@ -113,7 +113,7 @@ class TransactionDetail extends Component<Props> {
     const {location, organization, transaction} = this.props;
 
     const target = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transaction.transaction,
       query: omit(location.query, Object.values(PAGE_URL_PARAM)),
       projectID: String(transaction.project_id),

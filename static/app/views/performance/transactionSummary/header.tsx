@@ -86,7 +86,7 @@ function TransactionHeader({
       }
 
       const routeQuery = {
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: projectId,
         query: location.query,
@@ -112,7 +112,7 @@ function TransactionHeader({
           return transactionSummaryRouteWithQuery(routeQuery);
       }
     },
-    [location.query, organization.slug, projectId, transactionName, view]
+    [location.query, organization, projectId, transactionName, view]
   );
 
   const onTabChange = useCallback(

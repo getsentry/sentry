@@ -65,7 +65,7 @@ function RelatedTransactions({
       summaryView.query = summaryConditions;
 
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: String(dataRow.transaction) || '',
         query: summaryView.generateQueryStringObject(),
         projectID,

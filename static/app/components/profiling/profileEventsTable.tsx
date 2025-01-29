@@ -238,7 +238,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     if (defined(project)) {
       const linkToSummary = profilesRouteWithQuery({
         query: props.baggage.location.query,
-        orgSlug: props.baggage.organization.slug,
+        organization: props.baggage.organization,
         projectID: project.id,
         transaction: props.dataRow.transaction,
       });

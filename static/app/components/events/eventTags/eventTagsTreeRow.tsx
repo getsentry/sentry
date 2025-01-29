@@ -220,7 +220,7 @@ function EventTagsTreeRowDropdown({
           to:
             originalTag.key === 'transaction'
               ? {
-                  pathname: `${getTransactionSummaryBaseUrl(organization.slug)}/`,
+                  pathname: `${getTransactionSummaryBaseUrl(organization)}/`,
                   query: {
                     project: event.projectID,
                     transaction: content.value,
@@ -297,7 +297,7 @@ function EventTagsTreeValue({
         transaction: content.value,
         referrer,
       });
-      const transactionDestination = `${getTransactionSummaryBaseUrl(organization.slug)}/?${transactionQuery}`;
+      const transactionDestination = `${getTransactionSummaryBaseUrl(organization)}/?${transactionQuery}`;
       tagValue = (
         <TagLinkText>
           <Link to={transactionDestination}>{content.value}</Link>

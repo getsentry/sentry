@@ -211,7 +211,7 @@ function LegacyGeneralInfo(props: GeneralnfoProps) {
           <TraceDrawerComponents.CopyableCardValueWithLink
             value={span.description}
             linkTarget={spanDetailsRouteWithQuery({
-              orgSlug: props.organization.slug,
+              organization: props.organization,
               transaction: props.node.event?.title ?? '',
               query: props.location.query,
               spanSlug: {op: span.op, group: groupHash},

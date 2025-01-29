@@ -78,7 +78,7 @@ function UserStats({
   const orgSlug = organization.slug;
 
   let webVitalsTarget: LocationDescriptor = vitalsRouteWithQuery({
-    orgSlug,
+    organization,
     transaction: transactionName,
     projectID: decodeScalar(location.query.project),
     query: location.query,

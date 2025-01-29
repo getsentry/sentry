@@ -127,7 +127,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
     props.project &&
     props.transaction &&
     transactionSummaryRouteWithQuery({
-      orgSlug: props.organization.slug,
+      organization: props.organization,
       transaction: props.transaction,
       projectID: props.project.id,
       query: {query: props.query},

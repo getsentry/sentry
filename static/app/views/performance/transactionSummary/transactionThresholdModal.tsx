@@ -237,7 +237,7 @@ class TransactionThresholdModal extends Component<Props, State> {
     const summaryView = eventView.clone();
     summaryView.query = summaryView.getQueryWithAdditionalConditions();
     const target = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transactionName,
       query: summaryView.generateQueryStringObject(),
       projectID: project?.id,

@@ -71,7 +71,7 @@ function SpanChild({
         }
 
         const target = transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: transactionResult.transaction,
           query: omit(location.query, Object.values(PAGE_URL_PARAM)),
           projectID: String(childTransaction.value.project_id),

@@ -232,7 +232,7 @@ function SearchBar(props: SearchBarProps) {
     setSearchResults([]);
 
     const next = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction,
       projectID: String(project_id),
       query,

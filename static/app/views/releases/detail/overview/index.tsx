@@ -662,7 +662,7 @@ function generateTransactionLink(
     const {start, end, period} = datetime;
 
     return transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transaction! as string,
       query: {
         query: trendTransaction ? '' : `release:${version}`,

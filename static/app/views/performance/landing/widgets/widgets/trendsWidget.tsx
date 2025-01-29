@@ -165,7 +165,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       });
 
       const transactionTarget = transactionSummaryRouteWithQuery({
-        orgSlug: props.organization.slug,
+        organization: props.organization,
         projectID: getProjectID(listItem, projects),
         transaction: listItem.transaction,
         query: trendsTarget.query,

@@ -565,7 +565,7 @@ function SpanId({
   }, [duration, selfTime, durationColor, selfTimeColor]);
 
   const transactionSummaryTarget = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction,
     query: {
       ...location.query,

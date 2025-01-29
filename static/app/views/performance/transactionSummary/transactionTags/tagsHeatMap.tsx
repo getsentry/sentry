@@ -339,7 +339,7 @@ function TagsHeatMap(
                 }
 
                 const moreEventsTarget = eventsRouteWithQuery({
-                  orgSlug: organization.slug,
+                  organization,
                   transaction: transactionName,
                   projectID: decodeScalar(location.query.project),
                   query: {

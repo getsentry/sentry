@@ -318,7 +318,7 @@ class _TransactionsList extends Component<Props> {
               <LinkButton
                 onClick={handleOpenAllEventsClick}
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   {
                     showTransactions: mapShowTransactionToPercentile(showTransactions),
                     breakdown,

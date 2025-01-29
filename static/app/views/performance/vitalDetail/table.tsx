@@ -163,7 +163,7 @@ class Table extends Component<Props, State> {
       const transaction = String(dataRow.transaction) || '';
 
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction,
         query: summaryView.generateQueryStringObject(),
         projectID,

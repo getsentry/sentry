@@ -56,7 +56,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
     ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
   };
 
-  transactionRoute ??= getTransactionSummaryBaseUrl(organization.slug, view);
+  transactionRoute ??= getTransactionSummaryBaseUrl(organization, view);
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 

@@ -196,7 +196,7 @@ function renderBodyCell(
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     if (column.key === SpanMetricsField.SPAN_OP) {
       const target = spanDetailsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: ''},
@@ -217,7 +217,7 @@ function renderBodyCell(
       }
 
       const target = spanDetailsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: dataRow['span.group']},
