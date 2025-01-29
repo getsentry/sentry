@@ -268,3 +268,69 @@ class TestEvaluateConditionGroupTypeNone(TestCase):
             [],
             [],
         )
+
+
+class TestEvaluateConditionGroupWithSlowConditions(TestCase):
+    def setUp(self):
+        self.data_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL
+        )
+
+        self.data_condition = self.create_data_condition(
+            comparison=5,
+            type=Condition.GREATER,
+            condition_result=True,
+            condition_group=self.data_condition_group,
+        )
+
+        self.data_condition_two = self.create_data_condition(
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 7},
+            condition_result=True,
+            condition_group=self.data_condition_group,
+        )
+
+    def test_basic_remaining_conditions(self):
+        logic_result, condition_results, remaining_conditions = evaluate_condition_group(
+            self.data_condition_group,
+            10,
+            is_fast_check=True,
+        )
+
+        assert logic_result is True
+        assert condition_results == [True]
+        assert remaining_conditions == [self.data_condition_two]
+
+    def test_execute_slow_conditions(self):
+        logic_result, condition_results, remaining_conditions = evaluate_condition_group(
+            self.data_condition_group,
+            {"snuba_results": [10]},
+            is_fast_check=False,
+        )
+
+        assert logic_result is True
+        assert condition_results == [True]
+        assert remaining_conditions == []
+
+    def test_short_circuit_with_all(self):
+        logic_result, condition_results, remaining_conditions = evaluate_condition_group(
+            self.data_condition_group,
+            1,
+            is_fast_check=True,
+        )
+
+        assert logic_result is False
+        assert condition_results == []
+        assert remaining_conditions == []
+
+    def test_short_circuit_with_any(self):
+        self.data_condition_group.update(logic_type=DataConditionGroup.Type.ANY)
+        logic_result, condition_results, remaining_conditions = evaluate_condition_group(
+            self.data_condition_group,
+            10,
+            is_fast_check=True,
+        )
+
+        assert logic_result is True
+        assert condition_results == [True]
+        assert remaining_conditions == []

@@ -90,9 +90,12 @@ def evaluate_condition_group(
         logic_type,
     )
 
-    if not logic_result and logic_type == DataConditionGroup.Type.ALL:
-        # if we have a False result, and we're expecting everything to be True,
-        # then we can short-circuit the remaining conditions - if any.
+    if (not logic_result and logic_type == DataConditionGroup.Type.ALL) or (
+        logic_result and logic_type == DataConditionGroup.Type.ANY
+    ):
+        # if we have a logic type of all and a False result,
+        # or if we have a logic type of any and a True result
+        # then we can short-circuit any remaining conditions since we have a completd logic result
         remaining_conditions = []
 
     return logic_result, condition_results, remaining_conditions
