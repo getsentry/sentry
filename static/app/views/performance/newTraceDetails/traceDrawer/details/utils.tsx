@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -65,7 +66,7 @@ export function getSearchInExploreTarget(
       end,
       statsPeriod,
       query: search.formatString(),
-      project: -1,
+      project: ALL_ACCESS_PROJECTS,
     },
   };
 }

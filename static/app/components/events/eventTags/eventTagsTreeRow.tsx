@@ -24,6 +24,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
@@ -205,6 +206,14 @@ function EventTagsTreeRowDropdown({
             originalTag.value,
             TraceDrawerActionKind.INCLUDE
           ),
+          onAction: () => {
+            traceAnalytics.trackExploreSearch(
+              organization,
+              originalTag.key,
+              originalTag.value,
+              TraceDrawerActionKind.INCLUDE
+            );
+          },
         },
         {
           key: 'copy-value',

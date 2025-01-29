@@ -839,6 +839,14 @@ function KeyValueAction({
         showChevron: false,
         className: 'trigger-button',
       }}
+      onAction={key => {
+        traceAnalytics.trackExploreSearch(
+          organization,
+          rowKey,
+          rowValue.toString(),
+          key as TraceDrawerActionKind
+        );
+      }}
       items={dropdownOptions}
     />
   );
