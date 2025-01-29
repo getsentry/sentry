@@ -24,7 +24,6 @@ import {
   truncationFormatter,
 } from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
-import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
@@ -94,7 +93,7 @@ class ReleasesAdoptionChart extends Component<Props> {
     let releases: string[] | undefined =
       response?.groups.map(group => group.by.release as string) ?? [];
     if (response?.groups && response.groups.length > 50) {
-      releases = response!.groups
+      releases = response.groups
         .sort((a, b) => b.totals['sum(session)']! - a.totals['sum(session)']!)
         .slice(0, 50)
         .map(group => group.by.release as string);
@@ -258,7 +257,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 ? moment(response?.end)
                                 : moment(timestamp).add(
                                     parseInt(periodObj.period!, 10),
-                                    periodObj.periodLength as StatsPeriodType
+                                    periodObj.periodLength
                                   )
                             ).format('MMM D LT');
 

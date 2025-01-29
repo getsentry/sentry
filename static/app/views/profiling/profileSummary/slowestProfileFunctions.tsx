@@ -184,7 +184,7 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
     const target = generateProfileRouteFromProfileReference({
       orgSlug: props.organization.slug,
       projectSlug: props.project?.slug ?? '',
-      frameName: frame.name as string,
+      frameName: frame.name,
       framePackage: frame.package as string,
       reference: example,
     });

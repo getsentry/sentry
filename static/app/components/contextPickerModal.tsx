@@ -461,7 +461,7 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
       projects={[]}
       loading
       organizations={organizations}
-      organization={selectedOrgSlug!}
+      organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={[]}
     />
@@ -498,7 +498,7 @@ function ConfigUrlContainer(
       projects={[]}
       loading={isPending}
       organizations={organizations}
-      organization={selectedOrgSlug!}
+      organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={data}
     />

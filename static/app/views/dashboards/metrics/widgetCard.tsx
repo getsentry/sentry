@@ -111,7 +111,7 @@ export function MetricWidgetCard({
       metricExpressions.some(
         expression =>
           expression.type === MetricExpressionType.QUERY &&
-          parseMRI(expression.mri)!.type === 's'
+          parseMRI(expression.mri).type === 's'
       ),
     [metricExpressions]
   );

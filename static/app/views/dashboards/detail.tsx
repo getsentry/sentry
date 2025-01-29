@@ -812,7 +812,7 @@ class DashboardDetail extends Component<Props, State> {
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
-    const mergedWidget = {...baseWidget, ...widget};
+    const mergedWidget = assignTempId({...baseWidget, ...widget});
 
     const newWidgets = defined(index)
       ? [

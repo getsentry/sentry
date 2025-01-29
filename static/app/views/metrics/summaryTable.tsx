@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import colorFn from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -31,7 +30,7 @@ export const SummaryTable = memo(function SummaryTable({
   onRowClick,
   onColorDotClick,
   onSortChange,
-  sort = DEFAULT_SORT_STATE as SortState,
+  sort = DEFAULT_SORT_STATE,
   onRowHover,
   onRowFilter,
 }: {
@@ -62,15 +61,9 @@ export const SummaryTable = memo(function SummaryTable({
         by: name ?? '(none)',
         order: sort.order,
       });
-      Sentry.metrics.increment('ddm.widget.sort', 1, {
-        tags: {
-          by: name ?? '(none)',
-          order: sort.order,
-        },
-      });
       if (sort.name === name) {
         if (sort.order === 'desc') {
-          onSortChange(DEFAULT_SORT_STATE as SortState);
+          onSortChange(DEFAULT_SORT_STATE);
         } else if (sort.order === 'asc') {
           onSortChange({
             name,

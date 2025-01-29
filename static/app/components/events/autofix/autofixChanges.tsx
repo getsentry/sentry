@@ -200,4 +200,5 @@ const HeaderText = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  margin-right: ${space(2)};
 `;

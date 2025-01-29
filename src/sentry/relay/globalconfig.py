@@ -23,6 +23,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.metric-stats.rollout-rate",
     "relay.span-extraction.sample-rate",
     "relay.span-normalization.allowed_hosts",
+    "relay.drop-transaction-attachments",
 ]
 
 

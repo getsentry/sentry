@@ -31,7 +31,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       builder_version: WidgetBuilderVersion.SLIDEOUT,
       data_set: state.dataset ?? '',
       new_widget: !isEditing,
-      organization: organization.slug,
+      organization,
     });
     const widget = convertBuilderStateToWidget(state);
     setIsSaving(true);
@@ -44,7 +44,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
     }
-  }, [api, onSave, organization.slug, state, widgetIndex, setError, isEditing]);
+  }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 
   return (
     <Button priority="primary" onClick={handleSave} busy={isSaving}>
