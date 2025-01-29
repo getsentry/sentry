@@ -1,5 +1,9 @@
-import { DurationUnit, SizeUnit, RateUnit, type AggregationOutputType } from "sentry/utils/discover/fields";
-
+import {
+  type AggregationOutputType,
+  DurationUnit,
+  RateUnit,
+  SizeUnit,
+} from 'sentry/utils/discover/fields';
 
 export const FALLBACK_TYPE = 'number';
 export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
