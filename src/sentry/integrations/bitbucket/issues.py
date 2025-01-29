@@ -140,10 +140,10 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
-        if exc.json:
+        if isinstance(exc, ApiError) and exc.json:
             if (message := exc.json.get("error", {}).get("message")) in BITBUCKET_HALT_ERROR_CODES:
                 raise IntegrationInstallationConfigurationError(message)
-        return super().raise_error(exc, identity)
+        super().raise_error(exc, identity)
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()
