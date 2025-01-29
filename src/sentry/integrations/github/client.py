@@ -27,6 +27,7 @@ from sentry.integrations.source_code_management.repo_trees import RepoTreesClien
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
+from sentry.options import options
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -341,6 +342,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
+        if not fetch_max_pages:
+            fetch_max_pages = options.get("github-app.fetch-max-pages")
         return self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
