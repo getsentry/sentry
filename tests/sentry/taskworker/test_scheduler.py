@@ -182,6 +182,10 @@ def test_crontabschedule_runtime_after() -> None:
     last_run = datetime(2025, 1, 24, 14, 29, 15, tzinfo=UTC)
     assert schedule.runtime_after(last_run) == datetime(2025, 1, 24, 18, 1, 0, tzinfo=UTC)
 
+    schedule = CrontabSchedule("test", crontab(minute="*/1"))
+    now = timezone.now()
+    assert schedule.runtime_after(now) == datetime(2025, 1, 24, 14, 26, 0, tzinfo=UTC)
+
 
 def test_scheduleset_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)

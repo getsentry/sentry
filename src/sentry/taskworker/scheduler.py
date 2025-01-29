@@ -25,8 +25,7 @@ class ScheduleConfig(TypedDict):
     """The schedule definition for an individual task."""
 
     task: str
-    # TODO(taskworker) Implement crontab schedules
-    schedule: timedelta
+    schedule: timedelta | crontab
 
 
 ScheduleConfigMap = Mapping[str, ScheduleConfig]
@@ -251,7 +250,7 @@ class CrontabSchedule(Schedule):
 
     def runtime_after(self, start: datetime) -> datetime:
         """Get the next time a task should be spawned after `start`"""
-        start = start.replace(second=0, microsecond=0)
+        start = start.replace(second=0, microsecond=0) + timedelta(minutes=1)
         return self._advance(start)
 
 
@@ -289,6 +288,7 @@ class ScheduleEntry:
         return self._schedule.runtime_after(start)
 
     def delay_task(self) -> None:
+        logger.info("taskworker.scheduler.delay_task", extra={"task": self._task.fullname})
         self._task.delay()
 
 
