@@ -1529,7 +1529,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
     def test_jira_action_migration_malformed(self):
-        action_data = [
+        action_data: list[dict[str, Any]] = [
             # Missing required fields
             {
                 "uuid": "12345678-90ab-cdef-0123-456789abcdef",
@@ -1680,7 +1680,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
 
     def test_jira_server_action_migration_malformed(self):
-        action_data = [
+        action_data: list[dict[str, Any]] = [
             # Missing required fields
             {
                 "uuid": "12345678-90ab-cdef-0123-456789abcdef",
