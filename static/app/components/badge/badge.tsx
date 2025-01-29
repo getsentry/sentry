@@ -3,9 +3,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-/**
- * Nice badge bro
- */
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   text?: string | number | null;
   type?: keyof Theme['badge'];
