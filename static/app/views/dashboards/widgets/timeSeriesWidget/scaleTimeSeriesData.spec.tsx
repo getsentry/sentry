@@ -91,4 +91,42 @@ describe('scaleTimeSeriesData', () => {
       },
     });
   });
+
+  it('scales size units from mebibyte to byte', () => {
+    const timeserie: TimeseriesData = {
+      field: 'file.size',
+      data: [
+        {
+          timestamp: '2025-01-01T00:00:00',
+          value: 17,
+        },
+      ],
+      meta: {
+        fields: {
+          'file.size': 'size',
+        },
+        units: {
+          'file.size': 'mebibyte',
+        },
+      },
+    };
+
+    expect(scaleTimeSeriesData(timeserie, SizeUnit.BYTE)).toEqual({
+      field: 'file.size',
+      data: [
+        {
+          timestamp: '2025-01-01T00:00:00',
+          value: 17825792,
+        },
+      ],
+      meta: {
+        fields: {
+          'file.size': 'size',
+        },
+        units: {
+          'file.size': 'byte',
+        },
+      },
+    });
+  });
 });
