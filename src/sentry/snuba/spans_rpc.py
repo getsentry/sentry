@@ -10,12 +10,13 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
-from sentry.search.events.fields import get_function_alias, is_function
-from sentry.search.events.types import SnubaData, SnubaParams
+from sentry.search.events.fields import is_function
+from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
@@ -43,7 +44,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
-):
+) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         query_string,
         selected_columns,
@@ -64,32 +65,36 @@ def get_timeseries_query(
     config: SearchResolverConfig,
     granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
-) -> TimeSeriesRequest:
+) -> tuple[TimeSeriesRequest, list[ResolvedFunction], list[ResolvedColumn]]:
     resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
-    (groupbys, _) = resolver.resolve_columns(groupby)
+    (groupbys, _) = resolver.resolve_attributes(groupby)
     if extra_conditions is not None:
         if query is not None:
             query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
         else:
             query = extra_conditions
 
-    return TimeSeriesRequest(
-        meta=meta,
-        filter=query,
-        aggregations=[
-            agg.proto_definition
-            for agg in aggregations
-            if isinstance(agg.proto_definition, AttributeAggregation)
-        ],
-        group_by=[
-            groupby.proto_definition
-            for groupby in groupbys
-            if isinstance(groupby.proto_definition, AttributeKey)
-        ],
-        granularity_secs=granularity_secs,
+    return (
+        TimeSeriesRequest(
+            meta=meta,
+            filter=query,
+            aggregations=[
+                agg.proto_definition
+                for agg in aggregations
+                if isinstance(agg.proto_definition, AttributeAggregation)
+            ],
+            group_by=[
+                groupby.proto_definition
+                for groupby in groupbys
+                if isinstance(groupby.proto_definition, AttributeKey)
+            ],
+            granularity_secs=granularity_secs,
+        ),
+        aggregations,
+        groupbys,
     )
 
 
@@ -121,7 +126,7 @@ def run_timeseries_query(
 ) -> SnubaTSResult:
     """Make the query"""
     validate_granularity(params, granularity_secs)
-    rpc_request = get_timeseries_query(
+    rpc_request, aggregates, groupbys = get_timeseries_query(
         params, query_string, y_axes, [], referrer, config, granularity_secs
     )
 
@@ -131,6 +136,10 @@ def run_timeseries_query(
     """Process the results"""
     result: SnubaData = []
     confidences: SnubaData = []
+    final_meta: EventsMeta = EventsMeta(fields={})
+    for resolved_field in aggregates + groupbys:
+        final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
+
     for timeseries in rpc_response.result_timeseries:
         processed, confidence = _process_all_timeseries([timeseries], params, granularity_secs)
         if len(result) == 0:
@@ -161,7 +170,7 @@ def run_timeseries_query(
         comp_query_params.start = comp_query_params.start_date - comparison_delta
         comp_query_params.end = comp_query_params.end_date - comparison_delta
 
-        comp_rpc_request = get_timeseries_query(
+        comp_rpc_request, aggregates, groupbys = get_timeseries_query(
             comp_query_params, query_string, y_axes, [], referrer, config, granularity_secs
         )
         comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
@@ -169,15 +178,17 @@ def run_timeseries_query(
         if comp_rpc_response.result_timeseries:
             timeseries = comp_rpc_response.result_timeseries[0]
             processed, _ = _process_all_timeseries([timeseries], params, granularity_secs)
-            label = get_function_alias(timeseries.label)
             for existing, new in zip(result, processed):
-                existing["comparisonCount"] = new[label]
+                existing["comparisonCount"] = new[timeseries.label]
         else:
             for existing in result:
                 existing["comparisonCount"] = 0
 
     return SnubaTSResult(
-        {"data": result, "confidence": confidences}, params.start, params.end, granularity_secs
+        {"data": result, "confidence": confidences, "meta": final_meta},
+        params.start,
+        params.end,
+        granularity_secs,
     )
 
 
@@ -263,7 +274,7 @@ def run_top_events_timeseries_query(
         search_resolver, top_events, groupby_columns_without_project
     )
     """Make the query"""
-    rpc_request = get_timeseries_query(
+    rpc_request, aggregates, groupbys = get_timeseries_query(
         params,
         query_string,
         y_axes,
@@ -273,7 +284,7 @@ def run_top_events_timeseries_query(
         granularity_secs,
         extra_conditions=top_conditions,
     )
-    other_request = get_timeseries_query(
+    other_request, other_aggregates, other_groupbys = get_timeseries_query(
         params,
         query_string,
         y_axes,
@@ -289,6 +300,11 @@ def run_top_events_timeseries_query(
 
     """Process the results"""
     map_result_key_to_timeseries = defaultdict(list)
+
+    final_meta: EventsMeta = EventsMeta(fields={})
+    for resolved_field in aggregates + groupbys:
+        final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
+
     for timeseries in rpc_response.result_timeseries:
         groupby_attributes = timeseries.group_by_attributes
         remapped_groupby = {}
@@ -318,6 +334,7 @@ def run_top_events_timeseries_query(
                 "data": result_data,
                 "confidence": result_confidence,
                 "order": index,
+                "meta": final_meta,
             },
             params.start,
             params.end,
@@ -334,6 +351,7 @@ def run_top_events_timeseries_query(
                 "data": result_data,
                 "confidence": result_confidence,
                 "order": limit,
+                "meta": final_meta,
             },
             params.start,
             params.end,
@@ -352,8 +370,7 @@ def _process_all_timeseries(
     confidence: SnubaData = []
 
     for timeseries in all_timeseries:
-        # Timeseries serialization expects the function alias (eg. `count` not `count()`)
-        label = get_function_alias(timeseries.label)
+        label = timeseries.label
         if result:
             for index, bucket in enumerate(timeseries.buckets):
                 assert result[index]["time"] == bucket.seconds

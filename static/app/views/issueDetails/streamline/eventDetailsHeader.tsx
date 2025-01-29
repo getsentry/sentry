@@ -91,7 +91,9 @@ export function EventDetailsHeader({
             project={project}
           />
         </GraphSection>
-        <TimelineSection group={group} />
+        {issueTypeConfig.header.timelineSummary.enabled && (
+          <TimelineSection group={group} />
+        )}
       </FilterContainer>
     </PageErrorBoundary>
   );

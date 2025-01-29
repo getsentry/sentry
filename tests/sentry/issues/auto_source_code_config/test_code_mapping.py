@@ -3,20 +3,22 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.repo_trees import (
+    RepoAndBranch,
+    RepoTree,
+    filter_source_code_files,
+    get_extension,
+    should_include,
+)
 from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
-    Repo,
-    RepoTree,
     UnexpectedPathException,
     UnsupportedFrameFilename,
     convert_stacktrace_frame_path_to_source_path,
-    filter_source_code_files,
     find_roots,
-    get_extension,
     get_sorted_code_mapping_configs,
-    should_include,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -154,8 +156,8 @@ class TestDerivedCodeMappings(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.foo_repo = Repo("Test-Organization/foo", "master")
-        self.bar_repo = Repo("Test-Organization/bar", "main")
+        self.foo_repo = RepoAndBranch("Test-Organization/foo", "master")
+        self.bar_repo = RepoAndBranch("Test-Organization/bar", "main")
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
                 self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
@@ -202,7 +204,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
         assert code_mappings == [
             CodeMapping(
-                repo=Repo(name="Test-Organization/foo", branch="master"),
+                repo=RepoAndBranch(name="Test-Organization/foo", branch="master"),
                 stacktrace_root="sentry/",
                 source_path="src/sentry/",
             )

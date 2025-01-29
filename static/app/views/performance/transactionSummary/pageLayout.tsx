@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {isString} from '@sentry/utils';
+import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -129,7 +129,7 @@ function PageLayout(props: Props) {
       }
 
       const routeQuery = {
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: projectId,
         query: location.query,
@@ -151,7 +151,7 @@ function PageLayout(props: Props) {
           return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             projectID: decodeScalar(location.query.project),
             query: location.query,
@@ -161,7 +161,7 @@ function PageLayout(props: Props) {
           return transactionSummaryRouteWithQuery(routeQuery);
       }
     },
-    [location.query, organization.slug, projectId, transactionName]
+    [location.query, organization, projectId, transactionName]
   );
 
   const onTabChange = useCallback(
@@ -237,7 +237,7 @@ function PageLayout(props: Props) {
                 projects={selectableProjects}
                 router={router}
                 nextPath={{
-                  pathname: generateTransactionSummaryRoute({orgSlug: organization.slug}),
+                  pathname: generateTransactionSummaryRoute({organization}),
                   query: {
                     project: projectId,
                     transaction: transactionName,

@@ -241,7 +241,12 @@ export function WidgetPreviewContainer({
     top: isDragEnabled ? top ?? 0 : undefined,
     left: isDragEnabled ? left ?? 0 : undefined,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
+    zIndex: isDragEnabled
+      ? theme.zIndex.modal
+      : isSmallScreen
+        ? theme.zIndex.initial
+        : // if not responsive, set z-index to default in styled component
+          undefined,
     cursor: isDragEnabled ? 'grab' : undefined,
     margin: isDragEnabled ? '0' : undefined,
     alignSelf: isDragEnabled ? 'flex-start' : undefined,
@@ -345,6 +350,7 @@ export function WidgetPreviewContainer({
                       dashboard={dashboard}
                       isWidgetInvalid={isWidgetInvalid}
                       onDataFetched={onDataFetched}
+                      shouldForceDescriptionTooltip={!isSmallScreen}
                     />
                   )}
                 </SampleWidgetCard>

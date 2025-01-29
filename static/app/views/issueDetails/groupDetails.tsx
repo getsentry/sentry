@@ -696,7 +696,7 @@ function GroupDetailsContent({
         event={event}
         group={group}
         baseUrl={baseUrl}
-        project={project as Project}
+        project={project}
       />
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>{children}</TabPanels.Item>

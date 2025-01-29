@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -1192,9 +1191,9 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
-        # Run every 5 minute
-        "schedule": crontab(minute="*/5"),
-        "options": {"expires": 5 * 60},
+        # Run every minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -1885,9 +1884,6 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-# Secret key for OpenAI
-OPENAI_API_KEY: str | None = None
-
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
@@ -2293,12 +2289,6 @@ SENTRY_USE_TASKBROKER = False
 #     )
 # }
 
-
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-# ubuntu: aarch64
-ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
@@ -3472,9 +3462,11 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_topic=Topic.UPTIME_CONFIGS,
+        config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),
 ]
+UPTIME_CONFIG_PARTITIONS = 128
 
 MARKETO: Mapping[str, Any] = {
     "base-url": os.getenv("MARKETO_BASE_URL"),

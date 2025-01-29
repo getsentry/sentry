@@ -198,7 +198,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <Wrapper>
             <Container>
               {displayTags.map((tag, tagIdx) => (
-                <TagDistribution tag={tag} key={tagIdx} />
+                <TagDistribution tag={tag} key={tagIdx} groupId={group.id} />
               ))}
             </Container>
           </Wrapper>

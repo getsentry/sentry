@@ -607,7 +607,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
         viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
         if (viewManager.isOutsideOfView(node)) {
-          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         }
       }
       viewManager.scrollToRow(index, 'center');

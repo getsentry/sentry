@@ -12,6 +12,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -70,12 +71,9 @@ import {
   getWidgetInterval,
   hasDatasetSelector,
 } from '../utils';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
-import {
-  flattenMultiSeriesDataWithGrouping,
-  transformSeries,
-} from '../widgetCard/widgetQueries';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -98,7 +96,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 export type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -281,7 +279,7 @@ export function transformEventsResponseToTable(
     ...data,
     meta: {...fields, ...otherMeta, fields},
   } as TableData;
-  return tableData as TableData;
+  return tableData;
 }
 
 export function filterYAxisAggregateParams(
@@ -342,53 +340,9 @@ export function filterYAxisOptions(displayType: DisplayType) {
   };
 }
 
-export function transformEventsResponseToSeries(
-  data: EventsStats | MultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-): Series[] {
-  let output: Series[] = [];
-  const queryAlias = widgetQuery.name;
-
-  if (isMultiSeriesStats(data)) {
-    let seriesWithOrdering: SeriesWithOrdering[] = [];
-    const isMultiSeriesDataWithGrouping =
-      widgetQuery.aggregates.length > 1 && widgetQuery.columns.length;
-
-    // Convert multi-series results into chartable series. Multi series results
-    // are created when multiple yAxis are used. Convert the timeseries
-    // data into a multi-series data set.  As the server will have
-    // replied with a map like: {[titleString: string]: EventsStats}
-    if (isMultiSeriesDataWithGrouping) {
-      seriesWithOrdering = flattenMultiSeriesDataWithGrouping(data, queryAlias);
-    } else {
-      seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
-        const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-        const seriesData: EventsStats = data[seriesName]!;
-        return [
-          seriesData.order || 0,
-          transformSeries(seriesData, prefixedName, seriesName),
-        ];
-      });
-    }
-
-    output = [
-      ...seriesWithOrdering
-        .sort((itemA, itemB) => itemA[0] - itemB[0])
-        .map(item => item[1]),
-    ];
-  } else {
-    const field = widgetQuery.aggregates[0]!;
-    const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-    const transformed = transformSeries(data, prefixedName, field);
-    output.push(transformed);
-  }
-
-  return output;
-}
-
 // Get the series result type from the EventsStats meta
 function getSeriesResultType(
-  data: EventsStats | MultiSeriesEventsStats,
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Record<string, AggregationOutputType> {
   const field = widgetQuery.aggregates[0]!;
@@ -446,7 +400,7 @@ export function renderTraceAsLinkable(widget?: Widget) {
       organization,
       traceSlug: String(data.trace),
       dateSelection,
-      timestamp: getTimeStampFromTableDateField(data.timestamp),
+      timestamp: getTimeStampFromTableDateField(data['max(timestamp)'] ?? data.timestamp),
       location: widget
         ? {
             ...location,
