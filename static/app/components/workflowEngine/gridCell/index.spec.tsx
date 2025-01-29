@@ -3,7 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {TooltipContext} from 'sentry/components/tooltip';
 
 import {ActionCell} from './actionCell';
-import {MonitorsCell} from './monitorsCell';
+import {ConnectionCell} from './connectionCell';
+import {NumberCell} from './numberCell';
 import {TimeAgoCell} from './timeAgoCell';
 
 describe('Action Cell Component', function () {
@@ -38,31 +39,38 @@ describe('Time Ago Cell Component', function () {
   });
 });
 
-const renderMonitorCell = () => {
+const renderConnectionCell = (type: 'monitor' | 'automation') => {
   render(
-    <MonitorsCell
-      monitors={[
+    <ConnectionCell
+      items={[
         {
           name: '/endpoint',
-          id: 'def456',
+          link: 'link/def456',
           project: {slug: 'javascript', platform: 'javascript'},
           description: 'transaction.duration',
         },
       ]}
+      type={type}
     />
   );
 };
 
-describe('Monitors Cell Component', function () {
-  it('renders children and context values', function () {
-    renderMonitorCell();
+describe('Connection Cell Component', function () {
+  it('renders monitors', function () {
+    renderConnectionCell('monitor');
 
     const text = screen.getByText('1 monitor');
     expect(text).toBeInTheDocument();
   });
 
+  it('renders automations', function () {
+    renderConnectionCell('automation');
+    const text = screen.getByText('1 automation');
+    expect(text).toBeInTheDocument();
+  });
+
   it('renders hovercard', async function () {
-    renderMonitorCell();
+    renderConnectionCell('monitor');
 
     const span = screen.getByText('1 monitor');
     expect(span).toBeInTheDocument();
@@ -70,5 +78,14 @@ describe('Monitors Cell Component', function () {
     expect(await screen.findByText('/endpoint')).toBeInTheDocument();
     expect(await screen.findByText('javascript')).toBeInTheDocument();
     expect(await screen.findByText('transaction.duration')).toBeInTheDocument();
+  });
+});
+
+describe('Number Cell Component', function () {
+  it('renders', () => {
+    render(<NumberCell number={3} />);
+
+    const text = screen.getByText('3');
+    expect(text).toBeInTheDocument();
   });
 });

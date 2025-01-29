@@ -10,28 +10,35 @@ import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
-export type Monitor = {
-  id: string;
+export type Item = {
+  link: string;
   name: string;
   project: AvatarProject;
   description?: string;
 };
 
-type MonitorsCellProps = {
-  monitors: Monitor[];
+export type ConnectionCellProps = {
+  items: Item[];
+  type: 'monitor' | 'automation';
 };
 
-export function MonitorsCell({monitors}: MonitorsCellProps) {
-  if (monitors.length === 0) {
+const text = (type: 'monitor' | 'automation', length: number) => {
+  if (type === 'monitor') {
+    return tn('%s monitor', '%s monitors', length);
+  }
+  return tn('%s automation', '%s automations', length);
+};
+export function ConnectionCell({items, type}: ConnectionCellProps) {
+  if (items.length === 0) {
     return <EmptyCell />;
   }
   return (
     <div>
       <Hovercard
-        body={monitors.map(({name, id, project, description}, index) => (
-          <Fragment key={id}>
+        body={items.map(({name, project, description, link}, index) => (
+          <Fragment key={link}>
             {index > 0 && <Divider />}
-            <HovercardRow to={`/monitors/${id}/`}>
+            <HovercardRow to={link}>
               <strong>{name}</strong>
               <MonitorDetails>
                 <ProjectBadge
@@ -55,7 +62,7 @@ export function MonitorsCell({monitors}: MonitorsCellProps) {
           </Fragment>
         ))}
       >
-        <MonitorCount>{tn('%s monitor', '%s monitors', monitors.length)}</MonitorCount>
+        <MonitorCount>{text(type, items.length)}</MonitorCount>
       </Hovercard>
     </div>
   );
