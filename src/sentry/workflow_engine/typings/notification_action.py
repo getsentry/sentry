@@ -413,6 +413,46 @@ class WebhookActionTranslator(BaseActionTranslator):
 
 
 @issue_alert_action_translator_registry.register(
+    "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+)
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
+)
+class JiraActionTranslator(TicketActionTranslator):
+    action_type = Action.Type.JIRA
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["integration", "project", "issuetype"]
+
+    @property
+    def blob_type(self) -> type["DataBlob"]:
+        return JiraDataBlob
+
+    def get_sanitized_data(self) -> dict[str, Any]:
+        """
+        Override to handle custom fields and additional fields that aren't part of the standard fields.
+        """
+        data = super().get_sanitized_data()
+        if self.blob_type:
+            # Get all fields that aren't part of the standard JiraDataBlob fields
+            standard_fields = {
+                f.name for f in dataclasses.fields(JiraDataBlob) if f.name != "additional_fields"
+            }
+            additional_fields = {
+                k: v
+                for k, v in self.action.items()
+                if k not in standard_fields
+                and k not in EXCLUDED_ACTION_DATA_KEYS
+                and k not in self.required_fields
+                and k != "dynamic_form_fields"
+                and v  # Only include non-empty values
+            }
+            data["additional_fields"] = additional_fields
+        return data
+
+
+@issue_alert_action_translator_registry.register(
     "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 )
 class SentryAppActionTranslator(BaseActionTranslator):
@@ -550,3 +590,23 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
+
+
+@dataclass
+class JiraDataBlob(TicketDataBlob):
+    """
+    JiraDataBlob represents the data blob for a Jira ticket creation action.
+    Includes required fields and supports dynamic custom fields.
+    """
+
+    project: str = ""
+    issuetype: str = ""
+    assignee: str = ""
+    reporter: str = ""
+    description: str = ""
+    # Optional standard fields
+    labels: str = ""
+    parent: str = ""
+    priority: str = ""
+    # Store any custom fields (customfield_*) or additional fields
+    additional_fields: dict[str, Any] = field(default_factory=dict)
