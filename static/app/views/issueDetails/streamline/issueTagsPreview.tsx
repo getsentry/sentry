@@ -225,7 +225,9 @@ export default function IssueTagsPreview({
       .filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
-    return sortedTags.slice(0, 4);
+    const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
+    const orderedTags = [...sortedTags, ...remainingTagKeys];
+    return orderedTags.slice(0, 4);
   }, [tags, project?.platform]);
 
   if (isPending) {
