@@ -1799,6 +1799,7 @@ function buildRoutes() {
       withOrgPath
       component={make(() => import('sentry/views/insights/navigation'))}
     >
+      {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
