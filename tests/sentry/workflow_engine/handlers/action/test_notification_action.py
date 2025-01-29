@@ -22,31 +22,34 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         NotificationActionHandler.execute(self.job, self.action, self.detector)
         # Test passes if no exception is raised
 
-    def test_execute_with_unregistered_group_type(self):
-        """Test that execute handles unregistered group types gracefully"""
-
-        class UnregisteredGroupType:
-            slug = "unregistered"
-
-        self.detector.type = UnregisteredGroupType
-        self.detector.save()
-        NotificationActionHandler.execute(self.job, self.action, self.detector)
-        # Test passes if no exception is raised
-
-    @mock.patch("sentry.workflow_engine.handlers.action.notification.invoke_issue_alert_registry")
-    def test_execute_error_group_type(self, mock_issue_alert):
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.group_type_notification_registry.get"
+    )
+    def test_execute_error_group_type(self, mock_registry_get):
         """Test that execute calls correct handler for ErrorGroupType"""
         self.detector.type = ErrorGroupType.slug
         self.detector.save()
+
+        mock_handler = mock.Mock()
+        mock_registry_get.return_value = mock_handler
+
         NotificationActionHandler.execute(self.job, self.action, self.detector)
 
-        mock_issue_alert.assert_called_once_with(self.job, self.action, self.detector)
+        mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
+        mock_handler.assert_called_once_with(self.job, self.action, self.detector)
 
-    @mock.patch("sentry.workflow_engine.handlers.action.notification.invoke_metric_alert_registry")
-    def test_execute_metric_alert_type(self, mock_metric_alert):
-        """Test that execute calls correct handler for MetricAlertFire"""
-        self.detector.type = MetricIssuePOC
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.group_type_notification_registry.get"
+    )
+    def test_execute_metric_alert_type(self, mock_registry_get):
+        """Test that execute calls correct handler for MetricIssuePOC"""
+        self.detector.type = MetricIssuePOC.slug
         self.detector.save()
+
+        mock_handler = mock.Mock()
+        mock_registry_get.return_value = mock_handler
+
         NotificationActionHandler.execute(self.job, self.action, self.detector)
 
-        mock_metric_alert.assert_called_once_with(self.job, self.action, self.detector)
+        mock_registry_get.assert_called_once_with(MetricIssuePOC.slug)
+        mock_handler.assert_called_once_with(self.job, self.action, self.detector)

@@ -1,5 +1,5 @@
 import logging
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
@@ -11,16 +11,24 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 logger = logging.getLogger(__name__)
 
 
-class NotificationHandler(Protocol):
+class LegacyRegistryInvoker(ABC):
     """
-    A protocol that defines the interface for the method that will invoke the existing notification registry.
+    Abstract base class that defines the interface for notification handlers.
     """
 
-    def __call__(self, job: WorkflowJob, action: Action, detector: Detector) -> None: ...
+    def __call__(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+        # Here we could add metrics collection or other common functionality
+        self.handle_workflow_action(job, action, detector)
+
+    @abstractmethod
+    def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+        """
+        Implement this method to handle the specific notification logic for your handler.
+        """
+        pass
 
 
-# Register what function to use based on the group type
-notification_registry = Registry[NotificationHandler]()
+group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 
 
 @action_handler_registry.register(Action.Type.DISCORD)
@@ -32,7 +40,7 @@ class NotificationActionHandler(ActionHandler):
         detector: Detector,
     ) -> None:
         try:
-            handler = notification_registry.get(detector.type)
+            handler = group_type_notification_registry.get(detector.type)
             handler(job, action, detector)
         except NoRegistrationExistsError:
             logger.exception(
@@ -42,13 +50,15 @@ class NotificationActionHandler(ActionHandler):
             )
 
 
-@notification_registry.register(ErrorGroupType.slug)
-def invoke_issue_alert_registry(job: WorkflowJob, action: Action, detector: Detector) -> None:
-    # TODO(iamrajjoshi): Implement this
-    pass
+@group_type_notification_registry.register(ErrorGroupType.slug)
+class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
+    def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+        # TODO(iamrajjoshi): Implement this
+        pass
 
 
-@notification_registry.register(MetricIssuePOC.slug)
-def invoke_metric_alert_registry(job: WorkflowJob, action: Action, detector: Detector) -> None:
-    # TODO(iamrajjoshi): Implement this
-    pass
+@group_type_notification_registry.register(MetricIssuePOC.slug)
+class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
+    def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+        # TODO(iamrajjoshi): Implement this
+        pass
