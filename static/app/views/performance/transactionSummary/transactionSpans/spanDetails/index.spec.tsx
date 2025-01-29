@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
@@ -648,8 +650,9 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
 describe('spanDetailsRouteWithQuery', function () {
   it('should encode slashes in span op', function () {
+    const organization = OrganizationFixture();
     const target = spanDetailsRouteWithQuery({
-      orgSlug: 'org-slug',
+      organization,
       transaction: 'transaction',
       query: {},
       spanSlug: {op: 'o/p', group: 'aaaaaaaaaaaaaaaa'},
