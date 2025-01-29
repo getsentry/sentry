@@ -83,6 +83,13 @@ type MobileBreadcrumbTypes =
       message?: string;
     }
   | {
+      category: 'ui.scroll';
+      data: any;
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
       category: 'device.battery';
       data: {charging: boolean; level: number};
       timestamp: number;
@@ -366,6 +373,7 @@ export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type SwipeFrame = HydratedBreadcrumb<'ui.swipe'>;
+export type ScrollFrame = HydratedBreadcrumb<'ui.scroll'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -403,6 +411,7 @@ export const BreadcrumbCategories = [
   'ui.click',
   'ui.tap',
   'ui.swipe',
+  'ui.scroll',
   'ui.focus',
   'ui.input',
   'ui.keyDown',
@@ -464,7 +473,7 @@ export const SpanOps = [
  * This is a result of a custom discover query
  */
 export type RawReplayError = {
-  ['error.type']: (string | undefined | null)[];
+  ['error.type']: Array<string | undefined | null>;
   id: string;
   issue: string;
   ['issue.id']: number;

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
+import {urlEncode} from '@sentry/core';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
@@ -393,7 +393,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
-            // @ts-ignore TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
+            // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
             onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}

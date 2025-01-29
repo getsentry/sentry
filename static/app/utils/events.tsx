@@ -12,12 +12,7 @@ import type {
   Thread,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {
-  BaseGroup,
-  Group,
-  GroupActivityAssigned,
-  GroupTombstoneHelper,
-} from 'sentry/types/group';
+import type {BaseGroup, Group, GroupTombstoneHelper} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -286,10 +281,10 @@ export function getExceptionEntries(event: Event) {
 function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
   const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
   const frames: Frame[] = exceptions
-    // @ts-ignore TS(2322): Type 'Thread[] | ExceptionValue[]' is not assignab... Remove this comment to see the full error message
+    // @ts-expect-error TS(2322): Type 'Thread[] | ExceptionValue[]' is not assignab... Remove this comment to see the full error message
     .flatMap(withStacktrace => withStacktrace.data.values ?? [])
     .flatMap(
-      // @ts-ignore TS(2345): Argument of type '(withStacktrace: ExceptionValue ... Remove this comment to see the full error message
+      // @ts-expect-error TS(2345): Argument of type '(withStacktrace: ExceptionValue ... Remove this comment to see the full error message
       (withStacktrace: ExceptionValue | Thread) =>
         withStacktrace?.stacktrace?.frames ?? []
     );
@@ -406,7 +401,7 @@ function getAssignmentIntegration(group: Group) {
   }
   const assignmentAcitivies = group.activity.filter(
     activity => activity.type === GroupActivityType.ASSIGNED
-  ) as GroupActivityAssigned[];
+  );
   const integrationAssignments = assignmentAcitivies.find(
     activity => !!activity.data.integration
   );

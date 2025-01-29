@@ -22,6 +22,10 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -80,6 +84,7 @@ interface Props {
 export function PipelineSpansTable({groupId, useEAP}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
@@ -164,7 +169,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, groupId),
+            renderBodyCell(column, row, meta, location, organization, groupId, view),
         }}
       />
     </VisuallyCompleteWithData>
@@ -177,7 +182,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
-  groupId: string
+  groupId: string,
+  view: DomainView | undefined
 ) {
   if (column.key === SpanIndexedField.ID) {
     if (!row[SpanIndexedField.ID]) {
@@ -204,6 +210,7 @@ function renderBodyCell(
           eventView: EventView.fromLocation(location),
           spanId: row[SpanIndexedField.ID],
           source: TraceViewSources.LLM_MODULE,
+          view,
         })}
       >
         {row[SpanIndexedField.ID]}

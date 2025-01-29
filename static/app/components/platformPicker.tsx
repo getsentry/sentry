@@ -18,7 +18,7 @@ import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
@@ -86,7 +86,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     const subsetMatch = (platform: PlatformIntegration) =>
       platform.id.includes(filter) ||
       platform.name.toLowerCase().includes(filter) ||
-      filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
+      filterAliases[platform.id]?.some(alias => alias.includes(filter));
 
     const categoryMatch = (platform: PlatformIntegration) => {
       return currentCategory?.platforms?.has(platform.id);
@@ -104,9 +104,19 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       }
     }
 
-    const filtered = tempSelectablePlatforms
-      .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => {
+    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
+    const filtered = tempSelectablePlatforms.filter(
+      this.state.filter ? subsetMatch : categoryMatch
+    );
+
+    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
+      // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
+      return [otherPlatform];
+    }
+
+    if (category !== 'popular') {
+      // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
+      return filtered.sort((a, b) => {
         if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
           return 1;
         }
@@ -115,13 +125,8 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
         }
         return a.name.localeCompare(b.name);
       });
-
-    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
-      // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
-      return [otherPlatform];
     }
 
-    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
     return filtered;
   }
 

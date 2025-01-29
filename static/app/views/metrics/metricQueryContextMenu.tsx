@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -76,7 +75,6 @@ export function MetricQueryContextMenu({
         trackAnalytics('ddm.widget.duplicate', {
           organization,
         });
-        Sentry.metrics.increment('ddm.widget.duplicate');
         duplicateWidget(widgetIndex);
       },
     };
@@ -91,7 +89,6 @@ export function MetricQueryContextMenu({
           organization,
           source: 'widget',
         });
-        Sentry.metrics.increment('ddm.widget.alert');
         createAlert?.();
       },
     };
@@ -130,7 +127,6 @@ export function MetricQueryContextMenu({
           organization,
           source: 'widget',
         });
-        Sentry.metrics.increment('ddm.widget.dashboard');
         createDashboardWidget?.();
       },
     };
@@ -144,7 +140,6 @@ export function MetricQueryContextMenu({
         trackAnalytics('ddm.widget.settings', {
           organization,
         });
-        Sentry.metrics.increment('ddm.widget.settings');
 
         if (!isVirtualMetric(metricsQuery)) {
           navigateTo(
@@ -166,7 +161,6 @@ export function MetricQueryContextMenu({
         trackAnalytics('ddm.widget.delete', {
           organization,
         });
-        Sentry.metrics.increment('ddm.widget.delete');
         removeWidget(widgetIndex);
       },
     };
@@ -270,7 +264,7 @@ function useCreateDashboardWidget(
         widget: convertToDashboardWidget([queryCopy], displayType),
         router,
         // Previously undetected because the type relied on implicit any.
-        // @ts-ignore TS(2741): Property 'source' is missing in type '{ start: Dat... Remove this comment to see the full error message
+        // @ts-expect-error TS(2741): Property 'source' is missing in type '{ start: Dat... Remove this comment to see the full error message
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],

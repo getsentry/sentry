@@ -1,3 +1,4 @@
+import type {Confidence} from 'sentry/types/organization';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 export type TracingEventParameters = {
@@ -7,11 +8,14 @@ export type TracingEventParameters = {
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
+    confidences: Confidence[];
+    dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
-    query_status: 'success' | 'error';
+    query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
     result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    title: string;
     user_queries: string;
     user_queries_count: number;
     visualizes: Visualize[];
@@ -94,6 +98,10 @@ export type TracingEventParameters = {
     source: 'trace explorer' | 'new explore';
   };
   'trace_explorer.remove_span_condition': {};
+  'trace_explorer.save_as': {
+    save_type: 'alert' | 'dashboard';
+    ui_source: 'toolbar' | 'chart';
+  };
   'trace_explorer.search_failure': {
     error: string;
     queries: string[];
@@ -162,4 +170,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
+  'trace_explorer.save_as': 'Trace Explorer: Save As',
 };

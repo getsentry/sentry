@@ -35,6 +35,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.services.user import RpcUser
@@ -845,7 +846,9 @@ class JiraIntegration(IssueSyncIntegration):
 
         meta = client.get_create_meta_for_project(jira_project)
         if not meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+            raise IntegrationInstallationConfigurationError(
+                "Could not fetch issue create configuration from Jira."
+            )
 
         issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
         cleaned_data = self._clean_and_transform_issue_data(

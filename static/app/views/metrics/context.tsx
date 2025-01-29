@@ -6,7 +6,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
@@ -316,10 +315,8 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const handleAddFocusArea = useCallback(
     (area: FocusAreaSelection) => {
       if (!area.range.start || !area.range.end) {
-        Sentry.metrics.increment('ddm.enhance.range-undefined');
         return;
       }
-      Sentry.metrics.increment('ddm.enhance.add');
       handleSetSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)}, {replace: true});
     },
@@ -327,7 +324,6 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   );
 
   const handleRemoveFocusArea = useCallback(() => {
-    Sentry.metrics.increment('ddm.enhance.remove');
     updateQuery({focusArea: undefined}, {replace: true});
   }, [updateQuery]);
 

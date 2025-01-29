@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.test import TestCase, override_settings
 
 from sentry.conf.types.kafka_definition import Topic
@@ -12,18 +13,21 @@ class TestBase(TestCase):
                 slug="us",
                 name="United States",
                 config_topic=Topic("uptime-results"),
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="eu",
                 name="Europe",
                 config_topic=Topic("uptime-configs"),
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=False,
             ),
             UptimeRegionConfig(
                 slug="ap",
                 name="Asia Pacific",
                 config_topic=Topic("monitors-clock-tasks"),
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
         ]

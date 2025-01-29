@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {generateSentryTraceHeader} from '@sentry/utils';
+import {generateSentryTraceHeader} from '@sentry/core';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t} from 'sentry/locale';
@@ -8,7 +8,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 
 interface Props {
   body: string | null;
-  headers: [key: string, value: string][];
+  headers: Array<[key: string, value: string]>;
   method: string;
   traceSampling: boolean;
   url: string;

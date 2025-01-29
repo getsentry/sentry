@@ -43,7 +43,7 @@ class TestErrorDetectorValidator(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "error"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
         assert detector.workflow_condition_group is None
 
         # Verify audit log

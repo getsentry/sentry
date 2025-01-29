@@ -99,7 +99,7 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = Boolean(event.contexts?.flags?.values);
 
-  const eventFlags: Required<FeatureFlag>[] = useMemo(() => {
+  const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
     // explicitly validate against SDK developer error or user-provided contexts.
     const rawFlags = event.contexts?.flags?.values ?? [];

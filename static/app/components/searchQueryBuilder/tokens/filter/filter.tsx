@@ -66,7 +66,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {/* @ts-ignore TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
+                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
                 {formatFilterValue(item.value)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -212,7 +212,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
+      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >

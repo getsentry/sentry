@@ -21,6 +21,7 @@ interface WidgetPreviewProps {
   dashboardFilters: DashboardFilters;
   isWidgetInvalid?: boolean;
   onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  shouldForceDescriptionTooltip?: boolean;
 }
 
 function WidgetPreview({
@@ -28,6 +29,7 @@ function WidgetPreview({
   dashboardFilters,
   isWidgetInvalid,
   onDataFetched,
+  shouldForceDescriptionTooltip,
 }: WidgetPreviewProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -56,6 +58,8 @@ function WidgetPreview({
     <WidgetCard
       disableFullscreen
       borderless
+      // need to pass in undefined to avoid tooltip not showing up on hover
+      forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       organization={organization}

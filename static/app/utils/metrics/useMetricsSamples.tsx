@@ -55,7 +55,7 @@ interface UseMetricSamplesOptions<F extends Field> {
 }
 
 export interface MetricsSamplesResults<F extends Field> {
-  data: Pick<ResultFieldTypes, F | 'summary'>[];
+  data: Array<Pick<ResultFieldTypes, F | 'summary'>>;
   meta: any; // not going to type this yet
 }
 

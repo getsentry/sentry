@@ -196,7 +196,7 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
   ): EventView {
     const eventView =
       performanceType === ProjectPerformanceType.FRONTEND
-        ? (EventView.fromSavedQuery({
+        ? EventView.fromSavedQuery({
             ...baseQuery,
             fields: [
               ...baseQuery.fields,
@@ -208,9 +208,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
               `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
               `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
-          }) as EventView)
+          })
         : performanceType === ProjectPerformanceType.BACKEND
-          ? (EventView.fromSavedQuery({
+          ? EventView.fromSavedQuery({
               ...baseQuery,
               fields: [
                 ...baseQuery.fields,
@@ -218,9 +218,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                 'p75(spans.http)',
                 'p75(spans.db)',
               ],
-            }) as EventView)
+            })
           : performanceType === ProjectPerformanceType.MOBILE
-            ? (EventView.fromSavedQuery({
+            ? EventView.fromSavedQuery({
                 ...baseQuery,
                 fields: [
                   ...baseQuery.fields,
@@ -229,10 +229,10 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                   `p75(${MobileVital.FRAMES_SLOW})`,
                   `p75(${MobileVital.FRAMES_FROZEN})`,
                 ],
-              }) as EventView)
-            : (EventView.fromSavedQuery({
+              })
+            : EventView.fromSavedQuery({
                 ...baseQuery,
-              }) as EventView);
+              });
 
     return eventView;
   }

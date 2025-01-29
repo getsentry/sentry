@@ -13,7 +13,10 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_data_conditions
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule_trigger_action,
+    migrate_metric_data_conditions,
+)
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 
@@ -45,7 +48,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
-            self._handle_actions(alert_rule_trigger, actions)
 
         except forms.ValidationError as e:
             # if we fail in create_alert_rule_trigger, then only one message is ever returned
@@ -58,6 +60,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger.alert_rule.organization,
         ):
             migrate_metric_data_conditions(alert_rule_trigger)
+        self._handle_actions(alert_rule_trigger, actions)
         return alert_rule_trigger
 
     def update(self, instance, validated_data):
@@ -83,6 +86,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 alert_rule_trigger=alert_rule_trigger
             ).exclude(id__in=action_ids)
             for action in actions_to_delete:
+                dual_delete_migrated_alert_rule_trigger_action(action)
                 delete_alert_rule_trigger_action(action)
 
             for action_data in actions:

@@ -123,10 +123,10 @@ export interface Monitor {
   slug: string;
   status: ObjectStatus;
   alertRule?: {
-    targets: {
+    targets: Array<{
       targetIdentifier: number;
       targetType: 'Member' | 'Team';
-    }[];
+    }>;
     environment?: string;
   };
 }
@@ -173,7 +173,7 @@ export interface CheckIn {
   /**
    * Groups associated to this check-in (determiend by traceId)
    */
-  groups?: {id: number; shortId: string}[];
+  groups?: Array<{id: number; shortId: string}>;
 }
 
 type StatsBucket = {

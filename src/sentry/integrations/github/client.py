@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import sentry_sdk
 from requests import PreparedRequest
-from sentry_sdk import capture_exception, capture_message
+from sentry_sdk import capture_exception
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -24,16 +24,16 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.issues.auto_source_code_config.code_mapping import (
+from sentry.integrations.source_code_management.repo_trees import (
     MAX_CONNECTION_ERRORS,
-    Repo,
+    RepoAndBranch,
     RepoTree,
+    RepoTreesClient,
     filter_source_code_files,
 )
+from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -95,7 +95,7 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
-        access_token = cast(str, data["token"])
+        access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
         integration.save()
@@ -189,7 +189,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient):
+class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -278,9 +278,14 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         assert specific_resource in ("core", "search", "graphql")
         return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
+    # This method is used by RepoTreesIntegration
+    def get_remaining_api_requests(self) -> int:
+        """This gives information of the current rate limit"""
+        return self.get_rate_limit().remaining
+
+    # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> Any:
-        tree: Any = {}
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         # We do not cache this call since it is a rather large object
         contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
@@ -297,10 +302,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
                 "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
                 repo_full_name,
             )
-        tree = contents["tree"]
+        return contents["tree"]
 
-        return tree
-
+    # XXX: Drop this method
     def get_cached_repo_files(
         self,
         repo_full_name: str,
@@ -338,7 +342,10 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
 
         return repo_files
 
-    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
+    # XXX: Drop this method
+    def get_trees_for_org_deprecate(
+        self, gh_org: str, cache_seconds: int = 3600 * 24
+    ) -> dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org and saves its
         contents into the cache.
@@ -359,6 +366,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
 
         return trees
 
+    # XXX: Drop this method
     def _populate_repositories(self, gh_org: str, cache_seconds: int) -> list[dict[str, str]]:
         cache_key = f"githubtrees:repositories:{gh_org}"
         repositories: list[dict[str, str]] = cache.get(cache_key, [])
@@ -367,7 +375,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repositories(fetch_max_pages=True)
+                for repo in self.get_repos(fetch_max_pages=True)
+                if not repo.get("archived")
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
@@ -377,54 +386,41 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
 
         return repositories
 
-    def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
+    # Used by RepoTreesIntegration
+    def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
-        Log different messages based on the error received. Returns a boolean indicating whether
-        the error should count towards the connection errors tally.
+        Returns a boolean indicating whether the error should count towards the connection errors tally.
         """
-        msg = "Continuing execution."
         should_count_error = False
-        error_message = error.text
-        if error.json:
-            json_data: Any = error.json
-            error_message = json_data.get("message")
+        error_message = error.json.get("message") if error.json else error.text
 
-        # TODO: Add condition for  getsentry/DataForThePeople
-        # e.g. getsentry/nextjs-sentry-example
-        if error_message == "Git Repository is empty.":
-            logger.warning("The repository is empty. %s", msg, extra=extra)
-        elif error_message == "Not Found":
-            logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
-        elif error_message == "Repository access blocked":
-            logger.warning("Github has blocked the repository. %s", msg, extra=extra)
-        elif error_message == "Server Error":
-            logger.warning("Github failed to respond. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message == "Bad credentials":
-            logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
-        elif error_message == "Connection reset by peer":
-            logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message == "Connection broken: invalid chunk length":
-            logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message and error_message.startswith("Unable to reach host:"):
-            logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
+        if error_message in (
+            "Git Repository is empty.",
+            "Not Found.",  # The app does not have access to the repo
+            "Repository access blocked",  # GitHub has blocked the repository
+            "Bad credentials",  # No permission granted for this repo
+        ):
+            logger.warning(error_message, extra=extra)
+        elif error_message in (
+            "Server Error",  # Github failed to respond
+            "Connection reset by peer",  # Connection reset by GitHub
+            "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
+            "Unable to reach host:",  # Unable to reach host at the moment
+        ):
             should_count_error = True
         elif error_message and error_message.startswith(
             "Due to U.S. trade controls law restrictions, this GitHub"
         ):
-            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
-            # Raising the error will about the task and be handled at the task level
+            # Raising the error will stop execution and let the task handle it
             raise error
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            sentry_sdk.set_context("extra", extra)
-            capture_message(f"Continuing execution. Investigate: {error_message}")
+            logger.warning("Continuing execution. Investigate: %s", error_message, extra=extra)
 
         return should_count_error
 
+    # XXX: Drop this method
     def _populate_trees(self, repositories: list[dict[str, str]]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
@@ -465,7 +461,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                should_count_error = self._populate_trees_process_error(error, extra)
+                should_count_error = self.should_count_api_error(error, extra)
                 if should_count_error:
                     connection_error_count += 1
             except Exception:
@@ -483,6 +479,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
 
         return trees
 
+    # XXX: Drop this method
     def _populate_tree(
         self, repo_info: dict[str, str], only_use_cache: bool, cache_seconds: int
     ) -> RepoTree:
@@ -491,9 +488,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         repo_files = self.get_cached_repo_files(
             full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
         )
-        return RepoTree(Repo(full_name, branch), repo_files)
+        return RepoTree(RepoAndBranch(full_name, branch), repo_files)
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
+    def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
@@ -504,14 +501,11 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        # XXX: In order to speed up this function we will need to parallelize this
-        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-        repos = self.get_with_pagination(
+        return self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
             page_number_limit=self.page_number_limit if fetch_max_pages else 1,
         )
-        return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
@@ -551,31 +545,19 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             output = []
 
             page_number = 1
-            logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
-            # XXX: Debugging code; remove afterward
-            if (
-                response_key
-                and response_key == "repositories"
-                and resp["total_count"] > 0
-                and not output
-            ):
-                logger.info("headers: %s", resp.headers)
-                logger.info("output: %s", output)
-                logger.info("next_link: %s", next_link)
-                logger.error("No list of repos even when there's some. Investigate.")
-
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
+                # If a per_page is specified, GitHub preserves the per_page value
+                # in the response headers.
                 resp = self.get(next_link)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
-                logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
 
@@ -632,7 +614,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(

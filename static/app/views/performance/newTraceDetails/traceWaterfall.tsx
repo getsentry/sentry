@@ -249,7 +249,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         searchingRaf.current = null;
       }
 
-      // @ts-ignore TS(7031): Binding element 'matches' implicitly has an 'any' ... Remove this comment to see the full error message
+      // @ts-expect-error TS(7031): Binding element 'matches' implicitly has an 'any' ... Remove this comment to see the full error message
       function done([matches, lookup, activeNodeSearchResult]) {
         // If the previous node is still in the results set, we want to keep it
         if (activeNodeSearchResult) {
@@ -607,7 +607,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
         viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
         if (viewManager.isOutsideOfView(node)) {
-          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
         }
       }
       viewManager.scrollToRow(index, 'center');

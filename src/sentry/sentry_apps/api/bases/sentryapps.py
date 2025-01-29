@@ -17,7 +17,6 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.integrations.api.bases.integration import PARANOID_GET
-from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
@@ -75,15 +74,6 @@ def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | N
     return any(request.access.has_scope(s) for s in set(allowed_scopes))
 
 
-def add_integration_platform_metric_tag(func):
-    @wraps(func)
-    def wrapped(self, *args, **kwargs):
-        add_request_metric_tags(self.request, integration_platform=True)
-        return func(self, *args, **kwargs)
-
-    return wrapped
-
-
 class SentryAppsPermission(SentryPermission):
     scope_map = {
         "GET": PARANOID_GET,
@@ -117,10 +107,6 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
-    def dispatch(self, request, *args, **kwargs):
-        add_request_metric_tags(request, integration_platform=True)
-        return super().dispatch(request, *args, **kwargs)
-
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
         return self._handle_sentry_app_exception(
             exception=exc
