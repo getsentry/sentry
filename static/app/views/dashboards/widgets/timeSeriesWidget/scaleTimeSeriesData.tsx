@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
+import partialRight from 'lodash/partialRight';
 
-import {
-  type AggregationOutputType,
+import type {
+  AggregationOutputType,
   DurationUnit,
   RateUnit,
   SizeUnit,
@@ -18,7 +19,7 @@ import {
 } from '../common/typePredicates';
 import type {TimeseriesData} from '../common/types';
 
-import {FALLBACK_TYPE} from './settings';
+import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 export function scaleTimeSeriesData(
   timeserie: Readonly<TimeseriesData>,
@@ -53,40 +54,34 @@ export function scaleTimeSeriesData(
     return timeserie;
   }
 
+  let scaler: (value: number) => number;
+  if (sourceType === 'duration') {
+    scaler = partialRight(
+      convertDuration,
+      sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.duration,
+      destinationUnit
+    );
+  } else if (sourceType === 'size') {
+    scaler = partialRight(
+      convertSize,
+      sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.size,
+      destinationUnit
+    );
+  } else if (sourceType === 'rate') {
+    scaler = partialRight(
+      convertRate,
+      sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.rate,
+      destinationUnit
+    );
+  }
+
   return {
     ...timeserie,
     data: timeserie.data.map(datum => {
       const {value} = datum;
-
-      let scaledValue: number = value;
-
-      if (sourceType === 'duration') {
-        scaledValue = convertDuration(
-          value,
-          (sourceUnit ?? DurationUnit.MILLISECOND) as DurationUnit,
-          destinationUnit as DurationUnit
-        );
-      } else if (sourceType === 'size') {
-        scaledValue = convertSize(
-          value,
-          (sourceUnit ?? SizeUnit.BYTE) as SizeUnit,
-          destinationUnit as SizeUnit
-        );
-      } else if (sourceType === 'rate') {
-        scaledValue = convertRate(
-          value,
-          (sourceUnit ?? RateUnit.PER_SECOND) as RateUnit,
-          destinationUnit as RateUnit
-        );
-      } else {
-        Sentry.captureMessage(
-          `Attempted invalid timeseries conversion from ${sourceType} in ${sourceUnit} to ${destinationUnit}`
-        );
-      }
-
       return {
         ...datum,
-        value: scaledValue,
+        value: scaler(value),
       };
     }),
     meta: {
