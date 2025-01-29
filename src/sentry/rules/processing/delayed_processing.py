@@ -10,6 +10,7 @@ from celery import Task
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, nodestore
+from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -94,7 +95,7 @@ def fetch_project(project_id: int) -> Project | None:
         return None
 
 
-# TODO: replace with fetch_alertgroup_to_event_data
+# TODO: replace with fetch_group_to_event_data
 def fetch_rulegroup_to_event_data(project_id: int, batch_key: str | None = None) -> dict[str, str]:
     field: dict[str, models.Model | int | str] = {
         "project_id": project_id,
@@ -475,7 +476,7 @@ def cleanup_redis_buffer(
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
     ]
-    filters: dict[str, models.Model | str | int] = {"project_id": project_id}
+    filters: dict[str, BufferField] = {"project_id": project_id}
     if batch_key:
         filters["batch_key"] = batch_key
 
@@ -505,7 +506,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
     logger.info(
         "delayed_processing.condition_groups",
-        extra={"condition_groups": condition_groups, "project_id": project_id},
+        extra={"condition_groups": len(condition_groups), "project_id": project_id},
     )
 
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):

@@ -34,6 +34,7 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
         return ret
 
 
+@pytest.mark.django_db
 class TestRedisBuffer:
     @pytest.fixture(params=["cluster", "blaster"])
     def buffer(self, set_sentry_option, request):

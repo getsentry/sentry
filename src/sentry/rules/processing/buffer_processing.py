@@ -10,6 +10,7 @@ from typing import ClassVar
 from celery import Task
 
 from sentry import buffer, options
+from sentry.buffer.base import BufferField
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.db import models
 from sentry.utils import metrics
@@ -49,7 +50,7 @@ class DelayedProcessingBase(ABC):
 delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
 
 
-def fetch_alertgroup_to_event_data(
+def fetch_group_to_event_data(
     project_id: int, model: type[models.Model], batch_key: str | None = None
 ) -> dict[str, str]:
     field: dict[str, models.Model | int | str] = {
@@ -85,6 +86,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     `processing_task` will fetch the batch from redis and process the rules.
     """
     batch_size = options.get("delayed_processing.batch_size")
+    should_emit_logs = options.get("delayed_processing.emit_logs")
     log_format = "{}.{}"
 
     try:
@@ -95,7 +97,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
 
     hash_args = processing_info.hash_args
     task = processing_info.processing_task
-    filters: dict[str, models.Model | str | int] = asdict(hash_args.filters)
+    filters: dict[str, BufferField] = asdict(hash_args.filters)
 
     event_count = buffer.backend.get_hash_length(model=hash_args.model, field=filters)
     metrics.incr(
@@ -105,13 +107,14 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     if event_count < batch_size:
         return task.delay(project_id)
 
-    logger.info(
-        log_format.format(processing_type, "process_large_batch"),
-        extra={"project_id": project_id, "count": event_count},
-    )
+    if should_emit_logs:
+        logger.info(
+            log_format.format(processing_type, "process_large_batch"),
+            extra={"project_id": project_id, "count": event_count},
+        )
 
     # if the dictionary is large, get the items and chunk them.
-    alertgroup_to_event_data = fetch_alertgroup_to_event_data(project_id, hash_args.model)
+    alertgroup_to_event_data = fetch_group_to_event_data(project_id, hash_args.model)
 
     with metrics.timer(f"{processing_type}.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
@@ -133,17 +136,19 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
 
 def process_buffer() -> None:
     fetch_time = datetime.now(tz=timezone.utc)
+    should_emit_logs = options.get("delayed_processing.emit_logs")
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
             project_ids = buffer.backend.get_sorted_set(
                 handler.buffer_key, min=0, max=fetch_time.timestamp()
             )
-            log_str = ", ".join(
-                f"{project_id}: {timestamp}" for project_id, timestamp in project_ids
-            )
-            log_name = f"{processing_type}.project_id_list"
-            logger.info(log_name, extra={"project_ids": log_str})
+            if should_emit_logs:
+                log_str = ", ".join(
+                    f"{project_id}: {timestamp}" for project_id, timestamp in project_ids
+                )
+                log_name = f"{processing_type}.project_id_list"
+                logger.info(log_name, extra={"project_ids": log_str})
 
             for project_id, _ in project_ids:
                 process_in_batches(project_id, processing_type)
