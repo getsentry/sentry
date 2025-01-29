@@ -27,7 +27,6 @@ __all__ = (
     "Tag",
     "TagValue",
     "MetricMeta",
-    "MetricMetaWithTagKeys",
     "OPERATIONS",
     "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
@@ -356,10 +355,6 @@ class MetricMeta(TypedDict):
     mri: str
     projectIds: Sequence[int]
     blockingStatus: Sequence[BlockedMetric] | None
-
-
-class MetricMetaWithTagKeys(MetricMeta):
-    tags: Sequence[Tag]
 
 
 OPERATIONS_PERCENTILES = (
