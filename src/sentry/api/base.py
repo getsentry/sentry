@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -616,8 +616,17 @@ class EnvironmentMixin:
         return request._cached_environment
 
 
+class StatsArgsDict(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+    environment_ids: list[int]
+
+
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+    def _parse_args(
+        self, request: Request, environment_id=None, restrict_rollups=True
+    ) -> StatsArgsDict:
         """
         Parse common stats parameters from the query string. This includes
         `since`, `until`, and `resolution`.
