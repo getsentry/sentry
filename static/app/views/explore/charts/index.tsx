@@ -8,6 +8,7 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -271,12 +272,12 @@ export function ExploreCharts({
 
 export function useExtrapolationMeta({
   dataset,
-  isAllowedSelection,
   query,
+  isAllowedSelection,
 }: {
   dataset: DiscoverDatasets;
-  isAllowedSelection: boolean;
   query: string;
+  isAllowedSelection?: boolean;
 }) {
   const {selection} = usePageFilters();
 
@@ -304,7 +305,9 @@ export function useExtrapolationMeta({
     eventView: extrapolationMetaEventView,
     initialData: [],
     referrer: 'api.explore.spans-extrapolation-meta',
-    enabled: isAllowedSelection && dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    enabled:
+      (defined(isAllowedSelection) ? isAllowedSelection : true) &&
+      dataset === DiscoverDatasets.SPANS_EAP_RPC,
     trackResponseAnalytics: false,
   });
 }
