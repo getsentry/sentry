@@ -16,8 +16,8 @@ import {isChartHovered} from 'sentry/components/charts/utils';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
-import {
-  type AggregationOutputType,
+import type {
+  AggregationOutputType,
   DurationUnit,
   RateUnit,
   SizeUnit,
