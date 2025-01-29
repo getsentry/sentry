@@ -1,11 +1,8 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 
-import {
-  CellActionValueKind,
-  type SectionCardKeyValueList,
-  TraceDrawerComponents,
-} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {TraceDrawerActionValueKind} from '../../utils';
 
 export function hasSpanTags(span: RawSpanType) {
   return !!span.tags && Object.keys(span.tags).length > 0;
@@ -29,10 +26,10 @@ export function Tags({span}: {span: RawSpanType}) {
     value: String(tags[key]) || '',
     key,
     actionButton: (
-      <TraceDrawerComponents.CellAction
+      <TraceDrawerComponents.KeyValueAction
         rowKey={key}
         rowValue={String(tags[key]) || ''}
-        kind={CellActionValueKind.TAG}
+        kind={TraceDrawerActionValueKind.TAG}
       />
     ),
     actionButtonAlwaysVisible: true,

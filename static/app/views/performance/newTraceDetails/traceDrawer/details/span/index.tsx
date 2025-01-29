@@ -146,7 +146,10 @@ function SpanSections({
   }
 
   const hasSpanSpecificData =
-    hasSpanHTTPInfo(node.value) || hasSpanKeys(node) || hasSpanTags(node.value);
+    hasSpanHTTPInfo(node.value) ||
+    hasSpanKeys(node) ||
+    hasSpanTags(node.value) ||
+    hasSpanMeasurements(node.value);
 
   return (
     <Fragment>

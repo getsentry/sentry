@@ -19,13 +19,13 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import {
-  CellActionValueKind,
   type SectionCardKeyValueList,
   TraceDrawerComponents,
 } from '../../../../traceDrawer/details/styles';
 import {isSpanNode} from '../../../../traceGuards';
 import {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import {TraceDrawerActionValueKind} from '../../utils';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -161,10 +161,10 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         </Fragment>
       ),
       actionButton: (
-        <TraceDrawerComponents.CellAction
+        <TraceDrawerComponents.KeyValueAction
           rowKey={key}
           rowValue={value}
-          kind={CellActionValueKind.ADDITIONAL_DATA}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -177,10 +177,10 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         subject: key,
         value: value as string | number,
         actionButton: (
-          <TraceDrawerComponents.CellAction
+          <TraceDrawerComponents.KeyValueAction
             rowKey={key}
             rowValue={value as string | number}
-            kind={CellActionValueKind.ADDITIONAL_DATA}
+            kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
           />
         ),
         actionButtonAlwaysVisible: true,
@@ -193,10 +193,10 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       subject: key,
       value: (span as any)[key],
       actionButton: (
-        <TraceDrawerComponents.CellAction
+        <TraceDrawerComponents.KeyValueAction
           rowKey={key}
           rowValue={(span as any)[key]}
-          kind={CellActionValueKind.ADDITIONAL_DATA}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -214,10 +214,10 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       ),
       value: getPerformanceDuration(Number(timing.duration) * 1000),
       actionButton: (
-        <TraceDrawerComponents.CellAction
+        <TraceDrawerComponents.KeyValueAction
           rowKey={timing.name}
           rowValue={getPerformanceDuration(Number(timing.duration) * 1000)}
-          kind={CellActionValueKind.ADDITIONAL_DATA}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
         />
       ),
       actionButtonAlwaysVisible: true,

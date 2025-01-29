@@ -18,11 +18,8 @@ import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-import {
-  CellActionValueKind,
-  type SectionCardKeyValueList,
-  TraceDrawerComponents,
-} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {TraceDrawerActionValueKind} from '../../utils';
 
 export function hasSpanMeasurements(span: TraceTree.Span) {
   return !!span.measurements && Object.keys(span.measurements).length > 0;
@@ -82,10 +79,10 @@ function Measurements({
         subject: name,
         value: rendered,
         actionButton: (
-          <TraceDrawerComponents.CellAction
+          <TraceDrawerComponents.KeyValueAction
             rowKey={name}
             rowValue={customMetricValue}
-            kind={CellActionValueKind.MEASUREMENT}
+            kind={TraceDrawerActionValueKind.MEASUREMENT}
           />
         ),
         actionButtonAlwaysVisible: true,

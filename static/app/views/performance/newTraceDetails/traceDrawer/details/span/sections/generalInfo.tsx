@@ -12,6 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -111,14 +112,45 @@ export function GeneralInfo(props: GeneralnfoProps) {
       startTimestamp / 1e3,
       endTimestamp / 1e3
     );
+  const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
   let items: SectionCardKeyValueList = [
+    {
+      key: 'op',
+      subject: t('Op'),
+      value: props.node.value.op,
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.SPAN_OP}
+          rowValue={props.node.value.op}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
+    },
+    {
+      key: 'description',
+      subject: t('Description'),
+      value: props.node.value.description ? (
+        <DescrtionWrapper>
+          {getFormattedSpanDescription(props.node.value)}
+        </DescrtionWrapper>
+      ) : (
+        NULL_DESCRIPTION
+      ),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.SPAN_DESCRIPTION}
+          rowValue={props.node.value.description}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
+    },
     {
       key: 'duration',
       subject: t('Duration'),
       value: <SpanDuration node={props.node} />,
       actionButton: (
-        <TraceDrawerComponents.CellAction
+        <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.SPAN_DURATION}
           rowValue={getDuration((endTimestamp - startTimestamp) / 1000, 2, true)}
         />
@@ -151,7 +183,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
         ),
       }),
       actionButton: (
-        <TraceDrawerComponents.CellAction
+        <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.TIMESTAMP}
           rowValue={new Date(endTimestamp).toISOString()}
         />
@@ -175,7 +207,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
       ),
       value: <SpanSelfTime node={props.node} />,
       actionButton: (
-        <TraceDrawerComponents.CellAction
+        <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.SPAN_SELF_TIME}
           rowValue={getDuration(props.node.value.exclusive_time / 1000, 2, true)}
         />
@@ -293,3 +325,28 @@ function LegacyGeneralInfo(props: GeneralnfoProps) {
     />
   );
 }
+
+function getFormattedSpanDescription(span: TraceTree.Span) {
+  const rawDescription = span.description;
+  if (!rawDescription) {
+    return '';
+  }
+
+  const formatter = new SQLishFormatter();
+  const resolvedModule: ModuleName = resolveSpanModule(
+    span.sentry_tags?.op,
+    span.sentry_tags?.category
+  );
+
+  if (resolvedModule !== ModuleName.DB) {
+    return rawDescription;
+  }
+
+  return formatter.toSimpleMarkup(rawDescription);
+}
+
+const DescrtionWrapper = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+`;

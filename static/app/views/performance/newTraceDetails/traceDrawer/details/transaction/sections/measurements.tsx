@@ -17,11 +17,8 @@ import {
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
-import {
-  CellActionValueKind,
-  type SectionCardKeyValueList,
-  TraceDrawerComponents,
-} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {TraceDrawerActionValueKind} from '../../utils';
 
 type MeasurementsProps = {
   event: EventTransaction;
@@ -81,10 +78,10 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         subject: name,
         value: rendered,
         actionButton: (
-          <TraceDrawerComponents.CellAction
+          <TraceDrawerComponents.KeyValueAction
             rowKey={`tags[${name},number]`}
             rowValue={customMetricValue}
-            kind={CellActionValueKind.MEASUREMENT}
+            kind={TraceDrawerActionValueKind.MEASUREMENT}
           />
         ),
         actionButtonAlwaysVisible: true,

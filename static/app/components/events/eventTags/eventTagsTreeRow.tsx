@@ -25,8 +25,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  CellActionKind,
   getSearchInExploreTarget,
+  TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -203,7 +203,7 @@ function EventTagsTreeRowDropdown({
             location,
             originalTag.key,
             originalTag.value,
-            CellActionKind.INCLUDE
+            TraceDrawerActionKind.INCLUDE
           ),
         },
         {

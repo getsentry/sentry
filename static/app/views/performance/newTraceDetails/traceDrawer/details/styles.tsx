@@ -44,6 +44,7 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
@@ -80,7 +81,11 @@ import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
-import {CellActionKind, getSearchInExploreTarget} from './utils';
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+  TraceDrawerActionValueKind,
+} from './utils';
 
 const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
@@ -723,38 +728,39 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
-export enum CellActionValueKind {
-  TAG = 'tag',
-  MEASUREMENT = 'measurement',
-  ADDITIONAL_DATA = 'additional_data',
-  SENTRY_TAG = 'sentry_tag',
-}
-
-type CellActionProps = {
+type KeyValueActionProps = {
   rowKey: string;
   rowValue: React.ReactNode;
-  kind?: CellActionValueKind;
+  kind?: TraceDrawerActionValueKind;
 };
 
-function CellAction({
+function KeyValueAction({
   rowKey,
   rowValue,
-  kind = CellActionValueKind.SENTRY_TAG,
-}: CellActionProps) {
+  kind = TraceDrawerActionValueKind.SENTRY_TAG,
+}: KeyValueActionProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTraceUi = useHasTraceNewUi();
   const [isVisible, setIsVisible] = useState(false);
 
-  if (!hasNewTraceUi || !rowValue || !['string', 'number'].includes(typeof rowValue)) {
+  if (
+    !hasNewTraceUi ||
+    !defined(rowValue) ||
+    !defined(rowKey) ||
+    !['string', 'number'].includes(typeof rowValue)
+  ) {
     return null;
   }
 
   // We assume that tags, measurements and additional data (span.data) are dyanamic lists of searchable keys in explore.
-  // Any other key must exist in the sentry tags list to be deemed searchable.
+  // Any other key must exist in the static list of sentry tags to be deemed searchable.
   const searchableSentryTags = [...SentryStringTags, ...SentryNumberTags];
 
-  if (kind === CellActionValueKind.SENTRY_TAG && !searchableSentryTags.includes(rowKey)) {
+  if (
+    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
+    !searchableSentryTags.includes(rowKey)
+  ) {
     return null;
   }
 
@@ -767,7 +773,7 @@ function CellAction({
         location,
         rowKey,
         rowValue.toString(),
-        CellActionKind.INCLUDE
+        TraceDrawerActionKind.INCLUDE
       ),
     },
     {
@@ -778,7 +784,7 @@ function CellAction({
         location,
         rowKey,
         rowValue.toLocaleString(),
-        CellActionKind.EXCLUDE
+        TraceDrawerActionKind.EXCLUDE
       ),
     },
   ];
@@ -803,7 +809,7 @@ function CellAction({
           location,
           rowKey,
           rowValue.toString(),
-          CellActionKind.GREATER_THAN
+          TraceDrawerActionKind.GREATER_THAN
         ),
       },
       {
@@ -814,21 +820,21 @@ function CellAction({
           location,
           rowKey,
           rowValue.toString(),
-          CellActionKind.LESS_THAN
+          TraceDrawerActionKind.LESS_THAN
         ),
       }
     );
   }
 
   return (
-    <TreeValueDropdown
+    <KeyValueActionDropdown
       preventOverflowOptions={{padding: 4}}
       className={isVisible ? '' : 'invisible'}
       position="bottom-end"
       size="xs"
       onOpenChange={isOpen => setIsVisible(isOpen)}
       triggerProps={{
-        'aria-label': t('Cell Action Menu'),
+        'aria-label': t('Key Value Action Menu'),
         icon: <IconEllipsis />,
         showChevron: false,
         className: 'trigger-button',
@@ -838,7 +844,7 @@ function CellAction({
   );
 }
 
-const TreeValueDropdown = styled(DropdownMenu)`
+const KeyValueActionDropdown = styled(DropdownMenu)`
   display: block;
   margin: 1px;
   height: 20px;
@@ -1374,7 +1380,7 @@ const TraceDrawerComponents = {
   Highlights,
   Actions,
   NodeActions,
-  CellAction,
+  KeyValueAction,
   Table,
   IconTitleWrapper,
   IconBorder,

@@ -267,7 +267,7 @@ export function useSpanAncestryAndGroupingItems({
     value: defined(span.hash) ? String(span.hash) : null,
     subject: t('Span Group'),
     actionButton: (
-      <TraceDrawerComponents.CellAction
+      <TraceDrawerComponents.KeyValueAction
         rowKey={SpanIndexedField.SPAN_GROUP}
         rowValue={spanGroup}
       />

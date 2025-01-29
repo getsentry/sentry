@@ -24,7 +24,14 @@ export function getProfileMeta(event: EventTransaction | null) {
   return null;
 }
 
-export enum CellActionKind {
+export enum TraceDrawerActionValueKind {
+  TAG = 'tag',
+  MEASUREMENT = 'measurement',
+  ADDITIONAL_DATA = 'additional_data',
+  SENTRY_TAG = 'sentry_tag',
+}
+
+export enum TraceDrawerActionKind {
   INCLUDE = 'include',
   EXCLUDE = 'exclude',
   GREATER_THAN = 'greater_than',
@@ -36,16 +43,16 @@ export function getSearchInExploreTarget(
   location: Location,
   key: string,
   value: string,
-  kind: CellActionKind
+  kind: TraceDrawerActionKind
 ) {
   const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
   const search = new MutableSearch('');
 
-  if (kind === CellActionKind.INCLUDE) {
+  if (kind === TraceDrawerActionKind.INCLUDE) {
     search.setFilterValues(key, [value]);
-  } else if (kind === CellActionKind.EXCLUDE) {
+  } else if (kind === TraceDrawerActionKind.EXCLUDE) {
     search.setFilterValues(`!${key}`, [`${value}`]);
-  } else if (kind === CellActionKind.GREATER_THAN) {
+  } else if (kind === TraceDrawerActionKind.GREATER_THAN) {
     search.setFilterValues(key, [`>${value}`]);
   } else {
     search.setFilterValues(key, [`<${value}`]);
@@ -58,6 +65,7 @@ export function getSearchInExploreTarget(
       end,
       statsPeriod,
       query: search.formatString(),
+      project: -1,
     },
   };
 }
