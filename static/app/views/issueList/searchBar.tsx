@@ -19,7 +19,10 @@ import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
-const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
@@ -46,7 +49,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     ['desc', 'asc']
   ).map(tag => tag.key);
 
-  return [
+  const sections = [
     {
       value: FieldKind.ISSUE_FIELD,
       label: t('Issues'),
@@ -62,12 +65,17 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       label: t('Event Tags'),
       children: eventTags,
     },
-    {
-      value: FieldKind.FEATURE_FLAG,
-      label: t('Event Feature Flags'),
-      children: eventFeatureFlags,
-    },
   ];
+
+  if (organization.features.includes('feature-flag-autocomplete')) {
+    sections.push({
+      value: FieldKind.FEATURE_FLAG,
+      label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
+      children: eventFeatureFlags,
+    });
+  }
+
+  return sections;
 };
 
 interface Props extends Partial<SearchQueryBuilderProps> {
@@ -151,8 +159,8 @@ function IssueListSearchBar({
   );
 
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(filterKeys);
-  }, [filterKeys]);
+    return getFilterKeySections(filterKeys, organization);
+  }, [filterKeys, organization]);
 
   return (
     <SearchQueryBuilder
