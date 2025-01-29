@@ -8,6 +8,7 @@ import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   type ApiQueryKey,
   keepPreviousData,
@@ -220,7 +221,7 @@ export function fetchSpanFieldValues({
  */
 export function fetchFeatureFlagValues({
   api,
-  orgSlug,
+  organization,
   tagKey,
   endpointParams,
   projectIds,
@@ -228,14 +229,22 @@ export function fetchFeatureFlagValues({
   sort,
 }: {
   api: Client;
-  orgSlug: string;
+  organization: Organization;
   tagKey: string;
   endpointParams?: Query;
   projectIds?: string[];
   search?: string;
   sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
-  const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
+  const hasFeatureFlagSearch = organization.features.includes(
+    'feature-flag-autocomplete'
+  );
+
+  if (!hasFeatureFlagSearch) {
+    return Promise.resolve([]);
+  }
+
+  const url = `/organizations/${organization.slug}/tags/${tagKey}/values/`;
 
   const query: Query = {
     dataset: Dataset.ERRORS,

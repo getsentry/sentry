@@ -88,7 +88,6 @@ function IssueListSearchBar({
 
   const tagValueLoader = useCallback(
     async (key: string, search: string) => {
-      const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
         start: pageFilters.datetime.start
@@ -102,7 +101,7 @@ function IssueListSearchBar({
 
       const fetchTagValuesPayload = {
         api,
-        orgSlug,
+        orgSlug: organization.slug,
         tagKey: key,
         search,
         projectIds,
@@ -110,9 +109,6 @@ function IssueListSearchBar({
         sort: '-count' as const,
       };
 
-      const hasFeatureFlagSearch = organization.features.includes(
-        'feature-flag-autocomplete'
-      );
       const [eventsDatasetValues, issuePlatformDatasetValues, featureFlagValues] =
         await Promise.all([
           fetchTagValues({
@@ -123,11 +119,10 @@ function IssueListSearchBar({
             ...fetchTagValuesPayload,
             dataset: Dataset.ISSUE_PLATFORM,
           }),
-          hasFeatureFlagSearch
-            ? fetchFeatureFlagValues({
-                ...fetchTagValuesPayload,
-              })
-            : Promise.resolve([]),
+          fetchFeatureFlagValues({
+            ...fetchTagValuesPayload,
+            organization,
+          }),
         ]);
 
       const eventsAndIssuePlatformValues = mergeAndSortTagValues(
@@ -142,8 +137,7 @@ function IssueListSearchBar({
     },
     [
       api,
-      organization.slug,
-      organization.features,
+      organization,
       pageFilters.datetime.end,
       pageFilters.datetime.period,
       pageFilters.datetime.start,
