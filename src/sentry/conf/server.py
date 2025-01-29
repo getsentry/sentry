@@ -1193,8 +1193,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
         # Run every 5 minute
-        "schedule": crontab(minute="*/5"),
-        "options": {"expires": 5 * 60},
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
