@@ -753,7 +753,7 @@ function KeyValueAction({
     return null;
   }
 
-  // We assume that tags, measurements and additional data (span.data) are dyanamic lists of searchable keys in explore.
+  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
   // Any other key must exist in the static list of sentry tags to be deemed searchable.
   const searchableSentryTags = [...SentryStringTags, ...SentryNumberTags];
 

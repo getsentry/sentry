@@ -264,7 +264,7 @@ export function useSpanAncestryAndGroupingItems({
   const spanGroup = defined(span.hash) ? String(span.hash) : null;
   items.push({
     key: 'same_group',
-    value: defined(span.hash) ? String(span.hash) : null,
+    value: spanGroup,
     subject: t('Span Group'),
     actionButton: (
       <TraceDrawerComponents.KeyValueAction
