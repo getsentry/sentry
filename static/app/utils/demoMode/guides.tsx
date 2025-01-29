@@ -6,7 +6,6 @@ import {
   type OnboardingTaskStatus,
   type UpdatedTask,
 } from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
 
 const DEMO_MODE_WALKTHROUGH_TASKS_KEY = 'demo-mode:walkthrough-tasks';
 
@@ -18,14 +17,11 @@ function saveWalkthroughTasks(tasks: OnboardingTaskStatus[]) {
   localStorage.setItem(DEMO_MODE_WALKTHROUGH_TASKS_KEY, JSON.stringify(tasks));
 }
 
-export function getDemoWalkthroughTasks(
-  organization: Organization
-): OnboardingTaskStatus[] {
+export function getDemoWalkthroughTasks(): OnboardingTaskStatus[] {
   const walkthroughTasks = getWalkthroughTasks();
 
   if (!walkthroughTasks.length) {
-    saveWalkthroughTasks(organization.onboardingTasks);
-    return organization.onboardingTasks;
+    return [];
   }
 
   return walkthroughTasks;
