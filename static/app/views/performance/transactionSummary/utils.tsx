@@ -275,6 +275,7 @@ export function getTransactionSummaryBaseUrl(
     'insights-performance-landing-removal'
   );
 
+  // Eventually the performance landing page will be removed, so there is no need to rely on `getPerformanceBaseUrl`
   if (hasPerfLandingRemovalFlag) {
     const url = view
       ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
