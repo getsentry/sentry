@@ -1,7 +1,5 @@
-import * as qs from 'query-string';
-
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined, urlEncode} from 'sentry/utils';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -70,15 +68,7 @@ export function getWidgetEquation(equation: EquationParams): WidgetQuery {
 }
 
 export function encodeWidgetQuery(query: any) {
-  return qs.stringify(
-    {
-      ...query,
-      aggregates: query.aggregates.join(','),
-      fields: query.fields?.join(','),
-      columns: query.columns.join(','),
-    },
-    {strict: false}
-  );
+  return urlEncode(query);
 }
 
 export function getWidgetAsQueryParams(

@@ -1,4 +1,3 @@
-import * as qs from 'query-string';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
@@ -18,6 +17,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {urlEncode} from 'sentry/utils';
 import {ERROR_FIELDS, ERRORS_AGGREGATION_FUNCTIONS} from 'sentry/utils/discover/fields';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -928,7 +928,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },
@@ -980,7 +980,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },
@@ -1031,7 +1031,7 @@ describe('WidgetBuilder', function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
             displayType: DisplayType.TABLE,
             defaultTableColumns,
           },
