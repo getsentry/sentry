@@ -72,7 +72,7 @@ class URLField(serializers.URLField):
         return url
 
 
-@extend_schema_serializer(exclude_fields=["popularity", "features"])
+@extend_schema_serializer(exclude_fields=["popularity", "features", "status"])
 class SentryAppParser(Serializer):
     name = serializers.CharField(help_text="The name of the custom integration.")
     author = serializers.CharField(
@@ -99,19 +99,19 @@ class SentryAppParser(Serializer):
     schema = SchemaField(
         required=False,
         allow_null=True,
-        help_text="The UI components schema, used to render the custom integration's configuration UI elements. See https://docs.sentry.io/organization/integrations/integration-platform/ui-components/ for more information.",
+        help_text="The UI components schema, used to render the custom integration's configuration UI elements. See our [schema docs](https://docs.sentry.io/organization/integrations/integration-platform/ui-components/) for more information.",
     )
     webhookUrl = URLField(
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="The webhook destination URL where events will be sent.",
+        help_text="The webhook destination URL.",
     )
     redirectUrl = URLField(
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="The authentication redirect URL.",
+        help_text="The post-installation redirect URL.",
     )
     isInternal = serializers.BooleanField(
         required=False,
