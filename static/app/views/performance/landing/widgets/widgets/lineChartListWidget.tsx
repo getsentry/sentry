@@ -539,7 +539,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             location,
           })
         : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             projectID: listItem['project.id'] as string,
             transaction,
             query: props.eventView.getPageFiltersQuery(),

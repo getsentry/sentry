@@ -3,6 +3,7 @@ import pick from 'lodash/pick';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
@@ -16,30 +17,30 @@ import type {SpanSort, SpanSortOption} from './types';
 import {SpanSortOthers, SpanSortPercentiles} from './types';
 
 export function generateSpansRoute({
-  orgSlug,
+  organization,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   view?: DomainView;
 }): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/spans/`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/spans/`;
 }
 
 export function spansRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
   const pathname = generateSpansRoute({
-    orgSlug,
+    organization,
     view,
   });
 
