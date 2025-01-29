@@ -300,6 +300,19 @@ class BaseSpanFieldValuesAutocompletionExecutor(ABC):
         ]
 
 
+@region_silo_endpoint
+class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
+    snuba_methods = ["GET"]
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has(
+            "organizations:performance-trace-explorer", organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        raise ParseError(detail="add the stuff here")
+
+
 class SpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
     ID_KEYS = {
         "id",

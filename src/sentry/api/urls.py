@@ -558,6 +558,7 @@ from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
+    OrganizationSpansFrequencyStatsEndpoint,
 )
 from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -1432,6 +1433,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/(?P<key>[^/]+)/values/$",
         OrganizationSpansFieldValuesEndpoint.as_view(),
         name="sentry-api-0-organization-spans-fields-values",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/spans/frequency-stats/$",
+        OrganizationSpansFrequencyStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-frequency-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-estimation-stats/$",
