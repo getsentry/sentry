@@ -31,6 +31,9 @@ class WorkflowTest(BaseWorkflowTest):
         assert evaluation is True
 
     def test_evaluate_trigger_conditions__slow_condition(self):
+        # Update group to _all_, since the fast condition is met
+        self.data_condition_group.update(logic_type="all")
+
         slow_condition = self.create_data_condition(
             type=Condition.EVENT_FREQUENCY_COUNT, comparison={"interval": "1d", "value": 7}
         )

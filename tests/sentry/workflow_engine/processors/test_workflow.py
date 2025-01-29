@@ -151,7 +151,9 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert triggered_workflows == {self.workflow, workflow_two}
 
     def test_delays_slow_conditions(self):
-        # triggers workflow if the logic_type is ANY and a condition is met
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
+
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
             type=Condition.EVENT_FREQUENCY_COUNT,
@@ -163,6 +165,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         )
 
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        # no workflows are triggered because the slow conditions need to be evaluted
         assert triggered_workflows == set()
 
 
