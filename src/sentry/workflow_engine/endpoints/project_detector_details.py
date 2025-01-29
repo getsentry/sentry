@@ -11,12 +11,20 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import (
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 
 
 @region_silo_endpoint
@@ -57,7 +65,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, detector):
+    def get(self, request: Request, project: Project, detector: Detector):
         """
         Fetch a detector
         `````````````````````````
@@ -69,3 +77,51 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
             DetectorSerializer(),
         )
         return Response(serialized_detector)
+
+    @extend_schema(
+        operation_id="Delete a Detector",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            DetectorParams.DETECTOR_ID,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(self, request: Request, project: Project, detector: Detector):
+        """
+        Delete a detector
+        """
+        try:
+            data_condition_group = DataConditionGroup.objects.get(
+                id=detector.workflow_condition_group.id
+            )
+        except DataConditionGroup.DoesNotExist:
+            pass
+
+        if data_condition_group:
+            RegionScheduledDeletion.schedule(data_condition_group, days=0, actor=request.user)
+
+        try:
+            data_source_detector = DataSourceDetector.objects.get(detector_id=detector.id)
+        except DataSourceDetector.DoesNotExist:
+            pass
+
+        if data_source_detector:
+            RegionScheduledDeletion.schedule(data_source_detector, days=0, actor=request.user)
+
+        try:
+            data_sources = DataSource.objects.filter(detector=detector.id)
+        except DataSource.DoesNotExist:
+            pass
+
+        if data_sources:
+            for data_source in data_sources:
+                RegionScheduledDeletion.schedule(data_source, days=0, actor=request.user)
+
+        RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+        # TODO add audit log entry
+        return Response(status=204)
