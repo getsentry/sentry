@@ -549,6 +549,7 @@ module = [
     "tests.sentry.integrations.repository.issue_alert.*",
     "tests.sentry.integrations.slack.threads.*",
     "tests.sentry.issues",
+    "tests.sentry.issues.auto_source_code_config.*",
     "tests.sentry.issues.endpoints",
     "tests.sentry.issues.endpoints.test_actionable_items",
     "tests.sentry.issues.endpoints.test_group_activities",

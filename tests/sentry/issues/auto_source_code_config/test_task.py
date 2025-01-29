@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import responses
@@ -32,7 +33,7 @@ GET_TREES_FOR_ORG = (
 class BaseDeriveCodeMappings(TestCase):
     platform: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(
             status=OrganizationStatus.ACTIVE,
         )
@@ -53,11 +54,11 @@ class BaseDeriveCodeMappings(TestCase):
 class TestTaskBehavior(BaseDeriveCodeMappings):
     """Test task behavior that is not language specific."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event = self.create_event([{"filename": "foo.py", "in_app": True}])
 
-    def test_does_not_raise_installation_removed(self, mock_record):
+    def test_does_not_raise_installation_removed(self, mock_record: Any) -> None:
         error = ApiError(
             '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
         )
@@ -65,7 +66,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_halt_metric(mock_record, error)
 
-    def test_does_not_raise_installation_removed_old_code_path(self, mock_record):
+    def test_does_not_raise_installation_removed_old_code_path(self, mock_record: Any) -> None:
         error = ApiError(
             '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
         )
@@ -73,26 +74,26 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_halt_metric(mock_record, error)
 
-    def test_raises_other_api_errors(self, mock_record):
+    def test_raises_other_api_errors(self, mock_record: Any) -> None:
         with patch(GET_TREES_FOR_ORG, side_effect=ApiError("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_halt_metric(mock_record, ApiError("foo"))
 
-    def test_unable_to_get_lock(self, mock_record):
+    def test_unable_to_get_lock(self, mock_record: Any) -> None:
         error = UnableToAcquireLock()
         with patch(GET_TREES_FOR_ORG, side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_failure_metric(mock_record, error)
 
-    def test_raises_generic_errors(self, mock_record):
+    def test_raises_generic_errors(self, mock_record: Any) -> None:
         with patch(GET_TREES_FOR_ORG, side_effect=Exception("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
 
 
 class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "python"
         # The lack of a \ after the drive letter in the third frame signals that
@@ -108,7 +109,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_backslash_filename_simple(self):
+    def test_backslash_filename_simple(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/mouse.py"])
@@ -121,7 +122,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_backslash_drive_letter_filename_simple(self):
+    def test_backslash_drive_letter_filename_simple(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/tasks.py"])
@@ -134,7 +135,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_backslash_drive_letter_filename_monoRepoAndBranch(self):
+    def test_backslash_drive_letter_filename_monoRepoAndBranch(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["src/sentry/tasks.py"])
@@ -147,7 +148,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_backslash_drive_letter_filename_abs_path(self):
+    def test_backslash_drive_letter_filename_abs_path(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/models/release.py"])
@@ -161,7 +162,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "javascript"
         self.event = self.create_event(
@@ -185,7 +186,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_find_stacktrace_paths_single_project(self):
+    def test_find_stacktrace_paths_single_project(self) -> None:
         stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert set(stacktrace_paths) == {
             "./app/utils/handleXhrErrorResponse.tsx",
@@ -193,13 +194,13 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry/test_app.tsx",
         }
 
-    def test_find_stacktrace_empty(self):
+    def test_find_stacktrace_empty(self) -> None:
         event = self.create_event([{}])
         event.data["stacktrace"]["frames"] = [None]
         stacktrace_paths = identify_stacktrace_paths(event.data)
         assert stacktrace_paths == []
 
-    def test_find_stacktrace_paths_bad_data(self):
+    def test_find_stacktrace_paths_bad_data(self) -> None:
         event = self.create_event([{}])
         event.data["stacktrace"]["frames"] = [
             {
@@ -212,7 +213,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         assert stacktrace_paths == []
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_period_slash(self):
+    def test_auto_source_code_config_starts_with_period_slash(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(
@@ -229,7 +230,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self):
+    def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(
@@ -246,7 +247,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_one_to_one_match(self):
+    def test_auto_source_code_config_one_to_one_match(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["some/path/Test.tsx"])
@@ -260,7 +261,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_same_trailing_substring(self):
+    def test_auto_source_code_config_same_trailing_substring(self) -> None:
         repo_name = "foo/bar"
         return_value = {repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/app.tsx"])}
         with patch(GET_TREES_FOR_ORG, return_value=return_value):
@@ -269,7 +270,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "ruby"
         self.event = self.create_event(
@@ -285,12 +286,12 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_find_stacktrace_paths_single_project(self):
+    def test_find_stacktrace_paths_single_project(self) -> None:
         stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert set(stacktrace_paths) == {"some/path/test.rb", "lib/tasks/crontask.rake"}
 
     @responses.activate
-    def test_auto_source_code_config_rb(self):
+    def test_auto_source_code_config_rb(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["some/path/test.rb"])
@@ -303,7 +304,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_rake(self):
+    def test_auto_source_code_config_rake(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["lib/tasks/crontask.rake"])
@@ -317,7 +318,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "node"
         self.event = self.create_event(
@@ -337,7 +338,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_find_stacktrace_paths_single_project(self):
+    def test_find_stacktrace_paths_single_project(self) -> None:
         stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert set(stacktrace_paths) == {
             "app:///utils/errors.js",
@@ -346,7 +347,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         }
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_app(self):
+    def test_auto_source_code_config_starts_with_app(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["utils/errors.js"])
@@ -358,7 +359,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 
-    def test_auto_source_code_config_starts_with_app_complex(self):
+    def test_auto_source_code_config_starts_with_app_complex(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/utils/errors.js"])
@@ -371,7 +372,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self):
+    def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(
@@ -388,7 +389,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_app_dot_dot_slash(self):
+    def test_auto_source_code_config_starts_with_app_dot_dot_slash(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(
@@ -404,7 +405,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "go"
         self.event = self.create_event(
@@ -427,7 +428,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_auto_source_code_config_go_abs_filename(self):
+    def test_auto_source_code_config_go_abs_filename(self) -> None:
         repo_name = "go_repo"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/capybara.go"])
@@ -440,7 +441,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_go_long_abs_filename(self):
+    def test_auto_source_code_config_go_long_abs_filename(self) -> None:
         repo_name = "go_repo"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/kangaroo.go"])
@@ -453,7 +454,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_similar_but_incorrect_file(self):
+    def test_auto_source_code_config_similar_but_incorrect_file(self) -> None:
         repo_name = "go_repo"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["notsentry/main.go"])
@@ -464,7 +465,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "php"
         self.event = self.create_event(
@@ -480,7 +481,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_auto_source_code_config_basic_php(self):
+    def test_auto_source_code_config_basic_php(self) -> None:
         repo_name = "php/place"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/potato/kangaroo.php"])
@@ -493,7 +494,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_different_roots_php(self):
+    def test_auto_source_code_config_different_roots_php(self) -> None:
         repo_name = "php/place"
         return_value = {
             repo_name: RepoTree(
@@ -509,7 +510,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.platform = "csharp"
         self.event = self.create_event(
@@ -533,7 +534,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_auto_source_code_config_csharp_trivial(self):
+    def test_auto_source_code_config_csharp_trivial(self) -> None:
         repo_name = "csharp/repo"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/potato/kangaroo.cs"])
@@ -546,7 +547,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_different_roots_csharp(self):
+    def test_auto_source_code_config_different_roots_csharp(self) -> None:
         repo_name = "csharp/repo"
         return_value = {
             repo_name: RepoTree(
@@ -561,7 +562,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_non_in_app_frame(self):
+    def test_auto_source_code_config_non_in_app_frame(self) -> None:
         repo_name = "csharp/repo"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/src/functions.cs"])
@@ -572,7 +573,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event = self.create_event(
             [
@@ -582,14 +583,14 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "python",
         )
 
-    def test_finds_stacktrace_paths_single_project(self):
+    def test_finds_stacktrace_paths_single_project(self) -> None:
         stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
 
-    def test_handle_duplicate_filenames_in_stacktrace(self):
+    def test_handle_duplicate_filenames_in_stacktrace(self) -> None:
         self.event.data["stacktrace"]["frames"].append(self.event.data["stacktrace"]["frames"][0])
 
         stacktrace_paths = identify_stacktrace_paths(self.event.data)
@@ -608,7 +609,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             )
         ],
     )
-    def test_auto_source_code_config_single_project(self, mock_generate_code_mappings):
+    def test_auto_source_code_config_single_project(self, mock_generate_code_mapping: Any) -> None:
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
         with (
@@ -624,13 +625,13 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
         assert code_mapping.automatically_generated is True
 
-    def test_skips_not_supported_platforms(self):
+    def test_skips_not_supported_platforms(self) -> None:
         event = self.create_event([{}], platform="elixir")
         assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
-    def test_auto_source_code_config_duplicates(self):
+    def test_auto_source_code_config_duplicates(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration=self.integration
@@ -668,7 +669,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.automatically_generated is False
 
     @responses.activate
-    def test_auto_source_code_config_stack_and_source_root_do_not_match(self):
+    def test_auto_source_code_config_stack_and_source_root_do_not_match(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(
@@ -683,7 +684,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == "src/sentry/"
 
     @responses.activate
-    def test_auto_source_code_config_no_normalization(self):
+    def test_auto_source_code_config_no_normalization(self) -> None:
         repo_name = "foo/bar"
         return_value = {
             repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/models/release.py"])
