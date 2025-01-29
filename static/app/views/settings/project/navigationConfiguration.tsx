@@ -1,3 +1,4 @@
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -130,6 +131,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
+          badge: () => <FeatureBadge type="beta" />,
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],
