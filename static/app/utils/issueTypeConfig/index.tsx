@@ -14,6 +14,7 @@ import type {
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
 import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -45,6 +46,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     resolution: t('Resolved'),
     eventUnits: t('Events'),
   },
+  allEventsPath: Tab.EVENTS,
   attachments: {enabled: false},
   autofix: false,
   eventAndUserCounts: {enabled: true},
@@ -57,7 +59,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
-  showOpenPeriods: false,
   similarIssues: {enabled: false},
   spanEvidence: {enabled: false},
   stacktrace: {enabled: true},
