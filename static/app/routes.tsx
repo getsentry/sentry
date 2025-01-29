@@ -1916,7 +1916,7 @@ function buildRoutes() {
   );
   const tracesRoutes = (
     <Route
-      path="traces"
+      path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
     >
