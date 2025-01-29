@@ -52,7 +52,7 @@ def process_condition_group_results(
 def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
     value: T,
-    is_fast_check: bool = True,
+    is_fast: bool = True,
 ) -> DataConditionGroupResult:
     """
     Evaluate the conditions for a given group and value.
@@ -60,7 +60,7 @@ def evaluate_condition_group(
     results: list[tuple[bool, DataConditionResult]] = []
     conditions = get_data_conditions_for_group(data_condition_group.id)
 
-    if is_fast_check:
+    if is_fast:
         conditions, remaining_conditions = split_conditions_by_speed(conditions)
     else:
         _, conditions = split_conditions_by_speed(conditions)

@@ -283,7 +283,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
             condition_group=self.data_condition_group,
         )
 
-        self.data_condition_two = self.create_data_condition(
+        self.slow_condition = self.create_data_condition(
             type=Condition.EVENT_FREQUENCY_COUNT,
             comparison={"interval": "1d", "value": 7},
             condition_result=True,
@@ -294,18 +294,18 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         logic_result, condition_results, remaining_conditions = evaluate_condition_group(
             self.data_condition_group,
             10,
-            is_fast_check=True,
+            True,
         )
 
         assert logic_result is True
         assert condition_results == [True]
-        assert remaining_conditions == [self.data_condition_two]
+        assert remaining_conditions == [self.slow_condition]
 
     def test_execute_slow_conditions(self):
         logic_result, condition_results, remaining_conditions = evaluate_condition_group(
             self.data_condition_group,
             {"snuba_results": [10]},
-            is_fast_check=False,
+            False,
         )
 
         assert logic_result is True
@@ -316,7 +316,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         logic_result, condition_results, remaining_conditions = evaluate_condition_group(
             self.data_condition_group,
             1,
-            is_fast_check=True,
+            True,
         )
 
         assert logic_result is False
@@ -328,7 +328,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         logic_result, condition_results, remaining_conditions = evaluate_condition_group(
             self.data_condition_group,
             10,
-            is_fast_check=True,
+            True,
         )
 
         assert logic_result is True
