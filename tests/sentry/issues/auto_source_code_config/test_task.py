@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from unittest.mock import patch
 
 import responses
 
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
@@ -46,9 +44,7 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": "github.com/Test-Org"},
         )
 
-    def create_event(
-        self, frames: list[dict[str, str | bool]], platform: str = "python"
-    ) -> GroupEvent:
+    def create_event(self, frames: list[dict[str, str | bool]], platform: str = "python") -> Event:
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id)
 
@@ -630,6 +626,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
     def test_skips_not_supported_platforms(self):
         event = self.create_event([{}], platform="elixir")
+        assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
