@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, NoReturn
 
 from django.urls import reverse
 
@@ -14,6 +14,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 
 # Generated based on the response from the Bitbucket API
@@ -138,6 +139,12 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             },
         ]
 
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        if exc.json:
+            if (message := exc.json.get("error", {}).get("message")) in BITBUCKET_HALT_ERROR_CODES:
+                raise IntegrationInstallationConfigurationError(message)
+        return super().raise_error(exc, identity)
+
     def create_issue(self, data, **kwargs):
         client = self.get_client()
         if not data.get("repo"):
@@ -149,11 +156,6 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         try:
             issue = client.create_issue(data.get("repo"), data)
         except ApiError as e:
-            if e.json:
-                if (
-                    message := e.json.get("error", {}).get("message")
-                ) in BITBUCKET_HALT_ERROR_CODES:
-                    raise IntegrationInstallationConfigurationError(message)
             self.raise_error(e)
 
         return {
