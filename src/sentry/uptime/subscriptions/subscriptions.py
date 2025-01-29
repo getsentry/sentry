@@ -401,7 +401,6 @@ def delete_uptime_subscriptions_for_project(
 
 def delete_project_uptime_subscription(subscription: ProjectUptimeSubscription):
     uptime_subscription = subscription.uptime_subscription
-    quotas.backend.disable_seat(DataCategory.UPTIME, subscription)
     subscription.delete()
     remove_uptime_subscription_if_unused(uptime_subscription)
 
