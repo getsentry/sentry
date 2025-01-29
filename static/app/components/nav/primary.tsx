@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
@@ -34,6 +34,18 @@ interface SidebarItemProps {
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
+interface SidebarItemLinkProps {
+  to: string;
+  children?: React.ReactNode;
+  onClick?: MouseEventHandler<HTMLElement>;
+}
+
+interface SidebarItemDropdownProps {
+  items: MenuItemProps[];
+  children?: React.ReactNode;
+  onClick?: MouseEventHandler<HTMLElement>;
+}
+
 function SidebarBody({children}: {children: React.ReactNode}) {
   return <SidebarItemList>{children}</SidebarItemList>;
 }
@@ -47,7 +59,6 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 }
 
 function SidebarItem({item}: SidebarItemProps) {
-  const SidebarChild = item.to ? SidebarLink : SidebarMenu;
   const organization = useOrganization();
 
   const recordAnalytics = useCallback(
@@ -56,22 +67,32 @@ function SidebarItem({item}: SidebarItemProps) {
     [organization, item.analyticsKey]
   );
 
-  return (
-    <SidebarItemWrapper>
-      <SidebarChild item={item} key={item.label} onClick={recordAnalytics}>
-        {item.icon}
-        <span>{item.label}</span>
-      </SidebarChild>
-    </SidebarItemWrapper>
-  );
-}
-
-function SidebarMenu({item, children, onClick}: SidebarItemProps) {
-  if (!item.dropdown) {
-    throw new Error(
-      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
+  if (item.to) {
+    return (
+      <SidebarItemWrapper>
+        <SidebarLink to={item.to} key={item.label} onClick={recordAnalytics}>
+          {item.icon}
+          <span>{item.label}</span>
+        </SidebarLink>
+      </SidebarItemWrapper>
     );
   }
+
+  if (item.dropdown) {
+    return (
+      <SidebarItemWrapper>
+        <SidebarMenu items={item.dropdown} key={item.label} onClick={recordAnalytics}>
+          {item.icon}
+          <span>{item.label}</span>
+        </SidebarMenu>
+      </SidebarItemWrapper>
+    );
+  }
+
+  return null;
+}
+
+function SidebarMenu({items, children, onClick}: SidebarItemDropdownProps) {
   return (
     <DropdownMenu
       position="right-end"
@@ -89,27 +110,21 @@ function SidebarMenu({item, children, onClick}: SidebarItemProps) {
           </NavButton>
         );
       }}
-      items={item.dropdown}
+      items={items}
     />
   );
 }
 
-function SidebarLink({children, item, onClick}: SidebarItemProps) {
+function SidebarLink({children, to, onClick}: SidebarItemLinkProps) {
   const location = useLocation();
-  if (!item.to) {
-    throw new Error(
-      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
-    );
-  }
-
-  const isActive = isLinkActive(item.to, location.pathname);
-  const linkProps = makeLinkPropsFromTo(item.to);
+  const isActive = isLinkActive(to, location.pathname);
+  const linkProps = makeLinkPropsFromTo(to);
 
   return (
     <NavLink
       {...linkProps}
       onClick={onClick}
-      className={isActive ? 'active' : undefined}
+      aria-selected={isActive}
       aria-current={isActive ? 'page' : undefined}
     >
       <InteractionStateLayer hasSelectedBackground={isActive} />
