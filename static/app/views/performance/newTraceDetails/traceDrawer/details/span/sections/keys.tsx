@@ -19,6 +19,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import {
+  CellActionValueKind,
   type SectionCardKeyValueList,
   TraceDrawerComponents,
 } from '../../../../traceDrawer/details/styles';
@@ -159,6 +160,14 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
           {value >= 1024 && <span>{` (${value} B)`}</span>}
         </Fragment>
       ),
+      actionButton: (
+        <TraceDrawerComponents.CellAction
+          rowKey={key}
+          rowValue={value}
+          kind={CellActionValueKind.ADDITIONAL_DATA}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   Object.entries(nonSizeKeys).forEach(([key, value]) => {
@@ -167,6 +176,14 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         key,
         subject: key,
         value: value as string | number,
+        actionButton: (
+          <TraceDrawerComponents.CellAction
+            rowKey={key}
+            rowValue={value as string | number}
+            kind={CellActionValueKind.ADDITIONAL_DATA}
+          />
+        ),
+        actionButtonAlwaysVisible: true,
       });
     }
   });
@@ -175,6 +192,14 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       key,
       subject: key,
       value: (span as any)[key],
+      actionButton: (
+        <TraceDrawerComponents.CellAction
+          rowKey={key}
+          rowValue={(span as any)[key]}
+          kind={CellActionValueKind.ADDITIONAL_DATA}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   timingKeys.forEach(timing => {
@@ -188,6 +213,14 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         </TraceDrawerComponents.FlexBox>
       ),
       value: getPerformanceDuration(Number(timing.duration) * 1000),
+      actionButton: (
+        <TraceDrawerComponents.CellAction
+          rowKey={timing.name}
+          rowValue={getPerformanceDuration(Number(timing.duration) * 1000)}
+          kind={CellActionValueKind.ADDITIONAL_DATA}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
 

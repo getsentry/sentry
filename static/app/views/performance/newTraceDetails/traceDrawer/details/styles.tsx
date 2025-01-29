@@ -46,6 +46,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -735,21 +736,8 @@ type CellActionProps = {
   kind?: CellActionValueKind;
 };
 
-function isValidNumber(node: React.ReactNode): boolean {
-  if (typeof node === 'number') {
-    return true;
-  }
-
-  if (typeof node === 'string') {
-    const parsed = parseFloat(node);
-    return !Number.isNaN(parsed);
-  }
-
-  return false;
-}
-
 function CellAction({
-  rowKey: tagKey,
+  rowKey,
   rowValue,
   kind = CellActionValueKind.SENTRY_TAG,
 }: CellActionProps) {
@@ -758,7 +746,7 @@ function CellAction({
   const hasNewTraceUi = useHasTraceNewUi();
   const [isVisible, setIsVisible] = useState(false);
 
-  if (!hasNewTraceUi || !rowValue) {
+  if (!hasNewTraceUi || !rowValue || !['string', 'number'].includes(typeof rowValue)) {
     return null;
   }
 
@@ -766,12 +754,7 @@ function CellAction({
   // Any other key must exist in the sentry tags list to be deemed searchable.
   const searchableSentryTags = [...SentryStringTags, ...SentryNumberTags];
 
-  if (
-    kind === CellActionValueKind.SENTRY_TAG &&
-    (!searchableSentryTags.includes(tagKey) ||
-      typeof rowValue !== 'string' ||
-      typeof rowValue !== 'number')
-  ) {
+  if (kind === CellActionValueKind.SENTRY_TAG && !searchableSentryTags.includes(rowKey)) {
     return null;
   }
 
@@ -782,7 +765,7 @@ function CellAction({
       to: getSearchInExploreTarget(
         organization,
         location,
-        tagKey,
+        rowKey,
         rowValue.toString(),
         CellActionKind.INCLUDE
       ),
@@ -793,14 +776,24 @@ function CellAction({
       to: getSearchInExploreTarget(
         organization,
         location,
-        tagKey,
+        rowKey,
         rowValue.toLocaleString(),
         CellActionKind.EXCLUDE
       ),
     },
   ];
 
-  if (isValidNumber(rowValue)) {
+  const valueType = getFieldDefinition(rowKey)?.valueType;
+  const isMeasurement =
+    valueType &&
+    [
+      FieldValueType.DURATION,
+      FieldValueType.NUMBER,
+      FieldValueType.INTEGER,
+      FieldValueType.PERCENTAGE,
+    ].includes(valueType);
+
+  if (isMeasurement) {
     dropdownOptions.push(
       {
         key: 'includeGreaterThan',
@@ -808,7 +801,7 @@ function CellAction({
         to: getSearchInExploreTarget(
           organization,
           location,
-          tagKey,
+          rowKey,
           rowValue.toString(),
           CellActionKind.GREATER_THAN
         ),
@@ -819,7 +812,7 @@ function CellAction({
         to: getSearchInExploreTarget(
           organization,
           location,
-          tagKey,
+          rowKey,
           rowValue.toString(),
           CellActionKind.LESS_THAN
         ),
@@ -1290,16 +1283,6 @@ const CardWrapper = styled('div')`
 
   ${ValueSection} {
     align-items: center;
-  }
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
   }
 `;
 

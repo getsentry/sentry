@@ -13,7 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -117,6 +117,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
       key: 'duration',
       subject: t('Duration'),
       value: <SpanDuration node={props.node} />,
+      actionButton: (
+        <TraceDrawerComponents.CellAction
+          rowKey={SpanIndexedField.SPAN_DURATION}
+          rowValue={getDuration((endTimestamp - startTimestamp) / 1000, 2, true)}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     },
     {
       key: 'start_timestamp',
@@ -143,6 +150,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
           </Fragment>
         ),
       }),
+      actionButton: (
+        <TraceDrawerComponents.CellAction
+          rowKey={SpanIndexedField.TIMESTAMP}
+          rowValue={new Date(endTimestamp).toISOString()}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     },
   ];
 
@@ -160,6 +174,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
         </TraceDrawerComponents.FlexBox>
       ),
       value: <SpanSelfTime node={props.node} />,
+      actionButton: (
+        <TraceDrawerComponents.CellAction
+          rowKey={SpanIndexedField.SPAN_SELF_TIME}
+          rowValue={getDuration(props.node.value.exclusive_time / 1000, 2, true)}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   }
 

@@ -267,6 +267,16 @@ const ContentWrapper = styled('div')<{
           ? p.theme.yellow100
           : p.theme.backgroundSecondary};
   }
+
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
+    }
+  }
 `;
 
 export const Subject = styled('div')`
