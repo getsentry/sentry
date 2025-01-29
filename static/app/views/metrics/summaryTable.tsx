@@ -119,7 +119,7 @@ export const SummaryTable = memo(function SummaryTable({
 
   const transactionTo = (transaction: string) =>
     transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction,
       projectID: selection.projects.map(p => String(p)),
       query: {

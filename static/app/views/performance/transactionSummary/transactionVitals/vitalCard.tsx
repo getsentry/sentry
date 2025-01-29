@@ -212,7 +212,7 @@ class VitalCard extends Component<Props, State> {
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])
-              .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+              .getPerformanceTransactionEventsViewUrlTarget(organization, {
                 showTransactions:
                   dataFilter === 'all'
                     ? EventsDisplayFilterName.P100
