@@ -40,6 +40,17 @@ export function getDetectorDetails({
       ),
     };
   }
+
+  const cronSlug = event?.tags?.find(({key}) => key === 'monitor.slug')?.value;
+  if (cronSlug) {
+    return {
+      detectorPath: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${cronSlug}/details/`,
+      description: t(
+        'This issue was created by a cron monitor. View the monitor details to learn more.'
+      ),
+    };
+  }
+
   const uptimeAlertRuleId = event?.tags?.find(tag => tag?.key === 'uptime_rule')?.value;
   if (uptimeAlertRuleId) {
     return {
