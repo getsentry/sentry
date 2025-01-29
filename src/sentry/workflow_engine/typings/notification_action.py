@@ -269,18 +269,25 @@ class TicketActionTranslator(BaseActionTranslator, ABC):
         return ActionTarget.SPECIFIC
 
 
-@issue_alert_action_translator_registry.register(
-    "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
-)
-@issue_alert_action_translator_registry.register(
-    "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction"
-)
-class GitHubActionTranslator(TicketActionTranslator):
-    action_type = Action.Type.GITHUB
+class GitHubActionTranslatorBase(TicketActionTranslator):
 
     @property
     def blob_type(self) -> type["DataBlob"]:
         return GitHubDataBlob
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
+)
+class GitHubActionTranslator(GitHubActionTranslatorBase):
+    action_type = Action.Type.GITHUB
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction"
+)
+class GitHubEnterpriseActionTranslator(GitHubActionTranslatorBase):
+    action_type = Action.Type.GITHUB_ENTERPRISE
 
 
 @issue_alert_action_translator_registry.register(

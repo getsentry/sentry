@@ -890,3 +890,139 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 0
+
+    def test_action_types(self):
+        """Test that all registered action translators have the correct action type set."""
+        test_cases = [
+            (
+                "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                Action.Type.SLACK,
+            ),
+            (
+                "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                Action.Type.DISCORD,
+            ),
+            (
+                "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                Action.Type.MSTEAMS,
+            ),
+            (
+                "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                Action.Type.PAGERDUTY,
+            ),
+            (
+                "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                Action.Type.OPSGENIE,
+            ),
+            (
+                "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                Action.Type.GITHUB,
+            ),
+            (
+                "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                Action.Type.GITHUB_ENTERPRISE,
+            ),
+            (
+                "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                Action.Type.AZURE_DEVOPS,
+            ),
+        ]
+
+        for registry_id, expected_type in test_cases:
+            translator_class = issue_alert_action_translator_registry.get(registry_id)
+            assert translator_class.action_type == expected_type, (
+                f"Action translator {registry_id} has incorrect action type. "
+                f"Expected {expected_type}, got {translator_class.action_type}"
+            )
+
+    def test_action_type_in_migration(self):
+        """Test that action types are correctly set during migration."""
+        test_cases = [
+            # Slack
+            (
+                {
+                    "workspace": "1",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "channel": "#test",
+                    "channel_id": "C123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.SLACK,
+            ),
+            # Discord
+            (
+                {
+                    "server": "1",
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "channel_id": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.DISCORD,
+            ),
+            # MS Teams
+            (
+                {
+                    "team": "1",
+                    "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                    "channel": "test",
+                    "channel_id": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.MSTEAMS,
+            ),
+            # PagerDuty
+            (
+                {
+                    "account": "1",
+                    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                    "service": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.PAGERDUTY,
+            ),
+            # Opsgenie
+            (
+                {
+                    "account": "1",
+                    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                    "team": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.OPSGENIE,
+            ),
+            # GitHub
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.GITHUB,
+            ),
+            # GitHub Enterprise
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.GITHUB_ENTERPRISE,
+            ),
+            # Azure DevOps
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.AZURE_DEVOPS,
+            ),
+        ]
+
+        for action_data, expected_type in test_cases:
+            actions = build_notification_actions_from_rule_data_actions([action_data])
+            assert len(actions) == 1
+            assert actions[0].type == expected_type, (
+                f"Action {action_data['id']} has incorrect type after migration. "
+                f"Expected {expected_type}, got {actions[0].type}"
+            )
