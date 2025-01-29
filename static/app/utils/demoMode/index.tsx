@@ -1,6 +1,5 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
 import ConfigStore from 'sentry/stores/configStore';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
@@ -66,22 +65,4 @@ function onAddedEmail(email: string) {
   setForceHide(false);
   localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
   openDemoSignupModal();
-}
-
-// Function to determine which tour has completed depending on the guide that is being passed in.
-export function getTourTask(
-  guide: string
-): {task: OnboardingTaskKey; tour: string} | undefined {
-  switch (guide) {
-    case 'sidebar_v2':
-      return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
-    case 'issues_v3':
-      return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
-    case 'release-details_v2':
-      return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
-    case 'transaction_details_v2':
-      return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
-    default:
-      return undefined;
-  }
 }

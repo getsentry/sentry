@@ -1,4 +1,4 @@
-import {urlEncode} from '@sentry/utils';
+import {urlEncode} from '@sentry/core';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
@@ -794,7 +794,7 @@ export function getTargetForTransactionSummaryLink(
   }
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(dataRow.transaction),
     projectID,
     query: nextView?.getPageFiltersQuery() || {},

@@ -144,10 +144,15 @@ export const getAlertWizardCategories = (org: Organization) => {
       ],
     });
 
-    result.push({
-      categoryHeading: t('Uptime Monitoring'),
-      options: ['uptime_monitor'],
-    });
+    if (
+      org.features.includes('uptime') &&
+      !org.features.includes('uptime-create-disabled')
+    ) {
+      result.push({
+        categoryHeading: t('Uptime Monitoring'),
+        options: ['uptime_monitor'],
+      });
+    }
 
     if (org.features.includes('insights-crons')) {
       result.push({

@@ -175,6 +175,7 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
+    GroupOpenPeriodsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -330,6 +331,7 @@ from sentry.tempest.endpoints.tempest_credentials_details import TempestCredenti
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
 )
+from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -695,6 +697,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/events/$",
             GroupEventsEndpoint.as_view(),
             name=f"{name_prefix}-group-events",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/open-periods/$",
+            GroupOpenPeriodsEndpoint.as_view(),
+            name=f"{name_prefix}-group-open-periods",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2171,6 +2178,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime/$",
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
+        OrganizationUptimeStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-stats",
     ),
     *workflow_urls.organization_urlpatterns,
 ]

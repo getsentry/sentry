@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
@@ -20,6 +20,7 @@ from sentry.uptime.models import (
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
+    UptimeMonitorNoSeatAvailable,
     get_or_create_project_uptime_subscription,
     update_project_uptime_subscription,
 )
@@ -126,6 +127,11 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
 
     def validate(self, attrs):
+        if features.has("organization:uptime-create-disabled", self.context["organization"]):
+            raise serializers.ValidationError(
+                "The uptime feature is disabled for your organization"
+            )
+
         headers = []
         method = "GET"
         body = None
@@ -258,26 +264,33 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
 
-        update_project_uptime_subscription(
-            uptime_monitor=instance,
-            environment=environment,
-            url=url,
-            interval_seconds=interval_seconds,
-            timeout_ms=timeout_ms,
-            method=method,
-            headers=headers,
-            body=body,
-            name=name,
-            owner=owner,
-            trace_sampling=trace_sampling,
-            status=status,
-        )
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=instance.id,
-            event=audit_log.get_event_id("UPTIME_MONITOR_EDIT"),
-            data=instance.get_audit_log_data(),
-        )
+        try:
+            update_project_uptime_subscription(
+                uptime_monitor=instance,
+                environment=environment,
+                url=url,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                method=method,
+                headers=headers,
+                body=body,
+                name=name,
+                owner=owner,
+                trace_sampling=trace_sampling,
+                status=status,
+            )
+        except UptimeMonitorNoSeatAvailable as err:
+            if err.result is None:
+                raise serializers.ValidationError("Cannot enable uptime monitor")
+            else:
+                raise serializers.ValidationError(err.result.reason)
+        finally:
+            create_audit_entry(
+                request=self.context["request"],
+                organization=self.context["organization"],
+                target_object=instance.id,
+                event=audit_log.get_event_id("UPTIME_MONITOR_EDIT"),
+                data=instance.get_audit_log_data(),
+            )
 
         return instance

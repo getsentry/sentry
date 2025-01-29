@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const uptimeConfig: IssueCategoryConfigMapping = {
@@ -8,9 +9,23 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},
-      resolve: {enabled: true},
-      resolveInRelease: {enabled: true},
+      resolve: {enabled: false},
+      resolveInRelease: {enabled: false},
       share: {enabled: true},
+    },
+    header: {
+      filterAndSearch: {enabled: true},
+      tagDistribution: {enabled: false},
+      timelineSummary: {enabled: true},
+    },
+    detector: {
+      enabled: true,
+      title: t('Uptime Monitor'),
+      ctaText: t('View alert details'),
+    },
+    customCopy: {
+      eventUnits: t('Check-ins'),
+      resolution: t('Resolved'),
     },
     attachments: {enabled: false},
     resources: null,

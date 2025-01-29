@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -34,11 +33,6 @@ function ProjectMetrics({project, organization}: Props) {
           <Button
             priority="primary"
             onClick={() => {
-              Sentry.metrics.increment('ddm.add_custom_metric', 1, {
-                tags: {
-                  referrer: 'settings',
-                },
-              });
               activateSidebar();
             }}
             size="sm"

@@ -117,24 +117,52 @@ const cardAnimationProps: AnimationProps = {
 
 function BranchButton({change}: {change: AutofixCodebaseChange}) {
   const {onClick} = useCopyToClipboard({
-    text: `git fetch --all && git switch ${change.branch_name}`,
-    successMessage: t('Command copied. Next stop: your terminal.'),
+    text: change.branch_name ?? '',
+    successMessage: t('Branch name copied.'),
   });
 
   return (
-    <Button
-      key={`${change.repo_external_id}-${Math.random()}`}
-      size="xs"
-      priority="primary"
-      onClick={onClick}
-      aria-label={t('Check out in %s', change.repo_name)}
-      title={t('git fetch --all && git switch %s', change.branch_name)}
-      icon={<IconCopy size="xs" />}
-    >
-      {t('Check out in %s', change.repo_name)}
-    </Button>
+    <CopyContainer>
+      <CopyButton
+        size="xs"
+        onClick={onClick}
+        icon={<IconCopy size="xs" />}
+        aria-label={t('Copy branch in %s', change.repo_name)}
+        title={t('Copy branch in %s', change.repo_name)}
+      />
+      <CodeText>{change.branch_name}</CodeText>
+    </CopyContainer>
   );
 }
+
+const CopyContainer = styled('div')`
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundSecondary};
+  max-width: 25rem;
+`;
+
+const CopyButton = styled(Button)`
+  border: none;
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-right: 1px solid ${p => p.theme.border};
+  height: auto;
+  flex-shrink: 0;
+`;
+
+const CodeText = styled('code')`
+  font-family: ${p => p.theme.text.familyMono};
+  padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: block;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
 
 function CreatePRsButton({
   changes,
@@ -445,7 +473,7 @@ export function AutofixChanges({
                     View PR in {step.changes[0].repo_name}
                   </LinkButton>
                 ) : (
-                  <StyledScrollCarousel aria-label={t('View pull requests')}>
+                  <ScrollCarousel aria-label={t('View pull requests')}>
                     {step.changes.map(
                       change =>
                         change.pull_request?.pr_url && (
@@ -461,13 +489,13 @@ export function AutofixChanges({
                           </LinkButton>
                         )
                     )}
-                  </StyledScrollCarousel>
+                  </ScrollCarousel>
                 )
               ) : branchesMade ? (
                 step.changes.length === 1 && step.changes[0] ? (
                   <BranchButton change={step.changes[0]} />
                 ) : (
-                  <StyledScrollCarousel aria-label={t('Check out branches')}>
+                  <ScrollCarousel aria-label={t('Check out branches')}>
                     {step.changes.map(
                       change =>
                         change.branch_name && (
@@ -477,7 +505,7 @@ export function AutofixChanges({
                           />
                         )
                     )}
-                  </StyledScrollCarousel>
+                  </ScrollCarousel>
                 )
               ) : null}
             </HeaderWrapper>
@@ -499,10 +527,6 @@ export function AutofixChanges({
     </AnimatePresence>
   );
 }
-
-const StyledScrollCarousel = styled(ScrollCarousel)`
-  padding: 0 ${space(1)};
-`;
 
 const PreviewContent = styled('div')`
   display: flex;
@@ -564,13 +588,14 @@ const HeaderText = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  margin-right: ${space(2)};
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  padding: 0 0 ${space(1)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

@@ -203,9 +203,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                     {
                       title: t('TTID by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[0]!],
-                      series: Object.values(
-                        transformedEvents[YAXIS_COLUMNS[yAxes[0]!]!]!
-                      ),
+                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
                       subtitle: primaryRelease
                         ? t(
@@ -241,7 +239,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                   <Chart
                     height={80}
                     data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]!]!
+                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]]!
                     )}
                     loading={isSeriesLoading}
                     grid={{
@@ -273,9 +271,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                     {
                       title: t('TTFD by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[1]!],
-                      series: Object.values(
-                        transformedEvents[YAXIS_COLUMNS[yAxes[1]!]!]!
-                      ),
+                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
                       subtitle: primaryRelease
                         ? t(
@@ -311,7 +307,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                   <Chart
                     height={80}
                     data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]!]!
+                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]]!
                     )}
                     loading={isSeriesLoading}
                     grid={{
@@ -353,7 +349,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               }
             >
               <Chart
-                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]!]!)}
+                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]]!)}
                 height={245}
                 loading={isSeriesLoading}
                 grid={{

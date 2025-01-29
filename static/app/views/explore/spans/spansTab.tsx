@@ -1,8 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,8 +14,10 @@ import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -88,22 +92,30 @@ export function SpansTabContentImpl({
 
   const limit = 25;
 
+  const isAllowedSelection = useMemo(
+    () => checkIsAllowedSelection(selection, maxPickableDays),
+    [selection, maxPickableDays]
+  );
+
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit,
-    enabled: queryType === 'aggregate',
+    enabled: isAllowedSelection && queryType === 'aggregate',
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit,
-    enabled: queryType === 'samples',
+    enabled: isAllowedSelection && queryType === 'samples',
   });
   const tracesTableResult = useExploreTracesTable({
     query,
     limit,
-    enabled: queryType === 'traces',
+    enabled: isAllowedSelection && queryType === 'traces',
   });
-  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
+  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({
+    query,
+    enabled: isAllowedSelection,
+  });
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
@@ -124,6 +136,8 @@ export function SpansTabContentImpl({
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
+  const [expanded, setExpanded] = useState(true);
+
   useAnalytics({
     queryType,
     aggregatesTableResult,
@@ -133,7 +147,7 @@ export function SpansTabContentImpl({
   });
 
   return (
-    <Body>
+    <Body withToolbar={expanded}>
       <TopSection>
         <StyledPageFilterBar condensed>
           <ProjectPageFilter />
@@ -182,8 +196,10 @@ export function SpansTabContentImpl({
           />
         )}
       </TopSection>
-      <ExploreToolbar extras={toolbarExtras} />
-      <MainSection fullWidth>
+      <SideSection>
+        <ExploreToolbar width={300} extras={toolbarExtras} />
+      </SideSection>
+      <MainSection>
         {(tableError || chartError) && (
           <Alert type="error" showIcon>
             {tableError || chartError}
@@ -192,6 +208,7 @@ export function SpansTabContentImpl({
         <ExploreCharts
           canUsePreviousResults={canUsePreviousResults}
           confidences={confidences}
+          isAllowedSelection={isAllowedSelection}
           query={query}
           timeseriesResult={timeseriesResult}
         />
@@ -203,8 +220,25 @@ export function SpansTabContentImpl({
           samplesTab={samplesTab}
           setSamplesTab={setSamplesTab}
         />
+        <Toggle withToolbar={expanded}>
+          <StyledButton
+            aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+            size="xs"
+            icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
+            onClick={() => setExpanded(!expanded)}
+          />
+        </Toggle>
       </MainSection>
     </Body>
+  );
+}
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
   );
 }
 
@@ -230,16 +264,24 @@ export function SpansTabContent(props: SpanTabProps) {
   );
 }
 
-const Body = styled(Layout.Body)`
-  gap: ${space(2)};
+function checkIsAllowedSelection(
+  selection: PageFilters,
+  maxPickableDays: MaxPickableDays
+) {
+  const maxPickableMinutes = maxPickableDays * 24 * 60;
+  const selectedMinutes = getDiffInMinutes(selection.datetime);
+  return selectedMinutes <= maxPickableMinutes;
+}
 
+const Body = styled(Layout.Body)<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 300px minmax(100px, auto);
-    gap: ${space(2)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: 400px minmax(100px, auto);
+    display: grid;
+    ${p =>
+      p.withToolbar
+        ? `grid-template-columns: 300px minmax(100px, auto);`
+        : `grid-template-columns: 0px minmax(100px, auto);`}
+    gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
+    transition: 700ms;
   }
 `;
 
@@ -249,20 +291,43 @@ const TopSection = styled('div')`
   grid-column: 1/3;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;
     margin-bottom: 0;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: minmax(400px, auto) 1fr;
-  }
 `;
 
-const MainSection = styled(Layout.Main)`
-  grid-column: 2/3;
+const SideSection = styled('aside')`
+  overflow: hidden;
+`;
+
+const MainSection = styled('section')`
+  position: relative;
+  max-width: 100%;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
+`;
+
+const Toggle = styled('div')<{withToolbar: boolean}>`
+  display: none;
+  position: absolute;
+  top: 5px;
+  left: ${p => (p.withToolbar ? '-17px' : '-31px')};
+  transition: 700ms;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    display: block;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  width: 28px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+`;
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
 `;

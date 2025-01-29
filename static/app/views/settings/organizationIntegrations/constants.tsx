@@ -1,9 +1,9 @@
-export const INSTALLED = 'Installed' as const;
-export const NOT_INSTALLED = 'Not Installed' as const;
-export const PENDING = 'Pending' as const;
-export const DISABLED = 'Disabled' as const;
-export const PENDING_DELETION = 'Pending Deletion' as const;
-export const LEARN_MORE = 'Learn More' as const;
+export const INSTALLED = 'Installed';
+export const NOT_INSTALLED = 'Not Installed';
+export const PENDING = 'Pending';
+export const DISABLED = 'Disabled';
+export const PENDING_DELETION = 'Pending Deletion';
+export const LEARN_MORE = 'Learn More';
 
 export const COLORS = {
   [INSTALLED]: 'success',
