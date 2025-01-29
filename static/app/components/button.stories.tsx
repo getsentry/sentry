@@ -7,7 +7,11 @@ import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('Button', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/button';
+
+export default storyBook('Button', (story, APIReference) => {
+  APIReference(types.Button);
   story('Default', () => {
     return <Button>Default Button</Button>;
   });

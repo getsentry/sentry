@@ -23,7 +23,7 @@ export default function Stories() {
 
   const files = useStoryBookFiles();
   const story = useStoriesLoader({filename: location.query.name});
-  const nodes = useStoryTree(location.query.query ?? '', files);
+  const nodes = useStoryTree(files, location.query.query ?? '');
 
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
@@ -118,7 +118,7 @@ function StoriesLandingPage() {
   );
 }
 
-function useStoryTree(query: string, files: string[]) {
+function useStoryTree(files: string[], query: string) {
   const location = useLocation();
   const initialName = useRef(location.query.name);
 

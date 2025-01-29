@@ -10,7 +10,7 @@ type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
 type SetupFunction = (
   story: StoryContext,
-  apiReference: (documentation: TypeLoader.ComponentDocWithFilename) => void
+  apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
 ) => void;
 
 export default function storyBook(
@@ -27,9 +27,9 @@ export default function storyBook(
     stories.push({name, render});
   };
 
-  const apiReferenceFn: (documentation: TypeLoader.ComponentDocWithFilename) => void = (
+  const apiReferenceFn: (
     documentation: TypeLoader.ComponentDocWithFilename | undefined
-  ) => {
+  ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
     if (documentation) {
       APIDocumentation.push(documentation);
     }
