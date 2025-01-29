@@ -1,4 +1,3 @@
-import * as qs from 'query-string';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
@@ -21,6 +20,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {urlEncode} from 'sentry/utils';
 import {DatasetSource, TOP_N} from 'sentry/utils/discover/types';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -964,12 +964,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: qs.stringify({
-          ...defaultWidgetQuery,
-          aggregates: defaultWidgetQuery.aggregates.join(','),
-          fields: defaultWidgetQuery.fields?.join(','),
-          columns: defaultWidgetQuery.columns.join(','),
-        }),
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
         displayType: DisplayType.LINE,
         defaultTableColumns,
       },
@@ -1004,12 +999,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: qs.stringify({
-          ...defaultWidgetQuery,
-          aggregates: defaultWidgetQuery.aggregates.join(','),
-          fields: defaultWidgetQuery.fields?.join(','),
-          columns: defaultWidgetQuery.columns.join(','),
-        }),
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
       },
     });
 
@@ -1250,12 +1240,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: qs.stringify({
-          ...defaultWidgetQuery,
-          aggregates: defaultWidgetQuery.aggregates.join(','),
-          fields: defaultWidgetQuery.fields?.join(','),
-          columns: defaultWidgetQuery.columns.join(','),
-        }),
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
         defaultTableColumns,
         yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
       },
@@ -1536,12 +1521,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: qs.stringify({
-            ...defaultWidgetQuery,
-            aggregates: defaultWidgetQuery.aggregates.join(','),
-            fields: defaultWidgetQuery.fields?.join(','),
-            columns: defaultWidgetQuery.columns.join(','),
-          }),
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
@@ -1581,12 +1561,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: qs.stringify({
-            ...defaultWidgetQuery,
-            aggregates: defaultWidgetQuery.aggregates.join(','),
-            fields: defaultWidgetQuery.fields?.join(','),
-            columns: defaultWidgetQuery.columns.join(','),
-          }),
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },

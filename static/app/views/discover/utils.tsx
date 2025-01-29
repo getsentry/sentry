@@ -1,6 +1,5 @@
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
-import * as qs from 'query-string';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -15,7 +14,7 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined, urlEncode} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -887,18 +886,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      defaultWidgetQuery: qs.stringify(
-        {
-          ...defaultWidgetQuery,
-          aggregates: defaultWidgetQuery.aggregates.join(','),
-          fields: defaultWidgetQuery.fields?.join(','),
-          columns: defaultWidgetQuery.columns.join(','),
-        },
-        {
-          sort: false,
-          strict: false,
-        }
-      ),
+      defaultWidgetQuery: urlEncode(defaultWidgetQuery),
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
