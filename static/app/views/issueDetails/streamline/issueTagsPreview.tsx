@@ -50,8 +50,6 @@ type Segment = {
   color?: string;
 };
 
-//
-
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
