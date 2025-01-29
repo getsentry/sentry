@@ -21,6 +21,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
+export const HIGHLIGHT_TAGS = ['handled', 'level', 'mobile', 'main_thread', 'url'];
+
 export function markEventSeen(
   api: Client,
   orgId: string,

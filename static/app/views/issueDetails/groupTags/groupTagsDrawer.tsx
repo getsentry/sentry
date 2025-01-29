@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -33,7 +34,7 @@ import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistributi
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+import {HIGHLIGHT_TAGS, useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function GroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
@@ -67,6 +68,16 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     environment: environments,
   });
 
+  const {data: detailedProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+    return tagKeys.filter(tag => !HIGHLIGHT_TAGS.includes(tag));
+  }, [detailedProject, project]);
+
   const tagValues = useMemo(
     () =>
       data.reduce((valueMap, tag) => {
@@ -78,8 +89,11 @@ export function GroupTagsDrawer({group}: {group: Group}) {
   );
 
   const displayTags = useMemo(() => {
-    const sortedTags = data.sort((a, b) => a.key.localeCompare(b.key));
-    const searchedTags = sortedTags.filter(
+    const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
+    const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
+    const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
+    const orderedTags = [...highlightTags, ...sortedTags];
+    const searchedTags = orderedTags.filter(
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
@@ -87,7 +101,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
         tagValues[tag.key].includes(search)
     );
     return searchedTags;
-  }, [data, search, tagValues]);
+  }, [data, search, tagValues, highlightTagKeys]);
 
   if (isPending) {
     return <LoadingIndicator />;

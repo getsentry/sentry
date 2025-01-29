@@ -17,14 +17,16 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
+import {HIGHLIGHT_TAGS, usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -199,6 +201,17 @@ export default function IssueTagsPreview({
   project: Project;
 }) {
   const searchQuery = useEventQuery({groupId});
+  const organization = useOrganization();
+
+  const {data: detailedProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+    return tagKeys.filter(tag => !HIGHLIGHT_TAGS.includes(tag));
+  }, [detailedProject, project]);
 
   const {
     isError,
@@ -213,6 +226,7 @@ export default function IssueTagsPreview({
       return [];
     }
 
+    const highlightTags = tags.filter(tag => highlightTagKeys.includes(tag.key));
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
       : frontend.some(val => val === project?.platform)
@@ -226,9 +240,10 @@ export default function IssueTagsPreview({
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
     const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
-    const orderedTags = [...sortedTags, ...remainingTagKeys];
-    return orderedTags.slice(0, 4);
-  }, [tags, project?.platform]);
+    const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
+    const uniqueTags = [...new Set(orderedTags)];
+    return uniqueTags.slice(0, 4);
+  }, [tags, project?.platform, highlightTagKeys]);
 
   if (isPending) {
     return (
