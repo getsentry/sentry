@@ -57,7 +57,9 @@ SecondaryNav.Item = function SecondaryNavItem({
   ...linkProps
 }: SecondaryNavItemProps) {
   const {pathname} = useLocation();
-  const isActive = incomingIsActive || isLinkActive(to, pathname);
+  const isActive =
+    incomingIsActive ||
+    isLinkActive(typeof to === 'string' ? to : to.pathname ?? '/', pathname);
 
   return (
     <Item
