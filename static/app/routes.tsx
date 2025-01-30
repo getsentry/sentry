@@ -1912,6 +1912,10 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
       {traceViewRoute}
+      <Route
+        path="multi-query/"
+        component={make(() => import('sentry/views/explore/multiQueryMode'))}
+      />
     </Fragment>
   );
   const tracesRoutes = (
