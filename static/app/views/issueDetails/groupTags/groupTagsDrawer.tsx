@@ -68,7 +68,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     environment: environments,
   });
 
-  const {data: detailedProject} = useDetailedProject({
+  const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -102,7 +102,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     return searchedTags;
   }, [data, search, tagValues, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightsPending) {
     return <LoadingIndicator />;
   }
 
