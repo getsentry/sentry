@@ -513,7 +513,7 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract logs from breadccrumbs only for a random fraction of sent breadcrumbs.
+# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
 #
 # NOTE: Any value below 1.0 will break the product. Do not override in production.
 register(
