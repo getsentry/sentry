@@ -45,7 +45,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <FilterContainer role="group" aria-description={t('Event filtering controls')}>
+      <FilterContainer
+        role="group"
+        aria-description={t('Event filtering controls')}
+        hasFilterBar={issueTypeConfig.header.filterBar.enabled}
+      >
         {issueTypeConfig.header.filterBar.enabled && (
           <Fragment>
             <EnvironmentSelector group={group} event={event} project={project} />
@@ -78,21 +82,21 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             </Flex>
           </Fragment>
         )}
-        <GraphSection>
-          {issueTypeConfig.header.graph.enabled && (
+        {issueTypeConfig.header.graph.enabled && (
+          <GraphSection>
             <EventGraph event={event} group={group} style={{flex: 1}} />
-          )}
-          {issueTypeConfig.header.tagDistribution.enabled && (
-            <Fragment>
-              <SectionDivider />
-              <IssueTagsPreview
-                groupId={group.id}
-                environments={environments}
-                project={project}
-              />
-            </Fragment>
-          )}
-        </GraphSection>
+            {issueTypeConfig.header.tagDistribution.enabled && (
+              <Fragment>
+                <SectionDivider />
+                <IssueTagsPreview
+                  groupId={group.id}
+                  environments={environments}
+                  project={project}
+                />
+              </Fragment>
+            )}
+          </GraphSection>
+        )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} />
         )}
@@ -142,11 +146,13 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   );
 }
 
-const FilterContainer = styled('div')`
+const FilterContainer = styled('div')<{
+  hasFilterBar: boolean;
+}>`
   padding-left: 24px;
   display: grid;
-  grid-template-columns: auto auto minmax(100px, 1fr);
-  grid-template-rows: minmax(38px, auto) auto auto;
+  grid-template-columns: auto auto minmax(100px, 1fr) auto;
+  grid-template-rows: ${p => (p.hasFilterBar ? 'minmax(38px, auto) auto auto' : 'auto')};
   grid-template-areas:
     'env      date      search    toggle'
     'graph    graph     graph     graph'
@@ -177,14 +183,18 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
-  border-top: 1px solid ${p => p.theme.translucentBorder};
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.translucentBorder};
+  }
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   grid-area: timeline;
   padding: ${space(2)};
   padding-right: 0;
-  border-top: 1px solid ${p => p.theme.translucentBorder};
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.translucentBorder};
+  }
 `;
 
 const SectionDivider = styled('div')`
