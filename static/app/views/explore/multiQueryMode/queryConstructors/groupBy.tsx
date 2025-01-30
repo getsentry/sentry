@@ -17,13 +17,11 @@ export function GroupBySection() {
     const potentialOptions = Object.keys(tags).filter(key => key !== 'id');
     potentialOptions.sort();
 
-    return [
-      ...potentialOptions.map(key => ({
-        label: key,
-        value: key,
-        textValue: key,
-      })),
-    ];
+    return potentialOptions.map(key => ({
+      label: key,
+      value: key,
+      textValue: key,
+    }));
   }, [tags]);
 
   return (
