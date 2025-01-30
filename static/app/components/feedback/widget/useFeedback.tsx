@@ -31,7 +31,6 @@ export function useFeedback({
       messagePlaceholder: messagePlaceholder ?? t('What did you expect?'),
       formTitle: formTitle ?? t('Give Feedback'),
       tags,
-      _experiments: {annotations: true},
     };
   }, [config.theme, formTitle, messagePlaceholder, tags]);
 
