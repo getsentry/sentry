@@ -1,13 +1,14 @@
+import type React from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
 
 import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
@@ -25,6 +26,7 @@ import type {
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
+  actions: React.ReactNode;
   editMode: 'single' | 'bulk';
   isLoading: boolean;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
@@ -36,6 +38,7 @@ const {useFormField} = projectSamplingForm;
 const EMPTY_ARRAY: any = [];
 
 export function ProjectsEditTable({
+  actions,
   isLoading: isLoadingProp,
   sampleCounts,
   editMode,
@@ -181,16 +184,16 @@ export function ProjectsEditTable({
     [value]
   );
 
-  const [activeItems, inactiveItems] = useMemo(
-    () => partition(items, item => item.count > 0 || item.initialSampleRate !== '100'),
-    [items]
-  );
-
   const isLoading = fetching || isLoadingProp;
 
   return (
     <Fragment>
-      <BreakdownPanel>
+      <SamplingBreakdown
+        sampleCounts={sampleCounts}
+        sampleRates={breakdownSampleRates}
+        isLoading={isLoading}
+      />
+      <Panel>
         {isLoading ? (
           <LoadingIndicator
             css={css`
@@ -199,95 +202,77 @@ export function ProjectsEditTable({
           />
         ) : (
           <Fragment>
-            <BreakdownWrapper>
-              <SamplingBreakdown
-                sampleCounts={sampleCounts}
-                sampleRates={breakdownSampleRates}
-              />
-            </BreakdownWrapper>
             <FieldGroup
-              label={t('Estimated Organization Rate')}
+              label={<label>{t('Estimated Organization Rate')}</label>}
               help={t('An estimate of the combined sample rate for all projects.')}
               flexibleControlStateSize
               alignRight
             >
               <InputWrapper>
-                <Tooltip
-                  disabled={hasAccess}
-                  title={t('You do not have permission to change the sample rate')}
-                >
-                  <PercentInput
-                    type="number"
-                    ref={inputRef}
-                    disabled={!hasAccess || !isBulkEditEnabled}
-                    size="sm"
-                    onChange={handleOrgChange}
-                    value={projectedOrgRate}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        inputRef.current?.blur();
-                      }
-                    }}
-                    onBlur={handleOrgBlur}
-                  />
-                </Tooltip>
                 <FlexRow>
-                  <PreviousValue>
-                    {initialOrgRate !== projectedOrgRate
-                      ? t('previous: %f%%', initialOrgRate)
-                      : // Placeholder char to prevent the line from collapsing
-                        '\u200b'}
-                  </PreviousValue>
                   {hasAccess && !isBulkEditEnabled && (
-                    <BulkEditButton
-                      size="zero"
-                      tooltipProps={{
-                        position: 'bottom',
-                      }}
+                    <Button
                       title={t('Proportionally scale project rates')}
-                      priority="link"
+                      aria-label={t('Proportionally scale project rates')}
+                      borderless
+                      size="sm"
                       onClick={() => {
                         setIsBulkEditEnabled(true);
                       }}
-                    >
-                      {t('edit')}
-                    </BulkEditButton>
+                      icon={<IconEdit />}
+                    />
                   )}
+                  <Tooltip
+                    disabled={hasAccess}
+                    title={t('You do not have permission to change the sample rate')}
+                  >
+                    <PercentInput
+                      type="number"
+                      ref={inputRef}
+                      disabled={!hasAccess || !isBulkEditEnabled}
+                      size="sm"
+                      onChange={handleOrgChange}
+                      value={projectedOrgRate}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          inputRef.current?.blur();
+                        }
+                      }}
+                      onBlur={handleOrgBlur}
+                    />
+                  </Tooltip>
                 </FlexRow>
+                <PreviousValue>
+                  {initialOrgRate !== projectedOrgRate
+                    ? t('previous: %f%%', initialOrgRate)
+                    : // Placeholder char to prevent the line from collapsing
+                      '\u200b'}
+                </PreviousValue>
               </InputWrapper>
             </FieldGroup>
+            <ProjectsTable
+              rateHeader={t('Target Rate')}
+              canEdit={!isBulkEditEnabled}
+              onChange={handleProjectChange}
+              emptyMessage={t('No active projects found in the selected period.')}
+              period={period}
+              isLoading={isLoading}
+              items={items}
+            />
+            <Footer>{actions}</Footer>
           </Fragment>
         )}
-      </BreakdownPanel>
-
-      <ProjectsTable
-        rateHeader={t('Target Rate')}
-        canEdit={!isBulkEditEnabled}
-        onChange={handleProjectChange}
-        emptyMessage={t('No active projects found in the selected period.')}
-        period={period}
-        isLoading={isLoading}
-        items={activeItems}
-        inactiveItems={inactiveItems}
-      />
+      </Panel>
     </Fragment>
   );
 }
-
-const BreakdownPanel = styled(Panel)`
-  margin-bottom: ${space(3)};
-`;
-
-const BreakdownWrapper = styled('div')`
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
 
 const InputWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  align-items: flex-end;
 `;
 
 const FlexRow = styled('div')`
@@ -302,8 +287,10 @@ const PreviousValue = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const BulkEditButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: 0;
-  border: none;
+const Footer = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 `;
