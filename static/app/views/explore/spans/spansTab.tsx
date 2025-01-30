@@ -199,36 +199,38 @@ export function SpansTabContentImpl({
       <SideSection>
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
-      <MainSection>
+      <section>
         {(tableError || chartError) && (
           <Alert type="error" showIcon>
             {tableError || chartError}
           </Alert>
         )}
-        <ExploreCharts
-          canUsePreviousResults={canUsePreviousResults}
-          confidences={confidences}
-          isAllowedSelection={isAllowedSelection}
-          query={query}
-          timeseriesResult={timeseriesResult}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          samplesTab={samplesTab}
-          setSamplesTab={setSamplesTab}
-        />
-        <Toggle withToolbar={expanded}>
-          <StyledButton
-            aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
-            size="xs"
-            icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
-            onClick={() => setExpanded(!expanded)}
+        <MainContent>
+          <ExploreCharts
+            canUsePreviousResults={canUsePreviousResults}
+            confidences={confidences}
+            isAllowedSelection={isAllowedSelection}
+            query={query}
+            timeseriesResult={timeseriesResult}
           />
-        </Toggle>
-      </MainSection>
+          <ExploreTables
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+            tracesTableResult={tracesTableResult}
+            confidences={confidences}
+            samplesTab={samplesTab}
+            setSamplesTab={setSamplesTab}
+          />
+          <Toggle withToolbar={expanded}>
+            <StyledButton
+              aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+              size="xs"
+              icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
+              onClick={() => setExpanded(!expanded)}
+            />
+          </Toggle>
+        </MainContent>
+      </section>
     </Body>
   );
 }
@@ -301,7 +303,7 @@ const SideSection = styled('aside')`
   overflow: hidden;
 `;
 
-const MainSection = styled('section')`
+const MainContent = styled('div')`
   position: relative;
   max-width: 100%;
 `;
@@ -314,6 +316,8 @@ const Toggle = styled('div')<{withToolbar: boolean}>`
   display: none;
   position: absolute;
   top: 0px;
+
+  z-index: 1; /* place above loading mask */
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
