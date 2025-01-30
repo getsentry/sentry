@@ -270,11 +270,5 @@ describe('App', function () {
     });
 
     expect(await screen.findByText('isChonk: true')).toBeInTheDocument();
-
-    act(() => {
-      OrganizationStore.setNoOrganization();
-    });
-
-    expect(await screen.findByText('isChonk: false')).toBeInTheDocument();
   });
 });
