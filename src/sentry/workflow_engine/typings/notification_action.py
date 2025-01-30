@@ -54,7 +54,7 @@ class BaseActionTranslator(ABC):
         pass
 
     @property
-    def target_identifier(self) -> str | int | None:
+    def target_identifier(self) -> str | None:
         """Return the target identifier for this action, if any"""
         return None
 
@@ -321,9 +321,8 @@ class EmailActionTranslator(BaseActionTranslator):
             return ActionTarget.USER
         elif target_type == ActionTargetType.TEAM.value:
             return ActionTarget.TEAM
-        elif target_type == ActionTargetType.ISSUE_OWNERS.value:
+        else:
             return ActionTarget.ISSUE_OWNERS
-        return None
 
     @property
     def integration_id(self) -> Any | None:
