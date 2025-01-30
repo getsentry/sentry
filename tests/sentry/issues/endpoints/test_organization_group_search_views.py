@@ -586,7 +586,7 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
 
 
 class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
-    def create_base_data_with_page_filters(self) -> list[GroupSearchView]:
+    def create_base_data_with_page_filters(self) -> None:
         user_1 = self.user
         self.user_2 = self.create_user()
         self.create_member(organization=self.organization, user=self.user_2)
@@ -679,7 +679,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_basic_get_page_filters_with_global_filters(self):
+    def test_basic_get_page_filters_with_global_filters(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.url)
 
@@ -700,7 +700,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
-    def test_get_page_filters_without_global_filters(self):
+    def test_get_page_filters_without_global_filters(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.url)
 
@@ -721,7 +721,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
-    def test_get_page_filters_without_global_filters_user_2(self):
+    def test_get_page_filters_without_global_filters_user_2(self) -> None:
         self.login_as(user=self.user_2)
         response = self.client.get(self.url)
 
@@ -732,7 +732,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_default_page_filters_with_global_views(self):
+    def test_default_page_filters_with_global_views(self) -> None:
         self.login_as(user=self.user_3)
         response = self.client.get(self.url)
 
@@ -750,7 +750,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
-    def test_default_page_filters_without_global_views(self):
+    def test_default_page_filters_without_global_views(self) -> None:
         self.login_as(user=self.user_3)
         response = self.client.get(self.url)
 
