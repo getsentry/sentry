@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from requests import PreparedRequest
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -27,7 +28,6 @@ from sentry.integrations.source_code_management.repo_trees import RepoTreesClien
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
-from sentry.options import options
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
