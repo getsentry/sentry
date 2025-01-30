@@ -39,6 +39,7 @@ import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
 
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
+import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
@@ -141,7 +142,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let completeSeries: TimeseriesData[] = scaledSeries;
   const incompleteSeries: TimeseriesData[] = [];
 
-  if (dataCompletenessDelay > 0) {
+  if (dataCompletenessDelay > 0 && ['line', 'area'].includes(props.visualizationType)) {
+    // In order to show incomplete data for line and area series, we have to do
+    // a shenanigan in which we split the series into two, style the
+    // "incomplete" series differently, and show both series on the chart
     completeSeries = [];
 
     scaledSeries.forEach(timeserie => {
@@ -157,6 +161,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       if (incompleteSerie && incompleteSerie.data.length > 0) {
         incompleteSeries.push(incompleteSerie);
       }
+    });
+  } else if (dataCompletenessDelay > 0 && props.visualizationType === 'bar') {
+    // Bar charts are not continuous (there are gaps between the bars) so no
+    // shenanigan is needed. Simply mark the "incomplete" bars
+    completeSeries = props.timeseries.map(timeserie => {
+      return markDelayedData(timeserie, dataCompletenessDelay);
     });
   }
 
