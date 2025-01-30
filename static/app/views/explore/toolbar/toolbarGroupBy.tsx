@@ -108,14 +108,18 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
               </Tooltip>
             </ToolbarHeader>
             {disabled ? (
-              <ColumnEditorRow
-                disabled={mode === Mode.SAMPLES}
-                canDelete={false}
-                column={{id: 1, column: ''}}
-                options={disabledOptions}
-                onColumnChange={() => {}}
-                onColumnDelete={() => {}}
-              />
+              <FullWidthTooltip
+                title={t('Switch to aggregate results to apply grouping')}
+              >
+                <ColumnEditorRow
+                  disabled={disabled}
+                  canDelete={false}
+                  column={{id: 1, column: ''}}
+                  options={disabledOptions}
+                  onColumnChange={() => {}}
+                  onColumnDelete={() => {}}
+                />
+              </FullWidthTooltip>
             ) : (
               editableColumns.map((column, i) => (
                 <ColumnEditorRow
@@ -229,4 +233,8 @@ const TriggerLabel = styled('span')`
 
 const Disabled = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
 `;
