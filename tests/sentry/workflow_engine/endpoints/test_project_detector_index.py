@@ -54,17 +54,17 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.slug,
-            "data_source": {
-                "query_type": SnubaQuery.Type.ERROR.value,
+            "groupType": MetricAlertFire.slug,
+            "dataSource": {
+                "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
                 "query": "test query",
                 "aggregate": "count()",
-                "time_window": 60,
+                "timeWindow": 60,
                 "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.value],
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.value],
             },
-            "data_conditions": [
+            "dataConditions": [
                 {
                     "type": Condition.GREATER,
                     "comparison": 100,
@@ -75,7 +75,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
 
     def test_missing_group_type(self):
         data = {**self.valid_data}
-        del data["group_type"]
+        del data["groupType"]
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -85,7 +85,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == {"groupType": ["This field is required."]}
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": "invalid_type"}
+        data = {**self.valid_data, "groupType": "invalid_type"}
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -97,7 +97,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
-            data = {**self.valid_data, "group_type": "incompatible_type"}
+            data = {**self.valid_data, "groupType": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,

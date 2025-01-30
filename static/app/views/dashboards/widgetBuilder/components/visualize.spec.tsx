@@ -934,6 +934,29 @@ describe('Visualize', () => {
     expect(screen.getByRole('textbox', {name: 'Numeric Input'})).toHaveValue('300');
   });
 
+  it('does not allow for deleting the only field or aggregate when there is an equation', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['equation|count()+1', 'count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove field'});
+    expect(removeButtons[0]).toBeEnabled();
+    expect(removeButtons[1]).toBeDisabled();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {

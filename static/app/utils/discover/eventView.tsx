@@ -13,7 +13,7 @@ import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import toArray from 'sentry/utils/array/toArray';
@@ -1265,7 +1265,7 @@ class EventView {
   }
 
   getPerformanceTransactionEventsViewUrlTarget(
-    slug: string,
+    organization: Organization,
     options: {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
@@ -1297,7 +1297,7 @@ class EventView {
     const query = cloneDeep(output as any);
     return {
       pathname: normalizeUrl(
-        `${getTransactionSummaryBaseUrl(slug, options.view)}/events/`
+        `${getTransactionSummaryBaseUrl(organization, options.view)}/events/`
       ),
       query,
     };
