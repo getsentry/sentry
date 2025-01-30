@@ -104,8 +104,8 @@ export function ScreenSummaryContent() {
         <SamplesTables
           transactionName={transactionName}
           SpanOperationTable={SpanOperationTable}
-          // TODO(nar): Add event samples component specific to ui module
-          EventSamples={_props => <div />}
+          // for now, let's only show the span ops table
+          EventSamples={undefined}
         />
       </SamplesContainer>
     </Fragment>
