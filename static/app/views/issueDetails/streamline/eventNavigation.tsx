@@ -76,10 +76,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.ATTACHMENTS]: t('Attachments'),
     [Tab.USER_FEEDBACK]: t('Feedback'),
   };
-
-  const allEventsPath = issueTypeConfig.showOpenPeriods
-    ? `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`
-    : `${baseUrl}${TabPaths[Tab.EVENTS]}`;
+  const allEventsPath = `${baseUrl}${TabPaths[issueTypeConfig.allEventsPath]}`;
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -199,18 +196,20 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             </LinkButton>
           </Fragment>
         )}
-        {(currentTab === Tab.EVENTS || currentTab === Tab.OPEN_PERIODS) && (
+        {currentTab === issueTypeConfig.allEventsPath && (
           <ButtonBar gap={1}>
-            <LinkButton
-              to={discoverUrl}
-              aria-label={t('Open in Discover')}
-              size="xs"
-              icon={<IconTelescope />}
-              analyticsEventKey="issue_details.discover_clicked"
-              analyticsEventName="Issue Details: Discover Clicked"
-            >
-              {t('Discover')}
-            </LinkButton>
+            {currentTab === Tab.EVENTS && (
+              <LinkButton
+                to={discoverUrl}
+                aria-label={t('Open in Discover')}
+                size="xs"
+                icon={<IconTelescope />}
+                analyticsEventKey="issue_details.discover_clicked"
+                analyticsEventName="Issue Details: Discover Clicked"
+              >
+                {t('Discover')}
+              </LinkButton>
+            )}
             <LinkButton
               to={{
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
