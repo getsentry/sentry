@@ -5,9 +5,10 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
+import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -27,11 +28,12 @@ interface Props {
 }
 
 export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}: Props) {
-  const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
-    useFormField('targetSampleRate');
+  const smapleRateField = useFormField('targetSampleRate');
+
+  const hasAccess = useHasDynamicSamplingWriteAccess();
 
   const debouncedTargetSampleRate = useDebouncedValue(
-    targetSampleRate,
+    smapleRateField.value,
     // For longer lists we debounce the input to avoid too many re-renders
     sampleCounts.length > 100 ? 200 : 0
   );
@@ -56,7 +58,7 @@ export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}:
   }, [debouncedTargetSampleRate, balancingItems]);
 
   const initialSampleRateById = useMemo(() => {
-    const targetRate = parsePercent(initialTargetSampleRate);
+    const targetRate = parsePercent(smapleRateField.initialValue);
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate,
       items: balancingItems,
@@ -66,7 +68,7 @@ export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}:
       acc[item.id] = item.sampleRate;
       return acc;
     }, {});
-  }, [initialTargetSampleRate, balancingItems]);
+  }, [smapleRateField.initialValue, balancingItems]);
 
   const itemsWithFormattedNumbers = useMemo(() => {
     return balancedItems.map(item => ({
@@ -91,7 +93,18 @@ export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}:
         isLoading={isLoading}
       />
       <Panel>
-        <OrganizationSampleRateField />
+        <OrganizationSampleRateInput
+          hasAccess={hasAccess}
+          value={smapleRateField.value}
+          onChange={smapleRateField.onChange}
+          previousValue={smapleRateField.initialValue}
+          showPreviousValue={smapleRateField.hasChanged}
+          error={smapleRateField.error}
+          label={t('Target Sample Rate')}
+          help={t(
+            'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
+          )}
+        />
         <ProjectsTable
           rateHeader={t('Target Rate')}
           canEdit={false}

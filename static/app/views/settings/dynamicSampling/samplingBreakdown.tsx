@@ -168,7 +168,7 @@ export function SamplingBreakdown({
 }
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
   margin-bottom: ${space(1.5)};
 `;
 
