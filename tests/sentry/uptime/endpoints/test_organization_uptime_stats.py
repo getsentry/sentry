@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest import skip
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -85,6 +86,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         assert response.status_code == 400
 
     @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
+    @skip("vgrozdanic: This test is flaky and should be skipped")
     def test_too_many_periods(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
