@@ -1,10 +1,15 @@
 from sentry.api.serializers import serialize
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.workflow_engine.models import DataConditionGroup, DataSource, DataSourceDetector
+from sentry.workflow_engine.models import (
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 
 
 class ProjectDetectorDetailsBaseTest(APITestCase):
@@ -53,16 +58,10 @@ class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.project.slug, self.detector.id)
 
-        self.detector.refresh_from_db()
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=detector_id
-        ).exists()
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="DataConditionGroup", object_id=data_condition_group.id
-        ).exists()
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="DataSourceDetector", object_id=data_source_detector.id
-        ).exists()
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="DataSource", object_id=data_source.id
-        ).exists()
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector_id).exists()
+        assert not DataConditionGroup.objects.filter(id=data_condition_group.id).exists()
+        assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
+        assert not DataSource.objects.filter(id=data_source.id).exists()
