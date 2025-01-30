@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -30,19 +30,7 @@ class OwnerResponseField(TypedDict):
     slug: str
 
 
-class SentryAppSerializerOptionalFields(TypedDict, total=False):
-    author: str | None
-    overview: str | None
-    popularity: int | None
-    redirectUrl: str | None
-    webhookUrl: str | None
-    datePublished: datetime | None
-    clientSecret: str | None
-    clientId: str | None
-    owner: OwnerResponseField | None
-
-
-class SentryAppSerializerResponse(SentryAppSerializerOptionalFields):
+class SentryAppSerializerResponse(TypedDict):
     allowedOrigins: list[str]
     avatars: SentryAppAvatarSerializerResponse
     events: set[str]
@@ -56,6 +44,17 @@ class SentryAppSerializerResponse(SentryAppSerializerOptionalFields):
     status: str
     uuid: str
     verifyInstall: bool
+
+    # Optional fields
+    author: NotRequired[str]
+    overview: NotRequired[str]
+    popularity: NotRequired[int]
+    redirectUrl: NotRequired[str]
+    webhookUrl: NotRequired[str]
+    datePublished: NotRequired[datetime]
+    clientSecret: NotRequired[str]
+    clientId: NotRequired[str]
+    owner: NotRequired[OwnerResponseField]
 
 
 @register(SentryApp)
