@@ -62,7 +62,7 @@ export function OrganizationSampleRateInput({
           >
             <PercentInput
               type="number"
-              disabled={!hasAccess}
+              disabled={!hasAccess || (isBulkEditEnabled && !isBulkEditActive)}
               value={value}
               size="sm"
               ref={inputRef}
