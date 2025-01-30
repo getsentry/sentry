@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const uptimeConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -27,6 +28,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       eventUnits: t('Check-ins'),
       resolution: t('Resolved'),
     },
+    allEventsPath: Tab.EVENTS,
     attachments: {enabled: false},
     resources: null,
     autofix: false,
