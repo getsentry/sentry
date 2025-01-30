@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -124,7 +123,6 @@ function Content() {
                       'Traces lets you search for individual spans that make up a trace, linked by a trace id.'
                     )}
                   />
-                  <FeatureBadge type="beta" />
                 </Layout.Title>
                 <FeedbackWidgetButton />
               </HeaderContentBar>
