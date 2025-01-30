@@ -24,8 +24,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_current_batch_groups_from_postgres,
     get_data_from_snuba,
     get_events_from_nodestore,
-    get_project_for_batch,
-    initialize_backfill,
+    get_next_project_from_cohort,
     send_group_and_stacktrace_to_seer,
     send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
@@ -117,16 +116,11 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
+    last_processed_project_index = (
+        last_processed_project_index_input if last_processed_project_index_input else 0
+    )
     try:
-        (
-            project,
-            last_processed_group_id,
-            last_processed_project_index,
-        ) = initialize_backfill(
-            current_project_id,
-            last_processed_group_id_input,
-            last_processed_project_index_input,
-        )
+        project = Project.objects.get_from_cache(id=current_project_id)
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
@@ -196,8 +190,11 @@ def backfill_seer_grouping_records_for_project(
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
+    # Get the next batch of groups from postgres and filter out ineligible ones. Regardless of
+    # filtering, also capture the last group id in the raw/unfiltered batch, to be used when
+    # querying for the next batch.
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id, batch_size, worker_number, enable_ingestion
+        project, last_processed_group_id_input, batch_size, worker_number, enable_ingestion
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:
@@ -218,6 +215,7 @@ def backfill_seer_grouping_records_for_project(
         project, groups_to_backfill_with_no_embedding, worker_number
     )
 
+    # Filter out groups with no snuba data
     (
         filtered_snuba_results,
         groups_to_backfill_with_no_embedding_has_snuba_row,
@@ -341,6 +339,8 @@ def call_next_backfill(
     last_processed_group_id: int | None = None,
     last_processed_project_id: int | None = None,
 ) -> None:
+    # There might still be more groups to process in this project - call the backfill task to check
+    # and then handle them if necessary.
     if last_processed_group_id is not None:
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
@@ -358,7 +358,6 @@ def call_next_backfill(
             headers={"sentry-propagate-traces": False},
         )
     else:
-        # call the backfill on next project
         if not cohort:
             logger.info(
                 "backfill_seer_grouping_records.single_project_backfill_finished",
@@ -366,10 +365,9 @@ def call_next_backfill(
             )
             return
 
-        cohort_projects = cohort
-
-        batch_project_id, last_processed_project_index = get_project_for_batch(
-            last_processed_project_index, cohort_projects
+        # call the backfill on next project
+        batch_project_id, last_processed_project_index = get_next_project_from_cohort(
+            last_processed_project_index, cohort
         )
 
         if batch_project_id is None and worker_number is None:
