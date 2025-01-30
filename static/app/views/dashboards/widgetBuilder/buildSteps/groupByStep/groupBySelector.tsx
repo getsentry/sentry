@@ -236,7 +236,12 @@ export function GroupBySelector({
             {t('Add Group')}
           </AddGroupButton>
         ) : (
-          <Button size="sm" priority="link" onClick={handleAdd}>
+          <Button
+            size="sm"
+            priority="link"
+            onClick={handleAdd}
+            aria-label={t('Add Group')}
+          >
             {t('+ Add Group')}
           </Button>
         ))}
