@@ -1972,7 +1972,7 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route
-      path="/explore"
+      path="/explore/"
       component={make(() => import('sentry/views/explore/navigation'))}
       withOrgPath
     >
