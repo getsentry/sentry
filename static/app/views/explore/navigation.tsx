@@ -26,38 +26,30 @@ export default function ExploreNavigation({children}: Props) {
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <Feature features="performance-trace-explorer">
-              <SecondaryNav.Item to={`/organizations/${organization.slug}/traces/`}>
+              <SecondaryNav.Item to={`${baseUrl}/traces/`}>
                 {t('Traces')}
               </SecondaryNav.Item>
             </Feature>
             <Feature features="ourlogs-enabled">
               <SecondaryNav.Item to={`${baseUrl}/logs/`}>{t('Logs')}</SecondaryNav.Item>
             </Feature>
-            <Feature features="custom-metrics">
-              <SecondaryNav.Item to={`/organizations/${organization.slug}/metrics/`}>
-                {t('Metrics')}
-              </SecondaryNav.Item>
-            </Feature>
             <Feature features="profiling">
-              <SecondaryNav.Item to={`/organizations/${organization.slug}/profiling/`}>
+              <SecondaryNav.Item to={`${baseUrl}/profiling/`}>
                 {t('Profiles')}
               </SecondaryNav.Item>
             </Feature>
             <Feature features="session-replay-ui">
-              <SecondaryNav.Item to={`/organizations/${organization.slug}/replays/`}>
+              <SecondaryNav.Item to={`${baseUrl}/replays/`}>
                 {t('Replays')}
               </SecondaryNav.Item>
             </Feature>
             <Feature features="discover-basic">
-              <SecondaryNav.Item to={`/organizations/${organization.slug}/discover/`}>
+              <SecondaryNav.Item to={`${baseUrl}/discover/`}>
                 {t('Discover')}
               </SecondaryNav.Item>
             </Feature>
-            <SecondaryNav.Item to={`/organizations/${organization.slug}/releases/`}>
+            <SecondaryNav.Item to={`${baseUrl}/releases/`}>
               {t('Releases')}
-            </SecondaryNav.Item>
-            <SecondaryNav.Item to={`/organizations/${organization.slug}/crons/`}>
-              {t('Crons')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         </SecondaryNav.Body>
