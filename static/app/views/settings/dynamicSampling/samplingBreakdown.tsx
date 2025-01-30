@@ -189,6 +189,7 @@ const Breakdown = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  background: ${p => p.theme.backgroundTertiary};
 `;
 
 const Legend = styled('div')`

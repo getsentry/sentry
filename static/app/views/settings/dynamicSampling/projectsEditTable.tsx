@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -45,29 +46,19 @@ export function ProjectsEditTable({
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const {value, initialValue, error, onChange} = useFormField('projectRates');
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const [orgRate, setOrgRate] = useState<string>('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
   const dataByProjectId = useMemo(
     () =>
-      sampleCounts.reduce(
-        (acc, item) => {
-          acc[item.project.id] = item;
-          return acc;
-        },
-        {} as Record<string, (typeof sampleCounts)[0]>
-      ),
+      mapArrayToObject({
+        array: sampleCounts,
+        keySelector: item => item.project.id,
+        valueSelector: item => item,
+      }),
     [sampleCounts]
   );
-
-  useEffect(() => {
-    if (isBulkEditEnabled) {
-      inputRef.current?.focus();
-    }
-  }, [isBulkEditEnabled]);
 
   const handleProjectChange = useCallback(
     (projectId: string, newRate: string) => {
@@ -82,11 +73,14 @@ export function ProjectsEditTable({
 
   const handleOrgChange = useCallback(
     (newRate: string) => {
+      // Editing the org rate will transition the logic to bulk edit mode
+      // On the first edit, we need to snapshot the current project rates as scaling baseline
+      // to avoid rounding errors when scaling the sample rates up and down
       if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
-      const cappedOrgRate = parsePercent(newRate, 1);
 
+      const cappedOrgRate = parsePercent(newRate, 1);
       const scalingItems = Object.entries(projectRateSnapshotRef.current)
         .map(([projectId, rate]) => ({
           id: projectId,
@@ -101,11 +95,13 @@ export function ProjectsEditTable({
         sampleRate: cappedOrgRate,
       });
 
-      const newProjectValues = scaledItems.reduce((acc, item) => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        acc[item.id] = formatPercent(item.sampleRate);
-        return acc;
-      }, {});
+      const newProjectValues = mapArrayToObject({
+        array: scaledItems,
+        keySelector: item => item.id,
+        valueSelector: item => formatPercent(item.sampleRate),
+      });
+
+      // Update the form state (project values) with the new sample rates
       onChange(prev => {
         return {...prev, ...newProjectValues};
       });
@@ -116,10 +112,11 @@ export function ProjectsEditTable({
     [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
 
-  const handleBulkEditChange = useCallback((newValue: boolean) => {
-    setIsBulkEditEnabled(newValue);
-    if (newValue === false) {
-      // Parse to ensure valid values
+  const handleBulkEditChange = useCallback((newIsActive: boolean) => {
+    setIsBulkEditEnabled(newIsActive);
+
+    // On exiting the bulk edit mode, we need to ensure the displayed org rate is a valid percentage
+    if (newIsActive === false) {
       setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
     }
   }, []);
@@ -127,9 +124,7 @@ export function ProjectsEditTable({
   const items = useMemo(
     () =>
       projects.map(project => {
-        const item = dataByProjectId[project.id] as
-          | (typeof dataByProjectId)[string]
-          | undefined;
+        const item = dataByProjectId[project.id];
         return {
           id: project.slug,
           name: project.slug,
@@ -150,7 +145,9 @@ export function ProjectsEditTable({
     [items]
   );
 
-  const projectedOrgRate = useMemo(() => {
+  // In bulk edit mode, we display the org rate from the input state
+  // In single edit mode, we display the estimated org rate based on the current sample rates
+  const displayedOrgRate = useMemo(() => {
     if (editMode === 'bulk') {
       return orgRate;
     }
@@ -171,13 +168,11 @@ export function ProjectsEditTable({
 
   const breakdownSampleRates = useMemo(
     () =>
-      Object.entries(value).reduce(
-        (acc, [projectId, rate]) => {
-          acc[projectId] = parsePercent(rate);
-          return acc;
-        },
-        {} as Record<string, number>
-      ),
+      mapArrayToObject({
+        array: Object.entries(value),
+        keySelector: ([projectId, _]) => projectId,
+        valueSelector: ([_, rate]) => parsePercent(rate),
+      }),
     [value]
   );
 
@@ -202,13 +197,13 @@ export function ProjectsEditTable({
             <OrganizationSampleRateInput
               label={t('Estimated Organization Rate')}
               help={t('An estimate of the combined sample rate for all projects.')}
-              value={projectedOrgRate}
+              value={displayedOrgRate}
               hasAccess={hasAccess}
               isBulkEditEnabled
               isBulkEditActive={isBulkEditEnabled}
               onBulkEditChange={handleBulkEditChange}
               onChange={handleOrgChange}
-              showPreviousValue={initialOrgRate !== projectedOrgRate}
+              showPreviousValue={initialOrgRate !== displayedOrgRate}
               previousValue={initialOrgRate}
             />
             <ProjectsTable

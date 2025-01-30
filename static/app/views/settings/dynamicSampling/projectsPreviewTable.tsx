@@ -8,6 +8,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
@@ -28,12 +29,11 @@ interface Props {
 }
 
 export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}: Props) {
-  const smapleRateField = useFormField('targetSampleRate');
-
+  const sampleRateField = useFormField('targetSampleRate');
   const hasAccess = useHasDynamicSamplingWriteAccess();
 
   const debouncedTargetSampleRate = useDebouncedValue(
-    smapleRateField.value,
+    sampleRateField.value,
     // For longer lists we debounce the input to avoid too many re-renders
     sampleCounts.length > 100 ? 200 : 0
   );
@@ -57,33 +57,37 @@ export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}:
     });
   }, [debouncedTargetSampleRate, balancingItems]);
 
-  const initialSampleRateById = useMemo(() => {
-    const targetRate = parsePercent(smapleRateField.initialValue);
+  const initialSampleRatesById = useMemo(() => {
+    const targetRate = parsePercent(sampleRateField.initialValue);
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate,
       items: balancingItems,
     });
-    return initialBalancedItems.reduce((acc, item) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      acc[item.id] = item.sampleRate;
-      return acc;
-    }, {});
-  }, [smapleRateField.initialValue, balancingItems]);
+
+    return mapArrayToObject({
+      array: initialBalancedItems,
+      keySelector: item => item.id,
+      valueSelector: item => item.sampleRate,
+    });
+  }, [sampleRateField.initialValue, balancingItems]);
 
   const itemsWithFormattedNumbers = useMemo(() => {
     return balancedItems.map(item => ({
       ...item,
       sampleRate: formatPercent(item.sampleRate),
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      initialSampleRate: formatPercent(initialSampleRateById[item.id]),
+      initialSampleRate: formatPercent(initialSampleRatesById[item.id]!),
     }));
-  }, [balancedItems, initialSampleRateById]);
+  }, [balancedItems, initialSampleRatesById]);
 
-  const breakdownSampleRates = balancedItems.reduce((acc, item) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    acc[item.id] = item.sampleRate;
-    return acc;
-  }, {});
+  const breakdownSampleRates = useMemo(
+    () =>
+      mapArrayToObject({
+        array: balancedItems,
+        keySelector: item => item.id,
+        valueSelector: item => item.sampleRate,
+      }),
+    [balancedItems]
+  );
 
   return (
     <Fragment>
@@ -95,11 +99,11 @@ export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}:
       <Panel>
         <OrganizationSampleRateInput
           hasAccess={hasAccess}
-          value={smapleRateField.value}
-          onChange={smapleRateField.onChange}
-          previousValue={smapleRateField.initialValue}
-          showPreviousValue={smapleRateField.hasChanged}
-          error={smapleRateField.error}
+          value={sampleRateField.value}
+          onChange={sampleRateField.onChange}
+          previousValue={sampleRateField.initialValue}
+          showPreviousValue={sampleRateField.hasChanged}
+          error={sampleRateField.error}
           label={t('Target Sample Rate')}
           help={t(
             'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'

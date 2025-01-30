@@ -14,6 +14,7 @@ import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
@@ -89,13 +90,11 @@ export function ProjectSampling() {
     const spanCounts = sampleCountsQuery.data ?? [];
     const totalSpanCount = spanCounts.reduce((acc, item) => acc + item.count, 0);
 
-    const spanCountsById = spanCounts.reduce(
-      (acc, item) => {
-        acc[item.project.id] = item.count;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const spanCountsById = mapArrayToObject({
+      array: spanCounts,
+      keySelector: item => item.project.id,
+      valueSelector: item => item.count,
+    });
 
     return (
       sampleRates.reduce((acc, item) => {
