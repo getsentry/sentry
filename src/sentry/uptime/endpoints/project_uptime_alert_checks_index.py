@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
@@ -8,14 +9,16 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.api.utils import handle_query_errors
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.models import ProjectUptimeSubscription
@@ -36,12 +39,27 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         project: Project,
         uptime_subscription: ProjectUptimeSubscription,
     ) -> Response:
-        rpc_response = self._make_eap_request(project, uptime_subscription)
-        results = self._format_response(rpc_response, uptime_subscription)
-        return self.respond(results)
+
+        def data_fn(offset: int, limit: int) -> Any:
+            rpc_response = self._make_eap_request(
+                project, uptime_subscription, offset=offset, limit=limit
+            )
+            return self._format_response(rpc_response, uptime_subscription)
+
+        with handle_query_errors():
+            return self.paginate(
+                request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                default_per_page=10,
+                max_per_page=100,
+            )
 
     def _make_eap_request(
-        self, project: Project, uptime_subscription: ProjectUptimeSubscription
+        self,
+        project: Project,
+        uptime_subscription: ProjectUptimeSubscription,
+        offset: int,
+        limit: int,
     ) -> TraceItemTableResponse:
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(datetime.now() - timedelta(days=90))
@@ -126,8 +144,8 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     descending=True,
                 )
             ],
-            limit=100,
-            # TODO: Add pagination
+            limit=limit,
+            page_token=PageToken(offset=offset),
         )
 
         rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
@@ -136,32 +154,54 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
     def _format_response(
         self, rpc_response: TraceItemTableResponse, uptime_subscription: ProjectUptimeSubscription
     ) -> list[dict[str, int | str | float]]:
+        """
+        Transform the response from the EAP into a list of items per each uptime check.
+        """
         column_values = rpc_response.column_values
+        if not column_values:
+            return []
+
         column_names = [cv.attribute_name for cv in column_values]
-        results = []
-        if column_values:
-            num_rows = len(column_values[0].results)
-            for row_idx in range(num_rows):
-                row_dict: dict[str, int | str | float] = {}
-                for col_idx, col_name in enumerate(column_names):
-                    result = column_values[col_idx].results[row_idx]
-                    # Extract the actual value based on which field is set
-                    if result.HasField("val_str"):
-                        if col_name == "uptime_subscription_id":
-                            if col_name in row_dict:
-                                del row_dict[col_name]
-                            row_dict["project_uptime_subscription_id"] = uptime_subscription.id
-                            row_dict[col_name] = uptime_subscription.id
-                        else:
-                            row_dict[col_name] = result.val_str
-                    elif result.HasField("val_int"):
-                        row_dict[col_name] = int(result.val_int)
-                    elif result.HasField("val_float"):
-                        if col_name == "scheduled_check_time" or col_name == "timestamp":
-                            row_dict[col_name] = datetime.fromtimestamp(result.val_float).strftime(
-                                "%Y-%m-%dT%H:%M:%SZ"
-                            )
-                        else:
-                            row_dict[col_name] = result.val_float
-                results.append(convert_dict_key_case(row_dict, snake_to_camel_case))
-        return results
+        return [
+            self._format_row(row_idx, column_values, column_names, uptime_subscription)
+            for row_idx in range(len(column_values[0].results))
+        ]
+
+    def _format_row(
+        self,
+        row_idx: int,
+        column_values: list,
+        column_names: list[str],
+        uptime_subscription: ProjectUptimeSubscription,
+    ) -> dict[str, int | str | float]:
+        row_dict: dict[str, int | str | float] = {}
+        for col_idx, col_name in enumerate(column_names):
+            result = column_values[col_idx].results[row_idx]
+            row_dict.update(self._extract_field_value(result, col_name, uptime_subscription))
+        return convert_dict_key_case(row_dict, snake_to_camel_case)
+
+    def _extract_field_value(
+        self, result, col_name: str, uptime_subscription: ProjectUptimeSubscription
+    ) -> dict[str, int | str | float]:
+        if result.HasField("val_str"):
+            return self._handle_string_field(result.val_str, col_name, uptime_subscription)
+        elif result.HasField("val_int"):
+            return {col_name: int(result.val_int)}
+        elif result.HasField("val_float"):
+            return self._handle_float_field(result.val_float, col_name)
+        return {}
+
+    def _handle_string_field(
+        self, value: str, col_name: str, uptime_subscription: ProjectUptimeSubscription
+    ) -> dict[str, str]:
+        if col_name == "uptime_subscription_id":
+            return {
+                "project_uptime_subscription_id": uptime_subscription.id,
+                col_name: uptime_subscription.id,
+            }
+        return {col_name: value}
+
+    def _handle_float_field(self, value: float, col_name: str) -> dict[str, str | float]:
+        if col_name in ("scheduled_check_time", "timestamp"):
+            return {col_name: datetime.fromtimestamp(value).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        return {col_name: value}
