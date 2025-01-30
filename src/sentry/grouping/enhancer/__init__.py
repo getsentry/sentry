@@ -146,7 +146,7 @@ class Enhancements:
 
         self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
 
-    def apply_modifications_to_frame(
+    def apply_category_and_updated_in_app_to_frames(
         self,
         frames: Sequence[dict[str, Any]],
         platform: str,
