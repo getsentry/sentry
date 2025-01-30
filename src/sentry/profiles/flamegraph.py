@@ -546,9 +546,11 @@ class FlamegraphExecutor:
 
     def get_spans_based_candidates(self, query: str | None, limit: int) -> EAPResponse:
         # add constraints in order to fetch only spans with profiles
-        if len(query) > 0:
-            query += " and "
-        query += "(has:profile.id) or (has:profiler.id has:thread.id)"
+        profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
+        if query is not None and len(query) > 0:
+            query += f" and {profiling_constraint}"
+        else:
+            query = profiling_constraint
         return spans_rpc.run_table_query(
             self.snuba_params,
             query,
