@@ -59,7 +59,9 @@ export function getExploreUrl({
   );
 }
 
-export function combineConfidenceForSeries(series: TimeseriesData[]): Confidence {
+export function combineConfidenceForSeries(
+  series: Array<Pick<TimeseriesData, 'confidence'>>
+): Confidence {
   let lows = 0;
   let highs = 0;
   let nulls = 0;
