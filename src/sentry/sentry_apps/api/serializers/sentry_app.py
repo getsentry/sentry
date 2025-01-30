@@ -46,13 +46,13 @@ class SentryAppSerializerResponse(TypedDict):
     verifyInstall: bool
 
     # Optional fields
-    author: NotRequired[str]
-    overview: NotRequired[str]
-    popularity: NotRequired[int]
-    redirectUrl: NotRequired[str]
-    webhookUrl: NotRequired[str]
+    author: NotRequired[str | None]
+    overview: NotRequired[str | None]
+    popularity: NotRequired[int | None]
+    redirectUrl: NotRequired[str | None]
+    webhookUrl: NotRequired[str | None]
+    clientSecret: NotRequired[str | None]
     datePublished: NotRequired[datetime]
-    clientSecret: NotRequired[str]
     clientId: NotRequired[str]
     owner: NotRequired[OwnerResponseField]
 
