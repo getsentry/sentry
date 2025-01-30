@@ -89,9 +89,12 @@ export function GroupTagsDrawer({group}: {group: Group}) {
 
   const displayTags = useMemo(() => {
     const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
+    const orderedHighlightTags = highlightTags.sort(
+      (a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key)
+    );
     const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
     const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
-    const orderedTags = [...highlightTags, ...sortedTags];
+    const orderedTags = [...orderedHighlightTags, ...sortedTags];
     const searchedTags = orderedTags.filter(
       tag =>
         tag.key.includes(search) ||
