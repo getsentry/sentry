@@ -24,6 +24,8 @@ interface WidgetPreviewProps {
   shouldForceDescriptionTooltip?: boolean;
 }
 
+const MIN_TABLE_COLUMN_WIDTH = '125px';
+
 function WidgetPreview({
   dashboard,
   dashboardFilters,
@@ -88,6 +90,8 @@ function WidgetPreview({
       // onWidgetSplitDecision={onWidgetSplitDecision}
 
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+      // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
+      minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH}
     />
   );
 }
