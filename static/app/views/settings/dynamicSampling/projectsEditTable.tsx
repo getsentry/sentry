@@ -3,16 +3,12 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
-import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
@@ -85,8 +81,7 @@ export function ProjectsEditTable({
   );
 
   const handleOrgChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newRate = event.target.value;
+    (newRate: string) => {
       if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
@@ -121,10 +116,12 @@ export function ProjectsEditTable({
     [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
 
-  const handleOrgBlur = useCallback(() => {
-    setIsBulkEditEnabled(false);
-    // Parse to ensure valid values
-    setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+  const handleBulkEditChange = useCallback((newValue: boolean) => {
+    setIsBulkEditEnabled(newValue);
+    if (newValue === false) {
+      // Parse to ensure valid values
+      setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+    }
   }, []);
 
   const items = useMemo(
@@ -202,55 +199,18 @@ export function ProjectsEditTable({
           />
         ) : (
           <Fragment>
-            <FieldGroup
-              label={<label>{t('Estimated Organization Rate')}</label>}
+            <OrganizationSampleRateInput
+              label={t('Estimated Organization Rate')}
               help={t('An estimate of the combined sample rate for all projects.')}
-              flexibleControlStateSize
-              alignRight
-            >
-              <InputWrapper>
-                <FlexRow>
-                  {hasAccess && !isBulkEditEnabled && (
-                    <Button
-                      title={t('Proportionally scale project rates')}
-                      aria-label={t('Proportionally scale project rates')}
-                      borderless
-                      size="sm"
-                      onClick={() => {
-                        setIsBulkEditEnabled(true);
-                      }}
-                      icon={<IconEdit />}
-                    />
-                  )}
-                  <Tooltip
-                    disabled={hasAccess}
-                    title={t('You do not have permission to change the sample rate')}
-                  >
-                    <PercentInput
-                      type="number"
-                      ref={inputRef}
-                      disabled={!hasAccess || !isBulkEditEnabled}
-                      size="sm"
-                      onChange={handleOrgChange}
-                      value={projectedOrgRate}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          inputRef.current?.blur();
-                        }
-                      }}
-                      onBlur={handleOrgBlur}
-                    />
-                  </Tooltip>
-                </FlexRow>
-                <PreviousValue>
-                  {initialOrgRate !== projectedOrgRate
-                    ? t('previous: %f%%', initialOrgRate)
-                    : // Placeholder char to prevent the line from collapsing
-                      '\u200b'}
-                </PreviousValue>
-              </InputWrapper>
-            </FieldGroup>
+              value={projectedOrgRate}
+              hasAccess={hasAccess}
+              isBulkEditEnabled
+              isBulkEditActive={isBulkEditEnabled}
+              onBulkEditChange={handleBulkEditChange}
+              onChange={handleOrgChange}
+              showPreviousValue={initialOrgRate !== projectedOrgRate}
+              previousValue={initialOrgRate}
+            />
             <ProjectsTable
               rateHeader={t('Target Rate')}
               canEdit={!isBulkEditEnabled}
@@ -267,25 +227,6 @@ export function ProjectsEditTable({
     </Fragment>
   );
 }
-
-const InputWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  align-items: flex-end;
-`;
-
-const FlexRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
-
-const PreviousValue = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.subText};
-`;
 
 const Footer = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
