@@ -327,6 +327,16 @@ class DetectorParams:
     )
 
 
+class WorkflowParams:
+    WORKFLOW_ID = OpenApiParameter(
+        name="workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+    )
+
+
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
