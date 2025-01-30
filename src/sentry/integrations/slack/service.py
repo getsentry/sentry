@@ -45,6 +45,9 @@ from sentry.notifications.notifications.activity.escalating import EscalatingAct
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_pull_request import (
+    ResolvedInPullRequestActivityNotification,
+)
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
@@ -68,7 +71,7 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedActivityNotification,
-    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedInPullRequestActivityNotification,
     ActivityType.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityNotification,
     ActivityType.UNASSIGNED: UnassignedActivityNotification,
     ActivityType.SET_ESCALATING: EscalatingActivityNotification,
