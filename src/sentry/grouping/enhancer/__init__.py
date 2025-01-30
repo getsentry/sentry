@@ -153,7 +153,12 @@ class Enhancements:
         exception_data: dict[str, Any],
     ) -> None:
         """
-        This applies the frame modifications to the frames itself. This does not affect grouping.
+        Apply enhancement rules to each frame, adding a category (if any) and updating the `in_app`
+        value if necessary.
+
+        Both the category and `in_app` data will be used during grouping. The `in_app` values will
+        also be persisted in the saved event, so they can be used in the UI and when determining
+        things like suspect commits and suggested assignees.
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
