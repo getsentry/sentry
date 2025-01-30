@@ -19,7 +19,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {
+  ProjectionSamplePeriod,
+  ProjectSampleCount,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+
+type SubProject = ProjectSampleCount['subProjects'][number];
 
 interface ProjectItem {
   count: number;
@@ -160,11 +165,6 @@ export function ProjectsTable({
   );
 }
 
-interface SubProject {
-  count: number;
-  slug: string;
-}
-
 function getSubProjectContent(
   ownSlug: string,
   subProjects: SubProject[],
@@ -179,14 +179,14 @@ function getSubProjectContent(
     const moreTranslation = t('+%d more', overflowCount);
     const stringifiedSubProjects =
       overflowCount > 0
-        ? `${truncatedSubProjects.map(p => p.slug).join(', ')}, ${moreTranslation}`
-        : oxfordizeArray(truncatedSubProjects.map(p => p.slug));
+        ? `${truncatedSubProjects.map(p => p.project.slug).join(', ')}, ${moreTranslation}`
+        : oxfordizeArray(truncatedSubProjects.map(p => p.project.slug));
 
     subProjectContent = isExpanded ? (
       <Fragment>
         <div>{ownSlug}</div>
         {subProjects.map(subProject => (
-          <div key={subProject.slug}>{subProject.slug}</div>
+          <div key={subProject.project.slug}>{subProject.project.slug}</div>
         ))}
       </Fragment>
     ) : (
@@ -213,7 +213,9 @@ function getSubSpansContent(
       <Fragment>
         <div>{formatAbbreviatedNumber(ownCount, 2)}</div>
         {subProjects.map(subProject => (
-          <div key={subProject.slug}>{formatAbbreviatedNumber(subProject.count)}</div>
+          <div key={subProject.project.slug}>
+            {formatAbbreviatedNumber(subProject.count)}
+          </div>
         ))}
       </Fragment>
     ) : (
@@ -241,7 +243,7 @@ function getStoredSpansContent(
       <Fragment>
         <div>{formatAbbreviatedNumber(Math.floor(ownCount * sampleRate), 2)}</div>
         {subProjects.map(subProject => (
-          <div key={subProject.slug}>
+          <div key={subProject.project.slug}>
             {formatAbbreviatedNumber(Math.floor(subProject.count * sampleRate))}
           </div>
         ))}
