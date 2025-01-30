@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -37,6 +37,14 @@ export function OrganizationSampleRateInput({
   onBulkEditChange,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Autofocus the input when bulk edit is activated
+  useEffect(() => {
+    if (isBulkEditActive) {
+      inputRef.current?.focus();
+    }
+  }, [isBulkEditActive]);
+
   const showBulkEditButton = hasAccess && isBulkEditEnabled && !isBulkEditActive;
   return (
     <Wrapper>
@@ -81,6 +89,8 @@ export function OrganizationSampleRateInput({
           <ErrorMessage>{error}</ErrorMessage>
         ) : showPreviousValue ? (
           <PreviousValue>{t('previous: %f%%', previousValue)}</PreviousValue>
+        ) : value === '100' ? (
+          <AllDataStoredMessage>{t('All spans are stored')}</AllDataStoredMessage>
         ) : null}
       </InputWrapper>
     </Wrapper>
@@ -123,6 +133,11 @@ const PreviousValue = styled('span')`
 const ErrorMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.error};
+`;
+
+const AllDataStoredMessage = styled('span')`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.success};
 `;
 
 const InputWrapper = styled('div')`
