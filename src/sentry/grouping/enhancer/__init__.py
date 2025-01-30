@@ -162,11 +162,11 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_enhanced_frames = self.rust_enhancements.apply_modifications_to_frames(
+        category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
             match_frames, make_rust_exception_data(exception_data)
         )
 
-        for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+        for frame, (category, in_app) in zip(frames, category_and_in_app_results):
             if in_app is not None:
                 set_in_app(frame, in_app)
             if category is not None:
