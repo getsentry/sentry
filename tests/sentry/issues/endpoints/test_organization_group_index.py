@@ -4046,7 +4046,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         with self.feature(
             {
                 "organizations:feature-flag-autocomplete": True,
-                "organizations:issue-search-snuba": False,
+                "organizations:issue-search-snuba": True,
             }
         ):
             response = self.get_success_response(query="abc:true")
