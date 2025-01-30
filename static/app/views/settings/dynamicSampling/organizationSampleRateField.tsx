@@ -26,7 +26,7 @@ export function OrganizationSampleRateField() {
     >
       <InputWrapper
         css={css`
-          width: 160px;
+          width: 120px;
         `}
       >
         <Tooltip
