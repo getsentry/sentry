@@ -16,7 +16,7 @@
        <!-- Sign In Tab -->
       {% url 'sentry-login' as login_url %}
       <li{% if request.path == login_url %} class="active"{% endif %}>
-        <a href="{{ login_url }}">{% trans "Single In" %}</a>
+        <a href="{{ login_url }}">{% trans "Sign In" %}</a>
       </li>
 
       <!-- Register Tab -->
