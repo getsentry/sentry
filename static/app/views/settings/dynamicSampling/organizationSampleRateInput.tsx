@@ -89,6 +89,8 @@ export function OrganizationSampleRateInput({
           <ErrorMessage>{error}</ErrorMessage>
         ) : showPreviousValue ? (
           <PreviousValue>{t('previous: %f%%', previousValue)}</PreviousValue>
+        ) : value === '100' ? (
+          <AllDataStoredMessage>{t('All spans are stored')}</AllDataStoredMessage>
         ) : null}
       </InputWrapper>
     </Wrapper>
@@ -131,6 +133,11 @@ const PreviousValue = styled('span')`
 const ErrorMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.error};
+`;
+
+const AllDataStoredMessage = styled('span')`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.success};
 `;
 
 const InputWrapper = styled('div')`
