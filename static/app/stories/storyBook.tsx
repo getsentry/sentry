@@ -4,22 +4,38 @@ import styled from '@emotion/styled';
 
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
+import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
-type StoryFunction = (storyName: string, storyRender: StoryRenderFunction) => void;
-type SetupFunction = (story: StoryFunction) => void;
+type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
+type SetupFunction = (
+  story: StoryContext,
+  apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
+) => void;
 
 export default function storyBook(
   bookContext: string | React.ComponentType<any>,
   setup: SetupFunction
 ): StoryRenderFunction {
-  const contexts: Array<{name: string; render: StoryRenderFunction}> = [];
+  const stories: Array<{
+    name: string;
+    render: StoryRenderFunction;
+  }> = [];
+  const APIDocumentation: TypeLoader.ComponentDocWithFilename[] = [];
 
-  const storyFn: StoryFunction = (name: string, render: StoryRenderFunction) => {
-    contexts.push({name, render});
+  const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
+    stories.push({name, render});
   };
 
-  setup(storyFn);
+  const apiReferenceFn: (
+    documentation: TypeLoader.ComponentDocWithFilename | undefined
+  ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
+    if (documentation) {
+      APIDocumentation.push(documentation);
+    }
+  };
+
+  setup(storyFn, apiReferenceFn);
 
   // @TODO (JonasBadalic): we can props or use a context to communciate with the storyFile component
   return function RenderStory() {
@@ -37,7 +53,7 @@ export default function storyBook(
             <code>{`<${title}/>`}</code>
           </BookTitle>
         )}
-        {contexts.map(({name, render}, i) => {
+        {stories.map(({name, render}, i) => {
           const children = render();
           const isOneChild = Children.count(children) === 1;
           const key = `${i}_${name}`;
@@ -49,6 +65,10 @@ export default function storyBook(
             </Story>
           );
         })}
+
+        {APIDocumentation.map((documentation, i) => (
+          <StoryTypes key={i} types={documentation} />
+        ))}
       </Fragment>
     );
   };
