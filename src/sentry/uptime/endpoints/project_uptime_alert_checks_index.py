@@ -1,0 +1,163 @@
+from datetime import datetime, timedelta
+
+from google.protobuf.timestamp_pb2 import Timestamp
+from rest_framework.request import Request
+from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    Column,
+    TraceItemTableRequest,
+    TraceItemTableResponse,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
+from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
+from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.utils import snuba_rpc
+
+
+@region_silo_endpoint
+class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
+    owner = ApiOwner.CRONS
+
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        uptime_subscription: ProjectUptimeSubscription,
+    ) -> Response:
+        rpc_response = self._make_eap_request(project, uptime_subscription)
+        results = self._format_response(rpc_response, uptime_subscription)
+        return self.respond(results)
+
+    def _make_eap_request(
+        self, project: Project, uptime_subscription: ProjectUptimeSubscription
+    ) -> TraceItemTableResponse:
+        start_timestamp = Timestamp()
+        start_timestamp.FromDatetime(datetime.now() - timedelta(days=90))
+        end_timestamp = Timestamp()
+        end_timestamp.FromDatetime(datetime.now())
+        rpc_request = TraceItemTableRequest(
+            meta=RequestMeta(
+                referrer="uptime_alert_checks_index",
+                organization_id=project.organization.id,
+                project_ids=[project.id],
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
+                start_timestamp=start_timestamp,
+                end_timestamp=end_timestamp,
+            ),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        name="uptime_subscription_id",
+                        type=AttributeKey.Type.TYPE_STRING,
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(
+                        val_str=str(uptime_subscription.uptime_subscription.subscription_id)
+                    ),
+                )
+            ),
+            columns=[
+                Column(
+                    label="environment",
+                    key=AttributeKey(name="environment", type=AttributeKey.Type.TYPE_STRING),
+                ),
+                Column(
+                    label="uptime_subscription_id",
+                    key=AttributeKey(
+                        name="uptime_subscription_id", type=AttributeKey.Type.TYPE_STRING
+                    ),
+                ),
+                Column(
+                    label="uptime_check_id",
+                    key=AttributeKey(name="uptime_check_id", type=AttributeKey.Type.TYPE_STRING),
+                ),
+                Column(
+                    label="scheduled_check_time",
+                    key=AttributeKey(
+                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_FLOAT
+                    ),
+                ),
+                Column(
+                    label="timestamp",
+                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_FLOAT),
+                ),
+                Column(
+                    label="duration_ms",
+                    key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
+                ),
+                Column(
+                    label="region",
+                    key=AttributeKey(name="region", type=AttributeKey.Type.TYPE_STRING),
+                ),
+                Column(
+                    label="check_status",
+                    key=AttributeKey(name="check_status", type=AttributeKey.Type.TYPE_STRING),
+                ),
+                Column(
+                    label="check_status_reason",
+                    key=AttributeKey(
+                        name="check_status_reason", type=AttributeKey.Type.TYPE_STRING
+                    ),
+                ),
+                Column(
+                    label="trace_id",
+                    key=AttributeKey(name="trace_id", type=AttributeKey.Type.TYPE_STRING),
+                ),
+                # TODO: Add http_status_code once nullable problem figured out
+            ],
+            order_by=[
+                TraceItemTableRequest.OrderBy(
+                    column=Column(
+                        label="timestamp",
+                        key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_INT),
+                    ),
+                    descending=True,
+                )
+            ],
+            limit=100,
+            # TODO: Add pagination
+        )
+
+        rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+        return rpc_response
+
+    def _format_response(
+        self, rpc_response: TraceItemTableResponse, uptime_subscription: ProjectUptimeSubscription
+    ) -> list[dict[str, int | str | float]]:
+        column_values = rpc_response.column_values
+        column_names = [cv.attribute_name for cv in column_values]
+        results = []
+        if column_values:
+            num_rows = len(column_values[0].results)
+            for row_idx in range(num_rows):
+                row_dict: dict[str, int | str | float] = {}
+                for col_idx, col_name in enumerate(column_names):
+                    result = column_values[col_idx].results[row_idx]
+                    # Extract the actual value based on which field is set
+                    if result.HasField("val_str"):
+                        if col_name == "uptime_subscription_id":
+                            row_dict[col_name] = uptime_subscription.id
+                        else:
+                            row_dict[col_name] = result.val_str
+                    elif result.HasField("val_int"):
+                        row_dict[col_name] = int(result.val_int)
+                    elif result.HasField("val_float"):
+                        if col_name == "scheduled_check_time" or col_name == "timestamp":
+                            row_dict[col_name] = datetime.fromtimestamp(result.val_float).strftime(
+                                "%Y-%m-%dT%H:%M:%SZ"
+                            )
+                        else:
+                            row_dict[col_name] = result.val_float
+                results.append(row_dict)
+        return results
