@@ -12,7 +12,17 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AttributeValue,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Op
 
@@ -340,7 +350,29 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
-        raise ParseError(detail=f"add the stuff here: {meta}")
+        # sample request from the tests in the sentry-protos repo
+        rpc_request = TraceItemStatsRequest(
+            meta=meta,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        type=AttributeKey.TYPE_STRING,
+                        name="eap.measurement",
+                    ),
+                    op=ComparisonFilter.OP_GREATER_THAN,
+                    value=AttributeValue(val_double=999),
+                ),
+            ),
+            stats_types=[
+                StatsType(
+                    attribute_distributions=AttributeDistributionsRequest(
+                        max_buckets=10, max_attributes=100
+                    )
+                )
+            ],
+        )
+
+        raise ParseError(detail=f"add the stuff here: {rpc_request}")
 
 
 class SpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
