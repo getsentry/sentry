@@ -180,6 +180,7 @@ const Heading = styled('h6')`
 const Footer = styled('div')`
   display: flex;
   gap: ${space(2)};
+  align-items: flex-start;
 `;
 
 const Breakdown = styled('div')`
@@ -202,7 +203,7 @@ const Legend = styled('div')`
 const Total = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   flex-shrink: 0;
 `;
