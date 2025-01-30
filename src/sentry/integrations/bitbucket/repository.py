@@ -46,6 +46,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
         try:
+            secret = installation.model.metadata.get("webhook_secret", "")
             resp = client.create_hook(
                 data["identifier"],
                 {
@@ -54,6 +55,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
                         f"/extensions/bitbucket/organizations/{organization.id}/webhook/"
                     ),
                     "active": True,
+                    "secret": secret,
                     "events": ["repo:push", "pullrequest:fulfilled"],
                 },
             )
