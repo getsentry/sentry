@@ -6,7 +6,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -36,6 +36,7 @@ function OrgDashboards(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {dashboardId} = useParams<{dashboardId: string}>();
+  const queryClient = useQueryClient();
 
   const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
 
@@ -87,15 +88,13 @@ function OrgDashboards(props: Props) {
 
   const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
-  const onDashboardUpdate = (updatedDashboard: DashboardDetails) => {
-    setSelectedDashboardState(updatedDashboard);
-  };
-
   const getDashboards = (): DashboardListItem[] => {
     return Array.isArray(dashboards) ? dashboards : [];
   };
 
-  if (dashboardId || fetchedSelectedDashboard) {
+  const selectedDashboardStateKey = queryClient.getQueryData([ENDPOINT]);
+
+  if (dashboardId || selectedDashboardStateKey) {
     const queryParamFilters = new Set([
       'project',
       'environment',
@@ -106,7 +105,7 @@ function OrgDashboards(props: Props) {
       'release',
     ]);
     if (
-      fetchedSelectedDashboard &&
+      selectedDashboardStateKey &&
       // Only redirect if there are saved filters and none of the filters
       // appear in the query params
       hasSavedPageFilters(fetchedSelectedDashboard) &&
@@ -161,8 +160,7 @@ function OrgDashboards(props: Props) {
       error: Boolean(dashboardsError || selectedDashboardError),
       dashboard,
       dashboards: getDashboards(),
-      onDashboardUpdate: (updatedDashboard: DashboardDetails) =>
-        onDashboardUpdate(updatedDashboard),
+      onDashboardUpdate: setSelectedDashboardState,
     });
   };
 
