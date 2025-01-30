@@ -35,7 +35,6 @@ export function EventDetailsHeader({
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
-
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   if (!issueTypeConfig.header.filterAndSearch.enabled) {
