@@ -513,7 +513,6 @@ class FlamegraphExecutor:
 
     def get_profile_candidates_from_spans(self) -> ProfileCandidates:
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-
         results = self.get_spans_based_candidates(query=self.query, limit=max_profiles)
         transaction_profile_candidates: list[TransactionProfileCandidate] = [
             {
@@ -521,7 +520,7 @@ class FlamegraphExecutor:
                 "profile_id": row["profile.id"],
             }
             for row in results["data"]
-            if row["profile.id"] is not None
+            if row["profile.id"] is not None and row["profile.id"] != ""
         ]
 
         max_continuous_profile_candidates = max(
@@ -547,7 +546,9 @@ class FlamegraphExecutor:
 
     def get_spans_based_candidates(self, query: str | None, limit: int) -> EAPResponse:
         # add constraints in order to fetch only spans with profiles
-        query = f"({query}) and (has:profile.id or (has:profiler.id and has:thread.id))"
+        if len(query) > 0:
+            query += " and "
+        query += "(has:profile.id) or (has:profiler.id has:thread.id)"
         return spans_rpc.run_table_query(
             self.snuba_params,
             query,
@@ -563,7 +564,7 @@ class FlamegraphExecutor:
             ],
             orderby=["-timestamp"],
             offset=0,
-            limit=limit,
+            limit=10,
             referrer=Referrer.API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH.value,
             config=SearchResolverConfig(
                 auto_fields=True,
