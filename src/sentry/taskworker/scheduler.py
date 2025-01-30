@@ -257,7 +257,7 @@ class CrontabSchedule(Schedule):
 class ScheduleEntry:
     """Metadata about a task that can be scheduled"""
 
-    def __init__(self, *, task: Task[Any, Any], schedule: timedelta) -> None:
+    def __init__(self, *, task: Task[Any, Any], schedule: timedelta | crontab) -> None:
         self._task = task
         scheduler: Schedule
         if isinstance(schedule, crontab):
