@@ -207,7 +207,7 @@ function convertEventsStatsToTimeSeriesData(
       fields: seriesData.meta!.fields,
       units: seriesData.meta?.units,
     },
-    confidenceRating: determineSeriesConfidence(seriesData),
+    confidence: determineSeriesConfidence(seriesData),
   };
 
   return [seriesData.order ?? 0, serie];

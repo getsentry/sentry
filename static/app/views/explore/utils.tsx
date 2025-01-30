@@ -65,9 +65,9 @@ export function combineConfidenceForSeries(series: TimeseriesData[]): Confidence
   let nulls = 0;
 
   for (const s of series) {
-    if (s.confidenceRating === 'low') {
+    if (s.confidence === 'low') {
       lows += 1;
-    } else if (s.confidenceRating === 'high') {
+    } else if (s.confidence === 'high') {
       highs += 1;
     } else {
       nulls += 1;

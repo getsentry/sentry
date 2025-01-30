@@ -19,7 +19,7 @@ export type TimeseriesData = {
   data: TimeSeriesItem[];
   field: string;
   color?: string;
-  confidenceRating?: Confidence;
+  confidence?: Confidence;
   meta?: Meta;
 };
 
