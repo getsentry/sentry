@@ -96,11 +96,16 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             )
 
         if not has_global_views:
-            for view in query:
-                if view.is_all_projects or view.projects.count() > 1 or view.projects.count() == 0:
+            views_to_updates = []
+            default_project = pick_default_project(organization, request.user)
+
+            for view in query.prefetch_related("projects"):
+                if view.is_all_projects or view.projects.count() != 1:
                     view.is_all_projects = False
-                    view.projects.set([pick_default_project(organization, request.user)])
-                    view.save()
+                    view.projects.set([default_project])
+                    views_to_updates.append(view)
+
+            GroupSearchView.objects.bulk_update(views_to_updates, ["is_all_projects"])
 
         return self.paginate(
             request=request,

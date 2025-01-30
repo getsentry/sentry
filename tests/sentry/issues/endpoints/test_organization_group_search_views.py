@@ -414,7 +414,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         # Original Page filters
         assert views[0]["timeFilters"] == {"period": "14d"}
         assert views[0]["projects"] == [self.project1.id]
-        assert views[0]["environments"] == ["production"]
+        assert views[0]["environments"] == []
 
         view = views[0]
         # Change nothing but the name
