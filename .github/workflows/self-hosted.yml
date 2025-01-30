@@ -28,6 +28,9 @@ jobs:
         "arm64": "ubuntu-24.04-arm"
       }')[matrix.arch] }}
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -69,10 +72,8 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: github.event_name != 'pull_request'
+      - run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
+        if: github.ref_name == 'master' && github.event_name != 'pull_request'
 
       - run: docker buildx create --driver docker-container --use
 
@@ -98,15 +99,18 @@ jobs:
             .
 
       - run: docker push ghcr.io/getsentry/sentry-self-hosted:${{ matrix.arch }}-${{ github.sha }}
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'master' && github.event_name != 'pull_request'
 
   assemble:
     needs: self-hosted
-    if: ${{ (github.ref_name == 'master') }}
-    runs-on: ubuntu-20.04
+    if: github.ref_name == 'master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Docker Login
-        run: docker login --username '${{ github.actor }}' --password '${{ secrets.GITHUB_TOKEN }}' ghcr.io
+        run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
 
       - name: Assemble Sha Image
         run: |
@@ -115,7 +119,6 @@ jobs:
             "ghcr.io/getsentry/sentry-self-hosted:amd64-${{ github.sha }}"
 
       - name: Assemble Latest Image
-        if: github.ref_name == 'master'
         run: |
           docker buildx imagetools create -t "ghcr.io/getsentry/sentry-self-hosted:latest" \
             "ghcr.io/getsentry/sentry-self-hosted:arm64-${{ github.sha }}" \
