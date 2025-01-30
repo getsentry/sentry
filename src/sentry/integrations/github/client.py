@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from requests import PreparedRequest
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -341,6 +342,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
+        if not fetch_max_pages:
+            fetch_max_pages = options.get("github-app.fetch-max-pages")
         return self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
