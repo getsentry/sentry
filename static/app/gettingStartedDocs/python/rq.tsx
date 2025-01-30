@@ -20,7 +20,10 @@ const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[rq]'`;
 
 const getInitCallSnippet = (params: Params) => `
 sentry_sdk.init(
-  dsn="${params.dsn.public}",${
+  dsn="${params.dsn.public}",
+  # Add data like request headers and IP for users,
+  # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+  send_default_pii=True,${
     params.isPerformanceSelected
       ? `
   # Set traces_sample_rate to 1.0 to capture 100%

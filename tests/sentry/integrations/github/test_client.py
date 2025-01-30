@@ -257,14 +257,14 @@ class GitHubApiClientTest(TestCase):
         repo_key = f"github:repo:{self.repo.name}:source-code"
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert cache.get(repo_key) == files
             # Calling a second time should work
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert cache.get(repo_key) == files
             # Calling again after the cache has been cleared should still work
             cache.delete(repo_key)
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert cache.get(repo_key) == files
 
     @responses.activate
@@ -284,7 +284,7 @@ class GitHubApiClientTest(TestCase):
         repo_key = f"github:repo:{self.repo.name}:all"
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
-            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
+            files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert files == ["src/foo.py"]
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

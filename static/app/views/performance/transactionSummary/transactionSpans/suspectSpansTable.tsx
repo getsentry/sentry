@@ -106,7 +106,7 @@ function renderBodyCellWithMeta(
 
     if (column.key === 'description') {
       const target = spanDetailsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         query: location.query,
         spanSlug: {op: dataRow.operation, group: dataRow.group},
