@@ -9,7 +9,6 @@ import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -30,7 +29,6 @@ interface Props {
 
 export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}: Props) {
   const sampleRateField = useFormField('targetSampleRate');
-  const hasAccess = useHasDynamicSamplingWriteAccess();
 
   const debouncedTargetSampleRate = useDebouncedValue(
     sampleRateField.value,
@@ -98,7 +96,6 @@ export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}:
       />
       <Panel>
         <OrganizationSampleRateInput
-          hasAccess={hasAccess}
           value={sampleRateField.value}
           onChange={sampleRateField.onChange}
           previousValue={sampleRateField.initialValue}
