@@ -17,8 +17,9 @@ export function OrganizationSampleRateField() {
   return (
     <FieldGroup
       disabled={!hasAccess}
-      required
-      label={t('Target Sample Rate')}
+      flexibleControlStateSize
+      alignRight
+      label={<label>{t('Target Sample Rate')}</label>}
       help={t(
         'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
       )}
