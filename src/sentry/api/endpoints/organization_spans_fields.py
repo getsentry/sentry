@@ -310,7 +310,37 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         ):
             return Response(status=404)
 
-        raise ParseError(detail="add the stuff here")
+        try:
+            snuba_params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            # todo adjust this to be the right thing
+            return self.paginate(
+                request=request,
+                paginator=ChainPaginator([]),
+            )
+
+        serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        if serialized["dataset"] != "spans":
+            raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
+
+        snuba_params.start = snuba_params.start_date.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        snuba_params.end = snuba_params.end_date.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+
+        resolver = SearchResolver(
+            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+        )
+
+        meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
+
+        raise ParseError(detail=f"add the stuff here: {meta}")
 
 
 class SpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
