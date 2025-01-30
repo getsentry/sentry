@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -15,7 +16,12 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
-      allEvents: t('All Open Periods'),
+      eventUnits: t('Open Periods'),
+    },
+    detector: {
+      enabled: true,
+      title: t('Metric Alert Detector'),
+      ctaText: t('View detector details'),
     },
     attachments: {enabled: false},
     eventAndUserCounts: {enabled: false},
@@ -25,7 +31,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
-    showOpenPeriods: true,
+    allEventsPath: Tab.OPEN_PERIODS,
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,

@@ -17,7 +17,11 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
-from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES
+from sentry.search.events.constants import (
+    PRECISE_FINISH_TS,
+    PRECISE_START_TS,
+    SPAN_MODULE_CATEGORY_VALUES,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.validators import is_event_id, is_span_id
@@ -128,6 +132,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
+            public_alias="profiler.id",
+            internal_name="profiler_id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="thread.id",
+            internal_name="thread.id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="thread.name",
+            internal_name="thread.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
             public_alias="replay.id",
             internal_name="sentry.replay_id",
             search_type="string",
@@ -172,6 +191,16 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.timestamp",
             search_type="string",
             processor=datetime_processor,
+        ),
+        ResolvedColumn(
+            public_alias=PRECISE_START_TS,
+            internal_name="sentry.start_timestamp",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias=PRECISE_FINISH_TS,
+            internal_name="sentry.end_timestamp",
+            search_type="number",
         ),
         ResolvedColumn(
             public_alias="mobile.frames_delay",
@@ -572,7 +601,8 @@ SPAN_FUNCTION_DEFINITIONS = {
     ),
     "count_unique": FunctionDefinition(
         internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="number",
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
         arguments=[
             ArgumentDefinition(
                 argument_types={"string"},

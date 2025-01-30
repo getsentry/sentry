@@ -1,11 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -35,22 +31,20 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       builder_version: WidgetBuilderVersion.SLIDEOUT,
       data_set: state.dataset ?? '',
       new_widget: !isEditing,
-      organization: organization.slug,
+      organization,
     });
     const widget = convertBuilderStateToWidget(state);
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
-      addLoadingMessage(t('Saving widget'));
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
       setIsSaving(false);
-      clearIndicators();
       const errorDetails = error.responseJSON || error;
       setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
     }
-  }, [api, onSave, organization.slug, state, widgetIndex, setError, isEditing]);
+  }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 
   return (
     <Button priority="primary" onClick={handleSave} busy={isSaving}>

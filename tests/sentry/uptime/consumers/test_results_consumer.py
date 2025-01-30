@@ -9,6 +9,7 @@ from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
+from django.conf import settings
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
@@ -41,10 +42,10 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.utils import json
-from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
+from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
-class ProcessResultTest(ProducerTestMixin):
+class ProcessResultTest(ConfigPusherTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -83,7 +84,7 @@ class ProcessResultTest(ProducerTestMixin):
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
                 new=2,
@@ -147,7 +148,7 @@ class ProcessResultTest(ProducerTestMixin):
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
                 new=2,
@@ -186,7 +187,7 @@ class ProcessResultTest(ProducerTestMixin):
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
                 new=1,
@@ -217,7 +218,7 @@ class ProcessResultTest(ProducerTestMixin):
     def test_reset_fail_count(self):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(
                 self.create_uptime_result(
@@ -333,7 +334,7 @@ class ProcessResultTest(ProducerTestMixin):
     def test_resolve(self):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
                 new=2,
@@ -422,7 +423,7 @@ class ProcessResultTest(ProducerTestMixin):
         result = self.create_uptime_result(subscription_id)
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -434,7 +435,7 @@ class ProcessResultTest(ProducerTestMixin):
                     )
                 ]
             )
-            self.assert_producer_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
+            self.assert_config_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
 
     def test_multiple_project_subscriptions_with_disabled(self):
         """
@@ -450,7 +451,7 @@ class ProcessResultTest(ProducerTestMixin):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             # We only process a single project result, the other is dropped,
@@ -462,6 +463,30 @@ class ProcessResultTest(ProducerTestMixin):
             ]
             assert len(handle_result_calls) == 1
 
+    def test_organization_feature_disabled(self):
+        """
+        Tests that we do not process results for disabled project subscriptions
+        """
+        # Second disabled project subscription
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature({"organizations:uptime": False}),
+        ):
+            self.send_result(result)
+            handle_result_calls = [
+                c
+                for c in metrics.incr.mock_calls
+                if c[1][0] == "uptime.result_processor.handle_result_for_project"
+            ]
+            assert len(handle_result_calls) == 0
+            metrics.incr.assert_has_calls(
+                [
+                    call("uptime.result_processor.dropped_no_feature"),
+                ]
+            )
+
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
         _get_cluster().set(
@@ -470,7 +495,7 @@ class ProcessResultTest(ProducerTestMixin):
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -508,7 +533,7 @@ class ProcessResultTest(ProducerTestMixin):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_called_once_with(
@@ -543,7 +568,7 @@ class ProcessResultTest(ProducerTestMixin):
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -577,7 +602,7 @@ class ProcessResultTest(ProducerTestMixin):
                 "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -628,7 +653,7 @@ class ProcessResultTest(ProducerTestMixin):
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -669,7 +694,7 @@ class ProcessResultTest(ProducerTestMixin):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.tasks(),
-            self.feature("organizations:uptime-create-issues"),
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -825,12 +850,14 @@ class ProcessResultTest(ProducerTestMixin):
                 slug="region1",
                 name="Region 1",
                 config_topic=KafkaTopic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_topic=KafkaTopic.UPTIME_RESULTS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
         ]
@@ -849,7 +876,7 @@ class ProcessResultTest(ProducerTestMixin):
             self.send_result(result)
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
-            self.assert_producer_calls(
+            self.assert_config_calls(
                 (sub, kafka_definition.Topic.UPTIME_CONFIGS),
                 (sub, kafka_definition.Topic.UPTIME_RESULTS),
             )
@@ -866,12 +893,14 @@ class ProcessResultTest(ProducerTestMixin):
                 slug="region1",
                 name="Region 1",
                 config_topic=KafkaTopic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_topic=KafkaTopic.UPTIME_RESULTS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=False,
             ),
         ]
@@ -886,9 +915,10 @@ class ProcessResultTest(ProducerTestMixin):
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == {"region1"}
             assert sub.subscription_id
-            self.assert_producer_calls(
+            self.assert_config_calls(
                 (sub.subscription_id, kafka_definition.Topic.UPTIME_RESULTS),
                 (sub, kafka_definition.Topic.UPTIME_CONFIGS),
+                check_redis=False,
             )
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
@@ -902,6 +932,7 @@ class ProcessResultTest(ProducerTestMixin):
                 slug="region1",
                 name="Region 1",
                 config_topic=KafkaTopic.UPTIME_CONFIGS,
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
         ]
@@ -916,4 +947,4 @@ class ProcessResultTest(ProducerTestMixin):
             self.send_result(result)
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == set()
-            self.assert_producer_calls()
+            self.assert_config_calls()

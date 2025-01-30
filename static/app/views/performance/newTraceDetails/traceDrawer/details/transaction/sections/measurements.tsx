@@ -40,7 +40,7 @@ function generateLinkWithQuery(
   const eventView = EventView.fromLocation(location);
   eventView.query = query;
   return transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: event.title,
     projectID: event.projectID,
     query: {query},

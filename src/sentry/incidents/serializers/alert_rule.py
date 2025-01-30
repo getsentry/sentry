@@ -48,6 +48,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule_trigger,
     migrate_alert_rule,
     migrate_resolve_threshold_data_conditions,
 )
@@ -515,14 +516,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
                 raise BadRequest
 
-            if features.has(
+            should_dual_write = features.has(
                 "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
-            ):
+            )
+            if should_dual_write:
                 migrate_alert_rule(alert_rule, user)
-                if alert_rule.resolve_threshold:
-                    migrate_resolve_threshold_data_conditions(alert_rule)
 
             self._handle_triggers(alert_rule, triggers)
+            if should_dual_write:
+                # create the resolution data triggers once we've migrated the critical/warning triggers
+                migrate_resolve_threshold_data_conditions(alert_rule)
             return alert_rule
 
     def update(self, instance, validated_data):
@@ -562,6 +565,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
+                dual_delete_migrated_alert_rule_trigger(trigger)
                 delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:

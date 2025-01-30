@@ -1,5 +1,6 @@
 import type {IssueType} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
+import type {Tab} from 'sentry/views/issueDetails/types';
 
 export type ResourceLink = {
   link: string;
@@ -26,6 +27,10 @@ export type IssueTypeConfig = {
     share: DisabledWithReasonConfig;
   };
   /**
+   * The key for determining which 'All Events' tab will be used for this issue type
+   */
+  allEventsPath: Tab;
+  /**
    * Is the Attachments tab shown for this issue
    */
   attachments: DisabledWithReasonConfig;
@@ -37,8 +42,16 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
-    allEvents: string;
+    eventUnits: string;
     resolution: string;
+  };
+  /**
+   * Should show detector section in the sidebar
+   * Optionally set a custom title for it
+   */
+  detector: DisabledWithReasonConfig & {
+    ctaText?: string;
+    title?: string;
   };
   /**
    * Is the "Open in Discover" button available for this issue
@@ -59,7 +72,11 @@ export type IssueTypeConfig = {
     title: string;
     helpText?: string;
   } | null;
-  filterAndSearchHeader: DisabledWithReasonConfig;
+  header: {
+    filterAndSearch: DisabledWithReasonConfig;
+    tagDistribution: DisabledWithReasonConfig;
+    timelineSummary: DisabledWithReasonConfig;
+  };
   /**
    * Is the Issue Summary available for this issue
    */
@@ -107,10 +124,6 @@ export type IssueTypeConfig = {
    * Should the page show the feedback widget
    */
   showFeedbackWidget: boolean;
-  /**
-   * showOpenPeriods
-   */
-  showOpenPeriods: boolean;
   /**
    * Is the Similar Issues tab shown for this issue
    */

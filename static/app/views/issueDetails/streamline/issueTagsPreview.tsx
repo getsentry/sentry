@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -24,6 +24,7 @@ import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroup
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -67,10 +68,15 @@ function SegmentedBar({segments}: {segments: Segment[]}) {
   );
 }
 
-function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
+function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag}) {
   const theme = useTheme();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
+
+  const [isHovered, setIsHovered] = useState(false);
+  const [prefetchTagValue, setPrefetchTagValue] = useState('');
+
+  usePrefetchTagValues(prefetchTagValue, groupId, isHovered);
   const segments: Segment[] = tag.topValues.map(value => {
     let name: string | React.ReactNode = value.name;
     if (tag.key === 'release') {
@@ -128,6 +134,10 @@ function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
           query: location.query,
+        }}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          setPrefetchTagValue(tag.key);
         }}
       >
         <TagBarPlaceholder>
@@ -215,7 +225,9 @@ export default function IssueTagsPreview({
       .filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
-    return sortedTags.slice(0, 4);
+    const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
+    const orderedTags = [...sortedTags, ...remainingTagKeys];
+    return orderedTags.slice(0, 4);
   }, [tags, project?.platform]);
 
   if (isPending) {
@@ -238,7 +250,7 @@ export default function IssueTagsPreview({
     <IssueTagPreviewSection>
       <TagsPreview>
         {tagsToPreview.map(tag => (
-          <TagPreviewProgressBar key={tag.key} tag={tag} />
+          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
         ))}
       </TagsPreview>
       <IssueTagButton tags={tagsToPreview} />
@@ -327,7 +339,7 @@ const TagPreviewGrid = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.backgroundTertiary};
     color: ${p => p.theme.textColor};
   }
 `;

@@ -1,7 +1,11 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {
+  bulkUpdate,
+  useFetchIssueTag,
+  useFetchIssueTagValues,
+} from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -305,4 +309,32 @@ export function useIsSampleEvent(): boolean {
     {enabled: defined(group)}
   );
   return data?.some(tag => tag.key === 'sample_event') ?? false;
+}
+
+type TagSort = 'date' | 'count';
+const DEFAULT_SORT: TagSort = 'count';
+
+export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const sort: TagSort =
+    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  useFetchIssueTagValues(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+      sort,
+      cursor: location.query.tagDrawerCursor as string | undefined,
+    },
+    {enabled}
+  );
+  useFetchIssueTag(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+    },
+    {enabled}
+  );
 }

@@ -319,7 +319,7 @@ export function MetricSamplesTable({
           return;
         }
 
-        const tableRow = (target as Element).closest('tbody >tr');
+        const tableRow = target.closest('tbody >tr');
         if (!tableRow) {
           onRowHover?.(undefined);
           return;
@@ -565,7 +565,7 @@ function SpanId({
   }, [duration, selfTime, durationColor, selfTimeColor]);
 
   const transactionSummaryTarget = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction,
     query: {
       ...location.query,

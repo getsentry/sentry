@@ -480,7 +480,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       onFieldChange={(name, value) => {
                         trackAnalytics('settings.inbound_filter_updated', {
                           organization,
-                          project_id: parseInt(project.id as string, 10),
+                          project_id: parseInt(project.id, 10),
                           filter: name,
                           new_state:
                             filter.id === 'legacy-browsers' && value instanceof Set
@@ -536,7 +536,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });
@@ -578,7 +578,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });

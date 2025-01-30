@@ -4,14 +4,12 @@ import requests
 from django.conf import settings
 from requests import Response
 
+from sentry import options
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tempest.models import MessageType, TempestCredentials
-
-POLL_LIMIT = 348  # 348 every 5 min ~ 100k a day
-
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +18,8 @@ logger = logging.getLogger(__name__)
     name="sentry.tempest.tasks.poll_tempest",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=4 * 60,
-    time_limit=4 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -36,8 +34,8 @@ def poll_tempest(**kwargs):
     name="sentry.tempest.tasks.fetch_latest_item_id",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=1 * 60,
-    time_limit=1 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def fetch_latest_item_id(credentials_id: int) -> None:
     # FIXME: Try catch this later
@@ -122,8 +120,8 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     name="sentry.tempest.tasks.poll_tempest_crashes",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=4 * 60,
-    time_limit=4 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def poll_tempest_crashes(credentials_id: int) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
@@ -153,6 +151,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
                 client_secret=credentials.client_secret,
                 dsn=dsn,
                 offset=int(credentials.latest_fetched_item_id),
+                limit=options.get("tempest.poll-limit"),
                 attach_screenshot=attach_screenshot,
             )
         else:
@@ -213,9 +212,9 @@ def fetch_items_from_tempest(
     client_secret: str,
     dsn: str,
     offset: int,
-    limit: int = POLL_LIMIT,
+    limit: int = 10,
     attach_screenshot: bool = False,
-    time_out: int = 120,
+    time_out: int = 50,  # Since there is a timeout of 45s in the middleware anyways
 ) -> Response:
     payload = {
         "org_id": org_id,
