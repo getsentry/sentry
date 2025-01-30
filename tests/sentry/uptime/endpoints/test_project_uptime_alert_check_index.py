@@ -2,6 +2,7 @@ import uuid
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
 )
@@ -55,39 +56,39 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
 
     # TODO: fix this test once snuba is fixed
-    # def test_get_paginated(self):
-    #     response = self.get_success_response(
-    #         self.organization.slug,
-    #         self.project.slug,
-    #         self.project_uptime_subscription.id,
-    #         qs_params={"cursor": Cursor(0, 0), "per_page": 2},
-    #     )
-    #     assert response.data is not None
-    #     assert len(response.data) == 2
+    def test_get_paginated(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={"cursor": Cursor(0, 0), "per_page": 2},
+        )
+        assert response.data is not None
+        assert len(response.data) == 2
 
-    #     response = self.get_success_response(
-    #         self.organization.slug,
-    #         self.project.slug,
-    #         self.project_uptime_subscription.id,
-    #         qs_params={"cursor": Cursor(0, 2), "per_page": 2},
-    #     )
-    #     assert response.data is not None
-    #     assert len(response.data) == 2
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={"cursor": Cursor(0, 2), "per_page": 2},
+        )
+        assert response.data is not None
+        assert len(response.data) == 2
 
-    #     response = self.get_success_response(
-    #         self.organization.slug,
-    #         self.project.slug,
-    #         self.project_uptime_subscription.id,
-    #         qs_params={"cursor": Cursor(0, 4), "per_page": 2},
-    #     )
-    #     assert response.data is not None
-    #     assert len(response.data) == 2
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={"cursor": Cursor(0, 4), "per_page": 2},
+        )
+        assert response.data is not None
+        assert len(response.data) == 2
 
-    #     response = self.get_success_response(
-    #         self.organization.slug,
-    #         self.project.slug,
-    #         self.project_uptime_subscription.id,
-    #         qs_params={"cursor": Cursor(0, 20), "per_page": 2},
-    #     )
-    #     assert response.data is not None
-    #     assert len(response.data) == 0
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={"cursor": Cursor(0, 20), "per_page": 2},
+        )
+        assert response.data is not None
+        assert len(response.data) == 0

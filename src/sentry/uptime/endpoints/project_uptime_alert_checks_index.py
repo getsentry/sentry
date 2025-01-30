@@ -196,9 +196,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         self, value: str, col_name: str, uptime_subscription: ProjectUptimeSubscription
     ) -> Mapping[str, int | str | float]:
         if col_name == "uptime_subscription_id":
+            # map this back to the project uptime subscription id
             return {
-                "project_uptime_subscription_id": str(uptime_subscription.id),
-                col_name: str(uptime_subscription.id),
+                "project_uptime_subscription_id": uptime_subscription.id,
+                col_name: uptime_subscription.id,
             }
         return {col_name: value}
 
