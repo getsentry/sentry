@@ -18,9 +18,9 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     FrameFilename,
     create_code_mapping,
 )
+from sentry.issues.auto_source_code_config.task import get_installation
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.auto_source_code_config import get_installation
 
 
 @region_silo_endpoint
