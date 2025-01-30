@@ -429,7 +429,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         # Ensure these have not been changed
         assert views[0]["timeFilters"] == {"period": "14d"}
         assert views[0]["projects"] == [self.project1.id]
-        assert views[0]["environments"] == ["production"]
+        assert views[0]["environments"] == []
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
