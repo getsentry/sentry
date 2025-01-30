@@ -114,7 +114,7 @@ function EventDetailsContent(props: Props) {
     const transactionSummaryTarget =
       event.type === 'transaction' && transactionName
         ? transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             projectID: event.projectID,
             query: location.query,

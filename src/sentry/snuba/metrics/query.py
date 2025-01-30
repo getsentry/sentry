@@ -253,7 +253,7 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
                 self._validate_field(metric_order_by_field.field)
 
         orderby_metric_fields: set[MetricField] = set()
-        metric_entities: set[MetricEntity] = set()
+        metric_entities: set[MetricEntity | None] = set()
         group_by_str_fields: set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest import skip
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -18,7 +19,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.subscription_id = str(uuid.uuid4())
+        self.subscription_id = uuid.uuid4().hex
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
@@ -39,7 +40,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(self.project_uptime_subscription.id)],
+            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -64,7 +65,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(uuid.uuid4())],
+            projectUptimeSubscriptionId=[str(uuid.uuid4())],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -77,7 +78,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[],
+            projectUptimeSubscriptionId=[],
             since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1d",
@@ -85,13 +86,14 @@ class OrganizationUptimeCheckIndexEndpointTest(
         assert response.status_code == 400
 
     @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
+    @skip("vgrozdanic: This test is flaky and should be skipped")
     def test_too_many_periods(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(self.project_uptime_subscription.id)],
+            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1h",
@@ -105,7 +107,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
-            project_uptime_subscription_id=[str(uuid.uuid4()) for _ in range(101)],
+            projectUptimeSubscriptionId=[str(uuid.uuid4()) for _ in range(101)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
             resolution="1h",

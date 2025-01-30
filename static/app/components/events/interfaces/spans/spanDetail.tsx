@@ -220,7 +220,7 @@ function SpanDetail(props: Props) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.project_id),
@@ -276,7 +276,7 @@ function SpanDetail(props: Props) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: span.op, group: span.hash},
