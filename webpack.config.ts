@@ -75,6 +75,9 @@ const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
+// Storybook related flag configuration
+const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
+
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
 const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
@@ -419,7 +422,9 @@ const appConfig: webpack.Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': path.resolve(__dirname, 'static/app/views/stories/type-loader.ts'),
+      'type-loader': STORYBOOK_TYPES
+        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
+        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
     },
   },
 
