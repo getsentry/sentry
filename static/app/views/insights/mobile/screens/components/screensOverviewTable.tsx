@@ -25,7 +25,7 @@ type Props = {
 };
 
 function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
-  const moduleURL = useModuleURL('mobile-screens');
+  const moduleURL = useModuleURL(ModuleName.MOBILE_SCREENS);
   const screenRenderingModuleUrl = useModuleURL(ModuleName.SCREEN_RENDERING);
 
   const organization = useOrganization();

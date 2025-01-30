@@ -25,7 +25,7 @@ describe('ScreenDetailsPage', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals/details',
     query: {
       project: project.id,
       transaction: 'HomeActivity',
@@ -76,7 +76,7 @@ describe('ScreenDetailsPage', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
+        pathname: '/organizations/org-slug/performance/mobile/mobile-vitals/details',
         query: {
           project: project.id,
         },

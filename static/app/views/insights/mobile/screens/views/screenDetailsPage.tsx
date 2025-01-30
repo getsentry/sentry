@@ -105,7 +105,7 @@ export function ScreenDetailsPage() {
 
   return (
     <PageFiltersContainer>
-      <SentryDocumentTitle title={t('Mobile Screens')} orgSlug={organization.slug} />
+      <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
       <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>

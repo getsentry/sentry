@@ -303,7 +303,7 @@ export function ScreensLandingPage() {
   });
 
   return (
-    <ModulePageProviders moduleName="mobile-screens">
+    <ModulePageProviders moduleName={ModuleName.MOBILE_SCREENS}>
       <Layout.Page>
         <PageAlertProvider>
           <MobileHeader
@@ -332,7 +332,7 @@ export function ScreensLandingPage() {
                 <PageAlert />
                 <ErrorBoundary mini>
                   <Container>
-                    <Flex data-test-id="mobile-screens-top-metrics">
+                    <Flex data-test-id="mobile-vitals-top-metrics">
                       {vitalItems.map(item => {
                         const metricValue = metricValueFor(item);
                         const status =
