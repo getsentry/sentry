@@ -87,7 +87,7 @@ export function OrganizationContextProvider({children}: Props) {
 
   useEffect(() => {
     // Nothing to do if we already have the organization loaded
-    const previousBootstrapKey = `previousBootstrapTime-${orgSlug}`;
+    const previousBootstrapKey = `previous-bootstrap-${orgSlug}`;
     if (organization && organization.slug === orgSlug) {
       if (spanRef.current) {
         spanRef.current.end();
