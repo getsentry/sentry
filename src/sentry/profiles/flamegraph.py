@@ -566,7 +566,7 @@ class FlamegraphExecutor:
             ],
             orderby=["-timestamp"],
             offset=0,
-            limit=10,
+            limit=limit,
             referrer=Referrer.API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH.value,
             config=SearchResolverConfig(
                 auto_fields=True,
