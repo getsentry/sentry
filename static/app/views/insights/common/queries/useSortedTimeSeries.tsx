@@ -204,7 +204,7 @@ function convertEventsStatsToTimeSeriesData(
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      fields: seriesData.meta!.fields,
+      fields: seriesData.meta?.fields ?? {},
       units: seriesData.meta?.units,
     },
     confidence: determineSeriesConfidence(seriesData),
