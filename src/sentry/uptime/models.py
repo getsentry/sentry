@@ -81,9 +81,11 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     method: models.CharField[SupportedHTTPMethodsLiteral, SupportedHTTPMethodsLiteral] = (
         models.CharField(max_length=20, choices=SupportedHTTPMethods, db_default="GET")
     )
+    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
     headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
+    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
