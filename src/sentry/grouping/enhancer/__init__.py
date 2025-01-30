@@ -168,6 +168,8 @@ class Enhancements:
 
         for frame, (category, in_app) in zip(frames, category_and_in_app_results):
             if in_app is not None:
+                # If the `in_app` value changes as a result of this call, the original value (in
+                # integer form) will be added to `frame.data` under the key "orig_in_app"
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
