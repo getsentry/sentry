@@ -32,6 +32,7 @@ import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
 
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
+import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
