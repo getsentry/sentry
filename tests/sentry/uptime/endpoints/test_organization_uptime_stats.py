@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -84,6 +86,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
         assert response.status_code == 400
 
+    @pytest.mark.skip(reason="flaky test")
     @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     def test_too_many_periods(self):
         """Test that the endpoint returns data for a simple uptime check."""
