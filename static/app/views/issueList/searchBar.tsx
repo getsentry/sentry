@@ -8,7 +8,12 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import {
+  SavedSearchType,
+  type Tag,
+  type TagCollection,
+  type TagValue,
+} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind} from 'sentry/utils/fields';
@@ -94,8 +99,9 @@ function IssueListSearchBar({
   const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
 
+  // Fetches the unique values seen for a tag key and query string. Result is sorted by count.
   const tagValueLoader = useCallback(
-    async (key: string, search: string) => {
+    async (key: string, search: string): Promise<TagValue[]> => {
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
         start: pageFilters.datetime.start
@@ -117,34 +123,34 @@ function IssueListSearchBar({
         sort: '-count' as const,
       };
 
-      const [eventsDatasetValues, issuePlatformDatasetValues, featureFlagValues] =
-        await Promise.all([
-          fetchTagValues({
-            ...fetchTagValuesPayload,
-            dataset: Dataset.ERRORS,
-          }),
-          fetchTagValues({
-            ...fetchTagValuesPayload,
-            dataset: Dataset.ISSUE_PLATFORM,
-          }),
-          fetchFeatureFlagValues({
-            ...fetchTagValuesPayload,
-            organization,
-          }),
-        ]);
+      // For now feature flags are treated like tags, but the api query is slightly different.
+      if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
+        return await fetchFeatureFlagValues({
+          ...fetchTagValuesPayload,
+          organization,
+        });
+      }
 
-      const eventsAndIssuePlatformValues = mergeAndSortTagValues(
+      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ERRORS,
+        }),
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ISSUE_PLATFORM,
+        }),
+      ]);
+
+      return mergeAndSortTagValues(
         eventsDatasetValues,
         issuePlatformDatasetValues,
         'count'
       );
-
-      return featureFlagValues
-        ? mergeAndSortTagValues(eventsAndIssuePlatformValues, featureFlagValues, 'count')
-        : eventsAndIssuePlatformValues;
     },
     [
       api,
+      filterKeys,
       organization,
       pageFilters.datetime.end,
       pageFilters.datetime.period,

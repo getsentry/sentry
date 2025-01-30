@@ -215,7 +215,7 @@ export function fetchSpanFieldValues({
 
 /**
  * Fetch feature flag values for an organization. This is done by querying ERRORS with useFlagsBackend=1.
- * This only returns feature flags, not other tags.
+ * This only returns feature flags and not tags.
  *
  * The `projectIds` argument can be used to subset projects.
  */
@@ -236,11 +236,7 @@ export function fetchFeatureFlagValues({
   search?: string;
   sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
-  const hasFeatureFlagSearch = organization.features.includes(
-    'feature-flag-autocomplete'
-  );
-
-  if (!hasFeatureFlagSearch) {
+  if (!organization.features.includes('feature-flag-autocomplete')) {
     return Promise.resolve([]);
   }
 
