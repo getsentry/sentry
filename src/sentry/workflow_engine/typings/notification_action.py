@@ -321,11 +321,10 @@ class EmailActionTranslator(BaseActionTranslator):
             return ActionTarget.USER
         elif target_type == ActionTargetType.TEAM.value:
             return ActionTarget.TEAM
-        else:
-            return ActionTarget.ISSUE_OWNERS
+        return ActionTarget.ISSUE_OWNERS
 
     @property
-    def integration_id(self) -> Any | None:
+    def integration_id(self) -> None:
         return None
 
     @property
@@ -343,7 +342,9 @@ class EmailActionTranslator(BaseActionTranslator):
         return None
 
     def get_sanitized_data(self) -> dict[str, Any]:
-        """Override to handle the special case of IssueOwners target type"""
+        """
+        Override to handle the special case of IssueOwners target type
+        """
         if self.action.get("targetType") == ActionTargetType.ISSUE_OWNERS.value:
             return dataclasses.asdict(
                 EmailDataBlob(
