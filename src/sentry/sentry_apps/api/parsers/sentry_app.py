@@ -1,8 +1,11 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
+from sentry.apidocs.parameters import build_typed_list
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
@@ -13,6 +16,7 @@ from sentry.sentry_apps.models.sentry_app import (
 )
 
 
+@extend_schema_field(build_typed_list(OpenApiTypes.STR))
 class ApiScopesField(serializers.Field):
     def to_internal_value(self, data):
         valid_scopes = ApiScopes()
@@ -26,6 +30,7 @@ class ApiScopesField(serializers.Field):
         return data
 
 
+@extend_schema_field(build_typed_list(OpenApiTypes.STR))
 class EventListField(serializers.Field):
     def to_internal_value(self, data):
         if data is None:
@@ -40,6 +45,7 @@ class EventListField(serializers.Field):
         return data
 
 
+@extend_schema_field(OpenApiTypes.OBJECT)
 class SchemaField(serializers.Field):
     def to_internal_value(self, data):
         if data is None:
@@ -66,24 +72,69 @@ class URLField(serializers.URLField):
         return url
 
 
+@extend_schema_serializer(exclude_fields=["popularity", "features", "status"])
 class SentryAppParser(Serializer):
-    name = serializers.CharField()
-    author = serializers.CharField(required=False, allow_null=True)
-    scopes = ApiScopesField(allow_null=True)
-    status = serializers.CharField(required=False, allow_null=True)
-    events = EventListField(required=False, allow_null=True)
-    features = serializers.MultipleChoiceField(
-        choices=Feature.as_choices(), allow_blank=True, allow_null=True, required=False
+    name = serializers.CharField(help_text="The name of the custom integration.")
+    author = serializers.CharField(
+        required=False, allow_null=True, help_text="The custom integration's author."
     )
-    schema = SchemaField(required=False, allow_null=True)
-    webhookUrl = URLField(required=False, allow_null=True, allow_blank=True)
-    redirectUrl = URLField(required=False, allow_null=True, allow_blank=True)
-    isInternal = serializers.BooleanField(required=False, default=False)
-    isAlertable = serializers.BooleanField(required=False, default=False)
-    overview = serializers.CharField(required=False, allow_null=True)
-    verifyInstall = serializers.BooleanField(required=False, default=True)
+    scopes = ApiScopesField(
+        allow_null=True, help_text="The custom integration's permission scopes for API access."
+    )
+    status = serializers.CharField(
+        required=False, allow_null=True, help_text="The custom integration's status."
+    )
+    events = EventListField(
+        required=False,
+        allow_null=True,
+        help_text="Webhook events the custom integration is subscribed to.",
+    )
+    features = serializers.MultipleChoiceField(
+        choices=Feature.as_choices(),
+        allow_blank=True,
+        allow_null=True,
+        required=False,
+        help_text="The list of features that the custom integration supports.",
+    )
+    schema = SchemaField(
+        required=False,
+        allow_null=True,
+        help_text="The UI components schema, used to render the custom integration's configuration UI elements. See our [schema docs](https://docs.sentry.io/organization/integrations/integration-platform/ui-components/) for more information.",
+    )
+    webhookUrl = URLField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The webhook destination URL.",
+    )
+    redirectUrl = URLField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The post-installation redirect URL.",
+    )
+    isInternal = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether or not the integration is internal only. False means the integration is public.",
+    )
+    isAlertable = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Marks whether or not the custom integration can be used in an alert rule.",
+    )
+    overview = serializers.CharField(
+        required=False, allow_null=True, help_text="The custom integration's description."
+    )
+    verifyInstall = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Whether or not an installation of the custom integration should be verified.",
+    )
     allowedOrigins = serializers.ListField(
-        child=serializers.CharField(max_length=255), required=False
+        child=serializers.CharField(max_length=255),
+        required=False,
+        help_text="The list of allowed origins for CORS.",
     )
     # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
     popularity = serializers.IntegerField(
@@ -95,7 +146,7 @@ class SentryAppParser(Serializer):
 
     def __init__(self, *args, **kwargs):
         self.active_staff = kwargs.pop("active_staff", False)
-        self.access = kwargs.pop("access")
+        self.access = kwargs.pop("access", None)
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
@@ -133,6 +184,10 @@ class SentryAppParser(Serializer):
             # if the existing instance already has this scope, skip the check
             if self.instance and self.instance.has_scope(scope):
                 continue
+
+            assert (
+                self.access is not None
+            ), "Access is required to validate scopes in SentryAppParser"
             # add an error if the requester lacks permissions being requested
             if not self.access.has_scope(scope) and not self.active_staff:
                 validation_errors.append(

@@ -347,6 +347,17 @@ class MetricAlertParams:
     )
 
 
+class SentryAppParams:
+    SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
+        name="sentry_app_id_or_slug",
+        location="path",
+        required=True,
+        many=False,
+        type=str,
+        description="The ID or slug of the custom integration.",
+    )
+
+
 class VisibilityParams:
     QUERY = OpenApiParameter(
         name="query",
