@@ -94,9 +94,9 @@ function SamplingModeSwitchModal({
           <p>
             {samplingMode === 'organization'
               ? tct(
-                  'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [leanMoreLink:Learn more]',
+                  'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
                   {
-                    leanMoreLink: (
+                    learnMoreLink: (
                       <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
                     ),
                   }
