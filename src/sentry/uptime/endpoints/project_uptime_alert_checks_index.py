@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -170,7 +171,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
     def _format_row(
         self,
         row_idx: int,
-        column_values: list,
+        column_values: Any,
         column_names: list[str],
         uptime_subscription: ProjectUptimeSubscription,
     ) -> dict[str, int | str | float]:
@@ -182,7 +183,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
     def _extract_field_value(
         self, result, col_name: str, uptime_subscription: ProjectUptimeSubscription
-    ) -> dict[str, int | str | float]:
+    ) -> Mapping[str, int | str | float]:
         if result.HasField("val_str"):
             return self._handle_string_field(result.val_str, col_name, uptime_subscription)
         elif result.HasField("val_int"):
@@ -193,15 +194,15 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
 
     def _handle_string_field(
         self, value: str, col_name: str, uptime_subscription: ProjectUptimeSubscription
-    ) -> dict[str, str]:
+    ) -> Mapping[str, int | str | float]:
         if col_name == "uptime_subscription_id":
             return {
-                "project_uptime_subscription_id": uptime_subscription.id,
-                col_name: uptime_subscription.id,
+                "project_uptime_subscription_id": str(uptime_subscription.id),
+                col_name: str(uptime_subscription.id),
             }
         return {col_name: value}
 
-    def _handle_float_field(self, value: float, col_name: str) -> dict[str, str | float]:
+    def _handle_float_field(self, value: float, col_name: str) -> Mapping[str, int | str | float]:
         if col_name in ("scheduled_check_time", "timestamp"):
             return {col_name: datetime.fromtimestamp(value).strftime("%Y-%m-%dT%H:%M:%SZ")}
         return {col_name: value}
