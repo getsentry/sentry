@@ -431,6 +431,12 @@ export function IssueViewsStateProvider({
   const debounceUpdateViews = useMemo(
     () =>
       debounce((newTabs: IssueView[]) => {
+        const isAllProjects =
+          pageFilters.selection.projects.length === 1 &&
+          pageFilters.selection.projects[0] === -1;
+
+        const projects = isAllProjects ? [] : pageFilters.selection.projects;
+
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
@@ -445,11 +451,21 @@ export function IssueViewsStateProvider({
                 name: tab.label,
                 query: tab.query,
                 querySort: tab.querySort,
+                projects,
+                isAllProjects,
+                environments: pageFilters.selection.environments,
+                timeFilters: pageFilters.selection.datetime,
               })),
           });
         }
       }, 500),
-    [organization.slug, updateViews]
+    [
+      organization.slug,
+      updateViews,
+      pageFilters.selection.datetime,
+      pageFilters.selection.environments,
+      pageFilters.selection.projects,
+    ]
   );
 
   const reducer: Reducer<IssueViewsState, IssueViewsActions> = useCallback(
