@@ -8,6 +8,8 @@ from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.services import Service
 
+BufferField = models.Model | str | int
+
 
 class Buffer(Service):
     """
@@ -50,14 +52,10 @@ class Buffer(Service):
         """
         return {col: 0 for col in columns}
 
-    def get_hash(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> dict[str, str]:
+    def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
         return {}
 
-    def get_hash_length(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> int:
+    def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         raise NotImplementedError
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
@@ -69,7 +67,7 @@ class Buffer(Service):
     def push_to_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         field: str,
         value: str,
     ) -> None:
@@ -78,7 +76,7 @@ class Buffer(Service):
     def push_to_hash_bulk(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         data: dict[str, str],
     ) -> None:
         raise NotImplementedError
@@ -86,7 +84,7 @@ class Buffer(Service):
     def delete_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         fields: list[str],
     ) -> None:
         return None
@@ -98,7 +96,7 @@ class Buffer(Service):
         self,
         model: type[models.Model],
         columns: dict[str, int],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:

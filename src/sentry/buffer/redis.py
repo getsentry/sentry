@@ -13,7 +13,7 @@ import rb
 from django.utils.encoding import force_bytes, force_str
 from rediscluster import RedisCluster
 
-from sentry.buffer.base import Buffer
+from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils import json, metrics
@@ -235,7 +235,7 @@ class RedisBuffer(Buffer):
     def validate(self) -> None:
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
-    def _coerce_val(self, value: models.Model | str | int) -> bytes:
+    def _coerce_val(self, value: BufferField) -> bytes:
         if isinstance(value, models.Model):
             value = value.pk
         return force_bytes(value, errors="replace")
@@ -395,7 +395,7 @@ class RedisBuffer(Buffer):
     def delete_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         fields: list[str],
     ) -> None:
         key = self._make_key(model, filters)
@@ -408,7 +408,7 @@ class RedisBuffer(Buffer):
     def push_to_hash(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         field: str,
         value: str,
     ) -> None:
@@ -418,15 +418,13 @@ class RedisBuffer(Buffer):
     def push_to_hash_bulk(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         data: dict[str, str],
     ) -> None:
         key = self._make_key(model, filters)
         self._execute_redis_operation(key, RedisOperation.HASH_ADD_BULK, data)
 
-    def get_hash(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> dict[str, str]:
+    def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
         key = self._make_key(model, field)
         redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
         decoded_hash = {}
@@ -439,9 +437,7 @@ class RedisBuffer(Buffer):
 
         return decoded_hash
 
-    def get_hash_length(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> int:
+    def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
 
@@ -455,7 +451,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: dict[str, int],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, BufferField],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
