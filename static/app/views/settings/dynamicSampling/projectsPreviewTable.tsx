@@ -1,12 +1,11 @@
 import {Fragment, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
@@ -21,12 +20,13 @@ import type {
 const {useFormField} = organizationSamplingForm;
 
 interface Props {
+  actions: React.ReactNode;
   isLoading: boolean;
   period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
 }
 
-export function ProjectsPreviewTable({isLoading, period, sampleCounts}: Props) {
+export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}: Props) {
   const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
     useFormField('targetSampleRate');
 
@@ -85,36 +85,31 @@ export function ProjectsPreviewTable({isLoading, period, sampleCounts}: Props) {
 
   return (
     <Fragment>
-      <BreakdownPanel>
-        {isLoading ? (
-          <LoadingIndicator
-            css={css`
-              margin: ${space(4)} 0;
-            `}
-          />
-        ) : (
-          <SamplingBreakdown
-            sampleCounts={sampleCounts}
-            sampleRates={breakdownSampleRates}
-          />
-        )}
-      </BreakdownPanel>
-
-      <ProjectsTable
-        stickyHeaders
-        rateHeader={t('Estimated Rate')}
-        inputTooltip={t('To edit project sample rates, switch to manual sampling mode.')}
-        emptyMessage={t('No active projects found in the selected period.')}
-        period={period}
-        isEmpty={!sampleCounts.length}
+      <SamplingBreakdown
+        sampleCounts={sampleCounts}
+        sampleRates={breakdownSampleRates}
         isLoading={isLoading}
-        items={itemsWithFormattedNumbers}
       />
+      <Panel>
+        <OrganizationSampleRateField />
+        <ProjectsTable
+          rateHeader={t('Target Rate')}
+          canEdit={false}
+          emptyMessage={t('No active projects found in the selected period.')}
+          period={period}
+          isLoading={isLoading}
+          items={itemsWithFormattedNumbers}
+        />
+        <Footer>{actions}</Footer>
+      </Panel>
     </Fragment>
   );
 }
 
-const BreakdownPanel = styled(Panel)`
-  margin-bottom: ${space(3)};
-  padding: ${space(2)};
+const Footer = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 `;

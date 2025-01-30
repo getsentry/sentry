@@ -13,7 +13,7 @@ export const PercentInput = forwardRef<HTMLInputElement, Props>(
     return (
       <InputGroup
         css={css`
-          width: 160px;
+          width: 120px;
         `}
       >
         <InputGroup.Input ref={ref} type="number" min={0} max={100} {...props} />
