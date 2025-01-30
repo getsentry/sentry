@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -8,6 +9,7 @@ import {
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {
   DURATION_UNITS,
   FIELD_FORMATTERS,
@@ -36,58 +38,60 @@ function Measurements({
 }) {
   const {measurements} = node.value;
 
-  const measurementNames = measurements
-    ? Object.keys(measurements)
-        .filter(name => isCustomMeasurement(`measurements.${name}`))
-        .filter(isNotMarkMeasurement)
-        .filter(isNotPerformanceScoreMeasurement)
-        .sort()
-    : [];
+  const measurementNames: string[] = useMemo(() => {
+    return Object.keys(measurements ?? {})
+      .filter(name => isCustomMeasurement(`measurements.${name}`))
+      .filter(isNotMarkMeasurement)
+      .filter(isNotPerformanceScoreMeasurement)
+      .sort();
+  }, [measurements]);
+
+  const items: SectionCardKeyValueList = useMemo(() => {
+    const result = [];
+    for (const name of measurementNames) {
+      const {value, unit} = measurements?.[name] ?? {};
+      if (defined(value)) {
+        const fieldType = getFieldTypeFromUnit(unit);
+        const renderValue = fieldType === 'string' ? `${value} ${unit}` : value;
+        const rendered = fieldType
+          ? FIELD_FORMATTERS[fieldType].renderFunc(
+              name,
+              {[name]: renderValue},
+              {location, organization, unit}
+            )
+          : renderValue;
+
+        // Some custom perf metrics have units.
+        // These custom perf metrics need to be adjusted to the correct value.
+        let customMetricValue = value;
+        if (typeof value === 'number' && unit && customMetricValue) {
+          if (Object.keys(SIZE_UNITS).includes(unit)) {
+            customMetricValue *= SIZE_UNITS[unit as keyof typeof SIZE_UNITS];
+          } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+            customMetricValue *= DURATION_UNITS[unit as keyof typeof DURATION_UNITS];
+          }
+        }
+
+        result.push({
+          key: name,
+          subject: name,
+          value: rendered,
+          actionButton: (
+            <TraceDrawerComponents.KeyValueAction
+              rowKey={name}
+              rowValue={customMetricValue}
+              kind={TraceDrawerActionValueKind.MEASUREMENT}
+            />
+          ),
+          actionButtonAlwaysVisible: true,
+        });
+      }
+    }
+    return result;
+  }, [measurements, measurementNames, location, organization]);
 
   if (measurementNames.length < 1) {
     return null;
-  }
-
-  const items: SectionCardKeyValueList = [];
-
-  for (const name of measurementNames) {
-    const {value, unit} = measurements?.[name] ?? {};
-    if (value !== null) {
-      const fieldType = getFieldTypeFromUnit(unit);
-      const renderValue = fieldType === 'string' ? `${value} ${unit}` : value;
-      const rendered = fieldType
-        ? FIELD_FORMATTERS[fieldType].renderFunc(
-            name,
-            {[name]: renderValue},
-            {location, organization, unit}
-          )
-        : renderValue;
-
-      // Some custom perf metrics have units.
-      // These custom perf metrics need to be adjusted to the correct value.
-      let customMetricValue = value;
-      if (typeof value === 'number' && unit && customMetricValue) {
-        if (Object.keys(SIZE_UNITS).includes(unit)) {
-          customMetricValue *= SIZE_UNITS[unit as keyof typeof SIZE_UNITS];
-        } else if (Object.keys(DURATION_UNITS).includes(unit)) {
-          customMetricValue *= DURATION_UNITS[unit as keyof typeof DURATION_UNITS];
-        }
-      }
-
-      items.push({
-        key: name,
-        subject: name,
-        value: rendered,
-        actionButton: (
-          <TraceDrawerComponents.KeyValueAction
-            rowKey={name}
-            rowValue={customMetricValue}
-            kind={TraceDrawerActionValueKind.MEASUREMENT}
-          />
-        ),
-        actionButtonAlwaysVisible: true,
-      });
-    }
   }
 
   return (

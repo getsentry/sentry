@@ -112,7 +112,6 @@ export function GeneralInfo(props: GeneralnfoProps) {
       startTimestamp / 1e3,
       endTimestamp / 1e3
     );
-  const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
   let items: SectionCardKeyValueList = [
     {
@@ -131,11 +130,11 @@ export function GeneralInfo(props: GeneralnfoProps) {
       key: 'description',
       subject: t('Description'),
       value: props.node.value.description ? (
-        <DescrtionWrapper>
+        <DescriptionWrapper>
           {getFormattedSpanDescription(props.node.value)}
-        </DescrtionWrapper>
+        </DescriptionWrapper>
       ) : (
-        NULL_DESCRIPTION
+        <EmptyValueContainer>{t('No description')}</EmptyValueContainer>
       ),
       actionButton: (
         <TraceDrawerComponents.KeyValueAction
@@ -345,8 +344,12 @@ function getFormattedSpanDescription(span: TraceTree.Span) {
   return formatter.toSimpleMarkup(rawDescription);
 }
 
-const DescrtionWrapper = styled('div')`
+const DescriptionWrapper = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+`;
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
 `;

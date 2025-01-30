@@ -54,9 +54,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
-  SentryNumberTags,
-  SentryStringTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+  SENTRY_SPAN_NUMBER_TAGS,
+  SENTRY_SPAN_STRING_TAGS,
+} from 'sentry/views/explore/constants';
 
 import {traceAnalytics} from '../../traceAnalytics';
 import {useTransaction} from '../../traceApi/useTransaction';
@@ -755,11 +755,11 @@ function KeyValueAction({
 
   // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
   // Any other key must exist in the static list of sentry tags to be deemed searchable.
-  const searchableSentryTags = [...SentryStringTags, ...SentryNumberTags];
-
   if (
     kind === TraceDrawerActionValueKind.SENTRY_TAG &&
-    !searchableSentryTags.includes(rowKey)
+    !(
+      SENTRY_SPAN_NUMBER_TAGS.includes(rowKey) || SENTRY_SPAN_STRING_TAGS.includes(rowKey)
+    )
   ) {
     return null;
   }
