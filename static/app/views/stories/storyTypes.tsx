@@ -28,7 +28,7 @@ export function StoryTypes(props: StoryTypesProps) {
             <IconSearch />
           </InputGroup.LeadingItems>
           <InputGroup.Input
-            placeholder="Search stories"
+            placeholder="Search props"
             defaultValue={query}
             onChange={e => setQuery(e.target.value)}
           />
