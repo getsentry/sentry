@@ -89,8 +89,9 @@ export function OrganizationContextProvider({children}: Props) {
     // Nothing to do if we already have the organization loaded
     const previousBootstrapKey = `previousBootstrapTime-${orgSlug}`;
     if (organization && organization.slug === orgSlug) {
-      if (spanRef.current && organization) {
+      if (spanRef.current) {
         spanRef.current.end();
+        spanRef.current = null;
         localStorage.setItem(previousBootstrapKey, `${Date.now()}`);
       }
       return;
