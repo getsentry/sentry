@@ -1901,6 +1901,10 @@ function buildRoutes() {
     >
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
       {traceViewRoute}
+      <Route
+        path="multi-query/"
+        component={make(() => import('sentry/views/explore/multiQueryMode'))}
+      />
     </Route>
   );
 
