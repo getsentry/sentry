@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,6 +19,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
+import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loadingPanel';
+import {WidgetLayout} from 'sentry/views/dashboards/widgets/widgetLayout/widgetLayout';
+import {WidgetTitle} from 'sentry/views/dashboards/widgets/widgetLayout/widgetTitle';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
@@ -28,15 +34,12 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import Chart, {
+import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
@@ -101,7 +104,7 @@ export function ExploreCharts({
           //
           // We can't do this in top N mode as the series name uses the row
           // values instead of the aggregate function.
-          if (s.seriesName === yAxis) {
+          if (s.field === yAxis) {
             return {
               ...s,
               seriesName: formattedYAxes[i] ?? yAxis,
@@ -179,17 +182,46 @@ export function ExploreCharts({
   const shouldRenderLabel = visualizes.length > 1;
 
   return (
-    <Fragment>
-      {chartInfos.map((chartInfo, index) => {
-        return (
-          <ChartContainer key={index}>
-            <ChartPanel>
-              <ChartHeader>
-                {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
-                <ChartTitle>
-                  {chartInfo.formattedYAxes.filter(Boolean).join(', ')}
-                </ChartTitle>
+    <ChartList>
+      <WidgetSyncContextProvider>
+        {chartInfos.map((chartInfo, index) => {
+          const Title = (
+            <Fragment>
+              {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
+              <WidgetTitle title={chartInfo.formattedYAxes.filter(Boolean).join(', ')} />
+            </Fragment>
+          );
+
+          if (chartInfo.loading) {
+            return (
+              <WidgetLayout
+                key={index}
+                height={CHART_HEIGHT}
+                Title={Title}
+                Visualization={<LoadingPanel />}
+              />
+            );
+          }
+
+          if (chartInfo.error) {
+            return (
+              <WidgetLayout
+                key={index}
+                height={CHART_HEIGHT}
+                Title={Title}
+                Visualization={<ErrorPanel error={chartInfo.error} />}
+              />
+            );
+          }
+
+          return (
+            <WidgetLayout
+              key={index}
+              height={CHART_HEIGHT}
+              Title={Title}
+              Actions={[
                 <Tooltip
+                  key="visualization"
                   title={t('Type of chart displayed in this visualization (ex. line)')}
                 >
                   <CompactSelect
@@ -197,15 +229,16 @@ export function ExploreCharts({
                       icon: chartInfo.chartIcon,
                       borderless: true,
                       showChevron: false,
-                      size: 'sm',
+                      size: 'xs',
                     }}
                     value={chartInfo.chartType}
                     menuTitle="Type"
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
-                </Tooltip>
+                </Tooltip>,
                 <Tooltip
+                  key="interval"
                   title={t('Time interval displayed in this visualization (ex. 5m)')}
                 >
                   <CompactSelect
@@ -215,58 +248,48 @@ export function ExploreCharts({
                       icon: <IconClock />,
                       borderless: true,
                       showChevron: false,
-                      size: 'sm',
+                      size: 'xs',
                     }}
                     menuTitle="Interval"
                     options={intervalOptions}
                   />
-                </Tooltip>
+                </Tooltip>,
                 <ChartContextMenu
+                  key="context"
                   visualizeYAxes={chartInfo.yAxes}
                   query={query}
                   interval={interval}
                   visualizeIndex={index}
-                />
-              </ChartHeader>
-              <Chart
-                height={CHART_HEIGHT}
-                grid={{
-                  left: '0',
-                  right: '0',
-                  top: '32px', // make room to fit the legend above the chart
-                  bottom: '0',
-                }}
-                legendOptions={{
-                  itemGap: 24,
-                  top: '4px',
-                }}
-                data={chartInfo.data}
-                error={chartInfo.error}
-                loading={chartInfo.loading}
-                chartGroup={EXPLORE_CHART_GROUP}
-                // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
-                chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
-                type={chartInfo.chartType}
-                aggregateOutputFormat={
-                  chartInfo.outputTypes.size === 1
-                    ? chartInfo.outputTypes.keys().next().value
-                    : undefined
-                }
-                showLegend
-              />
-              {dataset === DiscoverDatasets.SPANS_EAP_RPC && (
-                <ChartFooter>
+                />,
+              ]}
+              Visualization={
+                <VisualizationWrapper>
+                  <TimeSeriesWidgetVisualization
+                    dataCompletenessDelay={600}
+                    visualizationType={
+                      chartInfo.chartType === ChartType.AREA
+                        ? 'area'
+                        : chartInfo.chartType === ChartType.LINE
+                          ? 'line'
+                          : 'bar'
+                    }
+                    timeseries={chartInfo.data}
+                  />
+                </VisualizationWrapper>
+              }
+              Caption={
+                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={extrapolationMetaResults.data?.[0]?.['count_sample()']}
                     confidence={chartInfo.confidence}
                   />
-                </ChartFooter>
-              )}
-            </ChartPanel>
-          </ChartContainer>
-        );
-      })}
-    </Fragment>
+                )
+              }
+            />
+          );
+        })}
+      </WidgetSyncContextProvider>
+    </ChartList>
   );
 }
 
@@ -312,22 +335,17 @@ export function useExtrapolationMeta({
   });
 }
 
-const ChartContainer = styled('div')`
+const ChartList = styled('div')`
   display: grid;
-  gap: 0;
-  grid-template-columns: 1fr;
+  row-gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
 
-const ChartHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
+const CHART_HEIGHT = 260;
 
-const ChartTitle = styled('div')`
-  ${p => p.theme.text.cardTitle}
-  line-height: 32px;
-  flex: 1;
+const VisualizationWrapper = styled('div')`
+  flex-grow: 1;
+  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 `;
 
 const ChartLabel = styled('div')`
@@ -340,10 +358,4 @@ const ChartLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
   margin-right: ${space(1)};
-`;
-
-const ChartFooter = styled('div')`
-  display: inline-block;
-  margin-top: ${space(1.5)};
-  margin-bottom: 0;
 `;
