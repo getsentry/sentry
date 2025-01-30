@@ -2043,6 +2043,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
       />
       <Route
+        path={TabPaths[Tab.CHECK_INS]}
+        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
+      />
+      <Route
         path={TabPaths[Tab.TAGS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />

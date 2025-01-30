@@ -170,7 +170,7 @@ export function EventList({group}: EventListProps) {
   );
 }
 
-const EventListHeader = styled('div')`
+export const EventListHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: ${space(1.5)};
@@ -184,19 +184,19 @@ const EventListHeader = styled('div')`
   border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
-const EventListTitle = styled('div')`
+export const EventListTitle = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const EventListHeaderItem = styled('div')`
+export const EventListHeaderItem = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const StreamlineEventsTable = styled('div')`
+export const StreamlineEventsTable = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 
