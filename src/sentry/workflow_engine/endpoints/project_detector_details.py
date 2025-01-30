@@ -19,7 +19,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
-from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
+from sentry.workflow_engine.models import Detector
 
 
 @region_silo_endpoint
@@ -90,25 +90,6 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         """
         Delete a detector
         """
-        try:
-            data_condition_group = DataConditionGroup.objects.get(
-                id=detector.workflow_condition_group.id
-            )
-        except DataConditionGroup.DoesNotExist:
-            pass
-
-        if data_condition_group:
-            RegionScheduledDeletion.schedule(data_condition_group, days=0, actor=request.user)
-
-        try:
-            data_sources = DataSource.objects.filter(detector=detector.id)
-        except DataSource.DoesNotExist:
-            pass
-
-        if data_sources:
-            for data_source in data_sources:
-                RegionScheduledDeletion.schedule(data_source, days=0, actor=request.user)
-
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         # TODO add audit log entry
         return Response(status=204)
