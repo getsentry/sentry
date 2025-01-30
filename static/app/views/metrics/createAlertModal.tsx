@@ -101,8 +101,7 @@ export function getAlertInterval(
     return `${timeWindow}m`;
   }
 
-  for (let index = 0; index < TIME_WINDOWS_TO_CHECK.length; index++) {
-    const timeWindow = TIME_WINDOWS_TO_CHECK[index]!;
+  for (const timeWindow of TIME_WINDOWS_TO_CHECK) {
     if (inMinutes <= timeWindow && AVAILABLE_TIME_PERIODS[timeWindow].includes(period)) {
       return toInterval(timeWindow);
     }
