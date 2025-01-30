@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
-  CompactSelectBar,
   Section,
   SectionHeader,
   SectionLabel,
@@ -38,14 +38,14 @@ export function SortBySection() {
         </Tooltip>
       </SectionHeader>
       <Fragment>
-        <CompactSelectBar>
+        <PageFilterBar>
           <CompactSelect options={[]} value={undefined} onChange={_newSortField => {}} />
           <CompactSelect
             options={kindOptions}
             value={undefined}
             onChange={_newSortKind => {}}
           />
-        </CompactSelectBar>
+        </PageFilterBar>
       </Fragment>
     </Section>
   );

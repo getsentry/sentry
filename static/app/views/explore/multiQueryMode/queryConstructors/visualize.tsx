@@ -1,12 +1,12 @@
 import {Fragment, useMemo} from 'react';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
-  CompactSelectBar,
   Section,
   SectionHeader,
   SectionLabel,
@@ -64,7 +64,7 @@ export function VisualizeSection() {
         </Tooltip>
       </SectionHeader>
       <Fragment>
-        <CompactSelectBar>
+        <PageFilterBar>
           <CompactSelect
             searchable
             options={fieldOptions}
@@ -76,7 +76,7 @@ export function VisualizeSection() {
             value={''}
             onChange={_newAggregate => {}}
           />
-        </CompactSelectBar>
+        </PageFilterBar>
       </Fragment>
     </Section>
   );
