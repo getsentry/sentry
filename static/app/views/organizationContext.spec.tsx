@@ -17,7 +17,7 @@ import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {OrganizationContextProvider, useEnsureOrganization} from './organizationContext';
+import {OrganizationContextProvider} from './organizationContext';
 import {TestRouteContext} from './routeContext';
 
 jest.mock('sentry/actionCreators/sudoModal');
@@ -77,11 +77,6 @@ describe('OrganizationContext', function () {
     jest.mocked(console.error).mockRestore();
   });
 
-  function OrganizationLoaderStub() {
-    useEnsureOrganization();
-    return null;
-  }
-
   /**
    * Used to test that the organization context is propegated
    */
@@ -94,7 +89,6 @@ describe('OrganizationContext', function () {
   it('fetches org, projects, teams, and provides organization context', async function () {
     render(
       <OrganizationContextProvider>
-        <OrganizationLoaderStub />
         <OrganizationName />
       </OrganizationContextProvider>
     );
@@ -105,26 +99,11 @@ describe('OrganizationContext', function () {
     expect(getTeamsMock).toHaveBeenCalled();
   });
 
-  it('does not fetch if organization is already set', async function () {
-    OrganizationStore.onUpdate(organization);
-
-    render(
-      <OrganizationContextProvider>
-        <OrganizationLoaderStub />
-        <OrganizationName />
-      </OrganizationContextProvider>
-    );
-
-    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
-    expect(getOrgMock).not.toHaveBeenCalled();
-  });
-
   it('fetches new org when router params change', async function () {
     // First render with org-slug
     const {rerender} = render(
       <TestRouteContext.Provider value={router}>
         <OrganizationContextProvider>
-          <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
       </TestRouteContext.Provider>
@@ -141,7 +120,6 @@ describe('OrganizationContext', function () {
     rerender(
       <TestRouteContext.Provider value={{...router, params: {orgId: 'another-org'}}}>
         <OrganizationContextProvider>
-          <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
       </TestRouteContext.Provider>
@@ -165,7 +143,6 @@ describe('OrganizationContext', function () {
 
     render(
       <OrganizationContextProvider>
-        <OrganizationLoaderStub />
         <OrganizationName />
       </OrganizationContextProvider>
     );
@@ -185,7 +162,6 @@ describe('OrganizationContext', function () {
 
     render(
       <OrganizationContextProvider>
-        <OrganizationLoaderStub />
         <OrganizationName />
       </OrganizationContextProvider>
     );
@@ -211,7 +187,6 @@ describe('OrganizationContext', function () {
     render(
       <TestRouteContext.Provider value={{...router, params: {}}}>
         <OrganizationContextProvider>
-          <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
       </TestRouteContext.Provider>

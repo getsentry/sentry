@@ -1,6 +1,7 @@
 import './legacyTwitterBootstrap';
 import './exportGlobals';
 
+import {localStoragePersister} from 'sentry/appQueryClient';
 import type {Config} from 'sentry/types/system';
 import {metric} from 'sentry/utils/analytics';
 
@@ -11,6 +12,9 @@ import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
 export function initializeApp(config: Config) {
+  // We might need to call restoreClient earlier or await the promise to ensure
+  // the client is hydrated before the app is rendered
+  localStoragePersister.restoreClient();
   commonInitialization(config);
   initializeSdk(config);
 
