@@ -23,6 +23,10 @@ describe('GroupSummary', function () {
     trace: 'Test trace',
     possibleCause: 'Test possible cause',
     headline: 'Test headline',
+    scores: {
+      possibleCauseConfidence: 0.9,
+      possibleCauseNovelty: 0.8,
+    },
   };
 
   beforeEach(() => {
@@ -73,8 +77,8 @@ describe('GroupSummary', function () {
       organization,
     });
 
-    // Should show loading placeholders
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+    // Should show loading placeholders. Currently we load the whatsWrong section
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
   });
 
   it('shows error state', async function () {
