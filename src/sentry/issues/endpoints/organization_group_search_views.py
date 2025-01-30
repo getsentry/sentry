@@ -18,7 +18,7 @@ from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
@@ -31,6 +31,9 @@ DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
         "query": "is:unresolved issue.priority:[high, medium]",
         "querySort": SortOptions.DATE.value,
         "position": 0,
+        "isAllProjects": False,
+        "environments": [],
+        "timeFilters": DEFAULT_TIME_FILTER,
         "dateCreated": None,
         "dateUpdated": None,
     }
@@ -65,17 +68,39 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        has_global_views = features.has("organizations:global-views", organization)
+
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
 
-        # Return only the prioritized view if user has no custom views yet
+        # Return only the default view(s) if user has no custom views yet
         if not query.exists():
             return self.paginate(
                 request=request,
                 paginator=SequencePaginator(
-                    [(idx, view) for idx, view in enumerate(DEFAULT_VIEWS)]
+                    [
+                        (
+                            idx,
+                            {
+                                **view,
+                                "projects": (
+                                    []
+                                    if has_global_views
+                                    else [pick_default_project(organization, request.user)]
+                                ),
+                            },
+                        )
+                        for idx, view in enumerate(DEFAULT_VIEWS)
+                    ]
                 ),
                 on_results=lambda results: serialize(results, request.user),
             )
+
+        if not has_global_views:
+            for view in query:
+                if view.is_all_projects or view.projects.count() > 1 or view.projects.count() == 0:
+                    view.is_all_projects = False
+                    view.projects.set([pick_default_project(organization, request.user)])
+                    view.save()
 
         return self.paginate(
             request=request,
@@ -90,7 +115,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         will delete any views that are not included in the request, add views if
         they are new, and update existing views if they are included in the request.
         This endpoint is explcititly designed to be used by our frontend.
-
         """
         if not features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
