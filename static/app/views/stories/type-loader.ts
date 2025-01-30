@@ -28,18 +28,10 @@ export default function typeloader(this: LoaderContext<any>, _source: string) {
     return callback(null, 'export default {}');
   }
 
-  const typeIndex: Record<string, TypeLoader.ComponentDocWithFilename> = entries.reduce(
-    (acc, entry) => {
-      if (entry.displayName && typeof entry.displayName === 'string') {
-        acc[entry.displayName] = {
-          ...entry,
-          filename: this.resourcePath,
-        };
-      }
-      return acc;
-    },
-    {} as Record<string, TypeLoader.ComponentDocWithFilename>
+  const typeIndex = Object.fromEntries(
+    entries
+      .filter(entry => entry.displayName && typeof entry.displayName === 'string')
+      .map(entry => [entry.displayName, {...entry, filename: this.resourcePath}])
   );
-
   return callback(null, `export default ${JSON.stringify(typeIndex)}`);
 }

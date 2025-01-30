@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
@@ -18,13 +18,6 @@ export function StoryTypes(props: StoryTypesProps) {
   const [query, setQuery] = useState('');
   const nodes = usePropTree(props.types?.props ?? {}, query);
 
-  const onSearchInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setQuery(e.target.value);
-    },
-    [setQuery]
-  );
-
   return (
     <Fragment>
       <h3>API Reference</h3>
@@ -37,7 +30,7 @@ export function StoryTypes(props: StoryTypesProps) {
           <InputGroup.Input
             placeholder="Search stories"
             defaultValue={query}
-            onChange={onSearchInputChange}
+            onChange={e => setQuery(e.target.value)}
           />
           {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
         </InputGroup>
@@ -212,15 +205,15 @@ class PropTreeNode {
 function usePropTree(props: Props, query: string): PropTreeNode[] {
   const root = useMemo(() => {
     const r = new PropTreeNode({definitionFilePath: 'root', parent: undefined});
-    const grouped = groupByParent(Object.values(props));
+    const grouped = Object.groupBy(Object.values(props), p => p.parent?.fileName ?? '');
 
     for (const [definitionFilePath, groupedProp] of Object.entries(grouped)) {
       const parent = new PropTreeNode({
         definitionFilePath,
-        parent: groupedProp[0]?.parent,
+        parent: groupedProp?.[0]?.parent,
       });
 
-      for (const prop of groupedProp) {
+      for (const prop of groupedProp ?? []) {
         const child = new PropTreeNode(prop);
         parent.children[prop.name] = child;
       }
@@ -325,18 +318,6 @@ function propSort(a: PropTreeNode, b: PropTreeNode) {
   const nameA = 'name' in a.prop ? a.prop.name : a.prop.definitionFilePath;
   const nameB = 'name' in b.prop ? b.prop.name : b.prop.definitionFilePath;
   return nameA.localeCompare(nameB);
-}
-
-function groupByParent(props: PropItem[]) {
-  return props.reduce(
-    (acc, prop) => {
-      acc[prop.parent?.fileName ?? ''] = (acc[prop.parent?.fileName ?? ''] ?? []).concat(
-        prop
-      );
-      return acc;
-    },
-    {} as Record<string, PropItem[]>
-  );
 }
 
 function stripNodeModulesPrefix(str: string): string {
