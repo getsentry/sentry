@@ -63,12 +63,10 @@ function setRecentBootstrapTag(orgSlug: string) {
   const previousBootstrapKey = `previous-bootstrap-${orgSlug}`;
   try {
     const previousBootstrapTime = localStorage.getItem(previousBootstrapKey);
-    Sentry.setTag(
-      'is_recent_boot',
-      previousBootstrapTime
-        ? Date.now() - Number(previousBootstrapTime) < 10 * 60 * 1000
-        : false
-    );
+    const isRecentBoot = previousBootstrapTime
+      ? Date.now() - Number(previousBootstrapTime) < 10 * 60 * 1000
+      : false;
+    Sentry.setTag('is_recent_boot', isRecentBoot.toString());
     localStorage.setItem(previousBootstrapKey, `${Date.now()}`);
   } catch {
     // Ignore errors
