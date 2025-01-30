@@ -142,6 +142,9 @@ const CopyContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundSecondary};
   max-width: 25rem;
+  min-width: 0;
+  flex: 1;
+  flex-shrink: 1;
 `;
 
 const CopyButton = styled(Button)`
@@ -168,9 +171,13 @@ function CreatePRsButton({
   changes,
   groupId,
   runId,
+  isBusy,
+  onBusyStateChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
+  isBusy: boolean;
+  onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
   const api = useApi();
@@ -179,6 +186,7 @@ function CreatePRsButton({
 
   const createPRs = () => {
     setHasClickedCreatePr(true);
+    onBusyStateChange(true);
     for (const change of changes) {
       createPr({change});
     }
@@ -200,9 +208,12 @@ function CreatePRsButton({
     onSuccess: () => {
       addSuccessMessage(t('Created pull requests.'));
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      setHasClickedCreatePr(false);
+      onBusyStateChange(false);
     },
     onError: () => {
       setHasClickedCreatePr(false);
+      onBusyStateChange(false);
       addErrorMessage(t('Failed to create a pull request'));
     },
   });
@@ -216,6 +227,7 @@ function CreatePRsButton({
       }
       size="sm"
       busy={hasClickedCreatePr}
+      disabled={isBusy}
       analyticsEventName="Autofix: Create PR Clicked"
       analyticsEventKey="autofix.create_pr_clicked"
       analyticsParams={{group_id: groupId}}
@@ -229,9 +241,13 @@ function CreateBranchButton({
   changes,
   groupId,
   runId,
+  isBusy,
+  onBusyStateChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
+  isBusy: boolean;
+  onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
   const api = useApi();
@@ -240,6 +256,7 @@ function CreateBranchButton({
 
   const pushToBranch = () => {
     setHasClickedPushToBranch(true);
+    onBusyStateChange(true);
     for (const change of changes) {
       createBranch({change});
     }
@@ -261,9 +278,12 @@ function CreateBranchButton({
     onSuccess: () => {
       addSuccessMessage(t('Pushed to branches.'));
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      setHasClickedPushToBranch(false);
+      onBusyStateChange(false);
     },
     onError: () => {
       setHasClickedPushToBranch(false);
+      onBusyStateChange(false);
       addErrorMessage(t('Failed to push to branches.'));
     },
   });
@@ -276,6 +296,7 @@ function CreateBranchButton({
       }
       size="sm"
       busy={hasClickedPushToBranch}
+      disabled={isBusy}
       analyticsEventName="Autofix: Push to Branch Clicked"
       analyticsEventKey="autofix.push_to_branch_clicked"
       analyticsParams={{group_id: groupId}}
@@ -289,9 +310,13 @@ function SetupAndCreateBranchButton({
   changes,
   groupId,
   runId,
+  isBusy,
+  onBusyStateChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
+  isBusy: boolean;
+  onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
   const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
@@ -320,16 +345,28 @@ function SetupAndCreateBranchButton({
     );
   }
 
-  return <CreateBranchButton changes={changes} groupId={groupId} runId={runId} />;
+  return (
+    <CreateBranchButton
+      changes={changes}
+      groupId={groupId}
+      runId={runId}
+      isBusy={isBusy}
+      onBusyStateChange={onBusyStateChange}
+    />
+  );
 }
 
 function SetupAndCreatePRsButton({
   changes,
   groupId,
   runId,
+  isBusy,
+  onBusyStateChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
+  isBusy: boolean;
+  onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
   const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
@@ -359,7 +396,15 @@ function SetupAndCreatePRsButton({
     );
   }
 
-  return <CreatePRsButton changes={changes} groupId={groupId} runId={runId} />;
+  return (
+    <CreatePRsButton
+      changes={changes}
+      groupId={groupId}
+      runId={runId}
+      isBusy={isBusy}
+      onBusyStateChange={onBusyStateChange}
+    />
+  );
 }
 
 export function AutofixChanges({
@@ -370,6 +415,7 @@ export function AutofixChanges({
   previousInsightCount,
 }: AutofixChangesProps) {
   const data = useAutofixData({groupId});
+  const [isBusy, setIsBusy] = useState(false);
 
   const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
 
@@ -422,7 +468,6 @@ export function AutofixChanges({
     step.changes.every(change => change.pull_request);
 
   const branchesMade =
-    !prsMade &&
     step.status === AutofixStatus.COMPLETED &&
     step.changes.length >= 1 &&
     step.changes.every(change => change.branch_name);
@@ -437,30 +482,54 @@ export function AutofixChanges({
                 <IconFix size="sm" />
                 {t('Fixes')}
               </HeaderText>
-              {!prsMade && !branchesMade ? (
+              {!prsMade && (
                 <ButtonBar gap={1}>
-                  <Button
-                    size="sm"
-                    onClick={handleAddTests}
-                    analyticsEventName="Autofix: Add Tests Clicked"
-                    analyticsEventKey="autofix.add_tests_clicked"
-                    analyticsParams={{group_id: groupId}}
-                  >
-                    {t('Add Tests')}
-                  </Button>
-                  <SetupAndCreateBranchButton
-                    changes={step.changes}
-                    groupId={groupId}
-                    runId={runId}
-                  />
+                  {!branchesMade && (
+                    <Button
+                      size="sm"
+                      onClick={handleAddTests}
+                      disabled={isBusy}
+                      analyticsEventName="Autofix: Add Tests Clicked"
+                      analyticsEventKey="autofix.add_tests_clicked"
+                      analyticsParams={{group_id: groupId}}
+                    >
+                      {t('Add Tests')}
+                    </Button>
+                  )}
+                  {!branchesMade ? (
+                    <SetupAndCreateBranchButton
+                      changes={step.changes}
+                      groupId={groupId}
+                      runId={runId}
+                      isBusy={isBusy}
+                      onBusyStateChange={setIsBusy}
+                    />
+                  ) : step.changes.length === 1 && step.changes[0] ? (
+                    <BranchButton change={step.changes[0]} />
+                  ) : (
+                    <ScrollCarousel aria-label={t('Check out branches')}>
+                      {step.changes.map(
+                        change =>
+                          change.branch_name && (
+                            <BranchButton
+                              key={`${change.repo_external_id}-${Math.random()}`}
+                              change={change}
+                            />
+                          )
+                      )}
+                    </ScrollCarousel>
+                  )}
                   <SetupAndCreatePRsButton
                     changes={step.changes}
                     groupId={groupId}
                     runId={runId}
+                    isBusy={isBusy}
+                    onBusyStateChange={setIsBusy}
                   />
                 </ButtonBar>
-              ) : prsMade ? (
-                step.changes.length === 1 &&
+              )}
+              {prsMade &&
+                (step.changes.length === 1 &&
                 step.changes[0] &&
                 step.changes[0].pull_request?.pr_url ? (
                   <LinkButton
@@ -490,24 +559,7 @@ export function AutofixChanges({
                         )
                     )}
                   </ScrollCarousel>
-                )
-              ) : branchesMade ? (
-                step.changes.length === 1 && step.changes[0] ? (
-                  <BranchButton change={step.changes[0]} />
-                ) : (
-                  <ScrollCarousel aria-label={t('Check out branches')}>
-                    {step.changes.map(
-                      change =>
-                        change.branch_name && (
-                          <BranchButton
-                            key={`${change.repo_external_id}-${Math.random()}`}
-                            change={change}
-                          />
-                        )
-                    )}
-                  </ScrollCarousel>
-                )
-              ) : null}
+                ))}
             </HeaderWrapper>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
