@@ -27,17 +27,6 @@ export const SectionLabel = styled('h6')<{disabled?: boolean; underlined?: boole
       : ''};
 `;
 
-export const SectionRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(0.5)};
-
-  :not(:last-child) {
-    margin-bottom: ${space(0.5)};
-  }
-`;
-
 // This css is copied over from PageFilterBar. Not using that component to prevent
 // and uninteded changes since that is primarily used for the page filters.
 export const CompactSelectBar = styled('div')<{condensed?: boolean}>`
