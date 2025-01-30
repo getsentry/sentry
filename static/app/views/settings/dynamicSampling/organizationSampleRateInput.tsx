@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -37,6 +37,14 @@ export function OrganizationSampleRateInput({
   onBulkEditChange,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Autofocus the input when bulk edit is activated
+  useEffect(() => {
+    if (isBulkEditActive) {
+      inputRef.current?.focus();
+    }
+  }, [isBulkEditActive]);
+
   const showBulkEditButton = hasAccess && isBulkEditEnabled && !isBulkEditActive;
   return (
     <Wrapper>

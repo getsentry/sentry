@@ -111,7 +111,6 @@ export function OrganizationSampling() {
     </FormProvider>
   );
 }
-
 const HeadingRow = styled('div')`
   display: flex;
   align-items: center;
