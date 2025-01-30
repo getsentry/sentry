@@ -57,6 +57,22 @@ export function useEnsureOrganization() {
 }
 
 /**
+ * Record if the organization was bootstrapped in the last 10 minutes
+ */
+function setRecentBootstrapTag(orgSlug: string) {
+  const previousBootstrapKey = `previous-bootstrap-${orgSlug}`;
+  try {
+    const previousBootstrapTime = localStorage.getItem(previousBootstrapKey);
+    const isRecentBoot = previousBootstrapTime
+      ? Date.now() - Number(previousBootstrapTime) < 10 * 60 * 1000
+      : false;
+    Sentry.setTag('is_recent_boot', isRecentBoot);
+    localStorage.setItem(previousBootstrapKey, `${Date.now()}`);
+  } catch {
+    // Ignore errors
+  }
+}
+/**
  * Context provider responsible for loading the organization into the
  * OrganizationStore if it is not already present.
  *
@@ -73,7 +89,6 @@ export function OrganizationContextProvider({children}: Props) {
   const [organizationPromise, setOrganizationPromise] = useState<Promise<unknown> | null>(
     null
   );
-  const spanRef = useRef<Sentry.Span | null>(null);
 
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
@@ -87,13 +102,7 @@ export function OrganizationContextProvider({children}: Props) {
 
   useEffect(() => {
     // Nothing to do if we already have the organization loaded
-    const previousBootstrapKey = `previous-bootstrap-${orgSlug}`;
     if (organization && organization.slug === orgSlug) {
-      if (spanRef.current) {
-        spanRef.current.end();
-        spanRef.current = null;
-        localStorage.setItem(previousBootstrapKey, `${Date.now()}`);
-      }
       return;
     }
 
@@ -102,20 +111,18 @@ export function OrganizationContextProvider({children}: Props) {
       return;
     }
 
-    const previousBootstrapTime = localStorage.getItem(previousBootstrapKey);
-    spanRef.current = Sentry.startInactiveSpan({
-      name: 'ui.bootstrap',
-      op: 'ui.render',
-      forceTransaction: true,
-      attributes: {
-        // Bootstrapped in the last 10 minutes
-        is_recent_boot: previousBootstrapTime
-          ? Date.now() - Number(previousBootstrapTime) < 10 * 60 * 1000
-          : false,
-      },
-    });
+    setRecentBootstrapTag(orgSlug);
 
-    setOrganizationPromise(fetchOrganizationDetails(api, orgSlug, false, true));
+    const promise = Sentry.startSpan(
+      {
+        name: 'ui.bootstrap',
+        op: 'ui.render',
+        forceTransaction: true,
+      },
+      // Bootstraps organization, projects, and teams
+      () => fetchOrganizationDetails(api, orgSlug, false, true)
+    );
+    setOrganizationPromise(promise);
   }, [api, orgSlug, organization]);
 
   // XXX(epurkhiser): User may be null in some scenarios at this point in app
