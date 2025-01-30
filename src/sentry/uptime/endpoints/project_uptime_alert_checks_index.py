@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.models import ProjectUptimeSubscription
@@ -147,6 +148,9 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     # Extract the actual value based on which field is set
                     if result.HasField("val_str"):
                         if col_name == "uptime_subscription_id":
+                            if col_name in row_dict:
+                                del row_dict[col_name]
+                            row_dict["project_uptime_subscription_id"] = uptime_subscription.id
                             row_dict[col_name] = uptime_subscription.id
                         else:
                             row_dict[col_name] = result.val_str
@@ -159,5 +163,5 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                             )
                         else:
                             row_dict[col_name] = result.val_float
-                results.append(row_dict)
+                results.append(convert_dict_key_case(row_dict, snake_to_camel_case))
         return results

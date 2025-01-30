@@ -45,15 +45,15 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         assert len(response.data) == 6
         first = response.data[0]
         for key in [
-            "uptime_subscription_id",
-            "uptime_check_id",
-            "scheduled_check_time",
+            "uptimeSubscriptionId",
+            "uptimeCheckId",
+            "scheduledCheckTime",
             "timestamp",
-            "duration_ms",
+            "durationMs",
             "region",
-            "check_status",
-            "check_status_reason",
-            "trace_id",
+            "checkStatus",
+            "checkStatusReason",
+            "traceId",
         ]:
             assert key in first, f"{key} not in {first}"
-        assert first["uptime_subscription_id"] == self.project_uptime_subscription.id
+        assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
