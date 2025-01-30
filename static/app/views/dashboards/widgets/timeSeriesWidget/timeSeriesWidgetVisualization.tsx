@@ -116,8 +116,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   } else if (dataCompletenessDelay > 0 && props.visualizationType === 'bar') {
     // Bar charts are not continuous (there are gaps between the bars) so no
     // shenanigan is needed. Simply mark the "incomplete" bars
-    props.timeseries.map(timeserie => {
-      return markDelayedBuckets(timeserie, dataCompletenessDelay);
+    completeSeries = props.timeseries.map(timeserie => {
+      return markDelayedData(timeserie, dataCompletenessDelay);
     });
   }
 
