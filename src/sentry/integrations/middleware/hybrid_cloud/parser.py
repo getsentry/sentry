@@ -268,7 +268,20 @@ class BaseRequestParser(ABC):
         Should be overwritten by implementation.
         Default behaviour is handle the response ignoring SiloMode.
         """
-        return self.response_handler(self.request)
+        try:
+            return self.response_handler(self.request)
+        except OrganizationIntegration.DoesNotExist:
+            logger.warning(
+                "integration.no_active_organizations_for_request",
+                extra={
+                    "provider": self.provider,
+                    "path": self.request.path,
+                    "integration": getattr(self.get_integration_from_request(), 'id', None),
+                }
+            )
+            return self.get_default_missing_integration_response()
+        except Integration.DoesNotExist:
+            return self.get_default_missing_integration_response()
 
     def get_integration_from_request(self) -> Integration | None:
         """
@@ -296,25 +309,66 @@ class BaseRequestParser(ABC):
                 }
             )
             if not integration:
-                integration = self.get_integration_from_request()
-            if not integration:
-                raise Integration.DoesNotExist()
+            integration = self.get_integration_from_request()
+        if not integration:
+            raise Integration.DoesNotExist()
+        lifecycle.add_extra("integration_id", integration.id)
 
-            lifecycle.add_extra("integration_id", integration.id)
-
-            organization_integrations = OrganizationIntegration.objects.filter(
-                integration_id=integration.id,
-                status=ObjectStatus.ACTIVE,
+        # First check if the integration itself is active
+        if hasattr(integration, 'status') and integration.status != ObjectStatus.ACTIVE:
+            logger.warning(
+                "integration.inactive",
+                extra={
+                    "integration_id": integration.id,
+                    "provider": self.provider,
+                    "status": integration.status,
+                },
             )
+            return []
 
-            if organization_integrations.count() == 0:
-                raise OrganizationIntegration.DoesNotExist()
+        organization_integrations = OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
 
-            organization_ids = [oi.organization_id for oi in organization_integrations]
-            return organization_mapping_service.get_many(organization_ids=organization_ids)
+        if organization_integrations.count() == 0:
+            logger.info(
+                "integration.no_active_organizations",
+                extra={
+                    "integration_id": integration.id,
+                    "provider": self.provider,
+                }
+            )
+            return []
+
+        organization_ids = [oi.organization_id for oi in organization_integrations]
+        return organization_mapping_service.get_many(organization_ids=organization_ids)
 
     def get_regions_from_organizations(
         self, organizations: Sequence[RpcOrganizationSummary] | None = None
+    ) -> Sequence[Region]:
+        if not organizations:
+            organizations = self.get_organizations_from_integration()
+
+        if not organizations:
+            return self._handle_empty_organizations()
+
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
+
+    def _handle_empty_organizations(self) -> Sequence[Region]:
+        """
+        Handle cases where no organizations are found for an integration.
+        Default to control region in this case.
+        """
+        logger.info(
+            "integration.defaulting_to_control_region",
+            extra={
+                "provider": self.provider,
+                "path": self.request.path,
+            }
+        )
+        return [Region.control]
     ) -> Sequence[Region]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
