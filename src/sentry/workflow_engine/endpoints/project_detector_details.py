@@ -19,12 +19,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
-from sentry.workflow_engine.models import (
-    DataConditionGroup,
-    DataSource,
-    DataSourceDetector,
-    Detector,
-)
+from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 
 
 @region_silo_endpoint
@@ -104,14 +99,6 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
 
         if data_condition_group:
             RegionScheduledDeletion.schedule(data_condition_group, days=0, actor=request.user)
-
-        try:
-            data_source_detector = DataSourceDetector.objects.get(detector_id=detector.id)
-        except DataSourceDetector.DoesNotExist:
-            pass
-
-        if data_source_detector:
-            RegionScheduledDeletion.schedule(data_source_detector, days=0, actor=request.user)
 
         try:
             data_sources = DataSource.objects.filter(detector=detector.id)
