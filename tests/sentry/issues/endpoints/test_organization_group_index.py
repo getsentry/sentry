@@ -4043,7 +4043,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": True,
+                "organizations:issue-search-snuba": False,
+            }
+        ):
             response = self.get_success_response(query="abc:true")
             assert len(json.loads(response.content)) == 1
 
