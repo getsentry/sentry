@@ -313,9 +313,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 const Toggle = styled('div')<{withToolbar: boolean}>`
   display: none;
   position: absolute;
-  top: 5px;
-  left: ${p => (p.withToolbar ? '-17px' : '-31px')};
-  transition: 700ms;
+  top: 0px;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
@@ -324,6 +322,7 @@ const Toggle = styled('div')<{withToolbar: boolean}>`
 
 const StyledButton = styled(Button)`
   width: 28px;
+  border-left: 0px;
   border-top-left-radius: 0px;
   border-bottom-left-radius: 0px;
 `;
