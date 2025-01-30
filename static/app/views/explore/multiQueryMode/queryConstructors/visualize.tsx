@@ -16,15 +16,13 @@ export function VisualizeSection() {
   const numberTags = useSpanTags('number');
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
-    const options = [
-      ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-        };
-      }),
-    ];
+    const options = Object.values(numberTags).map(tag => {
+      return {
+        label: tag.name,
+        value: tag.key,
+        textValue: tag.name,
+      };
+    });
 
     options.sort((a, b) => {
       if (a.label < b.label) {

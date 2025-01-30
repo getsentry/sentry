@@ -14,10 +14,7 @@ export function GroupBySection() {
   const tags = useSpanTags();
 
   const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
-    const potentialOptions = [
-      // We do not support grouping by span id, we have a dedicated sample mode for that
-      ...Object.keys(tags).filter(key => key !== 'id'),
-    ];
+    const potentialOptions = Object.keys(tags).filter(key => key !== 'id');
     potentialOptions.sort();
 
     return [
