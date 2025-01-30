@@ -41,8 +41,6 @@ const BACKEND_TAGS = [
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 const RTL_TAGS = ['transaction', 'url'];
 
-const HIGHLIGHT_TAGS = ['handled', 'level', 'mobile', 'main_thread', 'url'];
-
 type Segment = {
   count: number;
   name: string | React.ReactNode;
@@ -205,14 +203,16 @@ export default function IssueTagsPreview({
   const searchQuery = useEventQuery({groupId});
   const organization = useOrganization();
 
-  const {data: detailedProject} = useDetailedProject({
+  const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
 
   const highlightTagKeys = useMemo(() => {
     const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-    return tagKeys.filter(tag => !HIGHLIGHT_TAGS.includes(tag));
+    const highlightDefaults =
+      detailedProject?.highlightPreset?.tags ?? project?.highlightPreset?.tags ?? [];
+    return tagKeys.filter(tag => !highlightDefaults.includes(tag));
   }, [detailedProject, project]);
 
   const {
@@ -228,7 +228,10 @@ export default function IssueTagsPreview({
       return [];
     }
 
-    const highlightTags = tags.filter(tag => highlightTagKeys.includes(tag.key));
+    const highlightTags = tags
+      .filter(tag => highlightTagKeys.includes(tag.key))
+      .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
+
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
       : frontend.some(val => val === project?.platform)
@@ -247,7 +250,7 @@ export default function IssueTagsPreview({
     return uniqueTags.slice(0, 4);
   }, [tags, project?.platform, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightPending) {
     return (
       <IssueTagPreviewSection>
         <Placeholder width="240px" height="100px" />
