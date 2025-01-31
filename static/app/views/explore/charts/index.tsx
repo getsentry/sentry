@@ -20,7 +20,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
+import {X_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
 import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loadingPanel';
@@ -345,7 +345,7 @@ const CHART_HEIGHT = 260;
 
 const VisualizationWrapper = styled('div')`
   flex-grow: 1;
-  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  padding: 0 ${X_GUTTER} 0 ${X_GUTTER};
 `;
 
 const ChartLabel = styled('div')`
