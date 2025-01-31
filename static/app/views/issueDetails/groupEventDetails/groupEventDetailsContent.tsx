@@ -372,9 +372,7 @@ export function EventDetailsContent({
         </Fragment>
       )}
       <EventHydrationDiff event={event} group={group} />
-      {issueTypeConfig.replays.enabled && (
-        <EventReplay event={event} group={group} projectSlug={project.slug} />
-      )}
+      <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.HPKP]) && (
         <EntryErrorBoundary type={EntryType.HPKP}>
           <Generic
