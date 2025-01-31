@@ -142,7 +142,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                 </EventIdDropdownButton>
               )}
               position="bottom-start"
-              offset={2}
+              offset={4}
               size="xs"
               items={[
                 {
