@@ -42,13 +42,13 @@ class BaseActionTranslator(ABC):
 
     @property
     @abstractmethod
-    def target_type(self) -> ActionTarget:
+    def target_type(self) -> ActionTarget | None:
         """Return the target type for this action"""
         pass
 
     @property
     @abstractmethod
-    def integration_id(self) -> Any | None:
+    def integration_id(self) -> int | None:
         """Return the integration ID for this action, if any"""
         pass
 
@@ -299,6 +299,35 @@ class AzureDevOpsActionTranslator(TicketActionTranslator):
     @property
     def blob_type(self) -> type["DataBlob"]:
         return AzureDevOpsDataBlob
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event.NotifyEventAction"
+)
+class PluginActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.PLUGIN
+
+    @property
+    def required_fields(self) -> list[str]:
+        # NotifyEventAction doesn't appear to have any required fields
+        # beyond the standard id and uuid
+        return []
+
+    @property
+    def target_type(self) -> None:
+        # This appears to be a generic plugin notification
+        # so we'll use SPECIFIC as the target type
+        return None
+
+    @property
+    def integration_id(self) -> None:
+        # Plugin actions don't have an integration ID
+        return None
+
+    @property
+    def blob_type(self) -> None:
+        # Plugin actions don't need any additional data storage
+        return None
 
 
 @dataclass
