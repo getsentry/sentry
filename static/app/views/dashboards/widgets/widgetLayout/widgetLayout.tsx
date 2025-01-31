@@ -100,7 +100,6 @@ const VisualizationWrapper = styled('div')`
 `;
 
 const FooterWrapper = styled('div')`
-  padding: ${space(0.5)} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
   margin: 0;
   border-top: 1px solid ${p => p.theme.border};
 `;
