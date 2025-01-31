@@ -30,7 +30,7 @@ class ProjectCodeOwners(Model):
         "sentry.RepositoryProjectPathConfig", unique=True, on_delete=models.PROTECT
     )
     # raw ⇒ original CODEOWNERS file.
-    raw = models.TextField(null=True)
+    raw = models.TextField()
     # schema ⇒ transformed into IssueOwner syntax
     schema = JSONField(null=True)
     date_updated = models.DateTimeField(default=timezone.now)
