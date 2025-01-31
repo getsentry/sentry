@@ -42,7 +42,7 @@ class BaseActionTranslator(ABC):
 
     @property
     @abstractmethod
-    def target_type(self) -> ActionTarget:
+    def target_type(self) -> ActionTarget | None:
         """Return the target type for this action"""
         pass
 
