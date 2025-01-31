@@ -590,7 +590,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_success_simple(self, mock_post_bulk_grouping_records):
+    def test_success_simple(self, mock_post_bulk_grouping_records):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
@@ -606,9 +606,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @override_options(
         {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
     )
-    def test_backfill_seer_grouping_records_success_cohorts_simple(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_success_cohorts_simple(self, mock_post_bulk_grouping_records):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
@@ -633,9 +631,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @override_options(
         {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
     )
-    def test_backfill_seer_grouping_records_success_cohorts_project_does_not_exist(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_success_cohorts_project_does_not_exist(self, mock_post_bulk_grouping_records):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
@@ -656,7 +652,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         "sentry.nodestore.backend.get_multi",
         side_effect=ServiceUnavailable(message="Service Unavailable"),
     )
-    def test_backfill_seer_grouping_records_failure(self, mock_get_multi, mock_sleep):
+    def test_failure(self, mock_get_multi, mock_sleep):
         """
         Test that the group metadata isn't updated on a failure.
         """
@@ -667,9 +663,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self.assert_groups_metadata_not_updated(groups)
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_groups_1_times_seen(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_groups_1_times_seen(self, mock_post_bulk_grouping_records):
         """
         Test that groups where times_seen == 1 are not included.
         """
@@ -699,7 +693,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.tasks.embeddings_grouping.utils.delete_seer_grouping_records_by_hash")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_groups_has_invalid_neighbor(
+    def test_groups_has_invalid_neighbor(
         self, mock_post_bulk_grouping_records, mock_logger, mock_seer_deletion_request
     ):
         """
@@ -755,7 +749,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_multiple_batches(
+    def test_multiple_batches(
         self, mock_post_bulk_grouping_records, mock_backfill_logger, mock_utils_logger
     ):
         """
@@ -852,7 +846,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
 
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
-    def test_backfill_seer_grouping_records_only_delete(self, mock_project_delete_grouping_records):
+    def test_only_delete(self, mock_project_delete_grouping_records):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
         if it exists
@@ -891,7 +885,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_only_delete(
+    def test_cohort_only_delete(
         self, mock_post_bulk_grouping_records, mock_delete_grouping_records
     ):
         """
@@ -939,9 +933,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self.assert_groups_metadata_not_updated(groups)
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_exclude_groups_pending_deletion(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_exclude_groups_pending_deletion(self, mock_post_bulk_grouping_records):
         """
         Test that groups that are pending deletion/in the process of being deleted are not included.
         """
@@ -984,9 +976,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_no_events(
-        self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger
-    ):
+    def test_no_events(self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger):
         """
         Test that groups that have no events in snuba are excluded.
         """
@@ -1060,9 +1050,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_exclude_90_day_old_groups(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_exclude_90_day_old_groups(self, mock_post_bulk_grouping_records):
         """
         Test that groups that are over 90 days old are excluded.
         """
@@ -1099,7 +1087,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch(
         "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.call_next_backfill"
     )
-    def test_backfill_seer_grouping_records_empty_nodestore(
+    def test_empty_nodestore(
         self,
         mock_call_next_backfill,
         mock_lookup_group_data_stacktrace_bulk,
@@ -1136,7 +1124,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch(
         "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.call_next_backfill"
     )
-    def test_backfill_seer_grouping_records_nodestore_grouping_config_not_found(
+    def test_nodestore_grouping_config_not_found(
         self, mock_call_next_backfill, mock_lookup_group_data_stacktrace_bulk
     ):
         exceptions = (GroupingConfigNotFound(), ResourceDoesNotExist(), InvalidEnhancerConfig())
@@ -1163,9 +1151,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_exclude_invalid_groups(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_exclude_invalid_groups(self, mock_post_bulk_grouping_records, mock_logger):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         # Add one event where the stacktrace is not used for grouping
@@ -1192,7 +1178,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @override_options({"seer.similarity-backfill-killswitch.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_killswitch_enabled(self, mock_logger):
+    def test_killswitch_enabled(self, mock_logger):
         """
         Test that the metadata is not set for groups when the backfill killswitch is true.
         """
@@ -1213,9 +1199,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_enable_ingestion(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_enable_ingestion(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that when the enable_ingestion flag is True, the project option is set and the
         log is called.
@@ -1239,9 +1223,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_no_enable_ingestion(
-        self, mock_post_bulk_grouping_records
-    ):
+    def test_no_enable_ingestion(self, mock_post_bulk_grouping_records):
         """
         Test that when the enable_ingestion flag is False, the project option is not set.
         """
@@ -1260,7 +1242,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is None
 
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
+    def test_skip_project_already_processed(self, mock_logger):
         """
         Test that projects that have a backfill completed project option are skipped.
         """
@@ -1300,9 +1282,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_typical_backfill_request(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_typical_backfill_request(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that projects that have the backfill completed option set are skipped when we backfill
         all projects.
@@ -1351,7 +1331,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert project3.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    def test_backfill_seer_grouping_records_manually_skip_project(self, mock_logger):
+    def test_manually_skip_project(self, mock_logger):
         """
         Test that project ids that are included in the skip_project_ids field are skipped.
         """
@@ -1390,9 +1370,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_empty_batch(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_empty_batch(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that if a backfill batch is empty due to the filtering of invalid groups, the backfill
         task continues and calls the next batch.
@@ -1525,7 +1503,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
-    def test_backfill_seer_grouping_records_gateway_timeout(self, mock_seer_request, mock_logger):
+    def test_gateway_timeout(self, mock_seer_request, mock_logger):
         """
         Test that if the backfill fails due to a Seer Gateway Timeout error, that the backfill continues.
         """
@@ -1568,7 +1546,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
-    def test_backfill_seer_grouping_records_internal_error(self, mock_seer_request, mock_logger):
+    def test_internal_error(self, mock_seer_request, mock_logger):
         """
         Test that if the backfill fails due to a non-Gateway Timeout error, that the backfill stops.
         """
@@ -1608,9 +1586,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_creation(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_cohort_creation(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that when no cohort or current project id is provided, cohorts of project ids are generated where \
         project_id % thread_number == worker_number
@@ -1693,9 +1669,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @override_options({"similarity.backfill_project_cohort_size": 1})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_creation_multiple_batches(
-        self, mock_post_bulk_grouping_records, mock_logger
-    ):
+    def test_cohort_creation_multiple_batches(self, mock_post_bulk_grouping_records, mock_logger):
         """
         Test that when the cohort size is 1, multiple cohorts of size 1 are created and processed.
         """
@@ -1782,7 +1756,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
+    def test_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
         project = self.create_project(organization=self.organization)
         data = {
             **ONLY_STACKTRACE,
@@ -1802,7 +1776,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         }
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_for_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
+    def test_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
         project = self.create_project(organization=self.organization)
         data = {
             **EVENT_WITH_THREADS_STACKTRACE,
