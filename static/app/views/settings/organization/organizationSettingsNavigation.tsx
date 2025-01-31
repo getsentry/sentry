@@ -78,6 +78,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
     const access = new Set(organization.access);
     const features = new Set(organization.features);
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+
     return (
       <SettingsNavigation
         navigationObjects={navigationConfiguration}

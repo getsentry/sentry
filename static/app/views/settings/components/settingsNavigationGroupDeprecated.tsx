@@ -1,10 +1,13 @@
-import {SecondaryNav} from 'sentry/components/nav/secondary';
+import styled from '@emotion/styled';
+
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import SettingsNavItemDeprecated from 'sentry/views/settings/components/settingsNavItemDeprecated';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
-function SettingsNavigationGroup(props: NavigationGroupProps) {
+function SettingsNavigationGroupDeprecated(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
 
   const navLinks = items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
@@ -33,9 +36,9 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
     };
 
     return (
-      <SettingsNavItem
+      <SettingsNavItemDeprecated
         key={title}
-        to={to}
+        to={normalizeUrl(to)}
         label={title}
         index={index}
         badge={badgeResult}
@@ -49,7 +52,24 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
     return null;
   }
 
-  return <SecondaryNav.Section title={name}>{navLinks}</SecondaryNav.Section>;
+  return (
+    <NavSection data-test-id={name}>
+      <SettingsHeading role="heading">{name}</SettingsHeading>
+      {navLinks}
+    </NavSection>
+  );
 }
 
-export default SettingsNavigationGroup;
+const NavSection = styled('div')`
+  margin-bottom: 20px;
+`;
+
+const SettingsHeading = styled('div')`
+  color: ${p => p.theme.text};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-transform: uppercase;
+  margin-bottom: ${space(0.5)};
+`;
+
+export default SettingsNavigationGroupDeprecated;
