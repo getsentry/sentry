@@ -129,9 +129,7 @@ describe('Dashboards > Detail', function () {
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: 'default-overview'},
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-      });
+
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {data: []},
