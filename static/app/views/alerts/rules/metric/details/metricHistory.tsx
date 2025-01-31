@@ -82,7 +82,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
           #{incident.identifier}
         </Link>
       </Cell>
-      <Cell>
+      {/* <Cell>
         {incident.alertRule.comparisonDelta ? (
           <Fragment>
             {alertName} {curentTrigger?.alertThreshold}%
@@ -104,6 +104,43 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               ? t('above')
               : t('below')}{' '}
             {curentTrigger?.alertThreshold} {t('in')} {timeWindow}
+          </Fragment>
+        )}
+      </Cell> */}
+      <Cell>
+        {/* If an alert rule is a % comparison based detection type */}
+        {incident.alertRule.detectionType !== 'dynamic' &&
+          incident.alertRule.comparisonDelta && (
+            <Fragment>
+              {alertName} {curentTrigger?.alertThreshold}%
+              {t(
+                ' %s in %s compared to the ',
+                incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                  ? t('higher')
+                  : t('lower'),
+                timeWindow
+              )}
+              {COMPARISON_DELTA_OPTIONS.find(
+                ({value}) => value === incident.alertRule.comparisonDelta
+              )?.label ?? COMPARISON_DELTA_OPTIONS[0]?.label}
+            </Fragment>
+          )}
+        {/* If an alert rule is a static detection type */}
+        {incident.alertRule.detectionType !== 'dynamic' &&
+          !incident.alertRule.comparisonDelta && (
+            <Fragment>
+              {alertName}{' '}
+              {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                ? t('above')
+                : t('below')}{' '}
+              {curentTrigger?.alertThreshold || '_'} {t('within')} {timeWindow}
+            </Fragment>
+          )}
+        {/* If an alert rule is a dynamic detection type */}
+        {incident.alertRule.detectionType === 'dynamic' && (
+          <Fragment>
+            {t('Detected an anomaly in the query for ')}
+            {alertName}
           </Fragment>
         )}
       </Cell>
