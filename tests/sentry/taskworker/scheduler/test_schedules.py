@@ -3,7 +3,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.taskworker.scheduler.schedules import CrontabSchedule, TimedeltaSchedule, crontab
+from sentry.conf.types.taskworker import crontab
+from sentry.taskworker.scheduler.schedules import CrontabSchedule, TimedeltaSchedule
 from sentry.testutils.helpers.datetime import freeze_time
 
 
