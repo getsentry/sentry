@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -20,13 +21,14 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
 
-from .integration_utils import InstallationNotFoundError, get_installation
+from .integration_utils import (
+    InstallationCannotGetTreesError,
+    InstallationNotFoundError,
+    get_installation,
+)
 from .stacktraces import identify_stacktrace_paths
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationInstallation
 
 
 class DeriveCodeMappingsErrorReason(StrEnum):
@@ -66,14 +68,16 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
 
     try:
         installation = get_installation(org)
+        trees = get_trees_for_org(installation, org, extra)
+        trees_helper = CodeMappingTreesHelper(trees)
+        code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+        set_project_codemappings(code_mappings, installation, project)
     except InstallationNotFoundError:
         logger.info("No installation or organization integration found.", extra=extra)
         return
-
-    trees = get_trees_for_org(installation, org, extra)
-    trees_helper = CodeMappingTreesHelper(trees)
-    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, installation, project)
+    except InstallationCannotGetTreesError:
+        logger.info("Installation does not have required method get_trees_for_org", extra=extra)
+        return
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
