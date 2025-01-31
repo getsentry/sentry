@@ -74,9 +74,10 @@ describe('SolutionsSection', () => {
       events: {enabled: false},
       evidence: null,
       header: {
-        filterAndSearch: {enabled: false},
+        filterBar: {enabled: true, fixedEnvironment: false},
+        graph: {enabled: true, type: 'discover-events'},
         tagDistribution: {enabled: false},
-        timelineSummary: {enabled: true},
+        occurrenceSummary: {enabled: false},
       },
       allEventsPath: Tab.EVENTS,
       logLevel: {enabled: true},

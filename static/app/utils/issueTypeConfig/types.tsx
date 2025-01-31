@@ -73,9 +73,17 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   header: {
-    filterAndSearch: DisabledWithReasonConfig;
+    filterBar: DisabledWithReasonConfig & {
+      // Display the environment filter in an inactive, locked state
+      fixedEnvironment?: boolean;
+    };
+    graph: DisabledWithReasonConfig & {
+      type: 'discover-events' | 'checkin-timeline' | 'detector-history';
+    };
+    occurrenceSummary: DisabledWithReasonConfig & {
+      duration?: boolean;
+    };
     tagDistribution: DisabledWithReasonConfig;
-    timelineSummary: DisabledWithReasonConfig;
   };
   /**
    * Is the Issue Summary available for this issue

@@ -38,9 +38,10 @@ const BASE_CONFIG: IssueTypeConfig = {
     share: {enabled: false},
   },
   header: {
-    filterAndSearch: {enabled: true},
+    filterBar: {enabled: true, fixedEnvironment: false},
+    graph: {enabled: true, type: 'discover-events'},
     tagDistribution: {enabled: true},
-    timelineSummary: {enabled: false},
+    occurrenceSummary: {enabled: false},
   },
   customCopy: {
     resolution: t('Resolved'),
