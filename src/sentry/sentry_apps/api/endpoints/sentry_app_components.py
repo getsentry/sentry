@@ -1,5 +1,3 @@
-from typing import Any
-
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -80,10 +78,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                             SentryAppComponentPreparer(component=component, install=install).run()
 
                         except (SentryAppIntegratorError, SentryAppError) as e:
-                            error_body: dict[str, Any] = {"detail": e.message}
-                            if public_context := e.public_context:
-                                error_body.update({"context": public_context})
-                            errors[str(component.uuid)] = error_body
+                            errors[str(component.uuid)] = e.to_public_dict()
 
                         except Exception as e:
                             error_id = sentry_sdk.capture_exception(e)
