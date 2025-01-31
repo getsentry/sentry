@@ -330,9 +330,11 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        # this endpoint is only supported for spans for this project
         if serialized["dataset"] != "spans":
             raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
 
+        # todo do we need this or it should be done in upstream?
         snuba_params.start = snuba_params.start_date.replace(
             hour=0, minute=0, second=0, microsecond=0
         )
@@ -347,9 +349,9 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
         # sample request from the tests in the sentry-protos repo
-        rpc_request = TraceItemStatsRequest(
-            meta=meta,
-            filter=TraceItemFilter(
+        # todo do we need this or it should be done in upstream?
+        filter = (
+            TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=AttributeKey(
                         type=AttributeKey.TYPE_STRING,
@@ -359,16 +361,17 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
                     value=AttributeValue(val_double=999),
                 ),
             ),
-            stats_types=[
-                StatsType(
-                    attribute_distributions=AttributeDistributionsRequest(
-                        max_buckets=10, max_attributes=100
-                    )
-                )
-            ],
         )
+        stats_type = StatsType(
+            attribute_distributions=AttributeDistributionsRequest(
+                max_buckets=10, max_attributes=100
+            )
+        )
+        rpc_request = TraceItemStatsRequest(meta=meta, filter=filter, stats_types=[stats_type])
+        # this part wouldn't work before the changes in snuba are merged
+        rpc_response = snuba_rpc.attribute_frequency_stats_rpc(rpc_request)
 
-        raise ParseError(detail=f"add the stuff here: {rpc_request}")
+        raise ParseError(detail=f"add the stuff here: {rpc_response}")
 
 
 class SpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
