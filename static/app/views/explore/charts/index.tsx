@@ -41,6 +41,8 @@ import {
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
+
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
@@ -340,9 +342,6 @@ const ChartList = styled('div')`
   row-gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
-
-const INGESTION_DELAY = 600;
-const CHART_HEIGHT = 260;
 
 const VisualizationWrapper = styled('div')`
   flex-grow: 1;
