@@ -64,33 +64,12 @@ def fetch_latest_item_id(credentials_id: int) -> None:
                 credentials.message = "Seems like the provided credentials are invalid"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
-
-                logger.info(
-                    "invalid_credentials",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "client_id": client_id,
-                        "status_code": response.status_code,
-                        "response_text": result,
-                    },
-                )
                 return
+
             elif result["error"]["type"] == "ip_not_allowlisted":
                 credentials.message = "Seems like our IP is not allow-listed"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
-
-                logger.info(
-                    "ip_not_allowlisted",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "client_id": client_id,
-                        "status_code": response.status_code,
-                        "response_text": result,
-                    },
-                )
                 return
 
         # Default in case things go wrong
