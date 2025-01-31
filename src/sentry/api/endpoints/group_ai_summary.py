@@ -33,12 +33,18 @@ logger = logging.getLogger(__name__)
 from rest_framework.request import Request
 
 
+class SummarizeIssueScores(BaseModel):
+    possible_cause_confidence: float
+    possible_cause_novelty: float
+
+
 class SummarizeIssueResponse(BaseModel):
     group_id: str
     headline: str
     whats_wrong: str | None = None
     trace: str | None = None
     possible_cause: str | None = None
+    scores: SummarizeIssueScores | None = None
 
 
 @region_silo_endpoint
