@@ -6,32 +6,32 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
-import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
-export type Monitor = {
-  id: string;
+export type Item = {
+  link: string;
   name: string;
   project: AvatarProject;
   description?: string;
 };
 
-type MonitorsCellProps = {
-  monitors: Monitor[];
+export type ConnectionCellProps = {
+  items: Item[];
+  renderText: (count: number) => string;
 };
 
-export function MonitorsCell({monitors}: MonitorsCellProps) {
-  if (monitors.length === 0) {
+export function ConnectionCell({items, renderText}: ConnectionCellProps) {
+  if (items.length === 0) {
     return <EmptyCell />;
   }
   return (
     <div>
       <Hovercard
-        body={monitors.map(({name, id, project, description}, index) => (
-          <Fragment key={id}>
+        body={items.map(({name, project, description, link}, index) => (
+          <Fragment key={link}>
             {index > 0 && <Divider />}
-            <HovercardRow to={`/monitors/${id}/`}>
+            <HovercardRow to={link}>
               <strong>{name}</strong>
               <MonitorDetails>
                 <ProjectBadge
@@ -55,7 +55,7 @@ export function MonitorsCell({monitors}: MonitorsCellProps) {
           </Fragment>
         ))}
       >
-        <MonitorCount>{tn('%s monitor', '%s monitors', monitors.length)}</MonitorCount>
+        <MonitorCount>{renderText(items.length)}</MonitorCount>
       </Hovercard>
     </div>
   );
