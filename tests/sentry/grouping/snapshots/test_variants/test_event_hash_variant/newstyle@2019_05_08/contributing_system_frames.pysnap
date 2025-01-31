@@ -1,0 +1,70 @@
+---
+created: '2025-01-30T21:38:18.144167+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "fe92cff6711f8a0a30cabb8b9245b1d6"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (marked out of app by stack trace rule (function:runApp -app -group))
+            filename*
+              "app.js"
+            function*
+              "runApp"
+            context-line*
+              "return server.serve(port);"
+          frame* (un-ignored by stack trace rule (function:handleRequest -app +group))
+            filename*
+              "router.js"
+            function*
+              "handleRequest"
+            context-line*
+              "return handler(request);"
+          frame (ignored by stack trace rule (function:recordMetrics +app -group))
+            filename*
+              "metrics.js"
+            function*
+              "recordMetrics"
+            context-line*
+              "return withMetrics(handler, metricName, tags);"
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  component:
+    system (exception of app takes precedence)
+      exception (ignored because hash matches app variant)
+        stacktrace*
+          frame (ignored by stack trace rule (function:runApp -app -group))
+            filename*
+              "app.js"
+            function*
+              "runApp"
+            context-line*
+              "return server.serve(port);"
+          frame* (marked out of app by stack trace rule (function:handleRequest -app +group))
+            filename*
+              "router.js"
+            function*
+              "handleRequest"
+            context-line*
+              "return handler(request);"
+          frame (ignored by stack trace rule (function:recordMetrics +app -group))
+            filename*
+              "metrics.js"
+            function*
+              "recordMetrics"
+            context-line*
+              "return withMetrics(handler, metricName, tags);"
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
