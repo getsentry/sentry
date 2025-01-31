@@ -209,7 +209,11 @@ function ProfileDetails({
   const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
 
   if (!hasNewTraceUi) {
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <div>
+        <SpanProfileDetails span={span} event={event} />;
+      </div>
+    );
   }
 
   if (!defined(profile) || frames.length === 0) {
