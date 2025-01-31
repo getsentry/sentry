@@ -27,15 +27,18 @@ import useProjects from 'sentry/utils/useProjects';
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
+// Keep this list in sync with SUPPORTED_LANGUAGES in code_mapping.py
 const supportedStacktracePlatforms: PlatformKey[] = [
+  'csharp',
+  'elixir',
   'go',
   'javascript',
   'node',
   'php',
   'python',
   'ruby',
-  'elixir',
 ];
+const scmProviders = ['github', 'gitlab'];
 
 function shouldShowCodecovFeatures(
   organization: Organization,
@@ -223,7 +226,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     return null;
   }
 
-  // Render the provided `sourceLink` for all the non-inapp frames for `csharp` platform Issues
+  // Render the provided `sourceLink` for all the non-in-app frames for `csharp` platform Issues
   // We skip fetching from the API for these frames.
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
@@ -332,7 +335,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     }
 
     const sourceCodeProviders = match.integrations.filter(integration =>
-      ['github', 'gitlab'].includes(integration.provider?.key)
+      scmProviders.includes(integration.provider?.key)
     );
     return (
       <StacktraceLinkWrapper>
