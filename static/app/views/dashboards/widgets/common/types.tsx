@@ -13,6 +13,7 @@ export type TableData = TableRow[];
 export type TimeSeriesItem = {
   timestamp: string;
   value: number;
+  delayed?: boolean;
 };
 
 export type TimeseriesData = {

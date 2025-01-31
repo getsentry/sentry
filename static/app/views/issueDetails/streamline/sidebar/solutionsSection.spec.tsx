@@ -10,6 +10,7 @@ import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 jest.mock('sentry/utils/issueTypeConfig');
 
@@ -73,10 +74,12 @@ describe('SolutionsSection', () => {
       events: {enabled: false},
       evidence: null,
       header: {
-        filterAndSearch: {enabled: false},
+        filterBar: {enabled: true, fixedEnvironment: false},
+        graph: {enabled: true, type: 'discover-events'},
         tagDistribution: {enabled: false},
-        timelineSummary: {enabled: true},
+        occurrenceSummary: {enabled: false},
       },
+      allEventsPath: Tab.EVENTS,
       logLevel: {enabled: true},
       mergedIssues: {enabled: false},
       performanceDurationRegression: {enabled: false},
@@ -84,7 +87,6 @@ describe('SolutionsSection', () => {
       regression: {enabled: false},
       replays: {enabled: false},
       showFeedbackWidget: false,
-      showOpenPeriods: false,
       similarIssues: {enabled: false},
       spanEvidence: {enabled: false},
       stacktrace: {enabled: false},

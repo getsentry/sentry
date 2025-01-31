@@ -16,7 +16,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,7 +70,6 @@ function WidgetBuilderV2({
   setOpenWidgetTemplates,
   openWidgetTemplates,
 }: WidgetBuilderV2Props) {
-  const escapeKeyPressed = useKeyPress('Escape');
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -85,15 +83,6 @@ function WidgetBuilderV2({
   const [translate, setTranslate] = useState<WidgetDragPositioning>(
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
-
-  // do we want to keep this?
-  useEffect(() => {
-    if (escapeKeyPressed) {
-      if (isOpen) {
-        onClose?.();
-      }
-    }
-  }, [escapeKeyPressed, isOpen, onClose]);
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));

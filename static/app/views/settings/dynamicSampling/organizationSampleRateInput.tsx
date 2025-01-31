@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,9 +8,9 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 
 interface Props {
-  hasAccess: boolean;
   help: React.ReactNode;
   label: React.ReactNode;
   onChange: (value: string) => void;
@@ -26,7 +26,6 @@ interface Props {
 export function OrganizationSampleRateInput({
   value,
   onChange,
-  hasAccess,
   isBulkEditEnabled,
   isBulkEditActive,
   label,
@@ -36,7 +35,16 @@ export function OrganizationSampleRateInput({
   showPreviousValue,
   onBulkEditChange,
 }: Props) {
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Autofocus the input when bulk edit is activated
+  useEffect(() => {
+    if (isBulkEditActive) {
+      inputRef.current?.focus();
+    }
+  }, [isBulkEditActive]);
+
   const showBulkEditButton = hasAccess && isBulkEditEnabled && !isBulkEditActive;
   return (
     <Wrapper>
@@ -81,6 +89,8 @@ export function OrganizationSampleRateInput({
           <ErrorMessage>{error}</ErrorMessage>
         ) : showPreviousValue ? (
           <PreviousValue>{t('previous: %f%%', previousValue)}</PreviousValue>
+        ) : value === '100' ? (
+          <AllDataStoredMessage>{t('All spans are stored')}</AllDataStoredMessage>
         ) : null}
       </InputWrapper>
     </Wrapper>
@@ -123,6 +133,11 @@ const PreviousValue = styled('span')`
 const ErrorMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.error};
+`;
+
+const AllDataStoredMessage = styled('span')`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.success};
 `;
 
 const InputWrapper = styled('div')`
