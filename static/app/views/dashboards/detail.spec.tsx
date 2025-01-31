@@ -981,7 +981,7 @@ describe('Dashboards > Detail', function () {
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: 123}}
-          router={initialData.router}
+          router={router}
           location={{...initialData.router.location, pathname: '/widget/123/'}}
         >
           {null}
@@ -992,7 +992,7 @@ describe('Dashboards > Detail', function () {
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
       expect(openWidgetViewerModal).not.toHaveBeenCalled();
-      expect(initialData.router.replace).toHaveBeenCalledWith(
+      expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/dashboard/1/',
           query: {},
