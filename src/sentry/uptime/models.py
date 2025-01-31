@@ -226,6 +226,15 @@ def get_org_from_uptime_monitor(uptime_monitor: ProjectUptimeSubscription) -> tu
     return (uptime_monitor.project.organization,)
 
 
+def disable_uptime_monitors_for_org(organization: Organization) -> None:
+    """
+    Disables all uptime monitors for an organization. Can be triggered by a downgrade in plan or budget
+    """
+    ProjectUptimeSubscription.objects.filter(project__organization=organization).update(
+        status=ObjectStatus.DISABLED
+    )
+
+
 @cache_func_for_models([(ProjectUptimeSubscription, get_org_from_uptime_monitor)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return ProjectUptimeSubscription.objects.filter(
