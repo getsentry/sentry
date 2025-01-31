@@ -330,6 +330,30 @@ class PluginActionTranslator(BaseActionTranslator):
         return None
 
 
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+)
+class WebhookActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.WEBHOOK
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["service"]
+
+    @property
+    def target_type(self) -> ActionTarget | None:
+        return None
+
+    @property
+    def integration_id(self) -> int | None:
+        return None
+
+    @property
+    def target_identifier(self) -> str | None:
+        # The service field identifies the webhook
+        return self.action.get("service")
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
