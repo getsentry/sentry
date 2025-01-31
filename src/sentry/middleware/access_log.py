@@ -32,7 +32,9 @@ class _AccessLogMetaData:
 def _get_request_auth(request: Request) -> AuthenticatedToken | None:
     if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
         return None
-    return request.auth
+    # may not be present if request was rejected by a middleware between this
+    # and the auth middleware
+    return getattr(request, "auth", None)
 
 
 def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
