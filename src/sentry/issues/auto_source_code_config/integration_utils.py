@@ -10,6 +10,10 @@ class InstallationNotFoundError(Exception):
     pass
 
 
+class InstallationCannotGetTreesError(Exception):
+    pass
+
+
 def get_installation(organization: Organization) -> IntegrationInstallation:
     integrations = integration_service.get_integrations(
         organization_id=organization.id,
@@ -25,5 +29,8 @@ def get_installation(organization: Organization) -> IntegrationInstallation:
 
     if not installation:
         raise InstallationNotFoundError
+
+    if not hasattr(installation, "get_trees_for_org"):
+        raise InstallationCannotGetTreesError
 
     return installation
