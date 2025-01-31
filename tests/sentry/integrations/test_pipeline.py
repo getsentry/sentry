@@ -174,17 +174,15 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with (
-            override_regions(self.regions),
-            patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
-        ):
-            self.pipeline.finish_pipeline()
-            data, success = resp.call_args[0]
+        with override_regions(self.regions):
+            response = self.pipeline.finish_pipeline()
+            error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
+            assert error_message in response.content.decode()
+
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                assert success
+                assert error_message not in response.content.decode()
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                assert not success
-                assert "resides in a different region" in str(data)
+                assert error_message in response.content.decode()
 
     def test_aliased_integration_key(self, *args):
         self.provider = AliasedIntegrationProvider
