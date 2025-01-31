@@ -58,6 +58,10 @@ describe('EventDetailsHeader', () => {
     );
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
