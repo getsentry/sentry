@@ -20,7 +20,7 @@ from sentry.utils.codeowners import MAX_RAW_LENGTH
 from .analytics import *  # NOQA
 
 
-class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
+class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
@@ -51,7 +51,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         # We do something similar with ProjectOwnership at the API level.
         existing_raw = self.instance.raw if self.instance else ""
         max_length = self.get_max_length()
-        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
+        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:  # type: ignore[arg-type]  # raw is incorrectly null
             analytics.record(
                 "codeowners.max_length_exceeded",
                 organization_id=self.context["project"].organization.id,
@@ -114,9 +114,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         if "id" in validated_data:
             validated_data.pop("id")
         for key, value in validated_data.items():
-            setattr(self.instance, key, value)
-        self.instance.save()
-        return self.instance
+            setattr(instance, key, value)
+        instance.save()
+        return instance
 
 
 class ProjectCodeOwnersMixin:
