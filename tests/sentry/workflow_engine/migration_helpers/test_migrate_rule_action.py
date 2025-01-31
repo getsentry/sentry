@@ -891,6 +891,41 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 0
 
+    def test_plugin_action_migration(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "0202a169-326b-4575-8887-afe69cc58040",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "ad671f12-6bb7-4b9d-a4fe-f32e985fe08e",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "efe1841d-d33a-460a-8d65-7697893ec7f1",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "8c0c2fc9-5d89-4974-9d3c-31b1d602a065",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "e63c387c-94f4-4284-bef8-c08b218654a3",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "0269d028-9466-4826-8ab9-18cd47fb08d2",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
+
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
         test_cases = [
