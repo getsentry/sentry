@@ -21,6 +21,7 @@ import type {User} from 'sentry/types/user';
 import {parseCursor} from 'sentry/utils/cursor';
 import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -28,7 +29,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {
   type UptimeCheckIn,
   useUptimeCheckIns,
-} from 'sentry/views/issueDetails/queries/useUptimeCheckins';
+} from 'sentry/views/issueDetails/queries/useUptimeCheckIns';
 import {
   EventListHeader,
   EventListHeaderItem,
@@ -70,6 +71,8 @@ function GroupCheckIns() {
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
       uptimeAlertId: uptimeAlertId ?? '',
+      cursor: decodeScalar(location.query.cursor),
+      limit: 50,
     },
     {enabled: isUptimeAlert}
   );

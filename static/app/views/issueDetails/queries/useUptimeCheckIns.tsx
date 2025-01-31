@@ -8,6 +8,8 @@ interface UptimeCheckInsParameters {
   orgSlug: string;
   projectSlug: string;
   uptimeAlertId: string;
+  cursor?: string;
+  limit?: number;
 }
 
 export interface UptimeCheckIn {
@@ -30,10 +32,12 @@ export function makeUptimeCheckInsQueryKey({
   orgSlug,
   projectSlug,
   uptimeAlertId,
+  cursor,
+  limit,
 }: UptimeCheckInsParameters): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/${projectSlug}/uptime-alert/${uptimeAlertId}/checks/`,
-    {query: {per_page: 50}},
+    {query: {per_page: limit, cursor}},
   ];
 }
 
@@ -41,6 +45,7 @@ export function useUptimeCheckIns(
   params: UptimeCheckInsParameters,
   options: Partial<UseApiQueryOptions<UptimeCheckIn[]>> = {}
 ) {
+  // TODO(Leander): Add querying and sorting, when the endpoint supports it
   return useApiQuery<UptimeCheckIn[]>(makeUptimeCheckInsQueryKey(params), {
     staleTime: 10000,
     retry: false,
