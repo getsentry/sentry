@@ -54,7 +54,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
-            request.user = AnonymousUser()
+            request.user, request.auth = AnonymousUser(), None
             return
 
         auth = get_authorization_header(request).split()
