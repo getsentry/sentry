@@ -64,25 +64,29 @@ function OrgDashboards(props: Props) {
   const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
   useEffect(() => {
-    if (dashboardId && !isEqual(dashboardId, selectedDashboardState?.id)) {
+    if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
       setSelectedDashboardState(null);
     }
-  }, [dashboardId, selectedDashboardState]);
+  }, [dashboardId, selectedDashboard]);
 
   // If we don't have a selected dashboard, and one isn't going to arrive
   // we can redirect to the first dashboard in the list.
   useEffect(() => {
-    const firstDashboardId = dashboards?.length ? dashboards[0]?.id : 'default-overview';
-    navigate(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboard/${firstDashboardId}/`,
-        query: {
-          ...location.query,
-        },
-      }),
-      {replace: true}
-    );
-  }, [dashboards, organization.slug, location.query, navigate]);
+    if (!dashboardId) {
+      const firstDashboardId = dashboards?.length
+        ? dashboards[0]?.id
+        : 'default-overview';
+      navigate(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${firstDashboardId}/`,
+          query: {
+            ...location.query,
+          },
+        }),
+        {replace: true}
+      );
+    }
+  }, [dashboards, dashboardId, organization.slug, location.query, navigate]);
 
   useEffect(() => {
     if (selectedDashboard) {
@@ -122,7 +126,38 @@ function OrgDashboards(props: Props) {
     }
   }, [dashboardId, location, navigate, selectedDashboard]);
 
+  useEffect(() => {
+    if (!organization.features.includes('dashboards-basic')) {
+      // Redirect to Dashboards v1
+      navigate(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboards/`,
+          query: {
+            ...location.query,
+          },
+        }),
+        {replace: true}
+      );
+    }
+  }, [location.query, navigate, organization]);
+
   if (isDashboardsPending || isSelectedDashboardPending) {
+    return (
+      <Layout.Page withPadding>
+        <LoadingIndicator />
+      </Layout.Page>
+    );
+  }
+
+  if (
+    (isDashboardsPending || isSelectedDashboardPending) &&
+    selectedDashboard &&
+    hasSavedPageFilters(selectedDashboard) &&
+    Object.keys(location.query).length === 0
+  ) {
+    // Block dashboard from rendering if the dashboard has filters and
+    // the URL does not contain filters yet. The filters can either match the
+    // saved filters, or can be different (i.e. sharing an unsaved state)
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />
@@ -164,36 +199,6 @@ function OrgDashboards(props: Props) {
       onDashboardUpdate: setSelectedDashboardState,
     });
   };
-
-  if (!organization.features.includes('dashboards-basic')) {
-    // Redirect to Dashboards v1
-    navigate(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/`,
-        query: {
-          ...location.query,
-        },
-      }),
-      {replace: true}
-    );
-    return null;
-  }
-
-  if (
-    (isDashboardsPending || isSelectedDashboardPending) &&
-    selectedDashboard &&
-    hasSavedPageFilters(selectedDashboard) &&
-    Object.keys(location.query).length === 0
-  ) {
-    // Block dashboard from rendering if the dashboard has filters and
-    // the URL does not contain filters yet. The filters can either match the
-    // saved filters, or can be different (i.e. sharing an unsaved state)
-    return (
-      <Layout.Page withPadding>
-        <LoadingIndicator />
-      </Layout.Page>
-    );
-  }
 
   return (
     <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>

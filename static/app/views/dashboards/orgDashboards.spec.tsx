@@ -92,7 +92,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router}
+      {router, organization}
     );
 
     await waitFor(() =>
@@ -155,7 +155,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router}
+      {router, organization}
     );
 
     await waitFor(() =>
@@ -227,7 +227,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router}
+      {router, organization}
     );
 
     // The first call is done by the page filters
@@ -256,7 +256,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router}
+      {router, organization}
     );
 
     expect(router.replace).not.toHaveBeenCalled();
@@ -302,15 +302,13 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router}
+      {router, organization}
     );
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledTimes(1));
 
     rerender(
-      <OrgDashboards
-      // location={{...initialData.router.location, query: {}}}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
