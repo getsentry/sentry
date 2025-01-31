@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
+@pytest.mark.skip(reason="This test is flaky and we are deprecating the plugin next week")
 class PhabricatorTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
