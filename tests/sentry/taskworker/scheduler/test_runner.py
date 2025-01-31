@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.taskworker.registry import TaskRegistry
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
-from sentry.taskworker.scheduler.schedules import TimedeltaSchedule
+from sentry.taskworker.scheduler.schedules import crontab
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.redis import redis_clusters
 
@@ -32,14 +32,6 @@ def run_storage() -> RunStorage:
     redis = redis_clusters.get("default")
     redis.flushdb()
     return RunStorage(redis)
-
-
-def test_timedeltaschedule_invalid() -> None:
-    with pytest.raises(ValueError):
-        TimedeltaSchedule(timedelta(microseconds=5))
-
-    with pytest.raises(ValueError):
-        TimedeltaSchedule(timedelta(seconds=-1))
 
 
 def test_schedulerunner_add_invalid(taskregistry) -> None:
@@ -182,6 +174,36 @@ def test_schedulerunner_tick_one_task_multiple_ticks(
     with freeze_time("2025-01-24 14:28:00"):
         sleep_time = schedule_set.tick()
         assert sleep_time == 120
+
+
+def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
+    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set.add(
+        {
+            "task": "test:valid",
+            "schedule": crontab(minute="*/2"),
+        }
+    )
+
+    namespace = taskregistry.get("test")
+    with patch.object(namespace, "send_task") as mock_send:
+        with freeze_time("2025-01-24 14:24:00"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 120
+        assert mock_send.call_count == 1
+
+        with freeze_time("2025-01-24 14:25:00"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 60
+
+        # Remove key to simulate expiration
+        run_storage.delete("test:valid")
+        with freeze_time("2025-01-24 14:26:00"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 120
+        assert mock_send.call_count == 2
 
 
 def test_schedulerunner_tick_multiple_tasks(
