@@ -16,6 +16,7 @@ import {
   TitleCell,
   type TitleCellProps,
 } from 'sentry/components/workflowEngine/gridCell/titleCell';
+import {tn} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 
 type ExampleAutomation = {
@@ -44,7 +45,7 @@ export default storyBook('Grid Cell Components', story => {
             link: 'monitors/abc123',
           },
         ],
-        type: 'monitor',
+        renderText: count => tn('%s monitor', '%s monitors', count),
       },
       openIssues: 3,
     },
@@ -75,7 +76,7 @@ export default storyBook('Grid Cell Components', story => {
             link: 'monitors/ghi789',
           },
         ],
-        type: 'monitor',
+        renderText: count => tn('%s monitor', '%s monitors', count),
       },
       openIssues: 1,
     },
@@ -107,7 +108,7 @@ export default storyBook('Grid Cell Components', story => {
             link: 'automations/pqr678',
           },
         ],
-        type: 'automation',
+        renderText: count => tn('%s automation', '%s automations', count),
       },
       openIssues: 0,
     },
@@ -120,7 +121,10 @@ export default storyBook('Grid Cell Components', story => {
       },
       action: ['slack', 'discord', 'email'],
       timeAgo: null,
-      linkedItems: {items: [], type: 'automation'},
+      linkedItems: {
+        items: [],
+        renderText: count => tn('%s automation', '%s automations', count),
+      },
       openIssues: 0,
     },
   ];
@@ -170,7 +174,7 @@ export default storyBook('Grid Cell Components', story => {
         return (
           <ConnectionCell
             items={dataRow.linkedItems.items}
-            type={dataRow.linkedItems.type}
+            renderText={dataRow.linkedItems.renderText}
           />
         );
       case 'openIssues':

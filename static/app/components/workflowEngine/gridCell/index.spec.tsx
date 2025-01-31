@@ -39,7 +39,7 @@ describe('Time Ago Cell Component', function () {
   });
 });
 
-const renderConnectionCell = (type: 'monitor' | 'automation') => {
+const renderConnectionCell = (renderText: (count: number) => string) => {
   render(
     <ConnectionCell
       items={[
@@ -50,27 +50,27 @@ const renderConnectionCell = (type: 'monitor' | 'automation') => {
           description: 'transaction.duration',
         },
       ]}
-      type={type}
+      renderText={renderText}
     />
   );
 };
 
 describe('Connection Cell Component', function () {
   it('renders monitors', function () {
-    renderConnectionCell('monitor');
+    renderConnectionCell(count => count + ' monitor');
 
     const text = screen.getByText('1 monitor');
     expect(text).toBeInTheDocument();
   });
 
   it('renders automations', function () {
-    renderConnectionCell('automation');
+    renderConnectionCell(count => count + ' automation');
     const text = screen.getByText('1 automation');
     expect(text).toBeInTheDocument();
   });
 
   it('renders hovercard', async function () {
-    renderConnectionCell('monitor');
+    renderConnectionCell(count => count + ' monitor');
 
     const span = screen.getByText('1 monitor');
     expect(span).toBeInTheDocument();

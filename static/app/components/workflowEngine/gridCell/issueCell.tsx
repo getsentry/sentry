@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import ShortId, {Wrapper} from 'sentry/components/group/inboxBadges/shortId';
+import {Flex} from 'sentry/components/container/flex';
+import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
@@ -25,7 +26,7 @@ export function IssueCell({group, disabled = false}: IssueCellProps) {
         avatar={<ProjectAvatar project={group.project} />}
       />
 
-      <LastSeenWrapper>
+      <LastSeenWrapper gap={space(0.5)}>
         {t('Last seen')}
         <TimeSince
           date={group.lastSeen}
@@ -39,24 +40,18 @@ export function IssueCell({group, disabled = false}: IssueCellProps) {
 }
 
 const IssueWrapper = styled(Link)<{disabled: boolean}>`
-  ${Wrapper} {
-    color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-    font-size: ${p => p.theme.fontSizeMedium};
-  }
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+  font-size: ${p => p.theme.fontSizeMedium};
 
   ${p =>
     !p.disabled &&
     `
-    &:hover ${Wrapper} {
-      text-decoration: underline;
+    &:hover {
       color: ${p.theme.textColor};
     }
-    `}
+  `}
 `;
 
-const LastSeenWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
+const LastSeenWrapper = styled(Flex)`
   color: ${p => p.theme.subText};
 `;

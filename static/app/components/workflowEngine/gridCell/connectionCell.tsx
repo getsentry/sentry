@@ -6,7 +6,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
-import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
@@ -19,16 +18,10 @@ export type Item = {
 
 export type ConnectionCellProps = {
   items: Item[];
-  type: 'monitor' | 'automation';
+  renderText: (count: number) => string;
 };
 
-const text = (type: 'monitor' | 'automation', length: number) => {
-  if (type === 'monitor') {
-    return tn('%s monitor', '%s monitors', length);
-  }
-  return tn('%s automation', '%s automations', length);
-};
-export function ConnectionCell({items, type}: ConnectionCellProps) {
+export function ConnectionCell({items, renderText}: ConnectionCellProps) {
   if (items.length === 0) {
     return <EmptyCell />;
   }
@@ -62,7 +55,7 @@ export function ConnectionCell({items, type}: ConnectionCellProps) {
           </Fragment>
         ))}
       >
-        <MonitorCount>{text(type, items.length)}</MonitorCount>
+        <MonitorCount>{renderText(items.length)}</MonitorCount>
       </Hovercard>
     </div>
   );
