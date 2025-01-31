@@ -29,7 +29,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       eventUnits: t('Check-ins'),
       resolution: t('Resolved'),
     },
-    allEventsPath: Tab.EVENTS,
+    allEventsPath: Tab.CHECK_INS,
     attachments: {enabled: false},
     resources: null,
     autofix: false,

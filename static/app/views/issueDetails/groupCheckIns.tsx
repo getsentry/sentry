@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -12,37 +13,46 @@ import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {User} from 'sentry/types/user';
 import {parseCursor} from 'sentry/utils/cursor';
 import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {
+  type UptimeCheckIn,
+  useUptimeCheckIns,
+} from 'sentry/views/issueDetails/queries/useUptimeCheckins';
 import {
   EventListHeader,
   EventListHeaderItem,
   EventListTitle,
   StreamlineEventsTable,
 } from 'sentry/views/issueDetails/streamline/eventList';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
-interface CheckInDisplayData {
-  duration: number;
-  env: string;
-  method: string;
-  statusCode: string;
-  time: string;
-  trace: string;
-}
-
 function GroupCheckIns() {
+  const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
   const user = useUser();
 
   const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId});
+
+  const {
+    data: event,
     isPending: isEventPending,
     isError: isEventError,
     refetch: refetchEvent,
@@ -51,26 +61,38 @@ function GroupCheckIns() {
     eventId: user.options.defaultIssueEvent,
   });
 
+  const uptimeAlertId = event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
+  const isUptimeAlert =
+    Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
+
+  const {data: uptimeData, getResponseHeader} = useUptimeCheckIns(
+    {
+      orgSlug: organization.slug,
+      projectSlug: group?.project.slug ?? '',
+      uptimeAlertId: uptimeAlertId ?? '',
+    },
+    {enabled: isUptimeAlert}
+  );
+
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
   if (isEventError) {
     return <LoadingError onRetry={refetchEvent} />;
   }
 
-  if (isEventPending) {
+  if (isEventPending || isGroupPending || !uptimeData) {
     return <LoadingIndicator />;
   }
 
-  // TODO(leander): Fetch this data from the backend
-  const data: CheckInDisplayData[] = [];
-
   // TODO(leander): Parse the page links from the backend response
-  const links = parseLinkHeader('');
-  const previousDisabled = links.previous?.results === false;
-  const nextDisabled = links.next?.results === false;
+  const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
+  const previousDisabled = links?.previous?.results === false;
+  const nextDisabled = links?.next?.results === false;
   const currentCursor = parseCursor(location.query?.cursor);
   const start = Math.max(currentCursor?.offset ?? 1, 1);
-  const pageCount = data.length;
-  // TODO(leander): Update this to use the actual total count
-  const totalCount = 500;
+  const pageCount = uptimeData.length;
 
   return (
     <StreamlineEventsTable>
@@ -79,10 +101,10 @@ function GroupCheckIns() {
         <EventListHeaderItem>
           {pageCount === 0
             ? null
-            : tct('Showing [start]-[end] of [count] matching check-ins', {
+            : tct('Showing [start]-[end] matching check-ins', {
                 start: start.toLocaleString(),
                 end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
-                count: (totalCount ?? 0).toLocaleString(),
+                // TODO(leander): See if we can get a total count from the backend
               })}
         </EventListHeaderItem>
         <EventListHeaderItem>
@@ -120,20 +142,25 @@ function GroupCheckIns() {
       </EventListHeader>
       <GridEditable
         isLoading={isEventPending}
-        data={data}
+        data={uptimeData}
         columnOrder={[
-          {key: 'time', width: COL_WIDTH_UNDEFINED, name: t('Time')},
-          {key: 'statusCode', width: 115, name: t('Status Code')},
-          {key: 'method', width: 100, name: t('Method')},
-          {key: 'duration', width: 110, name: t('Duration')},
-          {key: 'env', width: COL_WIDTH_UNDEFINED, name: t('Environment')},
-          {key: 'trace', width: 100, name: t('Trace')},
+          {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
+          {key: 'checkStatus', width: 115, name: t('Status')},
+          {key: 'durationMs', width: 110, name: t('Duration')},
+          {key: 'environment', width: 115, name: t('Environment')},
+          {key: 'traceId', width: 100, name: t('Trace')},
+          {key: 'region', width: 100, name: t('Region')},
+          {key: 'uptimeCheckId', width: 100, name: t('ID')},
         ]}
         columnSortBy={[]}
         grid={{
           renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
           renderBodyCell: (column, dataRow) => (
-            <CheckInBodyCell column={column} dataRow={dataRow} />
+            <CheckInBodyCell
+              column={column}
+              dataRow={dataRow}
+              userOptions={user.options}
+            />
           ),
         }}
       />
@@ -144,12 +171,14 @@ function GroupCheckIns() {
 function CheckInBodyCell({
   dataRow,
   column,
+  userOptions,
 }: {
   column: GridColumnOrder<string>;
-  dataRow: CheckInDisplayData;
+  dataRow: UptimeCheckIn;
+  userOptions: User['options'];
 }) {
   const theme = useTheme();
-  const columnKey = column.key as keyof CheckInDisplayData;
+  const columnKey = column.key as keyof UptimeCheckIn;
   const cellData = dataRow[columnKey];
 
   if (!cellData) {
@@ -157,17 +186,37 @@ function CheckInBodyCell({
   }
 
   switch (columnKey) {
-    case 'time':
+    case 'timestamp':
+      const format = userOptions.clock24Hours
+        ? 'MMM D, YYYY HH:mm:ss z'
+        : 'MMM D, YYYY h:mm:ss A z';
       return (
         <Cell>
-          <TimeSince date={new Date(cellData)} />
+          <TimeSince
+            tooltipShowSeconds
+            unitStyle="short"
+            date={new Date(cellData)}
+            tooltipProps={{maxWidth: 300}}
+            tooltipBody={
+              <LabelledTooltip>
+                <dt>{t('Scheduled for')}</dt>
+                <dd>
+                  {moment
+                    .tz(dataRow.scheduledCheckTime, userOptions?.timezone ?? '')
+                    .format(format)}
+                </dd>
+                <dt>{t('Checked at')}</dt>
+                <dd>{moment.tz(cellData, userOptions?.timezone ?? '').format(format)}</dd>
+              </LabelledTooltip>
+            }
+          />
         </Cell>
       );
-    case 'duration':
+    case 'durationMs':
       if (typeof cellData === 'number') {
         return (
           <Cell>
-            <Duration seconds={cellData / 100000} abbreviation />
+            <Duration seconds={cellData / 1000} abbreviation exact />
           </Cell>
         );
       }
@@ -185,7 +234,40 @@ function CheckInBodyCell({
         default:
           return <Cell>{cellData}</Cell>;
       }
-    case 'trace':
+
+    case 'checkStatus':
+      let checkResult = <Cell>{cellData}</Cell>;
+      switch (cellData) {
+        case 'success':
+          checkResult = <Cell style={{color: theme.successText}}>{t('Success')}</Cell>;
+          break;
+        case 'missed_window':
+          checkResult = (
+            <Cell style={{color: theme.warningText}}>{t('Missed Window')}</Cell>
+          );
+          break;
+        case 'failure':
+          checkResult = <Cell style={{color: theme.errorText}}>{t('Failure')}</Cell>;
+          break;
+        default:
+          checkResult = <Cell>{cellData}</Cell>;
+          break;
+      }
+      return dataRow.checkStatusReason ? (
+        <Tooltip
+          title={
+            <LabelledTooltip>
+              <dt>{t('Reason')}</dt>
+              <dd>{dataRow.checkStatusReason}</dd>
+            </LabelledTooltip>
+          }
+        >
+          {checkResult}
+        </Tooltip>
+      ) : (
+        checkResult
+      );
+    case 'traceId':
       return (
         <LinkCell to={`/performance/trace/${cellData}`}>
           {getShortEventId(String(cellData))}
@@ -196,9 +278,11 @@ function CheckInBodyCell({
   }
 }
 
-const Cell = styled('span')`
+const Cell = styled('div')`
+  display: flex;
+  align-items: center;
   text-align: left;
-  width: 100%;
+  gap: ${space(1)};
 `;
 
 const LinkCell = styled(Link)`
@@ -211,6 +295,14 @@ const LinkCell = styled(Link)`
 const GrayLinkButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const LabelledTooltip = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${space(0.5)} ${space(1)};
+  text-align: left;
+  margin: 0;
 `;
 
 export default GroupCheckIns;
