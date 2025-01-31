@@ -265,7 +265,7 @@ export function ExploreCharts({
               Visualization={
                 <VisualizationWrapper>
                   <TimeSeriesWidgetVisualization
-                    dataCompletenessDelay={600}
+                    dataCompletenessDelay={INGESTION_DELAY}
                     visualizationType={
                       chartInfo.chartType === ChartType.AREA
                         ? 'area'
@@ -341,6 +341,7 @@ const ChartList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const INGESTION_DELAY = 600;
 const CHART_HEIGHT = 260;
 
 const VisualizationWrapper = styled('div')`
