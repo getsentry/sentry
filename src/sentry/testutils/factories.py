@@ -2218,29 +2218,3 @@ class Factories:
         return DataConditionGroupAction.objects.create(
             action=action, condition_group=condition_group, **kwargs
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_detector(
-        alert_rule: AlertRule | None = None,
-        detector: Detector | None = None,
-        **kwargs,
-    ) -> AlertRuleDetector:
-        if alert_rule is None:
-            alert_rule = Factories.create_alert_rule()
-        if detector is None:
-            detector = Factories.create_detector()
-        return AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_workflow(
-        alert_rule: AlertRule | None = None,
-        workflow: Workflow | None = None,
-        **kwargs,
-    ) -> AlertRuleWorkflow:
-        if alert_rule is None:
-            alert_rule = Factories.create_alert_rule()
-        if workflow is None:
-            workflow = Factories.create_workflow()
-        return AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)

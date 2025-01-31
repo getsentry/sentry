@@ -660,12 +660,6 @@ class Fixtures:
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
-    def create_alert_rule_detector(self, *args, **kwargs):
-        return Factories.create_alert_rule_detector(*args, **kwargs)
-
-    def create_alert_rule_workflow(self, *args, **kwargs):
-        return Factories.create_alert_rule_workflow(*args, **kwargs)
-
     # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
