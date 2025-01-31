@@ -32,10 +32,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
           </SecondaryNav.Section>
         </SecondaryNav.Body>
         <SecondaryNav.Footer>
-          {/* TODO(malwilley): Move alerts under the /issues/ route */}
-          <SecondaryNav.Item to={`/organizations/${organization.slug}/alerts/`}>
-            {t('Alerts')}
-          </SecondaryNav.Item>
+          <SecondaryNav.Item to={`${baseUrl}/alerts/`}>{t('Alerts')}</SecondaryNav.Item>
         </SecondaryNav.Footer>
       </SecondaryNav>
       {children}

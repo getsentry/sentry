@@ -2086,6 +2086,9 @@ function buildRoutes() {
         {issueTabs}
         <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
       </Route>
+      <Route path="alerts/" component={make(() => import('sentry/views/alerts'))}>
+        {alertChildRoutes({forCustomerDomain: true})}
+      </Route>
       {traceViewRoute}
     </Route>
   );
