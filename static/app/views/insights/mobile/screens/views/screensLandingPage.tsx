@@ -50,7 +50,7 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
-  const moduleName = ModuleName.MOBILE_SCREENS;
+  const moduleName = ModuleName.MOBILE_VITALS;
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -303,7 +303,7 @@ export function ScreensLandingPage() {
   });
 
   return (
-    <ModulePageProviders moduleName={ModuleName.MOBILE_SCREENS}>
+    <ModulePageProviders moduleName={ModuleName.MOBILE_VITALS}>
       <Layout.Page>
         <PageAlertProvider>
           <MobileHeader
