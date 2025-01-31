@@ -1,3 +1,5 @@
+from typing import Literal
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,15 +12,14 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
-from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
 from sentry.issues.auto_source_code_config.code_mapping import (
-    CodeMapping,
-    CodeMappingTreesHelper,
-    FrameFilename,
     create_code_mapping,
+    derive_code_mappings,
 )
-from sentry.issues.auto_source_code_config.task import get_installation
+from sentry.issues.auto_source_code_config.integration_utils import (
+    InstallationCannotGetTreesError,
+    InstallationNotFoundError,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -47,32 +48,29 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         stacktrace_filename = request.GET.get("stacktraceFilename")
-        # It only returns the first GitHub integration
-        installation, _ = get_installation(organization)
-        if not installation:
+
+        try:
+            possible_code_mappings = []
+            resp_status: Literal[200, 204, 400] = status.HTTP_400_BAD_REQUEST
+
+            if stacktrace_filename:
+                possible_code_mappings = derive_code_mappings(organization, stacktrace_filename)
+                if possible_code_mappings:
+                    resp_status = status.HTTP_200_OK
+                else:
+                    resp_status = status.HTTP_204_NO_CONTENT
+
+            return Response(serialize(possible_code_mappings), status=resp_status)
+        except InstallationCannotGetTreesError:
+            return self.respond(
+                {"text": "The integration does not support getting trees"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except InstallationNotFoundError:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        # This method is specific to the GithubIntegration
-        if not isinstance(installation, GitHubIntegration):
-            return self.respond(
-                {
-                    "text": f"The {installation.model.provider} integration does not support derived code mappings"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        trees = installation.get_trees_for_org()
-        trees_helper = CodeMappingTreesHelper(trees)
-        possible_code_mappings: list[dict[str, str]] = []
-        resp_status: int = status.HTTP_204_NO_CONTENT
-        if stacktrace_filename:
-            frame_filename = FrameFilename(stacktrace_filename)
-            possible_code_mappings = trees_helper.list_file_matches(frame_filename)
-            if possible_code_mappings:
-                resp_status = status.HTTP_200_OK
-        return Response(serialize(possible_code_mappings), status=resp_status)
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -87,13 +85,6 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string sourceRoot:
         :auth: required
         """
-        installation, organization_integration = get_installation(organization)
-        if not installation or not organization_integration:
-            return self.respond(
-                {"text": "Could not find this integration installed on your organization"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
         try:
             project = Project.objects.get(id=request.data.get("projectId"))
         except Project.DoesNotExist:
@@ -113,12 +104,21 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        code_mapping = CodeMapping(
-            stacktrace_root=stack_root,
-            source_path=source_root,
-            repo=RepoAndBranch(name=repo_name, branch=branch),
-        )
-        new_code_mapping = create_code_mapping(organization_integration, project, code_mapping)
+        try:
+            new_code_mapping = create_code_mapping(
+                organization, project, stack_root, source_root, repo_name, branch
+            )
+        except InstallationNotFoundError:
+            return self.respond(
+                {"text": "Could not find this integration installed on your organization"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except InstallationCannotGetTreesError:
+            return self.respond(
+                {"text": "The integration does not support getting trees"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         return self.respond(
             serialize(new_code_mapping, request.user), status=status.HTTP_201_CREATED
         )
