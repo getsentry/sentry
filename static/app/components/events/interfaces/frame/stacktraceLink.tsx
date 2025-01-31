@@ -226,7 +226,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     return null;
   }
 
-  // Render the provided `sourceLink` for all the non-inapp frames for `csharp` platform Issues
+  // Render the provided `sourceLink` for all the non-in-app frames for `csharp` platform Issues
   // We skip fetching from the API for these frames.
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
