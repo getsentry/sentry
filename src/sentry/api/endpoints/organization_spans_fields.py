@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Literal
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -320,9 +321,8 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             # todo adjust this to be the right thing
-            return self.paginate(
-                request=request,
-                paginator=ChainPaginator([]),
+            return Response(
+                {"attributeDistributions": []}  # Empty response matching the expected structure
             )
 
         serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
@@ -350,16 +350,14 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         # sample request from the tests in the sentry-protos repo
         # todo do we need this or it should be done in upstream?
-        filter = (
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(
-                        type=AttributeKey.TYPE_STRING,
-                        name="eap.measurement",
-                    ),
-                    op=ComparisonFilter.OP_GREATER_THAN,
-                    value=AttributeValue(val_double=999),
+        filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    type=AttributeKey.TYPE_STRING,
+                    name="eap.measurement",
                 ),
+                op=ComparisonFilter.OP_GREATER_THAN,
+                value=AttributeValue(val_double=999),
             ),
         )
         stats_type = StatsType(
@@ -367,11 +365,19 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
                 max_buckets=10, max_attributes=100
             )
         )
-        rpc_request = TraceItemStatsRequest(meta=meta, filter=filter, stats_types=[stats_type])
-        # this part wouldn't work before the changes in snuba are merged
+
+        rpc_request = TraceItemStatsRequest(
+            filter=filter,
+            meta=meta,
+            stats_types=[stats_type],
+        )
+        # this part is mocked until the snuba changes are merged
         rpc_response = snuba_rpc.attribute_frequency_stats_rpc(rpc_request)
 
-        raise ParseError(detail=f"add the stuff here: {rpc_response}")
+        # tod this part might change
+        response_data = MessageToDict(rpc_response)
+
+        return Response(response_data)
 
 
 class SpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
