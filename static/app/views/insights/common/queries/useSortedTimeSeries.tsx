@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import type {TimeseriesData} from 'sentry/views/dashboards/widgets/common/types';
+import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -198,7 +199,7 @@ function convertEventsStatsToTimeSeriesData(
   seriesData: EventsStats
 ): [number, TimeseriesData] {
   const serie: TimeseriesData = {
-    field: seriesName,
+    field: seriesName || FALLBACK_SERIES_NAME,
     data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
       timestamp: new Date(timestamp * 1000).toISOString(),
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
