@@ -44,7 +44,6 @@ from sentry.workflow_engine.processors.action import (
     evaluate_workflow_action_filters,
     get_filtered_actions,
 )
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.types import Workflow, WorkflowJob
@@ -237,17 +236,38 @@ def get_groups_to_fire(
     groups_to_fire: DefaultDict[int, set[DataConditionGroup]] = defaultdict(set)
     for dcg in data_condition_groups:
         slow_conditions = get_slow_conditions(dcg)
-        for condition in slow_conditions:
-            unique_queries = generate_unique_queries(
-                condition, workflows_to_envs[dcg_to_workflow[dcg.id]]
-            )
-            for group_id in dcg_to_groups[dcg.id]:
+        conditions_matched = 0
+        action_match = dcg.logic_type
+        for group_id in dcg_to_groups[dcg.id]:
+            for condition in slow_conditions:
+                unique_queries = generate_unique_queries(
+                    condition, workflows_to_envs[dcg_to_workflow[dcg.id]]
+                )
                 query_values = [
                     condition_group_results[unique_query][group_id]
                     for unique_query in unique_queries
                 ]
-                if evaluate_condition_group(dcg, query_values):  # is_fast=False
+
+                try:
+                    handler = condition_handler_registry.get(condition.type)
+                except NoRegistrationExistsError:
+                    logger.exception(
+                        "No registration exists for condition",
+                        extra={"type": condition.type, "id": condition.id},
+                    )
+                    continue
+
+                if not handler.evaluate_value(query_values):
+                    continue
+
+                if action_match == "any":
                     groups_to_fire[group_id].add(dcg)
+                    break
+                elif action_match == "all":
+                    conditions_matched += 1
+
+            if action_match == "all" and conditions_matched == len(slow_conditions):
+                groups_to_fire[group_id].add(dcg)
     return groups_to_fire
 
 
