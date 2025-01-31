@@ -13,11 +13,7 @@ jest.mock('sentry/utils/useLocation');
 
 describe('ScreenDetailsPage', function () {
   const organization = OrganizationFixture({
-    features: [
-      'insights-addon-modules',
-      'insights-mobile-screens-module',
-      'starfish-mobile-ui-module',
-    ],
+    features: ['insights-addon-modules', 'insights-mobile-screens-module'],
   });
   const project = ProjectFixture();
 

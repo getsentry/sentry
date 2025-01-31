@@ -61,7 +61,6 @@ export function ScreenDetailsPage() {
     {
       key: 'screen_rendering',
       label: t('Screen Rendering'),
-      feature: 'starfish-mobile-ui-module',
       alpha: true,
       content: () => {
         return <UiPage key={'screen_rendering'} />;

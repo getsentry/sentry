@@ -27,7 +27,6 @@ const ALL_AVAILABLE_FEATURES = [
   'ourlogs-enabled',
   'performance-view',
   'performance-trace-explorer',
-  'starfish-mobile-ui-module',
   'profiling',
 ];
 
