@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 import pytest
 from django.utils import timezone
 
+from sentry.conf.types.taskworker import crontab
 from sentry.taskworker.registry import TaskRegistry
 from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
-from sentry.taskworker.scheduler.schedules import crontab
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.redis import redis_clusters
 

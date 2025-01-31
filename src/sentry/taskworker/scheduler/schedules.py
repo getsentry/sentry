@@ -1,47 +1,15 @@
 from __future__ import annotations
 
 import abc
-import dataclasses
 import logging
-from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import TypedDict
 
 from cronsim import CronSim, CronSimError
 from django.utils import timezone
 
+from sentry.conf.types.taskworker import crontab
+
 logger = logging.getLogger("taskworker.scheduler")
-
-
-class ScheduleConfig(TypedDict):
-    """The schedule definition for an individual task."""
-
-    task: str
-    schedule: timedelta | crontab
-
-
-ScheduleConfigMap = Mapping[str, ScheduleConfig]
-"""A collection of schedule configuration, usually defined in application configuration"""
-
-
-@dataclasses.dataclass
-class crontab:
-    """
-    crontab schedule value object
-
-    Used in configuration to define a task schedule.
-    """
-
-    minute: str = "*"
-    hour: str = "*"
-    day_of_week: str = "*"
-    day_of_month: str = "*"
-    month_of_year: str = "*"
-
-    def __str__(self) -> str:
-        return (
-            f"{self.minute} {self.hour} {self.day_of_month} {self.month_of_year} {self.day_of_week}"
-        )
 
 
 class Schedule(metaclass=abc.ABCMeta):

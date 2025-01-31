@@ -11,14 +11,9 @@ from redis.client import StrictRedis
 from rediscluster import RedisCluster
 from sentry_sdk import capture_exception
 
+from sentry.conf.types.taskworker import ScheduleConfig, crontab
 from sentry.taskworker.registry import TaskRegistry
-from sentry.taskworker.scheduler.schedules import (
-    CrontabSchedule,
-    Schedule,
-    ScheduleConfig,
-    TimedeltaSchedule,
-    crontab,
-)
+from sentry.taskworker.scheduler.schedules import CrontabSchedule, Schedule, TimedeltaSchedule
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
 

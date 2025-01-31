@@ -264,8 +264,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
-        for name, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            schedule_data["name"] = name
+        for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(schedule_data)
 
         while True:
