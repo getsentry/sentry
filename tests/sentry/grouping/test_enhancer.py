@@ -97,19 +97,19 @@ def test_flipflop_inapp():
     )
 
     frames: list[dict[str, Any]] = [{}]
-    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == -1  # == None
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": False}]
-    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert "data" not in frames[0]  # no changes were made
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": True}]
-    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == 1  # == True
     assert frames[0]["in_app"] is False
@@ -483,7 +483,7 @@ def test_range_matching_direct():
 )
 def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
-    enhancements.apply_modifications_to_frame([frame], "native", {})
+    enhancements.apply_category_and_updated_in_app_to_frames([frame], "native", {})
     assert frame.get("in_app")
 
 
