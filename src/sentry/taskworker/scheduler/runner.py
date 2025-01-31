@@ -28,7 +28,7 @@ logger = logging.getLogger("taskworker.scheduler")
 class RunStorage:
     """
     Storage interface for tracking the last run time of tasks.
-    This is split out from `ScheduleSet` to allow us to change storage
+    This is split out from `ScheduleRunner` to allow us to change storage
     in the future, or adapt taskworkers for other applications should we need to.
     """
 
@@ -122,7 +122,7 @@ class ScheduleRunner:
     based on their schedules.
 
     Contains a collection of ScheduleEntry objects which are composed
-    using `ScheduleSet.add()`. Once the scheduler is built, `tick()`
+    using `ScheduleRunner.add()`. Once the scheduler is built, `tick()`
     is used in a while loop to spawn tasks and sleep.
     """
 
@@ -133,7 +133,7 @@ class ScheduleRunner:
         self._heap: list[tuple[int, ScheduleEntry]] = []
 
     def add(self, task_config: ScheduleConfig) -> None:
-        """Add a task to the scheduleset."""
+        """Add a task to the runner."""
         try:
             (namespace, taskname) = task_config["task"].split(":")
         except ValueError:
