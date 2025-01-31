@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
@@ -11,9 +13,12 @@ from sentry.utils import json
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.delayed_workflow import (
+    UniqueConditionQuery,
     fetch_active_data_condition_groups,
     fetch_group_to_event_data,
     fetch_workflows_and_environments,
+    generate_unique_queries,
+    get_condition_query_groups,
     get_dcg_group_workflow_data,
 )
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
@@ -241,3 +246,114 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             list(self.dcg_to_groups.keys()), self.dcg_to_workflow, workflow_ids_to_workflows
         )
         assert set(active_dcgs) == set(self.workflow2_dcgs)
+
+
+class TestDelayedWorkflowQueries(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
+        self.count_dc = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+
+        self.percent_dc = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_PERCENT,
+            comparison={"interval": "1h", "value": 100, "comparison_interval": "1w"},
+            condition_result=True,
+        )
+
+        self.workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL
+        )
+        self.create_data_condition(
+            condition_group=self.workflow_filters,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.workflow_filters
+        )
+
+    def test_generate_unique_queries(self):
+        count_queries = generate_unique_queries(self.count_dc, None)
+        percent_queries = generate_unique_queries(self.percent_dc, None)
+
+        assert len(count_queries) == 1
+        assert len(percent_queries) == 2
+        assert count_queries[0] == percent_queries[0]  # they share 1 query
+
+        # 2nd query for percent is the same as the 1st but has comparison interval
+        comparison_query_dict = asdict(percent_queries[0])
+        comparison_query_dict["comparison_interval"] = "1w"
+        expected_comparison_query = UniqueConditionQuery(**comparison_query_dict)
+        assert percent_queries[1] == expected_comparison_query
+
+    def test_generate_unique_queries__invalid(self):
+        dc = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.REGRESSION_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        # not slow condition
+        assert generate_unique_queries(dc, None) == []
+
+        # invalid condition.type
+        dc.update(type="asdf")
+        assert generate_unique_queries(dc, None) == []
+
+        # no handler
+        dc.update(type=Condition.NOT_EQUAL)
+        assert generate_unique_queries(dc, None) == []
+
+    def test_get_condition_query_groups(self):
+        group2 = self.create_group()
+        group3 = self.create_group()
+
+        other_workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL
+        )
+        other_condition = self.create_data_condition(
+            condition_group=other_workflow_filters,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "15m", "value": 100},
+            condition_result=True,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=other_workflow_filters
+        )
+
+        dcgs = [self.workflow_triggers, self.workflow_filters, other_workflow_filters]
+        dcg_to_groups = {
+            self.workflow_triggers.id: {self.group.id},
+            self.workflow_filters.id: {group2.id},
+            other_workflow_filters.id: {group3.id},
+        }
+        dcg_to_workflow = {
+            self.workflow_triggers.id: self.workflow.id,
+            self.workflow_filters.id: self.workflow.id,
+            other_workflow_filters.id: self.workflow.id,
+        }
+        workflows_to_envs = {self.workflow.id: None}
+
+        result = get_condition_query_groups(dcgs, dcg_to_groups, dcg_to_workflow, workflows_to_envs)
+
+        count_query = generate_unique_queries(self.count_dc, None)[0]
+        percent_only_query = generate_unique_queries(self.percent_dc, None)[1]
+        different_query = generate_unique_queries(other_condition, None)[0]
+
+        assert result[count_query] == {self.group.id, group2.id}  # count and percent condition
+        assert result[percent_only_query] == {self.group.id}
+        assert result[different_query] == {group3.id}

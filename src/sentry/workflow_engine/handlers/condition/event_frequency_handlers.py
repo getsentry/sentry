@@ -21,6 +21,10 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionResu
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
     @property
+    def base_handler(self) -> type[BaseEventFrequencyConditionHandler]:
+        return self
+
+    @property
     def intervals(self) -> dict[str, tuple[str, timedelta]]:
         return STANDARD_INTERVALS
 
