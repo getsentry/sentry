@@ -89,7 +89,7 @@ function OrgDashboards(props: Props) {
   }, [dashboards, dashboardId, organization.slug, location.query, navigate]);
 
   useEffect(() => {
-    if (selectedDashboard) {
+    if (dashboardId || selectedDashboard) {
       const queryParamFilters = new Set([
         'project',
         'environment',
@@ -100,6 +100,7 @@ function OrgDashboards(props: Props) {
         'release',
       ]);
       if (
+        selectedDashboard &&
         // Only redirect if there are saved filters and none of the filters
         // appear in the query params
         hasSavedPageFilters(selectedDashboard) &&
