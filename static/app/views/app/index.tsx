@@ -293,6 +293,9 @@ function App({children, params}: Props) {
   );
 }
 
+/** 
+  * Temporary provider for new UI2 theme rollout
+  */
 function ChonkThemeProvider({children}: {children: React.ReactNode}) {
   const organization = useOrganization({allowNull: true});
   const theme = useTheme();
