@@ -27,6 +27,11 @@ const cronConfig: IssueCategoryConfigMapping = {
       tagDistribution: {enabled: false},
       timelineSummary: {enabled: false},
     },
+    detector: {
+      enabled: true,
+      title: t('Cron Monitor'),
+      ctaText: t('View monitor details'),
+    },
     attachments: {enabled: false},
     autofix: false,
     mergedIssues: {enabled: false},
