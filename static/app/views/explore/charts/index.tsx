@@ -10,11 +10,7 @@ import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  aggregateOutputType,
-  parseFunction,
-  prettifyParsedFunction,
-} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -147,10 +143,6 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const outputTypes = new Set(
-        formattedYAxes.filter(Boolean).map(aggregateOutputType)
-      );
-
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
@@ -160,7 +152,6 @@ export function ExploreCharts({
         data,
         error,
         loading,
-        outputTypes,
         confidence: confidences[index],
       };
     });
