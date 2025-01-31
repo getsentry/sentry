@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -18,6 +18,7 @@ import KeyValueData, {
   CardPanel,
   type KeyValueDataContentProps,
   Subject,
+  ValueSection,
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
@@ -30,6 +31,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCircleFill,
+  IconEllipsis,
   IconFocus,
   IconJson,
   IconOpen,
@@ -42,12 +44,19 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {
+  SENTRY_SPAN_NUMBER_TAGS,
+  SENTRY_SPAN_STRING_TAGS,
+} from 'sentry/views/explore/constants';
 
 import {traceAnalytics} from '../../traceAnalytics';
 import {useTransaction} from '../../traceApi/useTransaction';
@@ -71,6 +80,12 @@ import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
+
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+  TraceDrawerActionValueKind,
+} from './utils';
 
 const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
@@ -713,6 +728,143 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
+type KeyValueActionProps = {
+  rowKey: string;
+  rowValue: React.ReactNode;
+  kind?: TraceDrawerActionValueKind;
+};
+
+function KeyValueAction({
+  rowKey,
+  rowValue,
+  kind = TraceDrawerActionValueKind.SENTRY_TAG,
+}: KeyValueActionProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const hasNewTraceUi = useHasTraceNewUi();
+  const [isVisible, setIsVisible] = useState(false);
+
+  if (
+    !hasNewTraceUi ||
+    !defined(rowValue) ||
+    !defined(rowKey) ||
+    !['string', 'number'].includes(typeof rowValue)
+  ) {
+    return null;
+  }
+
+  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
+  // Any other key must exist in the static list of sentry tags to be deemed searchable.
+  if (
+    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
+    !(
+      SENTRY_SPAN_NUMBER_TAGS.includes(rowKey) || SENTRY_SPAN_STRING_TAGS.includes(rowKey)
+    )
+  ) {
+    return null;
+  }
+
+  const dropdownOptions = [
+    {
+      key: 'include',
+      label: t('Search explore with this value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        rowKey,
+        rowValue.toString(),
+        TraceDrawerActionKind.INCLUDE
+      ),
+    },
+    {
+      key: 'exclude',
+      label: t('Search explore without this value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        rowKey,
+        rowValue.toLocaleString(),
+        TraceDrawerActionKind.EXCLUDE
+      ),
+    },
+  ];
+
+  const valueType = getFieldDefinition(rowKey)?.valueType;
+  const isMeasurement =
+    valueType &&
+    [
+      FieldValueType.DURATION,
+      FieldValueType.NUMBER,
+      FieldValueType.INTEGER,
+      FieldValueType.PERCENTAGE,
+    ].includes(valueType);
+
+  if (isMeasurement) {
+    dropdownOptions.push(
+      {
+        key: 'includeGreaterThan',
+        label: t('Search explore with values greater than'),
+        to: getSearchInExploreTarget(
+          organization,
+          location,
+          rowKey,
+          rowValue.toString(),
+          TraceDrawerActionKind.GREATER_THAN
+        ),
+      },
+      {
+        key: 'includeLessThan',
+        label: t('Search explore with values less than'),
+        to: getSearchInExploreTarget(
+          organization,
+          location,
+          rowKey,
+          rowValue.toString(),
+          TraceDrawerActionKind.LESS_THAN
+        ),
+      }
+    );
+  }
+
+  return (
+    <KeyValueActionDropdown
+      preventOverflowOptions={{padding: 4}}
+      className={isVisible ? '' : 'invisible'}
+      position="bottom-end"
+      size="xs"
+      onOpenChange={isOpen => setIsVisible(isOpen)}
+      triggerProps={{
+        'aria-label': t('Key Value Action Menu'),
+        icon: <IconEllipsis />,
+        showChevron: false,
+        className: 'trigger-button',
+      }}
+      onAction={key => {
+        traceAnalytics.trackExploreSearch(
+          organization,
+          rowKey,
+          rowValue.toString(),
+          key as TraceDrawerActionKind
+        );
+      }}
+      items={dropdownOptions}
+    />
+  );
+}
+
+const KeyValueActionDropdown = styled(DropdownMenu)`
+  display: block;
+  margin: 1px;
+  height: 20px;
+  .trigger-button {
+    height: 20px;
+    min-height: 20px;
+    padding: 0 ${space(0.75)};
+    border-radius: ${space(0.5)};
+    z-index: 1;
+  }
+`;
+
 function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
@@ -1136,9 +1288,15 @@ const CardWrapper = styled('div')`
   }
 
   ${Subject} {
+    display: flex;
+    align-items: center;
     @container (width < 350px) {
       max-width: 200px;
     }
+  }
+
+  ${ValueSection} {
+    align-items: center;
   }
 `;
 
@@ -1230,6 +1388,7 @@ const TraceDrawerComponents = {
   Highlights,
   Actions,
   NodeActions,
+  KeyValueAction,
   Table,
   IconTitleWrapper,
   IconBorder,
