@@ -34,6 +34,8 @@ import {
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const enum EventGraphSeries {
   EVENT = 'event',
@@ -76,6 +78,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const eventView = useIssueDetailsEventView({group});
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
+  const {currentTab} = useGroupDetailsRoute();
 
   const {
     data: groupStats = {},
@@ -241,7 +244,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       });
     }
 
-    if (currentEventSeries.markLine) {
+    // Only display the current event mark line if on the issue details tab
+    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
@@ -265,6 +269,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     isUnfilteredStatsEnabled,
     unfilteredEventSeries,
     unfilteredUserSeries,
+    currentTab,
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
