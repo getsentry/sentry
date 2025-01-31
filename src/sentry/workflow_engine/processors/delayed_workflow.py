@@ -31,6 +31,7 @@ from sentry.workflow_engine.models import (
     Action,
     DataCondition,
     DataConditionGroup,
+    Workflow,
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import (
@@ -46,7 +47,7 @@ from sentry.workflow_engine.processors.action import (
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
-from sentry.workflow_engine.types import Workflow, WorkflowJob
+from sentry.workflow_engine.types import WorkflowJob
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
 
