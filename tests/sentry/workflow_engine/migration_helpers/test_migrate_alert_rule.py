@@ -18,7 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     MissingDataConditionGroup,
@@ -225,7 +225,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         )
 
     def set_up_migrated_metric_alert_rule_trigger_objects(
-        self, alert_rule_trigger: AlertRuleTrigger
+        self,
+        alert_rule_trigger: AlertRuleTrigger,
+        priority: DetectorPriorityLevel,
+        detector_trigger_type: Condition,
     ) -> tuple[DataCondition, DataCondition]:
         """
         Set up all the necessary ACI objects for a dual written metric alert trigger.
@@ -237,11 +240,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         assert detector_dcg  # to appease mypy
         workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule).workflow
 
-        # just hardcode values (we can change them later if necessary)
         detector_trigger = self.create_data_condition(
-            comparison=200,
-            condition_result=DetectorPriorityLevel.HIGH,
-            type=Condition.GREATER,
+            comparison=alert_rule_trigger.alert_threshold,
+            condition_result=priority,
+            type=detector_trigger_type,
             condition_group=detector_dcg,
         )
         data_condition_group = self.create_data_condition_group(organization=self.organization)
@@ -249,7 +251,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             condition_group=data_condition_group, workflow=workflow
         )
         action_filter = self.create_data_condition(
-            comparison=DetectorPriorityLevel.HIGH,
+            comparison=priority,
             condition_result=True,
             type=Condition.ISSUE_PRIORITY_EQUALS,
             condition_group=data_condition_group,
@@ -258,7 +260,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         return detector_trigger, action_filter
 
     def set_up_migrated_metric_alert_rule_resolve_objects(
-        self, alert_rule: AlertRule
+        self, alert_rule: AlertRule, resolve_threshold, detector_trigger_type: Condition
     ) -> tuple[DataCondition, DataCondition]:
         """
         Set up all the necessary ACI objects for a dual written metric alert resolution threshold.
@@ -267,15 +269,11 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
         workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule).workflow
-        resolve_threshold = (
-            alert_rule.resolve_threshold if alert_rule.resolve_threshold is not None else 200
-        )  # same as the critical trigger
 
-        # just hardcode values (we can change them later if necessary)
         detector_trigger = self.create_data_condition(
             comparison=resolve_threshold,
             condition_result=DetectorPriorityLevel.OK,
-            type=Condition.LESS_OR_EQUAL,
+            type=detector_trigger_type,
             condition_group=detector_dcg,
         )
         data_condition_group = self.create_data_condition_group(organization=self.organization)
@@ -457,7 +455,9 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         )
         self.set_up_migrated_metric_alert_objects(self.metric_alert)
         self.detector_trigger, self.action_filter = (
-            self.set_up_migrated_metric_alert_rule_trigger_objects(self.alert_rule_trigger)
+            self.set_up_migrated_metric_alert_rule_trigger_objects(
+                self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+            )
         )
 
     def test_dual_delete_migrated_alert_rule_trigger(self):
@@ -489,10 +489,14 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         )
         self.set_up_migrated_metric_alert_objects(self.metric_alert)
         self.critical_detector_trigger, self.critical_action_filter = (
-            self.set_up_migrated_metric_alert_rule_trigger_objects(self.alert_rule_trigger)
+            self.set_up_migrated_metric_alert_rule_trigger_objects(
+                self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+            )
         )
         self.resolve_detector_trigger, self.resolve_action_filter = (
-            self.set_up_migrated_metric_alert_rule_resolve_objects(self.metric_alert)
+            self.set_up_migrated_metric_alert_rule_resolve_objects(
+                self.metric_alert, 200, Condition.LESS_OR_EQUAL
+            )
         )
 
     def test_dual_update_metric_alert_threshold_type(self):
@@ -515,3 +519,99 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         assert self.resolve_detector_trigger.comparison == 10
 
     # TODO (mifu67): remaining trigger update tests once those changes land
+
+
+class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
+    def setUp(self):
+        # set up legacy objects
+        METADATA = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
+        self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        self.integration = self.create_provider_integration(
+            provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
+        )
+        self.sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
+        )
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.rpc_user
+        )
+        with assume_test_silo_mode_of(Integration, OrganizationIntegration):
+            self.integration.add_organization(self.organization, self.user)
+            self.org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            self.org_integration.config = {"team_table": [self.og_team]}
+            self.org_integration.save()
+        self.metric_alert = self.create_alert_rule()
+        self.critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.metric_alert, label="critical", alert_threshold=200
+        )
+        self.warning_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.metric_alert, label="warning", alert_threshold=100
+        )
+        self.alert_rule_trigger_action_email = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.warning_trigger
+        )
+        self.alert_rule_trigger_action_integration = self.create_alert_rule_trigger_action(
+            target_identifier=self.og_team["id"],
+            type=AlertRuleTriggerAction.Type.OPSGENIE,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
+            alert_rule_trigger=self.critical_trigger,
+        )
+
+        self.alert_rule_trigger_action_sentry_app = self.create_alert_rule_trigger_action(
+            target_identifier=self.sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=self.sentry_app,
+            alert_rule_trigger=self.critical_trigger,
+        )
+        # set up ACI objects
+        self.set_up_migrated_metric_alert_objects(self.metric_alert)
+        self.set_up_migrated_metric_alert_rule_trigger_objects(
+            self.critical_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+        )
+        self.set_up_migrated_metric_alert_rule_trigger_objects(
+            self.warning_trigger, DetectorPriorityLevel.MEDIUM, Condition.GREATER
+        )
+
+    def test_dual_write_metric_alert_trigger_action(self):
+        migrate_metric_action(self.alert_rule_trigger_action_email)
+        migrate_metric_action(self.alert_rule_trigger_action_integration)
+        migrate_metric_action(self.alert_rule_trigger_action_sentry_app)
+
+        assert_alert_rule_trigger_action_migrated(
+            self.alert_rule_trigger_action_email, Action.Type.EMAIL
+        )
+        assert_alert_rule_trigger_action_migrated(
+            self.alert_rule_trigger_action_integration, Action.Type.OPSGENIE
+        )
+        assert_alert_rule_trigger_action_migrated(
+            self.alert_rule_trigger_action_sentry_app, Action.Type.SENTRY_APP
+        )
+
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_dual_write_metric_alert_trigger_action_no_type(self, mock_logger):
+        """
+        Test that if for some reason we don't find a match for Action.Type for the integration provider we return None and log.
+        """
+        with assume_test_silo_mode_of(Integration, OrganizationIntegration):
+            self.integration.update(provider="hellboy")
+            self.integration.save()
+        migrated = migrate_metric_action(self.alert_rule_trigger_action_integration)
+        assert migrated is None
+        mock_logger.warning.assert_called_with(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={
+                "alert_rule_trigger_action_id": self.alert_rule_trigger_action_integration.id,
+            },
+        )
