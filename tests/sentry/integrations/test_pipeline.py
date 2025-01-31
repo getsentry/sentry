@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from collections.abc import Generator
 from unittest.mock import patch
 
+import pytest
 from django.db import router
 
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
@@ -28,9 +32,6 @@ class ExamplePlugin(IssuePlugin2):
     slug = "example"
 
 
-plugins.register(ExamplePlugin)
-
-
 def naive_build_integration(data):
     return data
 
@@ -42,6 +43,12 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
+
+    @pytest.fixture(autouse=True)
+    def _register_example_plugin(self) -> Generator[None]:
+        plugins.register(ExamplePlugin)
+        yield
+        plugins.unregister(ExamplePlugin)
 
     def setUp(self):
         super().setUp()
