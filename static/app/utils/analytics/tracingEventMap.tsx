@@ -1,5 +1,6 @@
 import type {Confidence} from 'sentry/types/organization';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
@@ -48,6 +49,11 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_explore_search': {
+    key: string;
+    kind: TraceDrawerActionKind;
+    value: string | number;
   };
   'trace.trace_layout.change': {
     layout: string;
@@ -129,6 +135,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
+  'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
   'trace.trace_layout.view_event_json': 'Clicked View Event JSON Action',
   'trace.trace_layout.tab_pin': 'Pinned Trace Tab',

@@ -197,7 +197,7 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
         return
     enhancements = Enhancements.from_config_string(profiling_rules)
     if "version" in profile:
-        enhancements.apply_modifications_to_frame(
+        enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["frames"], profile["platform"], {}
         )
     elif profile["platform"] == "android":
@@ -209,6 +209,6 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
             method["function"] = method.get("name", "")
             method["abs_path"] = method.get("source_file", "")
             method["module"] = method.get("class_name", "")
-        enhancements.apply_modifications_to_frame(
+        enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["methods"], profile["platform"], {}
         )

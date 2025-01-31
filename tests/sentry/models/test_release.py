@@ -28,7 +28,6 @@ from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.utils.strings import truncatechars
 
 
@@ -574,11 +573,6 @@ class SetCommitsTestCase(TestCase):
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
         assert commit.author is not None
         assert commit.author.email == truncatechars(commit_email, 75)
-
-
-@apply_feature_flag_on_cls("organizations:set-commits-updated")
-class SetCommitsTestUpdated(SetCommitsTestCase):
-    pass
 
 
 class SetRefsTest(SetRefsTestCase):

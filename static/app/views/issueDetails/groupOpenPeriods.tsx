@@ -13,12 +13,12 @@ import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-type OpenPeriodDisplayData = {
+interface OpenPeriodDisplayData {
   duration: React.ReactNode;
   end: React.ReactNode;
   start: React.ReactNode;
   title: React.ReactNode;
-};
+}
 
 // TODO(snigdha): make this work for the old UI
 // TODO(snigdha): support pagination

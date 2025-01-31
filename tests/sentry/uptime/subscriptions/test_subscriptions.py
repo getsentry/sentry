@@ -237,6 +237,38 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
                     mode=ProjectUptimeSubscriptionMode.MANUAL,
                 )[1]
 
+    def test_override_max_proj_subs(self):
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=1
+        ):
+            assert get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+            )[1]
+            with pytest.raises(MaxManualUptimeSubscriptionsReached):
+                get_or_create_project_uptime_subscription(
+                    self.project,
+                    self.environment,
+                    url="https://santry.io",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=ProjectUptimeSubscriptionMode.MANUAL,
+                    override_manual_org_limit=False,
+                )[1]
+            assert get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://santry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+                override_manual_org_limit=True,
+            )[1]
+
     def test_auto_associates_active_regions(self):
         regions = [
             UptimeRegionConfig(
