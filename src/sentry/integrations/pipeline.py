@@ -255,6 +255,7 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
+                    "integration_id": self.integration.id,
                 },
             )
             return self.error(
