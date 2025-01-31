@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,7 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -36,19 +37,12 @@ function OrgDashboards(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {dashboardId} = useParams<{dashboardId: string}>();
-  const queryClient = useQueryClient();
 
   const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
 
   // The currently selected dashboard
   const [selectedDashboardState, setSelectedDashboardState] =
     useState<DashboardDetails | null>(null);
-
-  // componentDidUpdate(prevProps: Props) {
-  //   if (!isEqual(prevProps.params.dashboardId, this.props.params.dashboardId)) {
-  //     this.remountComponent();
-  //   }
-  // }
 
   const {
     data: dashboards,
@@ -66,6 +60,67 @@ function OrgDashboards(props: Props) {
     staleTime: 0,
     enabled: !!dashboardId,
   });
+
+  const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+
+  useEffect(() => {
+    if (dashboardId && !isEqual(dashboardId, selectedDashboardState?.id)) {
+      setSelectedDashboardState(null);
+    }
+  }, [dashboardId, selectedDashboardState]);
+
+  // If we don't have a selected dashboard, and one isn't going to arrive
+  // we can redirect to the first dashboard in the list.
+  useEffect(() => {
+    const firstDashboardId = dashboards?.length ? dashboards[0]?.id : 'default-overview';
+    navigate(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboard/${firstDashboardId}/`,
+        query: {
+          ...location.query,
+        },
+      }),
+      {replace: true}
+    );
+  }, [dashboards, organization.slug, location.query, navigate]);
+
+  useEffect(() => {
+    if (selectedDashboard) {
+      const queryParamFilters = new Set([
+        'project',
+        'environment',
+        'statsPeriod',
+        'start',
+        'end',
+        'utc',
+        'release',
+      ]);
+      if (
+        // Only redirect if there are saved filters and none of the filters
+        // appear in the query params
+        hasSavedPageFilters(selectedDashboard) &&
+        Object.keys(location.query).filter(unsavedQueryParam =>
+          queryParamFilters.has(unsavedQueryParam)
+        ).length === 0
+      ) {
+        navigate(
+          {
+            ...location,
+            query: {
+              ...location.query,
+              project: selectedDashboard.projects,
+              environment: selectedDashboard.environment,
+              statsPeriod: selectedDashboard.period,
+              start: selectedDashboard.start,
+              end: selectedDashboard.end,
+              utc: selectedDashboard.utc,
+            },
+          },
+          {replace: true}
+        );
+      }
+    }
+  }, [dashboardId, location, navigate, selectedDashboard]);
 
   if (isDashboardsPending || isSelectedDashboardPending) {
     return (
@@ -86,63 +141,9 @@ function OrgDashboards(props: Props) {
     return <LoadingError />;
   }
 
-  const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
-
   const getDashboards = (): DashboardListItem[] => {
     return Array.isArray(dashboards) ? dashboards : [];
   };
-
-  const selectedDashboardStateKey = queryClient.getQueryData([ENDPOINT]);
-
-  if (dashboardId || selectedDashboardStateKey) {
-    const queryParamFilters = new Set([
-      'project',
-      'environment',
-      'statsPeriod',
-      'start',
-      'end',
-      'utc',
-      'release',
-    ]);
-    if (
-      selectedDashboardStateKey &&
-      // Only redirect if there are saved filters and none of the filters
-      // appear in the query params
-      hasSavedPageFilters(fetchedSelectedDashboard) &&
-      Object.keys(location.query).filter(unsavedQueryParam =>
-        queryParamFilters.has(unsavedQueryParam)
-      ).length === 0
-    ) {
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            project: fetchedSelectedDashboard.projects,
-            environment: fetchedSelectedDashboard.environment,
-            statsPeriod: fetchedSelectedDashboard.period,
-            start: fetchedSelectedDashboard.start,
-            end: fetchedSelectedDashboard.end,
-            utc: fetchedSelectedDashboard.utc,
-          },
-        },
-        {replace: true}
-      );
-    }
-  }
-
-  // If we don't have a selected dashboard, and one isn't going to arrive
-  // we can redirect to the first dashboard in the list.
-  const firstDashboardId = dashboards.length ? dashboards[0]?.id : 'default-overview';
-  navigate(
-    normalizeUrl({
-      pathname: `/organizations/${organization.slug}/dashboard/${firstDashboardId}/`,
-      query: {
-        ...location.query,
-      },
-    }),
-    {replace: true}
-  );
 
   const renderContent = () => {
     // Ensure there are always tempIds for grid layout
