@@ -76,3 +76,24 @@ class DeleteDetectorTest(TestCase, HybridCloudTestMixin):
         assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
         assert DataSource.objects.filter(id=self.data_source.id).exists()
         assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
+
+    def test_multiple_data_sources(self):
+        """
+        Test that if we have multiple data sources where one is connected to another Detector but the other one isn't, we only delete one
+        """
+        data_condition_group = self.create_data_condition_group()
+        self.create_data_condition(condition_group=data_condition_group)
+        detector = self.create_detector(
+            project_id=self.project.id,
+            name="Testy Detector",
+            type=MetricAlertFire.slug,
+            workflow_condition_group=data_condition_group,
+        )
+        data_source_2 = self.create_data_source(organization=self.organization)
+
+        # multiple data sources for one detector
+        self.create_data_source_detector(data_source=data_source_2, detector=self.detector)
+        # but the data source is also connected to a different detector
+        self.create_data_source_detector(data_source=data_source_2, detector=detector)
+        assert not DataSource.objects.filter(id=self.data_source.id).exists()
+        assert DataSource.objects.filter(id=data_source_2.id).exists()

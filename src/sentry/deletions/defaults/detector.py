@@ -13,6 +13,7 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         data_sources = DataSource.objects.filter(detector=instance.id)
         delete = True
 
+        # this doesn't work if a data source is also connected to a different detector that's not being deleted
         for data_source in data_sources:
             for detector in data_source.detectors.all():
                 if detector.id != instance.id:
