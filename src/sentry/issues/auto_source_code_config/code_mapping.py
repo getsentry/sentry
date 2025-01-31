@@ -3,21 +3,19 @@ from __future__ import annotations
 import logging
 from typing import NamedTuple
 
-from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
     get_extension,
 )
+from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 logger = logging.getLogger(__name__)
-
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 
 class CodeMapping(NamedTuple):
@@ -370,10 +368,14 @@ def convert_stacktrace_frame_path_to_source_path(
 
 
 def create_code_mapping(
-    organization_integration: OrganizationIntegration | RpcOrganizationIntegration,
+    installation: IntegrationInstallation,
     project: Project,
     code_mapping: CodeMapping,
 ) -> RepositoryProjectPathConfig:
+    organization_integration = installation.org_integration
+    if not organization_integration:
+        raise InstallationNotFoundError
+
     repository, _ = Repository.objects.get_or_create(
         name=code_mapping.repo.name,
         organization_id=organization_integration.organization_id,
