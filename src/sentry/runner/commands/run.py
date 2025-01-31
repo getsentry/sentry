@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import time
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -234,6 +235,41 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
         autoreload.run_with_reloader(run_worker, **options)
     else:
         run_worker(**options)
+
+
+@run.command()
+@click.option(
+    "--redis-cluster",
+    help="The rediscluster name to store run state in.",
+    default="default",
+)
+@log_options()
+@configuration
+def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
+    """
+    Run a scheduler for taskworkers
+
+    All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
+    """
+    from django.conf import settings
+
+    from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+    from sentry.utils.redis import redis_clusters
+
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
+    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+
+    with managed_bgtasks(role="taskworker-scheduler"):
+        runner = ScheduleRunner(taskregistry, run_storage)
+        for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(schedule_data)
+
+        while True:
+            sleep_time = runner.tick()
+            time.sleep(sleep_time)
 
 
 @run.command()
