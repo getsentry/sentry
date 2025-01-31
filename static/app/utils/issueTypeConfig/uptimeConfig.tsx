@@ -15,9 +15,10 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     header: {
-      filterAndSearch: {enabled: true},
+      filterBar: {enabled: true, fixedEnvironment: true},
+      graph: {enabled: true, type: 'checkin-timeline'},
       tagDistribution: {enabled: false},
-      timelineSummary: {enabled: true},
+      occurrenceSummary: {enabled: true, duration: true},
     },
     detector: {
       enabled: true,

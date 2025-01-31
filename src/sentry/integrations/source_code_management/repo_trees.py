@@ -51,7 +51,9 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[dict[str, Any]]:
         raise NotImplementedError
 
     @property
@@ -88,7 +90,7 @@ class RepoTreesIntegration(ABC):
                     "full_name": repo_info["identifier"],
                     "default_branch": repo_info["default_branch"],
                 }
-                for repo_info in self.get_repositories()
+                for repo_info in self.get_repositories(fetch_max_pages=True)
                 if not repo_info.get("archived")
             ]
 

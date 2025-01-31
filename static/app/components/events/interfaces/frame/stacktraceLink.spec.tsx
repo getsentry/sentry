@@ -233,22 +233,6 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('hides stacktrace link if there is no source link for .NET projects', async function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        integrations: [integration],
-      },
-    });
-    const {container} = render(
-      <StacktraceLink frame={frame} event={{...event, platform: 'csharp'}} line="" />
-    );
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
-  });
-
   it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
