@@ -12,7 +12,6 @@ import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
@@ -43,7 +42,6 @@ export function ProjectsEditTable({
   onEditModeChange,
 }: Props) {
   const {projects, fetching} = useProjects();
-  const hasAccess = useHasDynamicSamplingWriteAccess();
   const {value, initialValue, error, onChange} = useFormField('projectRates');
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
   const [orgRate, setOrgRate] = useState<string>('');
@@ -198,7 +196,6 @@ export function ProjectsEditTable({
               label={t('Estimated Organization Rate')}
               help={t('An estimate of the combined sample rate for all projects.')}
               value={displayedOrgRate}
-              hasAccess={hasAccess}
               isBulkEditEnabled
               isBulkEditActive={isBulkEditEnabled}
               onBulkEditChange={handleBulkEditChange}

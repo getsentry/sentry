@@ -8,9 +8,9 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 
 interface Props {
-  hasAccess: boolean;
   help: React.ReactNode;
   label: React.ReactNode;
   onChange: (value: string) => void;
@@ -26,7 +26,6 @@ interface Props {
 export function OrganizationSampleRateInput({
   value,
   onChange,
-  hasAccess,
   isBulkEditEnabled,
   isBulkEditActive,
   label,
@@ -36,6 +35,7 @@ export function OrganizationSampleRateInput({
   showPreviousValue,
   onBulkEditChange,
 }: Props) {
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Autofocus the input when bulk edit is activated
