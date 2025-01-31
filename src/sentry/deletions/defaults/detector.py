@@ -1,18 +1,11 @@
-from sentry.deletions.base import BaseRelation, ModelDeletionTask
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.workflow_engine.models.detector import Detector
 
 
 class DetectorDeletionTask(ModelDeletionTask[Detector]):
-    # # The default manager for alert rules excludes snapshots
-    # # which we want to include when deleting an organization.
-    # manager_name = "objects_with_snapshots"
-
     def get_child_relations(self, instance: Detector) -> list[BaseRelation]:
-        # from sentry.workflow_engine.models.detector import Detector
+        from sentry.workflow_engine.models import DataConditionGroup
 
-        # print("hello")
-
-        return []
-
-        # model_list = (AlertRuleTrigger, Incident)
-        # return [ModelRelation(m, {"alert_rule_id": instance.id}) for m in model_list]
+        return [
+            ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group.id}),
+        ]
