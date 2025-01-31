@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
-from sentry.constants import ObjectStatus
-from sentry.db.models.fields.node import NodeData
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -23,7 +19,9 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.safe import get_path
+
+from .integration_utils import InstallationNotFoundError, get_installation
+from .stacktraces import identify_stacktrace_paths
 
 logger = logging.getLogger(__name__)
 
@@ -66,15 +64,16 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
     if not stacktrace_paths:
         return
 
-    installation, organization_integration = get_installation(org)
-    if not installation or not organization_integration:
+    try:
+        installation = get_installation(org)
+    except InstallationNotFoundError:
         logger.info("No installation or organization integration found.", extra=extra)
         return
 
     trees = get_trees_for_org(installation, org, extra)
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project)
+    set_project_codemappings(code_mappings, installation, project)
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -152,71 +151,19 @@ def get_trees_for_org(
         return trees
 
 
-def identify_stacktrace_paths(data: NodeData) -> list[str]:
-    """
-    Get the stacktrace_paths from the event data.
-    """
-    stacktraces = get_stacktrace(data)
-    stacktrace_paths = set()
-    for stacktrace in stacktraces:
-        try:
-            frames = stacktrace["frames"]
-            paths = {
-                frame["filename"]
-                for frame in frames
-                if frame and frame.get("in_app") and frame.get("filename")
-            }
-            stacktrace_paths.update(paths)
-        except Exception:
-            logger.exception("Error getting filenames for project.")
-    return list(stacktrace_paths)
-
-
-def get_stacktrace(data: NodeData) -> list[Mapping[str, Any]]:
-    exceptions = get_path(data, "exception", "values", filter=True)
-    if exceptions:
-        return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
-
-    stacktrace = data.get("stacktrace")
-    if stacktrace and stacktrace.get("frames"):
-        return [stacktrace]
-
-    return []
-
-
-def get_installation(
-    organization: Organization,
-) -> tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
-    integrations = integration_service.get_integrations(
-        organization_id=organization.id,
-        providers=["github"],
-        status=ObjectStatus.ACTIVE,
-    )
-    if len(integrations) == 0:
-        return None, None
-
-    # XXX: We only operate on the first integration for an organization.
-    integration = integrations[0]
-    organization_integration = integration_service.get_organization_integration(
-        integration_id=integration.id, organization_id=organization.id
-    )
-    if not organization_integration:
-        return None, None
-
-    installation = integration.get_installation(organization_id=organization.id)
-
-    return installation, organization_integration
-
-
 def set_project_codemappings(
     code_mappings: list[CodeMapping],
-    organization_integration: RpcOrganizationIntegration,
+    installation: IntegrationInstallation,
     project: Project,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
+    organization_integration = installation.org_integration
+    if not organization_integration:
+        raise InstallationNotFoundError
+
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
         repository = (

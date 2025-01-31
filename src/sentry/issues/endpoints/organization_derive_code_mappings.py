@@ -18,7 +18,10 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     FrameFilename,
     create_code_mapping,
 )
-from sentry.issues.auto_source_code_config.task import get_installation
+from sentry.issues.auto_source_code_config.integration_utils import (
+    InstallationNotFoundError,
+    get_installation,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -48,8 +51,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         """
         stacktrace_filename = request.GET.get("stacktraceFilename")
         # It only returns the first GitHub integration
-        installation, _ = get_installation(organization)
-        if not installation:
+        try:
+            installation = get_installation(organization)
+        except InstallationNotFoundError:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -87,8 +91,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string sourceRoot:
         :auth: required
         """
-        installation, organization_integration = get_installation(organization)
-        if not installation or not organization_integration:
+        try:
+            installation = get_installation(organization)
+        except InstallationNotFoundError:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -118,7 +123,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             source_path=source_root,
             repo=RepoAndBranch(name=repo_name, branch=branch),
         )
-        new_code_mapping = create_code_mapping(organization_integration, project, code_mapping)
+        new_code_mapping = create_code_mapping(installation, project, code_mapping)
         return self.respond(
             serialize(new_code_mapping, request.user), status=status.HTTP_201_CREATED
         )
