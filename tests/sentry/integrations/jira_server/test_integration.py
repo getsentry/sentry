@@ -797,10 +797,40 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             "https://jira.example.org/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        self.installation.sync_assignee_outbound(external_issue, user)
+
+        with pytest.raises(IntegrationError) as e:
+            self.installation.sync_assignee_outbound(external_issue, user)
+        assert str(e.value) == "Failed to assign user to Jira Server issue"
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_sync_assignee_only_matching_username(self):
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.installation.model.id,
+            key=issue_id,
+        )
+        assign_issue_url = "https://jira.example.org/rest/api/2/issue/%s/assignee" % issue_id
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/user/assignable/search",
+            json=[
+                {
+                    "accountId": "deadbeef123",
+                    "displayName": "Dead Beef",
+                    "username": "bob@example.com",
+                }
+            ],
+        )
+        responses.add(responses.PUT, assign_issue_url, json={})
+        self.installation.sync_assignee_outbound(external_issue, user)
+
+        # Assert that we properly assign the user
+        assert len(responses.calls) == 2
 
     def test_get_config_data(self):
         integration = self.create_integration(
