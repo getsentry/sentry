@@ -2,8 +2,14 @@ import pytest
 from django.db import router, transaction
 from django.db.utils import IntegrityError
 
+from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.models import UptimeSubscription, get_active_auto_monitor_count_for_org
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    UptimeSubscription,
+    disable_uptime_monitors_for_org,
+    get_active_auto_monitor_count_for_org,
+)
 
 
 class GetActiveMonitorCountForOrgTest(UptimeTestCase):
@@ -77,3 +83,30 @@ class UniqueMonitorTest(UptimeTestCase):
                 headers={"hi": "santry", "auth": "sentaur"},
                 body="hello",
             )
+
+
+class DisableMonitorTest(UptimeTestCase):
+
+    def get_active_monitor_count(self):
+        return ProjectUptimeSubscription.objects.filter(
+            project__organization=self.organization,
+            status=OrganizationStatus.ACTIVE,
+        ).count()
+
+    def test(self):
+        assert self.get_active_monitor_count() == 0
+        # No-op
+        disable_uptime_monitors_for_org(self.organization)
+
+        self.create_project_uptime_subscription()
+        assert self.get_active_monitor_count() == 1
+
+        disable_uptime_monitors_for_org(self.organization)
+        assert self.get_active_monitor_count() == 0
+
+        for _ in range(5):
+            self.create_project_uptime_subscription()
+        assert self.get_active_monitor_count() == 5
+
+        disable_uptime_monitors_for_org(self.organization)
+        assert self.get_active_monitor_count() == 0
