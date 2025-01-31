@@ -42,7 +42,6 @@ from sentry.incidents.logic import (
     query_datasets_to_type,
 )
 from sentry.incidents.models.alert_rule import (
-    AlertRule,
     AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -171,8 +170,6 @@ from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
     Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,

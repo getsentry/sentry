@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -15,8 +14,6 @@ from sentry.testutils.factories import EventType
 from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.models import (
     Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
     DataConditionGroup,
     DataPacket,
     DataSource,
