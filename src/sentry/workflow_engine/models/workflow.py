@@ -72,6 +72,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
+        from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+
         if self.when_condition_group is None:
             return True, []
 
