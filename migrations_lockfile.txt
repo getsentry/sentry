@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0822_alert_rule_always_organization
+sentry: 0823_projectcodeowners_raw_never_null
 
 social_auth: 0002_default_auto_field
 

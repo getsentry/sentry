@@ -118,7 +118,6 @@ ignore_missing_imports = true
 module = [
     "sentry.api.base",
     "sentry.api.bases.organization_events",
-    "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.event_attachments",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",

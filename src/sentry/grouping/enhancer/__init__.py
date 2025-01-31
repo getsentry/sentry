@@ -146,23 +146,30 @@ class Enhancements:
 
         self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
 
-    def apply_modifications_to_frame(
+    def apply_category_and_updated_in_app_to_frames(
         self,
         frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
     ) -> None:
         """
-        This applies the frame modifications to the frames itself. This does not affect grouping.
+        Apply enhancement rules to each frame, adding a category (if any) and updating the `in_app`
+        value if necessary.
+
+        Both the category and `in_app` data will be used during grouping. The `in_app` values will
+        also be persisted in the saved event, so they can be used in the UI and when determining
+        things like suspect commits and suggested assignees.
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_enhanced_frames = self.rust_enhancements.apply_modifications_to_frames(
+        category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
             match_frames, make_rust_exception_data(exception_data)
         )
 
-        for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+        for frame, (category, in_app) in zip(frames, category_and_in_app_results):
             if in_app is not None:
+                # If the `in_app` value changes as a result of this call, the original value (in
+                # integer form) will be added to `frame.data` under the key "orig_in_app"
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)

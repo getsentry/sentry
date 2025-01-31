@@ -3,21 +3,20 @@ from __future__ import annotations
 import logging
 from typing import NamedTuple
 
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
     get_extension,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
-logger = logging.getLogger(__name__)
+from .integration_utils import InstallationNotFoundError, get_installation
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+logger = logging.getLogger(__name__)
 
 
 class CodeMapping(NamedTuple):
@@ -43,6 +42,17 @@ class UnexpectedPathException(Exception):
 
 class UnsupportedFrameFilename(Exception):
     pass
+
+
+def derive_code_mappings(
+    organization: Organization,
+    stacktrace_filename: str,
+) -> list[dict[str, str]]:
+    installation = get_installation(organization)
+    trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
+    trees_helper = CodeMappingTreesHelper(trees)
+    frame_filename = FrameFilename(stacktrace_filename)
+    return trees_helper.list_file_matches(frame_filename)
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -370,44 +380,36 @@ def convert_stacktrace_frame_path_to_source_path(
 
 
 def create_code_mapping(
-    organization_integration: OrganizationIntegration | RpcOrganizationIntegration,
+    organization: Organization,
     project: Project,
-    code_mapping: CodeMapping,
+    stacktrace_root: str,
+    source_path: str,
+    repo_name: str,
+    branch: str,
 ) -> RepositoryProjectPathConfig:
-    repository, _ = Repository.objects.get_or_create(
-        name=code_mapping.repo.name,
-        organization_id=organization_integration.organization_id,
-        defaults={
-            "integration_id": organization_integration.integration_id,
-        },
-    )
+    installation = get_installation(organization)
+    # It helps with typing since org_integration can be None
+    if not installation.org_integration:
+        raise InstallationNotFoundError
 
-    new_code_mapping, created = RepositoryProjectPathConfig.objects.update_or_create(
+    repository, _ = Repository.objects.get_or_create(
+        name=repo_name,
+        organization_id=organization.id,
+        defaults={"integration_id": installation.model.id},
+    )
+    new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=code_mapping.stacktrace_root,
+        stack_root=stacktrace_root,
         defaults={
             "repository": repository,
-            "organization_id": organization_integration.organization_id,
-            "integration_id": organization_integration.integration_id,
-            "organization_integration_id": organization_integration.id,
-            "source_root": code_mapping.source_path,
-            "default_branch": code_mapping.repo.branch,
+            "organization_id": organization.id,
+            "integration_id": installation.model.id,
+            "organization_integration_id": installation.org_integration.id,
+            "source_root": source_path,
+            "default_branch": branch,
             "automatically_generated": True,
         },
     )
-
-    if created:
-        logger.info(
-            "Created a code mapping for project.slug=%s, stack root: %s",
-            project.slug,
-            code_mapping.stacktrace_root,
-        )
-    else:
-        logger.info(
-            "Updated existing code mapping for project.slug=%s, stack root: %s",
-            project.slug,
-            code_mapping.stacktrace_root,
-        )
 
     return new_code_mapping
 
