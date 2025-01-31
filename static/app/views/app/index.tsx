@@ -1,5 +1,5 @@
-import {lazy, Suspense, useCallback, useEffect, useMemo, useRef} from 'react';
-import {ThemeProvider, useTheme} from '@emotion/react';
+import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -294,13 +294,13 @@ function App({children, params}: Props) {
 }
 
 /**
- * Temporary provider for new UI2 theme rollout
+ * Temporary functionality for new UI2 theme rollout
  */
+
+const chonkTheme = {isChonk: true};
+
 function ChonkThemeProvider({children}: {children: React.ReactNode}) {
   const organization = useOrganization({allowNull: true});
-  const theme = useTheme();
-
-  const chonkTheme = useMemo(() => ({...theme, isChonk: true}), [theme]);
 
   return organization?.features.includes('chonk-ui') ? (
     <ThemeProvider theme={chonkTheme}>{children}</ThemeProvider>
