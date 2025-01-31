@@ -4,7 +4,10 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 
 from .constants import SUPPORTED_INTEGRATIONS
-from .errors import InstallationNotFoundError
+
+
+class InstallationNotFoundError(Exception):
+    pass
 
 
 def get_installation(organization: Organization) -> IntegrationInstallation:

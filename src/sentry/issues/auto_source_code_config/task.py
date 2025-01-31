@@ -20,8 +20,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
 
-from .errors import InstallationNotFoundError
-from .integration_utils import get_installation
+from .integration_utils import InstallationNotFoundError, get_installation
 from .stacktraces import identify_stacktrace_paths
 
 logger = logging.getLogger(__name__)
