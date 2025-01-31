@@ -1,0 +1,2 @@
+class InstallationNotFoundError(Exception):
+    pass

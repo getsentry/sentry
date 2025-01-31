@@ -1,0 +1,1 @@
+SUPPORTED_INTEGRATIONS = ["github"]
