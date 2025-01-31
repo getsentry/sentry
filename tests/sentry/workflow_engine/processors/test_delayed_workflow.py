@@ -346,7 +346,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
             self.workflow_filters.id: self.workflow.id,
             other_workflow_filters.id: self.workflow.id,
         }
-        workflows_to_envs = {self.workflow.id: None}
+        workflows_to_envs: dict[int, int | None] = {self.workflow.id: None}
 
         result = get_condition_query_groups(dcgs, dcg_to_groups, dcg_to_workflow, workflows_to_envs)
 

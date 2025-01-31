@@ -25,7 +25,7 @@ class _QSTypedDict(TypedDict):
 class BaseEventFrequencyConditionHandler(ABC):
     @property
     @abstractmethod
-    def base_handler(self) -> type[Self]:
+    def base_handler(self) -> Self:
         # frequency and percent conditions can share the same base handler to query Snuba
         raise NotImplementedError
 

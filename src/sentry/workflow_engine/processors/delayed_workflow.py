@@ -33,7 +33,7 @@ class UniqueConditionQuery:
     same condition class can share the single query.
     """
 
-    handler: type[BaseEventFrequencyConditionHandler]
+    handler: BaseEventFrequencyConditionHandler
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
@@ -155,12 +155,14 @@ def generate_unique_queries(
         )
         return []
 
-    if not issubclass(handler, BaseEventFrequencyConditionHandler):
+    if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
         return []
+
+    base_handler = handler.base_handler  # type: ignore[attr-defined]
 
     unique_queries = [
         UniqueConditionQuery(
-            handler=handler.base_handler,
+            handler=base_handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
         )
@@ -168,7 +170,7 @@ def generate_unique_queries(
     if condition_type in PERCENT_CONDITIONS:
         unique_queries.append(
             UniqueConditionQuery(
-                handler=handler.base_handler,
+                handler=base_handler,
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
@@ -181,7 +183,7 @@ def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     dcg_to_groups: dict[int, set[int]],
     dcg_to_workflow: dict[int, int],
-    workflows_to_envs: dict[int, int],
+    workflows_to_envs: dict[int, int | None],
 ) -> dict[UniqueConditionQuery, set[int]]:
     """
     Map unique condition queries to the group IDs that need to checked for that query.
