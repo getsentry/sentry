@@ -78,9 +78,6 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
     }
 
     const entry = entries[i]!;
-    const hasSameSectionParent =
-      entry.ref.closest('section') === previousEntry.ref.closest('section');
-
     const position = entry.ref.compareDocumentPosition(previousEntry.ref);
 
     const isAfter = !!(position & Node.DOCUMENT_POSITION_PRECEDING);
@@ -88,7 +85,7 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
       TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
       TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
 
-    if (hasSameSectionParent && isAfter && hierarchy && parentEntry) {
+    if (isAfter && hierarchy && parentEntry) {
       const parent: NestedEntry = {
         entry,
         children: [],

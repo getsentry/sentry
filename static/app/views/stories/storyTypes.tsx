@@ -21,7 +21,7 @@ export function StoryTypes(props: StoryTypesProps) {
 
   return (
     <Fragment>
-      <StoryTitle id="api-reference">API Reference</StoryTitle>
+      <StoryTitle>API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
         <InputGroup>

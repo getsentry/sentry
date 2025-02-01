@@ -58,12 +58,12 @@ export default function Matrix<P extends RenderProps>({
   return (
     <div>
       {selectedProps.length === 2 ? (
-        <Title id={`${selectedProps[0] as string}-vs-${selectedProps[1] as string}`}>
+        <Title>
           <samp>{selectedProps[0] as string | number}</samp> vs{' '}
           <samp>{selectedProps[1] as string | number}</samp>
         </Title>
       ) : (
-        <Title id={`${selectedProps[0] as string}`}>
+        <Title>
           <samp>{selectedProps[0] as string | number}</samp>
         </Title>
       )}
