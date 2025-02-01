@@ -59,7 +59,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
 
   return (
     <StorySection>
-      <StoryTitle id={props.name}>{props.name}</StoryTitle>
+      <StoryTitle>{props.name}</StoryTitle>
       {isOneChild ? children : <SideBySide>{children}</SideBySide>}
     </StorySection>
   );

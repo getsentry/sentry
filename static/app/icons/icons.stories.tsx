@@ -1312,7 +1312,7 @@ function Section({section}: {section: TSection}) {
 
   return (
     <section>
-      <SectionHeader id={section.label}>{section.label}</SectionHeader>
+      <SectionHeader>{section.label}</SectionHeader>
       <p>
         <code>{"import { ... } from 'sentry/icons';"}</code>
       </p>
