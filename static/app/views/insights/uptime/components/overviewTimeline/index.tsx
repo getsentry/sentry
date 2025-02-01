@@ -11,6 +11,7 @@ import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTi
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {UptimeAlert} from 'sentry/views/alerts/types';
 
@@ -22,7 +23,8 @@ interface Props {
 
 export function OverviewTimeline({uptimeAlerts}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
