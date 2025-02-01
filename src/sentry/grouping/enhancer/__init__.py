@@ -192,6 +192,10 @@ class Enhancements:
 
         rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
+        # Modify the rust components by applying +group/-group rules and getting hints for both
+        # those changes and the `in_app` changes applied by earlier in the ingestion process by
+        # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
+        # for the overall stacktrace (returned in `rust_results`).
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components
         )
