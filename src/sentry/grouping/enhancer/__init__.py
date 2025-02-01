@@ -176,6 +176,7 @@ class Enhancements:
 
     def assemble_stacktrace_component(
         self,
+        variant_name: str,
         frame_components: list[FrameGroupingComponent],
         frames: list[dict[str, Any]],
         platform: str | None,
