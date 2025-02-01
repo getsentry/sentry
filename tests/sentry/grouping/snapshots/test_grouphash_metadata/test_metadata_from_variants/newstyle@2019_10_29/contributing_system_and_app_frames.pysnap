@@ -1,5 +1,5 @@
 ---
-created: '2025-01-30T21:41:01.822552+00:00'
+created: '2025-01-30T21:46:13.738334+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,13 +24,29 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
+    hash: "161ce02ecc5d6685a72e8e520ab726b3"
     contributing component: exception
     component:
       app*
         exception*
           stacktrace*
-            frame* (un-ignored by stack trace rule (function:handleRequest -app +group))
+            frame* (marked in-app by stack trace rule (function:playFetch +app +group))
+              filename*
+                "dogpark.js"
+              function*
+                "playFetch"
+              context-line*
+                "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+          type*
+            "FailedToFetchError"
+  system*
+    hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame* (marked out of app by stack trace rule (function:handleRequest -app +group))
               filename*
                 "router.js"
               function*
