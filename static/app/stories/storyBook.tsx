@@ -6,8 +6,6 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
-import {useStoryIndexRegister} from '../views/stories/storyIndex';
-
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
 type SetupFunction = (
@@ -58,10 +56,9 @@ export default function storyBook(
 function Story(props: {name: string; render: StoryRenderFunction}) {
   const children = props.render();
   const isOneChild = Children.count(children) === 1;
-  const register = useStoryIndexRegister({id: props.name, label: props.name});
 
   return (
-    <StorySection ref={register}>
+    <StorySection>
       <StoryTitle id={props.name}>{props.name}</StoryTitle>
       {isOneChild ? children : <SideBySide>{children}</SideBySide>}
     </StorySection>

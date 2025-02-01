@@ -1,90 +1,191 @@
-import {createContext, useCallback, useContext, useState} from 'react';
+import {useLayoutEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
-type StoryIndexReference = {
-  id: string;
-  label: string;
-  ref: HTMLElement | null;
+import TextOverflow from 'sentry/components/textOverflow';
+import {space} from 'sentry/styles/space';
+
+type Entry = {
+  ref: HTMLElement;
+  title: string;
 };
 
-const StoryIndexContext = createContext<StoryIndexReference[]>([]);
-const StoryIndexRegisterContext = createContext<
-  (obj: {id: string; label: string}) => (ref: HTMLElement | null) => void
->(() => () => {});
+function getContentEntries(main: HTMLElement): Entry[] {
+  const titles = main.querySelectorAll('h2, h3, h4, h5, h6');
+  const entries: Entry[] = [];
 
-export function StoryIndexProvider({children}: {children: React.ReactNode}) {
-  const [storyIndex, setStoryIndex] = useState<StoryIndexReference[]>([]);
+  for (const entry of Array.from(titles ?? [])) {
+    // Ensure each title has an id we can link to
+    if (!entry.id) {
+      entry.id = entry.textContent?.replace(/ /g, '-').toLowerCase() ?? '';
+    }
+    entries.push({
+      title: entry.textContent ?? '',
+      ref: entry as HTMLElement,
+    });
+  }
 
-  const register = useCallback(
-    (obj: {id: string; label: string}) => {
-      // Closes over the ref so that we can maintain the reference to the element in the array
-      const ref: StoryIndexReference = {id: obj.id, label: obj.label, ref: null};
+  return entries;
+}
 
-      return (element: HTMLElement | null) => {
-        if (element === null) {
-          setStoryIndex(prev => prev.filter(s => s !== ref));
-        } else {
-          ref.ref = element;
-          setStoryIndex(prev => prev.concat(ref));
-        }
+function useStoryIndex(): Entry[] {
+  const [entries, setEntries] = useState<Entry[]>([]);
+
+  useLayoutEffect(() => {
+    const observer = new MutationObserver(_mutations => {
+      const main = document.querySelector('main');
+      if (main) {
+        setEntries(getContentEntries(main));
+      }
+    });
+
+    const main = document.querySelector('main');
+
+    if (main) {
+      observer.observe(document.body, {childList: true, subtree: true});
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return entries;
+}
+
+type NestedEntry = {
+  children: NestedEntry[];
+  entry: Entry;
+};
+
+const TAGNAME_ORDER = ['H6', 'H5', 'H4', 'H3', 'H2'];
+
+function nestContentEntries(entries: Entry[]): NestedEntry[] {
+  const nestedEntries: NestedEntry[] = [];
+
+  if (entries.length <= 1) {
+    return nestedEntries;
+  }
+
+  let parentEntry: NestedEntry | null = null;
+  for (let i = 0; i < entries.length; i++) {
+    const previousEntry = entries[i - 1];
+
+    if (!previousEntry) {
+      nestedEntries.push({
+        entry: entries[i]!,
+        children: [],
+      });
+      parentEntry = nestedEntries[nestedEntries.length - 1] ?? null;
+      continue;
+    }
+
+    const entry = entries[i]!;
+    const hasSameSectionParent =
+      entry.ref.closest('section') === previousEntry.ref.closest('section');
+
+    const position = entry.ref.compareDocumentPosition(previousEntry.ref);
+
+    const isAfter = !!(position & Node.DOCUMENT_POSITION_PRECEDING);
+    const hierarchy =
+      TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
+      TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
+
+    if (hasSameSectionParent && isAfter && hierarchy && parentEntry) {
+      const parent: NestedEntry = {
+        entry,
+        children: [],
       };
-    },
-    [setStoryIndex]
-  );
-
-  return (
-    <StoryIndexContext.Provider value={storyIndex}>
-      <StoryIndexRegisterContext.Provider value={register}>
-        {children}
-      </StoryIndexRegisterContext.Provider>
-    </StoryIndexContext.Provider>
-  );
-}
-
-export function useStoryIndexRegister({id, label}: {id: string; label: string}) {
-  const callback = useContext(StoryIndexRegisterContext);
-  if (!callback) {
-    throw new Error('useStoryIndexRegister must be used within a StoryIndexProvider');
-  }
-  return callback({id, label});
-}
-
-const sortByDOMOrder = (a: StoryIndexReference, b: StoryIndexReference) => {
-  if (a.ref && b.ref) {
-    const position = a.ref.compareDocumentPosition(b.ref);
-    if (
-      position & Node.DOCUMENT_POSITION_FOLLOWING ||
-      position & Node.DOCUMENT_POSITION_CONTAINED_BY
-    ) {
-      return -1;
+      parentEntry.children.push(parent);
+      continue;
     }
-    if (
-      position & Node.DOCUMENT_POSITION_PRECEDING ||
-      position & Node.DOCUMENT_POSITION_CONTAINS
-    ) {
-      return 1;
-    }
-    return 0;
+
+    nestedEntries.push({
+      entry,
+      children: [],
+    });
+    parentEntry = nestedEntries[nestedEntries.length - 1] ?? null;
   }
 
-  if (a.ref) {
-    return 1;
-  }
-
-  return -1;
-};
+  return nestedEntries;
+}
 
 export function StoryIndex() {
-  const storyIndex = useContext(StoryIndexContext);
-  const withRef = storyIndex.filter(s => !!s.ref);
-  const sorted = withRef.sort(sortByDOMOrder);
+  const entries = useStoryIndex();
+  const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
 
   return (
-    <div>
-      {sorted.map(s => (
-        <div key={s.id}>
-          <a href={`#${s.id}`}>{s.label}</a>
-        </div>
-      ))}
-    </div>
+    <StoryIndexContainer>
+      <StoryIndexTitle>Contents</StoryIndexTitle>
+      <StoryIndexListContainer>
+        <StoryIndexList>
+          {nestedEntries.map(entry => (
+            <StoryContentsList key={entry.entry.ref.id} entry={entry} />
+          ))}
+        </StoryIndexList>
+      </StoryIndexListContainer>
+    </StoryIndexContainer>
   );
 }
+
+function StoryContentsList({entry}: {entry: NestedEntry}) {
+  return (
+    <li>
+      <a href={`#${entry.entry.ref.id}`}>
+        <TextOverflow>{entry.entry.title}</TextOverflow>
+      </a>
+      {entry.children.length > 0 && (
+        <StoryIndexList>
+          {entry.children.map(child => (
+            <StoryContentsList key={child.entry.ref.id} entry={child} />
+          ))}
+        </StoryIndexList>
+      )}
+    </li>
+  );
+}
+
+const StoryIndexContainer = styled('div')`
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const StoryIndexListContainer = styled('div')`
+  > ul {
+    padding-left: 0;
+    margin-top: ${space(1)};
+  }
+
+  > ul > li {
+    padding-left: 0;
+    margin-top: ${space(1)};
+
+    > a {
+      margin-bottom: ${space(0.5)};
+    }
+  }
+`;
+
+const StoryIndexTitle = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${space(0.5)} 0 ${space(1)} 0;
+  margin-bottom: ${space(1)};
+`;
+
+const StoryIndexList = styled('ul')`
+  list-style: none;
+  padding-left: ${space(0.75)};
+  margin: 0;
+  width: 160px;
+
+  li {
+    &:hover {
+      background: ${p => p.theme.backgroundSecondary};
+    }
+
+    a {
+      padding: ${space(0.25)} 0;
+      display: block;
+      color: ${p => p.theme.textColor};
+      text-decoration: none;
+    }
+  }
+`;

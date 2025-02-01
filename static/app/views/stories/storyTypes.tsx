@@ -11,8 +11,6 @@ import {StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
-import {useStoryIndexRegister} from './storyIndex';
-
 interface StoryTypesProps {
   types: TypeLoader.ComponentDocWithFilename | undefined;
 }
@@ -20,13 +18,10 @@ interface StoryTypesProps {
 export function StoryTypes(props: StoryTypesProps) {
   const [query, setQuery] = useState('');
   const nodes = usePropTree(props.types?.props ?? {}, query);
-  const register = useStoryIndexRegister({id: 'api-reference', label: 'API Reference'});
 
   return (
     <Fragment>
-      <StoryTitle id="api-reference" ref={register}>
-        API Reference
-      </StoryTitle>
+      <StoryTitle id="api-reference">API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
         <InputGroup>

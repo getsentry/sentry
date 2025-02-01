@@ -15,11 +15,10 @@ import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import {StoryExports} from 'sentry/views/stories/storyExports';
 import {StoryHeader} from 'sentry/views/stories/storyHeader';
+import {StoryIndex} from 'sentry/views/stories/storyIndex';
 import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
-
-import {StoryIndex, StoryIndexProvider} from './storyIndex';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
@@ -55,69 +54,67 @@ export default function Stories() {
 
   return (
     <RouteAnalyticsContextProvider>
-      <StoryIndexProvider>
-        <OrganizationContainer>
-          <Layout>
-            <HeaderContainer>
-              <StoryHeader />
-            </HeaderContainer>
+      <OrganizationContainer>
+        <Layout>
+          <HeaderContainer>
+            <StoryHeader />
+          </HeaderContainer>
 
-            <SidebarContainer>
-              <InputGroup>
-                <InputGroup.LeadingItems disablePointerEvents>
-                  <IconSearch />
-                </InputGroup.LeadingItems>
-                <InputGroup.Input
-                  ref={searchInput}
-                  placeholder="Search stories"
-                  defaultValue={location.query.query ?? ''}
-                  onChange={onSearchInputChange}
-                />
-                {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
-              </InputGroup>
-              <StoryTreeContainer>
-                <StoryTree nodes={nodes} />
-              </StoryTreeContainer>
-            </SidebarContainer>
+          <SidebarContainer>
+            <InputGroup>
+              <InputGroup.LeadingItems disablePointerEvents>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                ref={searchInput}
+                placeholder="Search stories"
+                defaultValue={location.query.query ?? ''}
+                onChange={onSearchInputChange}
+              />
+              {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
+            </InputGroup>
+            <StoryTreeContainer>
+              <StoryTree nodes={nodes} />
+            </StoryTreeContainer>
+          </SidebarContainer>
 
-            {story.isLoading ? (
-              <VerticalScroll style={{gridArea: 'body'}}>
-                <LoadingIndicator />
-              </VerticalScroll>
-            ) : story.isError ? (
-              <VerticalScroll style={{gridArea: 'body'}}>
-                <Alert type="error" showIcon>
-                  <strong>{story.error.name}:</strong> {story.error.message}
-                </Alert>
-              </VerticalScroll>
-            ) : story.isSuccess ? (
-              <StoryMainContainer>
-                {story.data.map((s, _i, arr) => {
-                  // We render extra information if this is the only story that is being rendered
-                  if (arr.length === 1) {
-                    <Fragment key={s.filename}>
-                      <TextOverflow>{s.filename}</TextOverflow>
-                      <CopyToClipboardButton size="xs" iconSize="xs" text={s.filename} />
-                      <StorySourceLinks story={s} />
-                      <StoryExports story={s} />
-                    </Fragment>;
-                  }
+          {story.isLoading ? (
+            <VerticalScroll style={{gridArea: 'body'}}>
+              <LoadingIndicator />
+            </VerticalScroll>
+          ) : story.isError ? (
+            <VerticalScroll style={{gridArea: 'body'}}>
+              <Alert type="error" showIcon>
+                <strong>{story.error.name}:</strong> {story.error.message}
+              </Alert>
+            </VerticalScroll>
+          ) : story.isSuccess ? (
+            <StoryMainContainer>
+              {story.data.map((s, _i, arr) => {
+                // We render extra information if this is the only story that is being rendered
+                if (arr.length === 1) {
+                  <Fragment key={s.filename}>
+                    <TextOverflow>{s.filename}</TextOverflow>
+                    <CopyToClipboardButton size="xs" iconSize="xs" text={s.filename} />
+                    <StorySourceLinks story={s} />
+                    <StoryExports story={s} />
+                  </Fragment>;
+                }
 
-                  // Render just the story exports in case of multiple stories being rendered
-                  return <StoryExports key={s.filename} story={s} />;
-                })}
-              </StoryMainContainer>
-            ) : (
-              <VerticalScroll style={{gridArea: 'body'}}>
-                <strong>The file you selected does not export a story.</strong>
-              </VerticalScroll>
-            )}
-            <StoryIndexContainer>
-              <StoryIndex />
-            </StoryIndexContainer>
-          </Layout>
-        </OrganizationContainer>
-      </StoryIndexProvider>
+                // Render just the story exports in case of multiple stories being rendered
+                return <StoryExports key={s.filename} story={s} />;
+              })}
+            </StoryMainContainer>
+          ) : (
+            <VerticalScroll style={{gridArea: 'body'}}>
+              <strong>The file you selected does not export a story.</strong>
+            </VerticalScroll>
+          )}
+          <StoryIndexContainer>
+            <StoryIndex />
+          </StoryIndexContainer>
+        </Layout>
+      </OrganizationContainer>
     </RouteAnalyticsContextProvider>
   );
 }

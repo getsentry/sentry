@@ -1312,7 +1312,7 @@ function Section({section}: {section: TSection}) {
 
   return (
     <section>
-      <SectionHeader>{section.label}</SectionHeader>
+      <SectionHeader id={section.label}>{section.label}</SectionHeader>
       <p>
         <code>{"import { ... } from 'sentry/icons';"}</code>
       </p>
@@ -1386,8 +1386,10 @@ const StyledSticky = styled(Sticky)`
   }
 `;
 
+// Large scroll margin top due to sticky header
 const SectionHeader = styled('h5')`
   margin-block: ${space(2)};
+  scroll-margin-top: 96px;
 `;
 
 const Grid = styled('div')`
