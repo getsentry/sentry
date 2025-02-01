@@ -587,23 +587,23 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
 
 class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
     def create_base_data_with_page_filters(self) -> None:
-        user_1 = self.user
-        self.user_2 = self.create_user()
-        self.create_member(organization=self.organization, user=self.user_2)
-        # User 3 has no views, will get the defaults
-        self.user_3 = self.create_user()
-        self.create_member(organization=self.organization, user=self.user_3)
-
         self.team_1 = self.create_team(organization=self.organization, slug="team-1")
         self.team_2 = self.create_team(organization=self.organization, slug="team-2")
 
         # User 1 is on team 1 only
+        user_1 = self.user
         self.create_team_membership(user=user_1, team=self.team_1)
         # User 2 is on team 1 and team 2
-        self.create_team_membership(user=self.user_2, team=self.team_1)
-        self.create_team_membership(user=self.user_2, team=self.team_2)
-        # User 3 is on team 1 only
-        self.create_team_membership(user=self.user_3, team=self.team_1)
+        self.user_2 = self.create_user()
+        self.create_member(
+            organization=self.organization, user=self.user_2, teams=[self.team_1, self.team_2]
+        )
+        # User 3 has no views and should get the default views
+        self.user_3 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_3, teams=[self.team_1])
+        # User 4 is part of no teams, should error out
+        self.user_4 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_4)
 
         # This project should NEVER get chosen as a default since it does not belong to any teams
         self.project1 = self.create_project(
@@ -669,6 +669,19 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             environments=[],
         )
         first_issue_view_user_two.projects.set([])
+
+        first_issue_view_user_four = GroupSearchView.objects.create(
+            name="Issue View One",
+            organization=self.organization,
+            user_id=self.user_4.id,
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+            is_all_projects=False,
+            time_filters={"period": "14d"},
+            environments=[],
+        )
+        first_issue_view_user_four.projects.set([])
 
     def setUp(self) -> None:
         self.create_base_data_with_page_filters()
@@ -765,6 +778,14 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             assert view["projects"] == [self.project3.id]
             assert view["environments"] == []
             assert view["isAllProjects"] is False
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": False})
+    def test_error_when_no_projects_found(self) -> None:
+        self.login_as(user=self.user_4)
+        response = self.client.get(self.url)
+        assert response.status_code == 400
+        assert response.data == {"detail": "You do not have access to any projects."}
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):

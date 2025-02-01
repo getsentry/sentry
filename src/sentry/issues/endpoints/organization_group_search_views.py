@@ -95,23 +95,26 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 on_results=lambda results: serialize(results, request.user),
             )
 
+        default_project = None
         if not has_global_views:
-            views_to_updates = []
             default_project = pick_default_project(organization, request.user)
-
-            for view in query.prefetch_related("projects"):
-                if view.is_all_projects or view.projects.count() != 1:
-                    view.is_all_projects = False
-                    view.projects.set([default_project])
-                    views_to_updates.append(view)
-
-            GroupSearchView.objects.bulk_update(views_to_updates, ["is_all_projects"])
+            if default_project is None:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "You do not have access to any projects."},
+                )
 
         return self.paginate(
             request=request,
             queryset=query,
             order_by="position",
-            on_results=lambda x: serialize(x, request.user, serializer=GroupSearchViewSerializer()),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=GroupSearchViewSerializer(
+                    has_global_views=has_global_views, default_project=default_project
+                ),
+            ),
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
@@ -204,8 +207,6 @@ def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
         .values_list("id", flat=True)
         .first()
     )
-    if default_user_project is None:
-        raise ValidationError("You do not have access to any projects")
     return default_user_project
 
 
