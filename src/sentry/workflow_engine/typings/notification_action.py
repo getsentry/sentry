@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -7,6 +9,7 @@ from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.sentry_apps.services.app import app_service
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 
@@ -64,7 +67,7 @@ class BaseActionTranslator(ABC):
         return None
 
     @property
-    def blob_type(self) -> type["DataBlob"] | None:
+    def blob_type(self) -> type[DataBlob] | None:
         """Return the blob type for this action, if any"""
         return None
 
@@ -134,7 +137,7 @@ class SlackActionTranslator(BaseActionTranslator):
         return self.action.get("channel")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return SlackDataBlob
 
 
@@ -161,7 +164,7 @@ class DiscordActionTranslator(BaseActionTranslator):
         return self.action.get("channel_id")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return DiscordDataBlob
 
 
@@ -220,7 +223,7 @@ class PagerDutyActionTranslator(BaseActionTranslator):
         return self.action.get("service")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
@@ -252,7 +255,7 @@ class OpsgenieActionTranslator(BaseActionTranslator):
         return self.action.get("team")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
@@ -273,7 +276,7 @@ class TicketActionTranslator(BaseActionTranslator, ABC):
 class GitHubActionTranslatorBase(TicketActionTranslator):
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return GitHubDataBlob
 
 
@@ -298,7 +301,7 @@ class AzureDevOpsActionTranslator(TicketActionTranslator):
     action_type = Action.Type.AZURE_DEVOPS
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return AzureDevOpsDataBlob
 
 
@@ -409,6 +412,50 @@ class WebhookActionTranslator(BaseActionTranslator):
         return self.action.get("service")
 
 
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
+)
+class SentryAppActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.SENTRY_APP
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["sentryAppInstallationUuid"]
+
+    @property
+    def target_type(self) -> ActionTarget | None:
+        return ActionTarget.SENTRY_APP
+
+    @property
+    def integration_id(self) -> int | None:
+        return None
+
+    @property
+    def target_identifier(self) -> str | None:
+        # Fetch the sentry app id using app_service
+        # Based on sentry/rules/actions/sentry_apps/notify_event.py
+        sentry_app_installation = app_service.get_many(
+            filter=dict(uuids=[self.action.get("sentryAppInstallationUuid")])
+        )
+
+        if sentry_app_installation:
+            return sentry_app_installation[0].sentry_app.id
+        else:
+            raise ValueError("Sentry app installation not found")
+
+    def get_sanitized_data(self) -> SentryAppDataBlob:
+        data = SentryAppDataBlob()
+        if settings := self.action.get("settings"):
+            for setting in settings:
+                data.settings.append(SentryAppFormConfigDataBlob(**setting))
+
+        return dataclasses.asdict(data)
+
+    @property
+    def blob_type(self) -> type[DataBlob]:
+        return SentryAppDataBlob
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -467,6 +514,21 @@ class AzureDevOpsDataBlob(TicketDataBlob):
 
     project: str = ""
     work_item_type: str = ""
+
+
+@dataclass
+class SentryAppFormConfigDataBlob(DataBlob):
+    """Represents a single form config field for a Sentry App."""
+
+    name: str = ""
+    value: str = ""
+
+
+@dataclass
+class SentryAppDataBlob(DataBlob):
+    """Represents a Sentry App notification action."""
+
+    settings: list[SentryAppFormConfigDataBlob] = field(default_factory=list)
 
 
 @dataclass
