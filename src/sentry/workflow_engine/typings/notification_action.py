@@ -439,7 +439,7 @@ class SentryAppActionTranslator(BaseActionTranslator):
         )
 
         if sentry_app_installation:
-            return sentry_app_installation[0].sentry_app.id
+            return str(sentry_app_installation[0].sentry_app.id)
         else:
             raise ValueError("Sentry app installation not found")
 

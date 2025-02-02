@@ -1405,7 +1405,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.target_identifier == install.id
+            assert action.target_identifier == str(install.id)
 
     def test_sentry_app_migration_with_form_config(self):
         action_data = [
