@@ -180,3 +180,40 @@ def test_large_nested_numbers():
         "type": "default",
     }
     assert ctx_data == expected_data
+
+
+def test_reserved_keyword_handling():
+    """
+    Test handling of Python reserved keywords in context data to ensure:
+    1. No TypeError during initialization
+    2. Data preservation
+    3. Correct JSON serialization
+    """
+    test_contexts = {
+        "self": {  # Reserved keyword as context key
+            "type": "default",
+            "value": "test_value",
+            "metadata": {"extra": "data"}
+        },
+        "cls": {  # Another reserved keyword
+            "type": "default",
+            "value": "class_value"
+        },
+        "normal": {  # Regular context for comparison
+            "type": "default",
+            "value": "normal_value"
+        }
+    }
+
+    # This would previously raise TypeError
+    mgr = EventManager(data={"contexts": test_contexts})
+    mgr.normalize()
+    evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
+    interface = evt.interfaces.get("contexts")
+
+    # Verify data is preserved and correctly serialized
+    result = interface.to_json()
+    assert "self" in result
+    assert "cls" in result
+    assert result["self"]["value"] == "test_value"
+    assert result["cls"]["value"] == "class_value"

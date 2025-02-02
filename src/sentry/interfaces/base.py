@@ -73,6 +73,15 @@ class Interface:
     def __init__(self, **data):
         self._data = data or {}
 
+    @staticmethod
+    def _transform_reserved_kwargs(data):
+        """Transform data to avoid conflicts with Python reserved keywords."""
+        if not isinstance(data, dict):
+            return {}
+            
+        return {f"data_{k}" if k in {"self", "cls"} else k: v 
+                for k, v in data.items()}
+
     @classproperty
     def path(cls):
         """The 'path' of the interface which is the root key in the data."""
@@ -118,9 +127,12 @@ class Interface:
         if data is None:
             return None
 
-        rv = cls(**data)
+        # Transform data to avoid conflicts with Python reserved keywords
+        safe_data = cls._transform_reserved_kwargs(data)
+        rv = cls(**safe_data)
         object.__setattr__(rv, "datapath", datapath)
         return rv
+
 
     @classmethod
     def to_python_subpath(cls, data, path: DataPath, datapath: DataPath | None = None):
@@ -141,7 +153,14 @@ class Interface:
         return meta
 
     def to_json(self):
-        return prune_empty_keys(self._data)
+        # Restore original names for serialization
+        result = {}
+        for k, v in self._data.items():
+            if k.startswith("data_") and k[5:] in {"self", "cls"}:
+                result[k[5:]] = v
+            else:
+                result[k] = v
+        return prune_empty_keys(result)
 
     def get_title(self):
         return _(type(self).__name__)
