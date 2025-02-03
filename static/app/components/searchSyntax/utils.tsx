@@ -253,9 +253,10 @@ export const getKeyName = (
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
-      // number tags always need to be expressed with the
-      // explicit tag prefix + type
-      return key.text;
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
+      return key.key.value;
     case Token.KEY_EXPLICIT_STRING_TAG:
       if (showExplicitTagPrefix) {
         return key.text;

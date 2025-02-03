@@ -681,6 +681,7 @@ export class TokenConverter {
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
     const keyName = getKeyName(key);
+    const fullKeyName = getKeyName(key, {showExplicitTagPrefix: true});
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage, isSize} =
@@ -692,21 +693,21 @@ export class TokenConverter {
     switch (type) {
       case FilterType.NUMERIC:
       case FilterType.NUMERIC_IN:
-        return isNumeric(keyName);
+        return isNumeric(fullKeyName) || isNumeric(keyName);
 
       case FilterType.DURATION:
-        return isDuration(keyName);
+        return isDuration(fullKeyName) || isDuration(keyName);
 
       case FilterType.SIZE:
-        return isSize(keyName);
+        return isSize(fullKeyName) || isSize(keyName);
 
       case FilterType.BOOLEAN:
-        return isBoolean(keyName);
+        return isBoolean(fullKeyName) || isBoolean(keyName);
 
       case FilterType.DATE:
       case FilterType.RELATIVE_DATE:
       case FilterType.SPECIFIC_DATE:
-        return isDate(keyName);
+        return isDate(fullKeyName) || isDate(keyName);
 
       case FilterType.AGGREGATE_DURATION:
         return checkAggregate(isDuration);
@@ -834,11 +835,12 @@ export class TokenConverter {
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
-      !this.config.supportedTags[getKeyName(key)]
+      !this.config.supportedTags[getKeyName(key)] &&
+      !this.config.supportedTags[getKeyName(key, {showExplicitTagPrefix: true})]
     ) {
       return {
         type: InvalidReason.INVALID_KEY,
-        reason: t('Invalid key. "%s" is not a supported search key.', key.text),
+        reason: t('Invalid key. "%s" is not a supported search key.', getKeyName(key)),
       };
     }
 

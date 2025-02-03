@@ -57,9 +57,11 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
     );
   }
 
+  const keyName = getKeyName(token.key);
+
   return (
     <KeyButton
-      aria-label={t('Edit key for filter: %s', getKeyName(token.key))}
+      aria-label={t('Edit key for filter: %s', keyName)}
       onClick={() => {
         setIsEditing(true);
         onActiveChange(true);
@@ -68,7 +70,7 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
       {...filterButtonProps}
     >
       <InteractionStateLayer />
-      {token.key.text}
+      {keyName}
     </KeyButton>
   );
 }

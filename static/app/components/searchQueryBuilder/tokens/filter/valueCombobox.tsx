@@ -306,9 +306,10 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
+  const fullKeyName = getKeyName(token.key, {showExplicitTagPrefix: true});
   const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key: Tag | undefined = filterKeys[keyName];
-  const fieldDefinition = getFieldDefinition(keyName);
+  const key: Tag | undefined = filterKeys[fullKeyName] || filterKeys[keyName];
+  const fieldDefinition = getFieldDefinition(fullKeyName) || getFieldDefinition(keyName);
   const predefinedValues = useMemo(
     () =>
       getPredefinedValues({
@@ -491,7 +492,8 @@ export function SearchQueryBuilderValueCombobox({
     wrapperRef: topLevelWrapperRef,
   } = useSearchQueryBuilder();
   const keyName = getKeyName(token.key);
-  const fieldDefinition = getFieldDefinition(keyName);
+  const fullKeyName = getKeyName(token.key, {showExplicitTagPrefix: true});
+  const fieldDefinition = getFieldDefinition(fullKeyName) || getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
