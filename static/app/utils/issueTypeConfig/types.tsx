@@ -1,5 +1,6 @@
 import type {IssueType} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
+import type {Tab} from 'sentry/views/issueDetails/types';
 
 export type ResourceLink = {
   link: string;
@@ -25,6 +26,10 @@ export type IssueTypeConfig = {
     resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
+  /**
+   * The key for determining which 'All Events' tab will be used for this issue type
+   */
+  allEventsPath: Tab;
   /**
    * Is the Attachments tab shown for this issue
    */
@@ -68,9 +73,17 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   header: {
-    filterAndSearch: DisabledWithReasonConfig;
+    filterBar: DisabledWithReasonConfig & {
+      // Display the environment filter in an inactive, locked state
+      fixedEnvironment?: boolean;
+    };
+    graph: DisabledWithReasonConfig & {
+      type: 'discover-events' | 'checkin-timeline' | 'detector-history';
+    };
+    occurrenceSummary: DisabledWithReasonConfig & {
+      duration?: boolean;
+    };
     tagDistribution: DisabledWithReasonConfig;
-    timelineSummary: DisabledWithReasonConfig;
   };
   /**
    * Is the Issue Summary available for this issue
@@ -119,10 +132,6 @@ export type IssueTypeConfig = {
    * Should the page show the feedback widget
    */
   showFeedbackWidget: boolean;
-  /**
-   * showOpenPeriods
-   */
-  showOpenPeriods: boolean;
   /**
    * Is the Similar Issues tab shown for this issue
    */
