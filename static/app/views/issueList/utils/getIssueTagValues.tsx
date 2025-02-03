@@ -11,12 +11,19 @@ export function makeGetIssueTagValues(
   tagValueLoader: (key: string, search: string) => Promise<TagValue[]>
 ) {
   return async (tag: Tag, query: string): Promise<string[]> => {
+    // Strip leading and trailing quotes (double, single, backtick), which may be used to escape special characters in the search bar.
+    const charsToStrip = '"`\'';
+    const key = tag.key.replace(
+      new RegExp(`^[${charsToStrip}]+|[${charsToStrip}]+$`, 'g'),
+      ''
+    );
+
     // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
     // and low search filter values because discover maps device.class to these values.
-    if (isDeviceClass(tag.key)) {
+    if (isDeviceClass(key)) {
       return DEVICE_CLASS_TAG_VALUES;
     }
-    const values = await tagValueLoader(tag.key, query);
+    const values = await tagValueLoader(key, query);
     return values.map(({value}) => {
       // Truncate results to 5000 characters to avoid exceeding the max url query length
       // The message attribute for example can be 8192 characters.
