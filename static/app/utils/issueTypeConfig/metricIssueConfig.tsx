@@ -26,8 +26,8 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: false},
       graph: {enabled: true, type: 'detector-history'},
-      tagDistribution: {enabled: true},
-      occurrenceSummary: {enabled: false, duration: false},
+      tagDistribution: {enabled: false},
+      occurrenceSummary: {enabled: false},
     },
     attachments: {enabled: false},
     eventAndUserCounts: {enabled: false},

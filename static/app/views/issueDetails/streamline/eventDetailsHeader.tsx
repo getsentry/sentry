@@ -83,25 +83,23 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             </Flex>
           </Fragment>
         )}
-        {issueTypeConfig.header.graph.enabled &&
-          issueTypeConfig.header.graph.type === 'discover-events' && (
-            <GraphSection>
+        {issueTypeConfig.header.graph.enabled && (
+          <GraphSection>
+            {issueTypeConfig.header.graph.type === 'discover-events' && (
               <EventGraph event={event} group={group} style={{flex: 1}} />
-              {issueTypeConfig.header.tagDistribution.enabled && (
-                <IssueTagsPreview
-                  groupId={group.id}
-                  environments={environments}
-                  project={project}
-                />
-              )}
-            </GraphSection>
-          )}
-        {issueTypeConfig.header.graph.enabled &&
-          issueTypeConfig.header.graph.type === 'detector-history' && (
-            <MetricChartSection>
+            )}
+            {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} project={project} event={event} />
-            </MetricChartSection>
-          )}
+            )}
+            {issueTypeConfig.header.tagDistribution.enabled && (
+              <IssueTagsPreview
+                groupId={group.id}
+                environments={environments}
+                project={project}
+              />
+            )}
+          </GraphSection>
+        )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} />
         )}
@@ -188,16 +186,6 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
-  &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.translucentBorder};
-  }
-`;
-
-const MetricChartSection = styled('div')`
-  grid-area: graph;
-  display: flex;
-  flex-direction: column;
-  padding-right: ${space(1.5)};
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }

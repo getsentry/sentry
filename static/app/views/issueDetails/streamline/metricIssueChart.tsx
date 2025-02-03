@@ -1,9 +1,11 @@
 import {Fragment, lazy, useMemo} from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -100,17 +102,25 @@ export function MetricIssueChart({
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
 
   return (
-    <LazyLoad
-      LazyComponent={MetricChart}
-      api={api}
-      rule={rule}
-      timePeriod={timePeriod}
-      organization={organization}
-      project={project}
-      interval={getPeriodInterval(timePeriod, rule)}
-      query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
-      filter={getFilter(rule)}
-      formattedAggregate={formattedAggregate}
-    />
+    <MetricChartSection>
+      <LazyLoad
+        LazyComponent={MetricChart}
+        api={api}
+        rule={rule}
+        timePeriod={timePeriod}
+        organization={organization}
+        project={project}
+        interval={getPeriodInterval(timePeriod, rule)}
+        query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
+        filter={getFilter(rule)}
+        formattedAggregate={formattedAggregate}
+      />
+    </MetricChartSection>
   );
 }
+
+const MetricChartSection = styled('div')`
+  display: block;
+  padding-right: ${space(1.5)};
+  width: 100%;
+`;
