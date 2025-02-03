@@ -18,6 +18,7 @@ import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +42,8 @@ export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
   const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
