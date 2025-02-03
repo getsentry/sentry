@@ -1052,7 +1052,6 @@ class HasTooManyFramesTest(TestCase):
             is False  # Not flagged as too many because only in-app frames are counted
         )
 
-    @pytest.mark.skip(reason="wonky behavior with -app +group rules")
     def test_uses_app_or_system_variants(self):
         for frame, expected_variant_name in [
             (self.contributing_in_app_frame, "app"),
