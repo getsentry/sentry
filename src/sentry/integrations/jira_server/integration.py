@@ -1085,7 +1085,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
                 total_queried_jira_users += len(possible_users)
                 for possible_user in possible_users:
-                    email = possible_user.get("emailAddress")
+                    email = possible_user.get("emailAddress") or possible_user.get("username")
 
                     if not email:
                         continue
@@ -1106,7 +1106,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                         "total_available_jira_emails": total_available_jira_emails,
                     },
                 )
-                return
+                raise IntegrationError("Failed to assign user to Jira Server issue")
 
         try:
             id_field = client.user_id_field()
@@ -1118,6 +1118,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     **logging_context,
                 },
             )
+            raise IntegrationError("Insufficient permissions to assign user to Jira Server issue")
         except ApiError as e:
             logger.info(
                 "jira.user-assignment-request-error",
@@ -1126,6 +1127,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                     "error": str(e),
                 },
             )
+            raise IntegrationError("Failed to assign user to Jira Server issue")
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         """
