@@ -93,7 +93,11 @@ export function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
-      <PanelTable headers={headers}>
+      <PanelTable
+        headers={headers}
+        isEmpty={!isPending && checkInList.length === 0}
+        emptyMessage={t('No check-ins have been recorded for this time period.')}
+      >
         {isPending
           ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>

@@ -7,7 +7,7 @@ import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
@@ -108,11 +108,9 @@ export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   if (!isPending && emptyStats) {
     return (
       <Panel>
-        <PanelBody withPadding>
-          <EmptyMessage
-            title={t('No check-ins have been recorded for this time period.')}
-          />
-        </PanelBody>
+        <EmptyStateWarning withIcon={false}>
+          {t('No check-ins have been recorded for this time period.')}
+        </EmptyStateWarning>
       </Panel>
     );
   }
