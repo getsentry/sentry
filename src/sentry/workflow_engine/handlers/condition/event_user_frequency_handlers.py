@@ -16,7 +16,7 @@ from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
-class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
+class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
     @property
     def base_handler(self) -> Self:
         return self
@@ -36,14 +36,14 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
         def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
             return self.get_chunked_result(
-                tsdb_function=tsdb.backend.get_sums,
+                tsdb_function=tsdb.backend.get_distinct_counts_totals,
                 model=model,
                 group_ids=group_ids,
                 organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="batch_alert_event_frequency",
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
             )
 
         for category, issue_ids in category_group_ids.items():
@@ -55,18 +55,18 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
         return batch_sums
 
 
-@condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(
-    EventFrequencyConditionHandler,
+@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
+class EventUniqueUserFrequencyCountHandler(
+    EventUniqueUserFrequencyConditionHandler,
     BaseEventFrequencyCountHandler,
     DataConditionHandler[WorkflowJob],
 ):
     pass
 
 
-@condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(
-    EventFrequencyConditionHandler,
+@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
+class EventUniqueUserFrequencyPercentHandler(
+    EventUniqueUserFrequencyConditionHandler,
     BaseEventFrequencyPercentHandler,
     DataConditionHandler[WorkflowJob],
 ):
