@@ -1,40 +1,9 @@
-import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import ThemeSwitcher from 'sentry/components/stories/themeSwitcher';
 import {space} from 'sentry/styles/space';
-
-interface Props extends ComponentProps<'div'> {}
-
-export default function StoryHeader(props: Props) {
-  return (
-    <Flex as="header" justify="space-between" align="center" gap={space(2)} {...props}>
-      <Link to="/stories">
-        <H1>
-          <SentryGradientLogo /> Component Library
-        </H1>
-      </Link>
-      <ThemeSwitcher />
-    </Flex>
-  );
-}
-
-const H1 = styled('h1')`
-  margin: 0;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  font-size: 24px;
-  color: ${p => p.theme.textColor};
-
-  svg {
-    width: 36px;
-    height: 36px;
-    margin-right: ${space(0.5)};
-  }
-`;
 
 function SentryGradientLogo() {
   return (
@@ -61,3 +30,31 @@ function SentryGradientLogo() {
     </svg>
   );
 }
+
+export function StoryHeader() {
+  return (
+    <Flex justify="space-between" align="center" gap={space(2)}>
+      <Link to="/stories">
+        <H1>
+          <SentryGradientLogo /> Component Library
+        </H1>
+      </Link>
+      <ThemeSwitcher />
+    </Flex>
+  );
+}
+
+const H1 = styled('h1')`
+  margin: 0;
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  font-size: 24px;
+  color: ${p => p.theme.textColor};
+
+  svg {
+    width: 36px;
+    height: 36px;
+    margin-right: ${space(0.5)};
+  }
+`;
