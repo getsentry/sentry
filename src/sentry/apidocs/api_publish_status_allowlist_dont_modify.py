@@ -50,10 +50,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/plugins/jira/link/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/jira/unlink/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/jira/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/autocomplete": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/pivotal/create/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/pivotal/link/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/pivotal/unlink/": {"GET", "POST"},
@@ -175,22 +171,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "POST",
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/jira/autocomplete": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/create/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/link/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/unlink/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/autocomplete": {
         "GET",
         "POST",
     },

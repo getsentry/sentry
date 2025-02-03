@@ -20,7 +20,6 @@ plugin_slugs = [
     "opsgenie",
     "os",
     "pagerduty",
-    "phabricator",
     "pivotal",
     "pushover",
     "redmine",

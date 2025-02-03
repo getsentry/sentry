@@ -48,7 +48,6 @@ export const POPULARITY_WEIGHT: {
   twilio: 8,
   pushover: 5,
   redmine: 5,
-  phabricator: 5,
   opsgenie: 5,
   victorops: 5,
   sessionstack: 5,
