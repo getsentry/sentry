@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from collections.abc import Generator
 from unittest.mock import patch
 
+import pytest
 from django.db import router
 
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
@@ -28,9 +32,6 @@ class ExamplePlugin(IssuePlugin2):
     slug = "example"
 
 
-plugins.register(ExamplePlugin)
-
-
 def naive_build_integration(data):
     return data
 
@@ -42,6 +43,12 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
+
+    @pytest.fixture(autouse=True)
+    def _register_example_plugin(self) -> Generator[None]:
+        plugins.register(ExamplePlugin)
+        yield
+        plugins.unregister(ExamplePlugin)
 
     def setUp(self):
         super().setUp()
@@ -174,17 +181,15 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with (
-            override_regions(self.regions),
-            patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
-        ):
-            self.pipeline.finish_pipeline()
-            data, success = resp.call_args[0]
+        with override_regions(self.regions):
+            response = self.pipeline.finish_pipeline()
+            error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
+            assert error_message in response.content.decode()
+
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                assert success
+                assert error_message not in response.content.decode()
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                assert not success
-                assert "resides in a different region" in str(data)
+                assert error_message in response.content.decode()
 
     def test_aliased_integration_key(self, *args):
         self.provider = AliasedIntegrationProvider
