@@ -18,7 +18,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'checkin-timeline'},
       tagDistribution: {enabled: false},
-      occurrenceSummary: {enabled: true, duration: true},
+      occurrenceSummary: {enabled: true, downtime: true},
     },
     detector: {
       enabled: true,
