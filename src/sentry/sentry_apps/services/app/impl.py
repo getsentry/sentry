@@ -10,7 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
-from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
+from sentry.sentry_apps.alert_rule_action_creator import SentryAppAlertRuleActionCreator
 from sentry.sentry_apps.api.serializers.sentry_app_component import (
     SentryAppAlertRuleActionSerializer,
 )
@@ -261,7 +261,7 @@ class DatabaseBackedAppService(AppService):
                 error_type=SentryAppErrorType.SENTRY,
                 webhook_type={"installation_uuid": install_uuid},
             )
-        result = AlertRuleActionCreator(install=install, fields=fields).run()
+        result = SentryAppAlertRuleActionCreator(install=install, fields=fields).run()
         return RpcAlertRuleActionResult(
             success=result["success"],
             message=result["message"],

@@ -21,7 +21,7 @@ DEFAULT_ERROR_MESSAGE = "Something went wrong!"
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
 
-class AlertRuleActionResult(TypedDict, total=False):
+class SentryAppAlertRuleActionResult(TypedDict, total=False):
     success: bool
     message: str
     error_type: SentryAppErrorType | None
@@ -31,13 +31,13 @@ class AlertRuleActionResult(TypedDict, total=False):
 
 
 @dataclass
-class AlertRuleActionRequester:
+class SentryAppAlertRuleActionRequester:
     install: SentryAppInstallation | RpcSentryAppInstallation
     uri: str
     fields: Sequence[Mapping[str, str]] = field(default_factory=list)
     http_method: str | None = "POST"
 
-    def run(self) -> AlertRuleActionResult:
+    def run(self) -> SentryAppAlertRuleActionResult:
         try:
             response = send_and_save_sentry_app_request(
                 url=self._build_url(),
@@ -63,14 +63,14 @@ class AlertRuleActionRequester:
                 extra={**extras},
             )
 
-            return AlertRuleActionResult(
+            return SentryAppAlertRuleActionResult(
                 success=False,
                 message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
                 error_type=SentryAppErrorType.INTEGRATOR,
                 webhook_context={"error_type": "alert_rule_action.error", **extras},
                 status_code=500,
             )
-        return AlertRuleActionResult(
+        return SentryAppAlertRuleActionResult(
             success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
         )
 
