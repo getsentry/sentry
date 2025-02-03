@@ -198,7 +198,7 @@ def bulk_update_views(
             _update_existing_view(org, user_id, view, position=idx)
 
 
-def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
     user_teams = Team.objects.get_for_user(organization=org, user=user)
     user_team_ids = [team.id for team in user_teams]
     default_user_project = (
