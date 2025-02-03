@@ -161,7 +161,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         self.check_and_update_regions(subscription)
 
-        project_subscriptions = list(subscription.projectuptimesubscription_set.all())
+        project_subscriptions = list(
+            subscription.projectuptimesubscription_set.select_related(
+                "project", "project__organization"
+            ).all()
+        )
 
         cluster = _get_cluster()
         last_updates: list[str | None] = cluster.mget(
@@ -178,6 +182,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         result: CheckResult,
         last_update_ms: int,
     ):
+        if features.has(
+            "organizations:uptime-detailed-logging", project_subscription.project.organization
+        ):
+            logger.info("handle_result_for_project.before_dedupe", extra=result)
+
         # Nothing to do if this subscription is disabled. Should mean there are
         # other ProjectUptimeSubscription's that are not disabled that will use
         # this result.
@@ -215,6 +224,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     sample_rate=1.0,
                 )
                 return
+
+            if features.has(
+                "organizations:uptime-detailed-logging", project_subscription.project.organization
+            ):
+                logger.info("handle_result_for_project.after_dedupe", extra=result)
 
             if result["status"] == CHECKSTATUS_MISSED_WINDOW:
                 logger.info(
