@@ -39,7 +39,7 @@ class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCond
     }
 
 
-class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
+class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
     handler = EventFrequencyCountHandler
 
     def test_batch_query_user(self):
