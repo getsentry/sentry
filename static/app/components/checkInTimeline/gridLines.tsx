@@ -220,6 +220,7 @@ const Overlay = styled('div')`
 
 const GridLineContainer = styled('div')`
   position: relative;
+  overflow: hidden;
   height: 100%;
   z-index: 1;
   pointer-events: none;
@@ -227,6 +228,7 @@ const GridLineContainer = styled('div')`
 
 const LabelsContainer = styled('div')`
   height: 50px;
+  overflow: hidden;
   box-shadow: -1px 0 0 ${p => p.theme.translucentInnerBorder};
   position: relative;
   align-self: stretch;
