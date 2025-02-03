@@ -9,17 +9,23 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
 
         # XXX: this assumes a data source is connected to a single detector. it's not possible in the UI
         # to do anything else today, but if this changes we'll need to add custom conditional deletion logic
-        model_relations = [
-            ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group.id}),
-            ModelRelation(DataSource, {"detector": instance.id}),
-        ]
+
+        model_relations: list[BaseRelation] = [ModelRelation(DataSource, {"detector": instance.id})]
+
+        if instance.workflow_condition_group:
+            model_relations.append(
+                ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group.id})
+            )
+
         data_source = DataSource.objects.filter(detector=instance.id).first()
-        subscription = QuerySubscription.objects.filter(id=data_source.query_id).first()
 
         if data_source:
             model_relations.append(ModelRelation(QuerySubscription, {"id": data_source.query_id}))
+            subscription = QuerySubscription.objects.filter(id=data_source.query_id).first()
 
-        if subscription:
-            model_relations.append(ModelRelation(SnubaQuery, {"id": subscription.snuba_query.id}))
+            if subscription:
+                model_relations.append(
+                    ModelRelation(SnubaQuery, {"id": subscription.snuba_query.id})
+                )
 
         return model_relations
