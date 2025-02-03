@@ -2878,6 +2878,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_incident_is_latest_for_rule(new_incident)
 
     @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
         rule = self.rule
@@ -2907,6 +2908,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
 
     @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
         from sentry.models.group import GroupStatus

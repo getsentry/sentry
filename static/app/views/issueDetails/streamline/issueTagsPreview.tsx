@@ -17,7 +17,9 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -199,6 +201,19 @@ export default function IssueTagsPreview({
   project: Project;
 }) {
   const searchQuery = useEventQuery({groupId});
+  const organization = useOrganization();
+
+  const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+    const highlightDefaults =
+      detailedProject?.highlightPreset?.tags ?? project?.highlightPreset?.tags ?? [];
+    return tagKeys.filter(tag => !highlightDefaults.includes(tag));
+  }, [detailedProject, project]);
 
   const {
     isError,
@@ -213,6 +228,10 @@ export default function IssueTagsPreview({
       return [];
     }
 
+    const highlightTags = tags
+      .filter(tag => highlightTagKeys.includes(tag.key))
+      .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
+
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
       : frontend.some(val => val === project?.platform)
@@ -226,15 +245,19 @@ export default function IssueTagsPreview({
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
     const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
-    const orderedTags = [...sortedTags, ...remainingTagKeys];
-    return orderedTags.slice(0, 4);
-  }, [tags, project?.platform]);
+    const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
+    const uniqueTags = [...new Set(orderedTags)];
+    return uniqueTags.slice(0, 4);
+  }, [tags, project?.platform, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightPending) {
     return (
-      <IssueTagPreviewSection>
-        <Placeholder width="240px" height="100px" />
-      </IssueTagPreviewSection>
+      <Fragment>
+        <SectionDivider />
+        <IssueTagPreviewSection>
+          <Placeholder width="240px" height="100px" />
+        </IssueTagPreviewSection>
+      </Fragment>
     );
   }
 
@@ -247,14 +270,17 @@ export default function IssueTagsPreview({
   }
 
   return (
-    <IssueTagPreviewSection>
-      <TagsPreview>
-        {tagsToPreview.map(tag => (
-          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-        ))}
-      </TagsPreview>
-      <IssueTagButton tags={tagsToPreview} />
-    </IssueTagPreviewSection>
+    <Fragment>
+      <SectionDivider />
+      <IssueTagPreviewSection>
+        <TagsPreview>
+          {tagsToPreview.map(tag => (
+            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+          ))}
+        </TagsPreview>
+        <IssueTagButton tags={tagsToPreview} />
+      </IssueTagPreviewSection>
+    </Fragment>
   );
 }
 
@@ -382,4 +408,11 @@ const HorizontalIssueTagsButton = styled(LinkButton)`
   span {
     white-space: unset;
   }
+`;
+
+const SectionDivider = styled('div')`
+  border-left: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  align-items: center;
+  margin: ${space(1)};
 `;

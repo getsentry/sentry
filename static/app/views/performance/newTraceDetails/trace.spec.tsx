@@ -217,6 +217,17 @@ function mockMetricsResponse() {
   });
 }
 
+function mockEventsResponse() {
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
+    body: {
+      data: [],
+      queries: [],
+    },
+  });
+}
+
 function getVirtualizedContainer(): HTMLElement {
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   if (!virtualizedContainer) {
@@ -277,6 +288,7 @@ async function keyboardNavigationTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -334,6 +346,7 @@ async function pageloadTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -392,6 +405,7 @@ async function nestedTransactionsTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -448,6 +462,7 @@ async function searchTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -508,6 +523,7 @@ async function simpleTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+  mockEventsResponse();
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -611,6 +627,7 @@ async function completeTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+  mockEventsResponse();
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/project_slug:error0/',
@@ -864,6 +881,7 @@ describe('trace view', () => {
     mockTraceResponse();
     mockTraceMetaResponse();
     mockTraceTagsResponse();
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
@@ -874,6 +892,7 @@ describe('trace view', () => {
     mockTraceResponse({statusCode: 404});
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
@@ -890,6 +909,7 @@ describe('trace view', () => {
     });
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
@@ -905,6 +925,7 @@ describe('trace view', () => {
     });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
+    mockEventsResponse();
 
     render(<TraceView />, {router});
     expect(
@@ -1608,6 +1629,7 @@ describe('trace view', () => {
       mockTraceRootEvent('0');
       mockTraceEventDetails();
       mockMetricsResponse();
+      mockEventsResponse();
 
       mockTraceResponse({
         body: {
