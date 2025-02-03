@@ -28,7 +28,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       return value.toLocaleString();
     case 'percentage':
       return formatPercentage(value, 3);
-    case 'duration':
+    case 'duration': {
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInMilliseconds = convertDuration(
         value,
@@ -36,7 +36,8 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
         DurationUnit.MILLISECOND
       );
       return formatYAxisDuration(durationInMilliseconds);
-    case 'size':
+    }
+    case 'size': {
       const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;
       const sizeInBytes = convertSize(value, sizeUnit, SizeUnit.BYTE);
 
@@ -45,7 +46,8 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
         : formatBytesBase2;
 
       return formatter(sizeInBytes);
-    case 'rate':
+    }
+    case 'rate': {
       // Always show rate in the original dataset's unit. If the unit is not
       // appropriate, always convert the unit in the original dataset first.
       // This way, named rate functions like `epm()` will be shows in per minute
@@ -55,6 +57,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
         notation: 'compact',
         maximumSignificantDigits: 6,
       })}${RATE_UNIT_LABELS[rateUnit]}`;
+    }
     default:
       return value.toString();
   }
