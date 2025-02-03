@@ -46,7 +46,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     isError,
   } = useFetchIssueCounts({
     orgSlug: organization.slug,
-    query: [view.unsavedChanges ? view.unsavedChanges[0] : view.query],
+    query: [view.unsavedChanges?.query ?? view.query],
     project: pageFilters.selection.projects,
     environment: pageFilters.selection.environments,
     ...constructCountTimeFrame(pageFilters.selection.datetime),
@@ -62,7 +62,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
       : undefined;
   const count = isError
     ? 0
-    : queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ??
+    : queryCount?.[view.unsavedChanges?.query ?? view.query] ??
       queryCount?.[defaultQuery ?? ''] ??
       0;
 
