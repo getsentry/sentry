@@ -828,10 +828,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         )
         current_widget_specs = get_current_widget_specs(organization)
 
-        if not ondemand_feature:
-            # If the org does not have the on-demand feature, we don't need to check cardinality
-            return
-
         for new_query in new_queries:
             query_cardinality = all(
                 check_field_cardinality(

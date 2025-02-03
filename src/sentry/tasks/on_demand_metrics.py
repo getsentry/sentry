@@ -251,7 +251,10 @@ def _get_widget_on_demand_specs(
     """
     # This can just be the first project we find, since spec hashes should not be project
     # dependent. If spec hashes become project dependent then this may need to change.
-    project_for_query = Project.objects.filter(organization=organization).first()
+    project_for_query = cache.get(f"project_for_query:{organization.id}", None)
+    if not project_for_query:
+        project_for_query = Project.objects.filter(organization=organization).first()
+        cache.set(f"project_for_query:{organization.id}", project_for_query, timeout=3600)
 
     if not project_for_query:
         return []
