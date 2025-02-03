@@ -296,7 +296,7 @@ const IssueTagPreviewSection = styled('div')`
 const TagsPreview = styled('div')`
   width: 340px;
   display: grid;
-  grid-template-columns: auto 35% min-content auto;
+  grid-template-columns: auto 30% min-content auto;
   align-items: center;
   align-content: center;
   gap: 1px;
