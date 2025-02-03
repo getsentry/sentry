@@ -4,7 +4,7 @@ from sentry import options
 from sentry.models.organization import Organization
 
 
-def apply_streamline_rollout_group(organization: Organization):
+def apply_streamline_rollout_group(organization: Organization) -> None:
     # This shouldn't run multiple times, but if it does, don't re-sort the organization.
     # If they're already in the experiment, we ignore them.
     if organization.get_option("sentry:streamline_ui_only") is not None:
