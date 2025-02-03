@@ -217,8 +217,8 @@ function getReleasesSeriesRequest(
     displayType,
     {start, end, period},
     '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
+    // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'medium' : undefined
   );
 
   return getReleasesRequest(
