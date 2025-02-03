@@ -3,10 +3,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
-import tourAlert from 'sentry-images/spot/performance-tour-alert.svg';
-import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
-import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
-import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {
   addErrorMessage,
@@ -16,11 +12,6 @@ import {
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import type {TourStep} from 'sentry/components/modals/featureTourModal';
-import FeatureTourModal, {
-  TourImage,
-  TourText,
-} from 'sentry/components/modals/featureTourModal';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -38,65 +29,6 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-
-const performanceSetupUrl =
-  'https://docs.sentry.io/performance-monitoring/getting-started/';
-
-const docsLink = (
-  <LinkButton external href={performanceSetupUrl}>
-    {t('Setup')}
-  </LinkButton>
-);
-
-export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
-  {
-    title: t('Track Application Metrics'),
-    image: <TourImage src={tourMetrics} />,
-    body: (
-      <TourText>
-        {t(
-          'Monitor your slowest pageloads and APIs to see which users are having the worst time.'
-        )}
-      </TourText>
-    ),
-    actions: docsLink,
-  },
-  {
-    title: t('Correlate Errors and Traces'),
-    image: <TourImage src={tourCorrelate} />,
-    body: (
-      <TourText>
-        {t(
-          'See what errors occurred within a transaction and the impact of those errors.'
-        )}
-      </TourText>
-    ),
-    actions: docsLink,
-  },
-  {
-    title: t('Watch and Alert'),
-    image: <TourImage src={tourAlert} />,
-    body: (
-      <TourText>
-        {t(
-          'Highlight mission-critical pages and APIs and set latency alerts to notify you before things go wrong.'
-        )}
-      </TourText>
-    ),
-    actions: docsLink,
-  },
-  {
-    title: t('Trace Across Systems'),
-    image: <TourImage src={tourTrace} />,
-    body: (
-      <TourText>
-        {t(
-          "Follow a trace from a user's session and drill down to identify any bottlenecks that occur."
-        )}
-      </TourText>
-    ),
-  },
-];
 
 type Props = {
   organization: Organization;
@@ -123,22 +55,6 @@ function Onboarding({organization, project}: Props) {
       SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
     }
   }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
-
-  function handleAdvance(step: number, duration: number) {
-    trackAnalytics('performance_views.tour.advance', {
-      step,
-      duration,
-      organization,
-    });
-  }
-
-  function handleClose(step: number, duration: number) {
-    trackAnalytics('performance_views.tour.close', {
-      step,
-      duration,
-      organization,
-    });
-  }
 
   const currentPlatform = project.platform;
   const hasPerformanceOnboarding = currentPlatform
@@ -227,25 +143,6 @@ function Onboarding({organization, project}: Props) {
             {t('View Sample Transaction')}
           </Button>
         </ButtonList>
-        <FeatureTourModal
-          steps={PERFORMANCE_TOUR_STEPS}
-          onAdvance={handleAdvance}
-          onCloseModal={handleClose}
-          doneUrl={performanceSetupUrl}
-          doneText={t('Start Setup')}
-        >
-          {({showModal}) => (
-            <Button
-              priority="link"
-              onClick={() => {
-                trackAnalytics('performance_views.tour.start', {organization});
-                showModal();
-              }}
-            >
-              {t('Take a Tour')}
-            </Button>
-          )}
-        </FeatureTourModal>
       </OnboardingPanel>
     </Fragment>
   );

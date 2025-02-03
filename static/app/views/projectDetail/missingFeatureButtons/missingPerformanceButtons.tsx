@@ -2,15 +2,10 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouter from 'sentry/utils/useRouter';
-import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
-const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
 type Props = {
   organization: Organization;
@@ -18,22 +13,6 @@ type Props = {
 
 function MissingPerformanceButtons({organization}: Props) {
   const router = useRouter();
-
-  function handleTourAdvance(step: number, duration: number) {
-    trackAnalytics('project_detail.performance_tour.advance', {
-      organization,
-      step,
-      duration,
-    });
-  }
-
-  function handleClose(step: number, duration: number) {
-    trackAnalytics('project_detail.performance_tour.close', {
-      organization,
-      step,
-      duration,
-    });
-  }
 
   return (
     <Feature
@@ -56,20 +35,6 @@ function MissingPerformanceButtons({organization}: Props) {
         >
           {t('Start Setup')}
         </Button>
-
-        <FeatureTourModal
-          steps={PERFORMANCE_TOUR_STEPS}
-          onAdvance={handleTourAdvance}
-          onCloseModal={handleClose}
-          doneText={t('Start Setup')}
-          doneUrl={DOCS_URL}
-        >
-          {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
-              {t('Get Tour')}
-            </Button>
-          )}
-        </FeatureTourModal>
       </ButtonBar>
     </Feature>
   );
