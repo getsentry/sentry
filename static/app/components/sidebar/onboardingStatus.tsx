@@ -1,8 +1,9 @@
-import {Fragment, useCallback, useContext, useEffect} from 'react';
+import {useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
@@ -115,7 +116,7 @@ export function OnboardingStatus({
   }
 
   return (
-    <Fragment>
+    <GuideAnchor target="onboarding_sidebar" position="right">
       <Container
         role="button"
         aria-label={label}
@@ -166,7 +167,7 @@ export function OnboardingStatus({
           beyondBasicsTasks={beyondBasicsTasks}
         />
       )}
-    </Fragment>
+    </GuideAnchor>
   );
 }
 

@@ -66,6 +66,13 @@ export default function getGuidesContent(
               and triage through issue management tools like Jira. `
           ),
         },
+        {
+          title: t('Quick Setup'),
+          target: 'onboarding_sidebar',
+          description: t(
+            'Walk through this guide to get the most out of Sentry right away.'
+          ),
+        },
       ],
     },
     {
