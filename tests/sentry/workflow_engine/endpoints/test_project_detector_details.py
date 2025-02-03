@@ -13,9 +13,7 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.data_source = self.data_source = self.create_data_source(
-            organization=self.organization
-        )
+        self.data_source = self.create_data_source(organization=self.organization)
         self.data_condition_group = self.create_data_condition_group()
         self.detector = self.create_detector(
             project_id=self.project.id,
