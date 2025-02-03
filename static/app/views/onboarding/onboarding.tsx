@@ -30,6 +30,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
@@ -91,6 +92,8 @@ function Onboarding(props: Props) {
   });
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
+
+  const {activateSidebar} = useOnboardingSidebar();
 
   useEffect(() => {
     return () => {
@@ -326,6 +329,7 @@ function Onboarding(props: Props) {
             source,
           });
           onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+          activateSidebar();
         }}
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
