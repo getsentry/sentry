@@ -128,7 +128,7 @@ export function SpanDescription({
         <SpanSummaryLink event={node.event!} organization={organization} span={span} />
         <Link
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: node.event?.title ?? '',
             query: location.query,
             spanSlug: {op: span.op, group: groupHash},
@@ -387,7 +387,7 @@ function LegacySpanDescription({
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: node.event?.title ?? '',
             query: location.query,
             spanSlug: {op: span.op, group: groupHash},

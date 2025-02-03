@@ -272,6 +272,30 @@ class DatabaseBackedAppService(AppService):
         )
         return [serialize_sentry_app(app) for app in published_apps]
 
+    def get_internal_integrations(
+        self, *, organization_id: int, integration_name: str
+    ) -> list[RpcSentryApp]:
+        """
+        Get all internal integrations for an organization matching a specific name.
+
+        Internal integrations are Sentry Apps that are created for use within a single
+        organization and are not available to be installed by users.
+
+        Args:
+            organization_id (int): The ID of the organization to search within
+            integration_name (str): The name of the internal integration to find
+
+        Returns:
+            list[RpcSentryApp]: A list of serialized internal Sentry Apps matching the criteria.
+                               Returns an empty list if no matches are found.
+        """
+        internal_integrations = SentryApp.objects.filter(
+            owner_id=organization_id,
+            status=SentryAppStatus.INTERNAL,
+            name=integration_name,
+        )
+        return [serialize_sentry_app(app) for app in internal_integrations]
+
     def create_internal_integration_for_channel_request(
         self,
         *,

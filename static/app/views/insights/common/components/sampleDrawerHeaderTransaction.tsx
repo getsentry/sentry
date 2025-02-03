@@ -50,7 +50,7 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
       {project ? (
         <TruncatedLink
           to={{
-            pathname: getTransactionSummaryBaseUrl(organization.slug, view),
+            pathname: getTransactionSummaryBaseUrl(organization, view),
             search: qs.stringify({
               project: project.slug,
               transaction,

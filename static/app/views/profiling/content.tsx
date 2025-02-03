@@ -373,7 +373,7 @@ const LayoutMain = styled(Layout.Main)`
 
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
-  min-height: max(50vh, 300px);
+  min-height: max(80vh, 300px);
   margin-bottom: ${space(2)};
   margin-top: ${space(2)};
 `;

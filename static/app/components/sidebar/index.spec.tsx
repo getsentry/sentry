@@ -35,7 +35,6 @@ const ALL_AVAILABLE_FEATURES = [
   'session-replay-ui',
   'performance-view',
   'performance-trace-explorer',
-  'starfish-mobile-ui-module',
   'profiling',
 ];
 

@@ -78,6 +78,10 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: {},
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
+      });
     });
 
     it('renders all tabs, selects the first one by default, and replaces the query params accordingly', async () => {
@@ -113,7 +117,6 @@ describe('IssueViewsHeader', () => {
     });
 
     it('creates a default viewId if no id is present in the request views', async () => {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
@@ -124,11 +127,6 @@ describe('IssueViewsHeader', () => {
             querySort: IssueSortOptions.DATE,
           },
         ],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues-count/`,
-        method: 'GET',
-        body: {},
       });
 
       render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
@@ -151,7 +149,6 @@ describe('IssueViewsHeader', () => {
     });
 
     it('allows you to manually enter a query, even if you only have a default tab', async () => {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
@@ -163,18 +160,13 @@ describe('IssueViewsHeader', () => {
           },
         ],
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues-count/`,
-        method: 'GET',
-        body: {},
-      });
 
       render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         router: queryOnlyRouter,
       });
 
       expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
-      expect(await screen.findByRole('tab', {name: /Unsaved/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Unsaved/})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: /Unsaved/})).toHaveAttribute(
         'aria-selected',
         'true'
@@ -280,7 +272,6 @@ describe('IssueViewsHeader', () => {
     });
 
     it('updates the unsaved changes indicator for a default tab if the query is different', async () => {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
@@ -291,11 +282,6 @@ describe('IssueViewsHeader', () => {
             querySort: IssueSortOptions.DATE,
           },
         ],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues-count/`,
-        method: 'GET',
-        body: {},
       });
 
       const defaultTabDifferentQueryRouter = RouterFixture({
@@ -332,7 +318,7 @@ describe('IssueViewsHeader', () => {
     });
   });
 
-  describe('CustomViewsHeader query behavior', () => {
+  describe('CustomViewsHeader search query behavior', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
@@ -345,6 +331,11 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: {},
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
+        body: getRequestViews,
+      });
     });
 
     it('switches tabs when clicked, and updates the query params accordingly', async () => {
@@ -355,7 +346,6 @@ describe('IssueViewsHeader', () => {
       // This test inexplicably fails on the lines below. which ensure the Medium Priority tab is selected when clicked
       // and the High Priority tab is unselected. This behavior exists in other tests and in browser, so idk why it fails here.
       // We still need to ensure the router works as expected, so I'm commenting these checks rather than skipping the whole test.
-
       // expect(screen.getByRole('tab', {name: 'High Priority'})).toHaveAttribute(
       //   'aria-selected',
       //   'false'
@@ -473,6 +463,11 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: getRequestViews,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
+        body: getRequestViews,
+      });
 
       render(<IssueViewsIssueListHeader {...defaultProps} />);
 
@@ -504,6 +499,11 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: getRequestViews,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
+        body: getRequestViews,
+      });
 
       render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />);
 
@@ -532,6 +532,11 @@ describe('IssueViewsHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
         body: [getRequestViews[0]],
       });
 
@@ -566,6 +571,7 @@ describe('IssueViewsHeader', () => {
         const mockPutRequest = MockApiClient.addMockResponse({
           url: `/organizations/org-slug/group-search-views/`,
           method: 'PUT',
+          body: getRequestViews,
         });
 
         render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
@@ -588,8 +594,8 @@ describe('IssueViewsHeader', () => {
         expect(defaultRouter.push).not.toHaveBeenCalled();
 
         // Make sure the put request is called, and the renamed view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(1);
-        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(2);
+        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
         expect(putRequestViews).toHaveLength(3);
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
@@ -609,6 +615,7 @@ describe('IssueViewsHeader', () => {
         const mockPutRequest = MockApiClient.addMockResponse({
           url: `/organizations/org-slug/group-search-views/`,
           method: 'PUT',
+          body: getRequestViews,
         });
 
         render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
@@ -622,8 +629,8 @@ describe('IssueViewsHeader', () => {
         );
 
         // Make sure the put request is called, and the duplicated view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(1);
-        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(2);
+        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
         expect(putRequestViews).toHaveLength(4);
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
@@ -658,6 +665,7 @@ describe('IssueViewsHeader', () => {
         const mockPutRequest = MockApiClient.addMockResponse({
           url: `/organizations/org-slug/group-search-views/`,
           method: 'PUT',
+          body: getRequestViews,
         });
 
         render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
@@ -669,8 +677,8 @@ describe('IssueViewsHeader', () => {
         await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
         // Make sure the put request is called, and the deleted view not in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(1);
-        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(2);
+        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
         expect(putRequestViews).toHaveLength(2);
         expect(putRequestViews.every).not.toEqual(
           expect.objectContaining({id: getRequestViews[0]!.id})
@@ -694,6 +702,7 @@ describe('IssueViewsHeader', () => {
         const mockPutRequest = MockApiClient.addMockResponse({
           url: `/organizations/org-slug/group-search-views/`,
           method: 'PUT',
+          body: getRequestViews,
         });
 
         render(
@@ -710,8 +719,8 @@ describe('IssueViewsHeader', () => {
         );
 
         // Make sure the put request is called, and the saved view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(1);
-        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(2);
+        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
         expect(putRequestViews).toHaveLength(3);
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
@@ -733,6 +742,7 @@ describe('IssueViewsHeader', () => {
         const mockPutRequest = MockApiClient.addMockResponse({
           url: `/organizations/org-slug/group-search-views/`,
           method: 'PUT',
+          body: getRequestViews,
         });
 
         render(
@@ -748,7 +758,7 @@ describe('IssueViewsHeader', () => {
           await screen.findByRole('menuitemradio', {name: 'Discard Changes'})
         );
         // Just to be safe, make sure discarding changes does not trigger the put request
-        expect(mockPutRequest).not.toHaveBeenCalled();
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
 
         // Make sure that the tab's original query is restored
         expect(unsavedTabRouter.push).toHaveBeenCalledWith(
@@ -765,10 +775,19 @@ describe('IssueViewsHeader', () => {
   });
 
   describe('Issue views query counts', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
     it('should render the correct count for a single view', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
         body: [getRequestViews[0]],
       });
       MockApiClient.addMockResponse({
@@ -791,6 +810,11 @@ describe('IssueViewsHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
+        body: getRequestViews,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
         body: getRequestViews,
       });
       MockApiClient.addMockResponse({
@@ -817,6 +841,11 @@ describe('IssueViewsHeader', () => {
         body: [getRequestViews[0]],
       });
       MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues-count/`,
         method: 'GET',
         query: {
@@ -836,6 +865,11 @@ describe('IssueViewsHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'PUT',
         body: [getRequestViews[0]],
       });
       MockApiClient.addMockResponse({

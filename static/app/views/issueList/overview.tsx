@@ -410,7 +410,7 @@ function IssueListOverview({router}: Props) {
 
   const fetchCounts = useCallback(
     (currentQueryCount: number, fetchAllCounts: boolean) => {
-      let newQueryCounts: QueryCounts = {...queryCounts};
+      const newQueryCounts: QueryCounts = {...queryCounts};
 
       const endpointParams = getEndpointParams();
       const tabQueriesWithCounts = getTabsWithCounts();
@@ -433,7 +433,7 @@ function IssueListOverview({router}: Props) {
       if (
         fetchAllCounts ||
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+        !tabQueriesWithCounts.every(tabQuery => newQueryCounts[tabQuery] !== undefined)
       ) {
         const countsRequestParams: CountsEndpointParams = {
           ...omit(endpointParams, 'query'),
@@ -454,20 +454,17 @@ function IssueListOverview({router}: Props) {
             if (!data) {
               return;
             }
-            // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-            newQueryCounts = {
-              ...queryCounts,
-              ...mapValues(data, (count: number) => ({
-                count,
-                hasMore: count > TAB_MAX_COUNT,
+            setQueryCounts({
+              ...newQueryCounts,
+              ...mapValues(data, (count: number | null) => ({
+                count: count ?? 0,
+                // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+                hasMore: (count ?? 0) > TAB_MAX_COUNT,
               })),
-            };
+            });
           },
           error: () => {
             setQueryCounts({});
-          },
-          complete: () => {
-            setQueryCounts(newQueryCounts);
           },
         });
       }
@@ -573,7 +570,14 @@ function IssueListOverview({router}: Props) {
           }
           GroupStore.add(data);
 
-          await fetchStats(data.map((group: BaseGroup) => group.id));
+          if (data.length === 0) {
+            trackAnalytics('issue_search.empty', {
+              organization,
+              search_type: 'issues',
+              search_source: 'main_search',
+              query,
+            });
+          }
 
           const hits = resp.getResponseHeader('X-Hits');
           const newQueryCount =
@@ -583,29 +587,22 @@ function IssueListOverview({router}: Props) {
             typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
           const newPageLinks = resp.getResponseHeader('Link');
 
-          fetchCounts(newQueryCount, fetchAllCounts);
-
           setError(null);
           setIssuesLoading(false);
           setQueryCount(newQueryCount);
           setQueryMaxCount(newQueryMaxCount);
           setPageLinks(newPageLinks !== null ? newPageLinks : '');
 
+          fetchCounts(newQueryCount, fetchAllCounts);
+
+          // Need to wait for stats request to finish before saving to cache
+          await fetchStats(data.map((group: BaseGroup) => group.id));
           IssueListCacheStore.save(requestParams, {
             groups: GroupStore.getState() as Group[],
             queryCount: newQueryCount,
             queryMaxCount: newQueryMaxCount,
             pageLinks: newPageLinks ?? '',
           });
-
-          if (data.length === 0) {
-            trackAnalytics('issue_search.empty', {
-              organization,
-              search_type: 'issues',
-              search_source: 'main_search',
-              query,
-            });
-          }
         },
         error: err => {
           trackAnalytics('issue_search.failed', {
