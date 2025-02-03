@@ -83,26 +83,28 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             </Flex>
           </Fragment>
         )}
-        {issueTypeConfig.header.graph.enabled && (
-          <GraphSection>
-            <EventGraph event={event} group={group} style={{flex: 1}} />
-            {issueTypeConfig.header.tagDistribution.enabled && (
-              <Fragment>
-                <SectionDivider />
-                <IssueTagsPreview
-                  groupId={group.id}
-                  environments={environments}
-                  project={project}
-                />
-              </Fragment>
-            )}
-          </GraphSection>
-        )}
-        {issueTypeConfig.showMetricGraph && (
-          <MetricChartSection>
-            <MetricIssueChart group={group} project={project} event={event} />
-          </MetricChartSection>
-        )}
+        {issueTypeConfig.header.graph.enabled &&
+          issueTypeConfig.header.graph.type === 'discover-events' && (
+            <GraphSection>
+              <EventGraph event={event} group={group} style={{flex: 1}} />
+              {issueTypeConfig.header.tagDistribution.enabled && (
+                <Fragment>
+                  <SectionDivider />
+                  <IssueTagsPreview
+                    groupId={group.id}
+                    environments={environments}
+                    project={project}
+                  />
+                </Fragment>
+              )}
+            </GraphSection>
+          )}
+        {issueTypeConfig.header.graph.enabled &&
+          issueTypeConfig.header.graph.type === 'detector-history' && (
+            <MetricChartSection>
+              <MetricIssueChart group={group} project={project} event={event} />
+            </MetricChartSection>
+          )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} />
         )}
@@ -196,8 +198,12 @@ const GraphSection = styled('div')`
 
 const MetricChartSection = styled('div')`
   grid-area: graph;
-  display: block;
-  border-top: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  flex-direction: column;
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.5)};
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.translucentBorder};
+  }
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
