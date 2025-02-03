@@ -71,7 +71,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
-import TraceLevelOpsBreakdown from './traceLevelOpsBreakdown';
+import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(

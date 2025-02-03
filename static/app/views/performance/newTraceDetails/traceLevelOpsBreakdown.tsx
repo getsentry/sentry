@@ -38,9 +38,9 @@ function useTraceLevelOpsQuery(
 function LoadingPlaceHolder() {
   return (
     <Container>
-      <StyledPlaceholder _height={16} _width={100} />
-      <StyledPlaceholder _height={16} _width={100} />
-      <StyledPlaceholder _height={16} _width={100} />
+      <StyledPlaceholder height={'16px'} width={'100px'} />
+      <StyledPlaceholder height={'16px'} width={'100px'} />
+      <StyledPlaceholder height={'16px'} width={'100px'} />
     </Container>
   );
 }
@@ -50,7 +50,7 @@ type Props = {
   traceSlug: string;
 };
 
-function TraceLevelOpsBreakdown({traceSlug, isTraceLoading}: Props) {
+export function TraceLevelOpsBreakdown({traceSlug, isTraceLoading}: Props) {
   const urlParams = useTraceQueryParams();
   const {
     data: opsCountsResult,
@@ -123,10 +123,6 @@ const Container = styled('div')`
   gap: ${space(2)};
 `;
 
-const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
+const StyledPlaceholder = styled(Placeholder)`
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p._height}px;
-  width: ${p => p._width}px;
 `;
-
-export default TraceLevelOpsBreakdown;
