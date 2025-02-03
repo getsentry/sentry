@@ -17,12 +17,13 @@ export function formatTooltipValue(value: number, type: string, unit?: string): 
       return value.toLocaleString();
     case 'percentage':
       return formatPercentage(value, 2);
-    case 'duration':
+    case 'duration': {
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInSeconds = convertDuration(value, durationUnit, DurationUnit.SECOND);
 
       return getDuration(durationInSeconds, 2, true);
-    case 'size':
+    }
+    case 'size': {
       const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;
       const sizeInBytes = convertSize(value, sizeUnit, SizeUnit.BYTE);
 
@@ -31,6 +32,7 @@ export function formatTooltipValue(value: number, type: string, unit?: string): 
         : formatBytesBase2;
 
       return formatter(sizeInBytes);
+    }
     case 'rate':
       // Always show rate in the original dataset's unit. If the unit is not
       // appropriate, always convert the unit in the original dataset first.
