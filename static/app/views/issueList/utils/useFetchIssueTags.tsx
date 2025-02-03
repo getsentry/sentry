@@ -189,16 +189,21 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      if (allTagsCollection[tag.key]) {
-        if (allTagsCollection[tag.key]!.kind === FieldKind.FEATURE_FLAG) {
-          allTagsCollection[tag.key]!.totalValues =
-            (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+      const key = `"${tag.key}"`; // Wrap this to escape special characters for our search syntax, like `:`.
+      if (allTagsCollection[key]) {
+        if (allTagsCollection[key]!.kind === FieldKind.FEATURE_FLAG) {
+          allTagsCollection[key]!.totalValues =
+            (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
         } else {
-          // When a feature flag collides with a custom tag, we only suggest the tag.
-          // Searching for such a flag will filter by both tag and flag.
+          // pass. When a feature flag collides with a custom tag, we only suggest the tag.
+          // The search filter will still check both columns (cond(tags) OR cond(flags)).
         }
       } else {
-        allTagsCollection[tag.key] = {...tag, kind: FieldKind.FEATURE_FLAG};
+        allTagsCollection[key] = {
+          ...tag,
+          kind: FieldKind.FEATURE_FLAG,
+          key, // Update with wrapped key.
+        };
       }
     });
 
