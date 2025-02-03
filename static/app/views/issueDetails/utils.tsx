@@ -344,8 +344,9 @@ export function getUserTagValue(tagValue: TagValue) {
   let title: string | null = null;
   let subtitle: string | null = null;
   let subtitleType: string | null = null;
-
-  if (defined(tagValue?.email)) {
+  if (defined(tagValue?.name)) {
+    title = tagValue?.name;
+  } else if (defined(tagValue?.email)) {
     title = tagValue?.email;
   } else if (defined(tagValue?.username)) {
     title = title ? title : tagValue?.username;
