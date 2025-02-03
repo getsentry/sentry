@@ -72,7 +72,7 @@ import {WidgetTitle} from './widgetTitle';
   Visualization={
     <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
   }
-  Footer={<p>This data is incomplete!</p>}
+  Footer={<span>This data is incomplete!</span>}
 />
 
         `}
@@ -94,7 +94,7 @@ import {WidgetTitle} from './widgetTitle';
             Visualization={
               <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
             }
-            Footer={<p>This data is incomplete!</p>}
+            Footer={<span>This data is incomplete!</span>}
           />
         </SmallSizingWindow>
       </Fragment>
