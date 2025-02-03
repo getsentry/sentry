@@ -212,7 +212,8 @@ class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
-        self.addCleanup(auth.unregister, "dummy", DummyProvider)
+        yield
+        auth.unregister("dummy", DummyProvider)
 
     def tasks(self):
         return TaskRunner()
