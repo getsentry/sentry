@@ -86,14 +86,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           <GraphSection>
             <EventGraph event={event} group={group} style={{flex: 1}} />
             {issueTypeConfig.header.tagDistribution.enabled && (
-              <Fragment>
-                <SectionDivider />
-                <IssueTagsPreview
-                  groupId={group.id}
-                  environments={environments}
-                  project={project}
-                />
-              </Fragment>
+              <IssueTagsPreview
+                groupId={group.id}
+                environments={environments}
+                project={project}
+              />
             )}
           </GraphSection>
         )}
@@ -195,13 +192,6 @@ const OccurrenceSummarySection = styled(OccurrenceSummary)`
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
