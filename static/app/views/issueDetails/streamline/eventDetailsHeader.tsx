@@ -21,6 +21,7 @@ import {
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
+import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -84,7 +85,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         )}
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
-            <EventGraph event={event} group={group} style={{flex: 1}} />
+            {issueTypeConfig.header.graph.type === 'detector-history' ? (
+              <MetricIssueChart group={group} project={project} event={event} />
+            ) : (
+              <EventGraph event={event} group={group} style={{flex: 1}} />
+            )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview
                 groupId={group.id}
