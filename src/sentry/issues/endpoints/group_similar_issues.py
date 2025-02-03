@@ -56,9 +56,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         for group_id, scores in zip(group_ids, group_scores):
             serialized_group = serialized_groups.get(group_id)
             if serialized_group is None:
-                # TODO(tkaemming): This should log when we filter out a group that is
-                # unable to be retrieved from the database. (This will soon be
-                # unexpected behavior, but still possible.)
+                logger.warning(f"Group {group_id} unable to be retrieved from the database.")
                 continue
 
             results.append((serialized_group, {_fix_label(k): v for k, v in scores.items()}))
