@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import pytest
 
 from sentry import options
-from sentry.features.rollout import in_random_rollout, in_rollout_group
+from sentry.options.rollout import in_random_rollout, in_rollout_group
 from sentry.testutils.helpers.options import override_options
 
 

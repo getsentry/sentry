@@ -1814,6 +1814,7 @@ function buildRoutes() {
       withOrgPath
       component={make(() => import('sentry/views/insights/navigation'))}
     >
+      {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
@@ -2046,6 +2047,10 @@ function buildRoutes() {
       <Route
         path={TabPaths[Tab.OPEN_PERIODS]}
         component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
+      />
+      <Route
+        path={TabPaths[Tab.CHECK_INS]}
+        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
         path={TabPaths[Tab.TAGS]}
