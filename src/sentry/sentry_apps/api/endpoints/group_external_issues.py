@@ -1,6 +1,8 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -8,8 +10,10 @@ from sentry.api.serializers import serialize
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
 
+@extend_schema(tags=["Integration"])
 @region_silo_endpoint
 class GroupExternalIssuesEndpoint(GroupEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
