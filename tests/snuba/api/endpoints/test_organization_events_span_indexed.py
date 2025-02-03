@@ -1810,7 +1810,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 2
         assert len(confidence) == 2
         assert data[0]["count()"] == 10
@@ -1901,7 +1902,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 1
         assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
         assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)

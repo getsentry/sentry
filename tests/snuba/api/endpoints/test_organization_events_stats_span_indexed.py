@@ -736,7 +736,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
 
@@ -795,22 +796,24 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 },
             )
             assert response.status_code == 200, (y_axis, response.content)
+            data = response.data["data"]
+            meta = response.data["meta"]
 
-            assert len(response.data["data"]) == len(event_counts), y_axis
-            for count, row in zip(event_counts, response.data["data"]):
+            assert len(data) == len(event_counts), y_axis
+            for count, row in zip(event_counts, data):
                 if count == 0:
                     assert row[1][0]["count"] == 0, y_axis
                 else:
                     assert isinstance(row[1][0]["count"], (float, int)), y_axis
 
-            assert len(response.data["confidence"]) == len(event_counts)
-            for count, row in zip(event_counts, response.data["confidence"]):
+            confidence = meta["accuracy"]["confidence"]
+            assert len(confidence) == len(event_counts)
+            for count, row in zip(event_counts, confidence):
                 if count == 0:
                     assert row[1][0]["count"] is None, y_axis
                 else:
                     assert row[1][0]["count"] in {"low", "high"}, y_axis
 
-    @pytest.mark.xfail
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
@@ -850,7 +853,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, count_rows):
             assert test[1][1][0]["count"] == test[0] * 10
 
-        for expected, actual in zip(event_counts, response.data["count()"]["confidence"][0:6]):
+        confidence = response.data["count()"]["meta"]["accuracy"]["confidence"]
+        for expected, actual in zip(event_counts, confidence[0:6]):
             if expected != 0:
                 assert actual[1][0]["count"] == "low"
             else:
@@ -860,8 +864,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]
 
-        for actual in response.data["p95()"]["confidence"][0:6]:
-            assert actual[1][0]["count"] is None
+        confidence = response.data["p95()"]["meta"]["accuracy"]["confidence"]
+        for expected, actual in zip(event_counts, confidence[0:6]):
+            if expected != 0:
+                assert actual[1][0]["count"] == "low"
+            else:
+                assert actual[1][0]["count"] is None
 
     def test_top_events_with_extrapolation(self):
         # Each of these denotes how many events to create in each minute
