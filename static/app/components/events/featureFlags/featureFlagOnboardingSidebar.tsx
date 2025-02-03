@@ -7,6 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
+import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/featureFlagOtherPlatformOnboarding';
 import {FLAG_HASH_SKIP_CONFIG} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   IntegrationOptions,
@@ -14,6 +15,7 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -273,52 +275,59 @@ function OnboardingContent({
   }
 
   const doesNotSupportFeatureFlags = currentProject.platform
-    ? !featureFlagOnboardingPlatforms.includes(currentProject.platform)
+    ? !featureFlagOnboardingPlatforms.concat('other').includes(currentProject.platform)
     : true;
 
-  if (doesNotSupportFeatureFlags) {
-    return (
-      <Fragment>
+  const defaultMessage = (
+    <Fragment>
+      <div>
+        {t(
+          'You can set up a webhook for your Feature Flag provider by visiting the settings page, to see which flags changed over time.'
+        )}
         <div>
-          {tct(
-            'Feature Flags isn’t available for your [platform] project. It is currently only available for Python and JavaScript projects.',
-            {platform: currentPlatform?.name || currentProject.slug}
-          )}
-        </div>
-        <div>
-          <LinkButton
-            size="sm"
-            href="https://docs.sentry.io/product/explore/feature-flags/"
-            external
-          >
-            {t('Go to Sentry Documentation')}
+          <LinkButton size="sm" href={`/settings/${organization.slug}/feature-flags/`}>
+            {t('Go to Feature Flag Settings')}
           </LinkButton>
         </div>
+        <br />
+        <br />
+        {tct(
+          'The Feature Flags SDK is currently available for Python and JavaScript projects. You can [link:read the docs] to learn more.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />
+            ),
+          }
+        )}
+      </div>
+    </Fragment>
+  );
+
+  if (currentProject.platform === 'other') {
+    return (
+      <Fragment>
+        {radioButtons}
+        <FeatureFlagOtherPlatformOnboarding
+          projectSlug={currentProject.slug}
+          provider={
+            // dropdown value (from either dropdown)
+            setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
+          }
+        />
       </Fragment>
     );
   }
 
-  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (!currentPlatform || !docs || !dsn || !hasDocs || !projectKeyId) {
-    return (
-      <Fragment>
-        <div>
-          {tct(
-            'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
-            {project: currentProject.slug}
-          )}
-        </div>
-        <div>
-          <LinkButton
-            size="sm"
-            href="https://docs.sentry.io/platforms/python/feature-flags/"
-            external
-          >
-            {t('Read Docs')}
-          </LinkButton>
-        </div>
-      </Fragment>
-    );
+  // Platform is not supported, no platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
+  if (
+    doesNotSupportFeatureFlags ||
+    !currentPlatform ||
+    !docs ||
+    !dsn ||
+    !hasDocs ||
+    !projectKeyId
+  ) {
+    return defaultMessage;
   }
 
   return (
