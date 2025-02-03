@@ -1858,10 +1858,6 @@ function buildRoutes() {
         {moduleRoutes}
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
-        />
-        {transactionSummaryRoutes}
         {traceViewRoute}
         <Route
           path="trends/"
