@@ -115,19 +115,13 @@ class RuleMigrationHelpersTest(APITestCase):
         assert action.type == Action.Type.SLACK  # tested fully in test_migrate_rule_action.py
 
     def test_create_issue_alert_detector_exists(self):
-        self.create_detector()
+        project_detector = self.create_detector(project=self.project)
         migrate_issue_alert(self.issue_alert, self.rpc_user)
 
         # does not create a new error detector
 
         detector = Detector.objects.get(project_id=self.project.id)
-        assert detector.name == "Error Detector"
-        assert detector.project_id == self.project.id
-        assert detector.enabled is True
-        assert detector.owner_user_id is None
-        assert detector.owner_team is None
-        assert detector.type == ErrorGroupType.slug
-        assert detector.config == {}
+        assert detector == project_detector
 
     def test_update_issue_alert(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
