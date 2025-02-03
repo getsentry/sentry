@@ -110,15 +110,13 @@ function Dashboard() {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const includeMyTeams = selectedTeams.some(team => team === 'myteams') || isAllTeams;
+  const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
   const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
   const myTeams = includeMyTeams ? (userTeams as TeamWithProjects[]) : [];
   const otherTeams = isAllTeams
     ? allTeams
     : hasOtherTeams
-      ? (allTeams.filter(team =>
-          selectedTeams.includes(`${team.id}`)
-        ) as TeamWithProjects[])
+      ? allTeams.filter(team => selectedTeams.includes(`${team.id}`))
       : [];
   const filteredTeams = ([...myTeams, ...otherTeams] as TeamWithProjects[]).filter(
     team => {
