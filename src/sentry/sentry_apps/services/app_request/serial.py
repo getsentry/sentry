@@ -10,4 +10,9 @@ def serialize_rpc_sentry_app_request(request: dict[str, Any]) -> RpcSentryAppReq
         webhook_url=request.get("webhook_url"),
         organization_id=request.get("organization_id"),
         event_type=request.get("event_type"),
+        error_id=request.get("error_id"),
+        project_id=request.get("project_id"),
+        request_body=request.get("request_body"),
+        request_headers=request.get("request_headers"),
+        response_body=request.get("response_body"),
     )

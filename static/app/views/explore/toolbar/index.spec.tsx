@@ -320,17 +320,7 @@ describe('ExploreToolbar', function () {
       {disableRouterMocks: true}
     );
 
-    const section = screen.getByTestId('section-group-by');
-
-    expect(
-      within(section).getByRole('button', {name: 'Samples not grouped'})
-    ).toBeInTheDocument();
-    expect(groupBys).toEqual(['span.op']);
-
-    // disabled in the samples mode
-    expect(
-      within(section).getByRole('button', {name: 'Samples not grouped'})
-    ).toBeDisabled();
+    expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
 
     // click the aggregates mode to enable
     await userEvent.click(
@@ -338,6 +328,8 @@ describe('ExploreToolbar', function () {
         name: 'Aggregates',
       })
     );
+
+    const section = screen.getByTestId('section-group-by');
 
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeEnabled();
     await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));

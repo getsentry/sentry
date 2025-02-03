@@ -18,7 +18,7 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import TagStore from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
-import IssueListOverview from 'sentry/views/issueList/overviewFc';
+import IssueListOverview from 'sentry/views/issueList/overview';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +

@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +20,8 @@ from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
+
+logger = logging.getLogger("sentry.sentry_apps.components")
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -82,6 +86,15 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
 
                         except Exception as e:
                             error_id = sentry_sdk.capture_exception(e)
+                            logger.info(
+                                "component-preparation-error",
+                                exc_info=e,
+                                extra={
+                                    "component_uuid": component.uuid,
+                                    "sentry_app": install.sentry_app.slug,
+                                    "installation_uuid": install.uuid,
+                                },
+                            )
                             errors[str(component.uuid)] = {
                                 "detail": f"Something went wrong while trying to link issue for component: {str(component.uuid)}. Sentry error ID: {error_id}"
                             }

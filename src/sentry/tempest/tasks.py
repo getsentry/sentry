@@ -1,6 +1,7 @@
 import logging
 
 import requests
+import sentry_sdk
 from django.conf import settings
 from requests import Response
 
@@ -18,8 +19,8 @@ logger = logging.getLogger(__name__)
     name="sentry.tempest.tasks.poll_tempest",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=4 * 60,
-    time_limit=4 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -34,8 +35,8 @@ def poll_tempest(**kwargs):
     name="sentry.tempest.tasks.fetch_latest_item_id",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=1 * 60,
-    time_limit=1 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def fetch_latest_item_id(credentials_id: int) -> None:
     # FIXME: Try catch this later
@@ -63,37 +64,16 @@ def fetch_latest_item_id(credentials_id: int) -> None:
                 credentials.message = "Seems like the provided credentials are invalid"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
-
-                logger.info(
-                    "invalid_credentials",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "client_id": client_id,
-                        "status_code": response.status_code,
-                        "response_text": result,
-                    },
-                )
                 return
+
             elif result["error"]["type"] == "ip_not_allowlisted":
                 credentials.message = "Seems like our IP is not allow-listed"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
-
-                logger.info(
-                    "ip_not_allowlisted",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "client_id": client_id,
-                        "status_code": response.status_code,
-                        "response_text": result,
-                    },
-                )
                 return
 
         # Default in case things go wrong
-        logger.info(
+        logger.error(
             "Fetching the latest item id failed.",
             extra={
                 "org_id": org_id,
@@ -105,7 +85,7 @@ def fetch_latest_item_id(credentials_id: int) -> None:
         )
 
     except Exception as e:
-        logger.info(
+        logger.exception(
             "Fetching the latest item id failed.",
             extra={
                 "org_id": org_id,
@@ -120,8 +100,8 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     name="sentry.tempest.tasks.poll_tempest_crashes",
     queue="tempest",
     silo_mode=SiloMode.REGION,
-    soft_time_limit=4 * 60,
-    time_limit=4 * 60 + 5,
+    soft_time_limit=55,
+    time_limit=60,
 )
 def poll_tempest_crashes(credentials_id: int) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
@@ -165,7 +145,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
         credentials.latest_fetched_item_id = result["latest_id"]
         credentials.save(update_fields=["latest_fetched_item_id"])
     except Exception as e:
-        logger.info(
+        logger.exception(
             "Fetching the crashes failed.",
             extra={
                 "org_id": org_id,
@@ -193,14 +173,9 @@ def fetch_latest_id_from_tempest(
         json=payload,
     )
 
-    logger.info(
-        "Tempest API response",
-        extra={
-            "status_code": response.status_code,
-            "response_text": response.text,
-            "endpoint": "/latest-id",
-        },
-    )
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data("response_text", response.text)
 
     return response
 
@@ -212,9 +187,9 @@ def fetch_items_from_tempest(
     client_secret: str,
     dsn: str,
     offset: int,
-    limit: int = 348,
+    limit: int = 10,
     attach_screenshot: bool = False,
-    time_out: int = 235,
+    time_out: int = 50,  # Since there is a timeout of 45s in the middleware anyways
 ) -> Response:
     payload = {
         "org_id": org_id,
@@ -234,13 +209,8 @@ def fetch_items_from_tempest(
         timeout=time_out,
     )
 
-    logger.info(
-        "Tempest API response",
-        extra={
-            "status_code": response.status_code,
-            "response_text": response.text,
-            "endpoint": "/crashes",
-        },
-    )
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data("response_text", response.text)
 
     return response

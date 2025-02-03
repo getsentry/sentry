@@ -302,7 +302,7 @@ class _Table extends Component<Props, State> {
             location,
           })
         : transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: String(dataRow.transaction) || '',
             query: summaryView.generateQueryStringObject(),
             projectID,

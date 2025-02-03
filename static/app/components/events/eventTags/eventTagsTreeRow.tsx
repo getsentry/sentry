@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
@@ -24,6 +24,12 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 interface EventTagTreeRowConfig {
@@ -120,6 +126,7 @@ function EventTagsTreeRowDropdown({
   project,
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const location = useLocation();
+  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
@@ -146,6 +153,123 @@ function EventTagsTreeRowDropdown({
   });
   const isIssueDetailsRoute = location.pathname.includes(`issues/${event.groupID}/`);
 
+  const items: MenuItemProps[] = [
+    ...(isIssueDetailsRoute
+      ? [
+          {
+            key: 'tag-details',
+            label: t('Tag breakdown'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/${encodeURIComponent(originalTag.key)}/`,
+              query: location.query,
+            },
+          },
+        ]
+      : []),
+    {
+      key: 'view-events',
+      label: t('View other events with this tag value'),
+      hidden: !event.groupID,
+      to: {
+        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
+        query,
+      },
+    },
+    {
+      key: 'view-issues',
+      label: t('Search issues with this tag value'),
+      to: {
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query,
+      },
+    },
+  ];
+
+  if (hasNewTraceUi) {
+    items.push({
+      key: 'view-traces',
+      label: t('Search explore with this tag value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        originalTag.key,
+        originalTag.value,
+        TraceDrawerActionKind.INCLUDE
+      ),
+      onAction: () => {
+        traceAnalytics.trackExploreSearch(
+          organization,
+          originalTag.key,
+          originalTag.value,
+          TraceDrawerActionKind.INCLUDE
+        );
+      },
+    });
+  }
+
+  items.push(
+    {
+      key: 'copy-value',
+      label: t('Copy tag value to clipboard'),
+      onAction: handleCopy,
+    },
+    {
+      key: 'add-to-highlights',
+      label: t('Add to event highlights'),
+      hidden: hideAddHighlightsOption || !isProjectAdmin,
+      onAction: () => {
+        saveTag({
+          highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
+        });
+      },
+    },
+    {
+      key: 'release',
+      label: t('View this release'),
+      hidden: originalTag.key !== 'release',
+      to:
+        originalTag.key === 'release'
+          ? `/organizations/${organization.slug}/releases/${encodeURIComponent(content.value)}/`
+          : undefined,
+    },
+    {
+      key: 'transaction',
+      label: t('View this transaction'),
+      hidden: originalTag.key !== 'transaction',
+      to:
+        originalTag.key === 'transaction'
+          ? {
+              pathname: `${getTransactionSummaryBaseUrl(organization)}/`,
+              query: {
+                project: event.projectID,
+                transaction: content.value,
+                referrer,
+              },
+            }
+          : undefined,
+    },
+    {
+      key: 'replay',
+      label: t('View this replay'),
+      hidden: originalTag.key !== 'replay_id' && originalTag.key !== 'replayId',
+      to:
+        originalTag.key === 'replay_id' || originalTag.key === 'replayId'
+          ? {
+              pathname: `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/`,
+              query: {referrer},
+            }
+          : undefined,
+    },
+    {
+      key: 'external-link',
+      label: t('Visit this external link'),
+      hidden: !isUrl(content.value),
+      onAction: () => {
+        openNavigateToExternalLinkModal({linkText: content.value});
+      },
+    }
+  );
+
   return (
     <TreeValueDropdown
       preventOverflowOptions={{padding: 4}}
@@ -159,97 +283,7 @@ function EventTagsTreeRowDropdown({
         showChevron: false,
         className: 'tag-button',
       }}
-      items={[
-        ...(isIssueDetailsRoute
-          ? [
-              {
-                key: 'tag-details',
-                label: t('Tag breakdown'),
-                to: {
-                  pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/${encodeURIComponent(originalTag.key)}/`,
-                  query: location.query,
-                },
-              },
-            ]
-          : []),
-        {
-          key: 'view-events',
-          label: t('View other events with this tag value'),
-          hidden: !event.groupID,
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
-            query,
-          },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query,
-          },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy tag value to clipboard'),
-          onAction: handleCopy,
-        },
-        {
-          key: 'add-to-highlights',
-          label: t('Add to event highlights'),
-          hidden: hideAddHighlightsOption || !isProjectAdmin,
-          onAction: () => {
-            saveTag({
-              highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
-            });
-          },
-        },
-        {
-          key: 'release',
-          label: t('View this release'),
-          hidden: originalTag.key !== 'release',
-          to:
-            originalTag.key === 'release'
-              ? `/organizations/${organization.slug}/releases/${encodeURIComponent(content.value)}/`
-              : undefined,
-        },
-        {
-          key: 'transaction',
-          label: t('View this transaction'),
-          hidden: originalTag.key !== 'transaction',
-          to:
-            originalTag.key === 'transaction'
-              ? {
-                  pathname: `${getTransactionSummaryBaseUrl(organization.slug)}/`,
-                  query: {
-                    project: event.projectID,
-                    transaction: content.value,
-                    referrer,
-                  },
-                }
-              : undefined,
-        },
-        {
-          key: 'replay',
-          label: t('View this replay'),
-          hidden: originalTag.key !== 'replay_id' && originalTag.key !== 'replayId',
-          to:
-            originalTag.key === 'replay_id' || originalTag.key === 'replayId'
-              ? {
-                  pathname: `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/`,
-                  query: {referrer},
-                }
-              : undefined,
-        },
-        {
-          key: 'external-link',
-          label: t('Visit this external link'),
-          hidden: !isUrl(content.value),
-          onAction: () => {
-            openNavigateToExternalLinkModal({linkText: content.value});
-          },
-        },
-      ]}
+      items={items}
     />
   );
 }
@@ -297,7 +331,7 @@ function EventTagsTreeValue({
         transaction: content.value,
         referrer,
       });
-      const transactionDestination = `${getTransactionSummaryBaseUrl(organization.slug)}/?${transactionQuery}`;
+      const transactionDestination = `${getTransactionSummaryBaseUrl(organization)}/?${transactionQuery}`;
       tagValue = (
         <TagLinkText>
           <Link to={transactionDestination}>{content.value}</Link>

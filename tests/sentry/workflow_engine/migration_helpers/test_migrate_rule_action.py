@@ -493,3 +493,644 @@ class TestNotificationActionMigrationUtils(TestCase):
         assert len(actions) == 1
 
         self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "team", None)
+
+    def test_github_action_migration(self):
+        # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
+        # The Github Enterprise action should have the same shape as the Github action.
+        action_data = [
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "repo",
+                        "label": "GitHub Repository",
+                        "type": "select",
+                        "default": "bufobot/bufo-bot",
+                        "choices": [
+                            ["bufobot/bufo-bot", "bufo-bot"],
+                            ["bufobot/bufo-bot-2", "bufo-bot-2"],
+                            [
+                                "bufobot/bufo-bot-3",
+                                {
+                                    "key": "bufobot/bufo-bot-3",
+                                    "ref": None,
+                                    "props": {
+                                        "children": [
+                                            {
+                                                "key": "bufobot/bufo-bot-3",
+                                                "ref": None,
+                                                "props": {
+                                                    "title": {
+                                                        "key": "bufobot/bufo-bot-3",
+                                                        "ref": None,
+                                                        "_owner": None,
+                                                    },
+                                                    "size": "xs",
+                                                },
+                                            },
+                                            " ",
+                                            "bufo-bot-3",
+                                        ]
+                                    },
+                                    "_owner": None,
+                                },
+                            ],
+                        ],
+                        "url": "/extensions/github/search/bufobot/123456/",
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "default": "",
+                        "type": "select",
+                        "required": False,
+                        "choices": [
+                            ["", "Unassigned"],
+                            ["bufo-bot", "bufo-bot"],
+                            ["bufo-bot-2", "bufo-bot-2"],
+                            ["bufo-bot-3", "bufo-bot-3"],
+                        ],
+                    },
+                    {
+                        "name": "labels",
+                        "label": "Labels",
+                        "default": [],
+                        "type": "select",
+                        "multiple": True,
+                        "required": False,
+                        "choices": [
+                            ["bug", "bug"],
+                            ["documentation", "documentation"],
+                            ["duplicate", "duplicate"],
+                            ["enhancement", "enhancement"],
+                            ["good first issue", "good first issue"],
+                            ["invalid", "invalid"],
+                            ["question", "question"],
+                            ["security", "security"],
+                        ],
+                    },
+                ],
+                "repo": "bufobot/bufo-bot",
+                "labels": ["bug", "documentation"],
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "integration": "00000",
+                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "repo",
+                        "label": "GitHub Repository",
+                        "type": "select",
+                        "default": "bufobot/bufo-bot-3",
+                        "choices": [
+                            [
+                                "bufobot/bufo-bot-3",
+                                "bufo-bot-3",
+                            ]
+                        ],
+                        "url": "/extensions/github/search/bufobot/00000/",
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "default": "",
+                        "type": "select",
+                        "required": False,
+                        "choices": [["", "Unassigned"], ["bufo-bot", "bufo-bot"]],
+                    },
+                    {
+                        "name": "labels",
+                        "label": "Labels",
+                        "default": [],
+                        "type": "select",
+                        "multiple": True,
+                        "required": False,
+                        "choices": [
+                            ["bug", "bug"],
+                            ["documentation", "documentation"],
+                            ["duplicate", "duplicate"],
+                            ["enhancement", "enhancement"],
+                            ["good first issue", "good first issue"],
+                            ["help wanted", "help wanted"],
+                            ["invalid", "invalid"],
+                            ["question", "question"],
+                            ["wontfix", "wontfix"],
+                        ],
+                    },
+                ],
+                "repo": "bufobot/bufo-bot-3",
+                "assignee": "bufo-bot-3",
+                "labels": ["bug", "documentation"],
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "integration": "22222",
+                "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "repo",
+                        "label": "GitHub Repository",
+                        "type": "select",
+                        "default": "bufobot/bufo-bot-3",
+                        "choices": [
+                            ["bufobot/bufo-bot-3", "bufo-bot-3"],
+                            [
+                                "bufobot/bufo-bot-3",
+                                {
+                                    "key": "bufobot/bufo-bot-3",
+                                    "ref": None,
+                                    "props": {
+                                        "children": [
+                                            {
+                                                "key": "bufobot/bufo-bot-3",
+                                                "ref": None,
+                                                "props": {
+                                                    "title": {
+                                                        "key": "bufobot/bufo-bot-3",
+                                                        "ref": None,
+                                                        "props": {
+                                                            "children": {
+                                                                "key": "5",
+                                                                "ref": None,
+                                                                "_owner": None,
+                                                            }
+                                                        },
+                                                        "_owner": None,
+                                                    },
+                                                    "size": "xs",
+                                                },
+                                                "_owner": None,
+                                            },
+                                            " ",
+                                            "Project_topup",
+                                        ]
+                                    },
+                                    "_owner": None,
+                                },
+                            ],
+                        ],
+                        "url": "/extensions/github/search/bufobot/22222/",
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "default": "",
+                        "type": "select",
+                        "required": False,
+                        "choices": [
+                            ["", "Unassigned"],
+                            ["bufo-bot", "bufo-bot"],
+                            ["bufo-bot-2", "bufo-bot-2"],
+                            ["bufo-bot-3", "bufo-bot-3"],
+                        ],
+                    },
+                    {
+                        "name": "labels",
+                        "label": "Labels",
+                        "default": [],
+                        "type": "select",
+                        "multiple": True,
+                        "required": False,
+                        "choices": [
+                            ["bug", "bug"],
+                            ["documentation", "documentation"],
+                            ["duplicate", "duplicate"],
+                            ["enhancement", "enhancement"],
+                            ["good first issue", "good first issue"],
+                            ["help wanted", "help wanted"],
+                            ["invalid", "invalid"],
+                            ["question", "question"],
+                        ],
+                    },
+                ],
+                "repo": "bufobot/bufo-bot-3",
+                "assignee": "",
+                "labels": [],
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_github_action_migration_malformed(self):
+        action_data = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 0
+
+    def test_azure_devops_migration(self):
+        action_data = [
+            {
+                "integration": "999999",
+                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Test Octo"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Octopus"],
+                        ],
+                        "defaultValue": "12345678-90ab-cdef-0123-456789abcdef",
+                        "label": "Project",
+                        "placeholder": "12345678-90ab-cdef-0123-456789abcdef",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "work_item_type",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["Microsoft.VSTS.WorkItemTypes.Bug", "Bug"],
+                            ["Microsoft.VSTS.WorkItemTypes.Epic", "Epic"],
+                            ["Microsoft.VSTS.WorkItemTypes.Feature", "Feature"],
+                            ["Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
+                                "Code Review Request",
+                            ],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
+                                "Code Review Response",
+                            ],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"],
+                            ["Microsoft.VSTS.WorkItemTypes.Task", "Task"],
+                        ],
+                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
+                        "label": "Work Item Type",
+                        "placeholder": "Bug",
+                    },
+                ],
+                "project": "12345678-90ab-cdef-0123-456789abcdef",
+                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Bug",
+                "uuid": "7a48abdb-60d7-4d1c-ab00-0eedb2189933",
+            },
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-125"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-121"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-122"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-127"],
+                            ["99999999-90ab-cdef-0123-456789abcdef", "O-129"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-131"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-128"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-107"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-120"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-123"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-119"],
+                            ["cb72f217-bcb2-495c-b7ad-d6883e696990", "O-116"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-115"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Alpha Octo"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-126"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-102"],
+                            ["23ff99ca-92f2-492f-b8a1-d13ed66c465c", "O-124"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-114"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-112"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-108"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-000"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-101"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-104"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-110"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-111"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-130"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-117"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "Design"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-118"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-109"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-106"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-103"],
+                            ["12345678-90ab-cdef-0123-456789abcdef", "O-105"],
+                        ],
+                        "defaultValue": "12345678-90ab-cdef-0123-456789abcdef",
+                        "label": "Project",
+                        "placeholder": "12345678-90ab-cdef-0123-456789abcdef",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "work_item_type",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ["Microsoft.VSTS.WorkItemTypes.Bug", "Bug"],
+                            ["Microsoft.VSTS.WorkItemTypes.Epic", "Epic"],
+                            ["Microsoft.VSTS.WorkItemTypes.Feature", "Feature"],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.ProductBacklogItem",
+                                "Product Backlog Item",
+                            ],
+                            ["Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"],
+                            ["Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
+                                "Code Review Request",
+                            ],
+                            [
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
+                                "Code Review Response",
+                            ],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"],
+                            ["Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"],
+                            ["Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"],
+                            ["Microsoft.VSTS.WorkItemTypes.Task", "Task"],
+                        ],
+                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
+                        "label": "Work Item Type",
+                        "placeholder": "Bug",
+                    },
+                ],
+                "project": "23ff99ca-92f2-492f-b8a1-d13ed66c465c",
+                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Bug",
+                "uuid": "4d42b17d-911d-4085-be7f-cc5f32d66371",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_azure_devops_migration_malformed(self):
+        action_data = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 0
+
+    def test_plugin_action_migration(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "0202a169-326b-4575-8887-afe69cc58040",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "ad671f12-6bb7-4b9d-a4fe-f32e985fe08e",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "efe1841d-d33a-460a-8d65-7697893ec7f1",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "8c0c2fc9-5d89-4974-9d3c-31b1d602a065",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "e63c387c-94f4-4284-bef8-c08b218654a3",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "0269d028-9466-4826-8ab9-18cd47fb08d2",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
+
+    def test_webhook_action_migration(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "bufo-bot-integration-1f946b",
+                "uuid": "02babf2f-d767-483c-bb5d-0eaae85c532a",
+            },
+            {
+                "service": "opsgenie",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "02b91e1d-a91c-4357-8190-a08c9e8c15c4",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "slack",
+                "uuid": "45a8b34b-325d-4efa-b5a1-0c6effc4eba1",
+            },
+            {
+                "service": "webhooks",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "722decb0-bad9-4f5e-ad06-865439169289",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "slack",
+                "uuid": "c19cdf39-8110-43fc-ad15-12b372332ac0",
+            },
+            {
+                "service": "chat-erwiuyhrwejkh",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "add56da2-be45-4182-800e-6b1b7fc4d012",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
+
+    def test_webhook_action_migration_malformed(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 0
+
+    def test_action_types(self):
+        """Test that all registered action translators have the correct action type set."""
+        test_cases = [
+            (
+                "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                Action.Type.SLACK,
+            ),
+            (
+                "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                Action.Type.DISCORD,
+            ),
+            (
+                "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                Action.Type.MSTEAMS,
+            ),
+            (
+                "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                Action.Type.PAGERDUTY,
+            ),
+            (
+                "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                Action.Type.OPSGENIE,
+            ),
+            (
+                "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                Action.Type.GITHUB,
+            ),
+            (
+                "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                Action.Type.GITHUB_ENTERPRISE,
+            ),
+            (
+                "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                Action.Type.AZURE_DEVOPS,
+            ),
+            (
+                "sentry.rules.actions.notify_event.NotifyEventAction",
+                Action.Type.PLUGIN,
+            ),
+            (
+                "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                Action.Type.WEBHOOK,
+            ),
+        ]
+
+        for registry_id, expected_type in test_cases:
+            translator_class = issue_alert_action_translator_registry.get(registry_id)
+            assert translator_class.action_type == expected_type, (
+                f"Action translator {registry_id} has incorrect action type. "
+                f"Expected {expected_type}, got {translator_class.action_type}"
+            )
+
+    def test_action_type_in_migration(self):
+        """Test that action types are correctly set during migration."""
+        test_cases = [
+            # Slack
+            (
+                {
+                    "workspace": "1",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "channel": "#test",
+                    "channel_id": "C123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.SLACK,
+            ),
+            # Discord
+            (
+                {
+                    "server": "1",
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "channel_id": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.DISCORD,
+            ),
+            # MS Teams
+            (
+                {
+                    "team": "1",
+                    "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                    "channel": "test",
+                    "channel_id": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.MSTEAMS,
+            ),
+            # PagerDuty
+            (
+                {
+                    "account": "1",
+                    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                    "service": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.PAGERDUTY,
+            ),
+            # Opsgenie
+            (
+                {
+                    "account": "1",
+                    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                    "team": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.OPSGENIE,
+            ),
+            # GitHub
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.GITHUB,
+            ),
+            # GitHub Enterprise
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.GITHUB_ENTERPRISE,
+            ),
+            # Azure DevOps
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.AZURE_DEVOPS,
+            ),
+            # Plugin
+            (
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.PLUGIN,
+            ),
+            # Webhook
+            (
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "webhooks",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.WEBHOOK,
+            ),
+        ]
+
+        for action_data, expected_type in test_cases:
+            actions = build_notification_actions_from_rule_data_actions([action_data])
+            assert len(actions) == 1
+            assert actions[0].type == expected_type, (
+                f"Action {action_data['id']} has incorrect type after migration. "
+                f"Expected {expected_type}, got {actions[0].type}"
+            )

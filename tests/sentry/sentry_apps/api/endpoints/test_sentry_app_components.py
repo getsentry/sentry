@@ -5,6 +5,7 @@ import responses
 
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
+from sentry.coreapi import APIError
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -350,6 +351,51 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "schema": self.component2.schema,
                 "error": {
                     "detail": f"Something went wrong while trying to link issue for component: {str(self.component2.uuid)}. Sentry error ID: {capture_exception.return_value}"
+                },
+                "sentryApp": {
+                    "uuid": self.sentry_app2.uuid,
+                    "slug": self.sentry_app2.slug,
+                    "name": self.sentry_app2.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
+                },
+            },
+        ]
+
+        assert response.data == expected
+
+    @patch("sentry_sdk.capture_exception")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_component_prep_errors_dont_bring_down_everything(self, run, capture_exception):
+        run.side_effect = [APIError(), SentryAppSentryError(message="kewl")]
+        capture_exception.return_value = 1
+
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
+
+        # self.component1 data contains an error, because it raised an exception
+        # during preparation.
+        expected = [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": {
+                    "detail": f"Something went wrong while trying to link issue for component: {self.component1.uuid}. Sentry error ID: {capture_exception.return_value}"
+                },
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
+            {
+                "uuid": str(self.component2.uuid),
+                "type": self.component2.type,
+                "schema": self.component2.schema,
+                "error": {
+                    "detail": f"Something went wrong while trying to link issue for component: {self.component2.uuid}. Sentry error ID: {capture_exception.return_value}"
                 },
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,

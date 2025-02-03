@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {
   GroupStatusResolution,
   MarkReviewed,
@@ -23,5 +24,9 @@ export type GroupSearchView = {
 };
 
 export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
+  environments?: string[];
   id?: string;
+  isAllProjects?: boolean;
+  projects?: number[];
+  timeFilters?: PageFilters['datetime'];
 }

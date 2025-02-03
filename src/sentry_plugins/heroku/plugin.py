@@ -7,6 +7,7 @@ from hashlib import sha256
 
 from django.http import HttpRequest, HttpResponse
 
+from sentry.auth.services.auth.model import AuthenticatedToken
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
@@ -24,10 +25,10 @@ logger = logging.getLogger("sentry.plugins.heroku")
 
 
 class HerokuReleaseHook(ReleaseHook):
-    def get_auth(self):
+    def get_auth(self) -> AuthenticatedToken | None:
         try:
-            return ApiKey(
-                organization_id=self.project.organization_id, scope_list=["project:write"]
+            return AuthenticatedToken.from_token(
+                ApiKey(organization_id=self.project.organization_id, scope_list=["project:write"])
             )
         except ApiKey.DoesNotExist:
             return None

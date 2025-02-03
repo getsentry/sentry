@@ -17,6 +17,7 @@ type ParamKeys =
   | 'authId'
   | 'codeId'
   | 'dataExportId'
+  | 'docIntegrationSlug'
   | 'eventId'
   | 'fineTuneType'
   | 'groupId'
