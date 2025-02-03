@@ -27,14 +27,6 @@ export type IssueTypeConfig = {
     share: DisabledWithReasonConfig;
   };
   /**
-   * The key for determining which 'All Events' tab will be used for this issue type
-   */
-  allEventsPath: Tab;
-  /**
-   * Is the Attachments tab shown for this issue
-   */
-  attachments: DisabledWithReasonConfig;
-  /**
    * Should show Autofix for this issue type
    */
   autofix: boolean;
@@ -62,16 +54,15 @@ export type IssueTypeConfig = {
    */
   eventAndUserCounts: DisabledWithReasonConfig;
   /**
-   * Is the Events tab show for this issue
-   */
-  events: DisabledWithReasonConfig;
-  /**
    * Options for rendering the Evidence section - pass null to disable
    */
   evidence: {
     title: string;
     helpText?: string;
   } | null;
+  /**
+   * Configuration for the issue-level information header
+   */
   header: {
     filterBar: DisabledWithReasonConfig & {
       // Display the environment filter in an inactive, locked state
@@ -98,6 +89,43 @@ export type IssueTypeConfig = {
    */
   mergedIssues: DisabledWithReasonConfig;
   /**
+   * Configuration for the event/occurrence content pages (formerly tabs)
+   */
+  pages: {
+    /**
+     * Is the Attachments page shown for this issue
+     */
+    attachments: DisabledWithReasonConfig;
+    /**
+     * Is the Check-Ins page shown for this issue
+     */
+    checkIns: DisabledWithReasonConfig;
+    /**
+     * Is the All Events/Occurrences page shown for this issue
+     */
+    events: DisabledWithReasonConfig;
+    /**
+     * The default page content to show for landing on this issue type
+     */
+    landingPage: Tab;
+    /**
+     * Is the Open periods page shown for this issue
+     */
+    openPeriods: DisabledWithReasonConfig;
+    /**
+     * Is the Replays page shown for this issue
+     */
+    replays: DisabledWithReasonConfig;
+    /**
+     * Is the Tags tab shown for this issue (legacy)
+     */
+    tagsTab: DisabledWithReasonConfig;
+    /**
+     * Is the User Feedback page shown for this issue
+     */
+    userFeedback: DisabledWithReasonConfig;
+  };
+  /**
    * Shows performance duration regression components
    */
   performanceDurationRegression: DisabledWithReasonConfig;
@@ -109,10 +137,6 @@ export type IssueTypeConfig = {
    * Enables various regression related supporting data for an issue type.
    */
   regression: DisabledWithReasonConfig;
-  /**
-   * Is the Replays tab shown for this issue
-   */
-  replays: DisabledWithReasonConfig;
   /**
    * If defined, will display a resources section for providing more information
    * about the given issue type
@@ -150,17 +174,9 @@ export type IssueTypeConfig = {
    */
   tags: DisabledWithReasonConfig;
   /**
-   * Is the Tags tab show for this issue
-   */
-  tagsTab: DisabledWithReasonConfig;
-  /**
    * Whether to use open periods for the last checked date
    */
   useOpenPeriodChecks: boolean;
-  /**
-   * Is the User Feedback tab shown for this issue
-   */
-  userFeedback: DisabledWithReasonConfig;
   /**
    * Whether or not the issue type is using the issue platform
    */

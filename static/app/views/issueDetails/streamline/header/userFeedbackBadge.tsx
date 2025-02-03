@@ -18,7 +18,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  if (!issueTypeConfig.userFeedback.enabled || group.userReportCount <= 0) {
+  if (!issueTypeConfig.pages.userFeedback.enabled || group.userReportCount <= 0) {
     return null;
   }
 
