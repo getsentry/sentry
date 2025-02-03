@@ -104,7 +104,7 @@ function hidePanel(hash?: string) {
   SidebarPanelStore.hidePanel(hash);
 }
 
-function useOpenOnboardingSidebar(organization?: Organization) {
+function useOpenOnboardingSidebar(organization: Organization | null) {
   const onboardingContext = useContext(OnboardingContext);
   const {projects: project} = useProjects();
   const location = useLocation();
@@ -170,7 +170,7 @@ function Sidebar() {
     return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
   };
 
-  useOpenOnboardingSidebar();
+  useOpenOnboardingSidebar(organization);
 
   const toggleCollapse = useCallback(() => {
     if (collapsed) {
