@@ -90,7 +90,7 @@ export function cleanFilterValue({
       }
       return parsed.value;
     }
-    case FieldValueType.DATE:
+    case FieldValueType.DATE: {
       const parsed = parseFilterValueDate(value);
 
       if (!parsed) {
@@ -108,6 +108,7 @@ export function cleanFilterValue({
       }
 
       return value;
+    }
     default:
       return escapeTagValue(value).trim();
   }

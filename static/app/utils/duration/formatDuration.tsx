@@ -78,7 +78,7 @@ export default function formatDuration({
     case 'h:mm:ss': // fall-through
     case 'hh:mm:ss': // fall-through
     case 'h:mm:ss.sss': // fall-through
-    case 'hh:mm:ss.sss':
+    case 'hh:mm:ss.sss': {
       const truncatedValueInMs = normalizeTimespanToMs(
         Math.floor(valueInUnit),
         precision
@@ -92,7 +92,8 @@ export default function formatDuration({
       return includeMs
         ? [head, precision === 'ms' ? tail ?? '000' : '000'].join('.')
         : String(head);
-    case 'ISO8601':
+    }
+    case 'ISO8601': {
       const output = ['P'];
 
       let incr = 0;
@@ -135,6 +136,7 @@ export default function formatDuration({
       }
 
       return output.join('');
+    }
     default:
       throw new Error('Invalid style');
   }

@@ -105,7 +105,7 @@ function GenericField({
     case 'textarea':
       return <TextareaField {...fieldProps} />;
     case 'choice':
-    case 'select':
+    case 'select': {
       // the chrome required tip winds up in weird places
       // for select elements, so just make it look like
       // it's required (with *) and rely on server validation
@@ -119,6 +119,7 @@ function GenericField({
         return <SelectAsyncField {...selectFieldProps} />;
       }
       return <SelectField {...selectProps} />;
+    }
     default:
       return null;
   }

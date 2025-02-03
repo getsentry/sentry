@@ -644,7 +644,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             </Fragment>
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
+        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
           const description = listItem[SpanMetricsField.SPAN_DESCRIPTION] as string;
           const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
@@ -686,7 +686,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
-        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
+        }
+        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS: {
           const moduleRoute = moduleURLBuilder('cache', 'backend');
           const cacheMissRate = listItem[fieldString] as any;
 
@@ -713,6 +714,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
+        }
         default:
           if (typeof rightValue === 'number') {
             return (

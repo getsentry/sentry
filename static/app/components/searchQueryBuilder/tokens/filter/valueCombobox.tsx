@@ -230,7 +230,7 @@ function tokenSupportsMultipleValues(
   fieldDefinition: FieldDefinition | null
 ): boolean {
   switch (token.filter) {
-    case FilterType.TEXT:
+    case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
       const key = keys[getKeyName(token.key)];
@@ -240,6 +240,7 @@ function tokenSupportsMultipleValues(
 
       const valueType = getFilterValueType(token, fieldDefinition);
       return valueType === FieldValueType.STRING;
+    }
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;

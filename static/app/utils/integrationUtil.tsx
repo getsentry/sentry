@@ -243,7 +243,7 @@ export const getIntegrationSourceUrl = (
     case 'bitbucket':
     case 'bitbucket_server':
       return `${sourceUrl}#lines-${lineNo}`;
-    case 'vsts':
+    case 'vsts': {
       const url = new URL(sourceUrl);
       if (lineNo) {
         url.searchParams.set('line', lineNo.toString());
@@ -254,6 +254,7 @@ export const getIntegrationSourceUrl = (
         url.searchParams.set('_a', 'contents');
       }
       return url.toString();
+    }
     case 'github':
     case 'github_enterprise':
     default:

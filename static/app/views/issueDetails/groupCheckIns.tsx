@@ -142,7 +142,7 @@ function CheckInBodyCell({
   }
 
   switch (columnKey) {
-    case 'timestamp':
+    case 'timestamp': {
       const format = userOptions.clock24Hours
         ? 'MMM D, YYYY HH:mm:ss z'
         : 'MMM D, YYYY h:mm:ss A z';
@@ -168,6 +168,7 @@ function CheckInBodyCell({
           />
         </Cell>
       );
+    }
     case 'durationMs':
       if (typeof cellData === 'number') {
         return (
@@ -177,7 +178,7 @@ function CheckInBodyCell({
         );
       }
       return <Cell>{cellData}</Cell>;
-    case 'statusCode':
+    case 'statusCode': {
       const statusCodeFirstDigit = String(cellData)?.[0];
       switch (statusCodeFirstDigit) {
         case '2':
@@ -190,8 +191,8 @@ function CheckInBodyCell({
         default:
           return <Cell>{cellData}</Cell>;
       }
-
-    case 'checkStatus':
+    }
+    case 'checkStatus': {
       let checkResult = <Cell>{cellData}</Cell>;
       switch (cellData) {
         case 'success':
@@ -223,6 +224,7 @@ function CheckInBodyCell({
       ) : (
         checkResult
       );
+    }
     case 'traceId':
       return (
         <LinkCell to={`/performance/trace/${cellData}`}>

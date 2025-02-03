@@ -78,13 +78,14 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       case '%c':
         styling = args[i++];
         return '';
-      case '%s':
+      case '%s': {
         const val = args[i++];
         try {
           return String(val);
         } catch {
           return 'toString' in val ? val.toString : JSON.stringify(val);
         }
+      }
       case '%d':
         return Number(args[i++]);
       case '%j':

@@ -69,12 +69,13 @@ export class TraceTextMeasurer {
         case '9':
           width += this.number;
           break;
-        default:
+        default: {
           const remaining = string.slice(i);
           if (this.duration[remaining]) {
             width += this.duration[remaining];
             return width;
           }
+        }
       }
     }
     return width;

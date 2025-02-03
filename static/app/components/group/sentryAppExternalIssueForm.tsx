@@ -62,7 +62,7 @@ function SentryAppExternalIssueForm({
         switch (field.default) {
           case 'issue.title':
             return group.title;
-          case 'issue.description':
+          case 'issue.description': {
             const queryParams = {referrer: appName};
             const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
             const shortId = group.shortId;
@@ -88,6 +88,7 @@ function SentryAppExternalIssueForm({
                   sourceRow
                 )
               : t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
+          }
           default:
             return '';
         }

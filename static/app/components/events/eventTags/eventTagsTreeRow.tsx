@@ -326,7 +326,7 @@ function EventTagsTreeValue({
         </VersionHoverCard>
       );
       break;
-    case 'transaction':
+    case 'transaction': {
       const transactionQuery = qs.stringify({
         project: event.projectID,
         transaction: content.value,
@@ -339,8 +339,9 @@ function EventTagsTreeValue({
         </TagLinkText>
       );
       break;
+    }
     case 'replayId':
-    case 'replay_id':
+    case 'replay_id': {
       const replayQuery = qs.stringify({referrer});
       const replayDestination = `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`;
       tagValue = (
@@ -349,6 +350,7 @@ function EventTagsTreeValue({
         </TagLinkText>
       );
       break;
+    }
     default:
       tagValue = defaultValue;
   }

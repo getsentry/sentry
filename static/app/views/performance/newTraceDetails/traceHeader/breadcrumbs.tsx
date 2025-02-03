@@ -118,7 +118,7 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS:
+    case Tab.SPANS: {
       crumbs.push({
         label: t('Spans'),
         to: getBreadCrumbTarget(
@@ -140,6 +140,7 @@ function getPerformanceBreadCrumbs(
         });
       }
       break;
+    }
     case Tab.AGGREGATE_WATERFALL:
       crumbs.push({
         label: t('Transaction Summary'),

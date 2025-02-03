@@ -211,7 +211,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: {...location.query, referrer: `${selectedOption.value}-event`},
             });
             break;
-          case EventNavDropdownOption.ALL:
+          case EventNavDropdownOption.ALL: {
             const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
@@ -220,6 +220,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: searchTermWithoutQuery,
             });
             break;
+          }
           default:
             break;
         }

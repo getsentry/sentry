@@ -205,7 +205,7 @@ export const renderGridBodyCell = ({
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
       case WidgetType.ERRORS:
-      default:
+      default: {
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
@@ -235,6 +235,7 @@ export const renderGridBodyCell = ({
           );
         }
         break;
+      }
     }
 
     if (columnKey === 'transaction' && dataRow.transaction) {
