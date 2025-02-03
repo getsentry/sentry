@@ -123,7 +123,6 @@ pathable==0.4.3
 pathspec==0.9.0
 pep517==0.12.0
 petname==2.6
-phabricator==0.7.0
 phonenumberslite==8.12.55
 pillow==11.0.0
 pip-tools==7.1.0
