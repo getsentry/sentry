@@ -74,9 +74,10 @@ describe('SolutionsSection', () => {
       events: {enabled: false},
       evidence: null,
       header: {
-        filterAndSearch: {enabled: false},
+        filterBar: {enabled: true, fixedEnvironment: false},
+        graph: {enabled: true, type: 'discover-events'},
         tagDistribution: {enabled: false},
-        timelineSummary: {enabled: true},
+        occurrenceSummary: {enabled: false},
       },
       allEventsPath: Tab.EVENTS,
       logLevel: {enabled: true},
@@ -115,7 +116,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2); // whatsWrong and Open Autofix
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {

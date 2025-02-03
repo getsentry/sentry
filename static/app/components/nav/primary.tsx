@@ -153,7 +153,7 @@ export function PrimaryNavigationItems() {
             label: t('Explore'),
             icon: <IconSearch />,
             analyticsKey: 'explore',
-            to: `/${prefix}/traces/`,
+            to: `/${prefix}/explore/traces/`,
           }}
         />
         <Feature
