@@ -463,7 +463,7 @@ class TraceViewHeader extends Component<PropType, State> {
             'metadata' in profiles.data &&
             profiles.data.metadata.platform === 'android' &&
             // Check that this profile has measurements
-            'measurements' in profiles?.data &&
+            'measurements' in profiles.data &&
             defined(profiles.data.measurements?.cpu_usage) &&
             // Check that this profile has enough data points
             getDataPoints(

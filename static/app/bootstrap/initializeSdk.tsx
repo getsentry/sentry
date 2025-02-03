@@ -88,7 +88,7 @@ export function initializeSdk(config: Config) {
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
-    : [...sentryConfig?.tracePropagationTargets];
+    : [...sentryConfig.tracePropagationTargets];
 
   Sentry.init({
     ...sentryConfig,
