@@ -136,6 +136,7 @@ export type IssueTypeConfig = {
    * Show a graph of the metric over time for metric issues
    */
   showMetricGraph: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
