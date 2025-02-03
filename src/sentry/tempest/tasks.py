@@ -26,9 +26,15 @@ def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
     for credentials in TempestCredentials.objects.all():
         if credentials.latest_fetched_item_id is None:
-            fetch_latest_item_id.delay(credentials.id)
+            fetch_latest_item_id.apply_async(
+                kwargs={"credentials_id": credentials.id},
+                headers={"sentry-propagate-traces": False},
+            )
         else:
-            poll_tempest_crashes.delay(credentials.id)
+            poll_tempest_crashes.apply_async(
+                kwargs={"credentials_id": credentials.id},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
@@ -38,7 +44,7 @@ def poll_tempest(**kwargs):
     soft_time_limit=55,
     time_limit=60,
 )
-def fetch_latest_item_id(credentials_id: int) -> None:
+def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # FIXME: Try catch this later
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
@@ -103,7 +109,7 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     soft_time_limit=55,
     time_limit=60,
 )
-def poll_tempest_crashes(credentials_id: int) -> None:
+def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
