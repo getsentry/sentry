@@ -142,6 +142,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
           setPrefetchTagValue(tag.key);
         }}
       >
+        <TagKey>{tag.key}</TagKey>
         <TagBarPlaceholder>
           <SegmentedBar segments={segments} />
         </TagBarPlaceholder>
@@ -255,7 +256,7 @@ export default function IssueTagsPreview({
       <Fragment>
         <SectionDivider />
         <IssueTagPreviewSection>
-          <Placeholder width="240px" height="100px" />
+          <Placeholder width="300px" height="100px" />
         </IssueTagPreviewSection>
       </Fragment>
     );
@@ -293,9 +294,9 @@ const IssueTagPreviewSection = styled('div')`
 `;
 
 const TagsPreview = styled('div')`
-  width: 240px;
+  width: 300px;
   display: grid;
-  grid-template-columns: 45% min-content auto;
+  grid-template-columns: auto 35% min-content auto;
   align-items: center;
   align-content: center;
   gap: 1px;
@@ -415,4 +416,8 @@ const SectionDivider = styled('div')`
   display: flex;
   align-items: center;
   margin: ${space(1)};
+`;
+
+const TagKey = styled(TextOverflow)`
+  font-weight: bold;
 `;
