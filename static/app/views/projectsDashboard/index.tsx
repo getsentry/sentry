@@ -28,9 +28,9 @@ import {
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -72,7 +72,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
 }
 
 function Dashboard() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   useEffect(() => {
@@ -150,7 +150,7 @@ function Dashboard() {
   }
 
   function handleChangeFilter(activeFilters: string[]) {
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,

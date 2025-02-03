@@ -148,13 +148,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders all projects if open membership is enabled and user selects all teams', async function () {
-      const {organization: openOrg, router} = initializeOrg({
-        organization: {features: ['open-membership']},
-        router: {
-          // team='' removes the default selection of 'myteams', same as clicking "clear"
-          location: {query: {team: ''}},
-        },
-      });
+      const openOrg = OrganizationFixture({features: ['open-membership']});
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       const teamB = TeamFixture({id: '2', slug: 'team2', name: 'team2', isMember: false});
       const teamProjects = [
@@ -183,25 +177,34 @@ describe('ProjectsDashboard', function () {
       const teamWithTwoProjects = TeamFixture({projects: teamProjects});
       TeamStore.loadInitialData([teamWithTwoProjects, teamA, teamB]);
 
-      render(<ProjectsDashboard />, {
-        router,
+      const {router} = render(<ProjectsDashboard />, {
         organization: openOrg,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/',
+          },
+        },
       });
+      // Open My Teams dropdown
+      await userEvent.click(await screen.findByText('My Teams'));
+      // Select "All Teams" by clearing the selection
+      await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+      // Close dropdown by clicking outside
+      await userEvent.click(document.body);
+
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
 
       await userEvent.click(screen.getByText('All Teams'));
       expect(await screen.findByText('Other Teams')).toBeInTheDocument();
       expect(screen.getByText('#team2')).toBeInTheDocument();
+      expect(router.location.query).toEqual({team: ''});
     });
 
     it('renders projects for specific team that user is not a member of', async function () {
       const openMembershipOrg = OrganizationFixture({features: ['open-membership']});
       const teamB = TeamFixture({id: '2', slug: 'team2', name: 'team2', isMember: false});
-      const router = RouterFixture({
-        // team2 is selected
-        location: {query: {team: teamB.id}},
-      });
 
       const teamA = TeamFixture({id: '1', slug: 'team1', name: 'team1', isMember: true});
       const teamAProjects = [
@@ -231,11 +234,25 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData([...teamAProjects, ...teamBProjects]);
       TeamStore.loadInitialData([teamA, teamB]);
 
-      render(<ProjectsDashboard />, {
-        router,
+      const {router} = render(<ProjectsDashboard />, {
         organization: openMembershipOrg,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/',
+          },
+        },
       });
+      // Open dropdown
+      await userEvent.click(await screen.findByText('My Teams'));
+      // Clear "My Teams" and select "team2"
+      await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+      await userEvent.click(screen.getByRole('option', {name: '#team2'}));
+      // Click outside the dropdown to close it
+      await userEvent.click(document.body);
+
       expect(await screen.findByText('#team2')).toBeInTheDocument();
+      expect(router.location.query).toEqual({team: '2'});
       expect(screen.getByText('project2')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
