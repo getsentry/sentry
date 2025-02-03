@@ -828,20 +828,23 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         )
         current_widget_specs = get_current_widget_specs(organization)
 
-        if ondemand_feature:
-            for new_query in new_queries:
-                query_cardinality = all(
-                    check_field_cardinality(
-                        new_query.columns, organization, max_cardinality_allowed
-                    ).values()
-                )
-                set_or_create_on_demand_state(
-                    new_query,
-                    organization,
-                    query_cardinality,
-                    ondemand_feature,
-                    current_widget_specs,
-                )
+        if not ondemand_feature:
+            # If the org does not have the on-demand feature, we don't need to check cardinality
+            return
+
+        for new_query in new_queries:
+            query_cardinality = all(
+                check_field_cardinality(
+                    new_query.columns, organization, max_cardinality_allowed
+                ).values()
+            )
+            set_or_create_on_demand_state(
+                new_query,
+                organization,
+                query_cardinality,
+                ondemand_feature,
+                current_widget_specs,
+            )
 
     def update_widget(self, widget, data, order):
         prev_layout = widget.detail.get("layout") if widget.detail else None
