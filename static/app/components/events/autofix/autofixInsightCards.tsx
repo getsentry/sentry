@@ -266,7 +266,11 @@ function AutofixInsightCard({
                     <p
                       ref={justificationRef}
                       dangerouslySetInnerHTML={{
-                        __html: marked(replaceHeadersWithBold(insight.justification)),
+                        __html: marked(
+                          replaceHeadersWithBold(
+                            insight.justification || t('No details here.')
+                          )
+                        ),
                       }}
                     />
                   </ContextBody>

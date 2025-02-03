@@ -647,7 +647,8 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 0 ${space(1)} ${space(1)};
+  padding-left: ${space(0.5)};
+  padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
