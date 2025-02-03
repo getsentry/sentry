@@ -693,6 +693,7 @@ const iconSizes = {
 } as const;
 
 const commonTheme = {
+  isChonk: false,
   breakpoints: {
     xsmall: '500px',
     small: '800px',

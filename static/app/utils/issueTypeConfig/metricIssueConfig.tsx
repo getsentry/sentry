@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -30,8 +31,8 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
-    showOpenPeriods: true,
     showMetricGraph: true,
+    allEventsPath: Tab.OPEN_PERIODS,
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,

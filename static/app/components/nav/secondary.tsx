@@ -1,10 +1,12 @@
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
+import type {To} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
+import {isLinkActive} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -14,7 +16,7 @@ type SecondaryNavProps = {
 
 interface SecondaryNavItemProps extends Omit<LinkProps, 'ref'> {
   children: ReactNode;
-  to: string;
+  to: To;
   isActive?: boolean;
 }
 
@@ -55,7 +57,9 @@ SecondaryNav.Item = function SecondaryNavItem({
   ...linkProps
 }: SecondaryNavItemProps) {
   const {pathname} = useLocation();
-  const isActive = incomingIsActive || pathname.startsWith(to);
+  const isActive =
+    incomingIsActive ||
+    isLinkActive(typeof to === 'string' ? to : to.pathname ?? '/', pathname);
 
   return (
     <Item
