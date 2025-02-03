@@ -376,7 +376,7 @@ export function IssueViewsStateProvider({
   const [tabListState, setTabListState] = useState<TabListState<any>>();
   const {className: _className, ...restProps} = props;
 
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+  const {cursor: _cursor, page: _page, ...queryParams} = router.location.query;
   const {query, sort, viewId, project, environment} = queryParams;
 
   const queryParamsWithPageFilters = useMemo(() => {
