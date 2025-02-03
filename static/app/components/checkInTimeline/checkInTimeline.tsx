@@ -51,19 +51,17 @@ export function CheckInTimeline<Status extends string>({
   statusStyle,
   statusPrecedent,
 }: CheckInTimelineProps<Status>) {
-  const {start, end, timelineWidth} = timeWindowConfig;
-
-  const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / timelineWidth;
-
-  const jobTicks = mergeBuckets(statusPrecedent, bucketedData);
+  const jobTicks = mergeBuckets(
+    statusPrecedent,
+    timeWindowConfig.rollupConfig,
+    bucketedData
+  );
 
   return (
     <TimelineContainer>
       {jobTicks.map(jobTick => {
-        const {startTs, width: tickWidth, stats, roundedLeft, roundedRight} = jobTick;
-        const timestampMs = startTs * 1000;
-        const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+        const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
+
         const status = getAggregateStatus(statusPrecedent, stats)!;
 
         return (
@@ -76,10 +74,10 @@ export function CheckInTimeline<Status extends string>({
             key={startTs}
           >
             <JobTick
-              style={{left, width: tickWidth}}
+              style={{left, width}}
               css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={roundedLeft}
-              roundedRight={roundedRight}
+              roundedLeft={isStarting}
+              roundedRight={isEnding}
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
