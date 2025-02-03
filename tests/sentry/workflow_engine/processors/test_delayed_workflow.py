@@ -92,10 +92,9 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
     def create_project_event_freq_workflow(
         self, project: Project, environment: Environment | None = None
     ) -> tuple[Workflow, list[DataConditionGroup]]:
-        if not Detector.objects.filter(project_id=project.id, type=ErrorGroupType.slug).exists():
-            detector = self.create_detector(project=project, type=ErrorGroupType.slug)
-        else:
-            detector = Detector.objects.get(project_id=project.id, type=ErrorGroupType.slug)
+        detector, _ = Detector.objects.get_or_create(
+            project_id=project.id, type=ErrorGroupType.slug, defaults={"config": {}}
+        )
 
         workflow_trigger_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
