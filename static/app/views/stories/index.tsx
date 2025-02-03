@@ -147,7 +147,6 @@ function useStoryTree(files: string[], query: string) {
           for (const p of path) {
             p.expanded = true;
           }
-          initialName.current = null;
           break;
         }
       }
@@ -162,6 +161,7 @@ function useStoryTree(files: string[], query: string) {
 
     if (!query) {
       if (initialName.current) {
+        initialName.current = null;
         return Object.values(root.children);
       }
 
