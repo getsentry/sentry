@@ -288,10 +288,8 @@ export default typescript.config([
       // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
-      'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
+      'no-prototype-builtins': 'off',
+      'no-useless-escape': 'off',
     },
   },
   {

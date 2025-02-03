@@ -1,14 +1,14 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {
-  ABYTE_UNITS,
-  DURATION_UNITS,
-  SIZE_UNITS,
-} from 'sentry/utils/discover/fieldRenderers';
-import type {RateUnit} from 'sentry/utils/discover/fields';
+import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import {DurationUnit, type RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
+import {convertSize} from 'sentry/utils/unitConversion/convertSize';
+
+import {isADurationUnit, isASizeUnit} from '../common/typePredicates';
 
 export function formatTooltipValue(value: number, type: string, unit?: string): string {
   switch (type) {
@@ -17,19 +17,27 @@ export function formatTooltipValue(value: number, type: string, unit?: string): 
       return value.toLocaleString();
     case 'percentage':
       return formatPercentage(value, 2);
-    case 'duration':
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return getDuration((value * (unit ? DURATION_UNITS[unit] : 1)) / 1000, 2, true);
-    case 'size':
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const bytes = value * SIZE_UNITS[unit ?? 'byte'];
+    case 'duration': {
+      const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
+      const durationInSeconds = convertDuration(value, durationUnit, DurationUnit.SECOND);
+
+      return getDuration(durationInSeconds, 2, true);
+    }
+    case 'size': {
+      const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, sizeUnit, SizeUnit.BYTE);
 
       const formatter = ABYTE_UNITS.includes(unit ?? 'byte')
         ? formatBytesBase10
         : formatBytesBase2;
 
-      return formatter(bytes);
+      return formatter(sizeInBytes);
+    }
     case 'rate':
+      // Always show rate in the original dataset's unit. If the unit is not
+      // appropriate, always convert the unit in the original dataset first.
+      // This way, named rate functions like `epm()` will be shows in per minute
+      // units
       return formatRate(value, unit as RateUnit);
     default:
       return value.toString();

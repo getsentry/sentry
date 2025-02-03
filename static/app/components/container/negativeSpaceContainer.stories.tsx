@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import backgroundLighthouse from 'sentry-images/spot/background-lighthouse.svg';
+import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -26,7 +26,7 @@ export default storyBook(NegativeSpaceContainer, story => {
 
   story('Centered in a fixed space', () => (
     <NegativeSpaceContainer style={{width: '600px', height: '200px'}}>
-      <img src={backgroundLighthouse} />
+      <img src={bgPattern} />
     </NegativeSpaceContainer>
   ));
 

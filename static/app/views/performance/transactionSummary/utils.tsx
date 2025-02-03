@@ -14,6 +14,7 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -270,6 +271,18 @@ export function getTransactionSummaryBaseUrl(
   view?: DomainView,
   bare: boolean = false
 ) {
+  const hasPerfLandingRemovalFlag = organization?.features.includes(
+    'insights-performance-landing-removal'
+  );
+
+  // Eventually the performance landing page will be removed, so there is no need to rely on `getPerformanceBaseUrl`
+  if (hasPerfLandingRemovalFlag) {
+    const url = view
+      ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
+      : `${DOMAIN_VIEW_BASE_URL}/summary`;
+
+    return bare ? url : normalizeUrl(`/organizations/${organization.slug}/${url}`);
+  }
   return `${getPerformanceBaseUrl(organization.slug, view, bare)}/summary`;
 }
 

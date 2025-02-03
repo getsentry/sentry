@@ -21,6 +21,6 @@ export const MODULES = [
   ModuleName.APP_START,
   ModuleName.SCREEN_LOAD,
   ModuleName.SCREEN_RENDERING,
-  ModuleName.MOBILE_SCREENS,
+  ModuleName.MOBILE_VITALS,
   ModuleName.MOBILE_UI,
 ];

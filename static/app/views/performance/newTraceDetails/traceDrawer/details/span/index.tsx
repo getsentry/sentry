@@ -35,6 +35,7 @@ import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
+import Measurements, {hasSpanMeasurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
 
 function SpanNodeDetailHeader({
@@ -145,7 +146,10 @@ function SpanSections({
   }
 
   const hasSpanSpecificData =
-    hasSpanHTTPInfo(node.value) || hasSpanKeys(node) || hasSpanTags(node.value);
+    hasSpanHTTPInfo(node.value) ||
+    hasSpanKeys(node) ||
+    hasSpanTags(node.value) ||
+    hasSpanMeasurements(node.value);
 
   return (
     <Fragment>
@@ -161,6 +165,9 @@ function SpanSections({
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+            {hasSpanMeasurements(node.value) ? (
+              <Measurements node={node} location={location} organization={organization} />
+            ) : null}
           </TraceDrawerComponents.SectionCardGroup>
         </InterimSection>
       ) : null}
@@ -209,7 +216,11 @@ function ProfileDetails({
   const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
 
   if (!hasNewTraceUi) {
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <div>
+        <SpanProfileDetails span={span} event={event} />;
+      </div>
+    );
   }
 
   if (!defined(profile) || frames.length === 0) {

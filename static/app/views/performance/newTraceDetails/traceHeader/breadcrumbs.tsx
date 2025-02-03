@@ -58,7 +58,7 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   queues_module: ModuleName.QUEUE,
   screen_load_module: ModuleName.SCREEN_LOAD,
   screen_rendering_module: ModuleName.SCREEN_RENDERING,
-  mobile_screens_module: ModuleName.MOBILE_SCREENS,
+  mobile_screens_module: ModuleName.MOBILE_VITALS,
 };
 
 export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
@@ -118,7 +118,7 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS:
+    case Tab.SPANS: {
       crumbs.push({
         label: t('Spans'),
         to: getBreadCrumbTarget(
@@ -140,6 +140,7 @@ function getPerformanceBreadCrumbs(
         });
       }
       break;
+    }
     case Tab.AGGREGATE_WATERFALL:
       crumbs.push({
         label: t('Transaction Summary'),
