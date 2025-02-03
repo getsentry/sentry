@@ -100,7 +100,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           </GraphSection>
         )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
-          <OccurrenceSummarySection group={group} />
+          <OccurrenceSummarySection group={group} event={event} />
         )}
       </FilterContainer>
     </PageErrorBoundary>
@@ -133,7 +133,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       title={t('This issue only occurs in a single environment')}
       css={environmentCss}
     >
-      {eventEnvironment}
+      {eventEnvironment ?? t('All Envs')}
     </Button>
   ) : (
     <EnvironmentPageFilter
