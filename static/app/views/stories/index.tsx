@@ -15,8 +15,8 @@ import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import {StoryExports} from 'sentry/views/stories/storyExports';
 import {StoryHeader} from 'sentry/views/stories/storyHeader';
-import {StoryIndex} from 'sentry/views/stories/storyIndex';
 import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
+import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
 
@@ -111,7 +111,7 @@ export default function Stories() {
             </VerticalScroll>
           )}
           <StoryIndexContainer>
-            <StoryIndex />
+            <StoryTableOfContents />
           </StoryIndexContainer>
         </Layout>
       </OrganizationContainer>

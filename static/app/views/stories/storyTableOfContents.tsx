@@ -9,6 +9,10 @@ type Entry = {
   title: string;
 };
 
+function toAlphaNumeric(str: string): string {
+  return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
 function getContentEntries(main: HTMLElement): Entry[] {
   const titles = main.querySelectorAll('h2, h3, h4, h5, h6');
   const entries: Entry[] = [];
@@ -16,7 +20,7 @@ function getContentEntries(main: HTMLElement): Entry[] {
   for (const entry of Array.from(titles ?? [])) {
     // Ensure each title has an id we can link to
     if (!entry.id) {
-      entry.id = entry.textContent?.replace(/ /g, '-').toLowerCase() ?? '';
+      entry.id = toAlphaNumeric(entry.textContent ?? '');
     }
     entries.push({
       title: entry.textContent ?? '',
@@ -43,6 +47,11 @@ function useStoryIndex(): Entry[] {
     if (main) {
       observer.observe(document.body, {childList: true, subtree: true});
     }
+
+    // Fire this immediately to ensure entries are set on pageload
+    window.requestAnimationFrame(() => {
+      setEntries(getContentEntries(document.querySelector('main')!));
+    });
 
     return () => observer.disconnect();
   }, []);
@@ -104,7 +113,7 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
   return nestedEntries;
 }
 
-export function StoryIndex() {
+export function StoryTableOfContents() {
   const entries = useStoryIndex();
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
 
