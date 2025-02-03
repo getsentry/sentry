@@ -145,7 +145,8 @@ class TempestTasksTest(TestCase):
 
         # Should call fetch_latest_item_id and not poll_tempest_crashes
         mock_fetch_latest.apply_async.assert_called_once_with(
-            kwargs={"credentials_id": 10}, headers={"sentry-propagate-traces": False}
+            kwargs={"credentials_id": self.credentials.id},
+            headers={"sentry-propagate-traces": False},
         )
         mock_poll_crashes.apply_async.assert_not_called()
 
@@ -160,7 +161,8 @@ class TempestTasksTest(TestCase):
 
         # Should call poll_tempest_crashes and not fetch_latest_item_id
         mock_poll_crashes.apply_async.assert_called_once_with(
-            kwargs={"credentials_id": 11}, headers={"sentry-propagate-traces": False}
+            kwargs={"credentials_id": self.credentials.id},
+            headers={"sentry-propagate-traces": False},
         )
         mock_fetch_latest.apply_async.assert_not_called()
 
