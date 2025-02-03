@@ -229,7 +229,7 @@ function formatRootCauseText(
 
   // Add timeline
   if (cause.root_cause_reproduction) {
-    parts.push(cause.root_cause_reproduction.map(event => event.title).join('\n\n'));
+    parts.push(cause.root_cause_reproduction.map(event => `- ${event.title}`).join('\n'));
   }
 
   return parts.join('');
