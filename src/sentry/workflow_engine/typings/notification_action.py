@@ -443,7 +443,7 @@ class SentryAppActionTranslator(BaseActionTranslator):
         else:
             raise ValueError("Sentry app installation not found")
 
-    def get_sanitized_data(self) -> SentryAppDataBlob:
+    def get_sanitized_data(self) -> dict[str, Any]:
         data = SentryAppDataBlob()
         if settings := self.action.get("settings"):
             for setting in settings:
