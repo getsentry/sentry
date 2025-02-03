@@ -10,9 +10,9 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import type {WebVital} from 'sentry/utils/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
@@ -41,13 +41,9 @@ import {
 import type {ChildProps} from '../pageLayout';
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from '../transactionVitals/constants';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
-import SummaryContent from './content';
+import SummaryContent, {OTelSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
 // as React.ReactText
@@ -73,6 +69,8 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
+  const isOTel = organization.features.includes('performance-core-otel-support');
+
   return (
     <MEPSettingProvider>
       <PageLayout
@@ -82,7 +80,9 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={CardinalityLoadingWrapper}
+        childComponent={
+          isOTel ? OTelCardinalityLoadingWrapper : CardinalityLoadingWrapper
+        }
       />
     </MEPSettingProvider>
   );
@@ -96,6 +96,116 @@ function CardinalityLoadingWrapper(props: ChildProps) {
   }
 
   return <OverviewContentWrapper {...props} />;
+}
+
+function OTelCardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OTelOverviewContentWrapper {...props} />;
+}
+
+function OTelOverviewContentWrapper(props: ChildProps) {
+  const {
+    location,
+    organization,
+    eventView,
+    projectId,
+    transactionName,
+    transactionThreshold,
+    transactionThresholdMetric,
+  } = props;
+
+  const navigate = useNavigate();
+
+  const mepContext = useMEPDataContext();
+
+  const queryData = useDiscoverQuery({
+    eventView: getTotalsEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+    options: {
+      refetchOnWindowFocus: false,
+    },
+  });
+
+  // Count has to be total indexed events count because it's only used
+  // in indexed events contexts
+  const totalCountQueryData = useDiscoverQuery({
+    eventView: getTotalCountEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+  });
+
+  useEffect(() => {
+    const isMetricsData = getIsMetricsDataFromResults(queryData.data);
+    mepContext.setIsMetricsData(isMetricsData);
+  }, [mepContext, queryData.data]);
+
+  const {data: tableData, isPending, error} = queryData;
+  const {
+    data: totalCountTableData,
+    isPending: isTotalCountQueryLoading,
+    error: totalCountQueryError,
+  } = totalCountQueryData;
+
+  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
+
+  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+    trackAnalytics('performance_views.filter_dropdown.selection', {
+      organization,
+      action: newFilter as string,
+    });
+
+    const nextQuery: Location['query'] = {
+      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
+      ...filterToLocationQuery(newFilter),
+    };
+
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
+      delete nextQuery.breakdown;
+    }
+
+    navigate({
+      pathname: location.pathname,
+      query: nextQuery,
+    });
+  };
+
+  let totals: TotalValues | null =
+    (tableData?.data?.[0] as {
+      [k: string]: number;
+    }) ?? null;
+  const totalCountData: TotalValues | null =
+    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+
+  // Count is always a count of indexed events,
+  // while other fields could be either metrics or index based
+  totals = {...totals, ...totalCountData};
+
+  return (
+    <OTelSummaryContent
+      location={location}
+      organization={organization}
+      eventView={eventView}
+      projectId={projectId}
+      transactionName={transactionName}
+      isLoading={isPending || isTotalCountQueryLoading}
+      error={error || totalCountQueryError}
+      totalValues={totals}
+      onChangeFilter={onChangeFilter}
+      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+    />
+  );
 }
 
 function OverviewContentWrapper(props: ChildProps) {
@@ -219,6 +329,7 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
+  organization,
   transactionName,
 }: {
   location: Location;
@@ -227,10 +338,21 @@ function generateEventView({
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
+
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  conditions.setFilterValues('event.type', ['transaction']);
+  const usingOTel = organization.features.includes('performance-core-otel-support');
+  if (usingOTel) {
+    conditions.setFilterValues('is_transaction', ['true']);
+    conditions.setFilterValues(
+      'transaction.method',
+      conditions.getFilterValues('http.method')
+    );
+    conditions.removeFilter('http.method');
+  } else {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
@@ -239,7 +361,18 @@ function generateEventView({
     }
   });
 
-  const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
+  const fields = usingOTel
+    ? [
+        'id',
+        'user.email',
+        'user.username',
+        'user.id',
+        'user.ip',
+        'span.duration',
+        'trace',
+        'timestamp',
+      ]
+    : ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {
@@ -249,6 +382,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
+      dataset: usingOTel ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );
@@ -270,10 +404,10 @@ function getTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
-  const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-    vs.forEach(vital => keys.push(vital));
-    return keys;
-  }, []);
+  // const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
+  //   vs.forEach(vital => keys.push(vital));
+  //   return keys;
+  // }, []);
 
   const totalsColumns: QueryFieldValue[] = [
     {
@@ -284,41 +418,41 @@ function getTotalsEventView(
       kind: 'function',
       function: ['count_unique', 'user', undefined, undefined],
     },
-    {
-      kind: 'function',
-      function: ['failure_rate', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['tpm', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['count_miserable', 'user', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['user_misery', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['apdex', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['sum', 'transaction.duration', undefined, undefined],
-    },
+    // {
+    //   kind: 'function',
+    //   function: ['failure_rate', '', undefined, undefined],
+    // },
+    // {
+    //   kind: 'function',
+    //   function: ['tpm', '', undefined, undefined],
+    // },
+    // {
+    //   kind: 'function',
+    //   function: ['count_miserable', 'user', undefined, undefined],
+    // },
+    // {
+    //   kind: 'function',
+    //   function: ['user_misery', '', undefined, undefined],
+    // },
+    // {
+    //   kind: 'function',
+    //   function: ['apdex', '', undefined, undefined],
+    // },
+    // {
+    //   kind: 'function',
+    //   function: ['sum', 'transaction.duration', undefined, undefined],
+    // },
   ];
 
   return eventView.withColumns([
     ...totalsColumns,
-    ...vitals.map(
-      vital =>
-        ({
-          kind: 'function',
-          function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
-        }) as Column
-    ),
+    // ...vitals.map(
+    //   vital =>
+    //     ({
+    //       kind: 'function',
+    //       function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
+    //     }) as Column
+    // ),
   ]);
 }
 
