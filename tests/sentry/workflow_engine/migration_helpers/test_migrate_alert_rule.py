@@ -169,7 +169,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             alert_rule_workflow,
         )
 
-    def set_up_migrated_metric_alert_objects(
+    def create_migrated_metric_alert_objects(
         self, metric_alert: AlertRule, name="hojicha"
     ) -> tuple[
         DataSource,
@@ -225,7 +225,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             data_source_detector,
         )
 
-    def set_up_migrated_metric_alert_rule_trigger_objects(
+    def create_migrated_metric_alert_rule_trigger_objects(
         self,
         alert_rule_trigger: AlertRuleTrigger,
         priority: DetectorPriorityLevel,
@@ -260,7 +260,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
 
         return detector_trigger, action_filter
 
-    def set_up_migrated_metric_alert_rule_resolve_objects(
+    def create_migrated_metric_alert_rule_resolve_objects(
         self, alert_rule: AlertRule, resolve_threshold, detector_trigger_type: Condition
     ) -> tuple[DataCondition, DataCondition]:
         """
@@ -290,7 +290,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
 
         return detector_trigger, action_filter
 
-    def set_up_migrated_metric_alert_rule_action_objects(
+    def create_migrated_metric_alert_rule_action_objects(
         self, alert_rule_trigger_action: AlertRuleTriggerAction
     ) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction]:
         """
@@ -357,7 +357,7 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
             self.alert_rule_workflow,
             self.detector_workflow,
             self.data_source_detector,
-        ) = self.set_up_migrated_metric_alert_objects(self.metric_alert)
+        ) = self.create_migrated_metric_alert_objects(self.metric_alert)
 
     def test_dual_delete_metric_alert_workflow(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
@@ -405,7 +405,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
             self.alert_rule_workflow,
             self.detector_workflow,
             self.data_source_detector,
-        ) = self.set_up_migrated_metric_alert_objects(self.metric_alert)
+        ) = self.create_migrated_metric_alert_objects(self.metric_alert)
 
     def test_dual_update_metric_alert(self):
         detector_state = self.detector_state
@@ -456,8 +456,8 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
     def setUp(self):
         self.metric_alert = self.create_alert_rule(resolve_threshold=2)
         self.metric_alert_no_resolve = self.create_alert_rule()
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
-        self.set_up_migrated_metric_alert_objects(self.metric_alert_no_resolve, name="matcha")
+        self.create_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_objects(self.metric_alert_no_resolve, name="matcha")
 
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning"
@@ -539,9 +539,9 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
         )
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_objects(self.metric_alert)
         self.detector_trigger, self.action_filter = (
-            self.set_up_migrated_metric_alert_rule_trigger_objects(
+            self.create_migrated_metric_alert_rule_trigger_objects(
                 self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
             )
         )
@@ -573,14 +573,14 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical", alert_threshold=200
         )
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_objects(self.metric_alert)
         self.critical_detector_trigger, self.critical_action_filter = (
-            self.set_up_migrated_metric_alert_rule_trigger_objects(
+            self.create_migrated_metric_alert_rule_trigger_objects(
                 self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
             )
         )
         self.resolve_detector_trigger, self.resolve_action_filter = (
-            self.set_up_migrated_metric_alert_rule_resolve_objects(
+            self.create_migrated_metric_alert_rule_resolve_objects(
                 self.metric_alert, 200, Condition.LESS_OR_EQUAL
             )
         )
@@ -662,11 +662,11 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             alert_rule_trigger=self.critical_trigger,
         )
         # set up ACI objects
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
-        self.set_up_migrated_metric_alert_rule_trigger_objects(
+        self.create_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_rule_trigger_objects(
             self.critical_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
         )
-        self.set_up_migrated_metric_alert_rule_trigger_objects(
+        self.create_migrated_metric_alert_rule_trigger_objects(
             self.warning_trigger, DetectorPriorityLevel.MEDIUM, Condition.GREATER
         )
 
@@ -713,12 +713,12 @@ class DualDeleteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             alert_rule_trigger=self.alert_rule_trigger
         )
 
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
-        self.set_up_migrated_metric_alert_rule_trigger_objects(
+        self.create_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_rule_trigger_objects(
             self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
         )
         self.action, self.data_condition_group_action, self.aarta = (
-            self.set_up_migrated_metric_alert_rule_action_objects(self.alert_rule_trigger_action)
+            self.create_migrated_metric_alert_rule_action_objects(self.alert_rule_trigger_action)
         )
 
     def test_dual_delete_migrated_alert_rule_trigger_action(self):
@@ -762,12 +762,12 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             alert_rule_trigger=self.alert_rule_trigger
         )
 
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
-        self.set_up_migrated_metric_alert_rule_trigger_objects(
+        self.create_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_rule_trigger_objects(
             self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
         )
         self.action, self.data_condition_group_action, self.aarta = (
-            self.set_up_migrated_metric_alert_rule_action_objects(self.alert_rule_trigger_action)
+            self.create_migrated_metric_alert_rule_action_objects(self.alert_rule_trigger_action)
         )
 
     # TODO (mifu67): add these tests once the update changes land
@@ -784,8 +784,8 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
         )
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
-        self.set_up_migrated_metric_alert_rule_trigger_objects(
+        self.create_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_rule_trigger_objects(
             self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
         )
 
@@ -800,7 +800,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
         warning_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning", alert_threshold=50
         )
-        self.set_up_migrated_metric_alert_rule_trigger_objects(
+        self.create_migrated_metric_alert_rule_trigger_objects(
             warning_trigger, DetectorPriorityLevel.MEDIUM, Condition.GREATER
         )
 
@@ -822,9 +822,9 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
         )
-        self.set_up_migrated_metric_alert_objects(self.metric_alert)
+        self.create_migrated_metric_alert_objects(self.metric_alert)
         self.detector_trigger, self.action_filter = (
-            self.set_up_migrated_metric_alert_rule_trigger_objects(
+            self.create_migrated_metric_alert_rule_trigger_objects(
                 self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
             )
         )
