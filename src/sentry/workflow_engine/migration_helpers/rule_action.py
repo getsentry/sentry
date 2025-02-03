@@ -31,13 +31,13 @@ def build_notification_actions_from_rule_data_actions(
                 "No registry ID found for action",
                 extra={"action_uuid": action.get("uuid")},
             )
-            continue
+            raise ValueError(f"No registry ID found for action: {action}")
 
         # Fetch the translator class
         try:
             translator_class = issue_alert_action_translator_registry.get(registry_id)
             translator = translator_class(action)
-        except NoRegistrationExistsError:
+        except NoRegistrationExistsError as e:
             logger.exception(
                 "Action translator not found for action",
                 extra={
@@ -45,7 +45,9 @@ def build_notification_actions_from_rule_data_actions(
                     "action_uuid": action.get("uuid"),
                 },
             )
-            continue
+            raise ValueError(
+                f"Action translator not found for action with registry ID: {registry_id}, uuid: {action.get('uuid')}"
+            ) from e
 
         # Check if the action is well-formed
         if not translator.is_valid():
@@ -57,7 +59,9 @@ def build_notification_actions_from_rule_data_actions(
                     "missing_fields": translator.missing_fields,
                 },
             )
-            continue
+            raise ValueError(
+                f"Action blob is malformed: missing required fields with registry ID: {registry_id}, uuid: {action.get('uuid')}"
+            )
 
         notification_action = Action(
             type=translator.action_type,
