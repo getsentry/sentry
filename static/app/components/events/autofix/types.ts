@@ -152,26 +152,28 @@ export interface AutofixChangesStep extends BaseStep {
   type: AutofixStepType.CHANGES;
 }
 
-export type AutofixRootCauseCodeContext = {
-  description: string;
-  id: string;
-  title: string;
-  snippet?: CodeSnippetContext;
+export type AutofixRelevantCodeFile = {
+  file_path: string;
+  repo_name: string;
 };
 
-export type AutofixRootCauseUnitTest = {
-  description: string;
-  file_path: string;
-  snippet: string;
+export type AutofixTimelineEvent = {
+  code_snippet_and_analysis: string;
+  is_most_important_event: boolean;
+  relevant_code_file: AutofixRelevantCodeFile;
+  timeline_item_type:
+    | 'environment'
+    | 'database'
+    | 'code'
+    | 'api_request'
+    | 'human_action';
+  title: string;
 };
 
 export type AutofixRootCauseData = {
-  code_context: AutofixRootCauseCodeContext[];
-  description: string;
   id: string;
-  title: string;
-  reproduction?: string;
-  unit_test?: AutofixRootCauseUnitTest;
+  description?: string; // TODO: this is for backwards compatibility with old runs, we should remove it soon
+  root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {
