@@ -132,6 +132,11 @@ def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
     # the export data to the control silo's local relocation-specific GCS bucket. Here, we just read
     # it into memory and attempt the RPC call back to the requesting region.
     uuid = payload["relocation_uuid"]
+
+    # TODO(mark) remove this once the stuck message clears
+    if uuid == "95537ae9-0576-431e-8413-25bcb2fd1301":
+        return
+
     slug = payload["org_slug"]
     relocation_storage = get_relocation_storage()
     path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
