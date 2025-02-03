@@ -16,7 +16,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
-      eventUnits: t('Occurrences'),
+      eventUnits: t('Open Periods'),
     },
     detector: {
       enabled: true,
