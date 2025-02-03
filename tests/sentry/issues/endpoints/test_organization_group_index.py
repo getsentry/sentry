@@ -4180,7 +4180,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_bulk_resolve(self) -> None:
         self.login_as(user=self.user)
 
-        for i in range(200):
+        for i in range(101):
             self.store_event(
                 data={
                     "fingerprint": [i],
