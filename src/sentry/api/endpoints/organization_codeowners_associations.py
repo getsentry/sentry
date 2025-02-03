@@ -47,7 +47,6 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
             )
         result = {}
         for pco in project_code_owners:
-            assert pco.raw is not None  # XXX: model field `raw` is nullable? seems wrong?
             associations, errors = validate_codeowners_associations(pco.raw, pco.project)
             result[pco.project.slug] = {"associations": associations, "errors": errors}
         return self.respond(result, status=status.HTTP_200_OK)

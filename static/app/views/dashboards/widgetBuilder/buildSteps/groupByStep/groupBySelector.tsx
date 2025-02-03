@@ -230,11 +230,21 @@ export function GroupBySelector({
           </DndContext>
         )}
       </StyledField>
-      {columns.length < GROUP_BY_LIMIT && (
-        <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
-          {t('Add Group')}
-        </AddGroupButton>
-      )}
+      {columns.length < GROUP_BY_LIMIT &&
+        (builderVersion === WidgetBuilderVersion.PAGE ? (
+          <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
+            {t('Add Group')}
+          </AddGroupButton>
+        ) : (
+          <Button
+            size="sm"
+            priority="link"
+            onClick={handleAdd}
+            aria-label={t('Add Group')}
+          >
+            {t('+ Add Group')}
+          </Button>
+        ))}
     </Fragment>
   );
 }
