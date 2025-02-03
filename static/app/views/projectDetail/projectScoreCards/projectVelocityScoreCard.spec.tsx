@@ -96,7 +96,6 @@ describe('ProjectDetail > ProjectVelocity', function () {
     );
 
     expect(await screen.findByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
-    expect(await screen.findByRole('button', {name: 'Get Tour'})).toBeInTheDocument();
 
     expect(dataEndpointMock).toHaveBeenCalledTimes(3);
   });

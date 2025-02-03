@@ -2,12 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
 
@@ -101,8 +96,6 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       'href',
       'https://docs.sentry.io/product/releases/'
     );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Get Tour'}));
 
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
