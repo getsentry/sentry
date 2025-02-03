@@ -83,25 +83,25 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             </Flex>
           </Fragment>
         )}
-        {issueTypeConfig.header.graph.enabled && 
+        {issueTypeConfig.header.graph.enabled &&
           issueTypeConfig.header.graph.type === 'discover-events' && (
-          <GraphSection>
-            <EventGraph event={event} group={group} style={{flex: 1}} />
-            {issueTypeConfig.header.tagDistribution.enabled && (
-              <IssueTagsPreview
-                groupId={group.id}
-                environments={environments}
-                project={project}
-              />
-            )}
-          </GraphSection>
-        )}
+            <GraphSection>
+              <EventGraph event={event} group={group} style={{flex: 1}} />
+              {issueTypeConfig.header.tagDistribution.enabled && (
+                <IssueTagsPreview
+                  groupId={group.id}
+                  environments={environments}
+                  project={project}
+                />
+              )}
+            </GraphSection>
+          )}
         {issueTypeConfig.header.graph.enabled &&
           issueTypeConfig.header.graph.type === 'detector-history' && (
             <MetricChartSection>
               <MetricIssueChart group={group} project={project} event={event} />
             </MetricChartSection>
-        )}
+          )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} />
         )}
