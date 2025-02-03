@@ -216,6 +216,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-chart-interpolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable consecutive http performance issue type
     manager.add("organizations:performance-consecutive-http-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    manager.add("organizations:performance-core-otel-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:performance-db-main-thread-detector", OrganizationFeature, api_expose=False)
     # Enable Discover Saved Query dataset selector
     manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
