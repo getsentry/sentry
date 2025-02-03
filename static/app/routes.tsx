@@ -2005,16 +2005,21 @@ function buildRoutes() {
     />
   );
 
+  const feedbackV2ChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+      />
+      {traceViewRoute}
+    </Fragment>
+  );
   const feedbackv2Routes = (
     <Route
       path="/feedback/"
       component={make(() => import('sentry/views/feedback/index'))}
       withOrgPath
     >
-      <IndexRoute
-        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
-      />
-      {traceViewRoute}
+      {feedbackV2ChildRoutes}
     </Route>
   );
 
@@ -2085,6 +2090,12 @@ function buildRoutes() {
       >
         {issueTabs}
         <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
+      </Route>
+      <Route
+        path="feedback/"
+        component={make(() => import('sentry/views/feedback/index'))}
+      >
+        {feedbackV2ChildRoutes}
       </Route>
       <Route path="alerts/" component={make(() => import('sentry/views/alerts'))}>
         {alertChildRoutes({forCustomerDomain: true})}
