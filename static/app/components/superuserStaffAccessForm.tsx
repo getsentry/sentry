@@ -163,9 +163,9 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   };
 
   handleLogout = () => {
-    const {superuserUrl} = window.__initialData?.links;
+    const {superuserUrl} = window.__initialData.links;
     const urlOrigin =
-      window.__initialData?.customerDomain && superuserUrl
+      window.__initialData.customerDomain && superuserUrl
         ? superuserUrl
         : window.location.origin;
 
