@@ -79,6 +79,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -137,6 +138,7 @@ function WidgetCard(props: Props) {
     widgetLegendState,
     disableFullscreen,
     showConfidenceWarning,
+    minTableColumnWidth,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -351,6 +353,7 @@ function WidgetCard(props: Props) {
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
+              minTableColumnWidth={minTableColumnWidth}
             />
           </WidgetFrame>
         )}
