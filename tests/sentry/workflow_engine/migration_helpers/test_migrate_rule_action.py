@@ -1,6 +1,8 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry.eventstore.models import GroupEvent
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
@@ -24,6 +26,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
+        target_type_key: str | None = None,
     ):
         """
         Asserts that the action data is equivalent to the compare_dict.
@@ -40,6 +43,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             exclude_keys.append(target_identifier_key)
         if target_display_key:
             exclude_keys.append(target_display_key)
+        if target_type_key:
+            exclude_keys.append(target_type_key)
 
         # If we have a blob type, verify the data matches the blob structure
         if translator.blob_type:
@@ -51,7 +56,11 @@ class TestNotificationActionMigrationUtils(TestCase):
                     assert action.data.get(field) == source_value
                 else:
                     # For unmapped fields, check directly with empty string default
-                    assert action.data.get(field) == compare_dict.get(field, "")
+                    if action.type == Action.Type.EMAIL and field == "fallthroughType":
+                        # for email actions, the default value for fallthroughType should be "ActiveMembers"
+                        assert action.data.get(field) == compare_dict.get(field, "ActiveMembers")
+                    else:
+                        assert action.data.get(field) == compare_dict.get(field, "")
             # Ensure no extra fields
             assert set(action.data.keys()) == {
                 f.name for f in translator.blob_type.__dataclass_fields__.values()
@@ -60,7 +69,15 @@ class TestNotificationActionMigrationUtils(TestCase):
             # Assert the rest of the data is the same
             for key in compare_dict:
                 if key not in exclude_keys:
-                    assert compare_dict[key] == action.data[key]
+                    if (
+                        action.type == Action.Type.EMAIL
+                        and key == "fallthroughType"
+                        and action.target_type != ActionTarget.ISSUE_OWNERS
+                    ):
+                        # for email actions, fallthroughType should only be set for when targetType is ISSUE_OWNERS
+                        continue
+                    else:
+                        assert compare_dict[key] == action.data[key]
 
             # Assert the action data blob doesn't contain more than the keys in the compare_dict
             for key in action.data:
@@ -89,7 +106,12 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # Assert target_identifier matches if specified
         if target_identifier_key:
-            assert action.target_identifier == compare_dict.get(target_identifier_key)
+            compare_val = compare_dict.get(target_identifier_key)
+            # Handle both "None" string and None value
+            if compare_val in ["None", None, ""]:
+                assert action.target_identifier is None
+            else:
+                assert action.target_identifier == compare_val
 
         # Assert target_display matches if specified
         if target_display_key:
@@ -105,6 +127,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
+        target_type_key: str | None = None,
     ):
         """
         Asserts that the actions are equivalent to the Rule.
@@ -113,10 +136,19 @@ class TestNotificationActionMigrationUtils(TestCase):
         for action, rule_data in zip(actions, rule_data_actions):
             assert isinstance(action, Action)
             self.assert_action_attributes(
-                action, rule_data, integration_id_key, target_identifier_key, target_display_key
+                action,
+                rule_data,
+                integration_id_key,
+                target_identifier_key,
+                target_display_key,
             )
             self.assert_action_data_blob(
-                action, rule_data, integration_id_key, target_identifier_key, target_display_key
+                action,
+                rule_data,
+                integration_id_key,
+                target_identifier_key,
+                target_display_key,
+                target_type_key,
             )
 
     @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
@@ -891,6 +923,89 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 0
 
+    def test_email_migration(self):
+        action_data: list[dict[str, Any]] = [
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "None",
+                "fallthroughType": "ActiveMembers",
+                "uuid": "2e8847d7-8fe4-44d2-8a16-e25040329790",
+            },
+            {
+                "targetType": "IssueOwners",
+                "targetIdentifier": "",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "NoOne",
+                "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
+            },
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": None,
+                "fallthroughType": "AllMembers",
+                "uuid": "41f13756-8f90-4afe-b162-55268c6e3cdb",
+            },
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "None",
+                "fallthroughType": "NoOne",
+                "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
+            },
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": 2160509,
+                "targetType": "Member",
+                "uuid": "42c3e1d6-4004-4a51-a90b-13d3404f1e55",
+            },
+            {
+                "targetType": "Member",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": 3234013,
+                "uuid": "6e83337b-9561-4167-a208-27d6bdf5e613",
+            },
+            {
+                "targetType": "Team",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "AllMembers",
+                "uuid": "71b445cf-573b-4e0c-86bc-8dfbad93c480",
+                "targetIdentifier": 188022,
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(
+            actions, action_data, None, "targetIdentifier", None, "targetType"
+        )
+
+    def test_email_migration_malformed(self):
+        action_data = [
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+            },
+            # This should also fail since we don't have a default value for targetType
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "NoOne",
+            },
+            # This should be ok since we have a default value for fallthroughType
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetType": "IssueOwners",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        self.assert_actions_migrated_correctly(
+            actions, [action_data[2]], None, "targetIdentifier", None, "targetType"
+        )
+
     def test_plugin_action_migration(self):
         action_data = [
             {
@@ -1010,6 +1125,10 @@ class TestNotificationActionMigrationUtils(TestCase):
                 Action.Type.AZURE_DEVOPS,
             ),
             (
+                "sentry.mail.actions.NotifyEmailAction",
+                Action.Type.EMAIL,
+            ),
+            (
                 "sentry.rules.actions.notify_event.NotifyEventAction",
                 Action.Type.PLUGIN,
             ),
@@ -1107,6 +1226,15 @@ class TestNotificationActionMigrationUtils(TestCase):
                     "uuid": "test-uuid",
                 },
                 Action.Type.AZURE_DEVOPS,
+            ),
+            # Email
+            (
+                {
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "uuid": "test-uuid",
+                    "targetType": "IssueOwners",
+                },
+                Action.Type.EMAIL,
             ),
             # Plugin
             (
