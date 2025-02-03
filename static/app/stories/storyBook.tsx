@@ -37,34 +37,13 @@ export default function storyBook(
 
   setup(storyFn, apiReferenceFn);
 
-  // @TODO (JonasBadalic): we can props or use a context to communciate with the storyFile component
   return function RenderStory() {
-    const title =
-      typeof bookContext === 'string'
-        ? bookContext
-        : bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name;
-
     return (
       <Fragment>
-        {typeof bookContext === 'string' ? (
-          <BookTitle>{title}</BookTitle>
-        ) : (
-          <BookTitle>
-            <code>{`<${title}/>`}</code>
-          </BookTitle>
-        )}
-        {stories.map(({name, render}, i) => {
-          const children = render();
-          const isOneChild = Children.count(children) === 1;
-          const key = `${i}_${name}`;
-
-          return (
-            <Story key={key}>
-              <StoryTitle id={key}>{name}</StoryTitle>
-              {isOneChild ? children : <SideBySide>{children}</SideBySide>}
-            </Story>
-          );
-        })}
+        <BookTitle bookContext={bookContext} />
+        {stories.map(({name, render}, i) => (
+          <Story key={i} name={name} render={render} />
+        ))}
 
         {APIDocumentation.map((documentation, i) => (
           <StoryTypes key={i} types={documentation} />
@@ -74,11 +53,31 @@ export default function storyBook(
   };
 }
 
-const BookTitle = styled('h3')`
-  margin: 0;
-`;
+function Story(props: {name: string; render: StoryRenderFunction}) {
+  const children = props.render();
+  const isOneChild = Children.count(children) === 1;
 
-const Story = styled('section')`
+  return (
+    <StorySection>
+      <StoryTitle>{props.name}</StoryTitle>
+      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+    </StorySection>
+  );
+}
+
+function BookTitle(props: {bookContext: string | React.ComponentType<any>}) {
+  const {bookContext} = props;
+  if (typeof bookContext === 'string') {
+    return <StoryTitle>{bookContext}</StoryTitle>;
+  }
+  return (
+    <StoryTitle>
+      <code>{`<${bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name}/>`}</code>
+    </StoryTitle>
+  );
+}
+
+const StorySection = styled('section')`
   margin-top: ${space(4)};
 
   & > p {
@@ -86,6 +85,7 @@ const Story = styled('section')`
   }
 `;
 
-const StoryTitle = styled('h4')`
+export const StoryTitle = styled('h3')`
   border-bottom: 1px solid ${p => p.theme.border};
+  scroll-margin-top: ${space(2)};
 `;

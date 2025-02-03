@@ -1386,8 +1386,10 @@ const StyledSticky = styled(Sticky)`
   }
 `;
 
+// Large scroll margin top due to sticky header
 const SectionHeader = styled('h5')`
   margin-block: ${space(2)};
+  scroll-margin-top: 96px;
 `;
 
 const Grid = styled('div')`
