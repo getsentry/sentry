@@ -29,7 +29,6 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
-    attachments: {enabled: false},
     pages: {
       landingPage: Tab.DETAILS,
       events: {enabled: false},
