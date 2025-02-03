@@ -338,7 +338,7 @@ class EmailActionTranslator(BaseActionTranslator):
         return None
 
     @property
-    def blob_type(self) -> type["DataBlob"] | None:
+    def blob_type(self) -> type[DataBlob] | None:
         target_type = self.action.get("targetType")
         if target_type == ActionTargetType.ISSUE_OWNERS.value:
             return EmailDataBlob
