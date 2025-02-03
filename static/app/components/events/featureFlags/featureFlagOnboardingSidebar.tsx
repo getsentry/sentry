@@ -280,19 +280,17 @@ function OnboardingContent({
 
   const defaultMessage = (
     <Fragment>
-      <div>
+      <StyledDefaultContent>
         {t(
-          'You can set up a webhook for your Feature Flag provider by visiting the settings page, to see which flags changed over time.'
+          'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
         )}
-        <div>
-          <LinkButton size="sm" href={`/settings/${organization.slug}/feature-flags/`}>
-            {t('Go to Feature Flag Settings')}
-          </LinkButton>
-        </div>
-        <br />
-        <br />
+        <LinkButton size="sm" href={`/settings/${organization.slug}/feature-flags/`}>
+          {t('Go to Feature Flag Settings')}
+        </LinkButton>
+      </StyledDefaultContent>
+      <div>
         {tct(
-          'The Feature Flags SDK is currently available for Python and JavaScript projects. You can [link:read the docs] to learn more.',
+          'To track flag evaluations, you can use the Feature Flags SDK. It is currently available for Python and JavaScript projects. You can [link:read the docs] to learn more.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />
@@ -357,6 +355,14 @@ function OnboardingContent({
     </Fragment>
   );
 }
+
+const StyledDefaultContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${space(2)};
+  margin: ${space(1)} 0;
+`;
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 600px;
