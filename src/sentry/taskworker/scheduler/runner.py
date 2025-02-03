@@ -90,6 +90,12 @@ class ScheduleEntry:
         # Secondary sorting for heapq when remaining time is the same
         return self.fullname < other.fullname
 
+    def __repr__(self) -> str:
+        last_run = self._last_run.isoformat() if self._last_run else None
+        remaining_seconds = self.remaining_seconds()
+
+        return f"<ScheduleEntry fullname={self.fullname} last_run={last_run} remaining_seconds={remaining_seconds}>"
+
     @property
     def fullname(self) -> str:
         return self._task.fullname
