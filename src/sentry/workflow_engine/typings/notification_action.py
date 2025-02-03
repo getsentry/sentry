@@ -439,9 +439,10 @@ class SentryAppActionTranslator(BaseActionTranslator):
         )
 
         if sentry_app_installation:
+            assert len(sentry_app_installation) == 1
             return str(sentry_app_installation[0].sentry_app.id)
-        else:
-            raise ValueError("Sentry app installation not found")
+
+        raise ValueError("Sentry app installation not found")
 
     def get_sanitized_data(self) -> dict[str, Any]:
         data = SentryAppDataBlob()
@@ -465,7 +466,9 @@ class DataBlob:
 
 @dataclass
 class SlackDataBlob(DataBlob):
-    """SlackDataBlob is a specific type that represents the data blob for a Slack notification action."""
+    """
+    SlackDataBlob is a specific type that represents the data blob for a Slack notification action.
+    """
 
     tags: str = ""
     notes: str = ""
@@ -482,14 +485,18 @@ class DiscordDataBlob(DataBlob):
 
 @dataclass
 class OnCallDataBlob(DataBlob):
-    """OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action."""
+    """
+    OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action.
+    """
 
     priority: str = ""
 
 
 @dataclass
 class TicketDataBlob(DataBlob):
-    """TicketDataBlob is a specific type that represents the data blob for a ticket creation action."""
+    """
+    TicketDataBlob is a specific type that represents the data blob for a ticket creation action.
+    """
 
     # This is dynamic and can whatever customer config the customer setup on GitHub
     dynamic_form_fields: list[dict] = field(default_factory=list)
@@ -518,7 +525,10 @@ class AzureDevOpsDataBlob(TicketDataBlob):
 
 @dataclass
 class SentryAppFormConfigDataBlob(DataBlob):
-    """Represents a single form config field for a Sentry App."""
+    """
+    SentryAppFormConfigDataBlob represents a single form config field for a Sentry App.
+    name is the name of the form field, and value is the value of the form field.
+    """
 
     name: str = ""
     value: str = ""
@@ -526,13 +536,17 @@ class SentryAppFormConfigDataBlob(DataBlob):
 
 @dataclass
 class SentryAppDataBlob(DataBlob):
-    """Represents a Sentry App notification action."""
+    """
+    Represents a Sentry App notification action.
+    """
 
     settings: list[SentryAppFormConfigDataBlob] = field(default_factory=list)
 
 
 @dataclass
 class EmailDataBlob(DataBlob):
-    """EmailDataBlob represents the data blob for an email notification action."""
+    """
+    EmailDataBlob represents the data blob for an email notification action.
+    """
 
     fallthroughType: str = ""
