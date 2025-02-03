@@ -7,13 +7,12 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
+import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
@@ -28,6 +27,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
@@ -194,13 +194,14 @@ function TagDetailsValue({
   tagValue: TagValue;
   valueLocation: LocationDescriptor;
 }) {
+  const userValues = getUserTagValue(tagValue);
   const valueComponent =
     tagKey === 'user' ? (
-      <UserBadge
-        user={{...tagValue, id: tagValue.id ?? tagValue.value}}
-        avatarSize={20}
-        hideEmail
-      />
+      <UserValue>
+        {userValues.icon}
+        <div>{userValues.title}</div>
+        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
+      </UserValue>
     ) : (
       <DeviceName value={tagValue.value} />
     );
@@ -208,11 +209,6 @@ function TagDetailsValue({
   return (
     <Value>
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
-      {tagValue?.email && (
-        <IconLink to={`mailto:${tagValue.email}`}>
-          <IconMail size="xs" color="gray300" />
-        </IconLink>
-      )}
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
           priority="link"
@@ -364,16 +360,13 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const ValueLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
+const UserSubtitle = styled('div')`
+  color: ${p => p.theme.subText};
+  display: inline-block; /* Prevent inheriting text decoration */
 `;
 
-const IconLink = styled(Link)`
-  display: block;
-  line-height: 0;
+const ValueLink = styled(Link)`
+  color: ${p => p.theme.textColor};
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
@@ -384,4 +377,10 @@ const OverflowTimeSince = styled(TimeSince)`
 
 const ExternalLinkbutton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const UserValue = styled('div')`
+  display: flex;
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
