@@ -3,7 +3,6 @@ from typing import Any
 
 from sentry import analytics
 from sentry.eventstore.models import Event
-from sentry.features.rollout import in_rollout_group
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
@@ -13,6 +12,7 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.interfaces.message import Message
+from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 
 

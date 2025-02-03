@@ -14,7 +14,6 @@ from sentry_relay.processing import validate_sampling_condition
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
-from sentry.features.rollout import in_random_rollout
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
@@ -29,6 +28,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.relay.config.experimental import TimeChecker, build_safe_config
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
