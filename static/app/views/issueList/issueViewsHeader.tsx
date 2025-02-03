@@ -177,7 +177,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+  const {cursor: _cursor, page: _page, ...queryParams} = router.location.query;
   const {query, sort, viewId, project, environment} = queryParams;
   const queryParamsWithPageFilters = useMemo(() => {
     return {
