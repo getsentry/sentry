@@ -4043,17 +4043,22 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": True,
+                "organizations:issue-search-snuba": True,
+            }
+        ):
             response = self.get_success_response(query="abc:true")
-            assert len(json.loads(response.content)) == 1
+            assert len(json.loads(response.content)) == 1, "abc:true on"
 
         with self.feature({"organizations:feature-flag-autocomplete": False}):
             response = self.get_success_response(query="abc:true")
-            assert len(json.loads(response.content)) == 0
+            assert len(json.loads(response.content)) == 0, "abc:true off"
 
         with self.feature({"organizations:feature-flag-autocomplete": True}):
             response = self.get_success_response(query="abc:false")
-            assert len(json.loads(response.content)) == 0
+            assert len(json.loads(response.content)) == 0, "abc:false on"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
