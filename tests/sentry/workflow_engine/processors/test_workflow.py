@@ -1,17 +1,18 @@
 from datetime import timedelta
 from unittest import mock
 
-import pytest
-
 from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
-from sentry.workflow_engine.models import DataConditionGroup
+from sentry.utils import json
+from sentry.workflow_engine.models import DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    WorkflowDataConditionGroupType,
+    enqueue_workflow,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
     process_workflows,
@@ -169,7 +170,6 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert triggered_workflows == set()
 
 
-@pytest.mark.skip(reason="Skipping this test until enqueue is refactored")
 @freeze_time(FROZEN_TIME)
 class TestEnqueueWorkflow(BaseWorkflowTest):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
@@ -240,8 +240,6 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
 
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert not triggered_workflows
-
-        process_workflows(self.job)
 
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
@@ -316,3 +314,49 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         assert not triggered_actions
 
         # TODO @saponifi3d - Add a check to ensure the second condition is enqueued for later evaluation
+
+
+class TestEnqueueWorkflows(BaseWorkflowTest):
+    def setUp(self):
+        self.workflow = self.create_workflow()
+        self.data_condition_group = self.create_data_condition_group()
+        self.condition = self.create_data_condition(condition_group=self.data_condition_group)
+        _, self.event, self.group_event = self.create_group_event()
+
+    @mock.patch("sentry.buffer.backend.push_to_hash")
+    @mock.patch("sentry.buffer.backend.push_to_sorted_set")
+    def test_enqueue_workflow__adds_to_workflow_engine_buffer(
+        self, mock_push_to_hash, mock_push_to_sorted_set
+    ):
+        enqueue_workflow(
+            self.workflow,
+            [self.condition],
+            self.group_event,
+            WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+        )
+
+        mock_push_to_hash.assert_called_once_with(
+            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            value=self.group_event.project_id,
+        )
+
+    @mock.patch("sentry.buffer.backend.push_to_hash")
+    @mock.patch("sentry.buffer.backend.push_to_sorted_set")
+    def test_enqueue_workflow__adds_to_workflow_engine_set(
+        self, mock_push_to_hash, mock_push_to_sorted_set
+    ):
+        enqueue_workflow(
+            self.workflow,
+            [self.condition],
+            self.group_event,
+            WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+        )
+
+        mock_push_to_sorted_set.assert_called_once_with(
+            model=Workflow,
+            filters={"project": self.group_event.project_id},
+            field=f"{self.workflow.id}:{self.group_event.group_id}:{self.condition.condition_group_id}:workflow_trigger",
+            value=json.dumps(
+                {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
+            ),
+        )
