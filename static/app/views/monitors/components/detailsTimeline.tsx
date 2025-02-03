@@ -156,7 +156,8 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const TimelineTitle = styled(Text)`
-  ${p => p.theme.text.cardTitle};
   padding: ${space(2)};
   grid-column: 1;
+  line-height: 1.2;
+  font-weight: bold;
 `;
