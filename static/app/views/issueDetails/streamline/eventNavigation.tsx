@@ -218,9 +218,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 }}
                 size="xs"
                 analyticsEventKey="issue_details.all_check_ins_clicked"
-                analyticsEventName="Issue Details: All Check Ins Clicked"
+                analyticsEventName="Issue Details: All Check-ins Clicked"
               >
-                {t('All Check Ins')}
+                {t('All Check-ins')}
               </LinkButton>
             )}
           </Fragment>
