@@ -256,7 +256,7 @@ export default function IssueTagsPreview({
       <Fragment>
         <SectionDivider />
         <IssueTagPreviewSection>
-          <Placeholder width="300px" height="100px" />
+          <Placeholder width="340px" height="100px" />
         </IssueTagPreviewSection>
       </Fragment>
     );
@@ -294,7 +294,7 @@ const IssueTagPreviewSection = styled('div')`
 `;
 
 const TagsPreview = styled('div')`
-  width: 300px;
+  width: 340px;
   display: grid;
   grid-template-columns: auto 35% min-content auto;
   align-items: center;
