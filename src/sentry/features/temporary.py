@@ -416,6 +416,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disallows creation of uptime monitors
     manager.add('organizations:uptime-create-disabled', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables detailed logging for uptime results
+    manager.add("organizations:uptime-detailed-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use ReplayClipPreview inside the User Feedback Details panel
     manager.add("organizations:user-feedback-replay-clip", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
