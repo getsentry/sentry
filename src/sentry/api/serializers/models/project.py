@@ -84,7 +84,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "alert-filters",
     "servicehooks",
     "similarity-embeddings",
-    "similarity-embeddings-delete-by-hash",
 }
 
 

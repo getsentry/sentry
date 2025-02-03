@@ -23,14 +23,16 @@ export default function Stories() {
 
   const files = useStoryBookFiles();
   const story = useStoriesLoader({filename: location.query.name});
-  const nodes = useStoryTree(location.query.query ?? '', files);
+  const nodes = useStoryTree(files, location.query.query ?? '');
 
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate({query: {query: e.target.value, name: location.query.name}});
+      navigate({
+        query: {...location.query, query: e.target.value, name: location.query.name},
+      });
     },
-    [location.query.name, navigate]
+    [location.query, navigate]
   );
 
   useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
@@ -118,7 +120,7 @@ function StoriesLandingPage() {
   );
 }
 
-function useStoryTree(query: string, files: string[]) {
+function useStoryTree(files: string[], query: string) {
   const location = useLocation();
   const initialName = useRef(location.query.name);
 
@@ -254,7 +256,7 @@ export class StoryTreeNode {
       yield {node, path};
 
       for (const child of Object.values(node.children)) {
-        yield* recurse(child, [...path, node]);
+        yield* recurse(child, path.concat(node));
       }
     }
 

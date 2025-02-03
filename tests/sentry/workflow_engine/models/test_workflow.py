@@ -1,3 +1,4 @@
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -12,19 +13,32 @@ class WorkflowTest(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_evaluate_trigger_conditions__condition_new_event__True(self):
-        evaluation = self.workflow.evaluate_trigger_conditions(self.job)
+        evaluation, _ = self.workflow.evaluate_trigger_conditions(self.job)
         assert evaluation is True
 
     def test_evaluate_trigger_conditions__condition_new_event__False(self):
         # Update event to have been seen before
         self.group_event.group.times_seen = 5
 
-        evaluation = self.workflow.evaluate_trigger_conditions(self.job)
+        evaluation, _ = self.workflow.evaluate_trigger_conditions(self.job)
         assert evaluation is False
 
     def test_evaluate_trigger_conditions__no_conditions(self):
         self.workflow.when_condition_group = None
         self.workflow.save()
 
-        evaluation = self.workflow.evaluate_trigger_conditions(self.job)
+        evaluation, _ = self.workflow.evaluate_trigger_conditions(self.job)
         assert evaluation is True
+
+    def test_evaluate_trigger_conditions__slow_condition(self):
+        # Update group to _all_, since the fast condition is met
+        self.data_condition_group.update(logic_type="all")
+
+        slow_condition = self.create_data_condition(
+            type=Condition.EVENT_FREQUENCY_COUNT, comparison={"interval": "1d", "value": 7}
+        )
+        self.data_condition_group.conditions.add(slow_condition)
+        evaluation, remaining_conditions = self.workflow.evaluate_trigger_conditions(self.job)
+
+        assert evaluation is True
+        assert remaining_conditions == [slow_condition]

@@ -26,6 +26,7 @@ from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
+from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
@@ -1191,9 +1192,9 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
-        # Run every 5 minute
-        "schedule": crontab(minute="*/5"),
-        "options": {"expires": 5 * 60},
+        # Run every minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -1352,6 +1353,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
+# Schedules for taskworker tasks to be spawned on.
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only

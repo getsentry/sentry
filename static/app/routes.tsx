@@ -1409,12 +1409,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const replayRoutes = (
-    <Route
-      path="/replays/"
-      component={make(() => import('sentry/views/replays/index'))}
-      withOrgPath
-    >
+  const replayChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
         path="selectors/"
@@ -1426,33 +1422,47 @@ function buildRoutes() {
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
+    </Fragment>
+  );
+  const replayRoutes = (
+    <Route
+      path="/replays/"
+      component={make(() => import('sentry/views/replays/index'))}
+      withOrgPath
+    >
+      {replayChildRoutes}
     </Route>
   );
 
+  const releasesChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
+      <Route
+        path=":release/"
+        component={make(() => import('sentry/views/releases/detail'))}
+      >
+        <IndexRoute
+          component={make(() => import('sentry/views/releases/detail/overview'))}
+        />
+        <Route
+          path="commits/"
+          component={make(
+            () => import('sentry/views/releases/detail/commitsAndFiles/commits')
+          )}
+        />
+        <Route
+          path="files-changed/"
+          component={make(
+            () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
+          )}
+        />
+      </Route>
+    </Fragment>
+  );
   const releasesRoutes = (
     <Fragment>
       <Route path="/releases/" withOrgPath>
-        <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
-        <Route
-          path=":release/"
-          component={make(() => import('sentry/views/releases/detail'))}
-        >
-          <IndexRoute
-            component={make(() => import('sentry/views/releases/detail/overview'))}
-          />
-          <Route
-            path="commits/"
-            component={make(
-              () => import('sentry/views/releases/detail/commitsAndFiles/commits')
-            )}
-          />
-          <Route
-            path="files-changed/"
-            component={make(
-              () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
-            )}
-          />
-        </Route>
+        {releasesChildRoutes}
       </Route>
       <Redirect
         from="/releases/new-events/"
@@ -1493,12 +1503,8 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const discoverRoutes = (
-    <Route
-      path="/discover/"
-      component={make(() => import('sentry/views/discover'))}
-      withOrgPath
-    >
+  const discoverChildRoutes = (
+    <Fragment>
       <IndexRedirect to="queries/" />
       <Route
         path="homepage/"
@@ -1517,6 +1523,15 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/discover/eventDetails'))}
       />
+    </Fragment>
+  );
+  const discoverRoutes = (
+    <Route
+      path="/discover/"
+      component={make(() => import('sentry/views/discover'))}
+      withOrgPath
+    >
+      {discoverChildRoutes}
     </Route>
   );
 
@@ -1689,7 +1704,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_VITALS]}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
@@ -1893,14 +1908,69 @@ function buildRoutes() {
     </Route>
   );
 
+  const tracesChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+      {traceViewRoute}
+      <Route
+        path="multi-query/"
+        component={make(() => import('sentry/views/explore/multiQueryMode'))}
+      />
+    </Fragment>
+  );
   const tracesRoutes = (
     <Route
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
     >
-      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+      {tracesChildRoutes}
+    </Route>
+  );
+
+  const profilingChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <Route
+        path="summary/:projectId/"
+        component={make(() => import('sentry/views/profiling/profileSummary'))}
+      />
+      <Route
+        path="profile/:projectId/differential-flamegraph/"
+        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+      />
       {traceViewRoute}
+      <Route
+        path="profile/:projectId/"
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+          )}
+        />
+      </Route>
+      <Route
+        path="profile/:projectId/:eventId/"
+        component={make(
+          () => import('sentry/views/profiling/transactionProfileProvider')
+        )}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+      </Route>
+    </Fragment>
+  );
+  const profilingRoutes = (
+    <Route
+      path="/profiling/"
+      component={make(() => import('sentry/views/profiling'))}
+      withOrgPath
+    >
+      {profilingChildRoutes}
     </Route>
   );
 
@@ -1910,7 +1980,20 @@ function buildRoutes() {
       component={make(() => import('sentry/views/explore/navigation'))}
       withOrgPath
     >
-      <Route path="logs" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
+        {profilingChildRoutes}
+      </Route>
+      <Route path="traces/" component={make(() => import('sentry/views/traces'))}>
+        {tracesChildRoutes}
+      </Route>
+      <Route path="replays/" component={make(() => import('sentry/views/replays/index'))}>
+        {replayChildRoutes}
+      </Route>
+      <Route path="discover/" component={make(() => import('sentry/views/discover'))}>
+        {discoverChildRoutes}
+      </Route>
+      <Route path="releases/">{releasesChildRoutes}</Route>
+      <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
     </Route>
   );
 
@@ -2002,6 +2085,9 @@ function buildRoutes() {
       >
         {issueTabs}
         <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
+      </Route>
+      <Route path="alerts/" component={make(() => import('sentry/views/alerts'))}>
+        {alertChildRoutes({forCustomerDomain: true})}
       </Route>
       {traceViewRoute}
     </Route>
@@ -2127,47 +2213,6 @@ function buildRoutes() {
         to="/organizations/:orgId/projects/:projectId/getting-started/"
       />
     </Fragment>
-  );
-
-  const profilingRoutes = (
-    <Route
-      path="/profiling/"
-      component={make(() => import('sentry/views/profiling'))}
-      withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
-      <Route
-        path="summary/:projectId/"
-        component={make(() => import('sentry/views/profiling/profileSummary'))}
-      />
-      <Route
-        path="profile/:projectId/differential-flamegraph/"
-        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
-      />
-      {traceViewRoute}
-      <Route
-        path="profile/:projectId/"
-        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
-      >
-        <Route
-          path="flamegraph/"
-          component={make(
-            () => import('sentry/views/profiling/continuousProfileFlamegraph')
-          )}
-        />
-      </Route>
-      <Route
-        path="profile/:projectId/:eventId/"
-        component={make(
-          () => import('sentry/views/profiling/transactionProfileProvider')
-        )}
-      >
-        <Route
-          path="flamegraph/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
-      </Route>
-    </Route>
   );
 
   const metricsRoutes = (

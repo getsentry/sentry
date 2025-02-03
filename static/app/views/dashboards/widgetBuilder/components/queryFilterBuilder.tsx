@@ -4,7 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -241,8 +241,13 @@ function WidgetBuilderQueryFilterBuilder({
         </QueryFieldRowWrapper>
       ))}
       {canAddSearchConditions && (
-        <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
-          {t('Add Filter')}
+        <Button
+          size="sm"
+          priority="link"
+          onClick={onAddSearchConditions}
+          aria-label={t('Add Filter')}
+        >
+          {t('+ Add Filter')}
         </Button>
       )}
     </Fragment>

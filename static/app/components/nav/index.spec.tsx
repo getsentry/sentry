@@ -11,6 +11,8 @@ jest.mock('sentry/utils/analytics', () => ({
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
+import {NavContextProvider} from 'sentry/components/nav/context';
+import {SecondaryNav} from 'sentry/components/nav/secondary';
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
@@ -25,102 +27,64 @@ const ALL_AVAILABLE_FEATURES = [
   'ourlogs-enabled',
   'performance-view',
   'performance-trace-explorer',
-  'starfish-mobile-ui-module',
   'profiling',
 ];
 
 describe('Nav', function () {
-  describe('default', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/issues/'}),
-        }),
+  function renderNav({
+    initialPathname = '/organizations/org-slug/issues/',
+  }: {
+    initialPathname?: string;
+  } = {}) {
+    render(
+      <NavContextProvider>
+        <Nav />
+        <SecondaryNav>
+          <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
+            Foo
+          </SecondaryNav.Item>
+        </SecondaryNav>
+      </NavContextProvider>,
+      {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: initialPathname,
+            query: {query: 'is:unresolved'},
+          },
+        },
+      }
+    );
+  }
 
-    it('renders primary navigation', async function () {
+  describe('primary navigation', function () {
+    it('displays primary navigation items', function () {
       renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Primary Navigation'})
-      ).toBeInTheDocument();
-    });
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-    });
 
-    it('renders expected primary nav items', function () {
-      renderNav();
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).getAllByRole('link');
-      expect(links).toHaveLength(8);
-
-      [
-        'Issues',
-        'Projects',
-        'Explore',
-        'Insights',
-        'Perf.',
-        'Boards',
-        'Alerts',
-        'Settings',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
-    });
-  });
-
-  describe('issues', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({
-            pathname: '/organizations/org-slug/issues/',
-            search: '?query=is:unresolved',
-          }),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
-
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-    });
-
-    it('includes expected submenu items', function () {
-      renderNav();
-      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = within(container).getAllByRole('link');
       expect(links).toHaveLength(6);
 
-      ['All', 'Error & Outage', 'Trend', 'Craftsmanship', 'Security', 'Feedback'].forEach(
+      ['Issues', 'Explore', 'Boards', 'Insights', 'Stats', 'Settings'].forEach(
         (title, index) => {
           expect(links[index]).toHaveAccessibleName(title);
         }
       );
     });
+
+    it('displays the current primary route as active', function () {
+      renderNav();
+
+      const link = screen.getByRole('link', {name: 'Issues'});
+      expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/');
+      expect(link).toHaveAttribute('aria-current', 'page');
+      expect(link).toHaveAttribute('aria-selected', 'true');
+    });
   });
 
-  describe('insights', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({
-            pathname: '/organizations/org-slug/insights/backend/',
-          }),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
-
+  describe('secondary navigation', function () {
     it('renders secondary navigation', async function () {
       renderNav();
       expect(
@@ -128,74 +92,42 @@ describe('Nav', function () {
       ).toBeInTheDocument();
     });
 
-    it('includes expected submenu items', function () {
+    it('includes expected secondary nav items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = within(container).getAllByRole('link');
-      expect(links).toHaveLength(4);
-      ['Frontend', 'Backend', 'Mobile', 'AI'].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      const link = within(container).getByRole('link', {name: 'Foo'});
+      expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/foo/');
+    });
+
+    it('displays the current secondary route as active', function () {
+      renderNav({initialPathname: '/organizations/org-slug/issues/foo/'});
+
+      const link = screen.getByRole('link', {name: 'Foo'});
+      expect(link).toHaveAttribute('aria-current', 'page');
+      expect(link).toHaveAttribute('aria-selected', 'true');
     });
   });
+});
 
-  describe('explore', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
-
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
+describe('analytics', function () {
+  function renderNav() {
+    render(<Nav />, {
+      router: RouterFixture({
+        location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
+      }),
+      organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
     });
+  }
 
-    it('includes expected submenu items', function () {
-      renderNav();
-      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = within(container).getAllByRole('link');
-      expect(links).toHaveLength(8);
-      [
-        'Traces',
-        'Logs',
-        'Metrics',
-        'Profiles',
-        'Replays',
-        'Discover',
-        'Releases',
-        'Crons',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
-    });
-  });
-
-  describe('analytics', function () {
-    function renderNav() {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
-    }
-
-    it('tracks primary sidebar item', async function () {
-      renderNav();
-      const issues = screen.getByRole('link', {name: 'Issues'});
-      await userEvent.click(issues);
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.clicked_sidebar',
-        expect.objectContaining({
-          item: 'issues',
-        })
-      );
-    });
+  it('tracks primary sidebar item', async function () {
+    renderNav();
+    const issues = screen.getByRole('link', {name: 'Issues'});
+    await userEvent.click(issues);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'growth.clicked_sidebar',
+      expect.objectContaining({
+        item: 'issues',
+      })
+    );
   });
 });

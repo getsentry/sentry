@@ -8,8 +8,8 @@ from typing import Any
 import orjson
 import sentry_sdk
 from requests import PreparedRequest
-from sentry_sdk import capture_exception
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -24,13 +24,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.source_code_management.repo_trees import (
-    MAX_CONNECTION_ERRORS,
-    RepoAndBranch,
-    RepoTree,
-    RepoTreesClient,
-    filter_source_code_files,
-)
+from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
@@ -39,7 +33,6 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
-from sentry.utils.cache import cache
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -304,88 +297,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             )
         return contents["tree"]
 
-    # XXX: Drop this method
-    def get_cached_repo_files(
-        self,
-        repo_full_name: str,
-        tree_sha: str,
-        only_source_code_files: bool = True,
-        only_use_cache: bool = False,
-        cache_seconds: int = 3600 * 24,
-    ) -> list[str]:
-        """It return all files for a repo or just source code files.
-
-        repo_full_name: e.g. getsentry/sentry
-        tree_sha: A branch or a commit sha
-        only_source_code_files: Include all files or just the source code files
-        only_use_cache: Do not hit the network but use the value from the cache
-            if any. This is useful if the remaining API requests are low
-        cache_seconds: How long to cache a value for
-        """
-        key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
-        repo_files: list[str] = cache.get(key, [])
-        if not repo_files and not only_use_cache:
-            tree = self.get_tree(repo_full_name, tree_sha)
-            if tree:
-                # Keep files; discard directories
-                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
-                if only_source_code_files:
-                    repo_files = filter_source_code_files(files=repo_files)
-                # The backend's caching will skip silently if the object size greater than 5MB
-                # The trees API does not return structures larger than 7MB
-                # As an example, all file paths in Sentry is about 1.3MB
-                # Larger customers may have larger repositories, however,
-                # the cost of not having cached the files cached for those
-                # repositories is a single GH API network request, thus,
-                # being acceptable to sometimes not having everything cached
-                cache.set(key, repo_files, cache_seconds)
-
-        return repo_files
-
-    # XXX: Drop this method
-    def get_trees_for_org_deprecate(
-        self, gh_org: str, cache_seconds: int = 3600 * 24
-    ) -> dict[str, RepoTree]:
-        """
-        This fetches tree representations of all repos for an org and saves its
-        contents into the cache.
-        """
-        trees: dict[str, RepoTree] = {}
-        extra = {"gh_org": gh_org}
-        repositories = self._populate_repositories(gh_org, cache_seconds)
-        extra.update({"repos_num": str(len(repositories))})
-        trees = self._populate_trees(repositories)
-        if trees:
-            logger.info("Using cached trees for Github org.", extra=extra)
-
-        try:
-            rate_limit = self.get_rate_limit()
-            extra.update({"remaining": str(rate_limit.remaining)})
-        except ApiError:
-            logger.warning("Failed to get latest rate limit info. Let's keep going.")
-
-        return trees
-
-    # XXX: Drop this method
-    def _populate_repositories(self, gh_org: str, cache_seconds: int) -> list[dict[str, str]]:
-        cache_key = f"githubtrees:repositories:{gh_org}"
-        repositories: list[dict[str, str]] = cache.get(cache_key, [])
-
-        if not repositories:
-            # Remove unnecessary fields from the response
-            repositories = [
-                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repos(fetch_max_pages=True)
-                if not repo.get("archived")
-            ]
-            if not repositories:
-                logger.warning("Fetching repositories returned an empty list.")
-            else:
-                cache.set(cache_key, repositories, cache_seconds)
-                logger.info("Cached repositories.", extra={"repos_count": len(repositories)})
-
-        return repositories
-
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
@@ -420,76 +331,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return should_count_error
 
-    # XXX: Drop this method
-    def _populate_trees(self, repositories: list[dict[str, str]]) -> dict[str, RepoTree]:
-        """
-        For every repository, fetch the tree associated and cache it.
-        This function takes API rate limits into consideration to prevent exhaustion.
-        """
-        trees: dict[str, RepoTree] = {}
-        only_use_cache = False
-        connection_error_count = 0
-
-        remaining_requests = MINIMUM_REQUESTS
-        try:
-            rate_limit = self.get_rate_limit()
-            remaining_requests = rate_limit.remaining
-            logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
-        except ApiError:
-            only_use_cache = True
-            # Report so we can investigate
-            logger.warning("Loading trees from cache. Execution will continue. Check logs.")
-            capture_exception(level="warning")
-
-        for index, repo_info in enumerate(repositories):
-            repo_full_name = repo_info["full_name"]
-            extra = {"repo_full_name": repo_full_name}
-            # Only use the cache if we drop below the lower ceiling
-            # We will fetch after the limit is reset (every hour)
-            if not only_use_cache and remaining_requests <= MINIMUM_REQUESTS:
-                only_use_cache = True
-                logger.info(
-                    "Too few requests remaining. Grabbing values from the cache.", extra=extra
-                )
-            else:
-                remaining_requests -= 1
-
-            try:
-                # The Github API rate limit is reset every hour
-                # Spread the expiration of the cache of each repo across the day
-                trees[repo_full_name] = self._populate_tree(
-                    repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
-                )
-            except ApiError as error:
-                should_count_error = self.should_count_api_error(error, extra)
-                if should_count_error:
-                    connection_error_count += 1
-            except Exception:
-                # Report for investigation but do not stop processing
-                logger.exception(
-                    "Failed to populate_tree. Investigate. Contining execution.", extra=extra
-                )
-
-            if connection_error_count >= MAX_CONNECTION_ERRORS:
-                logger.warning(
-                    "Falling back to the cache because we've hit too many errors connecting to GitHub.",
-                    extra=extra,
-                )
-                only_use_cache = True
-
-        return trees
-
-    # XXX: Drop this method
-    def _populate_tree(
-        self, repo_info: dict[str, str], only_use_cache: bool, cache_seconds: int
-    ) -> RepoTree:
-        full_name = repo_info["full_name"]
-        branch = repo_info["default_branch"]
-        repo_files = self.get_cached_repo_files(
-            full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
-        )
-        return RepoTree(RepoAndBranch(full_name, branch), repo_files)
-
     def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
         """
         args:
@@ -501,6 +342,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
+        if not fetch_max_pages:
+            fetch_max_pages = options.get("github-app.fetch-max-pages")
         return self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",

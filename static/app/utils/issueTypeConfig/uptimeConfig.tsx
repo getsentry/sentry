@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const uptimeConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -14,9 +15,10 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     header: {
-      filterAndSearch: {enabled: true},
+      filterBar: {enabled: true, fixedEnvironment: true},
+      graph: {enabled: true, type: 'checkin-timeline'},
       tagDistribution: {enabled: false},
-      timelineSummary: {enabled: true},
+      occurrenceSummary: {enabled: true, duration: true},
     },
     detector: {
       enabled: true,
@@ -27,6 +29,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       eventUnits: t('Check-ins'),
       resolution: t('Resolved'),
     },
+    allEventsPath: Tab.EVENTS,
     attachments: {enabled: false},
     resources: null,
     autofix: false,
