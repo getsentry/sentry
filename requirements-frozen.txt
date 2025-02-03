@@ -86,7 +86,6 @@ orjson==3.10.10
 packaging==24.1
 parsimonious==0.10.0
 petname==2.6
-phabricator==0.7.0
 phonenumberslite==8.12.55
 pillow==11.0.0
 progressbar2==3.41.0
