@@ -10,7 +10,7 @@ from sentry.workflow_engine.typings.notification_action import (
 logger = logging.getLogger(__name__)
 
 
-def build_notification_actions_from_rule_data_actions(
+def translate_rule_data_actions_to_notification_actions(
     actions: list[dict[str, Any]]
 ) -> list[Action]:
     """
@@ -73,6 +73,22 @@ def build_notification_actions_from_rule_data_actions(
         )
 
         notification_actions.append(notification_action)
+
+    return notification_actions
+
+
+def build_notification_actions_from_rule_data_actions(
+    actions: list[dict[str, Any]]
+) -> list[Action]:
+    """
+    Builds notification actions from action field in Rule's data blob.
+    Will only create actions that are valid, and log any errors before skipping the action.
+
+    :param actions: list of action data (Rule.data.actions)
+    :return: list of notification actions (Action)
+    """
+
+    notification_actions = translate_rule_data_actions_to_notification_actions(actions)
 
     # Bulk create the actions
     Action.objects.bulk_create(notification_actions)
