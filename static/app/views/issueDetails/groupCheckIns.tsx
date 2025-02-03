@@ -2,8 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -14,11 +12,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
-import {parseCursor} from 'sentry/utils/cursor';
 import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -30,12 +26,7 @@ import {
   type UptimeCheckIn,
   useUptimeCheckIns,
 } from 'sentry/views/issueDetails/queries/useUptimeCheckIns';
-import {
-  EventListHeader,
-  EventListHeaderItem,
-  EventListTitle,
-  StreamlineEventsTable,
-} from 'sentry/views/issueDetails/streamline/eventList';
+import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
@@ -89,60 +80,22 @@ function GroupCheckIns() {
     return <LoadingIndicator />;
   }
 
-  // TODO(leander): Parse the page links from the backend response
   const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
-  const previousDisabled = links?.previous?.results === false;
-  const nextDisabled = links?.next?.results === false;
-  const currentCursor = parseCursor(location.query?.cursor);
-  const start = Math.max(currentCursor?.offset ?? 1, 1);
+  const previousDisabled = isEventPending || links?.previous?.results === false;
+  const nextDisabled = isEventPending || links?.next?.results === false;
   const pageCount = uptimeData.length;
 
   return (
-    <StreamlineEventsTable>
-      <EventListHeader>
-        <EventListTitle>{t('All Check-ins')}</EventListTitle>
-        <EventListHeaderItem>
-          {pageCount === 0
-            ? null
-            : tct('Showing [start]-[end] matching check-ins', {
-                start: start.toLocaleString(),
-                end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
-                // TODO(leander): See if we can get a total count from the backend
-              })}
-        </EventListHeaderItem>
-        <EventListHeaderItem>
-          <ButtonBar gap={0.25}>
-            <GrayLinkButton
-              aria-label={t('Previous Page')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="left" />}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  cursor: links.previous?.cursor,
-                },
-              }}
-              disabled={isEventPending || previousDisabled}
-            />
-            <GrayLinkButton
-              aria-label={t('Next Page')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="right" />}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  cursor: links.next?.cursor,
-                },
-              }}
-              disabled={isEventPending || nextDisabled}
-            />
-          </ButtonBar>
-        </EventListHeaderItem>
-      </EventListHeader>
+    <EventListTable
+      title={t('All Check-ins')}
+      tableUnits={t('check-ins')}
+      pagination={{
+        links,
+        pageCount,
+        nextDisabled,
+        previousDisabled,
+      }}
+    >
       <GridEditable
         isLoading={isEventPending}
         data={uptimeData}
@@ -167,7 +120,7 @@ function GroupCheckIns() {
           ),
         }}
       />
-    </StreamlineEventsTable>
+    </EventListTable>
   );
 }
 
@@ -198,7 +151,7 @@ function CheckInBodyCell({
           <TimeSince
             tooltipShowSeconds
             unitStyle="short"
-            date={new Date(cellData)}
+            date={cellData}
             tooltipProps={{maxWidth: 300}}
             tooltipBody={
               <LabelledTooltip>
@@ -293,11 +246,6 @@ const LinkCell = styled(Link)`
   text-decoration-color: ${p => p.theme.subText};
   cursor: pointer;
   text-decoration-style: dotted;
-`;
-
-const GrayLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const LabelledTooltip = styled('div')`
