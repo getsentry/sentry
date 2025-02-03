@@ -200,7 +200,7 @@ const MetricChartSection = styled('div')`
   grid-area: graph;
   display: flex;
   flex-direction: column;
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.5)};
+  padding-right: ${space(1.5)};
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }
