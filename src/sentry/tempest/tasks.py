@@ -26,9 +26,15 @@ def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
     for credentials in TempestCredentials.objects.all():
         if credentials.latest_fetched_item_id is None:
-            fetch_latest_item_id.delay(credentials.id)
+            fetch_latest_item_id.apply_async(
+                kwargs={"credentials_id": credentials.id},
+                headers={"sentry-propagate-traces": False},
+            )
         else:
-            poll_tempest_crashes.delay(credentials.id)
+            poll_tempest_crashes.apply_async(
+                kwargs={"credentials_id": credentials.id},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
