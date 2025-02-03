@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from google.protobuf.json_format import MessageToDict
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -50,14 +48,6 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         # this endpoint is only supported for spans for this project
         if serialized["dataset"] != "spans":
             raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
-
-        # todo do we need this or it should be done in upstream?
-        snuba_params.start = snuba_params.start_date.replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        snuba_params.end = snuba_params.end_date.replace(
-            hour=0, minute=0, second=0, microsecond=0
-        ) + timedelta(days=1)
 
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
