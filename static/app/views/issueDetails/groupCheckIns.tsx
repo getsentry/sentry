@@ -88,8 +88,8 @@ function GroupCheckIns() {
   return (
     <EventListTable
       title={t('All Check-ins')}
-      tableUnits={t('check-ins')}
       pagination={{
+        tableUnits: t('check-ins'),
         links,
         pageCount,
         nextDisabled,

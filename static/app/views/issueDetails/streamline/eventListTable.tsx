@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -23,12 +24,14 @@ interface EventListTableProps {
    * Should contain a <GridEditable /> to apply the streamlined styles
    */
   children: React.ReactNode;
-  /**
-   * The unit of the table, e.g. "events", "check-ins", "open periods", etc.
-   */
-  tableUnits: string;
-  title: React.ReactNode;
   pagination?: {
+    /**
+     * Whether pagination header is enabled.
+     */
+    enabled?: boolean;
+    /**
+     * The links for the pagination buttons
+     */
     links?: ReturnType<typeof parseLinkHeader>;
     /**
      * Whether the next page link is disabled
@@ -43,18 +46,22 @@ interface EventListTableProps {
      */
     previousDisabled?: boolean;
     /**
-     * The total number of results for this table across all pages
+     * The unit of the table, e.g. "events", "check-ins", "open periods", etc.
      */
-    totalCount?: number;
+    tableUnits?: string;
+    /**
+     * The total number of results for this table across all pages
+     * Needs to be a ReactNode for <EventsTable /> to work.
+     */
+    totalCount?: React.ReactNode;
   };
+  /**
+   * The title of the table
+   */
+  title?: React.ReactNode;
 }
 
-export function EventListTable({
-  children,
-  pagination,
-  tableUnits,
-  title,
-}: EventListTableProps) {
+export function EventListTable({children, pagination, title}: EventListTableProps) {
   const location = useLocation();
   const {
     links,
@@ -62,67 +69,68 @@ export function EventListTable({
     totalCount,
     nextDisabled,
     previousDisabled,
+    tableUnits = 'events',
+    enabled: isPaginationEnabled = true,
   } = pagination ?? {};
-  const currentCursor = parseCursor(location.query?.cursor);
-  const start = Math.max(currentCursor?.offset ?? 1, 1);
 
-  const paginationText = defined(totalCount)
-    ? tct('Showing [start]-[end] of [count] matching [tableUnits]', {
-        start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
-        count: totalCount.toLocaleString(),
-        tableUnits,
-      })
-    : tct('Showing [start]-[end] matching [tableUnits]', {
-        start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
-        tableUnits,
-      });
+  const hasHeader = title !== undefined || isPaginationEnabled;
 
   return (
     <StreamlineGridEditable>
-      <Header>
-        <Title>{title}</Title>
-        <HeaderItem>{pageCount !== 0 ? paginationText : null}</HeaderItem>
-        <HeaderItem>
-          <ButtonBar gap={0.25}>
-            <PaginationButton
-              aria-label={t('Previous Page')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="left" />}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  cursor: links?.previous?.cursor,
-                },
-              }}
-              disabled={previousDisabled}
-            />
-            <PaginationButton
-              aria-label={t('Next Page')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="right" />}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  cursor: links?.next?.cursor,
-                },
-              }}
-              disabled={nextDisabled}
-            />
-          </ButtonBar>
-        </HeaderItem>
-      </Header>
+      {hasHeader ? (
+        <Header>
+          <Title>{title}</Title>
+          {isPaginationEnabled ? (
+            <Fragment>
+              <HeaderItem>
+                <PaginationText
+                  pageCount={pageCount}
+                  totalCount={totalCount}
+                  tableUnits={tableUnits}
+                />
+              </HeaderItem>
+              <HeaderItem>
+                <ButtonBar gap={0.25}>
+                  <PaginationButton
+                    aria-label={t('Previous Page')}
+                    borderless
+                    size="xs"
+                    icon={<IconChevron direction="left" />}
+                    to={{
+                      ...location,
+                      query: {
+                        ...location.query,
+                        cursor: links?.previous?.cursor,
+                      },
+                    }}
+                    disabled={previousDisabled}
+                  />
+                  <PaginationButton
+                    aria-label={t('Next Page')}
+                    borderless
+                    size="xs"
+                    icon={<IconChevron direction="right" />}
+                    to={{
+                      ...location,
+                      query: {
+                        ...location.query,
+                        cursor: links?.next?.cursor,
+                      },
+                    }}
+                    disabled={nextDisabled}
+                  />
+                </ButtonBar>
+              </HeaderItem>
+            </Fragment>
+          ) : null}
+        </Header>
+      ) : null}
       {children}
     </StreamlineGridEditable>
   );
 }
 
-const Header = styled('div')`
+export const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: ${space(1.5)};
@@ -136,13 +144,13 @@ const Header = styled('div')`
   border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
-const Title = styled('div')`
+export const Title = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const HeaderItem = styled('div')`
+export const HeaderItem = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -215,7 +223,38 @@ const StreamlineGridEditable = styled('div')`
   }
 `;
 
-const PaginationButton = styled(LinkButton)`
+export const PaginationButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
+
+export function PaginationText({
+  pageCount = 0,
+  totalCount,
+  tableUnits,
+}: {
+  pageCount: Required<EventListTableProps>['pagination']['pageCount'];
+  tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
+  totalCount: Required<EventListTableProps>['pagination']['totalCount'];
+}) {
+  const location = useLocation();
+  const currentCursor = parseCursor(location.query?.cursor);
+  const start = Math.max(currentCursor?.offset ?? 1, 1);
+
+  if (pageCount === 0) {
+    return null;
+  }
+
+  return defined(totalCount)
+    ? tct('Showing [start]-[end] of [count] matching [tableUnits]', {
+        start: start.toLocaleString(),
+        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        count: totalCount.toLocaleString(),
+        tableUnits,
+      })
+    : tct('Showing [start]-[end] matching [tableUnits]', {
+        start: start.toLocaleString(),
+        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        tableUnits,
+      });
+}
