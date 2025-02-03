@@ -129,12 +129,13 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper) {
         subtitle: '',
       };
     case EventOrGroupType.TRANSACTION:
-    case EventOrGroupType.GENERIC:
+    case EventOrGroupType.GENERIC: {
       const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
         title: customTitle ?? title,
         subtitle: isIssue ? culprit : '',
       };
+    }
     default:
       return {
         title: customTitle ?? title,
