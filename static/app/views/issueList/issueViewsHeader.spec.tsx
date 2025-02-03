@@ -346,7 +346,6 @@ describe('IssueViewsHeader', () => {
       // This test inexplicably fails on the lines below. which ensure the Medium Priority tab is selected when clicked
       // and the High Priority tab is unselected. This behavior exists in other tests and in browser, so idk why it fails here.
       // We still need to ensure the router works as expected, so I'm commenting these checks rather than skipping the whole test.
-
       // expect(screen.getByRole('tab', {name: 'High Priority'})).toHaveAttribute(
       //   'aria-selected',
       //   'false'
