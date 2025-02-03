@@ -541,26 +541,5 @@
   </div>
   {% endif %}
 
-  {% if key_replays|length > 0 %}
-  <div id="key-replays">
-    <h4>Most erroneous replays</h4>
-    {% for a in key_replays %}
-    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
-      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
-      <div style="width: 65%;">
-        {% url 'sentry-organization-replay-details' organization.slug a.replay.id as replay_details %}
-        {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;"
-          href="{% org_url organization replay_details query=query %}">{{a.id}}</a>
-        <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
-      </div>
-      <div style="font-size: 14px; margin-left: auto; display: flex;">
-        <span>{{600000 | duration}}</span>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
 </div>
 {% endblock %}

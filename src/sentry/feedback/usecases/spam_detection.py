@@ -35,7 +35,6 @@ def make_input_prompt(message: str):
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
 def is_spam(message: str):
     labeled_spam = False
-    _trimmed_response = ""
     response = complete_prompt(
         usecase=LLMUseCase.SPAM_DETECTION,
         message=make_input_prompt(message),
@@ -43,7 +42,7 @@ def is_spam(message: str):
         max_output_tokens=20,
     )
     if response:
-        labeled_spam, _trimmed_response = trim_response(response)
+        labeled_spam, _ = trim_response(response)
 
     return labeled_spam
 
