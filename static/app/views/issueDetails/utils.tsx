@@ -7,6 +7,7 @@ import {
   useFetchIssueTagValues,
 } from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
+import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -347,24 +348,33 @@ export function getUserTagValue(tagValue: TagValue) {
   if (defined(tagValue?.email)) {
     title = tagValue?.email;
   }
-  if (defined(tagValue?.ip_address) && !title) {
-    title = tagValue?.ip_address;
-  }
-  if (defined(tagValue?.id)) {
-    title = title ? title : tagValue?.id;
-    subtitle = tagValue?.id;
-    subtitleType = t('ID');
+  if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
+    title = tagValue?.ip_address ?? tagValue?.ipAddress;
   }
   if (defined(tagValue?.username)) {
     title = title ? title : tagValue?.username;
-    subtitle = tagValue?.username;
-    subtitleType = t('Username');
   }
+  if (defined(tagValue?.id)) {
+    title = title ? title : tagValue?.id;
+    if (tagValue?.id && tagValue?.id !== 'None') {
+      subtitle = tagValue?.id;
+      subtitleType = t('ID');
+    }
+  }
+
   if (title === subtitle) {
     return {
       title,
       subtitle: null,
     };
   }
-  return {title, subtitle, subtitleType};
+  const icon = getContextIcon({
+    alias: 'user',
+    type: 'user',
+    value: tagValue,
+    contextIconProps: {
+      size: 'md',
+    },
+  });
+  return {title, subtitle, subtitleType, icon};
 }

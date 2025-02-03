@@ -198,8 +198,9 @@ function TagDetailsValue({
   const valueComponent =
     tagKey === 'user' ? (
       <UserValue>
+        {userValues.icon}
         <div>{userValues.title}</div>
-        <UserSubtitle>{userValues.subtitle}</UserSubtitle>
+        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
       </UserValue>
     ) : (
       <DeviceName value={tagValue.value} />
@@ -361,15 +362,11 @@ const RightAlignedValue = styled('div')`
 
 const UserSubtitle = styled('div')`
   color: ${p => p.theme.subText};
-  text-decoration: none;
   display: inline-block; /* Prevent inheriting text decoration */
 `;
 
 const ValueLink = styled(Link)`
   color: ${p => p.theme.textColor};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
