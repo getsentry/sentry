@@ -17,6 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
@@ -90,6 +91,9 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         """
         Delete a detector
         """
+        if detector.type == ErrorGroupType.slug:
+            return Response(status=403)
+
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         # TODO add audit log entry
         return Response(status=204)
