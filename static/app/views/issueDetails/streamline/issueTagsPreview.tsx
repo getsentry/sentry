@@ -252,9 +252,12 @@ export default function IssueTagsPreview({
 
   if (isPending || isHighlightPending) {
     return (
-      <IssueTagPreviewSection>
-        <Placeholder width="240px" height="100px" />
-      </IssueTagPreviewSection>
+      <Fragment>
+        <SectionDivider />
+        <IssueTagPreviewSection>
+          <Placeholder width="240px" height="100px" />
+        </IssueTagPreviewSection>
+      </Fragment>
     );
   }
 
@@ -267,14 +270,17 @@ export default function IssueTagsPreview({
   }
 
   return (
-    <IssueTagPreviewSection>
-      <TagsPreview>
-        {tagsToPreview.map(tag => (
-          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-        ))}
-      </TagsPreview>
-      <IssueTagButton tags={tagsToPreview} />
-    </IssueTagPreviewSection>
+    <Fragment>
+      <SectionDivider />
+      <IssueTagPreviewSection>
+        <TagsPreview>
+          {tagsToPreview.map(tag => (
+            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+          ))}
+        </TagsPreview>
+        <IssueTagButton tags={tagsToPreview} />
+      </IssueTagPreviewSection>
+    </Fragment>
   );
 }
 
@@ -402,4 +408,11 @@ const HorizontalIssueTagsButton = styled(LinkButton)`
   span {
     white-space: unset;
   }
+`;
+
+const SectionDivider = styled('div')`
+  border-left: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  align-items: center;
+  margin: ${space(1)};
 `;

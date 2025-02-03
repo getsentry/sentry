@@ -188,7 +188,7 @@ function EventTagsTreeRowDropdown({
   if (hasNewTraceUi) {
     items.push({
       key: 'view-traces',
-      label: t('Search explore with this tag value'),
+      label: t('Find more samples with this value'),
       to: getSearchInExploreTarget(
         organization,
         location,

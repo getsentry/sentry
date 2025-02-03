@@ -83,28 +83,25 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             </Flex>
           </Fragment>
         )}
-        {issueTypeConfig.header.graph.enabled &&
+        {issueTypeConfig.header.graph.enabled && 
           issueTypeConfig.header.graph.type === 'discover-events' && (
-            <GraphSection>
-              <EventGraph event={event} group={group} style={{flex: 1}} />
-              {issueTypeConfig.header.tagDistribution.enabled && (
-                <Fragment>
-                  <SectionDivider />
-                  <IssueTagsPreview
-                    groupId={group.id}
-                    environments={environments}
-                    project={project}
-                  />
-                </Fragment>
-              )}
-            </GraphSection>
-          )}
+          <GraphSection>
+            <EventGraph event={event} group={group} style={{flex: 1}} />
+            {issueTypeConfig.header.tagDistribution.enabled && (
+              <IssueTagsPreview
+                groupId={group.id}
+                environments={environments}
+                project={project}
+              />
+            )}
+          </GraphSection>
+        )}
         {issueTypeConfig.header.graph.enabled &&
           issueTypeConfig.header.graph.type === 'detector-history' && (
             <MetricChartSection>
               <MetricIssueChart group={group} project={project} event={event} />
             </MetricChartSection>
-          )}
+        )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} />
         )}
@@ -213,13 +210,6 @@ const OccurrenceSummarySection = styled(OccurrenceSummary)`
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
