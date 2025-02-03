@@ -70,7 +70,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         has_global_views = features.has("organizations:global-views", organization)
 
-        query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
+        query = GroupSearchView.objects.filter(
+            organization=organization, user_id=request.user.id
+        ).prefetch_related("projects")
 
         # Return only the default view(s) if user has no custom views yet
         if not query.exists():
