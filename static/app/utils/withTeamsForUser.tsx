@@ -77,7 +77,13 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     render() {
-      return <WrappedComponent {...(this.props as P & DependentProps)} {...this.state} />;
+      // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+      return (
+        <WrappedComponent
+          {...(this.props as P & DependentProps as any)}
+          {...this.state}
+        />
+      );
     }
   };
 

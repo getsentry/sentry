@@ -35,7 +35,8 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
 
     return (
       <WrappedComponent
-        {...(props as P)}
+        // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+        {...(props as P as any)}
         savedSearches={props.savedSearches ?? savedSearches}
         savedSearchLoading={
           !organization.features.includes('issue-stream-custom-views') &&
