@@ -157,6 +157,16 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
         action_id=action.id,
     ).exists()
 
+    # Additional checks for Sentry app actions
+    if action_type == Action.Type.SENTRY_APP:
+        # Verify target_identifier is the string representation of sentry_app_id
+        assert action.target_identifier == str(alert_rule_trigger_action.sentry_app_id)
+
+        # Verify data blob has correct structure for Sentry apps
+        assert action.data == {
+            "settings": alert_rule_trigger_action.sentry_app_config,
+        }
+
 
 class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
     """
