@@ -154,10 +154,10 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({tags}: {tags: GroupTag[]}) {
+function IssueTagButton({vertical}: {vertical?: boolean}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  if (tags.length === 0) {
+  if (vertical) {
     return (
       <VerticalIssueTagsButton
         aria-label={t('View issue tag distributions')}
@@ -266,7 +266,7 @@ export default function IssueTagsPreview({
   }
 
   if (tagsToPreview.length === 0 || searchQuery) {
-    return <IssueTagButton tags={tagsToPreview} />;
+    return <IssueTagButton vertical />;
   }
 
   return (
@@ -278,7 +278,7 @@ export default function IssueTagsPreview({
             <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
           ))}
         </TagsPreview>
-        <IssueTagButton tags={tagsToPreview} />
+        <IssueTagButton />
       </IssueTagPreviewSection>
     </Fragment>
   );
