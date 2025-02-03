@@ -821,7 +821,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         span = self.create_span(project=self.project, start_ts=self.ten_mins_ago, duration=1000)
         span.update({"profile_id": profile_id})
 
-        self.store_span(span, True)
+        self.store_span(span, is_eap=True)
 
         # this span has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
@@ -837,7 +837,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             }
         )
 
-        self.store_span(span_2, True)
+        self.store_span(span_2, is_eap=True)
 
         # not able to write profile chunks to the table yet so mock it's response here
         # so that the span with a continuous profile looks like it has a profile chunk

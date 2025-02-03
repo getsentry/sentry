@@ -548,7 +548,7 @@ class FlamegraphExecutor:
         # add constraints in order to fetch only spans with profiles
         profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
         if query is not None and len(query) > 0:
-            query += f" and {profiling_constraint}"
+            query = f"{query} and {profiling_constraint}"
         else:
             query = profiling_constraint
         return spans_rpc.run_table_query(
