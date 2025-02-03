@@ -15,6 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {StepProps} from './types';
 
@@ -50,6 +51,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
+  const {activateSidebar} = useOnboardingSidebar();
 
   const source = 'targeted_onboarding';
 
@@ -79,7 +81,9 @@ function TargetedOnboardingWelcome(props: StepProps) {
       organization,
       source,
     });
-  }, [organization, source]);
+
+    activateSidebar();
+  }, [organization, source, activateSidebar]);
 
   return (
     <FallingError>
