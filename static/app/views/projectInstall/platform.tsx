@@ -129,13 +129,13 @@ export function ProjectInstallPlatform({
   };
 
   const openOnboardingSidebar = useCallback(() => {
-    if (isDemoModeEnabled() || !project) {
+    if (isDemoModeEnabled()) {
       return;
     }
 
     const tasks = getMergedTasks({
       organization,
-      projects: [project],
+      projects: project ? [project] : undefined,
       onboardingContext,
     });
 
