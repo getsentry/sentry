@@ -139,7 +139,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
-        hidden={!issueTypeConfig.events.enabled}
+        hidden={!issueTypeConfig.pages.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
