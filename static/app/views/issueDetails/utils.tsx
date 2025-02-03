@@ -347,13 +347,12 @@ export function getUserTagValue(tagValue: TagValue) {
 
   if (defined(tagValue?.email)) {
     title = tagValue?.email;
-  }
-  if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
+  } else if (defined(tagValue?.username)) {
+    title = title ? title : tagValue?.username;
+  } else if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
     title = tagValue?.ip_address ?? tagValue?.ipAddress;
   }
-  if (defined(tagValue?.username)) {
-    title = title ? title : tagValue?.username;
-  }
+
   if (defined(tagValue?.id)) {
     title = title ? title : tagValue?.id;
     if (tagValue?.id && tagValue?.id !== 'None') {
