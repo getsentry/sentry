@@ -17,6 +17,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {TabContext, TabsProps} from 'sentry/components/tabs';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -430,12 +431,12 @@ export function IssueViewsStateProvider({
 
   const debounceUpdateViews = useMemo(
     () =>
-      debounce((newTabs: IssueView[]) => {
+      debounce((newTabs: IssueView[], pageFiltersSelection: PageFilters) => {
         const isAllProjects =
-          pageFilters.selection.projects.length === 1 &&
-          pageFilters.selection.projects[0] === -1;
+          pageFiltersSelection.projects.length === 1 &&
+          pageFiltersSelection.projects[0] === -1;
 
-        const projects = isAllProjects ? [] : pageFilters.selection.projects;
+        const projects = isAllProjects ? [] : pageFiltersSelection.projects;
 
         if (newTabs) {
           updateViews({
@@ -453,19 +454,13 @@ export function IssueViewsStateProvider({
                 querySort: tab.querySort,
                 projects,
                 isAllProjects,
-                environments: pageFilters.selection.environments,
-                timeFilters: pageFilters.selection.datetime,
+                environments: pageFiltersSelection.environments,
+                timeFilters: pageFiltersSelection.datetime,
               })),
           });
         }
       }, 500),
-    [
-      organization.slug,
-      updateViews,
-      pageFilters.selection.datetime,
-      pageFilters.selection.environments,
-      pageFilters.selection.projects,
-    ]
+    [organization.slug, updateViews]
   );
 
   const reducer: Reducer<IssueViewsState, IssueViewsActions> = useCallback(
@@ -536,7 +531,7 @@ export function IssueViewsStateProvider({
     dispatch(action);
 
     if (action.type === 'SYNC_VIEWS_TO_BACKEND' || action.syncViews) {
-      debounceUpdateViews(newState.views);
+      debounceUpdateViews(newState.views, pageFilters.selection);
     }
 
     const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];

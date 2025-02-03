@@ -212,7 +212,8 @@ class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
-        self.addCleanup(auth.unregister, "dummy", DummyProvider)
+        yield
+        auth.unregister("dummy", DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -2300,6 +2301,27 @@ class ProfilesSnubaTestCase(
         hasher.update(b":")
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
+
+    def store_span(self, span, is_eap=False):
+        span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans, is_eap=False):
+        for span in spans:
+            span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
 
 
 @pytest.mark.snuba

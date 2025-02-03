@@ -926,6 +926,54 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
 
+    def test_webhook_action_migration(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "bufo-bot-integration-1f946b",
+                "uuid": "02babf2f-d767-483c-bb5d-0eaae85c532a",
+            },
+            {
+                "service": "opsgenie",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "02b91e1d-a91c-4357-8190-a08c9e8c15c4",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "slack",
+                "uuid": "45a8b34b-325d-4efa-b5a1-0c6effc4eba1",
+            },
+            {
+                "service": "webhooks",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "722decb0-bad9-4f5e-ad06-865439169289",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "slack",
+                "uuid": "c19cdf39-8110-43fc-ad15-12b372332ac0",
+            },
+            {
+                "service": "chat-erwiuyhrwejkh",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "add56da2-be45-4182-800e-6b1b7fc4d012",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
+
+    def test_webhook_action_migration_malformed(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 0
+
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
         test_cases = [
@@ -960,6 +1008,14 @@ class TestNotificationActionMigrationUtils(TestCase):
             (
                 "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
                 Action.Type.AZURE_DEVOPS,
+            ),
+            (
+                "sentry.rules.actions.notify_event.NotifyEventAction",
+                Action.Type.PLUGIN,
+            ),
+            (
+                "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                Action.Type.WEBHOOK,
             ),
         ]
 
@@ -1051,6 +1107,23 @@ class TestNotificationActionMigrationUtils(TestCase):
                     "uuid": "test-uuid",
                 },
                 Action.Type.AZURE_DEVOPS,
+            ),
+            # Plugin
+            (
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.PLUGIN,
+            ),
+            # Webhook
+            (
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "webhooks",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.WEBHOOK,
             ),
         ]
 

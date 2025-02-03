@@ -88,6 +88,10 @@ describe('GroupDetailsLayout', () => {
         githubWriteIntegration: {ok: true},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
   });
 
   it('renders children, can collapse sidebar', async () => {
