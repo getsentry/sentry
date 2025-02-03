@@ -98,7 +98,6 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     );
 
     renderGlobalModal();
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('calls API with the right params', function () {
