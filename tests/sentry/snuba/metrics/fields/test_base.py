@@ -72,7 +72,7 @@ def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
         SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: EntityKey.MetricsDistributions,
         SpanMRI.RESPONSE_TRANSFER_SIZE.value: EntityKey.MetricsDistributions,
         SpanMRI.CACHE_ITEM_SIZE.value: EntityKey.MetricsDistributions,
-    }[metric_mri]
+    }[metric_mri].value
 
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
@@ -643,9 +643,9 @@ class DerivedMetricAliasTestCase(TestCase):
 @pytest.mark.parametrize(
     "metric_mri,expected_entity",
     [
-        ("c:sessions/session@none", EntityKey.MetricsCounters),
-        ("s:sessions/user@none", EntityKey.MetricsSets),
-        ("d:sessions/duration@second", EntityKey.MetricsDistributions),
+        ("c:sessions/session@none", "metrics_counters"),
+        ("s:sessions/user@none", "metrics_sets"),
+        ("d:sessions/duration@second", "metrics_distributions"),
         ("d:sessions/unknown_metric@second", None),
         ("e:sessions/all@none", None),  # derived metric
         ("", None),

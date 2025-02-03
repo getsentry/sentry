@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections import defaultdict
 
 from drf_spectacular.utils import extend_schema
@@ -41,10 +42,10 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        timerange_args = self._parse_args(request)
+        timerange_args = self._parse_args(request, restrict_rollups=False)
         projects = self.get_projects(request, organization)
 
-        project_uptime_subscription_ids = request.GET.getlist("project_uptime_subscription_id")
+        project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
 
         if not project_uptime_subscription_ids:
             return self.respond("No project uptime subscription ids provided", status=400)
@@ -103,7 +104,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             raise ValueError("Invalid project uptime subscription ids provided")
 
         subscription_id_to_project_uptime_subscription_id = {
-            project_uptime_subscription[1]: project_uptime_subscription[0]
+            str(uuid.UUID(project_uptime_subscription[1])): project_uptime_subscription[0]
             for project_uptime_subscription in project_uptime_subscriptions
             if project_uptime_subscription[0] is not None
             and project_uptime_subscription[1] is not None

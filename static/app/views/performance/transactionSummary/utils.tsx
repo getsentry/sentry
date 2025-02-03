@@ -37,15 +37,15 @@ export enum TransactionFilterOptions {
 }
 
 export function generateTransactionSummaryRoute({
-  orgSlug,
+  organization,
   subPath,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   subPath?: string;
   view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/${subPath ? `${subPath}/` : ''}`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
@@ -73,7 +73,7 @@ export function normalizeSearchConditionsWithTransactionName(
 }
 
 export function transactionSummaryRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
@@ -86,7 +86,7 @@ export function transactionSummaryRouteWithQuery({
   subPath,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   additionalQuery?: Record<string, string | undefined>;
@@ -100,7 +100,7 @@ export function transactionSummaryRouteWithQuery({
   view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
-    orgSlug,
+    organization,
     subPath,
     view,
   });
@@ -266,11 +266,11 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 }
 
 export function getTransactionSummaryBaseUrl(
-  orgSlug: string,
+  organization: Organization,
   view?: DomainView,
   bare: boolean = false
 ) {
-  return `${getPerformanceBaseUrl(orgSlug, view, bare)}/summary`;
+  return `${getPerformanceBaseUrl(organization.slug, view, bare)}/summary`;
 }
 
 export const SidebarSpacer = styled('div')`

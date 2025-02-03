@@ -23,9 +23,15 @@ const cronConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     header: {
-      filterAndSearch: {enabled: false},
+      filterBar: {enabled: false, fixedEnvironment: true},
+      graph: {enabled: false, type: 'checkin-timeline'},
       tagDistribution: {enabled: false},
-      timelineSummary: {enabled: false},
+      occurrenceSummary: {enabled: false},
+    },
+    detector: {
+      enabled: true,
+      title: t('Cron Monitor'),
+      ctaText: t('View monitor details'),
     },
     attachments: {enabled: false},
     autofix: false,

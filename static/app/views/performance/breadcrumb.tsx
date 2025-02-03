@@ -127,7 +127,7 @@ export const getTabCrumbs = ({
   }
 
   const routeQuery = {
-    orgSlug: organization.slug,
+    organization,
     transaction: transaction.name,
     projectID: transaction.project,
     query: location.query,

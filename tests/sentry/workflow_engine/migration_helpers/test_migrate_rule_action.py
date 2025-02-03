@@ -890,3 +890,247 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 0
+
+    def test_plugin_action_migration(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "0202a169-326b-4575-8887-afe69cc58040",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "ad671f12-6bb7-4b9d-a4fe-f32e985fe08e",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "efe1841d-d33a-460a-8d65-7697893ec7f1",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "8c0c2fc9-5d89-4974-9d3c-31b1d602a065",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "e63c387c-94f4-4284-bef8-c08b218654a3",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "uuid": "0269d028-9466-4826-8ab9-18cd47fb08d2",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
+
+    def test_webhook_action_migration(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "bufo-bot-integration-1f946b",
+                "uuid": "02babf2f-d767-483c-bb5d-0eaae85c532a",
+            },
+            {
+                "service": "opsgenie",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "02b91e1d-a91c-4357-8190-a08c9e8c15c4",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "slack",
+                "uuid": "45a8b34b-325d-4efa-b5a1-0c6effc4eba1",
+            },
+            {
+                "service": "webhooks",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "722decb0-bad9-4f5e-ad06-865439169289",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "slack",
+                "uuid": "c19cdf39-8110-43fc-ad15-12b372332ac0",
+            },
+            {
+                "service": "chat-erwiuyhrwejkh",
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "add56da2-be45-4182-800e-6b1b7fc4d012",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
+
+    def test_webhook_action_migration_malformed(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 0
+
+    def test_action_types(self):
+        """Test that all registered action translators have the correct action type set."""
+        test_cases = [
+            (
+                "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                Action.Type.SLACK,
+            ),
+            (
+                "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                Action.Type.DISCORD,
+            ),
+            (
+                "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                Action.Type.MSTEAMS,
+            ),
+            (
+                "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                Action.Type.PAGERDUTY,
+            ),
+            (
+                "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                Action.Type.OPSGENIE,
+            ),
+            (
+                "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                Action.Type.GITHUB,
+            ),
+            (
+                "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                Action.Type.GITHUB_ENTERPRISE,
+            ),
+            (
+                "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                Action.Type.AZURE_DEVOPS,
+            ),
+            (
+                "sentry.rules.actions.notify_event.NotifyEventAction",
+                Action.Type.PLUGIN,
+            ),
+            (
+                "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                Action.Type.WEBHOOK,
+            ),
+        ]
+
+        for registry_id, expected_type in test_cases:
+            translator_class = issue_alert_action_translator_registry.get(registry_id)
+            assert translator_class.action_type == expected_type, (
+                f"Action translator {registry_id} has incorrect action type. "
+                f"Expected {expected_type}, got {translator_class.action_type}"
+            )
+
+    def test_action_type_in_migration(self):
+        """Test that action types are correctly set during migration."""
+        test_cases = [
+            # Slack
+            (
+                {
+                    "workspace": "1",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "channel": "#test",
+                    "channel_id": "C123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.SLACK,
+            ),
+            # Discord
+            (
+                {
+                    "server": "1",
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "channel_id": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.DISCORD,
+            ),
+            # MS Teams
+            (
+                {
+                    "team": "1",
+                    "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                    "channel": "test",
+                    "channel_id": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.MSTEAMS,
+            ),
+            # PagerDuty
+            (
+                {
+                    "account": "1",
+                    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                    "service": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.PAGERDUTY,
+            ),
+            # Opsgenie
+            (
+                {
+                    "account": "1",
+                    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                    "team": "123",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.OPSGENIE,
+            ),
+            # GitHub
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.GITHUB,
+            ),
+            # GitHub Enterprise
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.GITHUB_ENTERPRISE,
+            ),
+            # Azure DevOps
+            (
+                {
+                    "integration": "1",
+                    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.AZURE_DEVOPS,
+            ),
+            # Plugin
+            (
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.PLUGIN,
+            ),
+            # Webhook
+            (
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "webhooks",
+                    "uuid": "test-uuid",
+                },
+                Action.Type.WEBHOOK,
+            ),
+        ]
+
+        for action_data, expected_type in test_cases:
+            actions = build_notification_actions_from_rule_data_actions([action_data])
+            assert len(actions) == 1
+            assert actions[0].type == expected_type, (
+                f"Action {action_data['id']} has incorrect type after migration. "
+                f"Expected {expected_type}, got {actions[0].type}"
+            )

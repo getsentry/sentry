@@ -267,6 +267,16 @@ const ContentWrapper = styled('div')<{
           ? p.theme.yellow100
           : p.theme.backgroundSecondary};
   }
+
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
+    }
+  }
 `;
 
 export const Subject = styled('div')`
@@ -276,7 +286,7 @@ export const Subject = styled('div')`
   min-width: 100px;
 `;
 
-const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
+export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
@@ -289,6 +299,8 @@ const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean
 const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
   word-break: break-word;
   grid-column: ${p => (p.hasSuffix ? 'span 1' : '1 / -1')};
+  max-width: 100%;
+  overflow: hidden;
 `;
 
 const TruncateWrapper = styled('a')`

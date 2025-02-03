@@ -17,6 +17,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {TabContext, TabsProps} from 'sentry/components/tabs';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -430,7 +431,13 @@ export function IssueViewsStateProvider({
 
   const debounceUpdateViews = useMemo(
     () =>
-      debounce((newTabs: IssueView[]) => {
+      debounce((newTabs: IssueView[], pageFiltersSelection: PageFilters) => {
+        const isAllProjects =
+          pageFiltersSelection.projects.length === 1 &&
+          pageFiltersSelection.projects[0] === -1;
+
+        const projects = isAllProjects ? [] : pageFiltersSelection.projects;
+
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
@@ -445,6 +452,10 @@ export function IssueViewsStateProvider({
                 name: tab.label,
                 query: tab.query,
                 querySort: tab.querySort,
+                projects,
+                isAllProjects,
+                environments: pageFiltersSelection.environments,
+                timeFilters: pageFiltersSelection.datetime,
               })),
           });
         }
@@ -520,7 +531,7 @@ export function IssueViewsStateProvider({
     dispatch(action);
 
     if (action.type === 'SYNC_VIEWS_TO_BACKEND' || action.syncViews) {
-      debounceUpdateViews(newState.views);
+      debounceUpdateViews(newState.views, pageFilters.selection);
     }
 
     const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];
