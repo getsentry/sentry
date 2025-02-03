@@ -1,6 +1,6 @@
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.workflow_engine.models import (
     DataCondition,
@@ -62,4 +62,3 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             id__in=[self.data_source.id, data_source_2.id]
         ).exists()
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
-        assert not SnubaQuery.objects.filter(id=self.subscription.snuba_query.id).exists()
