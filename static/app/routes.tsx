@@ -1814,6 +1814,7 @@ function buildRoutes() {
       withOrgPath
       component={make(() => import('sentry/views/insights/navigation'))}
     >
+      {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
@@ -2005,16 +2006,21 @@ function buildRoutes() {
     />
   );
 
+  const feedbackV2ChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+      />
+      {traceViewRoute}
+    </Fragment>
+  );
   const feedbackv2Routes = (
     <Route
       path="/feedback/"
       component={make(() => import('sentry/views/feedback/index'))}
       withOrgPath
     >
-      <IndexRoute
-        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
-      />
-      {traceViewRoute}
+      {feedbackV2ChildRoutes}
     </Route>
   );
 
@@ -2041,6 +2047,10 @@ function buildRoutes() {
       <Route
         path={TabPaths[Tab.OPEN_PERIODS]}
         component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
+      />
+      <Route
+        path={TabPaths[Tab.CHECK_INS]}
+        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
         path={TabPaths[Tab.TAGS]}
@@ -2085,6 +2095,12 @@ function buildRoutes() {
       >
         {issueTabs}
         <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
+      </Route>
+      <Route
+        path="feedback/"
+        component={make(() => import('sentry/views/feedback/index'))}
+      >
+        {feedbackV2ChildRoutes}
       </Route>
       <Route path="alerts/" component={make(() => import('sentry/views/alerts'))}>
         {alertChildRoutes({forCustomerDomain: true})}

@@ -128,6 +128,7 @@ function EventTagsTreeRowDropdown({
   const location = useLocation();
   const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
   });
@@ -185,10 +186,10 @@ function EventTagsTreeRowDropdown({
     },
   ];
 
-  if (hasNewTraceUi) {
+  if (hasNewTraceUi && hasTraceDrawerAction) {
     items.push({
       key: 'view-traces',
-      label: t('Search explore with this tag value'),
+      label: t('Find more samples with this value'),
       to: getSearchInExploreTarget(
         organization,
         location,
