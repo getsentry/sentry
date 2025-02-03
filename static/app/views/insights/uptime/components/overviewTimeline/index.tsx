@@ -1,7 +1,17 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
+import {space} from 'sentry/styles/space';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import type {UptimeAlert} from 'sentry/views/alerts/types';
 
 import {OverviewRow} from './overviewRow';
@@ -11,12 +21,47 @@ interface Props {
 }
 
 export function OverviewTimeline({uptimeAlerts}: Props) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const dateNavigation = useDateNavigation();
+
   return (
     <MonitorListPanel role="region">
-      <Header />
+      <TimelineWidthTracker ref={elementRef} />
+      <Header>
+        <HeaderControlsLeft>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="back"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsLeft>
+        <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
+        <HeaderControlsRight>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="forward"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsRight>
+      </Header>
+      <AlignedGridLineOverlay
+        stickyCursor
+        allowZoom
+        showCursor
+        timeWindowConfig={timeWindowConfig}
+      />
       <UptimeAlertRow>
         {uptimeAlerts.map(uptimeAlert => (
-          <OverviewRow key={uptimeAlert.id} uptimeAlert={uptimeAlert} />
+          <OverviewRow
+            key={uptimeAlert.id}
+            timeWindowConfig={timeWindowConfig}
+            uptimeAlert={uptimeAlert}
+          />
         ))}
       </UptimeAlertRow>
     </MonitorListPanel>
@@ -42,6 +87,22 @@ const Header = styled(Sticky)`
   }
 `;
 
+const TimelineWidthTracker = styled('div')`
+  position: absolute;
+  width: 100%;
+  grid-row: 1;
+  grid-column: 2/-1;
+`;
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
+  grid-row: 1;
+  grid-column: 2/-1;
+`;
+
+const AlignedGridLineLabels = styled(GridLineLabels)`
+  grid-row: 1;
+  grid-column: 2/-1;
+`;
+
 const MonitorListPanel = styled(Panel)`
   display: grid;
   grid-template-columns: 350px 1fr max-content;
@@ -54,4 +115,17 @@ const UptimeAlertRow = styled('ul')`
   list-style: none;
   padding: 0;
   margin: 0;
+`;
+
+const HeaderControlsLeft = styled('div')`
+  grid-column: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(1.5)} ${space(2)};
+`;
+
+const HeaderControlsRight = styled('div')`
+  grid-row: 1;
+  grid-column: -1;
+  padding: ${space(1.5)} ${space(2)};
 `;

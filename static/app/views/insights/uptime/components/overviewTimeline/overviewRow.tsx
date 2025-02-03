@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -15,6 +16,7 @@ import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import type {UptimeAlert} from 'sentry/views/alerts/types';
 
 interface Props {
+  timeWindowConfig: TimeWindowConfig;
   uptimeAlert: UptimeAlert;
 }
 
