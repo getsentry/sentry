@@ -32,11 +32,7 @@ from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
-from sentry.sentry_apps.utils.errors import (
-    SentryAppError,
-    SentryAppIntegratorError,
-    SentryAppSentryError,
-)
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
 from sentry.utils import metrics
 
@@ -850,7 +846,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
                 kwargs["actions"]
             )
-        except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
+        except SentryAppBaseError as e:
             response = e.response_from_exception()
             response.data["actions"] = [response.data.pop("detail")]
 

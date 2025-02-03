@@ -36,11 +36,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import (
-    SentryAppError,
-    SentryAppIntegratorError,
-    SentryAppSentryError,
-)
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 
 
@@ -89,7 +85,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
     if serializer.is_valid():
         try:
             trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
-        except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
+        except SentryAppBaseError as e:
             return e.response_from_exception()
 
         if get_slack_actions_with_async_lookups(organization, request.user, data):
