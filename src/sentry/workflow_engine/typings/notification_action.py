@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
@@ -42,13 +42,13 @@ class BaseActionTranslator(ABC):
 
     @property
     @abstractmethod
-    def target_type(self) -> ActionTarget:
+    def target_type(self) -> ActionTarget | None:
         """Return the target type for this action"""
         pass
 
     @property
     @abstractmethod
-    def integration_id(self) -> Any | None:
+    def integration_id(self) -> int | None:
         """Return the integration ID for this action, if any"""
         pass
 
@@ -82,16 +82,16 @@ class BaseActionTranslator(ABC):
         """
         if self.blob_type:
             mapped_data = {}
-            for field in dataclasses.fields(self.blob_type):
-                mapping = self.field_mappings.get(field.name)
+            for field_name in (field.name for field in dataclasses.fields(self.blob_type)):
+                mapping = self.field_mappings.get(field_name)
                 # If a mapping is specified, use the source field value or default value
                 if mapping:
                     source_field = mapping.source_field
                     value = self.action.get(source_field, mapping.default_value)
                 # Otherwise, use the field value
                 else:
-                    value = self.action.get(field.name, "")
-                mapped_data[field.name] = value
+                    value = self.action.get(field_name, "")
+                mapped_data[field_name] = value
 
             blob_instance = self.blob_type(**mapped_data)
             return dataclasses.asdict(blob_instance)
@@ -101,7 +101,9 @@ class BaseActionTranslator(ABC):
             return {k: v for k, v in self.action.items() if k not in excluded_keys}
 
 
-issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]]()
+issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]](
+    enable_reverse_lookup=False
+)
 
 
 @issue_alert_action_translator_registry.register(
@@ -253,6 +255,105 @@ class OpsgenieActionTranslator(BaseActionTranslator):
         return OnCallDataBlob
 
 
+class TicketActionTranslator(BaseActionTranslator, ABC):
+    @property
+    def required_fields(self) -> list[str]:
+        return ["integration"]
+
+    @property
+    def integration_id(self) -> Any | None:
+        return self.action.get("integration")
+
+    @property
+    def target_type(self) -> ActionTarget:
+        return ActionTarget.SPECIFIC
+
+
+class GitHubActionTranslatorBase(TicketActionTranslator):
+
+    @property
+    def blob_type(self) -> type["DataBlob"]:
+        return GitHubDataBlob
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
+)
+class GitHubActionTranslator(GitHubActionTranslatorBase):
+    action_type = Action.Type.GITHUB
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction"
+)
+class GitHubEnterpriseActionTranslator(GitHubActionTranslatorBase):
+    action_type = Action.Type.GITHUB_ENTERPRISE
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction"
+)
+class AzureDevOpsActionTranslator(TicketActionTranslator):
+    action_type = Action.Type.AZURE_DEVOPS
+
+    @property
+    def blob_type(self) -> type["DataBlob"]:
+        return AzureDevOpsDataBlob
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event.NotifyEventAction"
+)
+class PluginActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.PLUGIN
+
+    @property
+    def required_fields(self) -> list[str]:
+        # NotifyEventAction doesn't appear to have any required fields
+        # beyond the standard id and uuid
+        return []
+
+    @property
+    def target_type(self) -> None:
+        # This appears to be a generic plugin notification
+        # so we'll use SPECIFIC as the target type
+        return None
+
+    @property
+    def integration_id(self) -> None:
+        # Plugin actions don't have an integration ID
+        return None
+
+    @property
+    def blob_type(self) -> None:
+        # Plugin actions don't need any additional data storage
+        return None
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+)
+class WebhookActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.WEBHOOK
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["service"]
+
+    @property
+    def target_type(self) -> ActionTarget | None:
+        return None
+
+    @property
+    def integration_id(self) -> int | None:
+        return None
+
+    @property
+    def target_identifier(self) -> str | None:
+        # The service field identifies the webhook
+        return self.action.get("service")
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -282,3 +383,32 @@ class OnCallDataBlob(DataBlob):
     """OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action."""
 
     priority: str = ""
+
+
+@dataclass
+class TicketDataBlob(DataBlob):
+    """TicketDataBlob is a specific type that represents the data blob for a ticket creation action."""
+
+    # This is dynamic and can whatever customer config the customer setup on GitHub
+    dynamic_form_fields: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class GitHubDataBlob(TicketDataBlob):
+    """
+    GitHubDataBlob represents the data blob for a GitHub ticket creation action.
+    """
+
+    repo: str = ""
+    assignee: str = ""  # Optional field, defaults to empty string
+    labels: list[str] = field(default_factory=list)  # Optional field, defaults to empty list
+
+
+@dataclass
+class AzureDevOpsDataBlob(TicketDataBlob):
+    """
+    AzureDevOpsDataBlob represents the data blob for an Azure DevOps ticket creation action.
+    """
+
+    project: str = ""
+    work_item_type: str = ""

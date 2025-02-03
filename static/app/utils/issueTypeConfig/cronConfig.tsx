@@ -18,9 +18,20 @@ const cronConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for cron issues'),
       },
       ignore: {enabled: true},
-      resolve: {enabled: true},
-      resolveInRelease: {enabled: true},
+      resolve: {enabled: false},
+      resolveInRelease: {enabled: false},
       share: {enabled: true},
+    },
+    header: {
+      filterBar: {enabled: false, fixedEnvironment: true},
+      graph: {enabled: false, type: 'checkin-timeline'},
+      tagDistribution: {enabled: false},
+      occurrenceSummary: {enabled: false},
+    },
+    detector: {
+      enabled: true,
+      title: t('Cron Monitor'),
+      ctaText: t('View monitor details'),
     },
     attachments: {enabled: false},
     autofix: false,
@@ -30,7 +41,6 @@ const cronConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     issueSummary: {enabled: false},
-    filterAndSearchHeader: {enabled: false},
   },
 };
 

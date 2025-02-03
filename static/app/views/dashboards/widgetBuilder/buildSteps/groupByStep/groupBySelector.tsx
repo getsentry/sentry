@@ -130,7 +130,7 @@ export function GroupBySelector({
       (acc, key) => {
         const value = fieldOptions[key]!;
         const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value!.value.meta.name
+          column => column === value.value.meta.name
         );
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
@@ -230,11 +230,21 @@ export function GroupBySelector({
           </DndContext>
         )}
       </StyledField>
-      {columns.length < GROUP_BY_LIMIT && (
-        <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
-          {t('Add Group')}
-        </AddGroupButton>
-      )}
+      {columns.length < GROUP_BY_LIMIT &&
+        (builderVersion === WidgetBuilderVersion.PAGE ? (
+          <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
+            {t('Add Group')}
+          </AddGroupButton>
+        ) : (
+          <Button
+            size="sm"
+            priority="link"
+            onClick={handleAdd}
+            aria-label={t('Add Group')}
+          >
+            {t('+ Add Group')}
+          </Button>
+        ))}
     </Fragment>
   );
 }

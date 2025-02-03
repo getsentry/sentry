@@ -377,6 +377,16 @@ export const DATA_CATEGORY_INFO = {
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
+  [DataCategoryExact.UPTIME]: {
+    name: DataCategoryExact.UPTIME,
+    apiName: 'uptime',
+    plural: 'uptime',
+    displayName: 'uptime monitor',
+    titleName: t('Uptime Monitors'),
+    productName: t('Uptime Monitoring'),
+    uid: 21,
+    isBilledCategory: true,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
@@ -430,6 +440,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
+export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

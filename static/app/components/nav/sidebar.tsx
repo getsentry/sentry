@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
-import Submenu from 'sentry/components/nav/submenu';
+import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 
@@ -15,7 +15,7 @@ export function Sidebar() {
         </SidebarHeader>
         <PrimaryNavigationItems />
       </SidebarWrapper>
-      <Submenu />
+      <SecondarySidebar />
     </Fragment>
   );
 }

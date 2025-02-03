@@ -53,7 +53,7 @@ export function ScreenSummary() {
   const {transaction: transactionName} = location.query;
   const organization = useOrganization();
 
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
@@ -61,7 +61,7 @@ export function ScreenSummary() {
         <MobileHeader
           hideDefaultTabs={isMobileScreensEnabled}
           module={
-            isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+            isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
           }
           headerTitle={transactionName}
           breadcrumbs={[

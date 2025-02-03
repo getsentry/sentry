@@ -14,6 +14,7 @@ import type {
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
 import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -36,23 +37,29 @@ const BASE_CONFIG: IssueTypeConfig = {
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
+  header: {
+    filterBar: {enabled: true, fixedEnvironment: false},
+    graph: {enabled: true, type: 'discover-events'},
+    tagDistribution: {enabled: true},
+    occurrenceSummary: {enabled: false},
+  },
   customCopy: {
     resolution: t('Resolved'),
-    allEvents: t('All Events'),
+    eventUnits: t('Events'),
   },
+  allEventsPath: Tab.EVENTS,
   attachments: {enabled: false},
   autofix: false,
   eventAndUserCounts: {enabled: true},
+  detector: {enabled: false},
   events: {enabled: true},
   logLevel: {enabled: false},
   mergedIssues: {enabled: false},
-  filterAndSearchHeader: {enabled: true},
   performanceDurationRegression: {enabled: false},
   profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
-  showOpenPeriods: false,
   similarIssues: {enabled: false},
   spanEvidence: {enabled: false},
   stacktrace: {enabled: true},
@@ -123,7 +130,7 @@ export const getConfigForIssueType = (
 ): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
-      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)
+      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
   const categoryMap = issueTypeConfig[issueCategory];

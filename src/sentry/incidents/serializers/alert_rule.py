@@ -48,6 +48,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule_trigger,
     migrate_alert_rule,
     migrate_resolve_threshold_data_conditions,
 )
@@ -556,6 +557,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
+                dual_delete_migrated_alert_rule_trigger(trigger)
                 delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:

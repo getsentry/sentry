@@ -21,8 +21,10 @@ RELAY_OPTIONS: list[str] = [
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.metric-stats.rollout-rate",
+    "relay.ourlogs-breadcrumb-extraction.sample-rate",
     "relay.span-extraction.sample-rate",
     "relay.span-normalization.allowed_hosts",
+    "relay.drop-transaction-attachments",
 ]
 
 

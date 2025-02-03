@@ -40,6 +40,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
+    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -928,7 +929,9 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         issue_type_meta = client.get_issue_fields(jira_project, issue_type)
         if not issue_type_meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+            raise IntegrationInstallationConfigurationError(
+                "Could not fetch issue create configuration from Jira."
+            )
 
         user_id_field = client.user_id_field()
 

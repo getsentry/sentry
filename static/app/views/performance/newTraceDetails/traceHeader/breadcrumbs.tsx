@@ -58,7 +58,7 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   queues_module: ModuleName.QUEUE,
   screen_load_module: ModuleName.SCREEN_LOAD,
   screen_rendering_module: ModuleName.SCREEN_RENDERING,
-  mobile_screens_module: ModuleName.MOBILE_SCREENS,
+  mobile_screens_module: ModuleName.MOBILE_VITALS,
 };
 
 export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
@@ -94,11 +94,7 @@ function getPerformanceBreadCrumbs(
   const crumbs: Crumb[] = [];
 
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
-  const transactionSummaryUrl = getTransactionSummaryBaseUrl(
-    organization.slug,
-    view,
-    true
-  );
+  const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
   crumbs.push({
     label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),

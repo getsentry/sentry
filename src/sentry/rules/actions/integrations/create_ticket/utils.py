@@ -16,7 +16,10 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
@@ -130,6 +133,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
             try:
                 response = installation.create_issue(data)
+            except IntegrationInstallationConfigurationError as e:
+                lifecycle.record_halt(e)
+                raise
             except Exception as e:
                 if isinstance(e, IntegrationFormError):
                     # Most of the time, these aren't explicit failures, they're
