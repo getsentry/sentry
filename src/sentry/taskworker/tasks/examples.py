@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from time import sleep
 
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.retry import LastAction, Retry, RetryError
@@ -38,6 +39,7 @@ def will_retry(failure: str) -> None:
 
 @exampletasks.register(name="examples.simple_task")
 def simple_task() -> None:
+    sleep(0.8)
     logger.info("simple_task complete")
 
 
