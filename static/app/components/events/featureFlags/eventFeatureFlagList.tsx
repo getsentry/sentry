@@ -112,7 +112,7 @@ export function EventFeatureFlagList({
     );
   }, [event]);
 
-  const hasFlags = hasFlagContext && eventFlags.length > 0;
+  const hasFlags = eventFlags.length > 0;
 
   const showCTA =
     !project.hasFlags &&
