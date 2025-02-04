@@ -74,7 +74,8 @@ export default function PriorityControl({
               suffix="s"
               value={thresholds[PriorityLevel.MEDIUM]}
               onChange={threshold => setMediumThreshold(threshold)}
-              name={`${name}-secondary`}
+              name={`${name}-medium`}
+              data-test-id="priority-control-medium"
             />
           }
           right={
@@ -98,7 +99,8 @@ export default function PriorityControl({
               suffix="s"
               value={thresholds[PriorityLevel.HIGH]}
               onChange={threshold => setHighThreshold(threshold)}
-              name={`${name}-tertiary`}
+              name={`${name}-high`}
+              data-test-id="priority-control-high"
             />
           }
           right={
@@ -177,6 +179,7 @@ function PrioritySelect({
       options={priorities.map(priority => ({
         label: <GroupPriorityBadge showLabel variant="signal" priority={priority} />,
         value: priority,
+        textValue: priority,
       }))}
       value={value}
       onChange={handleChange}
