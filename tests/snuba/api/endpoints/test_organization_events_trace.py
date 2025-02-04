@@ -1705,8 +1705,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
         assert data["span_count"] == 21
-        assert data["span_count_map"]["http.server"] == 14
-        assert data["span_count_map"][""] == 7
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
 
     def test_no_team(self):
         self.load_trace()
@@ -1723,8 +1723,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
         assert data["span_count"] == 21
-        assert data["span_count_map"]["http.server"] == 14
-        assert data["span_count_map"][""] == 7
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
 
     def test_with_errors(self):
         self.load_trace()
@@ -1742,8 +1742,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 3
         assert data["performance_issues"] == 2
         assert data["span_count"] == 21
-        assert data["span_count_map"]["http.server"] == 14
-        assert data["span_count_map"][""] == 7
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
 
     def test_with_default(self):
         self.load_trace()
@@ -1761,8 +1761,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
         assert data["span_count"] == 21
-        assert data["span_count_map"]["http.server"] == 14
-        assert data["span_count_map"][""] == 7
+        assert data["span_count_map"]["http.server"] == 19
+        assert data["span_count_map"][""] == 2
         assert len(data["transaction_child_count_map"]) == 8
         for item in data["transaction_child_count_map"]:
             assert item["count"] > 1, item

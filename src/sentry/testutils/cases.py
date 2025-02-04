@@ -3382,17 +3382,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
+                spans = []
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(
+                        spans.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                self.store_span(self.convert_event_data_to_span(event))
+                spans.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
