@@ -92,7 +92,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             if max_workers is None:
                 metric_tags["workers"] = "default"
             else:
-                metric_tags["workers"] = max_workers
+                metric_tags["workers"] = str(max_workers)
 
         metrics.incr(
             "remote_subscriptions.result_consumer.start",
