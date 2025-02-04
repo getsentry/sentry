@@ -594,7 +594,9 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self, is_new_account: bool) -> tuple[User | None, str]:
+    def _dispatch_to_confirmation(
+        self, is_new_account: bool
+    ) -> tuple[User | AnonymousUser | None, str]:
         if self._logged_in_user:
             return self._logged_in_user, "auth-confirm-link"
 

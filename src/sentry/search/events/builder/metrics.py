@@ -185,7 +185,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # are passed as aliased expressions to the MQB query transformer.
         if self.use_metrics_layer:
             first_column = self.columns[0]
-            return self.columns and (
+            return bool(self.columns) and (
                 isinstance(first_column, Function) or isinstance(first_column, AliasedExpression)
             )
 
@@ -1975,7 +1975,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         return sorted(translated)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
