@@ -39,35 +39,7 @@ describe('useSortByFields', () => {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/spans/fields/`,
-      body: [
-        {
-          key: 'plan',
-          name: 'plan',
-        },
-      ],
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return options.query.type === 'string';
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
-      body: [
-        {
-          key: 'tags[lcp.size,number]',
-          name: 'lcp.size',
-        },
-        {
-          key: 'tags[something.else,number]',
-          name: 'something.else',
-        },
-      ],
-      match: [
-        function (_url: string, options: Record<string, any>) {
-          return options.query.type === 'number';
-        },
-      ],
+      body: [],
     });
 
     mockedUsedLocation.mockReturnValue(
