@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Self
 
 from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -20,6 +20,10 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionResu
 
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
+    @property
+    def base_handler(self) -> Self:
+        return self
+
     @property
     def intervals(self) -> dict[str, tuple[str, timedelta]]:
         return STANDARD_INTERVALS
