@@ -12,6 +12,7 @@ import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
+import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import AuthLayout from 'sentry/views/auth/layout';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -172,7 +173,7 @@ function buildRoutes() {
   );
 
   const rootRoutes = (
-    <Fragment>
+    <Route component={errorHandler(AppBodyContent)}>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
       {hook('routes:root')}
       <Route
@@ -307,7 +308,7 @@ function buildRoutes() {
         component={make(() => import('sentry/views/stories/index'))}
         withOrgPath
       />
-    </Fragment>
+    </Route>
   );
 
   const accountSettingsRoutes = (

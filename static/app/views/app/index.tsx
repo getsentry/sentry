@@ -39,8 +39,6 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
-import SystemAlerts from './systemAlerts';
-
 type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
@@ -278,7 +276,6 @@ function App({children, params}: Props) {
                   <GlobalDrawer>
                     <MainContainer tabIndex={-1} ref={mainContainerRef}>
                       <GlobalModal onClose={handleModalClose} />
-                      <SystemAlerts className="messages-container" />
                       <Indicators className="indicators-container" />
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </MainContainer>
