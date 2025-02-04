@@ -124,7 +124,7 @@ def query_replay_viewed_by_ids(
 
     for project_id in project_ids:
         if project_id in options.get("replay.viewed-by.project-denylist"):
-            raise BadRequest(VIEWED_BY_DENYLIST_MSG)
+            raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
 
     return execute_query(
         query=make_full_aggregation_query(

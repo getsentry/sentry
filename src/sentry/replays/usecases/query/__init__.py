@@ -53,7 +53,7 @@ NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
 DEFAULT_SORT_FIELD = "started_at"
 
 VIEWED_BY_DENYLIST_MSG = (
-    "Viewed by me search has been disabled for your project due to a data irregularity."
+    "Viewed by search has been disabled for your project due to a data irregularity."
 )
 
 PREFERRED_SOURCE = Literal["aggregated", "scalar"]
@@ -235,7 +235,7 @@ def query_using_optimized_search(
         # Skip all viewed by filters if in denylist
         for search_filter in search_filters:
             if search_filter.key.name in VIEWED_BY_KEYS:
-                raise BadRequest(VIEWED_BY_DENYLIST_MSG)
+                raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
     else:
         # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
         search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
