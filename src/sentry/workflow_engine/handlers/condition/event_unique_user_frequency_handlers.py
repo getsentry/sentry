@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Self
 
 from sentry import tsdb
-from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.constants import get_issue_tsdb_user_group_model
 from sentry.models.group import Group
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
@@ -47,7 +47,7 @@ class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandle
             )
 
         for category, issue_ids in category_group_ids.items():
-            model = get_issue_tsdb_group_model(
+            model = get_issue_tsdb_user_group_model(
                 category
             )  # TODO: may need to update logic for crons, metric issues, uptime
             batch_sums.update(get_result(model, issue_ids))

@@ -5,8 +5,8 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
-    EventFrequencyCountHandler,
+from sentry.workflow_engine.handlers.condition.event_unique_user_frequency_handlers import (
+    EventUniqueUserFrequencyConditionHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.workflow_engine.handlers.condition.test_base import EventFrequencyQueryTestBase
@@ -40,7 +40,7 @@ class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCond
 
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
-    handler = EventFrequencyCountHandler
+    handler = EventUniqueUserFrequencyConditionHandler
 
     def test_batch_query_user(self):
         batch_query = self.handler().batch_query(

@@ -28,7 +28,7 @@ from .event_attribute_handler import EventAttributeConditionHandler
 from .event_created_by_detector_handler import EventCreatedByDetectorConditionHandler
 from .event_frequency_handlers import EventFrequencyCountHandler, EventFrequencyPercentHandler
 from .event_seen_count_handler import EventSeenCountConditionHandler
-from .event_user_frequency_handlers import (
+from .event_unique_user_frequency_handlers import (
     EventUniqueUserFrequencyCountHandler,
     EventUniqueUserFrequencyPercentHandler,
 )
