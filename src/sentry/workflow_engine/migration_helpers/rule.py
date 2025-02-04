@@ -6,7 +6,6 @@ from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import split_conditions_and_filters
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition,
 )
@@ -29,7 +28,7 @@ from sentry.workflow_engine.models import (
 logger = logging.getLogger(__name__)
 
 
-def migrate_issue_alert(rule: Rule, user: RpcUser | None = None):
+def migrate_issue_alert(rule: Rule, user_id: int | None = None):
     data = rule.data
     project = rule.project
     organization = project.organization
@@ -48,7 +47,7 @@ def migrate_issue_alert(rule: Rule, user: RpcUser | None = None):
         rule=rule,
         detector=error_detector,
         when_condition_group=when_dcg,
-        user_id=user.id if user else None,
+        user_id=user_id,
         environment_id=rule.environment_id,
     )
     AlertRuleWorkflow.objects.create(rule=rule, workflow=workflow)
