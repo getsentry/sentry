@@ -1,10 +1,11 @@
 import logging
-from collections import defaultdict
+from enum import StrEnum
 
 import sentry_sdk
 
 from sentry import buffer
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import (
     Action,
@@ -12,7 +13,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
@@ -24,69 +24,51 @@ logger = logging.getLogger(__name__)
 WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
 
 
-# TODO remove this method
-def get_data_condition_groups_to_fire(
-    workflows: set[Workflow], job: WorkflowJob
-) -> dict[int, list[int]]:
-    workflow_action_groups: dict[int, list[int]] = defaultdict(list)
-
-    workflow_ids = {workflow.id for workflow in workflows}
-
-    workflow_dcgs = WorkflowDataConditionGroup.objects.filter(
-        workflow_id__in=workflow_ids
-    ).select_related("condition_group", "workflow")
-
-    for workflow_dcg in workflow_dcgs:
-        action_condition = workflow_dcg.condition_group
-        evaluation, result, _ = evaluate_condition_group(action_condition, job)
-
-        if evaluation:
-            workflow_action_groups[workflow_dcg.workflow_id].append(action_condition.id)
-
-    return workflow_action_groups
+class WorkflowDataConditionGroupType(StrEnum):
+    ACTION_FILTER = "action_filter"
+    WORKFLOW_TRIGGER = "workflow_trigger"
 
 
-def enqueue_workflows(
-    workflows: set[Workflow],
-    job: WorkflowJob,
+def enqueue_workflow(
+    workflow: Workflow,
+    delayed_conditions: list[DataCondition],
+    event: GroupEvent,
+    source: WorkflowDataConditionGroupType,
 ) -> None:
-    event = job["event"]
     project_id = event.group.project.id
-    workflow_action_groups = get_data_condition_groups_to_fire(workflows, job)
 
-    for workflow in workflows:
-        buffer.backend.push_to_sorted_set(key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=project_id)
+    buffer.backend.push_to_sorted_set(key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=project_id)
 
-        action_filters = workflow_action_groups.get(workflow.id, [])
-        if not action_filters:
-            continue
+    condition_group_set = {condition.condition_group_id for condition in delayed_conditions}
+    condition_groups = ",".join(
+        str(condition_group_id) for condition_group_id in condition_group_set
+    )
 
-        action_filter_fields = ":".join(map(str, action_filters))
-
-        value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
-        buffer.backend.push_to_hash(
-            model=Workflow,
-            filters={"project": project_id},
-            field=f"{workflow.id}:{event.group.id}:{action_filter_fields}",
-            value=value,
-        )
+    value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
+    buffer.backend.push_to_hash(
+        model=Workflow,
+        filters={"project": project_id},
+        field=f"{workflow.id}:{event.group.id}:{condition_groups}:{source}",
+        value=value,
+    )
 
 
 def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
-    workflows_to_enqueue: set[Workflow] = set()
 
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(job)
+
         if remaining_conditions:
-            workflows_to_enqueue.add(workflow)
+            enqueue_workflow(
+                workflow,
+                remaining_conditions,
+                job["event"],
+                WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
+            )
         else:
             if evaluation:
-                # Only add workflows that have no remaining conditions to check
                 triggered_workflows.add(workflow)
-
-    if workflows_to_enqueue:
-        enqueue_workflows(workflows_to_enqueue, job)
 
     return triggered_workflows
 
@@ -96,7 +78,6 @@ def evaluate_workflows_action_filters(
     job: WorkflowJob,
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
-    enqueued_conditions: list[DataCondition] = []
 
     # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
     workflow_ids = {workflow.id for workflow in workflows}
@@ -111,9 +92,15 @@ def evaluate_workflows_action_filters(
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            enqueued_conditions.extend(remaining_conditions)
+            condition_group = action_condition.workflowdataconditiongroup_set.first()
+            if condition_group:
+                enqueue_workflow(
+                    condition_group.workflow,
+                    remaining_conditions,
+                    job["event"],
+                    WorkflowDataConditionGroupType.ACTION_FILTER,
+                )
         else:
-            # if we don't have any other conditions to evaluate, add the action to the list
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
@@ -131,6 +118,8 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
     the workflow will be added to a unique list of triggered workflows.
 
+    TODO @saponifi3d add metrics for this method
+
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     # Check to see if the GroupEvent has an issue occurrence
@@ -143,8 +132,14 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
-    triggered_workflows = evaluate_workflow_triggers(workflows, job)
-    actions = evaluate_workflows_action_filters(triggered_workflows, job)
+
+    with sentry_sdk.start_span(op="workflow_engine.process_workflows.evaluate_workflow_triggers"):
+        triggered_workflows = evaluate_workflow_triggers(workflows, job)
+
+    with sentry_sdk.start_span(
+        op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
+    ):
+        actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         for action in actions:
