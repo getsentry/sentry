@@ -1,5 +1,4 @@
 import logging
-import os
 
 import grpc
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
@@ -11,18 +10,9 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
-from sentry.utils import json
+from sentry import options
 
 logger = logging.getLogger("sentry.taskworker.client")
-
-SERVICE_CONFIG = json.dumps(
-    {
-        "loadBalancingConfig": [{"round_robin": {}}],
-    }
-)
-GRPC_OPTIONS = [
-    ("grpc.service_config", SERVICE_CONFIG),
-]
 
 
 class TaskworkerClient:
@@ -35,11 +25,12 @@ class TaskworkerClient:
         self._host = host
 
         # TODO(taskworker) Need to support xds bootstrap file
-        grpc_override = os.getenv("SENTRY_TASKWORKER_GRPC_SERVICE_CONFIG")
-        if grpc_override:
-            GRPC_OPTIONS = [("grpc.service_config", grpc_override)]
+        grpc_config = options.get("taskworker.grpc_service_config")
+        grpc_options = []
+        if grpc_config:
+            grpc_options = [("grpc.service_config", grpc_config)]
 
-        self._channel = grpc.insecure_channel(self._host, options=GRPC_OPTIONS)
+        self._channel = grpc.insecure_channel(self._host, options=grpc_options)
         self._stub = ConsumerServiceStub(self._channel)
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
