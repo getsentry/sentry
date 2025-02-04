@@ -34,7 +34,7 @@ class SentryAppBaseError(Exception):
         self.message = message
 
     def to_public_dict(self) -> SentryAppPublicErrorBody:
-        error_body: dict[str, Any] = {"detail": self.message}
+        error_body: SentryAppPublicErrorBody = {"detail": self.message}
         if public_context := self.public_context:
             error_body.update({"context": public_context})
 
@@ -58,7 +58,7 @@ class SentryAppSentryError(SentryAppBaseError):
     error_type = SentryAppErrorType.SENTRY
     status_code = 500
 
-    def to_public_dict(self):
+    def to_public_dict(self) -> SentryAppPublicErrorBody:
         error_id = sentry_sdk.capture_exception(self)
         return {
             "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
