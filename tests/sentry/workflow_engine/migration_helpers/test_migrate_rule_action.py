@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
@@ -164,8 +166,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -183,8 +185,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -276,13 +278,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        # Only 2 actions should be created, the first one is malformed
-        assert len(actions) == 2
-
-        self.assert_actions_migrated_correctly(
-            actions, action_data[1:], "workspace", "channel_id", "channel"
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -293,8 +290,6 @@ class TestNotificationActionMigrationUtils(TestCase):
                 "missing_fields": ["channel_id", "channel"],
             },
         )
-
-        self.assert_actions_migrated_correctly(actions, action_data[1:])
 
     def test_discord_action_migration(self):
         action_data = [
@@ -336,12 +331,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(
-            actions, action_data[1:], "server", "channel_id", None
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -397,12 +388,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(
-            actions, action_data[1:], "team", "channel_id", "channel"
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -465,10 +452,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "service", None)
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_opsgenie_action_migration(self):
         action_data = [
@@ -521,10 +506,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "team", None)
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_github_action_migration(self):
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
@@ -763,8 +746,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_azure_devops_migration(self):
         action_data = [
@@ -920,8 +903,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_email_migration(self):
         action_data: list[dict[str, Any]] = [
@@ -1000,11 +983,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-        self.assert_actions_migrated_correctly(
-            actions, [action_data[2]], None, "targetIdentifier", None, "targetType"
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_plugin_action_migration(self):
         action_data = [
@@ -1086,8 +1066,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
