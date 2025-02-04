@@ -36,7 +36,7 @@ export function makeUptimeCheckInsQueryKey({
   limit,
 }: UptimeCheckInsParameters): ApiQueryKey {
   return [
-    `/projects/${orgSlug}/${projectSlug}/uptime-alert/${uptimeAlertId}/checks/`,
+    `/projects/${orgSlug}/${projectSlug}/uptime/${uptimeAlertId}/checks/`,
     {query: {per_page: limit, cursor}},
   ];
 }

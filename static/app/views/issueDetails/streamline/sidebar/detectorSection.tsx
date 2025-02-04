@@ -8,10 +8,10 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
-interface DetectorDetails {
+export interface DetectorDetails {
   description?: string;
   detectorId?: string;
   detectorPath?: string;
@@ -75,18 +75,10 @@ export function getDetectorDetails({
   };
 }
 
-export function DetectorSection({
-  event,
-  group,
-  project,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
-  const organization = useOrganization();
-  const {detectorPath, description} = getDetectorDetails({event, organization, project});
+export function DetectorSection({group, project}: {group: Group; project: Project}) {
   const issueConfig = getConfigForIssueType(group, project);
+  const {detectorDetails} = useIssueDetails();
+  const {detectorPath, description} = detectorDetails;
 
   if (!detectorPath) {
     return null;
