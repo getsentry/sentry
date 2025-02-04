@@ -65,9 +65,34 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return rv
 
 
-# Configurations
+# Legacy groupings
+#
+# These we do not plan on changing much, but bugfixes here might still go
+# into new grouping versions.
 
-# This is left behind in order to have less changes happen in one pull request.
+register_strategy_config(
+    id="legacy:2019-03-12",
+    strategies=[
+        "threads:legacy",
+        "stacktrace:legacy",
+        "chained-exception:legacy",
+    ],
+    delegates=["frame:legacy", "stacktrace:legacy", "single-exception:legacy"],
+    changelog="""
+        * Traditional grouping algorithm
+        * Some known weaknesses with regards to grouping of native frames
+    """,
+    initial_context={
+        "normalize_message": False,
+    },
+    enhancements_base="legacy:2019-03-12",
+)
+
+# Simple newstyle grouping
+#
+# This is a grouping strategy that applies very simple rules and will
+# become the new default at one point.  Optimized for native and
+# javascript but works for all platforms.
 register_strategy_config(
     id="newstyle:2019-05-08",
     risk=RISK_LEVEL_HIGH,
