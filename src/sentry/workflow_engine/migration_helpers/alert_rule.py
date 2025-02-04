@@ -53,6 +53,10 @@ class MissingDataConditionGroup(Exception):
     pass
 
 
+class InvalidActionType(Exception):
+    pass
+
+
 def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
     if alert_rule_trigger_action.sentry_app_id:
         return Action.Type.SENTRY_APP
@@ -542,7 +546,7 @@ def dual_update_migrated_alert_rule_trigger(
 def dual_update_migrated_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction, updated_fields: dict[str, Any]
 ) -> Action | None:
-    # update the trigger before calling this method so that we can reuse the get_action_type method: is this kosher?
+    # update the trigger before calling this method so that we can reuse the get_action_type method
     alert_rule_trigger = trigger_action.alert_rule_trigger
     # Check that we dual wrote this action
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
@@ -559,12 +563,11 @@ def dual_update_migrated_alert_rule_trigger_action(
     updated_action_fields: dict[str, Any] = {}
     action_type = get_action_type(trigger_action)
     if not action_type:
-        logger.warning(
+        logger.error(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": trigger_action.id},
         )
-        # Do we want to make this an exception instead?
-        return None
+        raise InvalidActionType
     updated_action_fields["type"] = action_type
     data = action.data.copy()
     for field in LEGACY_ACTION_FIELDS:
