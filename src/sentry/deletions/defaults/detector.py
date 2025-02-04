@@ -6,10 +6,14 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
     def get_child_relations(self, instance: Detector) -> list[BaseRelation]:
         from sentry.workflow_engine.models import DataConditionGroup, DataSource
 
-        # XXX: this assumes a data source is connected to a single detector. it's not possible in the UI
-        # to do anything else today, but if this changes we'll need to add custom conditional deletion logic
+        model_relations: list[BaseRelation] = []
 
-        model_relations: list[BaseRelation] = [ModelRelation(DataSource, {"detector": instance.id})]
+        # check that no other rows are related to the data source
+        data_source_ids = DataSource.objects.filter(detector=instance.id).values_list(
+            "id", flat=True
+        )
+        if Detector.objects.filter(data_sources__in=[data_source_ids[0]]).count() == 1:
+            model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
 
         if instance.workflow_condition_group:
             model_relations.append(

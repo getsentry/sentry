@@ -62,3 +62,28 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             id__in=[self.data_source.id, data_source_2.id]
         ).exists()
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
+
+    def test_data_source_not_deleted(self):
+        """
+        Test that we do not delete a DataSource that is connected to another Detector
+        """
+        detector_2 = self.create_detector(
+            project_id=self.project.id,
+            name="Testy Detector",
+            type=MetricAlertFire.slug,
+        )
+        data_source_detector_2 = self.create_data_source_detector(
+            data_source=self.data_source, detector=detector_2
+        )
+        self.ScheduledDeletion.schedule(instance=self.detector, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+        assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
+        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.data_condition_group.id).exists()
+        assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
+        assert DataSource.objects.filter(id=self.data_source.id).exists()
+        assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
