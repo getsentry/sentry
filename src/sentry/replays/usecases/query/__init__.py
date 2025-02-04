@@ -37,6 +37,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
+from sentry import options
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
@@ -223,8 +224,22 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
-    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
+    viewed_by_denylist = options.get("replay.viewed-by.project-denylist")
+    if any([project_id in viewed_by_denylist for project_id in project_ids]):
+        # Skip all viewed by filters if in denylist
+        new_filters = []
+        for search_filter in search_filters:
+            if search_filter.key.name not in [
+                "viewed_by_id",
+                "viewed_by_me",
+                "seen_by_id",
+                "seen_by_me",
+            ]:
+                new_filters.append(search_filter)
+        search_filters = new_filters
+    else:
+        # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+        search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     if preferred_source == "aggregated":
         query, referrer, source = _query_using_aggregated_strategy(
