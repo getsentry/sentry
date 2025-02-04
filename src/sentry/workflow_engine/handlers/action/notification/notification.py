@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.workflow_engine.handlers.action.notification.issue_alert import (
+    issue_alert_handler_registry,
+)
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
@@ -48,14 +51,26 @@ class NotificationActionHandler(ActionHandler):
                 detector.type,
                 extra={"detector_id": detector.id, "action_id": action.id},
             )
-            # Maybe metrics here?
 
 
 @group_type_notification_registry.register(ErrorGroupType.slug)
 class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
     def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
-        # TODO(iamrajjoshi): Implement this
-        pass
+        try:
+            issue_alert_handler_registry.get(action.type).invoke_legacy_registry(
+                job, action, detector
+            )
+        except NoRegistrationExistsError:
+            logger.exception(
+                "No issue alert handler found for action type: %s",
+                action.type,
+                extra={"action_id": action.id},
+            )
+        except Exception:
+            logger.exception(
+                "Error invoking issue alert handler",
+                extra={"action_id": action.id},
+            )
 
 
 @group_type_notification_registry.register(MetricIssuePOC.slug)
