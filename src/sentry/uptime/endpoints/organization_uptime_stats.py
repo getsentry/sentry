@@ -68,9 +68,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             return self.respond("Invalid project uptime subscription ids provided", status=400)
 
         epoch_cutoff = (
-            datetime.datetime.fromtimestamp(
-                self._get_date_cutoff_epoch_seconds(), tz=datetime.timezone.utc
-            )
+            datetime.datetime.fromtimestamp(self._get_date_cutoff_epoch_seconds(), tz=datetime.UTC)
             if self._get_date_cutoff_epoch_seconds()
             else None
         )
@@ -90,7 +88,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_project_uptime_subscription_id, formatted_response
         )
 
-        response_with_extra_buckets = self._add_extra_buckets_for_epoch_cutoff(
+        response_with_extra_buckets = add_extra_buckets_for_epoch_cutoff(
             mapped_response,
             epoch_cutoff,
             timerange_args["rollup"],
@@ -236,42 +234,45 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             for subscription_id, data in formatted_response.items()
         }
 
-    def _add_extra_buckets_for_epoch_cutoff(
-        self,
-        formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
-        epoch_cutoff: datetime.datetime | None,
-        rollup: int,
-        start: datetime.datetime,
-        end: datetime.datetime,
-    ) -> dict[str, list[tuple[int, dict[str, int]]]]:
-        if not epoch_cutoff:
-            return formatted_response
-
-        if not formatted_response:
-            return formatted_response
-        # Calculate the number of buckets needed TODO: how does this round if its not a multiple of the rollup?
-        total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
-        end_ts = int(end.timestamp())
-        rollup_secs = rollup
-        result = {}
-        for subscription_id, data in formatted_response.items():
-            # If we already have enough buckets, keep as-is
-            if len(data) >= total_buckets:
-                result[subscription_id] = data
-                continue
-            # Otherwise prepend empty buckets until we have enough
-            missing_buckets = []
-            num_missing = total_buckets - len(data)
-            first_ts = data[0][0] if data else end_ts
-
-            for i in range(num_missing):
-                ts = first_ts - ((num_missing - i) * rollup_secs)
-                missing_buckets.append((ts, {"failure": 0, "success": 0, "missed_window": 0}))
-
-            result[subscription_id] = missing_buckets + data
-
-        return result
-
     def _get_date_cutoff_epoch_seconds(self) -> int | None:
         value = options.get("uptime.date_cutoff_epoch_seconds")
         return None if value == 0 else value
+
+
+def add_extra_buckets_for_epoch_cutoff(
+    formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
+    epoch_cutoff: datetime.datetime | None,
+    rollup: int,
+    start: datetime.datetime,
+    end: datetime.datetime,
+) -> dict[str, list[tuple[int, dict[str, int]]]]:
+    """
+    Add padding buckets to the response to account for the epoch cutoff.
+    this is because pre-GA we did not store data.
+    """
+    if not epoch_cutoff or not formatted_response or epoch_cutoff < start:
+        return formatted_response
+
+    # Calculate the number of padding buckets needed.
+    total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
+
+    rollup_secs = rollup
+    result = {}
+
+    # check the first one and see if it has enough buckets if so return
+    # because all of them should have the same number of buckets
+    first_result = formatted_response[list(formatted_response.keys())[0]]
+    if len(first_result) >= total_buckets:
+        return formatted_response
+    num_missing = total_buckets - len(first_result)
+
+    # otherwise prepend empty buckets
+    for subscription_id, data in formatted_response.items():
+        missing_buckets = []
+        for i in range(num_missing):
+            ts = int(start.timestamp()) + (i * rollup_secs)
+            missing_buckets.append((ts, {"failure": 0, "success": 0, "missed_window": 0}))
+
+        result[subscription_id] = missing_buckets + data
+
+    return result

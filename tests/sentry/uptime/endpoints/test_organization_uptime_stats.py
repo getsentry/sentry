@@ -5,6 +5,7 @@ from unittest import skip
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
 from sentry.utils import json
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
@@ -78,6 +79,23 @@ class OrganizationUptimeCheckIndexEndpointTest(
         assert len(data[str(self.project_uptime_subscription.id)]) == 90
 
     @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
+    @override_options({"uptime.date_cutoff_epoch_seconds": 1736881457})
+    def test_simple_with_date_cutoff_rounded_resolution(self):
+        """Test that the endpoint returns data for a simple uptime check."""
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+            since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
+            until=datetime.now(timezone.utc).timestamp(),
+            resolution="1d",
+        )
+        assert response.data is not None
+        data = json.loads(json.dumps(response.data))
+        assert len(data[str(self.project_uptime_subscription.id)]) == 89
+
+    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     def test_invalid_uptime_subscription_id(self):
         """Test that the endpoint returns data for a simple uptime check."""
         response = self.get_response(
@@ -131,3 +149,55 @@ class OrganizationUptimeCheckIndexEndpointTest(
             resolution="1h",
         )
         assert response.status_code == 400
+
+
+def test_add_extra_buckets_for_epoch_cutoff():
+    """Test adding extra buckets when there's an epoch cutoff"""
+    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2025, 1, 2, tzinfo=timezone.utc)
+    epoch_cutoff = datetime(2025, 1, 1, 12, tzinfo=timezone.utc)
+    rollup = 3600  # 1 hour
+
+    # Input data with fewer buckets than expected
+    formatted_response = {
+        "subscription1": [
+            # Only 12 hours of data starting at epoch cutoff
+        ]
+    }
+
+    # Generate 12 hours of data points starting at epoch cutoff
+    data_points = []
+    for i in range(12):
+        timestamp = int(epoch_cutoff.timestamp()) + (i * 3600)
+        data_points.append(
+            (timestamp, {"failure": i % 3, "success": (3 - i % 3), "missed_window": 0})
+        )
+
+    formatted_response["subscription1"] = data_points
+
+    result = add_extra_buckets_for_epoch_cutoff(
+        formatted_response, epoch_cutoff, rollup, start, end
+    )
+
+    # Should have 24 buckets total (24 hours worth)
+    assert len(result["subscription1"]) == 24
+
+    # First bucket should be at start time
+    assert result["subscription1"][0][0] == int(start.timestamp())
+
+    # Last bucket should be the original last bucket
+    assert result["subscription1"][-1] == formatted_response["subscription1"][-1]
+
+    # Added buckets should have zero counts
+    for bucket in result["subscription1"][:12]:
+        assert bucket[1] == {"failure": 0, "success": 0, "missed_window": 0}
+
+    # Test when epoch cutoff is before start - should return original
+    result = add_extra_buckets_for_epoch_cutoff(
+        formatted_response, datetime(2024, 1, 1, tzinfo=timezone.utc), rollup, start, end
+    )
+    assert result == formatted_response
+
+    # Test with no epoch cutoff - should return original
+    result = add_extra_buckets_for_epoch_cutoff(formatted_response, None, rollup, start, end)
+    assert result == formatted_response
