@@ -69,12 +69,7 @@ function ViewEditDashboard(props: Props) {
 
   return (
     <DashboardBasicFeature organization={organization}>
-      <OrgDashboards
-        api={api}
-        location={location}
-        params={params}
-        organization={organization}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
