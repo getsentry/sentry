@@ -232,6 +232,7 @@ class TaskWorker:
     def __init__(
         self,
         rpc_host: str,
+        num_brokers: int,
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
@@ -243,7 +244,7 @@ class TaskWorker:
         self._max_task_count = max_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host)
+        self.client = TaskworkerClient(rpc_host, num_brokers)
         self._child_tasks: multiprocessing.Queue[TaskActivation] = multiprocessing.Queue(
             maxsize=(concurrency * 10)
         )

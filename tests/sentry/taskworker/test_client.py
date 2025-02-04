@@ -90,7 +90,7 @@ def test_get_task_ok():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task()
 
         assert result
@@ -115,7 +115,7 @@ def test_get_task_with_namespace():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task(namespace="testing")
 
         assert result
@@ -131,7 +131,7 @@ def test_get_task_not_found():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task()
 
         assert result is None
@@ -145,7 +145,7 @@ def test_get_task_failure():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         with pytest.raises(grpc.RpcError):
             client.get_task()
 
@@ -167,7 +167,7 @@ def test_update_task_ok_with_next():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
@@ -192,7 +192,7 @@ def test_update_task_ok_with_next_namespace():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace="testing")
         )
@@ -208,7 +208,7 @@ def test_update_task_ok_no_next():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
@@ -223,7 +223,7 @@ def test_update_task_not_found():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051")
+        client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
