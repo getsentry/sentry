@@ -4,7 +4,6 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.rules.base import RuleBase
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -23,11 +22,6 @@ class ConditionTestCase(BaseWorkflowTest):
 
     @property
     def condition(self) -> Condition:
-        raise NotImplementedError
-
-    @property
-    def rule_cls(self) -> type[RuleBase]:
-        # for mapping purposes, can delete later
         raise NotImplementedError
 
     @property

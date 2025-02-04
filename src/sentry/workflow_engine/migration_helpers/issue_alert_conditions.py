@@ -2,7 +2,11 @@ from collections.abc import Callable
 from typing import Any
 
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
-from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
+from sentry.rules.conditions.event_frequency import (
+    ComparisonType,
+    EventFrequencyCondition,
+    EventUniqueUserFrequencyCondition,
+)
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.level import LevelCondition
@@ -263,6 +267,30 @@ def create_event_frequency_data_condition(
         type = Condition.EVENT_FREQUENCY_COUNT
     else:
         type = Condition.EVENT_FREQUENCY_PERCENT
+        comparison["comparison_interval"] = data["comparisonInterval"]
+
+    return DataCondition.objects.create(
+        type=type,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(EventUniqueUserFrequencyCondition.id)
+def create_event_unique_user_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
+    comparison = {
+        "interval": data["interval"],
+        "value": data["value"],
+    }
+
+    if comparison_type == ComparisonType.COUNT:
+        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+    else:
+        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
         comparison["comparison_interval"] = data["comparisonInterval"]
 
     return DataCondition.objects.create(

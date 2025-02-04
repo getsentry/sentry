@@ -3,6 +3,8 @@ __all__ = [
     "EventFrequencyCountHandler",
     "EventFrequencyPercentHandler",
     "EventSeenCountConditionHandler",
+    "EventUniqueUserFrequencyCountHandler",
+    "EventUniqueUserFrequencyPercentHandler",
     "ReappearedEventConditionHandler",
     "RegressionEventConditionHandler",
     "ExistingHighPriorityIssueConditionHandler",
@@ -26,6 +28,10 @@ from .event_attribute_handler import EventAttributeConditionHandler
 from .event_created_by_detector_handler import EventCreatedByDetectorConditionHandler
 from .event_frequency_handlers import EventFrequencyCountHandler, EventFrequencyPercentHandler
 from .event_seen_count_handler import EventSeenCountConditionHandler
+from .event_unique_user_frequency_handlers import (
+    EventUniqueUserFrequencyCountHandler,
+    EventUniqueUserFrequencyPercentHandler,
+)
 from .existing_high_priority_issue_handler import ExistingHighPriorityIssueConditionHandler
 from .first_seen_event_handler import FirstSeenEventConditionHandler
 from .issue_category_handler import IssueCategoryConditionHandler
