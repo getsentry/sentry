@@ -51,6 +51,11 @@ type Column = GridColumnHeader<
 
 const COLUMN_ORDER: Column[] = [
   {
+    key: 'trace',
+    name: t('Trace ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
     key: 'span_id',
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
@@ -63,11 +68,6 @@ const COLUMN_ORDER: Column[] = [
   {
     key: 'span.duration',
     name: t('Total Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'trace',
-    name: t('Trace ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
