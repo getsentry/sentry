@@ -46,6 +46,7 @@ function Measurements({
       .sort();
   }, [measurements]);
 
+  const projectID = node.event?.projectID;
   const items: SectionCardKeyValueList = useMemo(() => {
     const result = [];
     for (const name of measurementNames) {
@@ -81,6 +82,7 @@ function Measurements({
               rowKey={name}
               rowValue={customMetricValue}
               kind={TraceDrawerActionValueKind.MEASUREMENT}
+              projectIds={projectID}
             />
           ),
           actionButtonAlwaysVisible: true,
@@ -88,7 +90,7 @@ function Measurements({
       }
     }
     return result;
-  }, [measurements, measurementNames, location, organization]);
+  }, [measurements, measurementNames, location, organization, projectID]);
 
   if (measurementNames.length < 1) {
     return null;

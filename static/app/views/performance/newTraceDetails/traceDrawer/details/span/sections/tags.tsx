@@ -1,5 +1,7 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 import {TraceDrawerActionValueKind} from '../../utils';
@@ -8,7 +10,8 @@ export function hasSpanTags(span: RawSpanType) {
   return !!span.tags && Object.keys(span.tags).length > 0;
 }
 
-export function Tags({span}: {span: RawSpanType}) {
+export function Tags({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+  const span = node.value;
   const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
@@ -30,6 +33,7 @@ export function Tags({span}: {span: RawSpanType}) {
         rowKey={key}
         rowValue={String(tags[key]) || ''}
         kind={TraceDrawerActionValueKind.TAG}
+        projectIds={node.event?.projectID}
       />
     ),
     actionButtonAlwaysVisible: true,

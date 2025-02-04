@@ -118,6 +118,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
 
 export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
+  const projectIds = node.event?.projectID;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
     value => value === 0
@@ -165,6 +166,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
           rowKey={key}
           rowValue={value}
           kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -181,6 +183,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
             rowKey={key}
             rowValue={value as string | number}
             kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+            projectIds={projectIds}
           />
         ),
         actionButtonAlwaysVisible: true,
@@ -197,6 +200,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
           rowKey={key}
           rowValue={(span as any)[key]}
           kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -218,6 +222,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
           rowKey={timing.name}
           rowValue={getPerformanceDuration(Number(timing.duration) * 1000)}
           kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
