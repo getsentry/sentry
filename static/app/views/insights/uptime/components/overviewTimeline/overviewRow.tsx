@@ -151,7 +151,6 @@ interface TimelineRowProps {
 
 const TimelineRow = styled('li')<TimelineRowProps>`
   grid-column: 1/-1;
-
   display: grid;
   grid-template-columns: subgrid;
 
@@ -182,9 +181,8 @@ const TimelineRow = styled('li')<TimelineRowProps>`
 
 const TimelineContainer = styled('div')`
   display: flex;
+  align-items: center;
   padding: ${space(3)} 0;
-  flex-direction: column;
-  gap: ${space(4)};
-  contain: content;
   grid-column: 2/-1;
+  opacity: var(--disabled-opacity);
 `;
