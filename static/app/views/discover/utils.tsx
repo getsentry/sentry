@@ -741,7 +741,10 @@ export function handleAddQueryToDashboard({
       },
     },
     widget: {
-      title: (query?.name ?? eventView.name)!,
+      // We need the event view name for when we're adding from a saved query page
+      title: (query?.name ?? eventView.name === 'All Errors'
+        ? t('Custom Widget')
+        : eventView.name)!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
