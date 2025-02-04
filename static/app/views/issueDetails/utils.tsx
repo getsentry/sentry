@@ -7,7 +7,6 @@ import {
   useFetchIssueTagValues,
 } from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
-import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -340,7 +339,11 @@ export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: b
   );
 }
 
-export function getUserTagValue(tagValue: TagValue) {
+export function getUserTagValue(tagValue: TagValue): {
+  subtitle: string | null;
+  subtitleType: string | null;
+  title: string | null;
+} {
   let title: string | null = null;
   let subtitle: string | null = null;
   let subtitleType: string | null = null;
@@ -363,18 +366,8 @@ export function getUserTagValue(tagValue: TagValue) {
   }
 
   if (title === subtitle) {
-    return {
-      title,
-      subtitle: null,
-    };
+    subtitle = null;
   }
-  const icon = getContextIcon({
-    alias: 'user',
-    type: 'user',
-    value: tagValue,
-    contextIconProps: {
-      size: 'md',
-    },
-  });
-  return {title, subtitle, subtitleType, icon};
+
+  return {title, subtitle, subtitleType};
 }

@@ -7,6 +7,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -198,7 +199,14 @@ function TagDetailsValue({
   const valueComponent =
     tagKey === 'user' ? (
       <UserValue>
-        {userValues.icon}
+        {getContextIcon({
+          alias: 'user',
+          type: 'user',
+          value: tagValue,
+          contextIconProps: {
+            size: 'md',
+          },
+        })}
         <div>{userValues.title}</div>
         {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
       </UserValue>
