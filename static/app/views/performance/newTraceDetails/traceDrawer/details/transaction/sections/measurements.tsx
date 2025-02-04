@@ -82,6 +82,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
             rowKey={`tags[${name},number]`}
             rowValue={customMetricValue}
             kind={TraceDrawerActionValueKind.MEASUREMENT}
+            projectIds={event.projectID}
           />
         ),
         actionButtonAlwaysVisible: true,
