@@ -99,7 +99,7 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
   // TODO(Leander): Add Incident ID when the data is available
 
   return items.length > 0 ? (
-    <Flex align="center" gap={space(4)} className={className}>
+    <Flex align="start" gap={space(4)} className={className}>
       {items.map((item, i) => (
         <Fragment key={i}>{item}</Fragment>
       ))}
@@ -116,6 +116,7 @@ const ItemTitle = styled('div')`
 const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightNormal};
+  max-width: 400px;
 `;
 
 const ItemLink = styled(Link)`
