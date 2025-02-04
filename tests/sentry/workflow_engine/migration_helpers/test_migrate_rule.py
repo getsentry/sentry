@@ -6,6 +6,7 @@ from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import install_slack
 from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.rule import (
@@ -15,6 +16,7 @@ from sentry.workflow_engine.migration_helpers.rule import (
     update_migrated_issue_alert,
 )
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
@@ -40,16 +42,26 @@ class RuleMigrationHelpersTest(APITestCase):
                 "time": "hour",
             },
         ]
+        integration = install_slack(self.organization)
+        action_data = [
+            {
+                "channel": "#my-channel",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "workspace": str(integration.id),
+                "uuid": "test-uuid",
+                "channel_id": "C01234567890",
+            },
+        ]
         self.issue_alert = self.create_project_rule(
-            name="test", condition_data=conditions, action_match="any", filter_match="any"
+            name="test",
+            condition_data=conditions,
+            action_match="any",
+            filter_match="any",
+            action_data=action_data,
         )
         self.rpc_user = user_service.get_user(user_id=self.user.id)
 
     def test_create_issue_alert(self):
-        # TODO(cathy): update after filters have condition handlers and the action registry is merged
-        pass
-
-    def test_create_issue_alert_no_actions(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
@@ -97,13 +109,21 @@ class RuleMigrationHelpersTest(APITestCase):
             },
             condition_result=True,
         ).exists()
-        assert DataConditionGroupAction.objects.filter(condition_group=if_dcg).count() == 0
+
+        dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
+        action = dcg_actions.action
+        assert action.type == Action.Type.SLACK  # tested fully in test_migrate_rule_action.py
+
+    def test_create_issue_alert_detector_exists(self):
+        project_detector = self.create_detector(project=self.project)
+        migrate_issue_alert(self.issue_alert, self.rpc_user)
+
+        # does not create a new error detector
+
+        detector = Detector.objects.get(project_id=self.project.id)
+        assert detector == project_detector
 
     def test_update_issue_alert(self):
-        # TODO: update after action registry is merged
-        pass
-
-    def test_update_issue_alert_no_actions(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
         conditions_payload = [
             {
@@ -119,7 +139,12 @@ class RuleMigrationHelpersTest(APITestCase):
             "environment": self.environment.id,
             "action_match": "none",
             "filter_match": "all",
-            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "actions": [
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "uuid": "test-uuid",
+                }
+            ],
             "conditions": conditions_payload,
             "frequency": 60,
         }
@@ -155,7 +180,9 @@ class RuleMigrationHelpersTest(APITestCase):
             condition_result=True,
         ).exists()
 
-        assert DataConditionGroupAction.objects.filter(condition_group=if_dcg).count() == 0
+        dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
+        action = dcg_actions.action
+        assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
 
     def test_required_fields_only(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
@@ -190,10 +217,6 @@ class RuleMigrationHelpersTest(APITestCase):
         assert filters.count() == 0
 
     def test_delete_issue_alert(self):
-        # TODO: update after action registry is merged
-        pass
-
-    def test_delete_issue_alert_no_actions(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
@@ -217,3 +240,5 @@ class RuleMigrationHelpersTest(APITestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+        assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
+        assert not Action.objects.all().exists()

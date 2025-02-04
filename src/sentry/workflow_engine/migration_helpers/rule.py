@@ -10,11 +10,16 @@ from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition,
 )
+from sentry.workflow_engine.migration_helpers.rule_action import (
+    build_notification_actions_from_rule_data_actions,
+)
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
     Workflow,
@@ -112,9 +117,13 @@ def create_if_dcg(
     return if_dcg
 
 
-def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, Any]]):
-    # TODO: create actions, need registry
-    pass
+def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, Any]]) -> None:
+    notification_actions = build_notification_actions_from_rule_data_actions(actions)
+    dcg_actions = [
+        DataConditionGroupAction(action=action, condition_group=if_dcg)
+        for action in notification_actions
+    ]
+    DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
 
 class UpdatedIssueAlertData(TypedDict):
@@ -218,6 +227,7 @@ def delete_migrated_issue_alert(rule: Rule):
         for workflow_dcg in workflow_dcgs:
             if_dcg = workflow_dcg.condition_group
             if_dcg.conditions.all().delete()
+            delete_workflow_actions(if_dcg=if_dcg)
             if_dcg.delete()
 
     except WorkflowDataConditionGroup.DoesNotExist:
@@ -239,5 +249,7 @@ def delete_migrated_issue_alert(rule: Rule):
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):
-    # TODO: delete actions, need registry
-    pass
+    dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
+    action_ids = dcg_actions.values_list("action_id", flat=True)
+    Action.objects.filter(id__in=action_ids).delete()
+    dcg_actions.delete()
