@@ -1041,12 +1041,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const projectsRoutes = (
-    <Route
-      path="/projects/"
-      component={make(() => import('sentry/views/projects/'))}
-      withOrgPath
-    >
+  const projectsChildRoutes = (
+    <Fragment>
       <IndexRoute component={make(() => import('sentry/views/projectsDashboard'))} />
       <Route
         path="new/"
@@ -1066,6 +1062,15 @@ function buildRoutes() {
           () => import('sentry/views/projectInstall/platformOrIntegration')
         )}
       />
+    </Fragment>
+  );
+  const projectsRoutes = (
+    <Route
+      path="/projects/"
+      component={make(() => import('sentry/views/projects/'))}
+      withOrgPath
+    >
+      {projectsChildRoutes}
     </Route>
   );
 
@@ -1868,6 +1873,9 @@ function buildRoutes() {
           component={make(() => import('sentry/views/performance/trends'))}
         />
         {moduleRoutes}
+      </Route>
+      <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
+        {projectsChildRoutes}
       </Route>
     </Route>
   );

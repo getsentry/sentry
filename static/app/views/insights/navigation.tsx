@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AI_LANDING_SUB_PATH,
@@ -39,9 +40,8 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
       <SecondaryNav>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            {/* TODO(malwilley): Move projects to the /insights/projects/ route */}
-            <SecondaryNav.Item to={`/organizations/${organization.slug}/projects/`}>
-              All Projects
+            <SecondaryNav.Item to={`${baseUrl}/projects/`}>
+              {t('All Projects')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
           <SecondaryNav.Section>
