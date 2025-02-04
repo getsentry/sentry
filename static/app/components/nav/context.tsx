@@ -1,9 +1,10 @@
 import {createContext, useContext, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
 import {NavLayout, type PrimaryNavGroup} from 'sentry/components/nav/types';
-import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMedia from 'sentry/utils/useMedia';
 
 export interface NavContext {
   activeGroup: PrimaryNavGroup | null;
@@ -36,26 +37,21 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
   );
   const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
   const [activeGroup, setActiveGroup] = useState<PrimaryNavGroup | null>(null);
-  const screen = useBreakpoints();
+
+  const theme = useTheme();
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   const value = useMemo(
     () => ({
       secondaryNavEl,
       setSecondaryNavEl,
-      layout: screen.medium ? NavLayout.SIDEBAR : NavLayout.MOBILE,
+      layout: isMobile ? NavLayout.MOBILE : NavLayout.SIDEBAR,
       isCollapsed,
       setIsCollapsed,
       activeGroup,
       setActiveGroup,
     }),
-    [
-      screen.medium,
-      secondaryNavEl,
-      isCollapsed,
-      setIsCollapsed,
-      activeGroup,
-      setActiveGroup,
-    ]
+    [secondaryNavEl, isMobile, isCollapsed, setIsCollapsed, activeGroup]
   );
 
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>;

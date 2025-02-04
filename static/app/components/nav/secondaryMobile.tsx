@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -19,7 +20,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
         <Button
           onClick={handleClickBack}
           icon={<IconChevron direction="left" />}
-          aria-label="Back"
+          aria-label={t('Back to primary navigation')}
           size="xs"
           borderless
         />
@@ -44,7 +45,7 @@ const SecondaryMobileWrapper = styled('div')`
   grid-template-rows: auto 1fr;
 `;
 
-const GroupHeader = styled('div')`
+const GroupHeader = styled('h2')`
   grid-area: header;
   position: sticky;
   top: 0;
@@ -54,6 +55,7 @@ const GroupHeader = styled('div')`
   align-items: center;
   padding: ${space(2)} ${space(1)};
   gap: ${space(1)};
+  margin: 0;
 `;
 
 const ContentWrapper = styled('div')`

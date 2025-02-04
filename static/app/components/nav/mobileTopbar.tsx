@@ -2,19 +2,24 @@ import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
 import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 
 function MobileTopbar() {
   const {activeGroup} = useNavContext();
   const location = useLocation();
+  const organization = useOrganization();
   const [view, setView] = useState<ActiveView>('closed');
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
@@ -30,19 +35,28 @@ function MobileTopbar() {
 
   return (
     <Topbar>
-      <a href="/">
+      <HomeLink
+        to={`/organizations/${organization.slug}/issues/`}
+        aria-label={t('Sentry Home')}
+      >
         <IconSentry />
-      </a>
-      <button onClick={handleClick}>
-        {view === 'closed' ? <IconMenu width={16} /> : <IconClose width={16} />}
-      </button>
+      </HomeLink>
+      <MenuButton
+        onClick={handleClick}
+        icon={view === 'closed' ? <IconMenu /> : <IconClose />}
+        aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
+        size="sm"
+        borderless
+      />
       {view !== 'closed' ? (
-        <OverlayPortal>
+        <NavigationOverlayPortal
+          label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
+        >
           {view === 'primary' ? <PrimaryNavigationItems /> : null}
           {view === 'secondary' ? (
             <SecondaryMobile handleClickBack={() => setView('primary')} />
           ) : null}
-        </OverlayPortal>
+        </NavigationOverlayPortal>
       ) : null}
     </Topbar>
   );
@@ -68,11 +82,20 @@ function updateNavStyleAttributes(view: ActiveView) {
   }
 }
 
-function OverlayPortal({children}: any) {
-  return createPortal(<Overlay>{children}</Overlay>, document.body);
+function NavigationOverlayPortal({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return createPortal(
+    <NavigationOverlay aria-label={label}>{children}</NavigationOverlay>,
+    document.body
+  );
 }
 
-const Topbar = styled('div')`
+const Topbar = styled('header')`
   height: 40px;
   width: 100vw;
   padding: ${space(0.5)} ${space(1.5)} ${space(0.5)} ${space(1)};
@@ -86,34 +109,31 @@ const Topbar = styled('div')`
   position: sticky;
   top: 0;
   z-index: ${theme.zIndex.sidebar};
+`;
+
+const HomeLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 ${space(2)};
+  margin: -${space(1)};
 
   svg {
-    display: block;
-    width: var(--size);
-    height: var(--size);
-    color: currentColor;
-  }
-  button {
-    all: initial;
-    --size: ${space(2)};
-  }
-  a {
-    --size: ${space(3)};
-  }
-  a,
-  button {
-    color: rgba(255, 255, 255, 0.85);
-    padding: ${space(1)};
-    margin: -${space(1)};
-    cursor: pointer;
-
-    &:hover {
-      color: white;
-    }
+    color: ${p => p.theme.white};
+    width: ${space(3)};
+    height: ${space(3)};
   }
 `;
 
-const Overlay = styled('div')`
+const MenuButton = styled(Button)`
+  color: ${p => p.theme.white};
+
+  &:hover {
+    color: ${p => p.theme.white};
+  }
+`;
+
+const NavigationOverlay = styled('nav')`
   position: fixed;
   top: 40px;
   right: 0;
