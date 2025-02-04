@@ -31,6 +31,7 @@ class TaskworkerClient:
         if grpc_config:
             grpc_options = [("grpc.service_config", grpc_config)]
 
+        logger.info("Connecting to %s with options %s", self._host, grpc_options)
         self._channel = grpc.insecure_channel(self._host, options=grpc_options)
         self._stub = ConsumerServiceStub(self._channel)
 
