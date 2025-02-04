@@ -732,11 +732,13 @@ type KeyValueActionProps = {
   rowKey: string;
   rowValue: React.ReactNode;
   kind?: TraceDrawerActionValueKind;
+  projectIds?: string | string[];
 };
 
 function KeyValueAction({
   rowKey,
   rowValue,
+  projectIds,
   kind = TraceDrawerActionValueKind.SENTRY_TAG,
 }: KeyValueActionProps) {
   const location = useLocation();
@@ -773,6 +775,7 @@ function KeyValueAction({
       to: getSearchInExploreTarget(
         organization,
         location,
+        projectIds,
         rowKey,
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
@@ -784,6 +787,7 @@ function KeyValueAction({
       to: getSearchInExploreTarget(
         organization,
         location,
+        projectIds,
         rowKey,
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
@@ -809,6 +813,7 @@ function KeyValueAction({
         to: getSearchInExploreTarget(
           organization,
           location,
+          projectIds,
           rowKey,
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
@@ -820,6 +825,7 @@ function KeyValueAction({
         to: getSearchInExploreTarget(
           organization,
           location,
+          projectIds,
           rowKey,
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN

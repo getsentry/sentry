@@ -270,6 +270,9 @@ export function useSpanAncestryAndGroupingItems({
       <TraceDrawerComponents.KeyValueAction
         rowKey={SpanIndexedField.SPAN_GROUP}
         rowValue={spanGroup}
+        projectIds={
+          childTransaction ? String(childTransaction.value.project_id) : undefined
+        }
       />
     ),
     actionButtonAlwaysVisible: true,
