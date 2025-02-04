@@ -156,46 +156,6 @@ def attribute_frequency_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsR
     resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
     response = TraceItemStatsResponse()
     response.ParseFromString(resp.data)
-    # sample response from snuba tests
-
-    # from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
-    #     AttributeDistribution,
-    #     AttributeDistributions,
-    #     TraceItemStatsResult,
-    # )
-
-    # response = TraceItemStatsResponse(
-    #     results=[
-    #         TraceItemStatsResult(
-    #             attribute_distributions=AttributeDistributions(
-    #                 attributes=[
-    #                     AttributeDistribution(
-    #                         attribute_name="eap.string.attr",
-    #                         buckets=[
-    #                             AttributeDistribution.Bucket(label="0", value=40),
-    #                             AttributeDistribution.Bucket(label="1", value=40),
-    #                             AttributeDistribution.Bucket(label="2", value=40),
-    #                         ],
-    #                     ),
-    #                     AttributeDistribution(
-    #                         attribute_name="server.name",
-    #                         buckets=[
-    #                             AttributeDistribution.Bucket(
-    #                                 label="production-canary-49da29592f-42rhd", value=66.0
-    #                             ),
-    #                             AttributeDistribution.Bucket(
-    #                                 label="production-ebbfd4432-drd8d", value=50.0
-    #                             ),
-    #                             AttributeDistribution.Bucket(
-    #                                 label="production-d817329ff-hb5pk", value=40.0
-    #                             ),
-    #                         ],
-    #                     ),
-    #                 ]
-    #             )
-    #         )
-    #     ]
-    # )
     return response
 
 

@@ -2,8 +2,6 @@ from google.protobuf.json_format import MessageToDict
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-# from sentry_protos.snuba.v1.endpoint_find_traces_pb2 import AndTraceFilter
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
@@ -20,9 +18,6 @@ from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
-
-# from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-# from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 
 @region_silo_endpoint
@@ -64,10 +59,13 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         query = request.GET.get("query")
         filter, _, _ = resolver.resolve_query(query)
 
+        # this parameter is not used yet, will be used for handling the numerical attributes
+        max_buckets = request.GET.get("maxBuckets", 10)
+        max_attributes = request.GET.get("maxAttributes", 100)
         # todo get helper to pass through the request
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
-                max_buckets=10, max_attributes=100
+                max_buckets=max_buckets, max_attributes=max_attributes
             )
         )
 
