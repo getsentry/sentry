@@ -19,7 +19,7 @@ export interface PriorityControlGridProps {
   value?: PriorityThresholds;
 }
 
-interface PriorityThresholds {
+export interface PriorityThresholds {
   created: PriorityLevel;
   high?: number;
   medium?: number;
