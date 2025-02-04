@@ -635,7 +635,11 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-        } else {
+        } else if (
+          !organization.features.includes('dashboards-widget-builder-redesign')
+        ) {
+          // If we're not using the new widget builder, we need to replace the URL to
+          // ensure we're navigating back to the dashboard
           browserHistory.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
