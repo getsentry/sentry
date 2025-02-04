@@ -1,8 +1,8 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
 import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/core';
-import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -333,8 +333,7 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
 };
 
 const addCustomMeasurements = (transaction: TransactionEvent) => {
-  const browserTimeOrigin = browserPerformanceTimeOrigin();
-  if (!browserTimeOrigin || !transaction.start_timestamp) {
+  if (!browserPerformanceTimeOrigin || !transaction.start_timestamp) {
     return;
   }
 
@@ -349,7 +348,7 @@ const addCustomMeasurements = (transaction: TransactionEvent) => {
   const context: MeasurementContext = {
     transaction,
     ttfb: ttfbValue,
-    browserTimeOrigin,
+    browserTimeOrigin: browserPerformanceTimeOrigin,
     transactionStart: transaction.start_timestamp,
     transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
   };
