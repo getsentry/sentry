@@ -697,10 +697,7 @@ export type PerformanceDetectorData = {
   issueType?: IssueType;
 };
 
-type EventEvidenceDisplay = {
-  /**
-   * Used for alerting, probably not useful for the UI
-   */
+export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
   value: string;

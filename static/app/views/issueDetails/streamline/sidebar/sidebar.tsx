@@ -87,11 +87,10 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <MergedIssuesSidebarSection />
         </Fragment>
       )}
-      {/* Currently, we require events for displaying detector details */}
-      {event && issueTypeConfig.detector.enabled && (
+      {issueTypeConfig.detector.enabled && (
         <Fragment>
           <StyledBreak />
-          <DetectorSection event={event} group={group} project={project} />
+          <DetectorSection group={group} project={project} />
         </Fragment>
       )}
     </Side>

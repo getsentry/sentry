@@ -36,6 +36,7 @@ describe('EventNavigation', () => {
         tags: {key: SectionKey.TAGS},
         replay: {key: SectionKey.REPLAY},
       },
+      detectorDetails: {},
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
@@ -58,6 +59,7 @@ describe('EventNavigation', () => {
   it('does not show jump to sections by default', () => {
     jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {},
+      detectorDetails: {},
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,

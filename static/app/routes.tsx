@@ -2053,8 +2053,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
       />
       <Route
-        path={TabPaths[Tab.CHECK_INS]}
-        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
+        path={TabPaths[Tab.UPTIME_CHECKS]}
+        component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
       />
       <Route
         path={TabPaths[Tab.TAGS]}
