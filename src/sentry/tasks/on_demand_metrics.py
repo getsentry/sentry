@@ -50,7 +50,7 @@ def _get_widget_processing_batch_key() -> str:
 
 
 def _get_project_for_query_cache_key(organization: Organization) -> str:
-    return f"project_for_query:{organization.id}"
+    return f"on-demand-project-spec:{organization.id}"
 
 
 def get_field_cardinality_cache_key(
