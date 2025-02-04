@@ -20,7 +20,7 @@ SERVICE_CONFIG = json.dumps(
         "loadBalancingConfig": [{"round_robin": {}}],
     }
 )
-options = [
+GRPC_OPTIONS = [
     ("grpc.service_config", SERVICE_CONFIG),
 ]
 
@@ -31,13 +31,15 @@ class TaskworkerClient:
     """
 
     def __init__(self, host: str) -> None:
+        global GRPC_OPTIONS
         self._host = host
 
         # TODO(taskworker) Need to support xds bootstrap file
-        if os.getenv("SENTRY_TASKWORKER_GRPC_SERVICE_CONFIG"):
-            options = [("grpc.service_config", os.getenv("SENTRY_TASKWORKER_GRPC_SERVICE_CONFIG"))]
+        grpc_override = os.getenv("SENTRY_TASKWORKER_GRPC_SERVICE_CONFIG")
+        if grpc_override:
+            GRPC_OPTIONS = [("grpc.service_config", grpc_override)]
 
-        self._channel = grpc.insecure_channel(self._host, options=options)
+        self._channel = grpc.insecure_channel(self._host, options=GRPC_OPTIONS)
         self._stub = ConsumerServiceStub(self._channel)
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
