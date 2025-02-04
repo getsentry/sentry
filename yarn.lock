@@ -3469,6 +3469,20 @@
   resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.6.0.tgz#9ae1a2cf0fa5a89f0eefd81e6887c13f15ef6270"
   integrity sha512-umFIGPsFo8wjT5xLSraUd69GDJhBv8a8YgpAt8zE23SlkFNiWZcDP+Wr6yif2EQvB6Z6i3TmnQcz3mBN1j1kNA==
 
+"@sentry/types@8.48.0":
+  version "8.48.0"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.48.0.tgz#024d5993ee02687195e389df0aaaebf19662213c"
+  integrity sha512-3Ad38BF9b+sVRh7ag8jryHuqVOzQ4mBKjT6vnm+jQz45Qbhri//LSdhhJ7KpiSm3/EYpRjQekTr6mjYZmfOaeA==
+  dependencies:
+    "@sentry/core" "8.48.0"
+
+"@sentry/utils@8.48.0":
+  version "8.48.0"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.48.0.tgz#0226563d940621c6510c1029529038074d870136"
+  integrity sha512-urFKZjhjTPJMScRnAJKU2a3jkL46pNGZKRpEzTTFGTzTgf01/3hfMvVyStCHMj2GfxOMlnIE6ldimtVYUuf2qA==
+  dependencies:
+    "@sentry/core" "8.48.0"
+
 "@sentry/webpack-plugin@^3.1.1":
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-3.1.1.tgz#f84ce1b2484f39568fcab2a007567efdca98b421"
