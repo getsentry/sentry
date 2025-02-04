@@ -1,13 +1,11 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const SPACING = 15;
 
 export function CheckInPlaceholder() {
   return (
-    <PlaceholderSvg xmlns="http://www.w3.org/2000/svg" width="100%" height="14px">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="14px">
       <defs>
         <pattern
           id="tick-pattern"
@@ -24,13 +22,9 @@ export function CheckInPlaceholder() {
       <foreignObject width="100%" height="14" mask="url(#pattern-mask)">
         <AnimatedGradient />
       </foreignObject>
-    </PlaceholderSvg>
+    </svg>
   );
 }
-
-const PlaceholderSvg = styled('svg')`
-  margin: ${space(0.5)} 0;
-`;
 
 const gradientAnimation = keyframes`
     0%{ background-position-x: 0%; }
