@@ -200,6 +200,8 @@ function WidgetBuilderSlideout({
                 <ThresholdsSection
                   dataType={thresholdMetaState?.dataType}
                   dataUnit={thresholdMetaState?.dataUnit}
+                  error={error}
+                  setError={setError}
                 />
               </Section>
             )}
