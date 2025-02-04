@@ -26,7 +26,7 @@ class TestProcessDataSources(BaseWorkflowTest):
         self.query_two = self.create_snuba_query()
 
         self.detector_one = self.create_detector(name="test_detector1")
-        self.detector_two = self.create_detector(name="test_detector2")
+        self.detector_two = self.create_detector(name="test_detector2", type="metric_alert_fire")
 
         self.ds1 = self.create_data_source(query_id=self.query.id, type="test")
         self.ds1.detectors.set([self.detector_one])
@@ -91,3 +91,30 @@ class TestProcessDataSources(BaseWorkflowTest):
             (self.packet, [self.detector_one]),
             (self.packet_two, [self.detector_two]),
         ]
+
+    def test_metrics_are_sent_for_data_sources(self):
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_data_sources(self.data_packets, "test")
+
+            mock_incr.assert_any_call(
+                "sentry.workflow_engine.process_data_sources", tags={"query_type": "test"}
+            )
+
+    def test_metrics_are_sent_for_detector_types(self):
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_data_sources(self.data_packets, "test")
+
+            mock_incr.assert_any_call(
+                "sentry.workflow_engine.process_data_sources.detectors",
+                1,
+                tags={"detector_type": self.detector_one.type},
+            )
+
+    def test_metrics_are_sent_for_no_detectors(self):
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_data_sources(self.data_packets, "test3")
+
+            mock_incr.assert_any_call(
+                "sentry.workflow_engine.process_data_sources.no_detectors",
+                tags={"query_type": "test3"},
+            )
