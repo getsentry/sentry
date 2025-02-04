@@ -274,9 +274,9 @@ function OnboardingContent({
     );
   }
 
-  const doesNotSupportFeatureFlags = currentProject.platform
-    ? !featureFlagOnboardingPlatforms.concat('other').includes(currentProject.platform)
-    : true;
+  const doesNotSupportFeatureFlags =
+    !currentProject.platform ||
+    !featureFlagOnboardingPlatforms.concat('other').includes(currentProject.platform);
 
   const defaultMessage = (
     <Fragment>
@@ -290,11 +290,12 @@ function OnboardingContent({
       </StyledDefaultContent>
       <div>
         {tct(
-          'To track flag evaluations, you can use the Feature Flags SDK. It is currently available for Python and JavaScript projects. You can [link:read the docs] to learn more.',
+          'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python and JavaScript projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />
             ),
+            platform: currentPlatform?.name || currentProject.slug,
           }
         )}
       </div>
@@ -307,6 +308,12 @@ function OnboardingContent({
         {radioButtons}
         <FeatureFlagOtherPlatformOnboarding
           projectSlug={currentProject.slug}
+          integration={
+            // either OpenFeature or the SDK selected from the second dropdown
+            setupMode() === 'openFeature'
+              ? IntegrationOptions.OPENFEATURE
+              : sdkProvider.value
+          }
           provider={
             // dropdown value (from either dropdown)
             setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
