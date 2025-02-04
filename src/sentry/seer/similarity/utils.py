@@ -51,10 +51,6 @@ class ReferrerOptions(StrEnum):
     SIMILAR_ISSUES_TAB = "similar_issues_tab"
 
 
-class TooManyOnlySystemFramesException(Exception):
-    pass
-
-
 def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
