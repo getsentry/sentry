@@ -255,16 +255,6 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
     return base64_encoded
 
 
-def get_stacktrace_string_with_metrics(data: dict[str, Any]) -> str | None:
-    stacktrace_string = None
-    try:
-        stacktrace_string = get_stacktrace_string(data)
-    except Exception:
-        logger.exception("Unexpected exception in stacktrace string formatting")
-
-    return stacktrace_string
-
-
 def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in

@@ -20,7 +20,7 @@ from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
     filter_null_from_string,
-    get_stacktrace_string_with_metrics,
+    get_stacktrace_string,
     has_too_many_contributing_frames,
     killswitch_enabled,
     record_did_call_seer_metric,
@@ -200,9 +200,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    stacktrace_string = get_stacktrace_string_with_metrics(
-        get_grouping_info_from_variants(variants)
-    )
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
     if not stacktrace_string:
         if stacktrace_string == "":
             record_did_call_seer_metric(call_made=False, blocker="empty-stacktrace-string")
@@ -228,7 +226,7 @@ def get_seer_similar_issues(
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
-        get_stacktrace_string_with_metrics(get_grouping_info_from_variants(variants)),
+        get_stacktrace_string(get_grouping_info_from_variants(variants)),
     )
 
     if not stacktrace_string:
