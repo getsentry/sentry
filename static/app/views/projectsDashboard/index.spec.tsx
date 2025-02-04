@@ -117,7 +117,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders only projects for my teams by default', async function () {
-      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamA = TeamFixture({slug: 'team1', isMember: true, projects: undefined});
       const teamProjects = [
         ProjectFixture({
           id: '1',
