@@ -30,7 +30,7 @@ import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTabl
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
-function GroupCheckIns() {
+export default function GroupUptimeChecks() {
   const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
@@ -87,9 +87,9 @@ function GroupCheckIns() {
 
   return (
     <EventListTable
-      title={t('All Check-ins')}
+      title={t('All Uptime Checks')}
       pagination={{
-        tableUnits: t('check-ins'),
+        tableUnits: t('uptime checks'),
         links,
         pageCount,
         nextDisabled,
@@ -257,5 +257,3 @@ const LabelledTooltip = styled('div')`
   text-align: left;
   margin: 0;
 `;
-
-export default GroupCheckIns;
