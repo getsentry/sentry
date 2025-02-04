@@ -38,16 +38,16 @@ class SentryInstrumentation {
 
   withCITags() {
     if (IS_CI) {
-      this.Sentry?.setTag('branch', GITHUB_REF);
+      this.Sentry.setTag('branch', GITHUB_REF);
     }
   }
 
   withOSPlatformTags() {
-    this.Sentry?.setTag('platform', os.platform());
-    this.Sentry?.setTag('arch', os.arch());
+    this.Sentry.setTag('platform', os.platform());
+    this.Sentry.setTag('arch', os.arch());
 
     const cpus = os.cpus();
-    this.Sentry?.setTag(
+    this.Sentry.setTag(
       'cpu',
       cpus?.length ? `${cpus[0]!.model} (cores: ${cpus.length})}` : 'N/A'
     );
