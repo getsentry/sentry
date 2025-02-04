@@ -732,20 +732,24 @@ type KeyValueActionProps = {
   rowKey: string;
   rowValue: React.ReactNode;
   kind?: TraceDrawerActionValueKind;
+  projectIds?: string | string[];
 };
 
 function KeyValueAction({
   rowKey,
   rowValue,
+  projectIds,
   kind = TraceDrawerActionValueKind.SENTRY_TAG,
 }: KeyValueActionProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTraceUi = useHasTraceNewUi();
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const [isVisible, setIsVisible] = useState(false);
 
   if (
     !hasNewTraceUi ||
+    !hasTraceDrawerAction ||
     !defined(rowValue) ||
     !defined(rowKey) ||
     !['string', 'number'].includes(typeof rowValue)
@@ -771,6 +775,7 @@ function KeyValueAction({
       to: getSearchInExploreTarget(
         organization,
         location,
+        projectIds,
         rowKey,
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
@@ -782,6 +787,7 @@ function KeyValueAction({
       to: getSearchInExploreTarget(
         organization,
         location,
+        projectIds,
         rowKey,
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
@@ -807,6 +813,7 @@ function KeyValueAction({
         to: getSearchInExploreTarget(
           organization,
           location,
+          projectIds,
           rowKey,
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
@@ -818,6 +825,7 @@ function KeyValueAction({
         to: getSearchInExploreTarget(
           organization,
           location,
+          projectIds,
           rowKey,
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN

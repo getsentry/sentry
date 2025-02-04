@@ -464,6 +464,7 @@ def _single_stacktrace_variant(
         )
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
+        variant_name,
         frame_components,
         frames_for_filtering,
         event.platform,

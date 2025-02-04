@@ -4051,14 +4051,37 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ):
             response = self.get_success_response(query="abc:true")
             assert len(json.loads(response.content)) == 1, "abc:true on"
+            response = self.get_success_response(query="abc:false")
+            assert len(json.loads(response.content)) == 0, "abc:false on"
 
-        with self.feature({"organizations:feature-flag-autocomplete": False}):
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": True,
+                "organizations:issue-search-snuba": False,
+            }
+        ):
+            response = self.get_success_response(query="abc:true")
+            assert len(json.loads(response.content)) == 1, "abc:true on legacy"
+            response = self.get_success_response(query="abc:false")
+            assert len(json.loads(response.content)) == 0, "abc:false on legacy"
+
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": False,
+                "organizations:issue-search-snuba": False,
+            }
+        ):
             response = self.get_success_response(query="abc:true")
             assert len(json.loads(response.content)) == 0, "abc:true off"
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
-            response = self.get_success_response(query="abc:false")
-            assert len(json.loads(response.content)) == 0, "abc:false on"
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": False,
+                "organizations:issue-search-snuba": True,
+            }
+        ):
+            response = self.get_success_response(query="abc:true")
+            assert len(json.loads(response.content)) == 0, "abc:true off legacy"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

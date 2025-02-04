@@ -2,6 +2,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -14,11 +17,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import type {UptimeAlert} from 'sentry/views/alerts/types';
 
+import {checkStatusPrecedent, statusToText, tickStyle} from '../../timelineConfig';
+import {useUptimeMonitorStats} from '../../utils/useUptimeMonitorStats';
+
 interface Props {
+  timeWindowConfig: TimeWindowConfig;
   uptimeAlert: UptimeAlert;
 }
 
-export function OverviewRow({uptimeAlert}: Props) {
+export function OverviewRow({uptimeAlert, timeWindowConfig}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({
     organization,
@@ -27,6 +34,11 @@ export function OverviewRow({uptimeAlert}: Props) {
 
   const location = useLocation();
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
+
+  const {data: uptimeStats, isPending} = useUptimeMonitorStats({
+    ruleIds: [uptimeAlert.id],
+    timeWindowConfig,
+  });
 
   return (
     <TimelineRow key={uptimeAlert.id}>
@@ -59,7 +71,19 @@ export function OverviewRow({uptimeAlert}: Props) {
           </DetailsContainer>
         </DetailsLink>
       </DetailsArea>
-      <TimelineContainer />
+      <TimelineContainer>
+        {isPending ? (
+          <CheckInPlaceholder />
+        ) : (
+          <CheckInTimeline
+            bucketedData={uptimeStats?.[uptimeAlert.id] ?? []}
+            statusLabel={statusToText}
+            statusStyle={tickStyle}
+            statusPrecedent={checkStatusPrecedent}
+            timeWindowConfig={timeWindowConfig}
+          />
+        )}
+      </TimelineContainer>
     </TimelineRow>
   );
 }
@@ -127,7 +151,6 @@ interface TimelineRowProps {
 
 const TimelineRow = styled('li')<TimelineRowProps>`
   grid-column: 1/-1;
-
   display: grid;
   grid-template-columns: subgrid;
 
@@ -158,9 +181,8 @@ const TimelineRow = styled('li')<TimelineRowProps>`
 
 const TimelineContainer = styled('div')`
   display: flex;
+  align-items: center;
   padding: ${space(3)} 0;
-  flex-direction: column;
-  gap: ${space(4)};
-  contain: content;
   grid-column: 2/-1;
+  opacity: var(--disabled-opacity);
 `;

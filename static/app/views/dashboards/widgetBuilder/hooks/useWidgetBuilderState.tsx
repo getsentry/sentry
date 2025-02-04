@@ -194,7 +194,7 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_DESCRIPTION:
           setDescription(action.payload);
           break;
-        case BuilderStateAction.SET_DISPLAY_TYPE:
+        case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload);
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
@@ -250,7 +250,8 @@ function useWidgetBuilderState(): {
           setThresholds(undefined);
           setSelectedAggregate(undefined);
           break;
-        case BuilderStateAction.SET_DATASET:
+        }
+        case BuilderStateAction.SET_DATASET: {
           setDataset(action.payload);
 
           let nextDisplayType = displayType;
@@ -292,7 +293,8 @@ function useWidgetBuilderState(): {
           setLegendAlias([]);
           setSelectedAggregate(undefined);
           break;
-        case BuilderStateAction.SET_FIELDS:
+        }
+        case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload);
           const isRemoved = action.payload.length < (fields?.length ?? 0);
           if (
@@ -370,6 +372,7 @@ function useWidgetBuilderState(): {
             ]);
           }
           break;
+        }
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
           if (action.payload.length > 0 && fields?.length === 0) {

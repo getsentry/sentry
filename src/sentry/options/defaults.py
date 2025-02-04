@@ -569,7 +569,6 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("github-app.fetch-max-pages", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "github-app.get-trees-refactored-code",
     default=False,
@@ -2986,5 +2985,13 @@ register(
     "uptime.snuba_uptime_results.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskworker settings:
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

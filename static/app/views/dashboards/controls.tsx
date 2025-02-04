@@ -167,14 +167,14 @@ function Controls({
 
   const addWidgetDropdownItems: MenuItemProps[] = [
     {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
-    },
-    {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
       onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
     },
   ];
 

@@ -204,7 +204,7 @@ export function getDeviceContextData({
           subject: t('Orientation'),
           value: data.orientation,
         };
-      case 'memory':
+      case 'memory': {
         const {memory_size, free_memory, usable_memory} = data;
         return {
           key: ctxKey,
@@ -214,7 +214,8 @@ export function getDeviceContextData({
               ? formatMemory(memory_size, free_memory, usable_memory)
               : undefined,
         };
-      case 'storage':
+      }
+      case 'storage': {
         const {storage_size, free_storage, external_storage_size, external_free_storage} =
           data;
         return {
@@ -230,6 +231,7 @@ export function getDeviceContextData({
                 )
               : undefined,
         };
+      }
       case DeviceContextKey.FREE_STORAGE: {
         return {
           key: ctxKey,
