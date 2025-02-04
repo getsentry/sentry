@@ -100,6 +100,7 @@ export type SpanStringFields =
   | 'project'
   | 'messaging.destination.name'
   | 'user'
+  | 'user.display'
   | 'user.id'
   | 'user.email'
   | 'user.username'

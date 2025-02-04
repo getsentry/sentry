@@ -4,7 +4,6 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -21,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Row = Pick<
   EAPSpanResponse,
   | 'span_id'
+  | 'user.display'
   | 'user.id'
   | 'user.email'
   | 'user.username'
@@ -38,7 +38,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span_id'
-  | 'user'
+  | 'user.display'
   | 'span.duration'
   | 'trace'
   | 'timestamp'
@@ -53,7 +53,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'user',
+    key: 'user.display',
     name: t('User'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -105,7 +105,10 @@ export function ServiceEntrySpansTable({eventView}: Props) {
       search: eventView.query,
       fields: [
         'span_id',
-        'user',
+        'user.id',
+        'user.email',
+        'user.username',
+        'user.ip',
         'span.duration',
         'trace',
         'timestamp',
@@ -122,19 +125,20 @@ export function ServiceEntrySpansTable({eventView}: Props) {
     true
   );
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (error) {
-    return <div>Error</div>;
-  }
+  const consolidatedData = tableData?.map(row => {
+    const user =
+      row['user.username'] || row['user.email'] || row['user.ip'] || row['user.id'];
+    return {
+      ...row,
+      'user.display': user,
+    };
+  });
 
   return (
     <GridEditable
       isLoading={isLoading}
       error={error}
-      data={tableData}
+      data={consolidatedData}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
