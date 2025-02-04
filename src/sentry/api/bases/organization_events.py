@@ -617,7 +617,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if is_equation(query_column):
                 equations += 1
             # TODO: confidence is being split up in the serializer right now, need to move that here once its deprecated
-            meta["accuracy"] = {"confidence": result[columns[index]]["confidence"]}
+            if "confidence" in result[columns[index]]:
+                meta["accuracy"] = {"confidence": result[columns[index]]["confidence"]}
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
