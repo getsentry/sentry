@@ -12,8 +12,9 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         data_source_ids = DataSource.objects.filter(detector=instance.id).values_list(
             "id", flat=True
         )
-        if Detector.objects.filter(data_sources__in=[data_source_ids[0]]).count() == 1:
-            model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
+        if data_source_ids:
+            if Detector.objects.filter(data_sources__in=[data_source_ids[0]]).count() == 1:
+                model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
 
         if instance.workflow_condition_group:
             model_relations.append(

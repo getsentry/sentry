@@ -9,9 +9,17 @@ class DataSourceDeletionTask(ModelDeletionTask[DataSource]):
         model_relations: list[BaseRelation] = [
             ModelRelation(QuerySubscription, {"id": instance.query_id})
         ]
+        query_sub = None
+        try:
+            query_sub = QuerySubscription.objects.get(id=instance.query_id)
+        except QuerySubscription.DoesNotExist:
+            return model_relations
 
-        query_sub = QuerySubscription.objects.get(id=instance.query_id)
-        snuba_query = SnubaQuery.objects.get(id=query_sub.snuba_query.id)
+        if query_sub:
+            try:
+                snuba_query = SnubaQuery.objects.get(id=query_sub.snuba_query.id)
+            except SnubaQuery.DoesNotExist:
+                return model_relations
         # if there are more than 1 querysubscriptions for the related snubaquery, don't delete the snubaquery
         if QuerySubscription.objects.filter(snuba_query_id=snuba_query.id).count() == 1:
             model_relations.append(ModelRelation(SnubaQuery, {"id": query_sub.snuba_query.id}))
