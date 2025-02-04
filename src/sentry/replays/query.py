@@ -21,6 +21,7 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import options
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
@@ -118,6 +119,10 @@ def query_replay_viewed_by_ids(
         project_ids = project_id
     else:
         project_ids = [project_id]
+
+    for project_id in project_ids:
+        if project_id in options.get("replay.viewed-by.project-denylist"):
+            return []
 
     return execute_query(
         query=make_full_aggregation_query(
