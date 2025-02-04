@@ -79,7 +79,7 @@ function generateMockTickData(
     .filter(([ts, _]) => ts <= timeWindowConfig.end.getTime() / 1000);
 }
 
-export default storyBook(CheckInTimeline, story => {
+export default storyBook('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
     const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
