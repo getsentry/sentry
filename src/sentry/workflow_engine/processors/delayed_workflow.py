@@ -1,15 +1,20 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
+
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.db import models
 from sentry.models.project import Project
+from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
     BaseEventFrequencyConditionHandler,
 )
@@ -23,6 +28,8 @@ from sentry.workflow_engine.models.data_condition_group import get_slow_conditio
 from sentry.workflow_engine.registry import condition_handler_registry
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
+
+COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
 
 @dataclass(frozen=True)
@@ -158,7 +165,7 @@ def generate_unique_queries(
     if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
         return []
 
-    base_handler = handler.base_handler  # type: ignore[attr-defined]
+    base_handler = handler.base_handler()  # type: ignore[attr-defined]
 
     unique_queries = [
         UniqueConditionQuery(
@@ -199,6 +206,36 @@ def get_condition_query_groups(
     return condition_groups
 
 
+def get_condition_group_results(
+    queries_to_groups: dict[UniqueConditionQuery, set[int]]
+) -> dict[UniqueConditionQuery, dict[int, int]]:
+    condition_group_results = {}
+    current_time = timezone.now()
+
+    for unique_condition, group_ids in queries_to_groups.items():
+        handler = unique_condition.handler
+
+        _, duration = handler.intervals[unique_condition.interval]
+
+        comparison_interval: timedelta | None = None
+        if unique_condition.comparison_interval is not None:
+            comparison_interval = COMPARISON_INTERVALS_VALUES.get(
+                unique_condition.comparison_interval
+            )
+
+        result = safe_execute(
+            handler().get_rate_bulk,
+            duration=duration,
+            group_ids=group_ids,
+            environment_id=unique_condition.environment_id,
+            current_time=current_time,
+            comparison_interval=comparison_interval,
+        )
+        condition_group_results[unique_condition] = result or {}
+
+    return condition_group_results
+
+
 @instrumented_task(
     name="sentry.workflow_engine.processors.delayed_workflow",
     queue="delayed_rules",
@@ -229,11 +266,12 @@ def process_delayed_workflows(
         list(dcg_to_groups.keys()), dcg_to_workflow, workflow_ids_to_workflows
     )
 
-    _ = get_condition_query_groups(
+    condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
 
-    # TODO(cathy): fetch results from snuba
+    _ = get_condition_group_results(condition_groups)
+
     # TODO(cathy): evaluate condition groups
     # TODO(cathy): fire actions on passing groups
     # TODO(cathy): clean up redis buffer

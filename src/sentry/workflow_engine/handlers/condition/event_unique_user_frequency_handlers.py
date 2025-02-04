@@ -17,9 +17,9 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
-    @property
-    def base_handler(self) -> Self:
-        return self
+    @classmethod
+    def base_handler(cls) -> type[Self]:
+        return cls
 
     def batch_query(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int

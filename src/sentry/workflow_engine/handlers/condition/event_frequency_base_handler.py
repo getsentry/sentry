@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, Self, TypedDict
+from typing import Any, ClassVar, Literal, Self, TypedDict
 
 from django.db.models import QuerySet
 
@@ -30,15 +30,16 @@ class _QSTypedDict(TypedDict):
 
 
 class BaseEventFrequencyConditionHandler(ABC):
-    @property
+    intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
+
+    def __call__(self) -> None:
+        pass
+
+    @classmethod
     @abstractmethod
-    def base_handler(self) -> Self:
+    def base_handler(cls) -> type[Self]:
         # frequency and percent conditions can share the same base handler to query Snuba
         raise NotImplementedError
-
-    @property
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
-        return STANDARD_INTERVALS
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
