@@ -37,7 +37,7 @@ const sampleDurationTimeSeries2 = {
   },
 };
 
-export default storyBook(LineChartWidget, story => {
+export default storyBook('LineChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
