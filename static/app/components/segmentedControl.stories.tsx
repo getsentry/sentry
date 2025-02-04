@@ -7,7 +7,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import {IconStats} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(SegmentedControl, story => {
+export default storyBook('SegmentedControl', story => {
   story('Default', () => (
     <Fragment>
       <p>

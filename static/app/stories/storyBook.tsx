@@ -14,7 +14,7 @@ type SetupFunction = (
 ) => void;
 
 export default function storyBook(
-  bookContext: string | React.ComponentType<any>,
+  title: string,
   setup: SetupFunction
 ): StoryRenderFunction {
   const stories: Array<{
@@ -40,11 +40,10 @@ export default function storyBook(
   return function RenderStory() {
     return (
       <Fragment>
-        <BookTitle bookContext={bookContext} />
+        <StoryTitle>{title}</StoryTitle>
         {stories.map(({name, render}, i) => (
           <Story key={i} name={name} render={render} />
         ))}
-
         {APIDocumentation.map((documentation, i) => (
           <StoryTypes key={i} types={documentation} />
         ))}
@@ -62,18 +61,6 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
       <StoryTitle>{props.name}</StoryTitle>
       {isOneChild ? children : <SideBySide>{children}</SideBySide>}
     </StorySection>
-  );
-}
-
-function BookTitle(props: {bookContext: string | React.ComponentType<any>}) {
-  const {bookContext} = props;
-  if (typeof bookContext === 'string') {
-    return <StoryTitle>{bookContext}</StoryTitle>;
-  }
-  return (
-    <StoryTitle>
-      <code>{`<${bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name}/>`}</code>
-    </StoryTitle>
   );
 }
 

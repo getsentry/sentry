@@ -9,7 +9,7 @@ import JSXNode from './stories/jsxNode';
 import SideBySide from './stories/sideBySide';
 import InteractionStateLayer from './interactionStateLayer';
 
-export default storyBook(InteractionStateLayer, story => {
+export default storyBook('InteractionStateLayer', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

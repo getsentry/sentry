@@ -8,7 +8,7 @@ import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(SecondaryNav, story => {
+export default storyBook('SecondaryNav', story => {
   story('Basics (WIP)', () => {
     const [activeItem, setActiveItem] = useState<string | null>('product-area-1');
 

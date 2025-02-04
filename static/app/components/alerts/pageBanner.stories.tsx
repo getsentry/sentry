@@ -10,7 +10,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconBroadcast} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(PageBanner, story => {
+export default storyBook('PageBanner', story => {
   const storiesButton = (
     <LinkButton
       external

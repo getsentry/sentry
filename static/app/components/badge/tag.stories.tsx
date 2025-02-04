@@ -9,7 +9,7 @@ import {IconCheckmark, IconFire, IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-export default storyBook(Tag, story => {
+export default storyBook('Tag', story => {
   story('Default', () => {
     return (
       <Fragment>

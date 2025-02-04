@@ -15,7 +15,7 @@ import {BarChartWidget} from './barChartWidget';
 import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
 import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
-export default storyBook(BarChartWidget, story => {
+export default storyBook('BarChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

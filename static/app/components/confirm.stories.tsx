@@ -11,7 +11,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(Confirm, story => {
+export default storyBook('Confirm', story => {
   story('Triggers', () => {
     const [state, setState] = useState('empty');
 

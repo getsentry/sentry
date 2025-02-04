@@ -9,7 +9,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(StructuredEventData, story => {
+export default storyBook('StructuredEventData', story => {
   story('Default', () => {
     return (
       <Fragment>

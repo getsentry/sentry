@@ -13,7 +13,7 @@ import SideBySide from '../stories/sideBySide';
 import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';
 
-export default storyBook(IdBadge, story => {
+export default storyBook('IdBadge', story => {
   story('Props', () => {
     const org = useOrganization();
 

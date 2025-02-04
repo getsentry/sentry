@@ -12,7 +12,7 @@ import storyBook from 'sentry/stories/storyBook';
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
-export default storyBook(ReplayPlayer, story => {
+export default storyBook('ReplayPlayer', story => {
   story('Default', () => {
     function Example() {
       return (

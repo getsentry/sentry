@@ -8,7 +8,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(CollapsePanel, story => {
+export default storyBook('CollapsePanel', story => {
   story('Basics', () => (
     <Fragment>
       <p>

@@ -12,6 +12,7 @@ import types from '!!type-loader!sentry/components/button';
 
 export default storyBook('Button', (story, APIReference) => {
   APIReference(types.Button);
+
   story('Default', () => {
     return <Button>Default Button</Button>;
   });

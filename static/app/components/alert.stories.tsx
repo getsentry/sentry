@@ -10,7 +10,7 @@ import {IconClose, IconDelete, IconSad, IconSentry, IconStar} from 'sentry/icons
 import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-export default storyBook(Alert, story => {
+export default storyBook('Alert', story => {
   story('Default', () => {
     return (
       <Fragment>

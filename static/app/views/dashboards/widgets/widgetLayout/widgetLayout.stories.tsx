@@ -14,7 +14,7 @@ import {WidgetDescription} from './widgetDescription';
 import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
-export default storyBook(WidgetLayout, story => {
+export default storyBook('WidgetLayout', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

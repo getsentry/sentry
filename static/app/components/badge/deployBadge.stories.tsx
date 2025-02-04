@@ -12,7 +12,7 @@ const deploy: Deploy = {
   id: '6348842',
 };
 
-export default storyBook(DeployBadge, story => {
+export default storyBook('DeployBadge', story => {
   story('Renders with a link', () => (
     <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
   ));

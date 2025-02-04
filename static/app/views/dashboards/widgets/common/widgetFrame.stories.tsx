@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-export default storyBook(WidgetFrame, story => {
+export default storyBook('WidgetFrame', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

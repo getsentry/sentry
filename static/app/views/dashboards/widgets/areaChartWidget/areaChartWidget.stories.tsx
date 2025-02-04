@@ -17,7 +17,7 @@ import {AreaChartWidget} from './areaChartWidget';
 import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
 import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
-export default storyBook(AreaChartWidget, story => {
+export default storyBook('AreaChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
