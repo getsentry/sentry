@@ -73,11 +73,13 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
+    platform = event.platform
+
     if not event_content_has_stacktrace(event):
         metrics.incr(
             "grouping.similarity.event_content_seer_eligible",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "no-stacktrace"},
+            tags={"platform": platform, "eligible": False, "blocker": "no-stacktrace"},
         )
         return False
 
@@ -85,14 +87,14 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
         metrics.incr(
             "grouping.similarity.event_content_seer_eligible",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "unsupported-platform"},
+            tags={"platform": platform, "eligible": False, "blocker": "unsupported-platform"},
         )
         return False
 
     metrics.incr(
         "grouping.similarity.event_content_seer_eligible",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"eligible": True, "blocker": "none"},
+        tags={"platform": platform, "eligible": True, "blocker": "none"},
     )
     return True
 
