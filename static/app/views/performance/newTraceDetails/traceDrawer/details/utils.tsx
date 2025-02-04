@@ -42,6 +42,7 @@ export enum TraceDrawerActionKind {
 export function getSearchInExploreTarget(
   organization: Organization,
   location: Location,
+  projectIds: string | string[] | undefined,
   key: string,
   value: string,
   kind: TraceDrawerActionKind
@@ -66,7 +67,7 @@ export function getSearchInExploreTarget(
       end,
       statsPeriod,
       query: search.formatString(),
-      project: ALL_ACCESS_PROJECTS,
+      project: projectIds ? projectIds : ALL_ACCESS_PROJECTS,
     },
   };
 }
