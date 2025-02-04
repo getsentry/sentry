@@ -77,7 +77,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.USER_FEEDBACK]: t('Feedback'),
   };
 
-  const isListView = [Tab.CHECK_INS, Tab.EVENTS, Tab.OPEN_PERIODS].includes(currentTab);
+  const isListView = [Tab.UPTIME_CHECKS, Tab.EVENTS, Tab.OPEN_PERIODS].includes(
+    currentTab
+  );
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -213,14 +215,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             {issueTypeConfig.pages.checkIns.enabled && (
               <LinkButton
                 to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                  pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
                   query: location.query,
                 }}
                 size="xs"
-                analyticsEventKey="issue_details.all_check_ins_clicked"
-                analyticsEventName="Issue Details: All Check-ins Clicked"
+                analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                analyticsEventName="Issue Details: All Uptime Checks Clicked"
               >
-                {t('All Check-ins')}
+                {t('All Uptime Checks')}
               </LinkButton>
             )}
           </Fragment>
