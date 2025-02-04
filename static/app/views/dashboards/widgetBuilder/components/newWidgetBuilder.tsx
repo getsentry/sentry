@@ -26,6 +26,7 @@ import {
   DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
   DRAGGABLE_PREVIEW_HEIGHT_PX,
@@ -300,11 +301,7 @@ export function WidgetPreviewContainer({
                     initial={{opacity: 0, x: '50%', y: 0}}
                     animate={{opacity: 1, x: 0, y: 0}}
                     exit={{opacity: 0, x: '50%', y: 0}}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 500,
-                      damping: 50,
-                    }}
+                    transition={animationTransitionSettings}
                   >
                     {t('Widget Preview')}
                   </WidgetPreviewTitle>
@@ -313,11 +310,7 @@ export function WidgetPreviewContainer({
                   initial={{opacity: 0, x: '50%', y: 0}}
                   animate={{opacity: 1, x: 0, y: 0}}
                   exit={{opacity: 0, x: '50%', y: 0}}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 50,
-                  }}
+                  transition={animationTransitionSettings}
                   style={{
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
