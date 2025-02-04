@@ -81,7 +81,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
       {showDataSecrecySettings && <DataSecrecy />}
 
       <DataScrubbing
-        additionalContext={t('These rules can be configured for each project.')}
+        additionalContext={t(
+          'Advanced data scrubbing rules can also be configured for each project.'
+        )}
         endpoint={endpoint}
         relayPiiConfig={relayPiiConfig}
         organization={organization}
