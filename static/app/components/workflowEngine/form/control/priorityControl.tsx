@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
@@ -15,54 +15,65 @@ import {PriorityLevel} from 'sentry/types/group';
 
 export interface PriorityControlGridProps {
   name: string;
-  /** Number of rows to display (defaults to 3) */
-  limit?: number;
+  onChange?: (value: PriorityThresholds) => void;
+  value?: PriorityThresholds;
 }
 
-function getPriority(item: number, limit: number): PriorityLevel {
-  if (item === limit - 1) {
-    return PriorityLevel.HIGH;
-  }
-  if (limit === 3 && item === 0) {
-    return PriorityLevel.LOW;
-  }
-  return PriorityLevel.MEDIUM;
+interface PriorityThresholds {
+  created: PriorityLevel;
+  high?: number;
+  medium?: number;
 }
 
-/**
- * TODO(nate): expose as controlled component that accepts onChange
- */
 export default function PriorityControl({
   name,
-  limit: _limit = 3,
+  value,
+  onChange,
 }: PriorityControlGridProps) {
-  const limit = Math.max(1, Math.min(_limit, 3));
-
-  const [defaultPriority, setDefaultPriority] = useState(getPriority(0, limit));
-  const [secondaryThreshold, setSecondaryThreshold] = useState(0);
-  const [tertiaryThreshold, setTertiaryThreshold] = useState(0);
+  const [thresholds, setThresholds] = useState<PriorityThresholds>(
+    value ?? {
+      created: PriorityLevel.LOW,
+      [PriorityLevel.MEDIUM]: 0,
+      [PriorityLevel.HIGH]: 0,
+    }
+  );
+  const setCreatedPriority = useCallback(
+    (priority: PriorityLevel) => setThresholds(v => ({...v, created: priority})),
+    [setThresholds]
+  );
+  const setMediumThreshold = useCallback(
+    (threshold: number) =>
+      setThresholds(v => ({...v, [PriorityLevel.MEDIUM]: threshold})),
+    [setThresholds]
+  );
+  const setHighThreshold = useCallback(
+    (threshold: number) => setThresholds(v => ({...v, [PriorityLevel.HIGH]: threshold})),
+    [setThresholds]
+  );
+  useEffect(() => {
+    onChange?.(thresholds);
+  }, [thresholds, onChange]);
 
   return (
     <Grid>
-      {[
+      <PrioritizeRow
+        left={<span style={{textAlign: 'right'}}>{t('Issue created')}</span>}
+        right={
+          <PrioritySelect value={thresholds.created} onChange={setCreatedPriority} />
+        }
+      />
+      {priorityIsConfigurable(thresholds.created, PriorityLevel.MEDIUM) && (
         <PrioritizeRow
-          key="priority-main"
-          left={<span style={{textAlign: 'right'}}>{t('Issue created')}</span>}
-          right={<PrioritySelect value={defaultPriority} onChange={setDefaultPriority} />}
-        />,
-        <PrioritizeRow
-          key="priority-secondary"
           left={
             <NumberField
-              placeholder={0}
               alignRight
               inline
               hideLabel
               flexibleControlStateSize
               size="sm"
               suffix="s"
-              value={secondaryThreshold}
-              onChange={threshold => setSecondaryThreshold(threshold)}
+              value={thresholds[PriorityLevel.MEDIUM]}
+              onChange={threshold => setMediumThreshold(threshold)}
               name={`${name}-secondary`}
             />
           }
@@ -70,23 +81,23 @@ export default function PriorityControl({
             <GroupPriorityBadge
               showLabel
               variant="signal"
-              priority={getPriority(1, limit)}
+              priority={PriorityLevel.MEDIUM}
             />
           }
-        />,
+        />
+      )}
+      {priorityIsConfigurable(thresholds.created, PriorityLevel.HIGH) && (
         <PrioritizeRow
-          key="priority-tertiary"
           left={
             <NumberField
-              placeholder={0}
               alignRight
               inline
               hideLabel
               flexibleControlStateSize
               size="sm"
               suffix="s"
-              value={tertiaryThreshold}
-              onChange={threshold => setTertiaryThreshold(threshold)}
+              value={thresholds[PriorityLevel.HIGH]}
+              onChange={threshold => setHighThreshold(threshold)}
               name={`${name}-tertiary`}
             />
           }
@@ -94,13 +105,28 @@ export default function PriorityControl({
             <GroupPriorityBadge
               showLabel
               variant="signal"
-              priority={getPriority(2, limit)}
+              priority={PriorityLevel.HIGH}
             />
           }
-        />,
-      ].slice(0, limit)}
+        />
+      )}
     </Grid>
   );
+}
+
+function priorityIsConfigurable(
+  createdPriority: PriorityLevel,
+  targetPriority: PriorityLevel
+): boolean {
+  if (createdPriority === PriorityLevel.LOW) {
+    return (
+      targetPriority === PriorityLevel.MEDIUM || targetPriority === PriorityLevel.HIGH
+    );
+  }
+  if (createdPriority === PriorityLevel.MEDIUM) {
+    return targetPriority === PriorityLevel.HIGH;
+  }
+  return false;
 }
 
 function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.ReactNode}) {
@@ -117,7 +143,7 @@ function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.React
   );
 }
 
-const priorities = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
+const priorities = [PriorityLevel.LOW, PriorityLevel.MEDIUM, PriorityLevel.HIGH];
 
 function PrioritySelect({
   value: initialValue,
