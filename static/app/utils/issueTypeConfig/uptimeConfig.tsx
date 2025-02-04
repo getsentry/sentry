@@ -30,7 +30,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       resolution: t('Resolved'),
     },
     pages: {
-      landingPage: Tab.CHECK_INS,
+      landingPage: Tab.EVENTS,
       events: {enabled: false},
       openPeriods: {enabled: false},
       checkIns: {enabled: true},
