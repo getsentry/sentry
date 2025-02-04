@@ -1,23 +1,24 @@
 import type {Location} from 'history';
+import {LinkButton} from 'sentry/components/button';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-
-import {ModuleName, type EAPSpanResponse} from 'sentry/views/insights/types';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Organization} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import useProjects from 'sentry/utils/useProjects';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -174,11 +175,49 @@ function renderBodyCell(
         projectSlug={projectSlug ?? ''}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionId={row['span_id']}
-        spanId={row['span_id']}
+        transactionId={row.span_id}
+        spanId={row.span_id}
         source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
         location={location}
       />
+    );
+  }
+
+  if (column.key === 'profile_id') {
+    return (
+      <div>
+        <LinkButton
+          size="xs"
+          icon={<IconProfiling size="xs" />}
+          to={{
+            pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row.profile_id}/flamegraph/`,
+            query: {
+              referrer: 'performance',
+            },
+          }}
+          aria-label={t('View Profile')}
+          disabled={!row.profile_id}
+        ></LinkButton>
+      </div>
+    );
+  }
+
+  if (column.key === 'replay.id') {
+    return (
+      <div>
+        <LinkButton
+          size="xs"
+          icon={<IconPlay size="xs" />}
+          to={{
+            pathname: `/organizations/${organization.slug}/replays/${row['replay.id']}/`,
+            query: {
+              referrer: 'performance',
+            },
+          }}
+          disabled={!row['replay.id']}
+          aria-label={t('View Replay')}
+        ></LinkButton>
+      </div>
     );
   }
 
