@@ -16,6 +16,10 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
+    @classmethod
+    def base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
+        return EventFrequencyConditionHandler
+
     def batch_query(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
@@ -56,9 +60,7 @@ class EventFrequencyCountHandler(
     BaseEventFrequencyCountHandler,
     DataConditionHandler[WorkflowJob],
 ):
-    @classmethod
-    def base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
-        return EventFrequencyConditionHandler
+    pass
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
@@ -67,6 +69,4 @@ class EventFrequencyPercentHandler(
     BaseEventFrequencyPercentHandler,
     DataConditionHandler[WorkflowJob],
 ):
-    @classmethod
-    def base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
-        return EventFrequencyConditionHandler
+    pass
