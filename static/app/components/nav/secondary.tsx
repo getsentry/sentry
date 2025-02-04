@@ -14,9 +14,14 @@ type SecondaryNavProps = {
   children: ReactNode;
 };
 
-interface SecondaryNavItemProps extends Omit<LinkProps, 'ref'> {
+interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
+  /**
+   * When passed, will not show the link as active for descendant paths.
+   * Same as the RR6 `NavLink` `end` prop.
+   */
+  end?: boolean;
   isActive?: boolean;
 }
 
@@ -54,12 +59,12 @@ SecondaryNav.Item = function SecondaryNavItem({
   children,
   to,
   isActive: incomingIsActive,
+  end = false,
   ...linkProps
 }: SecondaryNavItemProps) {
-  const {pathname} = useLocation();
-  const isActive =
-    incomingIsActive ||
-    isLinkActive(typeof to === 'string' ? to : to.pathname ?? '/', pathname);
+  const location = useLocation();
+
+  const isActive = incomingIsActive || isLinkActive(to, location.pathname, {end});
 
   return (
     <Item

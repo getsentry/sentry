@@ -1,7 +1,6 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -10,11 +9,10 @@ import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 
 type Props = {
   label: React.ReactNode;
-  to: LocationDescriptor;
+  to: string;
   badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
@@ -47,10 +45,9 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   return badge;
 }
 
-function SettingsNavItem({badge, label, id, to, ...props}: Props) {
-  // TODO(malwilley): Support `end` prop in `SecondaryNav.Item`
+function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   return (
-    <SecondaryNav.Item to={locationDescriptorToTo(to)} {...props}>
+    <SecondaryNav.Item to={to} end={index} {...props}>
       <LabelHook id={id}>{label}</LabelHook>
       {badge ? <SettingsNavBadge badge={badge} /> : null}
     </SecondaryNav.Item>
