@@ -3,7 +3,6 @@ from collections.abc import Iterable
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -14,7 +13,7 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils import email
+from sentry.utils.email import MessageBuilder
 
 
 @control_silo_endpoint
@@ -70,22 +69,26 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             organization_id=sentry_app.owner_id
         ).first()
         org_slug = "<unknown>" if org_mapping is None else org_mapping.slug
-        message = f"User {request.user.email} of organization {org_slug} wants to publish {sentry_app.slug}\n"
 
         questionnaire: Iterable[dict[str, str]] = request.data.get("questionnaire", [])
-        for question_pair in questionnaire:
-            message += "\n\n>{}\n{}".format(
-                question_pair.get("question", ""), question_pair.get("answer", "")
-            )
 
         subject = "Sentry Integration Publication Request from %s" % org_slug
 
-        email.send_mail(
-            subject,
-            message,
-            options.get("mail.from"),
-            ["partners@sentry.io"],
-            reply_to=[request.user.email],
+        new_context = {
+            "questionnaire": questionnaire,
+            "actor": request.user,
+            "sentry_app": sentry_app,
+        }
+        template = "sentry/emails/sentry-app-publish-confirmation.txt"
+        html_template = "sentry/emails/sentry-app-publish-confirmation.html"
+
+        message = MessageBuilder(
+            subject=subject,
+            context=new_context,
+            template=template,
+            html_template=html_template,
+            type=type,
         )
+        message.send(["XXXXX"])
 
         return Response(status=201)
