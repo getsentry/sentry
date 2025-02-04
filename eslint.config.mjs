@@ -407,11 +407,10 @@ export default typescript.config([
     // https://typescript-eslint.io/rules/
     plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      'prefer-spread': 'off', // TODO(ryan953): Fix violations and delete this line
+      'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-namespace': 'off', // TODO(ryan953): Fix violations and delete this line
