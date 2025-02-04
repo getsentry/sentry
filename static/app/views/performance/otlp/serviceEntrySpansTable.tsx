@@ -1,0 +1,172 @@
+import type {Location} from 'history';
+
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/gridEditable';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import type EventView from 'sentry/utils/discover/eventView';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Organization} from 'sentry/types/organization';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+
+// TODO: When supported, also add span operation breakdown as a field
+type Row = Pick<
+  EAPSpanResponse,
+  | 'span_id'
+  | 'user.id'
+  | 'user.email'
+  | 'user.username'
+  | 'user.ip'
+  | 'span.duration'
+  | 'trace'
+  | 'timestamp'
+  | 'replay.id'
+  | 'profile_id'
+  | 'profiler.id'
+  | 'thread.id'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+>;
+
+type Column = GridColumnHeader<
+  | 'span_id'
+  | 'user'
+  | 'span.duration'
+  | 'trace'
+  | 'timestamp'
+  | 'replay.id'
+  | 'profile_id'
+>;
+
+const COLUMN_ORDER: Column[] = [
+  {
+    key: 'span_id',
+    name: t('Span ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'user',
+    name: t('User'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'span.duration',
+    name: t('Total Duration'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'trace',
+    name: t('Trace ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'timestamp',
+    name: t('Timestamp'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'replay.id',
+    name: t('Replay'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'profile_id',
+    name: t('Profile'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
+
+const LIMIT = 5;
+
+type Props = {
+  eventView: EventView;
+};
+
+export function ServiceEntrySpansTable({eventView}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const {
+    data: tableData,
+    isLoading,
+    pageLinks,
+    meta,
+    error,
+  } = useEAPSpans(
+    {
+      search: eventView.query,
+      fields: [
+        'span_id',
+        'user',
+        'span.duration',
+        'trace',
+        'timestamp',
+        'replay.id',
+        'profile_id',
+        'profiler.id',
+        'thread.id',
+        'precise.start_ts',
+        'precise.finish_ts',
+      ],
+      limit: LIMIT,
+    },
+    'api.performance.service-entry-spans-table',
+    true
+  );
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (error) {
+    return <div>Error</div>;
+  }
+
+  return (
+    <GridEditable
+      isLoading={isLoading}
+      error={error}
+      data={tableData}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell: column =>
+          renderHeadCell({
+            column,
+          }),
+        renderBodyCell: (column, row) =>
+          renderBodyCell(column, row, meta, location, organization),
+      }}
+    />
+  );
+}
+
+function renderBodyCell(
+  column: Column,
+  row: Row,
+  meta: EventsMetaType | undefined,
+  location: Location,
+  organization: Organization
+) {
+  if (!meta || !meta?.fields) {
+    return row[column.key];
+  }
+
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
+
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+  });
+
+  return rendered;
+}

@@ -70,6 +70,7 @@ import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
+import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 
 type Props = {
   error: QueryError | null;
@@ -335,6 +336,7 @@ function OTelSummaryContentInner({
             withoutZerofill={hasPerformanceChartInterpolation}
             project={project}
           />
+          <ServiceEntrySpansTable eventView={transactionsListEventView} />
           <TransactionsList
             location={location}
             organization={organization}

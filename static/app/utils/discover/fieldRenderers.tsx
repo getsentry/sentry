@@ -372,6 +372,7 @@ type SpecialFields = {
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
+  span_id: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
@@ -489,6 +490,17 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  span_id: {
+    sortField: 'span_id',
+    renderFunc: data => {
+      const id: string | unknown = data?.span_id;
       if (typeof id !== 'string') {
         return null;
       }

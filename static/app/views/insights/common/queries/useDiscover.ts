@@ -54,11 +54,12 @@ export const useOurlogs = <Fields extends Array<keyof OurlogsFields>>(
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
   options: UseMetricsOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  useRpc?: boolean
 ) => {
   return useDiscover<Fields, EAPSpanResponse>(
     options,
-    DiscoverDatasets.SPANS_EAP,
+    useRpc ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_EAP,
     referrer
   );
 };
