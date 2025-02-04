@@ -63,7 +63,6 @@ class FramesMetrics(TypedDict):
     frame_count: int
     html_frame_count: int  # for a temporary metric
     has_no_filename: bool  # for a temporary metric
-    is_frames_truncated: bool
     found_non_snipped_context_line: bool
 
 
@@ -93,7 +92,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         "frame_count": 0,
         "html_frame_count": 0,  # for a temporary metric
         "has_no_filename": False,  # for a temporary metric
-        "is_frames_truncated": False,
         "found_non_snipped_context_line": False,
     }
 
@@ -199,8 +197,6 @@ def _process_frames(
     contributing_frames = [
         frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
     ]
-    if len(contributing_frames) + frame_metrics["frame_count"] > MAX_FRAME_COUNT:
-        frame_metrics["is_frames_truncated"] = True
     contributing_frames = _discard_excess_frames(
         contributing_frames, MAX_FRAME_COUNT, frame_metrics["frame_count"]
     )
