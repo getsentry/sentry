@@ -1628,6 +1628,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                     "http.response_content_length",
                     "http.response_transfer_size",
                 ],
+                "query": "http.decoded_response_content_length:>0 http.response_content_length:>0 http.response_transfer_size:>0",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "allowAggregateConditions": "0",
