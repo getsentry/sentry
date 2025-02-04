@@ -92,9 +92,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             ):
                 grouping_info = get_grouping_info_from_variants(variants)
                 try:
-                    stacktrace_string = get_stacktrace_string(
-                        grouping_info, platform=latest_event.platform
-                    )
+                    stacktrace_string = get_stacktrace_string(grouping_info)
                 except Exception:
                     logger.exception("Unexpected exception in stacktrace string formatting")
 

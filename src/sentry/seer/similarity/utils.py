@@ -62,7 +62,7 @@ class FramesMetrics(TypedDict):
     found_non_snipped_context_line: bool
 
 
-def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
+def get_stacktrace_string(data: dict[str, Any]) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -258,7 +258,7 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
 def get_stacktrace_string_with_metrics(data: dict[str, Any], platform: str | None) -> str | None:
     stacktrace_string = None
     try:
-        stacktrace_string = get_stacktrace_string(data, platform)
+        stacktrace_string = get_stacktrace_string(data)
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
