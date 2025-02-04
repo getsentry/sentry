@@ -522,7 +522,7 @@ def dual_update_migrated_alert_rule_trigger(
     alert_rule_trigger: AlertRuleTrigger, updated_fields: dict[str, Any]
 ) -> tuple[DataCondition, DataCondition] | None:
     # NOTE: update the trigger *AFTER* calling this helper so that we can get the right data conditions
-    priority = PRIORITY_MAP[alert_rule_trigger.label]
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
         return None
@@ -533,8 +533,12 @@ def dual_update_migrated_alert_rule_trigger(
     updated_action_filter_fields: dict[str, Any] = {}
     if "label" in updated_fields:
         label = updated_fields["label"]
-        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP[label]
-        updated_action_filter_fields["comparison"] = PRIORITY_MAP[label]
+        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+        updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
     if "alert_threshold" in updated_fields:
         updated_detector_trigger_fields["comparison"] = updated_fields["alert_threshold"]
 
