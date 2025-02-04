@@ -120,6 +120,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
       startTimestamp / 1e3,
       endTimestamp / 1e3
     );
+  const projectIds = props.node.event?.projectID;
 
   const formattedDescription = getFormattedSpanDescription(span);
   let items: SectionCardKeyValueList = [
@@ -131,6 +132,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
         <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.SPAN_OP}
           rowValue={span.op}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -162,6 +164,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
         <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.SPAN_DESCRIPTION}
           rowValue={span.description}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -174,6 +177,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
         <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.SPAN_DURATION}
           rowValue={getDuration((endTimestamp - startTimestamp) / 1000, 2, true)}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -207,6 +211,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
         <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.TIMESTAMP}
           rowValue={new Date(endTimestamp).toISOString()}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
@@ -231,6 +236,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
         <TraceDrawerComponents.KeyValueAction
           rowKey={SpanIndexedField.SPAN_SELF_TIME}
           rowValue={getDuration(span.exclusive_time / 1000, 2, true)}
+          projectIds={projectIds}
         />
       ),
       actionButtonAlwaysVisible: true,
