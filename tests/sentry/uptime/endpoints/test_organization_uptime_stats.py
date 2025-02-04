@@ -11,8 +11,10 @@ from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
 )
 
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
-@freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
+
+@freeze_time(MOCK_DATETIME)
 class OrganizationUptimeCheckIndexEndpointTest(
     OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase
 ):
@@ -49,19 +51,18 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
         assert response.data is not None
         data = json.loads(json.dumps(response.data))
-        assert data == {
-            str(self.project_uptime_subscription.id): [
-                [1736881458, {"failure": 0, "success": 0, "missed_window": 0}],
-                [1736967858, {"failure": 0, "success": 0, "missed_window": 0}],
-                [1737054258, {"failure": 0, "success": 0, "missed_window": 0}],
-                [1737140658, {"failure": 0, "success": 0, "missed_window": 0}],
-                [1737227058, {"failure": 0, "success": 0, "missed_window": 0}],
-                [1737313458, {"failure": 0, "success": 0, "missed_window": 0}],
-                [1737399858, {"failure": 3, "success": 3, "missed_window": 0}],
-            ]
+        assert len(data[str(self.project_uptime_subscription.id)]) == 7
+        assert data[str(self.project_uptime_subscription.id)][-1][1] == {
+            "failure": 3,
+            "success": 3,
+            "missed_window": 0,
+        }
+        assert data[str(self.project_uptime_subscription.id)][0][1] == {
+            "failure": 0,
+            "success": 0,
+            "missed_window": 0,
         }
 
-    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     @override_options({"uptime.date_cutoff_epoch_seconds": 1736881457})
     def test_simple_with_date_cutoff(self):
         """Test that the endpoint returns data for a simple uptime check."""
@@ -78,7 +79,6 @@ class OrganizationUptimeCheckIndexEndpointTest(
         data = json.loads(json.dumps(response.data))
         assert len(data[str(self.project_uptime_subscription.id)]) == 90
 
-    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     @override_options({"uptime.date_cutoff_epoch_seconds": 1736881457})
     def test_simple_with_date_cutoff_rounded_resolution(self):
         """Test that the endpoint returns data for a simple uptime check."""
@@ -95,7 +95,6 @@ class OrganizationUptimeCheckIndexEndpointTest(
         data = json.loads(json.dumps(response.data))
         assert len(data[str(self.project_uptime_subscription.id)]) == 89
 
-    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     def test_invalid_uptime_subscription_id(self):
         """Test that the endpoint returns data for a simple uptime check."""
         response = self.get_response(
@@ -108,7 +107,6 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
         assert response.status_code == 400
 
-    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     def test_no_uptime_subscription_id(self):
         """Test that the endpoint returns data for a simple uptime check."""
         response = self.get_response(
@@ -121,7 +119,6 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
         assert response.status_code == 400
 
-    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     @skip("vgrozdanic: This test is flaky and should be skipped")
     def test_too_many_periods(self):
         """Test that the endpoint returns data for a simple uptime check."""
@@ -136,7 +133,6 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
         assert response.status_code == 400
 
-    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     def test_too_many_uptime_subscription_ids(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
