@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import ReadOnlyPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
@@ -41,7 +41,7 @@ class PromptsActivityEndpoint(Endpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (ReadOnlyPermission,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""

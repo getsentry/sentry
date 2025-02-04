@@ -26,7 +26,7 @@ from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
-from sentry.api.permissions import ReadOnlyPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
@@ -216,7 +216,7 @@ class BaseEndpointMixin(abc.ABC):
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
-    permission_classes: tuple[type[ReadOnlyPermission], ...] = (NoPermission,)
+    permission_classes: tuple[type[SentryIsAuthenticated], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 

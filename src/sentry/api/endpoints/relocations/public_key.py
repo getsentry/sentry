@@ -8,7 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
-from sentry.api.permissions import ReadOnlyPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.backup.crypto import GCPKMSEncryptor, get_default_crypto_key_version
 from sentry.utils.env import log_gcp_credentials_details
@@ -23,7 +23,7 @@ class RelocationPublicKeyEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (ReadOnlyPermission,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request) -> Response:
         """

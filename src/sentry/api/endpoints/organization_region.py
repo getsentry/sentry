@@ -8,13 +8,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import ReadOnlyPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
 
 
-class OrganizationRegionEndpointPermissions(ReadOnlyPermission):
+class OrganizationRegionEndpointPermissions(SentryIsAuthenticated):
     # Although this permission set is a bit weird, we need to have
     # project:read for integration auth tokens, org:ci for org auth tokens
     # and org:read for user auth tokens.

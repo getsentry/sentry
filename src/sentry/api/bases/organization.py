@@ -13,7 +13,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import ReadOnlyPermission, StaffPermissionMixin
+from sentry.api.permissions import SentryIsAuthenticated, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -42,7 +42,7 @@ class NoProjects(Exception):
     pass
 
 
-class OrganizationPermission(ReadOnlyPermission):
+class OrganizationPermission(SentryIsAuthenticated):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:write", "org:admin"],
