@@ -263,18 +263,8 @@ def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
-    sample_rate = options.get("seer.similarity.metrics_sample_rate")
     try:
         stacktrace_string = get_stacktrace_string(data, platform)
-    except TooManyOnlySystemFramesException:
-        platform = platform if platform else "unknown"
-        metrics.incr(
-            "grouping.similarity.over_threshold_only_system_frames",
-            sample_rate=sample_rate,
-            tags={"platform": platform, "referrer": referrer},
-        )
-        if referrer == ReferrerOptions.INGEST:
-            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 

@@ -19,7 +19,6 @@ from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
-    TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
     has_too_many_contributing_frames,
@@ -96,8 +95,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                     stacktrace_string = get_stacktrace_string(
                         grouping_info, platform=latest_event.platform
                     )
-                except TooManyOnlySystemFramesException:
-                    pass
                 except Exception:
                     logger.exception("Unexpected exception in stacktrace string formatting")
 
