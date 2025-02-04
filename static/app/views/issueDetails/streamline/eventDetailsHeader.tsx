@@ -114,7 +114,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               <MetricIssueChart group={group} project={project} event={event} />
             )}
             {issueTypeConfig.header.graph.type === 'checkin-timeline' && (
-              <IssueCheckInTimeline event={event} group={group} project={project} />
+              <IssueCheckInTimeline />
             )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview

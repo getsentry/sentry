@@ -26,7 +26,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       ctaText: t('View alert details'),
     },
     customCopy: {
-      eventUnits: t('Check-ins'),
+      eventUnits: t('Events'),
       resolution: t('Resolved'),
     },
     pages: {
