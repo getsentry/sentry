@@ -742,10 +742,12 @@ function KeyValueAction({
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTraceUi = useHasTraceNewUi();
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const [isVisible, setIsVisible] = useState(false);
 
   if (
     !hasNewTraceUi ||
+    !hasTraceDrawerAction ||
     !defined(rowValue) ||
     !defined(rowKey) ||
     !['string', 'number'].includes(typeof rowValue)
@@ -767,7 +769,7 @@ function KeyValueAction({
   const dropdownOptions = [
     {
       key: 'include',
-      label: t('Search explore with this value'),
+      label: t('Find more samples with this value'),
       to: getSearchInExploreTarget(
         organization,
         location,
@@ -778,7 +780,7 @@ function KeyValueAction({
     },
     {
       key: 'exclude',
-      label: t('Search explore without this value'),
+      label: t('Find samples excluding this value'),
       to: getSearchInExploreTarget(
         organization,
         location,
@@ -803,7 +805,7 @@ function KeyValueAction({
     dropdownOptions.push(
       {
         key: 'includeGreaterThan',
-        label: t('Search explore with values greater than'),
+        label: t('Find samples with values greater than'),
         to: getSearchInExploreTarget(
           organization,
           location,
@@ -814,7 +816,7 @@ function KeyValueAction({
       },
       {
         key: 'includeLessThan',
-        label: t('Search explore with values less than'),
+        label: t('Find samples with values less than'),
         to: getSearchInExploreTarget(
           organization,
           location,

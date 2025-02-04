@@ -1956,7 +1956,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         You can pass your own features if you do not want to use the default used by the subclass.
         """
         with self.feature(features or self.features):
-            return self.client.get(self.url, data=data, format="json")
+            ret = self.client.get(self.url, data=data, format="json")
+            assert isinstance(ret, Response), ret
+            return ret
 
     def _index_metric_strings(self):
         strings = [
@@ -2301,6 +2303,27 @@ class ProfilesSnubaTestCase(
         hasher.update(b":")
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
+
+    def store_span(self, span, is_eap=False):
+        span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans, is_eap=False):
+        for span in spans:
+            span["ingest_in_eap"] = is_eap
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
 
 
 @pytest.mark.snuba
