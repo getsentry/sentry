@@ -25,7 +25,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {UptimeAlert} from 'sentry/views/alerts/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -60,13 +60,13 @@ export default function UptimeOverview() {
   }
 
   const {
-    data: uptimeList,
+    data: uptimeRules,
     getResponseHeader: uptimeListHeaders,
     isPending,
-  } = useApiQuery<UptimeAlert[]>(makeQueryKey(), {staleTime: 0});
+  } = useApiQuery<UptimeRule[]>(makeQueryKey(), {staleTime: 0});
 
   useRouteAnalyticsEventNames('uptime.page_viewed', 'Uptime: Page Viewed');
-  useRouteAnalyticsParams({empty_state: !uptimeList || uptimeList.length === 0});
+  useRouteAnalyticsParams({empty_state: !uptimeRules || uptimeRules.length === 0});
 
   const uptimeListPageLinks = uptimeListHeaders?.('Link');
 
@@ -133,9 +133,9 @@ export default function UptimeOverview() {
           </Filters>
           {isPending ? (
             <LoadingIndicator />
-          ) : uptimeList?.length ? (
+          ) : uptimeRules?.length ? (
             <Fragment>
-              <OverviewTimeline uptimeAlerts={uptimeList} />
+              <OverviewTimeline uptimeRules={uptimeRules} />
               {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
             </Fragment>
           ) : (

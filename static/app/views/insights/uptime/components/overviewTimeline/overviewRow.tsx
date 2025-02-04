@@ -15,68 +15,72 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import type {UptimeAlert} from 'sentry/views/alerts/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {checkStatusPrecedent, statusToText, tickStyle} from '../../timelineConfig';
 import {useUptimeMonitorStats} from '../../utils/useUptimeMonitorStats';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
-  uptimeAlert: UptimeAlert;
+  uptimeRule: UptimeRule;
 }
 
-export function OverviewRow({uptimeAlert, timeWindowConfig}: Props) {
+export function OverviewRow({uptimeRule, timeWindowConfig}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({
     organization,
-    projectSlug: uptimeAlert.projectSlug,
+    projectSlug: uptimeRule.projectSlug,
   });
 
   const location = useLocation();
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    ruleIds: [uptimeAlert.id],
+    ruleIds: [uptimeRule.id],
     timeWindowConfig,
   });
 
+  const ruleDetails = (
+    <DetailsArea>
+      <DetailsLink
+        to={{
+          pathname: `/organizations/${organization.slug}/alerts/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
+          query,
+        }}
+      >
+        <DetailsHeadline>
+          <Name>{uptimeRule.name}</Name>
+        </DetailsHeadline>
+        <DetailsContainer>
+          <OwnershipDetails>
+            {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
+            {uptimeRule.owner ? (
+              <ActorBadge actor={uptimeRule.owner} avatarSize={12} />
+            ) : (
+              <UnassignedLabel>
+                <IconUser size="xs" />
+                {t('Unassigned')}
+              </UnassignedLabel>
+            )}
+          </OwnershipDetails>
+          <ScheduleDetails>
+            <IconTimer size="xs" />
+            {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
+          </ScheduleDetails>
+        </DetailsContainer>
+      </DetailsLink>
+    </DetailsArea>
+  );
+
   return (
-    <TimelineRow key={uptimeAlert.id}>
-      <DetailsArea>
-        <DetailsLink
-          to={{
-            pathname: `/organizations/${organization.slug}/alerts/rules/uptime/${uptimeAlert.projectSlug}/${uptimeAlert.id}/details/`,
-            query,
-          }}
-        >
-          <DetailsHeadline>
-            <Name>{uptimeAlert.name}</Name>
-          </DetailsHeadline>
-          <DetailsContainer>
-            <OwnershipDetails>
-              {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
-              {uptimeAlert.owner ? (
-                <ActorBadge actor={uptimeAlert.owner} avatarSize={12} />
-              ) : (
-                <UnassignedLabel>
-                  <IconUser size="xs" />
-                  {t('Unassigned')}
-                </UnassignedLabel>
-              )}
-            </OwnershipDetails>
-            <ScheduleDetails>
-              <IconTimer size="xs" />
-              {t('Checked every %s', getDuration(uptimeAlert.intervalSeconds))}
-            </ScheduleDetails>
-          </DetailsContainer>
-        </DetailsLink>
-      </DetailsArea>
+    <TimelineRow key={uptimeRule.id}>
+      {ruleDetails}
       <TimelineContainer>
         {isPending ? (
           <CheckInPlaceholder />
         ) : (
           <CheckInTimeline
-            bucketedData={uptimeStats?.[uptimeAlert.id] ?? []}
+            bucketedData={uptimeStats?.[uptimeRule.id] ?? []}
             statusLabel={statusToText}
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}

@@ -1,7 +1,6 @@
 import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t} from 'sentry/locale';
-
-import {CheckStatus} from './types';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 
 // Orders the status in terms of ascending precedence for showing to the user
 export const checkStatusPrecedent: CheckStatus[] = [
