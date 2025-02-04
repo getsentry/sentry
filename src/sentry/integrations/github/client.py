@@ -56,8 +56,9 @@ class GithubRateLimitInfo:
 
 
 class GithubProxyClient(IntegrationProxyClient):
+    integration: Integration  # late init
+
     def _get_installation_id(self) -> str:
-        self.integration: RpcIntegration
         """
         Returns the Github App installation identifier.
         This is necessary since Github and Github Enterprise integrations store the
@@ -175,9 +176,13 @@ class GithubProxyClient(IntegrationProxyClient):
         return prepared_request
 
     def is_error_fatal(self, error: Exception) -> bool:
-        if hasattr(error.response, "text") and error.response.text:
-            if "suspended" in error.response.text:
-                return True
+        if (
+            hasattr(error, "response")
+            and hasattr(error.response, "text")
+            and error.response.text
+            and "suspended" in error.response.text
+        ):
+            return True
         return super().is_error_fatal(error)
 
 
@@ -358,7 +363,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
-    ) -> Sequence[Any]:
+    ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our

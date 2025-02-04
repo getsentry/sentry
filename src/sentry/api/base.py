@@ -597,7 +597,7 @@ class EnvironmentMixin:
         self, request: Request, organization_id: int
     ) -> int | None:
         environment = self._get_environment_from_request(request, organization_id)
-        return environment and environment.id
+        return environment.id if environment is not None else None
 
     def _get_environment_from_request(
         self, request: Request, organization_id: int

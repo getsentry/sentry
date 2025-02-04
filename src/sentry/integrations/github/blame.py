@@ -126,7 +126,7 @@ def extract_commits_from_blame_response(
     files: Sequence[SourceLineInfo],
     file_path_mapping: FilePathMapping,
     extra: dict[str, str | int | None],
-) -> Sequence[FileBlameInfo]:
+) -> list[FileBlameInfo]:
     """
     Using the file path mapping that generated the initial GraphQL query,
     this function extracts all commits from the response and maps each one

@@ -335,7 +335,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         get_sample: bool,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ) -> SnubaQueryParams:
+    ) -> SnubaQueryParams | None:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
         """
@@ -476,7 +476,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         for gc in group_categories:
             try:
-                query_params_for_categories[gc] = self._prepare_params_for_category(
+                query_params = self._prepare_params_for_category(
                     gc,
                     query_partial,
                     organization,
@@ -495,12 +495,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
-        query_params_for_categories = {
-            gc: query_params
-            for gc, query_params in query_params_for_categories.items()
-            if query_params is not None
-        }
+            else:
+                if query_params is not None:
+                    query_params_for_categories[gc] = query_params
 
         try:
             bulk_query_results = bulk_raw_query(

@@ -349,9 +349,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         # Get each variant's hash value, filtering out Nones
         hashes = [
-            hashes_by_variant[variant_name]
-            for variant_name in sorted_variant_names
-            if hashes_by_variant[variant_name] is not None
+            h
+            for h in (hashes_by_variant[variant_name] for variant_name in sorted_variant_names)
+            if h is not None
         ]
 
         # Write to event before returning

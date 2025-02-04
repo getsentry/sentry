@@ -1956,7 +1956,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         You can pass your own features if you do not want to use the default used by the subclass.
         """
         with self.feature(features or self.features):
-            return self.client.get(self.url, data=data, format="json")
+            ret = self.client.get(self.url, data=data, format="json")
+            assert isinstance(ret, Response), ret
+            return ret
 
     def _index_metric_strings(self):
         strings = [

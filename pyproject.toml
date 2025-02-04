@@ -266,7 +266,6 @@ disable_error_code = [
     "misc",
     "operator",
     "override",
-    "return-value",
     "typeddict-item",
     "union-attr",
     "unreachable",

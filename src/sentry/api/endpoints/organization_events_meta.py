@@ -1,5 +1,4 @@
 import re
-from collections.abc import Mapping
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -29,7 +28,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     }
     snuba_methods = ["GET"]
 
-    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
         feature_names = [
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",

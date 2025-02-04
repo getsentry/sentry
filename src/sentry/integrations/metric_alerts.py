@@ -42,7 +42,7 @@ def logo_url() -> str:
     return absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
 
-def get_metric_count_from_incident(incident: Incident) -> str:
+def get_metric_count_from_incident(incident: Incident) -> float | None:
     """Returns the current or last count of an incident aggregate."""
     incident_trigger = (
         IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
