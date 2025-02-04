@@ -127,20 +127,22 @@ class CrontabSchedule(Schedule):
         # If last run is in the past, see if the next runtime
         # is in the future.
         if last_run < now:
-            next_run = self._advance(last_run)
+            next_run = self._advance(last_run + timedelta(minutes=1))
             # Our next runtime is in the future, or now
             if next_run >= now:
                 return int(next_run.timestamp() - now.timestamp())
 
             # still in the past, we missed an interval :(
+            missed = next_run
             next_run = self._advance(now)
             logger.warning(
                 "taskworker.scheduler.missed_interval",
                 extra={
                     "task": self._name,
-                    "last_run": last_run,
-                    "now": now,
-                    "next_run": next_run,
+                    "last_run": last_run.isoformat(),
+                    "missed": missed.isoformat(),
+                    "now": now.isoformat(),
+                    "next_run": next_run.isoformat(),
                 },
             )
             return int(next_run.timestamp() - now.timestamp())
