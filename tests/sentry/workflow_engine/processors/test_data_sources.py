@@ -1,13 +1,13 @@
 from unittest import mock
 
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import process_data_sources
 from sentry.workflow_engine.registry import data_source_type_registry
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class TestProcessDataSources(TestCase):
+class TestProcessDataSources(BaseWorkflowTest):
     def create_snuba_query(self, **kwargs):
         return SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
