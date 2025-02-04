@@ -802,7 +802,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           },
         ];
 
-  const moduleURLBuilder = useModuleURLBuilder(false);
+  const moduleURLBuilder = useModuleURLBuilder();
 
   const getContainerActions = (provided: ComponentData) => {
     const route: string =
