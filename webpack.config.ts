@@ -233,7 +233,7 @@ const appConfig: webpack.Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['sentry/utils/statics-setup', 'sentry'],
+    app: ['sentry/utils/statics-setup', 'sentry', 'getsentry'],
 
     /**
      * Pipeline View for integrations
@@ -434,6 +434,9 @@ const appConfig: webpack.Configuration = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      getsentry: path.join(staticPrefix, 'gsApp'),
+      getsentryimages: path.join(staticPrefix, 'getsentry-images'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
