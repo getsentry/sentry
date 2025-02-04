@@ -496,6 +496,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
                             dataset=dataset,
+                            transform_alias_to_input_format=transform_alias_to_input_format,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(

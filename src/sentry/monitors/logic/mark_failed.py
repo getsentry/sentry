@@ -28,9 +28,6 @@ def mark_failed(
     """
     monitor_env = failed_checkin.monitor_environment
 
-    if monitor_env is None:
-        return False
-
     # Use the failure time as recieved if there is no received time
     if received is None:
         received = failed_at

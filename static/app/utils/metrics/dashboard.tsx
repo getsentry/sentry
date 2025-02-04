@@ -1,7 +1,5 @@
-import {urlEncode} from '@sentry/utils';
-
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined, urlEncode} from 'sentry/utils';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -18,12 +16,12 @@ interface EquationParams {
 }
 
 export function convertToDashboardWidget(
-  metricQueries: (QueryParams | EquationParams)[],
+  metricQueries: Array<QueryParams | EquationParams>,
   displayType?: MetricDisplayType,
   title = ''
 ): Widget {
   // TODO: Ged rid of ts-expect-error
-  // @ts-ignore TS(2741): Property 'interval' is missing in type '{ title: s... Remove this comment to see the full error message
+  // @ts-expect-error TS(2741): Property 'interval' is missing in type '{ title: s... Remove this comment to see the full error message
   return {
     title,
     displayType: toDisplayType(displayType),
@@ -50,7 +48,7 @@ export function getWidgetQuery(metricsQuery: QueryParams): WidgetQuery {
     columns: metricsQuery.groupBy ?? [],
     fields: [field],
     conditions: metricsQuery.query ?? '',
-    // @ts-ignore TS(2322): Type 'undefined' is not assignable to type 'string... Remove this comment to see the full error message
+    // @ts-expect-error TS(2322): Type 'undefined' is not assignable to type 'string... Remove this comment to see the full error message
     orderby: undefined,
     isHidden: metricsQuery.isHidden,
   };
@@ -63,7 +61,7 @@ export function getWidgetEquation(equation: EquationParams): WidgetQuery {
     columns: [],
     fields: [`equation|${equation.formula}`],
     conditions: '',
-    // @ts-ignore TS(2322): Type 'undefined' is not assignable to type 'string... Remove this comment to see the full error message
+    // @ts-expect-error TS(2322): Type 'undefined' is not assignable to type 'string... Remove this comment to see the full error message
     orderby: undefined,
     isHidden: equation.isHidden,
   };

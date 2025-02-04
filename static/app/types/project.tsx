@@ -59,6 +59,7 @@ export type Project = {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  storeCrashReports: number | null;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
@@ -97,7 +98,7 @@ export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 // Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
-    choices: [key: string, value: string][];
+    choices: Array<[key: string, value: string]>;
   };
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
@@ -238,6 +239,8 @@ export type PlatformKey =
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
+  | 'node-cloudflare-pages'
+  | 'node-cloudflare-workers'
   | 'node-connect'
   | 'node-express'
   | 'node-fastify'

@@ -5,7 +5,7 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagValue} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ const filterKeySections: FilterKeySection[] = [
 ];
 
 const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[key] = {key, name: key};
   return acc;
 }, {});
@@ -56,7 +56,7 @@ export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
       projectIds: projectIdStrings,
       includeTransactions: true,
     }).then(
-      tagValues => (tagValues as TagValue[]).map(({value}) => value),
+      tagValues => tagValues.map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }

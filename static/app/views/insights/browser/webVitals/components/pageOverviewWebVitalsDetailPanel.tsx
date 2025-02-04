@@ -40,6 +40,7 @@ import type {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
@@ -86,6 +87,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const organization = useOrganization();
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
+  const domainViewFilters = useDomainViewFilters();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = location.query[
@@ -203,7 +205,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (col.key === 'webVital') {
-      // @ts-ignore TS(2551): Property 'measurements.null' does not exist on typ... Remove this comment to see the full error message
+      // @ts-expect-error TS(2551): Property 'measurements.null' does not exist on typ... Remove this comment to see the full error message
       const value = row[`measurements.${webVital}`];
       if (value === undefined) {
         return (
@@ -224,6 +226,7 @@ export function PageOverviewWebVitalsDetailPanel({
         projectSlug,
         organization,
         location,
+        view: domainViewFilters.view,
         source: TraceViewSources.WEB_VITALS_MODULE,
       });
       return (
@@ -276,7 +279,7 @@ export function PageOverviewWebVitalsDetailPanel({
         </AlignCenter>
       );
     }
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
@@ -295,7 +298,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (col.key === 'webVital') {
-      // @ts-ignore TS(2551): Property 'measurements.cls' does not exist on type... Remove this comment to see the full error message
+      // @ts-expect-error TS(2551): Property 'measurements.cls' does not exist on type... Remove this comment to see the full error message
       const value = row[`measurements.${webVital}`];
       if (value === undefined) {
         return (
@@ -316,7 +319,7 @@ export function PageOverviewWebVitalsDetailPanel({
           id: '', // id doesn't actually matter here. Just to satisfy type.
           'transaction.duration': isInp
             ? row[SpanIndexedField.SPAN_SELF_TIME]
-            : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               row['transaction.duration'],
           timestamp: row.timestamp,
         },
@@ -364,11 +367,11 @@ export function PageOverviewWebVitalsDetailPanel({
         </NoOverflow>
       );
     }
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = projectData?.data[0]?.[`p75(measurements.${webVital})`] as
     | number
@@ -385,7 +388,7 @@ export function PageOverviewWebVitalsDetailPanel({
               webVitalValue !== undefined
                 ? webVital !== 'cls'
                   ? getDuration(webVitalValue / 1000, 2, true)
-                  : (webVitalValue as number)?.toFixed(2)
+                  : webVitalValue?.toFixed(2)
                 : undefined
             }
             webVital={webVital}

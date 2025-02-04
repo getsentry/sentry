@@ -31,10 +31,10 @@ export abstract class FlamegraphRenderer {
   theme: FlamegraphTheme;
   options: FlamegraphRendererOptions;
 
-  frames: ReadonlyArray<FlamegraphFrame>;
-  roots: ReadonlyArray<FlamegraphFrame>;
+  frames: readonly FlamegraphFrame[];
+  roots: readonly FlamegraphFrame[];
 
-  colorBuffer: Array<number>;
+  colorBuffer: number[];
   colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
 
   isDifferentialFlamegraph: boolean = false;
@@ -122,7 +122,7 @@ export abstract class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  // @ts-ignore TS(7010): 'setSearchResults', which lacks return-type annota... Remove this comment to see the full error message
+  // @ts-expect-error TS(7010): 'setSearchResults', which lacks return-type annota... Remove this comment to see the full error message
   abstract setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']

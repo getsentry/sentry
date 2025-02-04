@@ -1,7 +1,13 @@
 import styled from '@emotion/styled';
 
 import {DiamondStatus} from 'sentry/components/diamondStatus';
-import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconExclamation,
+  IconFire,
+  IconIssues,
+  IconPause,
+} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,6 +19,10 @@ type Props = {
    * @deprecated use withText
    */
   hideText?: true;
+  /**
+   * Displays a "disabled" badge
+   */
+  isDisabled?: boolean;
   /**
    * There is no status for issue, this is to facilitate this custom usage.
    */
@@ -31,12 +41,16 @@ type Props = {
  * This badge is a composition of DiamondStatus specifically used for incident
  * alerts.
  */
-function AlertBadge({status, withText, isIssue}: Props) {
+function AlertBadge({status, withText, isIssue, isDisabled}: Props) {
   let statusText = t('Resolved');
   let Icon: React.ComponentType<SVGIconProps> = IconCheckmark;
   let color: ColorOrAlias = 'successText';
 
-  if (isIssue) {
+  if (isDisabled) {
+    statusText = t('Disabled');
+    Icon = IconPause;
+    color = 'disabled';
+  } else if (isIssue) {
     statusText = t('Issue');
     Icon = SizedIconIssue;
     color = 'subText';

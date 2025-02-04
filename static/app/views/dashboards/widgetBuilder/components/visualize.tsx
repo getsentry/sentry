@@ -14,6 +14,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
   type AggregateParameter,
   type AggregationKeyWithAlias,
@@ -36,6 +38,8 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {
@@ -64,7 +68,7 @@ const NONE_AGGREGATE = {
 
 function formatColumnOptions(
   dataset: WidgetType,
-  options: SelectValue<FieldValue>[],
+  options: Array<SelectValue<FieldValue>>,
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
@@ -146,7 +150,7 @@ function getColumnOptions(
 }
 
 function validateParameter(
-  columnOptions: SelectValue<string>[],
+  columnOptions: Array<SelectValue<string>>,
   parameter: AggregateParameter,
   value: string | undefined
 ) {
@@ -157,6 +161,9 @@ function validateParameter(
     return Boolean(columnOptions.find(option => option.value === value)?.value);
   }
   if (parameter.kind === 'value') {
+    if (parameter.dataType === 'number') {
+      return !isNaN(Number(value));
+    }
     return true;
   }
   return false;
@@ -197,6 +204,8 @@ function Visualize({error, setError}: VisualizeProps) {
   const [selectedAggregateSet, setSelectedAggregateSet] = useState(
     defined(queryParamSelectedAggregate)
   );
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -252,7 +261,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    // @ts-ignore TS(7006): Parameter 'a' implicitly has an 'any' type.
+    // @ts-expect-error TS(7006): Parameter 'a' implicitly has an 'any' type.
     spanColumnOptions.sort((a, b) => {
       if (a.label < b.label) {
         return -1;
@@ -317,6 +326,12 @@ function Visualize({error, setError}: VisualizeProps) {
               field
             );
 
+            const isOnlyFieldOrAggregate =
+              fields.length === 2 &&
+              field.kind !== FieldValueKind.EQUATION &&
+              fields.filter(fieldItem => fieldItem.kind === FieldValueKind.EQUATION)
+                .length > 0;
+
             // Depending on the dataset and the display type, we use different options for
             // displaying in the column select.
             // For charts, we show aggregate parameter options for the y-axis as primary options.
@@ -366,6 +381,17 @@ function Visualize({error, setError}: VisualizeProps) {
                 ? matchingAggregate?.value.meta.parameters.slice(1)
                 : [];
 
+            // Apdex and User Misery are special cases where the column parameter is not applicable
+            const isApdexOrUserMisery =
+              matchingAggregate?.value.meta.name === 'apdex' ||
+              matchingAggregate?.value.meta.name === 'user_misery';
+
+            const hasColumnParameter =
+              (fields[index]!.kind === FieldValueKind.FUNCTION &&
+                !isApdexOrUserMisery &&
+                matchingAggregate?.value.meta.parameters.length !== 0) ||
+              fields[index]!.kind === FieldValueKind.FIELD;
+
             return (
               <FieldRow key={index}>
                 {fields.length > 1 && state.displayType === DisplayType.BIG_NUMBER && (
@@ -382,7 +408,18 @@ function Visualize({error, setError}: VisualizeProps) {
                           payload: index,
                         });
                       }}
-                      onClick={() => setSelectedAggregateSet(true)}
+                      onClick={() => {
+                        setSelectedAggregateSet(true);
+                        trackAnalytics('dashboards_views.widget_builder.change', {
+                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                          field: 'visualize.selectAggregate',
+                          from: source,
+                          new_widget: !isEditing,
+                          value: '',
+                          widget_type: state.dataset ?? '',
+                          organization,
+                        });
+                      }}
                       aria-label={'field' + index}
                     />
                   </RadioLineItem>
@@ -403,6 +440,15 @@ function Visualize({error, setError}: VisualizeProps) {
                           ),
                         });
                         setError?.({...error, queries: []});
+                        trackAnalytics('dashboards_views.widget_builder.change', {
+                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                          field: 'visualize.updateEquation',
+                          from: source,
+                          new_widget: !isEditing,
+                          value: '',
+                          widget_type: state.dataset ?? '',
+                          organization,
+                        });
                       }}
                       options={fields}
                       placeholder={t('Equation')}
@@ -410,47 +456,58 @@ function Visualize({error, setError}: VisualizeProps) {
                     />
                   ) : (
                     <Fragment>
-                      <PrimarySelectRow>
-                        {/** TODO: Add support for the value parameter type for cases like user_misery, apdex */}
-                        <ColumnCompactSelect
-                          searchable
-                          options={
-                            state.dataset === WidgetType.SPANS &&
-                            field.kind !== FieldValueKind.FUNCTION
-                              ? spanColumnOptions
-                              : columnOptions
-                          }
-                          value={
-                            field.kind === FieldValueKind.FUNCTION
-                              ? parseFunction(stringFields?.[index] ?? '')
-                                  ?.arguments[0] ?? ''
-                              : field.field
-                          }
-                          onChange={newField => {
-                            const newFields = cloneDeep(fields);
-                            const currentField = newFields[index]!;
-                            // Update the current field's aggregate with the new aggregate
-                            if (currentField.kind === FieldValueKind.FUNCTION) {
-                              currentField.function[1] = newField.value as string;
+                      <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
+                        {hasColumnParameter && (
+                          <ColumnCompactSelect
+                            searchable
+                            options={
+                              state.dataset === WidgetType.SPANS &&
+                              field.kind !== FieldValueKind.FUNCTION
+                                ? spanColumnOptions
+                                : columnOptions
                             }
-                            if (currentField.kind === FieldValueKind.FIELD) {
-                              currentField.field = newField.value as string;
+                            value={
+                              field.kind === FieldValueKind.FUNCTION
+                                ? parseFunction(stringFields?.[index] ?? '')
+                                    ?.arguments[0] ?? ''
+                                : field.field
                             }
-                            dispatch({
-                              type: updateAction,
-                              payload: newFields,
-                            });
-                            setError?.({...error, queries: []});
-                          }}
-                          triggerProps={{
-                            'aria-label': t('Column Selection'),
-                          }}
-                          disabled={
-                            fields[index]!.kind === FieldValueKind.FUNCTION &&
-                            matchingAggregate?.value.meta.parameters.length === 0
-                          }
-                        />
+                            onChange={newField => {
+                              const newFields = cloneDeep(fields);
+                              const currentField = newFields[index]!;
+                              // Update the current field's aggregate with the new aggregate
+                              if (currentField.kind === FieldValueKind.FUNCTION) {
+                                currentField.function[1] = newField.value as string;
+                              }
+                              if (currentField.kind === FieldValueKind.FIELD) {
+                                currentField.field = newField.value as string;
+                              }
+                              dispatch({
+                                type: updateAction,
+                                payload: newFields,
+                              });
+                              setError?.({...error, queries: []});
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateColumn',
+                                from: source,
+                                new_widget: !isEditing,
+                                value:
+                                  currentField.kind === FieldValueKind.FIELD
+                                    ? 'column'
+                                    : 'aggregate',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
+                            }}
+                            triggerProps={{
+                              'aria-label': t('Column Selection'),
+                            }}
+                          />
+                        )}
                         <AggregateCompactSelect
+                          searchable
+                          hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
                           value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
@@ -485,12 +542,17 @@ function Visualize({error, setError}: VisualizeProps) {
                                       // If no column filter method is provided, show all options
                                       columnFilterMethod ?? (() => true)
                                     );
-                                    const isValidColumn = Boolean(
-                                      newColumnOptions.find(
-                                        option =>
-                                          option.value === currentField.function[1]
-                                      )?.value
-                                    );
+                                    const newAggregateIsApdexOrUserMisery =
+                                      newAggregate?.value.meta.name === 'apdex' ||
+                                      newAggregate?.value.meta.name === 'user_misery';
+                                    const isValidColumn =
+                                      !newAggregateIsApdexOrUserMisery &&
+                                      Boolean(
+                                        newColumnOptions.find(
+                                          option =>
+                                            option.value === currentField.function[1]
+                                        )?.value
+                                      );
                                     currentField.function[1] =
                                       (isValidColumn
                                         ? currentField.function[1]
@@ -577,6 +639,15 @@ function Visualize({error, setError}: VisualizeProps) {
                                   function: newFunction,
                                 };
                               }
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateAggregate',
+                                from: source,
+                                new_widget: !isEditing,
+                                value: 'aggregate',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
                             } else {
                               // Handle selecting None so we can select just a field, e.g. for samples
                               // If none is selected, set the field to a field value
@@ -612,6 +683,16 @@ function Visualize({error, setError}: VisualizeProps) {
                                 kind: FieldValueKind.FIELD,
                                 field: validColumn,
                               };
+
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateAggregate',
+                                from: source,
+                                new_widget: !isEditing,
+                                value: 'column',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
                             }
                             dispatch({
                               type: updateAction,
@@ -661,6 +742,25 @@ function Visualize({error, setError}: VisualizeProps) {
                             )}
                           </ParameterRefinements>
                         )}
+                      {isApdexOrUserMisery && field.kind === FieldValueKind.FUNCTION && (
+                        <AggregateParameterField
+                          parameter={matchingAggregate?.value.meta.parameters[0]}
+                          fieldValue={field}
+                          currentValue={field.function[1]}
+                          onChange={value => {
+                            const newFields = cloneDeep(fields);
+                            if (newFields[index]!.kind !== FieldValueKind.FUNCTION) {
+                              return;
+                            }
+                            newFields[index]!.function[1] = value;
+                            dispatch({
+                              type: updateAction,
+                              payload: newFields,
+                            });
+                            setError?.({...error, queries: []});
+                          }}
+                        />
+                      )}
                     </Fragment>
                   )}
                 </FieldBar>
@@ -679,13 +779,24 @@ function Visualize({error, setError}: VisualizeProps) {
                           payload: newFields,
                         });
                       }}
+                      onBlur={() => {
+                        trackAnalytics('dashboards_views.widget_builder.change', {
+                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                          field: 'visualize.legendAlias',
+                          from: source,
+                          new_widget: !isEditing,
+                          value: '',
+                          widget_type: state.dataset ?? '',
+                          organization,
+                        });
+                      }}
                     />
                   )}
                   <StyledDeleteButton
                     borderless
                     icon={<IconDelete />}
                     size="zero"
-                    disabled={fields.length <= 1 || !canDelete}
+                    disabled={fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate}
                     onClick={() => {
                       dispatch({
                         type: updateAction,
@@ -706,6 +817,19 @@ function Visualize({error, setError}: VisualizeProps) {
                           });
                         }
                       }
+
+                      trackAnalytics('dashboards_views.widget_builder.change', {
+                        builder_version: WidgetBuilderVersion.SLIDEOUT,
+                        field:
+                          field.kind === FieldValueKind.EQUATION
+                            ? 'visualize.deleteEquation'
+                            : 'visualize.deleteField',
+                        from: source,
+                        new_widget: !isEditing,
+                        value: '',
+                        widget_type: state.dataset ?? '',
+                        organization,
+                      });
                     }}
                     aria-label={t('Remove field')}
                   />
@@ -720,12 +844,22 @@ function Visualize({error, setError}: VisualizeProps) {
         <AddButton
           priority="link"
           aria-label={isChartWidget ? t('Add Series') : t('Add Field')}
-          onClick={() =>
+          onClick={() => {
             dispatch({
               type: updateAction,
               payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
-            })
-          }
+            });
+
+            trackAnalytics('dashboards_views.widget_builder.change', {
+              builder_version: WidgetBuilderVersion.SLIDEOUT,
+              field: 'visualize.addField',
+              from: source,
+              new_widget: !isEditing,
+              value: '',
+              widget_type: state.dataset ?? '',
+              organization,
+            });
+          }}
         >
           {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
         </AddButton>
@@ -733,12 +867,22 @@ function Visualize({error, setError}: VisualizeProps) {
           <AddButton
             priority="link"
             aria-label={t('Add Equation')}
-            onClick={() =>
+            onClick={() => {
               dispatch({
                 type: updateAction,
                 payload: [...(fields ?? []), {kind: FieldValueKind.EQUATION, field: ''}],
-              })
-            }
+              });
+
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.addEquation',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
           >
             {t('+ Add Equation')}
           </AddButton>
@@ -769,6 +913,11 @@ function AggregateParameterField({
       onUpdate: (value: any) => {
         onChange(value);
       },
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          onChange(e.currentTarget.value);
+        }
+      },
       placeholder: parameter.placeholder,
     };
     switch (parameter.dataType) {
@@ -776,10 +925,11 @@ function AggregateParameterField({
         return (
           <BufferedInput
             name="refinement"
-            key="parameter:number"
+            key={`parameter:number-${currentValue}`}
             type="text"
             inputMode="numeric"
             pattern="[0-9]*(\.[0-9]*)?"
+            aria-label={t('Numeric Input')}
             {...inputProps}
           />
         );
@@ -791,6 +941,7 @@ function AggregateParameterField({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            aria-label={t('Integer Input')}
             {...inputProps}
           />
         );
@@ -800,6 +951,7 @@ function AggregateParameterField({
             name="refinement"
             key="parameter:text"
             type="text"
+            aria-label={t('Text Input')}
             {...inputProps}
           />
         );
@@ -818,6 +970,7 @@ function AggregateParameterField({
         onChange={({value}: any) => {
           onChange(value);
         }}
+        searchable
       />
     );
   }
@@ -833,10 +986,17 @@ const ColumnCompactSelect = styled(CompactSelect)`
   }
 `;
 
-const AggregateCompactSelect = styled(CompactSelect)`
-  width: fit-content;
-  max-width: 150px;
-  left: -1px;
+const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolean}>`
+  ${p =>
+    p.hasColumnParameter
+      ? `
+    width: fit-content;
+    max-width: 150px;
+    left: -1px;
+  `
+      : `
+    width: 100%;
+  `}
 
   > button {
     width: 100%;
@@ -862,7 +1022,7 @@ const FieldBar = styled('div')`
   flex: 3;
 `;
 
-const PrimarySelectRow = styled('div')`
+const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   display: flex;
   width: 100%;
   flex: 3;
@@ -873,8 +1033,12 @@ const PrimarySelectRow = styled('div')`
   }
 
   & > ${AggregateCompactSelect} > button {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
+    ${p =>
+      p.hasColumnParameter &&
+      `
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    `}
   }
 `;
 

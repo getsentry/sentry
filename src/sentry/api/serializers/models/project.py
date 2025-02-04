@@ -80,12 +80,10 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
-    "race-free-group-creation",
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
     "similarity-embeddings",
-    "similarity-embeddings-delete-by-hash",
 }
 
 

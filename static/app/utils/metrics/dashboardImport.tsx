@@ -24,18 +24,18 @@ type WidgetDefinition = {
   title: string;
   type: string;
   widgets: ImportWidget[];
-  legend_columns?: ('avg' | 'max' | 'min' | 'sum' | 'value')[];
+  legend_columns?: Array<'avg' | 'max' | 'min' | 'sum' | 'value'>;
   requests?: Request[];
 };
 
 type Request = {
   display_type: 'area' | 'bars' | 'line';
   formulas: Formula[];
-  queries: {
+  queries: Array<{
     data_source: string;
     name: string;
     query: string;
-  }[];
+  }>;
   response_format: 'note' | 'timeseries';
   style?: {
     line_type: 'dotted' | 'solid';
@@ -47,12 +47,12 @@ type Formula = {
   alias?: string;
 };
 
-type MetricWidgetReport = {
+type MetricWidgetReport = Array<{
   errors: string[];
   id: number;
   outcome: ImportOutcome;
   title: string;
-}[];
+}>;
 
 type ImportOutcome = 'success' | 'warning' | 'error';
 
@@ -179,7 +179,7 @@ export class WidgetParser {
   private async parseWidget() {
     this.parseLegendColumns();
 
-    const {title, requests = []} = this.importedWidget.definition as WidgetDefinition;
+    const {title, requests = []} = this.importedWidget.definition;
 
     const parsedRequests = requests.map(r => this.parseRequest(r));
     const parsedQueries = parsedRequests.flatMap(request => request.queries);
@@ -223,7 +223,7 @@ export class WidgetParser {
 
     const parsedQueries = queries
       .map(query => this.parseQuery(query))
-      .sort((a, b) => a!.name.localeCompare(b!.name));
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     if (response_format !== 'timeseries') {
       this.errors.push(
@@ -311,9 +311,9 @@ export class WidgetParser {
       const metricName = metric.slice(0, lastIndex);
       const aggregationSuffix = metric.slice(lastIndex + 1);
 
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix]) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         aggregation = METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix];
         metric = metricName;
       }
@@ -400,7 +400,7 @@ export class WidgetParser {
   private async mapToMetricsQuery(widget: any): Promise<MetricsQuery | null> {
     const {metric, aggregation, filters} = widget;
 
-    // @ts-ignore TS(2339): Property 'name' does not exist on type 'MetricMeta... Remove this comment to see the full error message
+    // @ts-expect-error TS(2339): Property 'name' does not exist on type 'MetricMeta... Remove this comment to see the full error message
     const metricMeta = this.availableMetrics.find(m => m.name === metric);
 
     if (!metricMeta) {
@@ -443,7 +443,7 @@ export class WidgetParser {
   }
 
   private constructMetricQueryFilter(
-    filters: {key: string; value: string}[],
+    filters: Array<{key: string; value: string}>,
     availableTags: string[]
   ) {
     const queryFilters = filters.map(filter => {

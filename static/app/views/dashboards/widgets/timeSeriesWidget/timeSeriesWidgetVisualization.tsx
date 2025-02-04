@@ -15,29 +15,46 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
+import type {
+  AggregationOutputType,
+  DurationUnit,
+  RateUnit,
+  SizeUnit,
+} from 'sentry/utils/discover/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {AreaChartWidgetSeries} from '../areaChartWidget/areaChartWidgetSeries';
+import {BarChartWidgetSeries} from '../barChartWidget/barChartWidgetSeries';
 import type {
   Aliases,
   Release,
   TimeseriesData,
   TimeseriesSelection,
 } from '../common/types';
+import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
 
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
+import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
+import {scaleTimeSeriesData} from './scaleTimeSeriesData';
+import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
+type VisualizationType = 'area' | 'line' | 'bar';
+
+type SeriesConstructor = (
+  timeserie: TimeseriesData,
+  complete?: boolean
+) => LineSeriesOption | BarSeriesOption;
+
 export interface TimeSeriesWidgetVisualizationProps {
-  SeriesConstructor: (
-    timeserie: TimeseriesData,
-    complete?: boolean
-  ) => LineSeriesOption | BarSeriesOption;
   timeseries: TimeseriesData[];
+  visualizationType: VisualizationType;
   aliases?: Aliases;
   dataCompletenessDelay?: number;
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
@@ -73,8 +90,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
 
-  // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-  const formatSeriesName: (string) => string = name => {
+  const formatSeriesName: (string: string) => string = name => {
     return props.aliases?.[name] ?? name;
   };
 
@@ -82,13 +98,57 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     saveOnZoom: true,
   });
 
-  let completeSeries: TimeseriesData[] = props.timeseries;
+  // TODO: The `meta.fields` property should be typed as
+  // Record<string, AggregationOutputType | null>, which is the reality
+  let yAxisFieldType: AggregationOutputType;
+
+  const types = uniq(
+    props.timeseries.map(timeserie => {
+      return timeserie?.meta?.fields?.[timeserie.field];
+    })
+  ).filter(Boolean) as AggregationOutputType[];
+
+  if (types.length === 1) {
+    // All timeseries have the same type. Use that as the Y axis type.
+    yAxisFieldType = types[0]!;
+  } else {
+    // Types are mismatched or missing. Use a fallback type
+    yAxisFieldType = FALLBACK_TYPE;
+  }
+
+  let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
+
+  const units = uniq(
+    props.timeseries.map(timeserie => {
+      return timeserie?.meta?.units?.[timeserie.field];
+    })
+  ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
+
+  if (units.length === 1) {
+    // All timeseries have the same unit. Use that unit. This is especially
+    // important for named rate timeseries like `"epm()"` where the user would
+    // expect a plot in minutes
+    yAxisUnit = units[0]!;
+  } else {
+    // None of the series specified a unit, or there are mismatched units. Fall
+    // back to an appropriate unit for the axis type
+    yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
+  }
+
+  const scaledSeries = props.timeseries.map(timeserie => {
+    return scaleTimeSeriesData(timeserie, yAxisUnit);
+  });
+
+  let completeSeries: TimeseriesData[] = scaledSeries;
   const incompleteSeries: TimeseriesData[] = [];
 
-  if (dataCompletenessDelay > 0) {
+  if (dataCompletenessDelay > 0 && ['line', 'area'].includes(props.visualizationType)) {
+    // In order to show incomplete data for line and area series, we have to do
+    // a shenanigan in which we split the series into two, style the
+    // "incomplete" series differently, and show both series on the chart
     completeSeries = [];
 
-    props.timeseries.forEach(timeserie => {
+    scaledSeries.forEach(timeserie => {
       const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
         timeserie,
         dataCompletenessDelay
@@ -102,35 +162,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         incompleteSeries.push(incompleteSerie);
       }
     });
+  } else if (dataCompletenessDelay > 0 && props.visualizationType === 'bar') {
+    // Bar charts are not continuous (there are gaps between the bars) so no
+    // shenanigan is needed. Simply mark the "incomplete" bars
+    completeSeries = props.timeseries.map(timeserie => {
+      return markDelayedData(timeserie, dataCompletenessDelay);
+    });
   }
-
-  // TODO: There's a TypeScript indexing error here. This _could_ in theory be
-  // `undefined`. We need to guard against this in the parent component, and
-  // show an error.
-  const firstSeries = props.timeseries[0]!;
-
-  let yAxisType: string;
-
-  const types = Array.from(
-    new Set(
-      props.timeseries
-        .map(timeserie => {
-          return timeserie?.meta?.fields[timeserie.field];
-        })
-        .filter(Boolean)
-    )
-  ) as string[];
-
-  if (types.length === 0 || types.length > 1) {
-    yAxisType = FALLBACK_TYPE;
-  } else {
-    yAxisType = types[0]!;
-  }
-
-  const firstSeriesField = firstSeries?.field;
-
-  // TODO: It would be smart, here, to check the units and convert if necessary
-  const yAxisUnit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
@@ -153,17 +191,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
 
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -177,7 +215,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return formatTooltipValue(value, FALLBACK_TYPE);
         }
 
-        const timeserie = props.timeseries.find(t => t.field === field);
+        const timeserie = scaledSeries.find(t => t.field === field);
 
         return formatTooltipValue(
           value,
@@ -191,12 +229,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = props.timeseries.length;
+  let visibleSeriesCount = scaledSeries.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
+
+  const SeriesConstructor = SeriesConstructors[props.visualizationType];
 
   return (
     <BaseChart
@@ -210,10 +250,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       autoHeightResize
       series={[
         ...completeSeries.map(timeserie => {
-          return props.SeriesConstructor(timeserie, true);
+          return SeriesConstructor(timeserie, true);
         }),
         ...incompleteSeries.map(timeserie => {
-          return props.SeriesConstructor(timeserie, false);
+          return SeriesConstructor(timeserie, false);
         }),
         releaseSeries &&
           LineSeries({
@@ -263,7 +303,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         animation: false,
         axisLabel: {
           formatter(value: number) {
-            return formatYAxisValue(value, yAxisType, yAxisUnit);
+            return formatYAxisValue(value, yAxisFieldType, yAxisUnit ?? undefined);
           },
         },
         axisPointer: {
@@ -289,4 +329,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 }
 
-const FALLBACK_TYPE = 'number';
+const SeriesConstructors: Record<VisualizationType, SeriesConstructor> = {
+  area: AreaChartWidgetSeries,
+  line: LineChartWidgetSeries,
+  bar: BarChartWidgetSeries,
+};

@@ -86,8 +86,21 @@ interface BaseStep {
   status: AutofixStatus;
   title: string;
   type: AutofixStepType;
+  active_comment_thread?: CommentThread | null;
   completedMessage?: string;
   output_stream?: string | null;
+}
+
+export type CommentThread = {
+  id: string;
+  is_completed: boolean;
+  messages: CommentThreadMessage[];
+};
+
+export interface CommentThreadMessage {
+  content: string;
+  role: 'user' | 'assistant';
+  isLoading?: boolean;
 }
 
 export type CodeSnippetContext = {
@@ -98,30 +111,9 @@ export type CodeSnippetContext = {
   start_line?: number;
 };
 
-export type StacktraceContext = {
-  code_snippet: string;
-  col_no: number;
-  file_name: string;
-  function: string;
-  line_no: number;
-  repo_name: string;
-  vars_as_json: string;
-};
-
-export type BreadcrumbContext = {
-  body: string;
-  category: string;
-  data_as_json: string;
-  level: string;
-  type: string;
-};
-
 export type AutofixInsight = {
-  breadcrumb_context: BreadcrumbContext[];
-  codebase_context: CodeSnippetContext[];
   insight: string;
   justification: string;
-  stacktrace_context: StacktraceContext[];
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -160,26 +152,28 @@ export interface AutofixChangesStep extends BaseStep {
   type: AutofixStepType.CHANGES;
 }
 
-export type AutofixRootCauseCodeContext = {
-  description: string;
-  id: string;
-  title: string;
-  snippet?: CodeSnippetContext;
+export type AutofixRelevantCodeFile = {
+  file_path: string;
+  repo_name: string;
 };
 
-export type AutofixRootCauseUnitTest = {
-  description: string;
-  file_path: string;
-  snippet: string;
+export type AutofixTimelineEvent = {
+  code_snippet_and_analysis: string;
+  is_most_important_event: boolean;
+  relevant_code_file: AutofixRelevantCodeFile;
+  timeline_item_type:
+    | 'environment'
+    | 'database'
+    | 'code'
+    | 'api_request'
+    | 'human_action';
+  title: string;
 };
 
 export type AutofixRootCauseData = {
-  code_context: AutofixRootCauseCodeContext[];
-  description: string;
   id: string;
-  title: string;
-  reproduction?: string;
-  unit_test?: AutofixRootCauseUnitTest;
+  description?: string; // TODO: this is for backwards compatibility with old runs, we should remove it soon
+  root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {

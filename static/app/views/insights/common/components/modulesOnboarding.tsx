@@ -78,7 +78,7 @@ export function ModulesOnboarding({
 }
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
@@ -120,7 +120,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -297,7 +297,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
-  // Mobile UI is not released yet
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -305,9 +304,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile Screens is not released yet
-  'mobile-screens': {
-    heading: t('Mobile Screens'),
+  'mobile-vitals': {
+    heading: t('Mobile Vitals'),
     description: t('Explore mobile app metrics.'),
     valuePropDescription: '',
     valuePropPoints: [],

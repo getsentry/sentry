@@ -148,7 +148,7 @@ export function getTraceContextData({
           }
 
           const link = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             projectID: event.projectID,
             query: {},

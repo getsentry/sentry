@@ -5,6 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
+import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 const trackTraceMetadata = (
@@ -13,8 +14,6 @@ const trackTraceMetadata = (
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null
 ) => {
-  Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
-
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
   const projectSlugs = [
@@ -42,11 +41,6 @@ const trackTraceMetadata = (
   });
 };
 
-const trackFailedToFetchTraceState = () =>
-  Sentry.metrics.increment('trace.failed_to_fetch_trace');
-
-const trackEmptyTraceState = () => Sentry.metrics.increment('trace.empty_trace');
-
 const trackLayoutChange = (layout: string, organization: Organization) =>
   trackAnalytics('trace.trace_layout.change', {
     layout,
@@ -56,6 +50,19 @@ const trackLayoutChange = (layout: string, organization: Organization) =>
 const trackDrawerMinimize = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.drawer_minimize', {
     organization,
+  });
+
+const trackExploreSearch = (
+  organization: Organization,
+  key: string,
+  value: string | number,
+  kind: TraceDrawerActionKind
+) =>
+  trackAnalytics('trace.trace_drawer_explore_search', {
+    organization,
+    key,
+    value,
+    kind,
   });
 
 const trackShowInView = (organization: Organization) =>
@@ -207,9 +214,8 @@ const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
   trackTraceShape,
-  trackEmptyTraceState,
-  trackFailedToFetchTraceState,
   // Drawer actions
+  trackExploreSearch,
   trackShowInView,
   trackViewEventJSON,
   trackViewContinuousProfile,

@@ -369,7 +369,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingDepths.map(
+    const connectorBars: React.ReactNode[] = continuingDepths.map(
       ({depth, isOrphanDepth}) => {
         if (generation - depth <= 1) {
           // If the difference is less than or equal to 1, then it means that the continued

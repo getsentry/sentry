@@ -9,8 +9,6 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -18,7 +16,6 @@ import {
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
-import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
   IconGraph,
@@ -43,7 +40,6 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -53,6 +49,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {
   AI_LANDING_SUB_PATH,
@@ -75,7 +72,10 @@ import {
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {
+  getPerformanceBaseUrl,
+  platformToDomainView,
+} from 'sentry/views/performance/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -88,10 +88,6 @@ import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
 
-function activatePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.activatePanel(panel);
-}
-
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
@@ -100,43 +96,14 @@ function hidePanel(hash?: string) {
   SidebarPanelStore.hidePanel(hash);
 }
 
-function useOpenOnboardingSidebar(organization?: Organization) {
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects: project} = useProjects();
-  const location = useLocation();
-
-  const openOnboardingSidebar = (() => {
-    if (location?.hash === '#welcome') {
-      if (organization && !isDemoModeEnabled()) {
-        const tasks = getMergedTasks({
-          organization,
-          projects: project,
-          onboardingContext,
-        });
-
-        const allDisplayedTasks = tasks.filter(task => task.display);
-        const doneTasks = allDisplayedTasks.filter(isDone);
-
-        return !(doneTasks.length >= allDisplayedTasks.length);
-      }
-      return true;
-    }
-    return false;
-  })();
-
-  useEffect(() => {
-    if (openOnboardingSidebar) {
-      activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
-    }
-  }, [openOnboardingSidebar]);
-}
-
 function Sidebar() {
   const location = useLocation();
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
+  const {selection} = usePageFilters();
+  const {projects: projectList} = useProjects();
   const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -163,8 +130,6 @@ function Sidebar() {
   const isExcludedOrg = () => {
     return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
   };
-
-  useOpenOnboardingSidebar();
 
   const toggleCollapse = useCallback(() => {
     if (collapsed) {
@@ -279,6 +244,24 @@ function Sidebar() {
     </Feature>
   );
 
+  const logs = hasOrganization && (
+    <Feature features="ourlogs-enabled">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="logs">{t('Logs')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/logs/`}
+        id="ourlogs"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const hasPerfLandingRemovalFlag = organization?.features.includes(
+    'insights-performance-landing-removal'
+  );
+  const view = hasPerfLandingRemovalFlag
+    ? platformToDomainView(projectList, selection.projects)
+    : undefined;
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
@@ -293,7 +276,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={`${getPerformanceBaseUrl(organization.slug)}/`}
+        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
         id="performance"
       />
     </Feature>
@@ -497,6 +480,7 @@ function Sidebar() {
       exact={!shouldAccordionFloat}
     >
       {traces}
+      {logs}
       {metrics}
       {profiling}
       {replays}

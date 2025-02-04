@@ -50,7 +50,7 @@ const statusPrecedent = [ExampleStatus.OK, ExampleStatus.TIMEOUT, ExampleStatus.
 function generateMockTickData(
   secondsGap: number,
   timeWindowConfig: TimeWindowConfig
-): CheckInBucket<ExampleStatus>[] {
+): Array<CheckInBucket<ExampleStatus>> {
   const buckets = timeWindowConfig.timelineWidth;
   const secondsPerBucket = (timeWindowConfig.elapsedMinutes * 60) / buckets;
 
@@ -79,7 +79,7 @@ function generateMockTickData(
     .filter(([ts, _]) => ts <= timeWindowConfig.end.getTime() / 1000);
 }
 
-export default storyBook(CheckInTimeline, story => {
+export default storyBook('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
     const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});

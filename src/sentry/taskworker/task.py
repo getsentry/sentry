@@ -11,7 +11,11 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.sentry.v1.taskworker_pb2 import RetryState, TaskActivation
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
+    RetryState,
+    TaskActivation,
+)
 
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
 from sentry.taskworker.retry import Retry
@@ -55,6 +59,10 @@ class Task(Generic[P, R]):
         self.at_most_once = at_most_once
         self.wait_for_delivery = wait_for_delivery
         update_wrapper(self, func)
+
+    @property
+    def fullname(self) -> str:
+        return f"{self._namespace.name}:{self.name}"
 
     @property
     def retry(self) -> Retry | None:
@@ -127,8 +135,8 @@ class Task(Generic[P, R]):
             # attempt and then discard the task.
             return RetryState(
                 attempts=0,
-                kind="sentry.taskworker.retry.Retry",
-                discard_after_attempt=1,
+                max_attempts=1,
+                on_attempts_exceeded=ON_ATTEMPTS_EXCEEDED_DISCARD,
                 at_most_once=self.at_most_once,
             )
         return retry.initial_state()

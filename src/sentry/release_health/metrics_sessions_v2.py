@@ -702,14 +702,16 @@ def _extract_status_filter_from_conditions(
     """Split conditions into metrics conditions and a filter on session.status"""
     if not conditions:
         return conditions, None
-    where, status_filters = zip(*map(_transform_single_condition, conditions))
-    where = [condition for condition in where if condition is not None]
-    status_filters = [f for f in status_filters if f is not None]
-    if status_filters:
-        status_filters = frozenset.intersection(*status_filters)
-    else:
-        status_filters = None
-    return where, status_filters
+    where_values = []
+    status_values = []
+    for condition in conditions:
+        cand_where, cand_status = _transform_single_condition(condition)
+        if cand_where is not None:
+            where_values.append(cand_where)
+        if cand_status is not None:
+            status_values.append(cand_status)
+
+    return where_values, frozenset.intersection(*status_values) if status_values else None
 
 
 def _transform_single_condition(

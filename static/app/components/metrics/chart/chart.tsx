@@ -79,14 +79,14 @@ function getLegendProps(showLegend?: boolean): Pick<BaseChartProps, 'legend' | '
 // But for now we keep it here to not invluence the bundle size of the main chunks.
 echarts.use(CanvasRenderer);
 
-function isNonZeroValue(value: number | null) {
-  return value !== null && value !== 0;
+function isNonZeroValue(value: number | undefined) {
+  return value !== undefined && value !== 0;
 }
 
 function addSeriesPadding(data: Series['data']) {
   const hasNonZeroSibling = (index: number) => {
     return (
-      isNonZeroValue(data[index - 1]!?.value) || isNonZeroValue(data[index + 1]!?.value)
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
     );
   };
   const paddingIndices = new Set<number>();
@@ -142,11 +142,11 @@ export const MetricChart = memo(
         }
       });
 
-      const bucketSize = series[0]!?.data[1]!?.name - series[0]!?.data[0]!?.name;
+      const bucketSize = series[0]?.data[1]?.name! - series[0]?.data[0]?.name!;
       const isSubMinuteBucket = bucketSize < 60_000;
-      const lastBucketTimestamp = series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name;
+      const lastBucketTimestamp = series[0]?.data[series[0]?.data.length - 1]?.name;
       const ingestionBuckets = useMemo(
-        () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp),
+        () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp!),
         [bucketSize, lastBucketTimestamp]
       );
 
@@ -234,7 +234,7 @@ export const MetricChart = memo(
                 const uniqueSeries = new Set<string>();
                 const deDupedParams = params.filter(param => {
                   // Filter null values from tooltip
-                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   if (param.value[1] === null) {
                     return false;
                   }
@@ -245,9 +245,9 @@ export const MetricChart = memo(
                   }
 
                   // Filter padding datapoints from tooltip
-                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   if (param.value[1] === 0) {
-                    // @ts-ignore TS(2538): Type 'undefined' cannot be used as an index type.
+                    // @ts-expect-error TS(2538): Type 'undefined' cannot be used as an index type.
                     const currentSeries = seriesToShow[param.seriesIndex]!;
                     const paddingIndices =
                       'paddingIndices' in currentSeries
@@ -258,11 +258,11 @@ export const MetricChart = memo(
                     }
                   }
 
-                  // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+                  // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                   if (uniqueSeries.has(param.seriesName)) {
                     return false;
                   }
-                  // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+                  // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                   uniqueSeries.add(param.seriesName);
                   return true;
                 });

@@ -191,7 +191,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
     def test_invalid_query(self):
         key = SEMVER_ALIAS
@@ -346,7 +346,7 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
     def test_empty(self):
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
@@ -396,7 +396,7 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
         filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
         with pytest.raises(

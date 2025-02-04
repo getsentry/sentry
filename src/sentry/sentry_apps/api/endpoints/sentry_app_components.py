@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,19 +10,22 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.coreapi import APIError
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
-from sentry.sentry_apps.api.bases.sentryapps import (
-    SentryAppBaseEndpoint,
-    add_integration_platform_metric_tag,
-)
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppComponentSerializer
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
+
+logger = logging.getLogger("sentry.sentry_apps.components")
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -51,7 +56,6 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @add_integration_platform_metric_tag
     def get(
         self,
         request: Request,
@@ -80,7 +84,18 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                     with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
-                        except APIError:
+                        except (SentryAppIntegratorError, SentryAppError):
+                            errors.append(str(component.uuid))
+                        except (SentryAppSentryError, Exception) as e:
+                            logger.info(
+                                "component-preparation-error",
+                                exc_info=e,
+                                extra={
+                                    "component_uuid": component.uuid,
+                                    "sentry_app": install.sentry_app.slug,
+                                    "installation_uuid": install.uuid,
+                                },
+                            )
                             errors.append(str(component.uuid))
 
                         components.append(component)

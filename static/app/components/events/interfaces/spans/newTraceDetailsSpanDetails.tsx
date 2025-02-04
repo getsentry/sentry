@@ -108,7 +108,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   );
 
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(props.node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
@@ -208,7 +208,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.value.project_id),
@@ -267,7 +267,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: props.node.value.op, group: groupHash},

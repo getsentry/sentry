@@ -1,12 +1,8 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
 import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/core';
+import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import {
-  _browserPerformanceTimeOriginMode,
-  browserPerformanceTimeOrigin,
-  timestampInSeconds,
-} from '@sentry/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -58,76 +54,74 @@ export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDura
   }
 };
 
-export class PerformanceInteraction {
-  private static interactionSpan: Span | null = null;
-  private static interactionTimeoutId: number | undefined = undefined;
+export const PerformanceInteraction = (function () {
+  let _INTERACTION_SPAN: Span | null = null;
+  let _INTERACTION_TIMEOUT_ID: number | undefined = undefined;
+  return {
+    getSpan() {
+      return _INTERACTION_SPAN;
+    },
 
-  static getSpan() {
-    return PerformanceInteraction.interactionSpan;
-  }
+    startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
+      try {
+        const currentSpan = Sentry.getActiveSpan();
+        if (currentSpan) {
+          const currentIdleSpan = Sentry.getRootSpan(currentSpan);
+          // If interaction is started while idle still exists.
+          currentIdleSpan.setAttribute(
+            'sentry.idle_span_finish_reason',
+            'sentry.interactionStarted'
+          );
+          currentIdleSpan.end();
+        }
+        PerformanceInteraction.finishInteraction(immediate);
 
-  static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
-    try {
-      const currentSpan = Sentry.getActiveSpan();
-      if (currentSpan) {
-        const currentIdleSpan = Sentry.getRootSpan(currentSpan);
-        // If interaction is started while idle still exists.
-        currentIdleSpan.setAttribute(
-          'sentry.idle_span_finish_reason',
-          'sentry.interactionStarted'
-        );
-        currentIdleSpan.end();
+        const span = Sentry.startInactiveSpan({
+          name: `ui.${name}`,
+          op: 'interaction',
+          forceTransaction: true,
+        });
+
+        _INTERACTION_SPAN = span || null;
+
+        // Auto interaction timeout
+        _INTERACTION_TIMEOUT_ID = window.setTimeout(() => {
+          if (!_INTERACTION_SPAN) {
+            return;
+          }
+          _INTERACTION_SPAN.setAttribute('ui.interaction.finish', 'timeout');
+          PerformanceInteraction.finishInteraction(true);
+        }, timeout);
+      } catch (e) {
+        Sentry.captureMessage(e);
       }
-      PerformanceInteraction.finishInteraction(immediate);
+    },
 
-      const span = Sentry.startInactiveSpan({
-        name: `ui.${name}`,
-        op: 'interaction',
-        forceTransaction: true,
-      });
-
-      PerformanceInteraction.interactionSpan = span || null;
-
-      // Auto interaction timeout
-      PerformanceInteraction.interactionTimeoutId = window.setTimeout(() => {
-        if (!PerformanceInteraction.interactionSpan) {
+    async finishInteraction(immediate = false) {
+      try {
+        if (!_INTERACTION_SPAN) {
           return;
         }
-        PerformanceInteraction.interactionSpan.setAttribute(
-          'ui.interaction.finish',
-          'timeout'
-        );
-        PerformanceInteraction.finishInteraction(true);
-      }, timeout);
-    } catch (e) {
-      Sentry.captureMessage(e);
-    }
-  }
+        clearTimeout(_INTERACTION_TIMEOUT_ID);
 
-  static async finishInteraction(immediate = false) {
-    try {
-      if (!PerformanceInteraction.interactionSpan) {
+        if (immediate) {
+          _INTERACTION_SPAN.end();
+          _INTERACTION_SPAN = null;
+          return;
+        }
+
+        // Add a slight wait if this isn't called as the result of another transaction starting.
+        await new Promise(resolve => setTimeout(resolve, WAIT_POST_INTERACTION));
+        _INTERACTION_SPAN?.end();
+        _INTERACTION_SPAN = null;
+
         return;
+      } catch (e) {
+        Sentry.captureMessage(e);
       }
-      clearTimeout(PerformanceInteraction.interactionTimeoutId);
-
-      if (immediate) {
-        PerformanceInteraction.interactionSpan.end();
-        PerformanceInteraction.interactionSpan = null;
-        return;
-      }
-
-      // Add a slight wait if this isn't called as the result of another transaction starting.
-      await new Promise(resolve => setTimeout(resolve, WAIT_POST_INTERACTION));
-      PerformanceInteraction.interactionSpan?.end();
-      PerformanceInteraction.interactionSpan = null;
-
-      return;
-    } catch (e) {
-      Sentry.captureMessage(e);
-    }
-  }
-}
+    },
+  };
+})();
 
 export function CustomProfiler({id, children}: {children: ReactNode; id: string}) {
   return (
@@ -339,7 +333,8 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
 };
 
 const addCustomMeasurements = (transaction: TransactionEvent) => {
-  if (!browserPerformanceTimeOrigin || !transaction.start_timestamp) {
+  const browserTimeOrigin = browserPerformanceTimeOrigin();
+  if (!browserTimeOrigin || !transaction.start_timestamp) {
     return;
   }
 
@@ -354,7 +349,7 @@ const addCustomMeasurements = (transaction: TransactionEvent) => {
   const context: MeasurementContext = {
     transaction,
     ttfb: ttfbValue,
-    browserTimeOrigin: browserPerformanceTimeOrigin,
+    browserTimeOrigin,
     transactionStart: transaction.start_timestamp,
     transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
   };
@@ -605,28 +600,6 @@ function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
   return entry.entryType === 'first-input';
 }
 
-function getNearestElementName(node: HTMLElement | undefined | null): string | undefined {
-  if (!node) {
-    return 'no-element';
-  }
-
-  let current: HTMLElement | null = node;
-  while (current && current !== document.body) {
-    const elementName =
-      current.dataset?.testId ??
-      current.dataset?.sentryComponent ??
-      current.dataset?.element;
-
-    if (elementName) {
-      return elementName;
-    }
-
-    current = current.parentElement;
-  }
-
-  return `${node.tagName.toLowerCase()}.${node.className ?? ''}`;
-}
-
 export function makeIssuesINPObserver(): PerformanceObserver | undefined {
   if (!supportsINP()) {
     return undefined;
@@ -643,15 +616,6 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
         if (entry.duration < 16) {
           return;
         }
-
-        Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
-          unit: 'millisecond',
-          tags: {
-            element: getNearestElementName(entry.target),
-            entryType: entry.entryType,
-            interaction: entry.name,
-          },
-        });
       }
     });
   });

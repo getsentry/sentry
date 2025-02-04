@@ -91,15 +91,15 @@ class EventChart extends Component<Props, State> {
     const aReceived = [0, 0]; // received, points
 
     rawData['events.total']!.forEach((point, idx) => {
-      const dReceived = point![1];
-      const dRejected = rawData['events.dropped']![idx]!?.[1];
-      const ts = point![0]!;
+      const dReceived = point[1];
+      const dRejected = rawData['events.dropped']![idx]?.[1];
+      const ts = point[0];
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
-        sRejected[ts] = dRejected;
+        sRejected[ts] = dRejected!;
       } else {
         sReceived[ts] += dReceived;
-        sRejected[ts]! += dRejected;
+        sRejected[ts]! += dRejected!;
       }
       if (dReceived > 0) {
         aReceived[0]! += dReceived;

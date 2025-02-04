@@ -104,7 +104,7 @@ class QuerySubscription(Model):
 
     # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", related_name="subscriptions")
     type = (
         models.TextField()
     )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.

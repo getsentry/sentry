@@ -126,7 +126,7 @@ export function DomainSelector({
     textValue: t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]),
   };
 
-  const options: SelectOption<string>[] = [
+  const options: Array<SelectOption<string>> = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
     ...domainOptions,
@@ -187,7 +187,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   uptime: t('Domain'),
   'screen-rendering': t('Domain'),
   'mobile-ui': t('Domain'),
-  'mobile-screens': t('Domain'),
+  'mobile-vitals': t('Domain'),
 };
 
 function getEventView(

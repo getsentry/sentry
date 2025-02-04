@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, TypedDict
@@ -201,6 +202,25 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
                 "referrer": source.value,
             },
         )
+        # Temporary log for debugging.
+        if random.random() < 0.1:
+            project = Project.objects.get_from_cache(id=project_id)
+            contexts = event.get("contexts") or {}
+            feedback = contexts.get("feedback") or {}
+            feedback_msg = feedback.get("message")
+            logger.info(
+                "Filtered missing context or message.",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": project.organization_id,
+                    "has_contexts": bool(contexts),
+                    "has_feedback": bool(feedback),
+                    "event_type": event.get("type"),
+                    "feedback_message": feedback_msg,
+                    "platform": project.platform,
+                    "referrer": source.value,
+                },
+            )
         return True
 
     if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
@@ -218,6 +238,17 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
             "feedback.create_feedback_issue.filtered",
             tags={
                 "reason": "empty",
+                "referrer": source.value,
+            },
+        )
+        # Temporary log for debugging.
+        project = Project.objects.get_from_cache(id=project_id)
+        logger.info(
+            "Filtered empty feedback message.",
+            extra={
+                "project_id": project_id,
+                "organization_id": project.organization_id,
+                "platform": project.platform,
                 "referrer": source.value,
             },
         )

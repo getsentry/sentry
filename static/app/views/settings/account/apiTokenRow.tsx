@@ -16,10 +16,17 @@ type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
   canEdit?: boolean;
+  onRemoveConfirmMessage?: string;
   tokenPrefix?: string;
 };
 
-function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props) {
+function ApiTokenRow({
+  token,
+  onRemove,
+  tokenPrefix = '',
+  canEdit = false,
+  onRemoveConfirmMessage,
+}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
@@ -37,15 +44,18 @@ function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props
             </Link>
           </LinkWrapper>
         ) : (
-          <h1>{token.name ? token.name : ''}</h1>
+          <p>{token.name ? token.name : ''}</p>
         )}
         <ButtonWrapper>
           <Confirm
             onConfirm={() => onRemove(token)}
-            message={t(
-              'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
-              tokenPreview(token.tokenLastCharacters, tokenPrefix)
-            )}
+            message={
+              onRemoveConfirmMessage ||
+              t(
+                'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
+                tokenPreview(token.tokenLastCharacters, tokenPrefix)
+              )
+            }
           >
             <Button
               data-test-id="token-delete"

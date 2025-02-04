@@ -638,7 +638,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
 const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: `underline dotted ${
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       colors[underlineColor] ?? aliases[underlineColor]
     }`,
     textDecorationThickness: '0.75px',
@@ -693,6 +693,7 @@ const iconSizes = {
 } as const;
 
 const commonTheme = {
+  isChonk: false,
   breakpoints: {
     xsmall: '500px',
     small: '800px',
