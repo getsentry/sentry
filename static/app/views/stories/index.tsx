@@ -1,28 +1,43 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {space} from 'sentry/styles/space';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-import StoryFile, {StoryExports} from 'sentry/views/stories/storyFile';
-import StoryHeader from 'sentry/views/stories/storyHeader';
-import StoryTree from 'sentry/views/stories/storyTree';
-import useStoriesLoader, {useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
+import {StoryExports} from 'sentry/views/stories/storyExports';
+import {StoryHeader} from 'sentry/views/stories/storyHeader';
+import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
+import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
+import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
+import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
   const location = useLocation<{name: string; query?: string}>();
-
   const files = useStoryBookFiles();
-  const story = useStoriesLoader({filename: location.query.name});
+
+  // If no story is selected, show the landing page stories
+  const storyFiles = useMemo(() => {
+    if (!location.query.name) {
+      return files.filter(
+        file =>
+          file.endsWith('styles/colors.stories.tsx') ||
+          file.endsWith('styles/typography.stories.tsx')
+      );
+    }
+    return [location.query.name];
+  }, [files, location.query.name]);
+
+  const story = useStoriesLoader({files: storyFiles});
   const nodes = useStoryTree(files, location.query.query ?? '');
 
   const navigate = useNavigate();
@@ -41,9 +56,11 @@ export default function Stories() {
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
         <Layout>
-          <StoryHeader style={{gridArea: 'head'}} />
+          <HeaderContainer>
+            <StoryHeader />
+          </HeaderContainer>
 
-          <SidebarContainer style={{gridArea: 'aside'}}>
+          <SidebarContainer>
             <InputGroup>
               <InputGroup.LeadingItems disablePointerEvents>
                 <IconSearch />
@@ -72,196 +89,34 @@ export default function Stories() {
               </Alert>
             </VerticalScroll>
           ) : story.isSuccess ? (
-            Object.keys(story.data.exports).length > 0 ? (
-              <StoryMainContainer style={{gridArea: 'body'}}>
-                <StoryFile story={story.data} />
-              </StoryMainContainer>
-            ) : (
-              <VerticalScroll style={{gridArea: 'body'}}>
-                <strong>The file you selected does not export a story.</strong>
-              </VerticalScroll>
-            )
-          ) : (
-            <StoryMainContainer style={{gridArea: 'body'}}>
-              <StoriesLandingPage />
+            <StoryMainContainer>
+              {story.data.map((s, _i, arr) => {
+                // We render extra information if this is the only story that is being rendered
+                if (arr.length === 1) {
+                  <Fragment key={s.filename}>
+                    <TextOverflow>{s.filename}</TextOverflow>
+                    <CopyToClipboardButton size="xs" iconSize="xs" text={s.filename} />
+                    <StorySourceLinks story={s} />
+                    <StoryExports story={s} />
+                  </Fragment>;
+                }
+
+                // Render just the story exports in case of multiple stories being rendered
+                return <StoryExports key={s.filename} story={s} />;
+              })}
             </StoryMainContainer>
+          ) : (
+            <VerticalScroll style={{gridArea: 'body'}}>
+              <strong>The file you selected does not export a story.</strong>
+            </VerticalScroll>
           )}
+          <StoryIndexContainer>
+            <StoryTableOfContents />
+          </StoryIndexContainer>
         </Layout>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>
   );
-}
-
-function StoriesLandingPage() {
-  const files = useStoryBookFiles();
-  const landingPageStories = useMemo(() => {
-    const stories: string[] = [];
-    for (const file of files) {
-      if (
-        file.endsWith('styles/colors.stories.tsx') ||
-        file.endsWith('styles/typography.stories.tsx')
-      ) {
-        stories.push(file);
-      }
-    }
-    return stories;
-  }, [files]);
-
-  const stories = useStoriesLoader({filename: landingPageStories});
-
-  return stories.isFetching ? (
-    <LoadingIndicator />
-  ) : stories.isError ? (
-    <Alert type="error" showIcon>
-      <strong>{stories.error.name}:</strong> {stories.error.message}
-    </Alert>
-  ) : (
-    stories.data?.map(story => <StoryExports key={story.filename} story={story} />)
-  );
-}
-
-function useStoryTree(files: string[], query: string) {
-  const location = useLocation();
-  const initialName = useRef(location.query.name);
-
-  const tree = useMemo(() => {
-    const root = new StoryTreeNode('root', '');
-
-    for (const file of files) {
-      const parts = file.split('/');
-      let parent = root;
-
-      for (const part of parts) {
-        if (!(part in parent.children)) {
-          parent.children[part] = new StoryTreeNode(part, file);
-        }
-
-        parent = parent.children[part]!;
-      }
-    }
-
-    // If the user navigates to a story, expand to its location in the tree
-    if (initialName.current) {
-      for (const {node, path} of root) {
-        if (node.path === initialName.current) {
-          for (const p of path) {
-            p.expanded = true;
-          }
-          initialName.current = null;
-          break;
-        }
-      }
-    }
-
-    return root;
-  }, [files]);
-
-  const nodes = useMemo(() => {
-    // Skip the top level app folder as it's where the entire project is at
-    const root = tree.find(node => node.name === 'app') ?? tree;
-
-    if (!query) {
-      if (initialName.current) {
-        return Object.values(root.children);
-      }
-
-      // If there is no initial query and no story is selected, the sidebar
-      // tree is collapsed to the root node.
-      for (const {node} of root) {
-        node.visible = true;
-        node.expanded = false;
-        node.result = null;
-      }
-      return Object.values(root.children);
-    }
-
-    for (const {node} of root) {
-      node.visible = false;
-      node.expanded = false;
-      node.result = null;
-    }
-
-    // Fzf requires the input to be lowercase as it normalizes the search candidates to lowercase
-    const lowerCaseQuery = query.toLowerCase();
-
-    for (const {node, path} of root) {
-      // index files are useless when trying to match by name, so we'll special
-      // case them and match by their full path as it'll contain a more
-      // relevant path that we can match against.
-      const name = node.name.startsWith('index.')
-        ? [node.name, ...path.map(p => p.name)].join('.')
-        : node.name;
-
-      const match = fzf(name, lowerCaseQuery, false);
-      node.result = match;
-
-      if (match.score > 0) {
-        node.visible = true;
-
-        if (Object.keys(node.children).length > 0) {
-          node.expanded = true;
-          for (const child of Object.values(node.children)) {
-            child.visible = true;
-          }
-        }
-
-        // @TODO (JonasBadalic): We can trip this when we find a visible node if we reverse iterate
-        for (const p of path) {
-          p.visible = true;
-          p.expanded = true;
-          // The entire path needs to contain max score of its child results so that
-          // the entire path to it can be sorted by this score. The side effect of this is that results from the same
-          // tree path with a lower score will be placed higher in the tree if that same path has a higher score anywhere
-          // in the tree. This isn't ideal, but given that it favors the most relevant results, it makes it a good starting point.
-          p.result = match.score > (p.result?.score ?? 0) ? match : p.result;
-        }
-      }
-    }
-
-    return Object.values(root.children);
-  }, [tree, query]);
-
-  return nodes;
-}
-
-export class StoryTreeNode {
-  public name: string;
-  public path: string;
-  public visible = true;
-  public expanded = false;
-  public children: Record<string, StoryTreeNode> = {};
-
-  public result: ReturnType<typeof fzf> | null = null;
-
-  constructor(name: string, path: string) {
-    this.name = name;
-    this.path = path;
-  }
-
-  find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
-    for (const {node} of this) {
-      if (node && predicate(node)) {
-        return node;
-      }
-    }
-    return undefined;
-  }
-
-  // Iterator that yields all files in the tree, excluding folders
-  *[Symbol.iterator]() {
-    function* recurse(
-      node: StoryTreeNode,
-      path: StoryTreeNode[]
-    ): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
-      yield {node, path};
-
-      for (const child of Object.values(node.children)) {
-        yield* recurse(child, path.concat(node));
-      }
-    }
-
-    yield* recurse(this, []);
-  }
 }
 
 const Layout = styled('div')`
@@ -269,8 +124,8 @@ const Layout = styled('div')`
 
   display: grid;
   grid-template:
-    'head head' max-content
-    'aside body' auto/ ${p => p.theme.settings.sidebarWidth} 1fr;
+    'head head head' max-content
+    'aside body index' auto/ ${p => p.theme.settings.sidebarWidth} 1fr;
   gap: var(--stories-grid-space);
   place-items: stretch;
 
@@ -278,7 +133,12 @@ const Layout = styled('div')`
   padding: var(--stories-grid-space);
 `;
 
+const HeaderContainer = styled('div')`
+  grid-area: head;
+`;
+
 const SidebarContainer = styled('div')`
+  grid-area: aside;
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
@@ -288,6 +148,10 @@ const SidebarContainer = styled('div')`
 const StoryTreeContainer = styled('div')`
   overflow-y: scroll;
   flex-grow: 1;
+`;
+
+const StoryIndexContainer = styled('div')`
+  grid-area: index;
 `;
 
 const VerticalScroll = styled('main')`
@@ -305,10 +169,21 @@ const StoryMainContainer = styled(VerticalScroll)`
   border-radius: ${p => p.theme.panelBorderRadius};
   border: 1px solid ${p => p.theme.border};
 
+  grid-area: body;
+
   padding: var(--stories-grid-space);
   padding-top: 0;
   overflow-x: hidden;
   overflow-y: auto;
 
   position: relative;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    scroll-margin-top: ${space(3)};
+  }
 `;

@@ -71,6 +71,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
+import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -401,6 +402,9 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
+        {trace_id ? (
+          <TraceLevelOpsBreakdown traceSlug={trace_id} isTraceLoading={isLoading} />
+        ) : null}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -840,6 +844,9 @@ const TraceStylingWrapper = styled('div')`
     overflow-x: auto;
     overscroll-behavior: none;
     will-change: transform;
+    z-index: 10;
+    display: flex;
+    align-items: center;
 
     .TraceScrollbarScroller {
       height: 1px;

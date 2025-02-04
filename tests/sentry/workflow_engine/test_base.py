@@ -86,7 +86,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
-        Create a Worfkllow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
+        Create a Workflow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
         These models are configured to work together to test the workflow engine.
         """
         workflow_triggers = workflow_triggers or self.create_data_condition_group()
