@@ -795,13 +795,7 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleSaveWidget = async ({
-    index,
-    widget,
-  }: {
-    index: number | undefined;
-    widget: Widget;
-  }) => {
+  handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
     if (
       !this.props.organization.features.includes('dashboards-widget-builder-redesign')
     ) {
@@ -826,7 +820,7 @@ class DashboardDetail extends Component<Props, State> {
       if (!this.isEditingDashboard) {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
-        await this.handleUpdateWidgetList(newWidgets);
+        this.handleUpdateWidgetList(newWidgets);
         clearIndicators();
       } else {
         // If we're in edit mode, update the edit state
