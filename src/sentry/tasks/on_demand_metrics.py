@@ -253,10 +253,10 @@ def _get_widget_on_demand_specs(
     """
     Saves on-demand state for a widget query.
     """
-    # This can just be the first project we find, since spec hashes should not be project
-    # dependent. If spec hashes become project dependent then this may need to change.
     project_for_query = cache.get(_get_project_for_query_cache_key(organization), None)
-    if not project_for_query:
+    if not cache.has_key(_get_project_for_query_cache_key(organization)):
+        # This can just be the first project we find, since spec hashes should not be project
+        # dependent. If spec hashes become project dependent then this may need to change.
         project_for_query = Project.objects.filter(organization=organization).first()
         cache.set(
             _get_project_for_query_cache_key(organization),
