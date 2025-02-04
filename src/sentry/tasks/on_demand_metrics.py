@@ -258,7 +258,11 @@ def _get_widget_on_demand_specs(
     project_for_query = cache.get(_get_project_for_query_cache_key(organization), None)
     if not project_for_query:
         project_for_query = Project.objects.filter(organization=organization).first()
-        cache.set(_get_project_for_query_cache_key(organization), project_for_query, timeout=3600)
+        cache.set(
+            _get_project_for_query_cache_key(organization),
+            project_for_query,
+            timeout=_COLUMN_CARDINALITY_TTL,
+        )
 
     if not project_for_query:
         return []
