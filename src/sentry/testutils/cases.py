@@ -3424,6 +3424,11 @@ class TraceTestCase(SpanTestCase):
         else:
             del span_data["parent_span_id"]
 
+        if "sentry_tags" in span_data:
+            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        else:
+            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
+
         return span_data
 
     def load_errors(
