@@ -52,7 +52,7 @@ export default function ActionTargetSelector(props: Props) {
 
   switch (action.targetType) {
     case TargetType.TEAM:
-    case TargetType.USER:
+    case TargetType.USER: {
       const isTeam = action.targetType === TargetType.TEAM;
 
       return isTeam ? (
@@ -73,7 +73,7 @@ export default function ActionTargetSelector(props: Props) {
           onChange={handleChangeTargetIdentifier}
         />
       );
-
+    }
     case TargetType.SPECIFIC:
       return availableAction?.options ? (
         <SelectControl

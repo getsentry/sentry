@@ -37,10 +37,9 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import RepoTree
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -230,19 +229,16 @@ class GitHubIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
-        * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
-            all_repos = self.get_client().get_repos(fetch_max_pages)
+            all_repos = self.get_client().get_repos()
             return [
                 {
                     "name": i["name"],
@@ -285,29 +281,6 @@ class GitHubIntegration(
         except ApiError:
             return False
         return True
-
-    # XXX: To be removed after we switch over to the new repo trees integration code
-    def get_trees_for_org_old(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
-        trees: dict[str, RepoTree] = {}
-        domain_name = self.model.metadata["domain_name"]
-        extra = {"metadata": self.model.metadata}
-        if domain_name.find("github.com/") == -1:
-            logger.warning("We currently only support github.com domains.", extra=extra)
-            return trees
-
-        gh_org = domain_name.split("github.com/")[1]
-        extra.update({"gh_org": gh_org})
-        org_exists = organization_service.check_organization_by_id(
-            id=self.org_integration.organization_id, only_visible=False
-        )
-        if not org_exists:
-            logger.error(
-                "No organization information was found. Continuing execution.", extra=extra
-            )
-        else:
-            trees = self.get_client().get_trees_for_org_deprecate(gh_org, cache_seconds)
-
-        return trees
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         resp = self.get_client().search_issues(query)

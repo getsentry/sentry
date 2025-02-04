@@ -4043,17 +4043,45 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": True,
+                "organizations:issue-search-snuba": True,
+            }
+        ):
             response = self.get_success_response(query="abc:true")
-            assert len(json.loads(response.content)) == 1
-
-        with self.feature({"organizations:feature-flag-autocomplete": False}):
-            response = self.get_success_response(query="abc:true")
-            assert len(json.loads(response.content)) == 0
-
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
+            assert len(json.loads(response.content)) == 1, "abc:true on"
             response = self.get_success_response(query="abc:false")
-            assert len(json.loads(response.content)) == 0
+            assert len(json.loads(response.content)) == 0, "abc:false on"
+
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": True,
+                "organizations:issue-search-snuba": False,
+            }
+        ):
+            response = self.get_success_response(query="abc:true")
+            assert len(json.loads(response.content)) == 1, "abc:true on legacy"
+            response = self.get_success_response(query="abc:false")
+            assert len(json.loads(response.content)) == 0, "abc:false on legacy"
+
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": False,
+                "organizations:issue-search-snuba": False,
+            }
+        ):
+            response = self.get_success_response(query="abc:true")
+            assert len(json.loads(response.content)) == 0, "abc:true off"
+
+        with self.feature(
+            {
+                "organizations:feature-flag-autocomplete": False,
+                "organizations:issue-search-snuba": True,
+            }
+        ):
+            response = self.get_success_response(query="abc:true")
+            assert len(json.loads(response.content)) == 0, "abc:true off legacy"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -4175,7 +4203,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_bulk_resolve(self) -> None:
         self.login_as(user=self.user)
 
-        for i in range(200):
+        for i in range(101):
             self.store_event(
                 data={
                     "fingerprint": [i],

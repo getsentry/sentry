@@ -8,7 +8,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
-export default storyBook(BigNumberWidget, story => {
+export default storyBook('BigNumberWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

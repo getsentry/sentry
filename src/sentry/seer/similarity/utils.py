@@ -269,10 +269,7 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
 
 
 def get_stacktrace_string_with_metrics(
-    data: dict[str, Any],
-    platform: str | None,
-    referrer: ReferrerOptions,
-    logger_extra: dict[str, Any] | None = None,
+    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
     sample_rate = options.get("seer.similarity.metrics_sample_rate")
@@ -286,12 +283,6 @@ def get_stacktrace_string_with_metrics(
             tags={"platform": platform, "referrer": referrer},
         )
         if referrer == ReferrerOptions.INGEST:
-            # Temporary log to debug how we're still landing here, which we shouldn't be anymore
-            logger.info(
-                "record_did_call_seer_metric.over-threshold-frames",
-                extra=logger_extra,
-            )
-
             record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
@@ -321,7 +312,6 @@ def has_too_many_contributing_frames(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
-    record_metrics: bool = True,
 ) -> bool:
     platform = event.platform
     shared_tags = {"referrer": referrer.value, "platform": platform}
@@ -349,12 +339,11 @@ def has_too_many_contributing_frames(
     # with the existing data, we turn off the filter for them (instead their stacktraces will be
     # truncated)
     if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
-        if record_metrics:
-            metrics.incr(
-                "grouping.similarity.frame_count_filter",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={**shared_tags, "outcome": "bypass"},
-            )
+        metrics.incr(
+            "grouping.similarity.frame_count_filter",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={**shared_tags, "outcome": "bypass"},
+        )
         return False
 
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
@@ -362,20 +351,18 @@ def has_too_many_contributing_frames(
     shared_tags["stacktrace_type"] = stacktrace_type
 
     if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
-        if record_metrics:
-            metrics.incr(
-                "grouping.similarity.frame_count_filter",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={**shared_tags, "outcome": "block"},
-            )
-        return True
-
-    if record_metrics:
         metrics.incr(
             "grouping.similarity.frame_count_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "pass"},
+            tags={**shared_tags, "outcome": "block"},
         )
+        return True
+
+    metrics.incr(
+        "grouping.similarity.frame_count_filter",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={**shared_tags, "outcome": "pass"},
+    )
     return False
 
 

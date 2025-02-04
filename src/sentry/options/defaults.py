@@ -513,6 +513,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
+#
+# NOTE: Any value below 1.0 will break the product. Do not override in production.
+register(
+    "relay.ourlogs-breadcrumb-extraction.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -2818,6 +2827,12 @@ register(
 register(
     "delayed_processing.batch_size",
     default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "delayed_processing.emit_logs",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

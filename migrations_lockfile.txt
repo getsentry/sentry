@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0822_alert_rule_always_organization
+sentry: 0826_make_sentryapp_uuid_unique
 
 social_auth: 0002_default_auto_field
 

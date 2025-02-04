@@ -51,7 +51,7 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         raise NotImplementedError
 
     @property
