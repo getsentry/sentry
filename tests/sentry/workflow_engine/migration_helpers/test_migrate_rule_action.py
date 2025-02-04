@@ -1551,13 +1551,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        # Only the second action should be created since it has required fields
-        assert len(actions) == 1
-
-        # Verify empty additional fields are handled correctly
-        action = actions[0]
-        assert action.data.get("additional_fields") == {}
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_jira_server_action_migration(self):
         action_data = [
@@ -1700,13 +1695,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        # Only the second action should be created since it has required fields
-        assert len(actions) == 1
-
-        # Verify empty additional fields are handled correctly
-        action = actions[0]
-        assert action.data.get("additional_fields") == {}
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_sentry_app_action_migration(self):
         app = self.create_sentry_app(

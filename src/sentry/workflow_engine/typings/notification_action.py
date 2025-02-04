@@ -415,7 +415,7 @@ class WebhookActionTranslator(BaseActionTranslator):
 class JiraActionTranslatorBase(TicketActionTranslator):
     @property
     def required_fields(self) -> list[str]:
-        return ["integration", "project", "issuetype"]
+        return ["integration"]
 
     @property
     def blob_type(self) -> type["DataBlob"]:
@@ -607,12 +607,8 @@ class JiraDataBlob(TicketDataBlob):
 
     project: str = ""
     issuetype: str = ""
-    assignee: str = ""
-    reporter: str = ""
-    description: str = ""
-    # Optional standard fields
-    labels: str = ""
-    parent: str = ""
     priority: str = ""
+    labels: str = ""
+    reporter: str = ""
     # Store any custom fields (customfield_*) or additional fields
     additional_fields: dict[str, Any] = field(default_factory=dict)
