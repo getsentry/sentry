@@ -2,17 +2,20 @@ import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
+import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 
-type NavView = 'primary' | 'secondary' | 'closed';
+type ActiveView = 'primary' | 'secondary' | 'closed';
 
 function MobileTopbar() {
+  const {activeGroup} = useNavContext();
   const location = useLocation();
-  const [view, setView] = useState<NavView>('closed');
+  const [view, setView] = useState<ActiveView>('closed');
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
     updateNavStyleAttributes(view);
@@ -22,8 +25,8 @@ function MobileTopbar() {
     setView('closed');
   }, [location.pathname]);
   const handleClick = useCallback(() => {
-    setView(v => (v === 'closed' ? 'primary' : 'closed'));
-  }, [setView]);
+    setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed'));
+  }, [activeGroup]);
 
   return (
     <Topbar>
@@ -35,7 +38,10 @@ function MobileTopbar() {
       </button>
       {view !== 'closed' ? (
         <OverlayPortal>
-          <PrimaryNavigationItems />
+          {view === 'primary' ? <PrimaryNavigationItems /> : null}
+          {view === 'secondary' ? (
+            <SecondaryMobile handleClickBack={() => setView('primary')} />
+          ) : null}
         </OverlayPortal>
       ) : null}
     </Topbar>
@@ -45,7 +51,7 @@ function MobileTopbar() {
 export default MobileTopbar;
 
 /** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
-function updateNavStyleAttributes(view: NavView) {
+function updateNavStyleAttributes(view: ActiveView) {
   const mainContent = document.getElementById('main');
   if (!mainContent) {
     throw new Error(
