@@ -2988,10 +2988,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Taskworker settings:
 register(
     "taskworker.grpc_service_config",
     type=String,
     default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.date_cutoff_epoch_seconds",
+    type=Int,
+    default=0,
 )
