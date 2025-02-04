@@ -36,14 +36,14 @@ describe('useVisualizeFields', () => {
   const organization = OrganizationFixture();
 
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
+
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
 
-    mockedUsedLocation.mockReturnValue(
-      LocationFixture({query: {dataset: DiscoverDatasets.SPANS_EAP}})
-    );
+    mockedUsedLocation.mockReturnValue(LocationFixture());
   });
 
   it('returns a valid list of field options', () => {
