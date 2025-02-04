@@ -158,13 +158,6 @@ def test_add_extra_buckets_for_epoch_cutoff():
     epoch_cutoff = datetime(2025, 1, 1, 12, tzinfo=timezone.utc)
     rollup = 3600  # 1 hour
 
-    # Input data with fewer buckets than expected
-    formatted_response = {
-        "subscription1": [
-            # Only 12 hours of data starting at epoch cutoff
-        ]
-    }
-
     # Generate 12 hours of data points starting at epoch cutoff
     data_points = []
     for i in range(12):
@@ -173,7 +166,7 @@ def test_add_extra_buckets_for_epoch_cutoff():
             (timestamp, {"failure": i % 3, "success": (3 - i % 3), "missed_window": 0})
         )
 
-    formatted_response["subscription1"] = data_points
+    formatted_response = {"subscription1": data_points}
 
     result = add_extra_buckets_for_epoch_cutoff(
         formatted_response, epoch_cutoff, rollup, start, end

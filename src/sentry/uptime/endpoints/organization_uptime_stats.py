@@ -67,15 +67,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         except ValueError:
             return self.respond("Invalid project uptime subscription ids provided", status=400)
 
+        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
         epoch_cutoff = (
-            datetime.datetime.fromtimestamp(self._get_date_cutoff_epoch_seconds(), tz=datetime.UTC)
-            if self._get_date_cutoff_epoch_seconds()
-            else None
+            datetime.datetime.fromtimestamp(maybe_cutoff, tz=datetime.UTC) if maybe_cutoff else None
         )
 
         try:
             eap_response = self._make_eap_request(
-                organization, projects, subscription_ids, timerange_args, epoch_cutoff
+                organization, projects, subscription_ids, timerange_args
             )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
@@ -140,7 +139,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
-        epoch_cutoff: datetime.datetime,
     ) -> TimeSeriesResponse:
 
         start_timestamp = Timestamp()
@@ -234,24 +232,26 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             for subscription_id, data in formatted_response.items()
         }
 
-    def _get_date_cutoff_epoch_seconds(self) -> int | None:
-        value = options.get("uptime.date_cutoff_epoch_seconds")
+    def _get_date_cutoff_epoch_seconds(self) -> float | None:
+        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
         return None if value == 0 else value
 
 
 def add_extra_buckets_for_epoch_cutoff(
-    formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
+    formatted_response: dict[int, list[tuple[int, dict[str, int]]]],
     epoch_cutoff: datetime.datetime | None,
     rollup: int,
     start: datetime.datetime,
-    end: datetime.datetime,
-) -> dict[str, list[tuple[int, dict[str, int]]]]:
+    end: datetime.datetime | None,
+) -> dict[int, list[tuple[int, dict[str, int]]]]:
     """
     Add padding buckets to the response to account for the epoch cutoff.
     this is because pre-GA we did not store data.
     """
     if not epoch_cutoff or not formatted_response or epoch_cutoff < start:
         return formatted_response
+
+    end = end or datetime.datetime.now(tz=datetime.UTC)
 
     # Calculate the number of padding buckets needed.
     total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
