@@ -51,10 +51,6 @@ class ReferrerOptions(StrEnum):
     SIMILAR_ISSUES_TAB = "similar_issues_tab"
 
 
-class TooManyOnlySystemFramesException(Exception):
-    pass
-
-
 def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
@@ -63,11 +59,10 @@ class FramesMetrics(TypedDict):
     frame_count: int
     html_frame_count: int  # for a temporary metric
     has_no_filename: bool  # for a temporary metric
-    is_frames_truncated: bool
     found_non_snipped_context_line: bool
 
 
-def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
+def get_stacktrace_string(data: dict[str, Any]) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -93,7 +88,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         "frame_count": 0,
         "html_frame_count": 0,  # for a temporary metric
         "has_no_filename": False,  # for a temporary metric
-        "is_frames_truncated": False,
         "found_non_snipped_context_line": False,
     }
 
@@ -114,11 +108,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         exc_type, exc_value, frame_strings, frame_metrics = process_exception_frames(
             exception, frame_metrics
         )
-        if (
-            platform not in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK
-            and frame_metrics["is_frames_truncated"]
-        ):
-            raise TooManyOnlySystemFramesException
 
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
@@ -204,8 +193,6 @@ def _process_frames(
     contributing_frames = [
         frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
     ]
-    if len(contributing_frames) + frame_metrics["frame_count"] > MAX_FRAME_COUNT:
-        frame_metrics["is_frames_truncated"] = True
     contributing_frames = _discard_excess_frames(
         contributing_frames, MAX_FRAME_COUNT, frame_metrics["frame_count"]
     )
@@ -266,28 +253,6 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
             base64_encoded = True
             break
     return base64_encoded
-
-
-def get_stacktrace_string_with_metrics(
-    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
-) -> str | None:
-    stacktrace_string = None
-    sample_rate = options.get("seer.similarity.metrics_sample_rate")
-    try:
-        stacktrace_string = get_stacktrace_string(data, platform)
-    except TooManyOnlySystemFramesException:
-        platform = platform if platform else "unknown"
-        metrics.incr(
-            "grouping.similarity.over_threshold_only_system_frames",
-            sample_rate=sample_rate,
-            tags={"platform": platform, "referrer": referrer},
-        )
-        if referrer == ReferrerOptions.INGEST:
-            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
-    except Exception:
-        logger.exception("Unexpected exception in stacktrace string formatting")
-
-    return stacktrace_string
 
 
 def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
