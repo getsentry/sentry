@@ -157,6 +157,7 @@ function SpanDescriptionRenderer(data: EventData) {
             <ProjectBadge
               project={project ? project : {slug: data.project}}
               avatarSize={16}
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
               hideName
             />
           )}
