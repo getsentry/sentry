@@ -31,6 +31,7 @@ export type InsightEventParameters = {
   'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.cache': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.db': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.errors': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.http': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.queue': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_load': {has_ever_sent_data: boolean; view: DomainView};
@@ -54,6 +55,7 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
   'insight.page_loads.db': 'Insights: DB Page Load',
+  'insight.page_loads.errors': 'Insights: Errors Page Load',
   'insight.page_loads.http': 'Insights: HTTP Page Load',
   'insight.page_loads.queue': 'Insights: Queue Page Load',
   'insight.page_loads.screen_load': 'Insights: Screen Load Page Load',

@@ -496,4 +496,21 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropDescription: null,
     valuePropPoints: [],
   },
+  errors: {
+    heading: t(`Get insights about your application's errored sessions`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.ERRORS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.ERRORS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+    ],
+    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    supportedSdks: [], // TODO: add supported sdks
+  },
 };

@@ -5,6 +5,7 @@ import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/insights/browser/webVita
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {BASE_URL as CRONS_BASE_URL} from 'sentry/views/insights/crons/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/insights/database/settings';
+import {BASE_URL as ERRORS_BASE_URL} from 'sentry/views/insights/errors/settings';
 import {BASE_URL as HTTP_BASE_URL} from 'sentry/views/insights/http/settings';
 import {BASE_URL as AI_BASE_URL} from 'sentry/views/insights/llmMonitoring/settings';
 import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appStarts/settings';
@@ -37,6 +38,7 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_BASE_URL,
   [ModuleName.CRONS]: CRONS_BASE_URL,
   [ModuleName.UPTIME]: UPTIME_BASE_URL,
+  [ModuleName.ERRORS]: ERRORS_BASE_URL,
   [ModuleName.OTHER]: '',
 };
 

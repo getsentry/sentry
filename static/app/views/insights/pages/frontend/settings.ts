@@ -12,4 +12,9 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'interaction',
 ];
 
-export const MODULES = [ModuleName.VITAL, ModuleName.HTTP, ModuleName.RESOURCE];
+export const MODULES = [
+  ModuleName.VITAL,
+  ModuleName.HTTP,
+  ModuleName.RESOURCE,
+  ModuleName.ERRORS,
+];
