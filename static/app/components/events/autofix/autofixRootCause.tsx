@@ -293,6 +293,7 @@ function AutofixRootCauseDisplay({
             <EditButton
               size="sm"
               borderless
+              data-test-id="autofix-root-cause-edit-button"
               title={isEditing ? t('Cancel') : t('Propose your own root cause')}
               onClick={() => {
                 if (isEditing) {
@@ -310,6 +311,7 @@ function AutofixRootCauseDisplay({
                 size="sm"
                 priority="primary"
                 title={t('Rethink with your new root cause')}
+                data-test-id="autofix-root-cause-save-edit-button"
                 onClick={() => {
                   if (customRootCause.trim()) {
                     handleContinue({customRootCause: customRootCause.trim()});
