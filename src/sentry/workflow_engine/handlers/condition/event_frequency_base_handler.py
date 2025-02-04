@@ -3,16 +3,23 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, Self, TypedDict
 
 from django.db.models import QuerySet
 
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import SNUBA_LIMIT
+from sentry.rules.conditions.event_frequency import (
+    COMPARISON_INTERVALS,
+    PERCENT_INTERVALS,
+    SNUBA_LIMIT,
+    STANDARD_INTERVALS,
+    percent_increase,
+)
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
+from sentry.workflow_engine.types import DataConditionResult, WorkflowJob
 
 
 class _QSTypedDict(TypedDict):
@@ -25,8 +32,13 @@ class _QSTypedDict(TypedDict):
 class BaseEventFrequencyConditionHandler(ABC):
     @property
     @abstractmethod
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
+    def base_handler(self) -> Self:
+        # frequency and percent conditions can share the same base handler to query Snuba
         raise NotImplementedError
+
+    @property
+    def intervals(self) -> dict[str, tuple[str, timedelta]]:
+        return STANDARD_INTERVALS
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
@@ -166,3 +178,47 @@ class BaseEventFrequencyConditionHandler(ABC):
                 environment_id=environment_id,
             )
         return result
+
+
+class BaseEventFrequencyCountHandler:
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "value": {"type": "integer", "minimum": 0},
+        },
+        "required": ["interval", "value"],
+        "additionalProperties": False,
+    }
+
+    @staticmethod
+    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
+        if len(value.get("snuba_results", [])) != 1:
+            return False
+        return value["snuba_results"][0] > comparison["value"]
+
+
+class BaseEventFrequencyPercentHandler:
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "value": {"type": "integer", "minimum": 0},
+            "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+        },
+        "required": ["interval", "value", "comparison_interval"],
+        "additionalProperties": False,
+    }
+
+    @property
+    def intervals(self) -> dict[str, tuple[str, timedelta]]:
+        return PERCENT_INTERVALS
+
+    @staticmethod
+    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
+        if len(value.get("snuba_results", [])) != 2:
+            return False
+        return (
+            percent_increase(value["snuba_results"][0], value["snuba_results"][1])
+            > comparison["value"]
+        )

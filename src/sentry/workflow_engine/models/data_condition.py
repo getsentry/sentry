@@ -65,16 +65,19 @@ CONDITION_OPS = {
     Condition.NOT_EQUAL: operator.ne,
 }
 
-SLOW_CONDITIONS = [
-    Condition.EVENT_FREQUENCY_COUNT,
+PERCENT_CONDITIONS = [
     Condition.EVENT_FREQUENCY_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
     Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
-    Condition.PERCENT_SESSIONS_COUNT,
     Condition.PERCENT_SESSIONS_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
     Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
 ]
+
+SLOW_CONDITIONS = [
+    Condition.EVENT_FREQUENCY_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    Condition.PERCENT_SESSIONS_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+] + PERCENT_CONDITIONS
 
 
 T = TypeVar("T")
@@ -151,8 +154,8 @@ class DataCondition(DefaultFieldsModel):
         return self.get_condition_result() if result else None
 
 
-def is_slow_condition(cond: DataCondition) -> bool:
-    return Condition(cond.type) in SLOW_CONDITIONS
+def is_slow_condition(condition: DataCondition) -> bool:
+    return Condition(condition.type) in SLOW_CONDITIONS
 
 
 @receiver(pre_save, sender=DataCondition)

@@ -20,7 +20,6 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 class TestEventFrequencyCountCondition(ConditionTestCase):
     condition = Condition.EVENT_FREQUENCY_COUNT
-    rule_cls = EventFrequencyCondition
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
@@ -81,12 +80,12 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
     condition = Condition.EVENT_FREQUENCY_PERCENT
-    rule_cls = EventFrequencyCondition
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
         "value": 1000,
         "comparisonType": ComparisonType.PERCENT,
+        "comparisonInterval": "1d",
     }
 
     def setUp(self):
@@ -111,7 +110,6 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         self.assert_does_not_pass(dc, self.job)
 
     def test_dual_write_percent(self):
-        self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
