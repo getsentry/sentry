@@ -158,9 +158,10 @@
               {{ register_form|as_crispy_errors }}
 
               {% for field in register_form %}
-                {{ field|as_crispy_field }}
+              {{ field|as_crispy_field }}
               {% endfor %}
 
+              <input type="hidden" id="timezone-input" name="timezone" value="smth2">
               <div class="password-strength"></div>
               <div class="auth-footer m-t-1">
                 <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
@@ -175,4 +176,16 @@
     </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts_bottom %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      document.getElementById('timezone-input').value = timezone;
+    });
+  </script>
+  {% endscript %}
 {% endblock %}
