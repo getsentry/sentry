@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -261,6 +262,16 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
             />
           </ConfigurationPanel>
+          <Alert type="muted" showIcon>
+            {tct(
+              'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                ),
+              }
+            )}
+          </Alert>
           <Observer>
             {() => (
               <HTTPSnippet
