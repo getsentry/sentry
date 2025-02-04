@@ -3,7 +3,9 @@ from unittest import mock
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.handlers.action.notification import NotificationActionHandler
+from sentry.workflow_engine.handlers.action.notification.notification import (
+    NotificationActionHandler,
+)
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
