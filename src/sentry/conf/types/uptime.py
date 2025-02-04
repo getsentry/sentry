@@ -13,3 +13,5 @@ class UptimeRegionConfig:
     name: str
     config_topic: Topic
     enabled: bool
+    # Temporarily defaulted for backwards compat
+    config_redis_cluster: str = "default"

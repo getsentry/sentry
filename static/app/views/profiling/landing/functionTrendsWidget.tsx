@@ -245,8 +245,8 @@ function FunctionTrendsEntry({
       orgSlug: organization.slug,
       projectSlug: project.slug,
       reference: beforeExamples[beforeExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     before = (
@@ -259,8 +259,8 @@ function FunctionTrendsEntry({
       orgSlug: organization.slug,
       projectSlug: project.slug,
       reference: afterExamples[afterExamples.length - 2]![1],
-      frameName: func.function as string,
-      framePackage: func.package as string,
+      frameName: func.function,
+      framePackage: func.package,
     });
 
     after = (

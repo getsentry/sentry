@@ -270,9 +270,7 @@ class MetricAlertDetails extends Component<Props, State> {
       return this.renderError();
     }
 
-    const project = projects.find(({slug}) => slug === rule?.projects[0]) as
-      | Project
-      | undefined;
+    const project = projects.find(({slug}) => slug === rule?.projects[0]);
     const isGlobalSelectionReady = project !== undefined && !loadingProjects;
 
     return (

@@ -149,9 +149,9 @@ describe('View Hierarchy', function () {
   it('draws the selected node when a tree selection is made', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    const canvas = screen.getByTestId(
+    const canvas = screen.getByTestId<HTMLCanvasElement>(
       'view-hierarchy-wireframe-overlay'
-    ) as HTMLCanvasElement;
+    );
 
     const context = canvas.getContext('2d');
     if (!context) {
@@ -169,9 +169,9 @@ describe('View Hierarchy', function () {
   it('does not render a wireframe selection initially', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    const canvas = screen.getByTestId(
+    const canvas = screen.getByTestId<HTMLCanvasElement>(
       'view-hierarchy-wireframe-overlay'
-    ) as HTMLCanvasElement;
+    );
 
     const context = canvas.getContext('2d');
     if (!context) {

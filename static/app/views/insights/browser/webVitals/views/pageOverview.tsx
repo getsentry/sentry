@@ -137,7 +137,7 @@ export function PageOverview() {
     !Array.isArray(location.query.project) && // Only render button to transaction summary when one project is selected.
     transaction &&
     transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction,
       query: {...location.query},
       projectID: project.id,

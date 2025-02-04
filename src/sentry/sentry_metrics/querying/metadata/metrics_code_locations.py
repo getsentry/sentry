@@ -94,7 +94,7 @@ class CodeLocationsFetcher:
         self._redis_client = get_redis_client_for_metrics_meta()
         self._has_more = False
 
-    def _code_location_queries(self) -> Generator[CodeLocationQuery, None, None]:
+    def _code_location_queries(self) -> Generator[CodeLocationQuery]:
         self._has_more = False
 
         index = 0
@@ -181,8 +181,8 @@ class CodeLocationsFetcher:
 
     @staticmethod
     def _in_batches(
-        generator: Generator[CodeLocationQuery, None, None], size: int
-    ) -> Generator[Sequence[CodeLocationQuery], None, None]:
+        generator: Generator[CodeLocationQuery], size: int
+    ) -> Generator[Sequence[CodeLocationQuery]]:
         batch: list[CodeLocationQuery] = []
         for value in generator:
             if len(batch) < size:

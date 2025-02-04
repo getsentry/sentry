@@ -12,7 +12,12 @@ import {
   updateDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -807,7 +812,7 @@ class DashboardDetail extends Component<Props, State> {
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
-    const mergedWidget = {...baseWidget, ...widget};
+    const mergedWidget = assignTempId({...baseWidget, ...widget});
 
     const newWidgets = defined(index)
       ? [
@@ -820,7 +825,9 @@ class DashboardDetail extends Component<Props, State> {
     try {
       if (!this.isEditingDashboard) {
         // If we're not in edit mode, send a request to update the dashboard
+        addLoadingMessage(t('Saving widget'));
         await this.handleUpdateWidgetList(newWidgets);
+        clearIndicators();
       } else {
         // If we're in edit mode, update the edit state
         this.onUpdateWidget(newWidgets);

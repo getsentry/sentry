@@ -27,11 +27,11 @@ describe('EventAttachments', function () {
 
   const props = {
     group: undefined,
-    project: project!,
+    project,
     event,
   };
 
-  const attachmentsUrl = `/projects/${organization.slug}/${project!.slug}/events/${event.id}/attachments/`;
+  const attachmentsUrl = `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`;
 
   beforeEach(() => {
     ConfigStore.loadInitialData(ConfigFixture());
@@ -60,7 +60,7 @@ describe('EventAttachments', function () {
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',
-      `/settings/org-slug/projects/${project!.slug}/security-and-privacy/`
+      `/settings/org-slug/projects/${project.slug}/security-and-privacy/`
     );
 
     expect(
@@ -144,7 +144,7 @@ describe('EventAttachments', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project!.slug}/events/${event.id}/attachments/1/?download`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/?download`,
       body: 'file contents',
     });
 

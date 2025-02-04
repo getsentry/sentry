@@ -264,6 +264,9 @@ export type IssueEventParameters = {
   'issue_views.deleted_view': {};
   'issue_views.discarded_changes': {};
   'issue_views.duplicated_view': {};
+  'issue_views.page_filters_logged': {
+    user_id: string;
+  };
   'issue_views.renamed_view': {};
   'issue_views.reordered_views': {};
   'issue_views.saved_changes': {};
@@ -427,6 +430,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
+  'issue_views.page_filters_logged': 'Issue Views: Page Filters Logged',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',

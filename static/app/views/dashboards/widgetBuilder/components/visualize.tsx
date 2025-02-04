@@ -326,6 +326,12 @@ function Visualize({error, setError}: VisualizeProps) {
               field
             );
 
+            const isOnlyFieldOrAggregate =
+              fields.length === 2 &&
+              field.kind !== FieldValueKind.EQUATION &&
+              fields.filter(fieldItem => fieldItem.kind === FieldValueKind.EQUATION)
+                .length > 0;
+
             // Depending on the dataset and the display type, we use different options for
             // displaying in the column select.
             // For charts, we show aggregate parameter options for the y-axis as primary options.
@@ -790,7 +796,7 @@ function Visualize({error, setError}: VisualizeProps) {
                     borderless
                     icon={<IconDelete />}
                     size="zero"
-                    disabled={fields.length <= 1 || !canDelete}
+                    disabled={fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate}
                     onClick={() => {
                       dispatch({
                         type: updateAction,

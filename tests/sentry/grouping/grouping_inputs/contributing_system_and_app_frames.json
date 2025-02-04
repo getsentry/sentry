@@ -1,0 +1,39 @@
+{
+  "_grouping": {
+    "enhancements": "stack.function:runApp -app -group \n stack.function:handleRequest -app +group \n stack.function:recordMetrics +app -group \n stack.function:playFetch +app +group"
+  },
+  "exception": {
+    "values": [
+      {
+        "type": "FailedToFetchError",
+        "value": "FailedToFetchError: Charlie didn't bring the ball back!",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "runApp",
+              "filename": "/node_modules/express/app.js",
+              "context_line": "return server.serve(port);"
+            },
+            {
+              "function": "handleRequest",
+              "filename": "/node_modules/express/router.js",
+              "context_line": "return handler(request);"
+            },
+            {
+              "function": "recordMetrics",
+              "filename": "/dogApp/metrics.js",
+              "context_line": "return withMetrics(handler, metricName, tags);"
+            },
+            {
+              "function": "playFetch",
+              "filename": "/dogApp/dogpark.js",
+              "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "platform": "javascript",
+  "sdk": {"name": "sentry.javascript.nextjs", "version": "12.31.12"}
+}

@@ -87,6 +87,7 @@ type WidgetCardChartProps = Pick<
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -132,7 +133,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection} = this.props;
+    const {location, widget, selection, minTableColumnWidth} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -170,6 +171,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
             getCustomFieldRenderer={getCustomFieldRenderer}
+            minColumnWidth={minTableColumnWidth}
           />
         </TableWrapper>
       );

@@ -16,11 +16,18 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
+const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
+const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
+
 interface GroupSummaryData {
   groupId: string;
   headline: string;
   eventId?: string | null;
   possibleCause?: string | null;
+  scores?: {
+    possibleCauseConfidence: number;
+    possibleCauseNovelty: number;
+  } | null;
   trace?: string | null;
   whatsWrong?: string | null;
 }
@@ -152,6 +159,11 @@ export function GroupSummary({
       : []),
   ];
 
+  const shouldShowPossibleCause =
+    !data?.scores ||
+    (data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
+      data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
+
   const insightCards = [
     {
       id: 'whats_wrong',
@@ -167,13 +179,17 @@ export function GroupSummary({
       icon: <IconSpan size="sm" />,
       showWhenLoading: false,
     },
-    {
-      id: 'possible_cause',
-      title: t('Possible cause'),
-      insight: data?.possibleCause,
-      icon: <IconFocus size="sm" />,
-      showWhenLoading: true,
-    },
+    ...(shouldShowPossibleCause
+      ? [
+          {
+            id: 'possible_cause',
+            title: t('Possible cause'),
+            insight: data?.possibleCause,
+            icon: <IconFocus size="sm" />,
+            showWhenLoading: false,
+          },
+        ]
+      : []),
   ];
 
   return (

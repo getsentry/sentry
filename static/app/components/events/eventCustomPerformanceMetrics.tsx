@@ -135,7 +135,7 @@ export function EventCustomPerformanceMetric({
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},
@@ -231,7 +231,7 @@ export function TraceEventCustomPerformanceMetric({
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},

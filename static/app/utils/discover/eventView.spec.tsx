@@ -3123,7 +3123,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   it('generates a URL with non-customer domain context', function () {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
       webVital,
@@ -3140,7 +3140,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
       webVital,

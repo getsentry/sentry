@@ -335,7 +335,7 @@ export class VirtualizedViewManager {
   ) {
     if (ref) {
       this.span_text[index] = {ref, text, space};
-      this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
+      this.drawSpanText(this.span_text[index], this.columns.list.column_nodes[index]);
     }
   }
 
@@ -369,7 +369,7 @@ export class VirtualizedViewManager {
 
       if (scrollableElement) {
         scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-        this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
+        this.row_measurer.enqueueMeasure(node, scrollableElement);
         ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
       }
     }
@@ -773,8 +773,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -832,8 +832,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = newTransform;
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1008,8 +1008,8 @@ export class VirtualizedViewManager {
       this.columns.list.translate[0] = x;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1034,8 +1034,8 @@ export class VirtualizedViewManager {
       const pos = startPosition + distance * eased;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;

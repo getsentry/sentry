@@ -482,7 +482,7 @@ export function TransactionRenderer({
   const {projects} = useProjects({slugs: [projectSlug]});
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction,
     query: {
       ...location.query,

@@ -330,7 +330,7 @@ export class TagExplorer extends Component<Props> {
 
     if (column.key === 'key') {
       const target = tagsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         projectID: decodeScalar(location.query.project),
         query: {...location.query, tagKey: dataRow.tags_key},
@@ -501,7 +501,7 @@ function TagsHeader(props: HeaderProps) {
   };
 
   const viewAllTarget = tagsRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: transactionName,
     projectID: decodeScalar(location.query.project),
     query: {...location.query},

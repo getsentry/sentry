@@ -2,8 +2,10 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {space} from 'sentry/styles/space';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
+import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
 type DefaultProps = {
@@ -29,6 +31,26 @@ type Props = DefaultProps &
     navigationObjects: NavigationSection[];
   };
 
+function SettingsSecondaryNavigation({
+  navigationObjects,
+  hookConfigs,
+  hooks,
+  ...otherProps
+}: Props) {
+  const navWithHooks = navigationObjects.concat(hookConfigs);
+
+  return (
+    <SecondaryNav>
+      <SecondaryNav.Body>
+        {navWithHooks.map(config => (
+          <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
+        ))}
+        {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+      </SecondaryNav.Body>
+    </SecondaryNav>
+  );
+}
+
 class SettingsNavigation extends Component<Props> {
   static defaultProps: DefaultProps = {
     hooks: [],
@@ -51,10 +73,26 @@ class SettingsNavigation extends Component<Props> {
     const {navigationObjects, hooks, hookConfigs, stickyTop, ...otherProps} = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
+    if (this.props.organization?.features.includes('navigation-sidebar-v2')) {
+      return (
+        <SettingsSecondaryNavigation
+          navigationObjects={navigationObjects}
+          hooks={hooks}
+          hookConfigs={hookConfigs}
+          stickyTop={stickyTop}
+          {...otherProps}
+        />
+      );
+    }
+
     return (
       <PositionStickyWrapper stickyTop={stickyTop}>
         {navWithHooks.map(config => (
-          <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
+          <SettingsNavigationGroupDeprecated
+            key={config.name}
+            {...otherProps}
+            {...config}
+          />
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </PositionStickyWrapper>

@@ -266,6 +266,7 @@
     "slug": "testing",
     "name": "Testing",
     "status": 0,
+    "actor": 1,
     "idp_provisioned": false,
     "date_added": "2023-06-22T22:54:28.821Z"
   }
@@ -377,6 +378,7 @@
     "data": "{\"match\":\"all\",\"conditions\":[{\"id\":\"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition\"}],\"actions\":[{\"id\":\"sentry.mail.actions.NotifyEmailAction\",\"targetType\":\"IssueOwners\",\"targetIdentifier\":null,\"fallthroughType\":\"ActiveMembers\"}]}",
     "status": 0,
     "source": 0,
+    "owner": null,
     "date_added": "2023-06-22T22:54:28.982Z"
   }
 },

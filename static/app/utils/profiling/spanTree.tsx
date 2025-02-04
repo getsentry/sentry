@@ -1,4 +1,4 @@
-import {uuid4} from '@sentry/utils';
+import {uuid4} from '@sentry/core';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';

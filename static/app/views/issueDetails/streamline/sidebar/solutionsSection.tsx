@@ -133,7 +133,7 @@ export default function SolutionsSection({
         <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
           <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
             <Resources
-              configResources={issueTypeConfig.resources!}
+              configResources={issueTypeConfig.resources}
               eventPlatform={event?.platform}
               group={group}
             />

@@ -168,7 +168,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
         breadcrumb?.level &&
         !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType]!.levels?.push(breadcrumb!.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb.level);
       }
     }
 

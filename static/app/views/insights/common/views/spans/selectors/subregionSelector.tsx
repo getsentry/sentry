@@ -1,4 +1,4 @@
-import {type ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -26,14 +26,12 @@ export default function SubregionSelector({size}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasGeoSelectorFeature = organization.features.includes('insights-region-filter');
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
   const {data, isPending} = useSpanMetrics(
     {
       fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
       search: new MutableSearch('has:user.geo.subregion'),
-      enabled: hasGeoSelectorFeature,
       sorts: [{field: 'count()', kind: 'desc'}],
     },
     'api.insights.user-geo-subregion-selector'
@@ -51,10 +49,6 @@ export default function SubregionSelector({size}: Props) {
         textValue: text,
       };
     }) ?? [];
-
-  if (!hasGeoSelectorFeature) {
-    return <Fragment />;
-  }
 
   const tooltip = t('These correspond to the subregions of the UN M49 standard.');
 

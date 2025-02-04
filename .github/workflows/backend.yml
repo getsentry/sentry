@@ -58,7 +58,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: default
 
       - name: Run API docs tests
@@ -70,7 +69,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
@@ -102,7 +104,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
@@ -111,7 +112,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -150,7 +154,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: default
 
       - name: run tests
@@ -159,7 +162,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -186,7 +192,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: migrations
 
       - name: Run test
@@ -195,7 +200,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -256,7 +264,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: migrations
 
       - name: Migration & lockfile checks
@@ -268,7 +275,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
@@ -286,7 +296,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          use-new-devservices: true
           mode: migrations
 
       - name: Run test
@@ -295,7 +304,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data

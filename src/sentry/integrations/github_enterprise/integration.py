@@ -185,14 +185,15 @@ class GitHubEnterpriseIntegration(
         self, query: str | None = None, fetch_max_pages: bool = False
     ) -> list[dict[str, Any]]:
         if not query:
-            repos = self.get_client().get_repos(fetch_max_pages)
+            all_repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in [repo for repo in repos if not repo.get("archived")]
+                for i in all_repos
+                if not i.get("archived")
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)

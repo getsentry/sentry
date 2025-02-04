@@ -1,4 +1,3 @@
-import {urlEncode} from '@sentry/utils';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
@@ -11,6 +10,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {urlEncode} from 'sentry/utils';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,

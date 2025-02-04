@@ -431,7 +431,7 @@ def migrate_alert_rule(
     )
 
 
-def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
+def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
     tuple[
         DetectorState,
         Detector,

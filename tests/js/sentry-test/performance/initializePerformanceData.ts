@@ -43,7 +43,7 @@ export function initializeData(settings?: InitializeDataSettings) {
     },
   };
   if (settings?.selectedProject || settings?.project) {
-    routerLocation.query.project = (project || settings?.project) as any;
+    routerLocation.query.project = project || settings?.project;
   }
   const router = {
     location: routerLocation,

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 from unittest import mock
 
 import pytest
 
+from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
     Enhancements,
     is_valid_profiling_action,
@@ -13,6 +16,7 @@ from sentry.grouping.enhancer import (
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import _cached, create_match_frame
+from sentry.testutils.cases import TestCase
 
 
 def dump_obj(obj):
@@ -97,19 +101,19 @@ def test_flipflop_inapp():
     )
 
     frames: list[dict[str, Any]] = [{}]
-    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == -1  # == None
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": False}]
-    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert "data" not in frames[0]  # no changes were made
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": True}]
-    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == 1  # == True
     assert frames[0]["in_app"] is False
@@ -483,7 +487,7 @@ def test_range_matching_direct():
 )
 def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
-    enhancements.apply_modifications_to_frame([frame], "native", {})
+    enhancements.apply_category_and_updated_in_app_to_frames([frame], "native", {})
     assert frame.get("in_app")
 
 
@@ -563,3 +567,290 @@ family:javascript,native -group
 )
 def test_keep_profiling_rules(test_input, expected):
     assert keep_profiling_rules(test_input) == expected
+
+
+@dataclass
+class DummyRustComponent:
+    contributes: bool | None
+    hint: str | None
+
+
+@dataclass
+class DummyRustAssembleResult:
+    contributes: bool | None
+    hint: str | None
+
+
+DummyRustExceptionData = dict[str, bytes | None]
+DummyRustFrame = dict[str, Any]
+
+
+class MockRustEnhancements:
+    def __init__(
+        self,
+        frame_results: Sequence[tuple[bool, str | None]],
+        stacktrace_results: tuple[bool, str | None] = (True, None),
+    ):
+        self.frame_results = frame_results
+        self.stacktrace_results = stacktrace_results
+
+    def assemble_stacktrace_component(
+        self,
+        _match_frames: list[DummyRustFrame],
+        _exception_data: DummyRustExceptionData,
+        rust_components: list[DummyRustComponent],
+    ) -> DummyRustAssembleResult:
+        # The real (rust) version of this function modifies the components in
+        # `rust_components` in place, but that's not possible from python, so instead we
+        # replace the contents of the list with our own components
+        dummy_rust_components = [
+            DummyRustComponent(contributes, hint) for contributes, hint in self.frame_results
+        ]
+        rust_components[:] = dummy_rust_components
+
+        return DummyRustAssembleResult(*self.stacktrace_results)
+
+
+def in_app_frame(contributes: bool, hint: str | None) -> FrameGroupingComponent:
+    return FrameGroupingComponent(values=[], in_app=True, contributes=contributes, hint=hint)
+
+
+def system_frame(contributes: bool, hint: str | None) -> FrameGroupingComponent:
+    return FrameGroupingComponent(values=[], in_app=False, contributes=contributes, hint=hint)
+
+
+class AssembleStacktraceComponentTest(TestCase):
+    def assert_frame_values_match_expected(
+        self,
+        stacktrace_component: StacktraceGroupingComponent,
+        expected_frame_results: Sequence[tuple[bool, str | None]],
+    ) -> None:
+        num_frames = len(stacktrace_component.values)
+        assert len(expected_frame_results) == num_frames
+
+        for i, frame_component, (expected_contributes, expected_hint) in zip(
+            range(num_frames),
+            stacktrace_component.values,
+            expected_frame_results,
+        ):
+            assert (
+                frame_component.contributes is expected_contributes
+            ), f"frame {i} has incorrect `contributes` value"
+
+            assert frame_component.hint == expected_hint, f"frame {i} has incorrect `hint` value"
+
+    def test_uses_results_from_rust_enhancers_simple(self):
+        """
+        Test that the `contributing` and `hint` results from the rust enhancers are used for both
+        frame and stacktrace components.
+        """
+        frame_components = [
+            # All four types of frames (all combos of app vs system, contributing vs not), twice
+            # each because in each case there are three possible hints rust could send back
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=True, hint=None),
+            in_app_frame(contributes=False, hint=None),
+            in_app_frame(contributes=False, hint=None),
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=False, hint=None),
+            system_frame(contributes=False, hint=None),
+        ]
+
+        rust_frame_results = [
+            # All of these change the `contributes` value of their respective frames, to show that
+            # it's the rust value which gets used in the end. Note that in the cases where the hint
+            # is about the in-app-ness of the frame, it means that both a `+/-group` rule applied
+            # and a `+/-app` rule applied, with the latter second, such that its "marked in/out of
+            # app" hint overwrote the "ignored/unignored" hint. Note that egardless of the hint, the
+            # first value in each tuple is a `contributes` value, not an `in_app` value.
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by stacktrace rule (...)"),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by stacktrace rule (...)"),
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked out of app by stacktrace rule (...)"),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked out of app by stacktrace rule (...)"),
+        ]
+
+        enhancements = Enhancements.from_config_string("")
+        mock_rust_enhancements = MockRustEnhancements(
+            frame_results=rust_frame_results,
+            stacktrace_results=(True, "some stacktrace hint"),
+        )
+
+        with mock.patch.object(enhancements, "rust_enhancements", mock_rust_enhancements):
+            stacktrace_component = enhancements.assemble_stacktrace_component(
+                variant_name="system",
+                frame_components=frame_components,
+                frames=[{}] * 8,
+                platform="javascript",
+                exception_data={},
+            )
+
+            self.assert_frame_values_match_expected(
+                stacktrace_component, expected_frame_results=rust_frame_results
+            )
+
+            assert stacktrace_component.contributes is True
+            assert stacktrace_component.hint == "some stacktrace hint"
+
+    def test_always_marks_app_variant_system_frames_non_contributing(self):
+        """
+        Test that the rust results are used or ignored as appropriate when handling the app variant,
+        and are always used when handling the system variant.
+        """
+        app_variant_frame_components = [
+            system_frame(contributes=False, hint="non app frame"),
+            system_frame(contributes=False, hint="non app frame"),
+            system_frame(contributes=False, hint="non app frame"),
+            system_frame(contributes=False, hint="non app frame"),
+            system_frame(contributes=False, hint="non app frame"),
+            system_frame(contributes=False, hint="non app frame"),
+        ]
+        system_variant_frame_components = [
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=True, hint=None),
+            system_frame(contributes=True, hint=None),
+        ]
+
+        rust_frame_results = [
+            # All the possible results which could be sent back for system frames (IOW, everything
+            # but "marked in-app"). See more detail about possible hints in both the
+            # `Enhancements.assemble_stacktrace_component` code and the `test_simple` test above.
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked out of app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked out of app by stacktrace rule (...)"),
+            (True, None),
+        ]
+
+        app_expected_frame_results = [
+            # None of the frames contributes, because they're all out of app, and the rust hint is
+            # only used when it relates to a `-app` rule.
+            (False, "non app frame"),
+            (False, "marked out of app by stacktrace rule (...)"),
+            (False, "non app frame"),
+            (False, "non app frame"),
+            (False, "marked out of app by stacktrace rule (...)"),
+            (False, "non app frame"),
+        ]
+        # The system variant just takes its values straight from rust
+        system_expected_frame_results = rust_frame_results
+
+        enhancements = Enhancements.from_config_string("")
+        mock_rust_enhancements = MockRustEnhancements(frame_results=rust_frame_results)
+
+        with mock.patch.object(enhancements, "rust_enhancements", mock_rust_enhancements):
+            app_stacktrace_component = enhancements.assemble_stacktrace_component(
+                variant_name="app",
+                frame_components=app_variant_frame_components,
+                frames=[{}] * 6,
+                platform="javascript",
+                exception_data={},
+            )
+            system_stacktrace_component = enhancements.assemble_stacktrace_component(
+                variant_name="system",
+                frame_components=system_variant_frame_components,
+                frames=[{}] * 6,
+                platform="javascript",
+                exception_data={},
+            )
+
+            self.assert_frame_values_match_expected(
+                app_stacktrace_component, expected_frame_results=app_expected_frame_results
+            )
+            self.assert_frame_values_match_expected(
+                system_stacktrace_component, expected_frame_results=system_expected_frame_results
+            )
+
+    def test_marks_app_stacktrace_non_contributing_if_no_in_app_frames(self):
+        """
+        Test that if frame special-casing for the app variant results in no contributing frames, the
+        stacktrace is marked non-contributing.
+        """
+        frame_components = [
+            # All possibilities (all combos of app vs system, contributing vs not) except a
+            # contributing system frame, since that will never be passed to
+            # `assemble_stacktrace_component` when dealing with the app variant
+            system_frame(contributes=False, hint="non app frame"),
+            in_app_frame(contributes=False, hint="ignored due to recursion"),
+            in_app_frame(contributes=True, hint=None),
+        ]
+
+        # With these results, there will still be a contributing frame in the end
+        rust_frame_results1 = [
+            (True, "un-ignored by stacktrace rule (...)"),
+            (False, None),
+            (True, None),
+        ]
+        # With these results, there won't
+        rust_frame_results2 = [
+            (True, "un-ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, "ignored by stacktrace rule (...)"),
+        ]
+
+        # In both cases, the first frame doesn't contribute because it's a system frame, even though
+        # the rust results say it should
+        expected_frame_results1 = [
+            (False, "non app frame"),
+            (False, "ignored due to recursion"),
+            (True, None),
+        ]
+        expected_frame_results2 = [
+            (False, "non app frame"),
+            (False, "ignored due to recursion"),
+            (False, "ignored by stacktrace rule (...)"),
+        ]
+
+        enhancements1 = Enhancements.from_config_string("")
+        mock_rust_enhancements1 = MockRustEnhancements(
+            frame_results=rust_frame_results1, stacktrace_results=(True, None)
+        )
+        enhancements2 = Enhancements.from_config_string("")
+        mock_rust_enhancements2 = MockRustEnhancements(
+            frame_results=rust_frame_results2, stacktrace_results=(True, None)
+        )
+
+        # In this case, even after we force the system frame not to contribute, we'll still have
+        # another contributing frame, so we'll use rust's `contributing: True` for the stacktrace
+        # component.
+        with mock.patch.object(enhancements1, "rust_enhancements", mock_rust_enhancements1):
+            stacktrace_component1 = enhancements1.assemble_stacktrace_component(
+                variant_name="app",
+                frame_components=frame_components,
+                frames=[{}] * 3,
+                platform="javascript",
+                exception_data={},
+            )
+
+            self.assert_frame_values_match_expected(
+                stacktrace_component1, expected_frame_results=expected_frame_results1
+            )
+
+            assert stacktrace_component1.contributes is True
+            assert stacktrace_component1.hint is None
+
+        # In this case, once we force the system frame not to contribute, we won't have any
+        # contributing frames, so we'll force `contributing: False` for the stacktrace component.
+        with mock.patch.object(enhancements2, "rust_enhancements", mock_rust_enhancements2):
+            stacktrace_component2 = enhancements2.assemble_stacktrace_component(
+                variant_name="app",
+                frame_components=frame_components,
+                frames=[{}] * 3,
+                platform="javascript",
+                exception_data={},
+            )
+
+            self.assert_frame_values_match_expected(
+                stacktrace_component2, expected_frame_results=expected_frame_results2
+            )
+
+            assert stacktrace_component2.contributes is False
+            assert stacktrace_component2.hint is None

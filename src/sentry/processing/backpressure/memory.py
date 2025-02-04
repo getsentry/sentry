@@ -76,7 +76,7 @@ def get_host_port_info(node_id: str, cluster: Cluster) -> NodeInfo:
         return NodeInfo(None, None)
 
 
-def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None, None]:
+def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory]:
     """
     A generator that yields redis `INFO` results for each of the nodes in the `cluster`.
     """

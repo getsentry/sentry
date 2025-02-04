@@ -1,6 +1,7 @@
 import type {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -88,19 +89,19 @@ export function getEventsFilterOptions(
 }
 
 export function eventsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
-  const pathname = `${getTransactionSummaryBaseUrl(orgSlug, view)}/events/`;
+  const pathname = `${getTransactionSummaryBaseUrl(organization, view)}/events/`;
   return {
     pathname,
     query: {

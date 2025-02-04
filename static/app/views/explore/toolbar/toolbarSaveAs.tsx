@@ -4,6 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,6 +50,13 @@ export function ToolbarSaveAs() {
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       interval,
     }),
+    onAction: () => {
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'alert',
+        ui_source: 'toolbar',
+        organization,
+      });
+    },
   }));
 
   const items: MenuItemProps[] = [];
@@ -76,7 +84,18 @@ export function ToolbarSaveAs() {
       return {
         key: chart.label,
         label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
-        onAction: !disableAddToDashboard ? () => addToDashboard(index) : undefined,
+        onAction: () => {
+          if (disableAddToDashboard) {
+            return undefined;
+          }
+
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'dashboard',
+            ui_source: 'toolbar',
+            organization,
+          });
+          return addToDashboard(index);
+        },
       };
     });
     items.push({
@@ -94,10 +113,18 @@ export function ToolbarSaveAs() {
       ),
       disabled: disableAddToDashboard,
       children: chartOptions.length > 1 ? chartOptions : undefined,
-      onAction:
-        !disableAddToDashboard && chartOptions.length
-          ? () => addToDashboard(0)
-          : undefined, // This is hardcoding
+      onAction: () => {
+        if (disableAddToDashboard || chartOptions.length > 1) {
+          return undefined;
+        }
+
+        trackAnalytics('trace_explorer.save_as', {
+          save_type: 'dashboard',
+          ui_source: 'toolbar',
+          organization,
+        });
+        return addToDashboard(0);
+      },
     });
   }
 

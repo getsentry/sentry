@@ -146,7 +146,7 @@ export function ScreensOverview() {
 
   useEffect(() => {
     if (primaryData) {
-      const screens: string[] = new Array();
+      const screens: string[] = [];
       primaryData?.data.forEach(row => {
         if (row.transaction) {
           screens.push(String(row.transaction));

@@ -579,7 +579,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   : t('Change status to unresolved')
               }
               size="sm"
-              disabled={disabled || isAutoResolved}
+              disabled={disabled || isAutoResolved || !resolveCap.enabled}
               onClick={() =>
                 onUpdate({
                   status: GroupStatus.UNRESOLVED,

@@ -155,7 +155,7 @@ def with_feature(feature):
 
 def apply_feature_flag_on_cls(feature_flag):
     def decorate(cls):
-        def _feature_fixture(self: object) -> Generator[None, None, None]:
+        def _feature_fixture(self: object) -> Generator[None]:
             with Feature(feature_flag):
                 yield
 

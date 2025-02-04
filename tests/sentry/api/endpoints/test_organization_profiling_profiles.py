@@ -10,13 +10,13 @@ from snuba_sdk import And, Column, Condition, Function, Op, Or
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase
+from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 
-class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
+class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
     endpoint = "sentry-api-0-organization-profiling-flamegraph"
     features = {
         "organizations:profiling": True,
@@ -807,6 +807,99 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                     ],
                 },
             )
+
+    @patch("sentry.profiles.flamegraph.bulk_snuba_queries")
+    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
+    def test_queries_profile_candidates_from_spans(
+        self,
+        mock_proxy_profiling_service,
+        mock_bulk_snuba_queries,
+    ):
+        # this span has a transaction profile
+        profile_id = uuid4().hex
+
+        span = self.create_span(project=self.project, start_ts=self.ten_mins_ago, duration=1000)
+        span.update({"profile_id": profile_id})
+
+        self.store_span(span, is_eap=True)
+
+        # this span has continuous profile with a matching chunk (to be mocked below)
+        profiler_id = uuid4().hex
+        thread_id = "12345"
+        span_2 = self.create_span(project=self.project, start_ts=self.ten_mins_ago, duration=1000)
+        del span_2["profile_id"]
+        span_2.update(
+            {
+                "data": {
+                    "profiler_id": profiler_id,
+                    "thread.id": thread_id,
+                }
+            }
+        )
+
+        self.store_span(span_2, is_eap=True)
+
+        # not able to write profile chunks to the table yet so mock it's response here
+        # so that the span with a continuous profile looks like it has a profile chunk
+        # within the specified time range
+        chunk_1 = {
+            "project_id": self.project.id,
+            "profiler_id": profiler_id,
+            "chunk_id": uuid4().hex,
+            "start_timestamp": datetime.fromtimestamp(
+                span_2["start_timestamp_precise"]
+            ).isoformat(),
+            "end_timestamp": datetime.fromtimestamp(span_2["end_timestamp_precise"]).isoformat(),
+        }
+
+        # this second chunk is out of range, so it should not be included in the list of chunks
+        # to be returned as part of the continuous profile candidates
+        chunk_2 = {
+            "project_id": self.project.id,
+            "profiler_id": profiler_id,
+            "chunk_id": uuid4().hex,
+            "start_timestamp": datetime.fromtimestamp(
+                span_2["start_timestamp_precise"] - 10
+            ).isoformat(),
+            "end_timestamp": datetime.fromtimestamp(
+                span_2["end_timestamp_precise"] - 10
+            ).isoformat(),
+        }
+
+        mock_bulk_snuba_queries.return_value = [{"data": [chunk_1, chunk_2]}]
+
+        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+
+        self.do_request(
+            {
+                "query": "",
+                "project": [self.project.id],
+                "dataSource": "spans",
+            },
+        )
+
+        mock_proxy_profiling_service.assert_called_once_with(
+            method="POST",
+            path=f"/organizations/{self.project.organization.id}/flamegraph",
+            json_data={
+                "transaction": [
+                    {
+                        "project_id": self.project.id,
+                        "profile_id": profile_id,
+                    },
+                ],
+                "continuous": [
+                    {
+                        "project_id": self.project.id,
+                        "profiler_id": profiler_id,
+                        "chunk_id": chunk_1["chunk_id"],
+                        "thread_id": thread_id,
+                        "start": str(int(span_2["start_timestamp_precise"] * 1e9)),
+                        "end": str(int(span_2["end_timestamp_precise"] * 1e9)),
+                    },
+                ],
+            },
+        )
 
 
 class OrganizationProfilingChunksTest(APITestCase):

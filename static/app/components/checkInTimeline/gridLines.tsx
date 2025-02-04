@@ -5,8 +5,11 @@ import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {DateTime} from 'sentry/components/dateTime';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
+
+import QuestionTooltip from '../questionTooltip';
 
 import {useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
@@ -97,6 +100,16 @@ export function GridLineLabels({timeWindowConfig, className}: GridLineLabelsProp
           <TimeLabel date={date} {...dateTimeProps} />
         </TimeLabelContainer>
       ))}
+      {timeWindowConfig.showUnderscanHelp && (
+        <TimeLabelContainer left={timeWindowConfig.timelineWidth}>
+          <QuestionTooltip
+            size="xs"
+            title={t(
+              'This area of the timeline is outside of your selected time range to allow for improved rendering of markers.'
+            )}
+          />
+        </TimeLabelContainer>
+      )}
     </LabelsContainer>
   );
 }
@@ -131,7 +144,7 @@ export function GridLineOverlay({
   className,
 }: GridLineOverlayProps) {
   const router = useRouter();
-  const {start, timelineWidth, dateLabelFormat} = timeWindowConfig;
+  const {start, timelineWidth, dateLabelFormat, rollupConfig} = timeWindowConfig;
 
   const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / timelineWidth;
 
@@ -176,11 +189,20 @@ export function GridLineOverlay({
   // LabelsContainer
   markers.shift();
 
+  if (timeWindowConfig.showUnderscanHelp) {
+    markers.push({
+      date: timeWindowConfig.end,
+      position: timeWindowConfig.timelineWidth,
+      dateTimeProps: {},
+    });
+  }
+
   return (
     <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
+      <Underscan style={{width: rollupConfig.timelineUnderscanWidth - 1}} />
       <GridLineContainer>
         {markers.map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
@@ -198,6 +220,7 @@ const Overlay = styled('div')`
 
 const GridLineContainer = styled('div')`
   position: relative;
+  overflow: hidden;
   height: 100%;
   z-index: 1;
   pointer-events: none;
@@ -205,6 +228,7 @@ const GridLineContainer = styled('div')`
 
 const LabelsContainer = styled('div')`
   height: 50px;
+  overflow: hidden;
   box-shadow: -1px 0 0 ${p => p.theme.translucentInnerBorder};
   position: relative;
   align-self: stretch;
@@ -222,11 +246,30 @@ const TimeLabelContainer = styled(Gridline)`
   height: 100%;
   align-items: center;
   border-left: none;
+  padding-left: ${space(1)};
 `;
 
 const TimeLabel = styled(DateTime)`
   font-variant-numeric: tabular-nums;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-left: ${space(1)};
+`;
+
+const Underscan = styled('div')`
+  position: absolute;
+  right: 0;
+  height: calc(100% - 51px);
+  margin-top: 51px;
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  background-size: 3px 3px;
+  background-image: linear-gradient(
+    45deg,
+    ${p => p.theme.translucentBorder} 25%,
+    transparent 25%,
+    transparent 50%,
+    ${p => p.theme.translucentBorder} 50%,
+    ${p => p.theme.translucentBorder} 75%,
+    transparent 75%,
+    transparent
+  );
 `;

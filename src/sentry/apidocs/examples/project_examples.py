@@ -236,7 +236,6 @@ DETAILED_PROJECT = {
             "transaction-metrics-extraction",
             "performance-consecutive-db-queries-post-process-group",
             "performance-slow-db-query-post-process-group",
-            "session-replay-sdk-errors-only",
             "performance-n-plus-one-db-queries-ingest",
             "profile-image-decode-main-thread-visible",
             "performance-issues-render-blocking-assets-detector",

@@ -16,7 +16,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,7 +70,6 @@ function WidgetBuilderV2({
   setOpenWidgetTemplates,
   openWidgetTemplates,
 }: WidgetBuilderV2Props) {
-  const escapeKeyPressed = useKeyPress('Escape');
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -85,15 +83,6 @@ function WidgetBuilderV2({
   const [translate, setTranslate] = useState<WidgetDragPositioning>(
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
-
-  // do we want to keep this?
-  useEffect(() => {
-    if (escapeKeyPressed) {
-      if (isOpen) {
-        onClose?.();
-      }
-    }
-  }, [escapeKeyPressed, isOpen, onClose]);
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -241,7 +230,12 @@ export function WidgetPreviewContainer({
     top: isDragEnabled ? top ?? 0 : undefined,
     left: isDragEnabled ? left ?? 0 : undefined,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
+    zIndex: isDragEnabled
+      ? theme.zIndex.modal
+      : isSmallScreen
+        ? theme.zIndex.initial
+        : // if not responsive, set z-index to default in styled component
+          undefined,
     cursor: isDragEnabled ? 'grab' : undefined,
     margin: isDragEnabled ? '0' : undefined,
     alignSelf: isDragEnabled ? 'flex-start' : undefined,
@@ -301,6 +295,20 @@ export function WidgetPreviewContainer({
                 {...attributes}
                 {...listeners}
               >
+                {!isSmallScreen && (
+                  <WidgetPreviewTitle
+                    initial={{opacity: 0, x: '50%', y: 0}}
+                    animate={{opacity: 1, x: 0, y: 0}}
+                    exit={{opacity: 0, x: '50%', y: 0}}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 500,
+                      damping: 50,
+                    }}
+                  >
+                    {t('Widget Preview')}
+                  </WidgetPreviewTitle>
+                )}
                 <SampleWidgetCard
                   initial={{opacity: 0, x: '50%', y: 0}}
                   animate={{opacity: 1, x: 0, y: 0}}
@@ -331,6 +339,7 @@ export function WidgetPreviewContainer({
                       dashboard={dashboard}
                       isWidgetInvalid={isWidgetInvalid}
                       onDataFetched={onDataFetched}
+                      shouldForceDescriptionTooltip={!isSmallScreen}
                     />
                   )}
                 </SampleWidgetCard>
@@ -483,4 +492,11 @@ const SurroundingWidgetContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const WidgetPreviewTitle = styled(motion.h5)`
+  margin-bottom: ${space(1)};
+  margin-left: ${space(1)};
+  color: ${p => p.theme.white};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

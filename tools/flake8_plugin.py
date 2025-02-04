@@ -25,8 +25,6 @@ S006_msg = "S006 Do not use force_bytes / force_str -- test the types directly"
 
 S007_msg = "S007 Do not import sentry.testutils into production code."
 
-S008_msg = "S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"
-
 S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
 
 S010_msg = "S010 Except handler does nothing and should be removed"
@@ -61,9 +59,6 @@ class SentryVisitor(ast.NodeVisitor):
             ):
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
 
-            if node.module == "pytz" and any(x.name.lower() == "utc" for x in node.names):
-                self.errors.append((node.lineno, node.col_offset, S008_msg))
-
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -85,12 +80,6 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
         elif node.attr in S004_methods:
             self.errors.append((node.lineno, node.col_offset, S004_msg))
-        elif (
-            isinstance(node.value, ast.Name)
-            and node.value.id == "pytz"
-            and node.attr.lower() == "utc"
-        ):
-            self.errors.append((node.lineno, node.col_offset, S008_msg))
 
         self.generic_visit(node)
 

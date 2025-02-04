@@ -187,7 +187,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   uptime: t('Domain'),
   'screen-rendering': t('Domain'),
   'mobile-ui': t('Domain'),
-  'mobile-screens': t('Domain'),
+  'mobile-vitals': t('Domain'),
 };
 
 function getEventView(

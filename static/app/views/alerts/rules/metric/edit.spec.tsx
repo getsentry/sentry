@@ -85,7 +85,7 @@ describe('MetricRulesEdit', function () {
         {...RouteComponentPropsFixture()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id!,
+          ruleId: rule.id,
         }}
         userTeamIds={[]}
         organization={organization}
@@ -180,7 +180,7 @@ describe('MetricRulesEdit', function () {
         {...RouteComponentPropsFixture()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id!,
+          ruleId: rule.id,
         }}
         userTeamIds={[]}
         organization={organization}

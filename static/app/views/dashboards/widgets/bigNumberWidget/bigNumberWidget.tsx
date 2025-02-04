@@ -35,6 +35,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
         title={props.title}
         description={props.description}
         borderless={props.borderless}
+        forceDescriptionTooltip={props.forceDescriptionTooltip}
       >
         <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
       </WidgetFrame>
@@ -67,6 +68,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
       error={error}
       onRetry={props.onRetry}
       borderless={props.borderless}
+      forceDescriptionTooltip={props.forceDescriptionTooltip}
     >
       {defined(value) && (
         <BigNumberResizeWrapper>

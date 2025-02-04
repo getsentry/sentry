@@ -19,7 +19,7 @@ export default function DeployBadge({deploy, orgSlug, projectId, version}: Props
         query: {
           project: projectId,
           environment: deploy.environment,
-          query: new MutableSearch([`release:${version!}`]).formatString(),
+          query: new MutableSearch([`release:${version}`]).formatString(),
         },
       }}
     >

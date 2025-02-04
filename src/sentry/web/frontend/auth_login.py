@@ -227,7 +227,9 @@ class AuthLoginView(BaseView):
             )
         else:
             assert op == "login"
-            return self.handle_login_form_submit(request=request, organization=organization)
+            return self.handle_login_form_submit(
+                request=request, organization=organization, **kwargs
+            )
 
     def redirect_post_to_sso(self, request: Request) -> HttpResponseRedirect:
         """

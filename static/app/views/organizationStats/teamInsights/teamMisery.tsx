@@ -132,7 +132,7 @@ function TeamMisery({
                     <TransactionWrapper>
                       <Link
                         to={transactionSummaryRouteWithQuery({
-                          orgSlug: organization.slug,
+                          organization,
                           transaction: dataRow.transaction as string,
                           projectID: project?.id,
                           query: {query: 'transaction.duration:<15m'},

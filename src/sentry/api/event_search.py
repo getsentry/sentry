@@ -5,13 +5,12 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
-from typing_extensions import TypeIs
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
@@ -542,10 +541,6 @@ class SearchConfig:
     # Keys which are considered valid for duration filters
     duration_keys: set[str] = field(default_factory=set)
 
-    # Keys considered valid for the percentage aggregate and may have
-    # percentage search values
-    percentage_keys: set[str] = field(default_factory=set)
-
     # Keys considered valid for numeric filter types
     numeric_keys: set[str] = field(default_factory=set)
 
@@ -654,9 +649,6 @@ class SearchVisitor(NodeVisitor):
 
     def is_boolean_key(self, key):
         return key in self.config.boolean_keys
-
-    def is_percentage_key(self, key):
-        return key in self.config.percentage_keys
 
     def visit_search(self, node, children):
         return flatten(remove_space(children[1]))
@@ -1235,7 +1227,6 @@ class SearchVisitor(NodeVisitor):
 
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
-    percentage_keys={"percentage"},
     text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     # do not put aggregate functions in this list
     numeric_keys={

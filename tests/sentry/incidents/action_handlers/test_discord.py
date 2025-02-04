@@ -123,7 +123,10 @@ class DiscordActionHandlerTest(FireTest):
 
     @patch(
         "sentry.integrations.discord.client.DiscordClient.send_message",
-        side_effect=ApiError(code=50001, text="Missing access"),
+        side_effect=ApiError(
+            code=403,
+            text='{"message": "Missing access", "code": 50001}',
+        ),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_metric_alert_halt_for_missing_access(self, mock_record_event, mock_send_message):

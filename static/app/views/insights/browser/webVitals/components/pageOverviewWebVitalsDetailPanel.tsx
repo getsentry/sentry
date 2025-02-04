@@ -388,7 +388,7 @@ export function PageOverviewWebVitalsDetailPanel({
               webVitalValue !== undefined
                 ? webVital !== 'cls'
                   ? getDuration(webVitalValue / 1000, 2, true)
-                  : (webVitalValue as number)?.toFixed(2)
+                  : webVitalValue?.toFixed(2)
                 : undefined
             }
             webVital={webVital}

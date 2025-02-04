@@ -38,6 +38,8 @@ export function GroupDetailsLayout({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
+  const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
+
   return (
     <IssueDetailsContext.Provider value={{...issueDetails, dispatch}}>
       <StreamlinedGroupHeader
@@ -53,14 +55,10 @@ export function GroupDetailsLayout({
         <div>
           <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
-            <NavigationSidebarWrapper
-              hasToggleSidebar={!issueTypeConfig.filterAndSearchHeader.enabled}
-            >
+            <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
               <IssueEventNavigation event={event} group={group} />
               {/* Since the event details header is disabled, display the sidebar toggle here */}
-              {!issueTypeConfig.filterAndSearchHeader.enabled && (
-                <ToggleSidebar size="sm" />
-              )}
+              {!hasFilterBar && <ToggleSidebar size="sm" />}
             </NavigationSidebarWrapper>
             <ContentPadding>{children}</ContentPadding>
           </GroupContent>

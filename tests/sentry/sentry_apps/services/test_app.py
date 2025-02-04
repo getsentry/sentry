@@ -123,3 +123,56 @@ def test_get_installation_org_id_by_token_id() -> None:
     # Installation must be installed
     result = app_service.get_installation_org_id_by_token_id(token_id=token.id)
     assert result is None
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_get_internal_integrations() -> None:
+    org = Factories.create_organization()
+    other_org = Factories.create_organization()
+
+    # Create internal integrations
+    internal_app = Factories.create_internal_integration(
+        name="Test Integration",
+        organization_id=org.id,
+    )
+    Factories.create_internal_integration(
+        name="Test Integration",
+        organization_id=other_org.id,
+    )
+    Factories.create_internal_integration(
+        name="Different Integration",
+        organization_id=org.id,
+    )
+    # Create a published app with same name (should not be returned)
+    Factories.create_sentry_app(
+        name="Test Integration",
+        organization=org,
+        published=True,
+    )
+
+    # Test finding internal integrations
+    results = app_service.get_internal_integrations(
+        organization_id=org.id,
+        integration_name="Test Integration",
+    )
+
+    assert len(results) == 1
+    assert results[0].name == "Test Integration"
+    assert results[0].id == internal_app.id
+    assert results[0].status == "internal"  # Status is serialized as string
+    assert results[0].is_internal  # Helper property to check status
+
+    # Test with non-existent name
+    results = app_service.get_internal_integrations(
+        organization_id=org.id,
+        integration_name="Non-existent Integration",
+    )
+    assert len(results) == 0
+
+    # Test with different organization
+    results = app_service.get_internal_integrations(
+        organization_id=12345,  # Non-existent org
+        integration_name="Test Integration",
+    )
+    assert len(results) == 0

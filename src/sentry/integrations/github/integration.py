@@ -30,16 +30,16 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import RepoTree
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -167,7 +167,9 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration):
+class GitHubIntegration(
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -233,25 +235,21 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         """
         args:
         * query - a query to filter the repositories by
-
-        kwargs:
         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
-        It uses page_size from the base class to specify how many items per page (max 100; default 30).
-        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
         if not query:
-            repos = self.get_client().get_repos(fetch_max_pages)
+            all_repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in [repo for repo in repos if not repo.get("archived")]
+                for i in all_repos
+                if not i.get("archived")
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -286,29 +284,6 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         except ApiError:
             return False
         return True
-
-    # for derive code mappings - TODO(cathy): define in an ABC
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
-        trees: dict[str, RepoTree] = {}
-        domain_name = self.model.metadata["domain_name"]
-        extra = {"metadata": self.model.metadata}
-        if domain_name.find("github.com/") == -1:
-            logger.warning("We currently only support github.com domains.", extra=extra)
-            return trees
-
-        gh_org = domain_name.split("github.com/")[1]
-        extra.update({"gh_org": gh_org})
-        org_exists = organization_service.check_organization_by_id(
-            id=self.org_integration.organization_id, only_visible=False
-        )
-        if not org_exists:
-            logger.error(
-                "No organization information was found. Continuing execution.", extra=extra
-            )
-        else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
-
-        return trees
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         resp = self.get_client().search_issues(query)

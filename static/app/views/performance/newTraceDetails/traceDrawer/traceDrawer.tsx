@@ -749,11 +749,13 @@ const TabsLayout = styled('div')`
   grid-template-columns: auto 1fr auto;
   padding-left: ${space(1)};
   padding-right: ${space(0.5)};
+  width: 100%;
 `;
 
 const TabsContainer = styled('ul')`
   display: grid;
   list-style-type: none;
+  height: 100%;
   width: 100%;
   align-items: center;
   justify-content: left;

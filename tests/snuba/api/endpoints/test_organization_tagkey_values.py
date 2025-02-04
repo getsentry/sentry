@@ -459,6 +459,37 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
             expected=[("aaa@1.0", None), ("aba@1.0", None)],
         )
 
+    def test_simple_flags(self):
+        self.store_event(
+            data={
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": True}]}},
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": False}]}},
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:feature-flag-autocomplete": True}):
+            url = reverse(
+                "sentry-api-0-organization-tagkey-values",
+                kwargs={"organization_id_or_slug": self.org.slug, "key": "abc"},
+            )
+            response = self.client.get(url + "?useFlagsBackend=1")
+            assert response.status_code == 200
+            assert len(response.data) == 2
+
+            results = sorted(response.data, key=lambda i: i["value"])
+            assert results[0]["value"] == "false"
+            assert results[1]["value"] == "true"
+            assert results[0]["count"] == 1
+            assert results[1]["count"] == 1
+
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):

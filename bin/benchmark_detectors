@@ -14,7 +14,9 @@ configure()
 import time
 import sentry_sdk
 from sentry.testutils.performance_issues.event_generators import get_event  # noqa: S007
-from sentry.utils.performance_issues.detectors import FileIOMainThreadDetector
+from sentry.utils.performance_issues.detectors.io_main_thread_detector import (
+    FileIOMainThreadDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,

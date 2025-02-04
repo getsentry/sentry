@@ -50,7 +50,7 @@ export default function SuspectSpansTable(props: Props) {
       // Frequency is computed using the `uniq` function in ClickHouse.
       // Because it is an approximation, it can occasionally exceed the number of events.
       defined(suspectSpan.frequency) && defined(totals?.['count()'])
-        ? Math.min(1, suspectSpan.frequency / totals!['count()'])
+        ? Math.min(1, suspectSpan.frequency / totals['count()'])
         : null,
     avgOccurrences: suspectSpan.avgOccurrences,
     p50ExclusiveTime: suspectSpan.p50ExclusiveTime,
@@ -106,7 +106,7 @@ function renderBodyCellWithMeta(
 
     if (column.key === 'description') {
       const target = spanDetailsRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: transactionName,
         query: location.query,
         spanSlug: {op: dataRow.operation, group: dataRow.group},

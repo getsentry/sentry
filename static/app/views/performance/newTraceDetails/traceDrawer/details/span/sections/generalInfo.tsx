@@ -12,8 +12,11 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
+import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -92,6 +95,12 @@ function SpanSelfTime({node}: {node: TraceTreeNode<TraceTree.Span>}) {
 
 export function GeneralInfo(props: GeneralnfoProps) {
   const hasTraceNewUi = useHasTraceNewUi();
+  const span = props.node.value;
+
+  const resolvedModule: ModuleName = resolveSpanModule(
+    span.sentry_tags?.op,
+    span.sentry_tags?.category
+  );
 
   const ancestryAndGroupingItems = useSpanAncestryAndGroupingItems({
     node: props.node,
@@ -112,11 +121,62 @@ export function GeneralInfo(props: GeneralnfoProps) {
       endTimestamp / 1e3
     );
 
+  const formattedDescription = getFormattedSpanDescription(span);
   let items: SectionCardKeyValueList = [
+    {
+      key: 'op',
+      subject: t('Op'),
+      value: span.op,
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.SPAN_OP}
+          rowValue={span.op}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
+    },
+    {
+      key: 'description',
+      subject: t('Description'),
+      value: span.description ? (
+        resolvedModule === ModuleName.DB ? (
+          <WiderHovercard
+            position="right"
+            body={
+              <FullSpanDescription
+                group={span.sentry_tags?.group}
+                shortDescription={span.description}
+                moduleName={ModuleName.DB}
+              />
+            }
+          >
+            <DescriptionWrapper>{formattedDescription}</DescriptionWrapper>
+          </WiderHovercard>
+        ) : (
+          formattedDescription
+        )
+      ) : (
+        <EmptyValueContainer>{t('No description')}</EmptyValueContainer>
+      ),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.SPAN_DESCRIPTION}
+          rowValue={span.description}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
+    },
     {
       key: 'duration',
       subject: t('Duration'),
       value: <SpanDuration node={props.node} />,
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.SPAN_DURATION}
+          rowValue={getDuration((endTimestamp - startTimestamp) / 1000, 2, true)}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     },
     {
       key: 'start_timestamp',
@@ -143,10 +203,17 @@ export function GeneralInfo(props: GeneralnfoProps) {
           </Fragment>
         ),
       }),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.TIMESTAMP}
+          rowValue={new Date(endTimestamp).toISOString()}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     },
   ];
 
-  if (props.node.value.exclusive_time) {
+  if (span.exclusive_time) {
     items.push({
       key: 'self_time',
       subject: t('Self Time'),
@@ -160,6 +227,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
         </TraceDrawerComponents.FlexBox>
       ),
       value: <SpanSelfTime node={props.node} />,
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={SpanIndexedField.SPAN_SELF_TIME}
+          rowValue={getDuration(span.exclusive_time / 1000, 2, true)}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   }
 
@@ -211,7 +285,7 @@ function LegacyGeneralInfo(props: GeneralnfoProps) {
           <TraceDrawerComponents.CopyableCardValueWithLink
             value={span.description}
             linkTarget={spanDetailsRouteWithQuery({
-              orgSlug: props.organization.slug,
+              organization: props.organization,
               transaction: props.node.event?.title ?? '',
               query: props.location.query,
               spanSlug: {op: span.op, group: groupHash},
@@ -272,3 +346,32 @@ function LegacyGeneralInfo(props: GeneralnfoProps) {
     />
   );
 }
+
+function getFormattedSpanDescription(span: TraceTree.Span) {
+  const rawDescription = span.description;
+  if (!rawDescription) {
+    return '';
+  }
+
+  const formatter = new SQLishFormatter();
+  const resolvedModule: ModuleName = resolveSpanModule(
+    span.sentry_tags?.op,
+    span.sentry_tags?.category
+  );
+
+  if (resolvedModule !== ModuleName.DB) {
+    return rawDescription;
+  }
+
+  return formatter.toSimpleMarkup(rawDescription);
+}
+
+const DescriptionWrapper = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+`;
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
+`;

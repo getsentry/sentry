@@ -7,8 +7,6 @@ import type {Project, TeamWithProjects} from 'sentry/types/project';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
 
-import {metric} from './analytics';
-
 // We require these props when using this HOC
 type DependentProps = {
   api: Client;
@@ -46,27 +44,13 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
       });
 
       try {
-        metric.mark({name: 'user-teams-fetch-start'});
         const teamsWithProjects: TeamWithProjects[] = await this.props.api.requestPromise(
           this.getUsersTeamsEndpoint()
         );
-        this.setState(
-          {
-            teams: teamsWithProjects,
-            loadingTeams: false,
-          },
-          () => {
-            metric.measure({
-              name: 'app.component.perf',
-              start: 'user-teams-fetch-start',
-              data: {
-                name: 'user-teams',
-                route: '/organizations/:orgid/user-teams',
-                organization_id: parseInt(this.props.organization.id, 10),
-              },
-            });
-          }
-        );
+        this.setState({
+          teams: teamsWithProjects,
+          loadingTeams: false,
+        });
       } catch (error) {
         this.setState({
           error,

@@ -19,6 +19,8 @@ describe('HTTPSummaryPage', function () {
 
   let domainChartsRequestMock: jest.Mock;
   let domainTransactionsListRequestMock: jest.Mock;
+  let domainMetricsRibbonRequestMock: jest.Mock;
+  let regionFilterRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -50,12 +52,49 @@ describe('HTTPSummaryPage', function () {
   beforeEach(function () {
     jest.clearAllMocks();
 
+    regionFilterRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
+    });
+
     domainTransactionsListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
         data: [],
       },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-transactions-list',
+        }),
+      ],
+    });
+
+    domainMetricsRibbonRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+        }),
+      ],
     });
 
     domainChartsRequestMock = MockApiClient.addMockResponse({
@@ -163,7 +202,7 @@ describe('HTTPSummaryPage', function () {
       })
     );
 
-    expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
+    expect(domainMetricsRibbonRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
@@ -190,7 +229,7 @@ describe('HTTPSummaryPage', function () {
     );
 
     expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
-      2,
+      1,
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         method: 'GET',
@@ -215,6 +254,24 @@ describe('HTTPSummaryPage', function () {
           query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           sort: '-time_spent_percentage()',
           referrer: 'api.performance.http.domain-summary-transactions-list',
+          statsPeriod: '10d',
+        },
+      })
+    );
+
+    expect(regionFilterRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['user.geo.subregion', 'count()'],
+          per_page: 50,
+          project: [],
+          query: 'has:user.geo.subregion',
+          sort: '-count()',
+          referrer: 'api.insights.user-geo-subregion-selector',
           statsPeriod: '10d',
         },
       })

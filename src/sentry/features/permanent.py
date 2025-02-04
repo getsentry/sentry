@@ -106,6 +106,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:team-insights": True,
         # Enable setting team-level roles and receiving permissions from them
         "organizations:team-roles": True,
+        # Enable the uptime monitoring features
+        "organizations:uptime": True,
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.

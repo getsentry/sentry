@@ -38,7 +38,7 @@ class Synchronized(Generic[T]):
     # arguments on `get` and `set`, such as `timeout`, `block`, etc.
 
     @contextmanager
-    def get(self) -> Generator[T, None, None]:
+    def get(self) -> Generator[T]:
         """
         Get the synchronized value.
         """

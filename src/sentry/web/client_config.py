@@ -18,7 +18,7 @@ import sentry
 from sentry import features, options
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
-from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
+from sentry.auth.services.auth import AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
@@ -182,10 +182,8 @@ class _ClientConfig:
     ) -> None:
         self.request = request
         if request is not None:
-            self.user: User | AnonymousUser | None = (
-                getattr(request, "user", None) or AnonymousUser()
-            )
-            self.session: SessionBase | None = getattr(request, "session", None)
+            self.user: User | AnonymousUser | None = request.user
+            self.session: SessionBase | None = request.session
         else:
             self.user = None
             self.session = None
@@ -321,7 +319,7 @@ class _ClientConfig:
             filter={"user_ids": [self.user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
-                auth=AuthenticatedToken.from_token(getattr(self.request, "auth", None)),
+                auth=self.request.auth if self.request is not None else None,
                 user=serialize_generic_user(self.user),
             ),
         )

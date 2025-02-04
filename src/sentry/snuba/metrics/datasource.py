@@ -50,14 +50,12 @@ from sentry.snuba.metrics.query_builder import (
 )
 from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
-    AVAILABLE_OPERATIONS,
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
     MetricMeta,
-    MetricMetaWithTagKeys,
     MetricType,
     NotSupportedOverCompositeEntityException,
     Tag,
@@ -73,7 +71,6 @@ __all__ = (
     "get_all_tags",
     "get_tag_values",
     "get_series",
-    "get_single_metric_info",
 )
 
 
@@ -426,42 +423,6 @@ def _fetch_tags_or_values_for_mri(
         metric_type = list(supported_metric_ids_in_entities.keys())[0]
         return tags_or_values, metric_type
     return tags_or_values, None
-
-
-def get_single_metric_info(
-    projects: Sequence[Project],
-    metric_name: str,
-    use_case_id: UseCaseID,
-) -> MetricMetaWithTagKeys:
-    tags, metric_type = _fetch_tags_or_values_for_metrics(
-        projects=projects,
-        metric_names=[metric_name],
-        column="tags.key",
-        referrer="snuba.metrics.meta.get_single_metric",
-        use_case_id=use_case_id,
-    )
-    entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-
-    response_dict = {
-        "name": metric_name,
-        "type": metric_type,
-        "operations": AVAILABLE_OPERATIONS[entity_key.value],
-        "unit": None,
-        "tags": tags,
-    }
-
-    metric_mri = get_mri(metric_name)
-    all_derived_metrics = get_derived_metrics()
-    if metric_mri in all_derived_metrics:
-        derived_metric = all_derived_metrics[metric_mri]
-        response_dict.update(
-            {
-                "operations": [],
-                "unit": derived_metric.unit,
-                "type": derived_metric.result_type,
-            }
-        )
-    return response_dict
 
 
 def get_all_tags(

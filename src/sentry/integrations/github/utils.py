@@ -41,7 +41,6 @@ def get_next_link(response: Response) -> str | None:
     """
     link_option: str | None = response.headers.get("link")
     if link_option is None:
-        logger.info("There are no pages to iterate on.")
         return None
 
     # Should be a comma separated string of links

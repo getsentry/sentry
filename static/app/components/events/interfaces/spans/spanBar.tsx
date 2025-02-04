@@ -337,7 +337,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <SpanDetail
-        span={span as ProcessedSpanType}
+        span={span}
         organization={organization}
         event={event as EventTransaction}
         isRoot={!!isRoot}

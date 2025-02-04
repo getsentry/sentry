@@ -50,7 +50,7 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
-  const moduleName = ModuleName.MOBILE_SCREENS;
+  const moduleName = ModuleName.MOBILE_VITALS;
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -201,8 +201,8 @@ export function ScreensLandingPage() {
     },
   ];
 
-  const metricsFields: string[] = new Array();
-  const spanMetricsFields: string[] = new Array();
+  const metricsFields: string[] = [];
+  const spanMetricsFields: string[] = [];
   const [state, setState] = useState<{
     status: VitalStatus | undefined;
     vital: VitalItem | undefined;
@@ -303,7 +303,7 @@ export function ScreensLandingPage() {
   });
 
   return (
-    <ModulePageProviders moduleName="mobile-screens">
+    <ModulePageProviders moduleName={ModuleName.MOBILE_VITALS}>
       <Layout.Page>
         <PageAlertProvider>
           <MobileHeader
@@ -332,7 +332,7 @@ export function ScreensLandingPage() {
                 <PageAlert />
                 <ErrorBoundary mini>
                   <Container>
-                    <Flex data-test-id="mobile-screens-top-metrics">
+                    <Flex data-test-id="mobile-vitals-top-metrics">
                       {vitalItems.map(item => {
                         const metricValue = metricValueFor(item);
                         const status =

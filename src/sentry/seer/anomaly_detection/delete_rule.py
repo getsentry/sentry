@@ -1,11 +1,10 @@
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ALERT_DELETION_URL
-from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import DeleteAlertDataRequest
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -27,7 +26,7 @@ def delete_rule_in_seer(alert_rule: "AlertRule") -> bool:
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
     body = DeleteAlertDataRequest(
-        organization_id=cast(Organization, alert_rule.organization).id,
+        organization_id=alert_rule.organization.id,
         alert={"id": alert_rule.id},
     )
     extra_data = {

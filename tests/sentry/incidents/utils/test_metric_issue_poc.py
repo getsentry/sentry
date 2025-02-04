@@ -11,6 +11,7 @@ from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase
 
 
 @apply_feature_flag_on_cls("organizations:metric-issue-poc-ingest")
+@apply_feature_flag_on_cls("projects:metric-issue-creation")
 class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
     def setUp(self):
         self.organization = self.create_organization()

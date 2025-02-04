@@ -1,11 +1,11 @@
 import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   Confidence,
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -19,6 +19,7 @@ import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {transformToSeriesMap} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import type {DashboardFilters, Widget} from '../types';
+import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -26,7 +27,7 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type SeriesResult = EventsStats | MultiSeriesEventsStats;
+type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
 type Props = {
@@ -58,13 +59,13 @@ function SpansWidgetQueries({
 
   const afterFetchSeriesData = (result: SeriesResult) => {
     let seriesConfidence;
-    if (isMultiSeriesStats(result)) {
+    if (isEventsStats(result)) {
+      seriesConfidence = determineSeriesConfidence(result);
+    } else {
       const dedupedYAxes = dedupeArray(widget.queries[0]?.aggregates ?? []);
       const seriesMap = transformToSeriesMap(result, dedupedYAxes);
       const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
       seriesConfidence = combineConfidenceForSeries(series);
-    } else {
-      seriesConfidence = determineSeriesConfidence(result);
     }
     setConfidence(seriesConfidence);
     onDataFetched?.({

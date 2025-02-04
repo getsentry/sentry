@@ -10,7 +10,6 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
-from sentry.sentry_apps.api.bases.sentryapps import add_integration_platform_metric_tag
 from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )
@@ -24,7 +23,6 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    @add_integration_platform_metric_tag
     def get(
         self,
         request: Request,

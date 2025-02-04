@@ -167,7 +167,7 @@ function AccountSubscriptions() {
                                   email: subscription.email,
                                   date: (
                                     <DateTime
-                                      date={moment(subscription.subscribedDate!)}
+                                      date={moment(subscription.subscribedDate)}
                                     />
                                   ),
                                 })}

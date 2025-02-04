@@ -3,6 +3,7 @@ import logging
 import orjson
 import sentry_sdk
 from django.db import router, transaction
+from drf_spectacular.utils import extend_schema
 from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +13,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
+from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
+from sentry.apidocs.parameters import SentryAppParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.organizations.services.organization import organization_service
@@ -24,6 +29,7 @@ from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )
+from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializerResponse
 from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -42,17 +48,33 @@ class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
     staff_allowed_methods = {"GET", "PUT"}
 
 
+@extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (SentryAppDetailsEndpointPermission,)
 
+    @extend_schema(
+        operation_id="Retrieve a custom integration by ID or slug.",
+        parameters=[
+            SentryAppParams.SENTRY_APP_ID_OR_SLUG,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "SentryAppDetailsResponse", SentryAppSerializerResponse
+            ),
+        },
+        examples=SentryAppExamples.RETRIEVE_SENTRY_APP,
+    )
     def get(self, request: Request, sentry_app) -> Response:
+        """
+        Retrieve a custom integration.
+        """
         return Response(
             serialize(
                 sentry_app,
@@ -62,8 +84,26 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             )
         )
 
+    @extend_schema(
+        operation_id="Update an existing custom integration.",
+        parameters=[
+            SentryAppParams.SENTRY_APP_ID_OR_SLUG,
+        ],
+        request=SentryAppParser,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SentryAppDetailsResponse", SentryAppSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=SentryAppExamples.UPDATE_SENTRY_APP,
+    )
     @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
+        """
+        Update an existing custom integration.
+        """
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
                 {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
@@ -151,7 +191,17 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         return Response(serializer.errors, status=400)
 
+    @extend_schema(
+        operation_id="Delete a custom integration.",
+        parameters=[
+            SentryAppParams.SENTRY_APP_ID_OR_SLUG,
+        ],
+        responses={204: RESPONSE_NO_CONTENT, 403: RESPONSE_FORBIDDEN},
+    )
     def delete(self, request: Request, sentry_app) -> Response:
+        """
+        Delete a custom integration.
+        """
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
                 {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},

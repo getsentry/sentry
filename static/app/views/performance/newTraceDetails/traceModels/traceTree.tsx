@@ -931,10 +931,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
           for (let j = start; j < start + matchCount + 1; j++) {
             const child = node.children[j]!;
 
-            start_timestamp = Math.min(start_timestamp, node.children[j]!.space[0]!);
+            start_timestamp = Math.min(start_timestamp, node.children[j]!.space[0]);
             timestamp = Math.max(
               timestamp,
-              node.children[j]!.space[0]! + node.children[j]!.space[1]!
+              node.children[j]!.space[0] + node.children[j]!.space[1]
             );
 
             if (node.children[j]!.hasErrors) {

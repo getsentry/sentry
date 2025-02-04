@@ -146,6 +146,43 @@ export default storyBook(LineChartWidget, story => {
             Toggle 99th Percentile
           </Button>
         </SideBySide>
+
+        <p>
+          <JSXNode name="LineChartWidget" /> will automatically check the types and unit
+          of all the incoming timeseries. If they do not all match, it will fall back to a
+          plain number scale. If the types match but the units do not, it will fall back
+          to a sensible unit
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="span.duration"
+            timeseries={[
+              {
+                ...durationTimeSeries1,
+                meta: {
+                  fields: durationTimeSeries1.meta?.fields!,
+                  units: {
+                    'p99(span.duration)': 'millisecond',
+                  },
+                },
+              },
+              {
+                ...durationTimeSeries2,
+                data: durationTimeSeries2.data.map(datum => ({
+                  ...datum,
+                  value: datum.value / 1000,
+                })),
+                meta: {
+                  fields: durationTimeSeries2.meta?.fields!,
+                  units: {
+                    'p50(span.duration)': 'second',
+                  },
+                },
+              },
+            ]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });

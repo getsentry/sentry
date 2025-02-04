@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -6,6 +7,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import IssueTagsPreview from './issueTagsPreview';
 
 describe('IssueTagsPreview', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [ProjectFixture()],
+    });
+  });
   it('renders preview tags', async () => {
     const group = GroupFixture();
     MockApiClient.addMockResponse({

@@ -1,21 +1,17 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
-import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
-import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -75,68 +71,46 @@ export function OrganizationSampling() {
             locationChange.nextLocation.pathname && formState.hasChanged
         }
       />
-      <form onSubmit={event => event.preventDefault()} noValidate>
-        <Panel>
-          <PanelHeader>{t('General Settings')}</PanelHeader>
-          <PanelBody>
-            <SamplingModeField />
-            <OrganizationSampleRateField />
-          </PanelBody>
-        </Panel>
-        <FormActions>
-          <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
-            {t('Reset')}
-          </Button>
-          <Tooltip
-            disabled={hasAccess}
-            title={t('You do not have permission to update these settings.')}
-          >
-            <Button
-              priority="primary"
-              disabled={
-                !hasAccess || !formState.isValid || !formState.hasChanged || isPending
-              }
-              onClick={handleSubmit}
-            >
-              {t('Save changes')}
-            </Button>
-          </Tooltip>
-        </FormActions>
-
-        <HeadingRow>
-          <h4>{t('Preview of Dynamic Sampling in Action')}</h4>
-          <ProjectionPeriodControl period={period} onChange={setPeriod} />
-        </HeadingRow>
-        <p>
-          {t(
-            'This table is a preview of how your projects will be affected by your chosen target sample rate. Estimated rates are based on recent span volume and change accordingly.'
-          )}
-        </p>
-        {sampleCountsQuery.isError ? (
-          <LoadingError onRetry={sampleCountsQuery.refetch} />
-        ) : (
-          <ProjectsPreviewTable
-            sampleCounts={sampleCountsQuery.data}
-            isLoading={sampleCountsQuery.isPending}
-            period={period}
-          />
-        )}
-        <SubTextParagraph>
-          {t('Inactive projects are not listed and will be sampled at 100% initially.')}
-        </SubTextParagraph>
-      </form>
+      <HeadingRow>
+        <ProjectionPeriodControl period={period} onChange={setPeriod} />
+        <SamplingModeSwitch />
+      </HeadingRow>
+      {sampleCountsQuery.isError ? (
+        <LoadingError onRetry={sampleCountsQuery.refetch} />
+      ) : (
+        <ProjectsPreviewTable
+          sampleCounts={sampleCountsQuery.data}
+          isLoading={sampleCountsQuery.isPending}
+          period={period}
+          actions={
+            <Fragment>
+              <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
+                {t('Reset')}
+              </Button>
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to update these settings.')}
+              >
+                <Button
+                  priority="primary"
+                  disabled={
+                    !hasAccess || !formState.isValid || !formState.hasChanged || isPending
+                  }
+                  onClick={handleSubmit}
+                >
+                  {t('Save changes')}
+                </Button>
+              </Tooltip>
+            </Fragment>
+          }
+        />
+      )}
+      <SubTextParagraph>
+        {t('Inactive projects are not listed and will be sampled at 100% initially.')}
+      </SubTextParagraph>
     </FormProvider>
   );
 }
-
-const FormActions = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: ${space(1)};
-  justify-content: flex-end;
-  padding-bottom: ${space(4)};
-`;
-
 const HeadingRow = styled('div')`
   display: flex;
   align-items: center;

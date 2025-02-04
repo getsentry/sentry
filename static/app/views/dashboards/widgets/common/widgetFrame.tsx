@@ -60,6 +60,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   return (
     <WidgetLayout
       ariaLabel="Widget panel"
+      forceShowActions={props.forceDescriptionTooltip}
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
@@ -82,7 +83,11 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <WidgetDescription title={props.title} description={props.description} />
+            <WidgetDescription
+              title={props.title}
+              description={props.description}
+              forceDescriptionTooltip={props.forceDescriptionTooltip}
+            />
           )}
 
           {shouldShowActions && (

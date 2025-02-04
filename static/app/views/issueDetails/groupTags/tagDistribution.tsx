@@ -1,3 +1,4 @@
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -10,10 +11,14 @@ import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
-export function TagDistribution({tag}: {tag: GroupTag}) {
+export function TagDistribution({tag, groupId}: {groupId: string; tag: GroupTag}) {
   const location = useLocation();
+  const [prefetchEnabled, setPrefetchEnabled] = useState(false);
+  const hoverTimeoutRef = useRef<number | undefined>();
 
+  usePrefetchTagValues(tag.key, groupId, prefetchEnabled);
   const visibleTagValues = tag.topValues.slice(0, 3);
 
   const totalVisible = visibleTagValues.reduce((sum, value) => sum + value.count, 0);
@@ -25,6 +30,29 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   const otherDisplayPercentage =
     otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
 
+  // We only want to prefetch if the user hovers over the tag for 1 second
+  // This is to prevent every tag from prefetch when a user scrolls
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setPrefetchEnabled(true);
+    }, 1000);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      window.clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = undefined;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        window.clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div>
       <TagPanel
@@ -32,6 +60,8 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
           pathname: `${location.pathname}${tag.key}/`,
           query: location.query,
         }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <TagHeader>
           <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>

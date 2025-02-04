@@ -61,7 +61,7 @@ class QueryParser:
 
     def generate_queries(
         self,
-    ) -> Generator[tuple[QueryExpression, QueryOrder | None, int | None], None, None]:
+    ) -> Generator[tuple[QueryExpression, QueryOrder | None, int | None]]:
         """
         Generates multiple queries given a base query.
 

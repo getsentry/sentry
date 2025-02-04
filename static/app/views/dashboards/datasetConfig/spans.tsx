@@ -2,10 +2,12 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -30,7 +32,6 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
@@ -40,6 +41,8 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -74,7 +77,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
 }, {});
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -275,6 +278,7 @@ function getSeriesRequest(
   );
 
   requestData.useRpc = true;
+  requestData.interval = getInterval(pageFilters.datetime, 'spans');
 
   return doEventsRequest<true>(api, requestData);
 }

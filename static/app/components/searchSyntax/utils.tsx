@@ -307,16 +307,18 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `(${token.inner.map(innerToken => stringifyToken(innerToken)).join(' ')})`;
     case Token.LOGIC_BOOLEAN:
       return token.value;
-    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_TEXT_LIST: {
       const textListItems = token.items
         .map(item => item.value?.text ?? '')
         .filter(text => text.length > 0);
       return `[${textListItems.join(',')}]`;
-    case Token.VALUE_NUMBER_LIST:
+    }
+    case Token.VALUE_NUMBER_LIST: {
       const numberListItems = token.items
         .map(item => (item.value ? item.value.value + (item.value.unit ?? '') : ''))
         .filter(str => str.length > 0);
       return `[${numberListItems.join(',')}]`;
+    }
     case Token.KEY_SIMPLE:
       return token.value;
     case Token.KEY_AGGREGATE:

@@ -92,10 +92,6 @@ def process_relocation_reply_with_export(payload: Any, **kwds):
             "Could not open SaaS -> SaaS export in export-side relocation bucket."
         )
 
-    # TODO(mark) Remove this once stuck outboxes have cleared up.
-    if slug == "demo":
-        return
-
     with encrypted_bytes:
         control_relocation_export_service.reply_with_export(
             relocation_uuid=uuid,

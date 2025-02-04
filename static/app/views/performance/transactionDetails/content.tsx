@@ -100,7 +100,7 @@ function EventDetailsContent(props: Props) {
       query: appendTagCondition(query, formatTagKey(tag.key), tag.value),
     };
     return transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: event.title,
       projectID: event.projectID,
       query: newQuery,

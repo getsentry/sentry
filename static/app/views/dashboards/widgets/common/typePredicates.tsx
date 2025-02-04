@@ -9,3 +9,8 @@ export function isASizeUnit(unit?: string): unit is SizeUnit {
 export function isARateUnit(unit?: string): unit is RateUnit {
   return Object.values(RateUnit).includes(unit as unknown as RateUnit);
 }
+export function isAUnitConvertibleFieldType(
+  fieldType?: string
+): fieldType is 'duration' | 'size' | 'rate' {
+  return ['duration', 'size', 'rate'].includes(fieldType as unknown as string);
+}

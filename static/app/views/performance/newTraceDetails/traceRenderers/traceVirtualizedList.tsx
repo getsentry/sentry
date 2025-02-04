@@ -242,7 +242,7 @@ export const useVirtualizedList = (
       overscroll: 5,
       rowHeight: 24,
       scrollHeight: scrollHeightRef.current,
-      styleCache: styleCache.current!,
+      styleCache: styleCache.current,
       renderCache: renderCache.current,
       render: renderRef.current,
       manager: managerRef.current,
@@ -254,7 +254,7 @@ export const useVirtualizedList = (
   return {
     virtualized: items.virtualized,
     rendered: items.rendered,
-    list: list.current!,
+    list: list.current,
   };
 };
 

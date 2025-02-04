@@ -5,7 +5,7 @@ export const ALLOWED_WILDCARD_FIELDS = [
   'span.domain',
   'span.status_code',
 ];
-export const EMPTY_OPTION_VALUE = '(empty)' as const;
+export const EMPTY_OPTION_VALUE = '(empty)';
 
 export enum TokenType {
   OPERATOR = 0,

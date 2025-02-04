@@ -1,6 +1,5 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
@@ -71,11 +70,6 @@ export const MetricsLayout = memo(() => {
 
   const addCustomMetric = useCallback(
     (referrer: 'header' | 'onboarding_panel' | 'banner') => {
-      Sentry.metrics.increment('ddm.add_custom_metric', 1, {
-        tags: {
-          referrer,
-        },
-      });
       trackAnalytics('ddm.open-onboarding', {
         organization,
         source: referrer,
@@ -86,7 +80,6 @@ export const MetricsLayout = memo(() => {
   );
 
   const viewPerformanceMetrics = useCallback(() => {
-    Sentry.metrics.increment('ddm.view_performance_metrics', 1);
     trackAnalytics('ddm.view_performance_metrics', {
       organization,
     });

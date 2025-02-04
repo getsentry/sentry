@@ -717,6 +717,7 @@ const AggregateFlamegraphFunctionBreakdownContainer = styled('div')`
   flex-direction: column;
   width: 360px;
   border-left: 1px solid ${p => p.theme.border};
+  overflow: scroll;
 `;
 const AggregateFlamegraphFunctionBreakdownHeaderRow = styled('div')<{
   fontSize?: string;

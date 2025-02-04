@@ -59,13 +59,7 @@ export function useDifferentialFlamegraphModel(
       return null;
     }
 
-    return importProfile(
-      props.after.data,
-      '',
-      null,
-      'flamegraph',
-      props.frameFilter
-    ) as ProfileGroup;
+    return importProfile(props.after.data, '', null, 'flamegraph', props.frameFilter);
   }, [props.after.data, props.frameFilter]);
 
   const afterFlamegraph = useMemo(() => {

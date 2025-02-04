@@ -19,6 +19,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as dashboardActions from 'sentry/actionCreators/dashboards';
+import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -36,6 +37,7 @@ import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/u
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('Dashboards > Detail', function () {
   const organization = OrganizationFixture({
@@ -2410,6 +2412,9 @@ describe('Dashboards > Detail', function () {
             widgets: [expect.objectContaining({title: 'Totally new widget'})],
           })
         );
+        await waitFor(() => {
+          expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
+        });
       });
     });
 

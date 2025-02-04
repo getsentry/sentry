@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
-from typing import TypedDict
+from typing import TypedDict, TypeIs
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -11,7 +11,6 @@ from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from typing_extensions import TypeIs
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner

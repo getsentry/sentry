@@ -1,10 +1,9 @@
 import pytest
 import responses
-from jsonschema import ValidationError
 
-from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -61,21 +60,37 @@ class TestSelectRequester(TestCase):
     @responses.activate
     def test_invalid_response_missing_label(self):
         # missing 'label'
+        url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
+        uri = "/get-issues"
+
         invalid_format = {"value": "12345"}
         responses.add(
             method=responses.GET,
-            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            url=url,
             json=invalid_format,
             status=200,
             content_type="application/json",
         )
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
-                uri="/get-issues",
+                uri=uri,
             ).run()
+
+        assert (
+            exception_info.value.message
+            == f"Invalid response format for Select FormField in {self.sentry_app.slug} from uri: {uri}"
+        )
+        assert exception_info.value.webhook_context == {
+            "error_type": "select-requester.invalid-integrator-response",
+            "response": invalid_format,
+            "sentry_app_slug": self.sentry_app.slug,
+            "install_uuid": self.install.uuid,
+            "project_slug": self.project.slug,
+            "url": url,
+        }
 
     @responses.activate
     def test_invalid_response_missing_value(self):
@@ -91,12 +106,21 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
                 uri="/get-issues",
             ).run()
+
+        assert (
+            exception_info.value.message
+            == "Missing `value` or `label` in option data for Select FormField"
+        )
+        assert exception_info.value.webhook_context == {
+            "error_type": "select-requester.missing-fields",
+            "response": invalid_format,
+        }
 
     @responses.activate
     def test_500_response(self):
@@ -107,7 +131,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(APIError):
+        with pytest.raises(SentryAppIntegratorError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -123,63 +147,28 @@ class TestSelectRequester(TestCase):
 
     @responses.activate
     def test_api_error_message(self):
+        url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         responses.add(
             method=responses.GET,
-            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            url=url,
             body="Something failed",
             status=500,
         )
 
-        with pytest.raises(APIError) as exception_info:
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
                 uri="/get-issues",
             ).run()
         assert (
-            str(exception_info.value)
-            == f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+            exception_info.value.message
+            == f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}"
         )
-
-    @responses.activate
-    def test_validation_error_message_validator(self):
-        uri = "/get-issues"
-
-        responses.add(
-            method=responses.GET,
-            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
-            json={},
-            status=200,
-        )
-
-        with pytest.raises(ValidationError) as exception_info:
-            SelectRequester(
-                install=self.install,
-                project_slug=self.project.slug,
-                uri=uri,
-            ).run()
-
-        assert (
-            str(exception_info.value)
-            == f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {uri}"
-        )
-
-    @responses.activate
-    def test_validation_error_message_missing_field(self):
-        responses.add(
-            method=responses.GET,
-            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
-            json=[{"bruh": "bruhhhhh"}],
-            status=200,
-        )
-
-        with pytest.raises(ValidationError) as exception_info:
-            SelectRequester(
-                install=self.install,
-                project_slug=self.project.slug,
-                uri="/get-issues",
-            ).run()
-
-        assert (
-            str(exception_info.value) == "Missing `value` or `label` in option data for SelectField"
-        )
+        assert exception_info.value.webhook_context == {
+            "error_type": "select-requester.request-failed",
+            "sentry_app_slug": self.sentry_app.slug,
+            "install_uuid": self.install.uuid,
+            "project_slug": self.project.slug,
+            "url": url,
+        }

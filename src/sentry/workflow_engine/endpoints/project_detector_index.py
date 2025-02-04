@@ -114,7 +114,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         :param object data_source: Configuration for the data source
         :param array data_conditions: List of conditions to trigger the detector
         """
-        group_type = request.data.get("group_type")
+        group_type = request.data.get("groupType")
         if not group_type:
             raise ValidationError({"groupType": ["This field is required."]})
 

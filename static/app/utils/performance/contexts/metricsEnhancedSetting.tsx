@@ -52,8 +52,8 @@ export const METRIC_SETTING_PARAM = 'metricSetting';
 export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
 const storageKey = 'performance.metrics-enhanced-setting';
-export class MEPSetting {
-  static get(): MEPState | null {
+export const MEPSetting = {
+  get(): MEPState | null {
     const value = localStorage.getItem(storageKey);
     if (value) {
       if (!(value in MEPState)) {
@@ -64,12 +64,12 @@ export class MEPSetting {
       return MEPState[value];
     }
     return null;
-  }
+  },
 
-  static set(value: MEPState) {
+  set(value: MEPState) {
     localStorage.setItem(storageKey, value);
-  }
-}
+  },
+};
 
 export function canUseMetricsDevUI(organization: Organization) {
   return organization.features.includes('performance-use-metrics');

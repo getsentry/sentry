@@ -367,7 +367,7 @@ export default function TypographyStories() {
       </p>
       <hr />
       <h4>Lists</h4>
-      <h3>Unordered</h3>
+      <h5>Unordered</h5>
       <p>Use filled and hollow circles as bullets points:</p>
       <ExamplePanel>
         <ul>

@@ -5,14 +5,14 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.token_exchange.util import token_expiration
+from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT, token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry.token-exchange")
@@ -37,7 +37,7 @@ class Refresher:
 
                 self._record_analytics()
                 return self._create_new_token()
-            except APIUnauthorized:
+            except (SentryAppIntegratorError, SentryAppSentryError):
                 logger.info(
                     "refresher.context",
                     extra={
@@ -58,7 +58,22 @@ class Refresher:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if self.token.application != self.application:
-            raise APIUnauthorized("Token does not belong to the application")
+            assert self.token.application is not None, "Application must exist on ApiToken"
+            webhook_context = {
+                "client_id_installation_uuid": self.install.uuid,
+                "client_id": self.client_id,
+            }
+            try:
+                token_installation = ApiToken.objects.get(
+                    refresh_token=self.refresh_token
+                ).sentry_app_installation
+                webhook_context.update({"token_installation": token_installation.uuid})
+            except SentryAppInstallation.DoesNotExist:
+                pass
+
+            raise SentryAppIntegratorError(
+                message="Token does not belong to the application", webhook_context=webhook_context
+            )
 
     def _create_new_token(self) -> ApiToken:
         token = ApiToken.objects.create(
@@ -78,18 +93,39 @@ class Refresher:
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            raise APIUnauthorized("Token does not exist")
+            raise SentryAppIntegratorError(
+                message="Given refresh token does not exist",
+                status_code=401,
+                webhook_context={
+                    "installation_uuid": self.install.uuid,
+                },
+            )
 
     @cached_property
     def application(self) -> ApiApplication:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized("Application does not exist")
+            raise SentryAppIntegratorError(
+                message="Could not find matching Application for given client_id",
+                status_code=401,
+                webhook_context={
+                    "client_id": self.client_id,
+                    "installation_uuid": self.install.uuid,
+                },
+            )
 
     @property
     def sentry_app(self) -> SentryApp:
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized("Sentry App does not exist")
+            raise SentryAppSentryError(
+                message="Sentry App does not exist on attached Application",
+                status_code=401,
+                webhook_context={
+                    "application_id": self.application.id,
+                    "installation_uuid": self.install.uuid,
+                    "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
+                },
+            )

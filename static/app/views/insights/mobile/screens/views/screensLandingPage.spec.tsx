@@ -24,7 +24,7 @@ describe('Screens Landing Page', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/insights/mobile-screens',
+    pathname: '/organizations/org-slug/insights/mobile-vitals',
     query: {
       project: project.id,
     },
@@ -82,7 +82,7 @@ describe('Screens Landing Page', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/insights/mobile-screens',
+        pathname: '/organizations/org-slug/insights/mobile-vitals',
         query: {
           project: project.id,
         },
@@ -172,7 +172,7 @@ describe('Screens Landing Page', function () {
         {header: 'Avg. Frame Delay', value: '7'},
       ];
 
-      const topSection = screen.getByTestId('mobile-screens-top-metrics');
+      const topSection = screen.getByTestId('mobile-vitals-top-metrics');
 
       for (const card of cards) {
         expect(within(topSection).getByText(card.header)).toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('Screens Landing Page', function () {
     it('shows content if permission is there', async function () {
       organization.features = [MODULE_FEATURE, 'insights-entry-points'];
       render(<ScreensLandingPage />, {organization});
-      expect(await screen.findAllByText('Mobile Screens')).toHaveLength(2);
+      expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });
   });
 });

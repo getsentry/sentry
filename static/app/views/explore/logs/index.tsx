@@ -9,9 +9,8 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
 export default function LogsPage() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = limitMaxPickableDays(
-    organization!
-  );
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>

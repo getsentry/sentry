@@ -38,7 +38,7 @@ describe('flamegraphRendererWebGL', () => {
       const flamegraph = makeFlamegraph();
 
       const renderer = new FlamegraphRendererWebGL(
-        canvas as HTMLCanvasElement,
+        canvas,
         flamegraph,
         {
           ...theme,
@@ -78,11 +78,7 @@ describe('flamegraphRendererWebGL', () => {
 
     const flamegraph = makeFlamegraph();
 
-    const renderer = new FlamegraphRendererWebGL(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      theme
-    );
+    const renderer = new FlamegraphRendererWebGL(canvas, flamegraph, theme);
 
     // Helper rect for the only frame in our flamegraph
     const rect = new Rect(0, 0, 10, 1);
@@ -125,11 +121,7 @@ describe('flamegraphRendererWebGL', () => {
     const flamegraph = makeFlamegraph();
 
     // @ts-expect-error shaders are init from the constructor
-    const _renderer = new FlamegraphRendererWebGL(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      theme
-    );
+    const _renderer = new FlamegraphRendererWebGL(canvas, flamegraph, theme);
 
     expect(context.createShader).toHaveBeenCalledTimes(2);
     expect(context.getShaderParameter).toHaveBeenCalledTimes(2);
@@ -147,11 +139,7 @@ describe('flamegraphRendererWebGL', () => {
 
     const flamegraph = makeFlamegraph();
 
-    const renderer = new FlamegraphRendererWebGL(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      theme
-    );
+    const renderer = new FlamegraphRendererWebGL(canvas, flamegraph, theme);
 
     expect(renderer.getColorForFrame(flamegraph.frames[0]!)).toEqual([
       0.9625, 0.7125, 0.7125,
@@ -191,11 +179,7 @@ describe('flamegraphRendererWebGL', () => {
       [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}, {name: 'f4'}, {name: 'f5'}]
     );
 
-    const renderer = new FlamegraphRendererWebGL(
-      makeCanvasMock() as HTMLCanvasElement,
-      flamegraph,
-      theme
-    );
+    const renderer = new FlamegraphRendererWebGL(makeCanvasMock(), flamegraph, theme);
 
     expect(renderer.findHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
     expect(renderer.findHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
@@ -208,7 +192,7 @@ describe('flamegraphRendererWebGL', () => {
       const context = makeContextMock();
       const canvas = makeCanvasMock({
         getContext: jest.fn().mockReturnValue(context),
-      }) as HTMLCanvasElement;
+      });
 
       const flamegraph = makeFlamegraph(
         {
@@ -271,7 +255,7 @@ describe('flamegraphRendererWebGL', () => {
       const context = makeContextMock();
       const canvas = makeCanvasMock({
         getContext: jest.fn().mockReturnValue(context),
-      }) as HTMLCanvasElement;
+      });
 
       const flamegraph = makeFlamegraph(
         {

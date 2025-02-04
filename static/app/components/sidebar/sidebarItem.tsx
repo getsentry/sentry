@@ -312,6 +312,7 @@ function SidebarItem({
     </Tooltip>
   );
 }
+SidebarItem.displayName = 'SidebarItem';
 
 export function isItemActive(
   item: Pick<SidebarItemProps, 'to' | 'label'>,

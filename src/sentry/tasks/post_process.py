@@ -994,7 +994,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
+    from sentry.issues.auto_source_code_config.constants import SUPPORTED_LANGUAGES
     from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:

@@ -908,6 +908,33 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.thresholds).toBeUndefined();
     });
+
+    it('resets the legend alias when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.LINE,
+            legendAlias: ['test'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendAlias).toEqual(['test']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.legendAlias).toEqual([]);
+    });
   });
 
   describe('fields', () => {
@@ -1141,6 +1168,32 @@ describe('useWidgetBuilderState', () => {
       });
 
       // The y-axis takes priority
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+    });
+
+    it('ensures that default sort is not an equation', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['equation|count()+1', 'count()'],
+          },
+        })
+      );
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'browser.name', kind: FieldValueKind.FIELD}],
+        });
+      });
+
       expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
     });
   });

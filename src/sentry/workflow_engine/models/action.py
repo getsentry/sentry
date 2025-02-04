@@ -52,9 +52,6 @@ class Action(DefaultFieldsModel):
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
 
-    # TODO - finish removing this field
-    required = models.BooleanField(default=False, null=True)
-
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
     # This allows us to map the way we're saving the notification channels to the action.
     integration_id = HybridCloudForeignKey(

@@ -130,11 +130,11 @@ describe('QueryFilterBuilder', () => {
     expect(
       screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
-    expect(await screen.findByText('Add Filter')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByText('Add Filter'));
-    await userEvent.click(await screen.findByText('Add Filter'));
+    await userEvent.click(await screen.findByText('+ Add Filter'));
+    await userEvent.click(await screen.findByText('+ Add Filter'));
 
-    expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
   });
 });

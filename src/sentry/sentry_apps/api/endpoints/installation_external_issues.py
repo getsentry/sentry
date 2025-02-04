@@ -16,6 +16,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
+from sentry.sentry_apps.utils.errors import SentryAppError
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -40,7 +41,10 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
-            return Response(status=404)
+            raise SentryAppError(
+                message="Could not find the corresponding issue for the given issueId",
+                status_code=404,
+            )
 
         serializer = PlatformExternalIssueSerializer(data=request.data)
         if serializer.is_valid():

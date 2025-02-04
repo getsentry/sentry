@@ -11,7 +11,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
-from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    IntegrationError,
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -29,6 +33,10 @@ def raise_integration_form_error(*args, **kwargs):
 
 def raise_integration_error(*args, **kwargs):
     raise IntegrationError("The whole operation was invalid")
+
+
+def raise_integration_installation_configuration_error(*args, **kwargs):
+    raise IntegrationInstallationConfigurationError("Repository has no issue tracker.")
 
 
 class GroupIntegrationDetailsTest(APITestCase):
@@ -448,6 +456,32 @@ class GroupIntegrationDetailsTest(APITestCase):
 
             self.assert_metric_recorded(
                 mock_record_halt, IntegrationFormError, str({"foo": "Invalid foo provided"})
+            )
+
+    @mock.patch.object(ExampleIntegration, "create_issue")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    def test_post_raises_issue_creation_exception_with_integration_installation_configuration_error(
+        self, mock_record_failure, mock_record_halt, mock_create_issue
+    ):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
+
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            mock_create_issue.side_effect = raise_integration_installation_configuration_error
+
+            response = self.client.post(path, data={})
+            assert response.status_code == 400
+
+            self.assert_metric_recorded(
+                mock_record_halt,
+                IntegrationInstallationConfigurationError,
+                "Repository has no issue tracker.",
             )
 
     def test_post_feature_disabled(self):

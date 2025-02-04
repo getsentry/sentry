@@ -28,7 +28,7 @@ def shingle(n: int, iterator: Iterable[T]) -> list[tuple[T, ...]]:
     )
 
 
-def chunked(iterator: Iterable[T], size: int) -> Generator[list[T], None, None]:
+def chunked(iterator: Iterable[T], size: int) -> Generator[list[T]]:
     chunk = []
     for item in iterator:
         chunk.append(item)

@@ -7,16 +7,21 @@ import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 export interface WidgetLayoutProps {
   Actions?: React.ReactNode;
-  Caption?: React.ReactNode;
+  Footer?: React.ReactNode;
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
+  forceShowActions?: boolean;
   height?: number;
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
   return (
-    <Frame aria-label={props.ariaLabel} height={props.height}>
+    <Frame
+      aria-label={props.ariaLabel}
+      height={props.height}
+      forceShowActions={props.forceShowActions}
+    >
       <Header>
         {props.Title && <Fragment>{props.Title}</Fragment>}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
@@ -26,7 +31,7 @@ export function WidgetLayout(props: WidgetLayoutProps) {
         <VisualizationWrapper>{props.Visualization}</VisualizationWrapper>
       )}
 
-      {props.Caption && <CaptionWrapper>{props.Caption}</CaptionWrapper>}
+      {props.Footer && <FooterWrapper>{props.Footer}</FooterWrapper>}
     </Frame>
   );
 }
@@ -43,7 +48,7 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')<{height?: number}>`
+const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -66,12 +71,14 @@ const Frame = styled('div')<{height?: number}>`
     box-shadow: ${p => p.theme.dropShadowLight};
   }
 
-  &:not(:hover):not(:focus-within) {
+  ${p =>
+    !p.forceShowActions &&
+    `&:not(:hover):not(:focus-within) {
     ${TitleHoverItems} {
       opacity: 0;
-      ${p => p.theme.visuallyHidden}
+      ${p.theme.visuallyHidden}
     }
-  }
+  }`}
 `;
 
 const Header = styled('div')`
@@ -92,7 +99,7 @@ const VisualizationWrapper = styled('div')`
   padding: 0;
 `;
 
-const CaptionWrapper = styled('div')`
-  padding: ${space(0.5)} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+const FooterWrapper = styled('div')`
   margin: 0;
+  border-top: 1px solid ${p => p.theme.border};
 `;

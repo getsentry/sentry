@@ -4,6 +4,7 @@ from typing import TypeAlias
 
 import orjson
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -79,7 +80,7 @@ class ApiClient:
                 mock_request.superuser = Superuser(mock_request)
         else:
             mock_request.auth = auth
-            mock_request.user = user
+            mock_request.user = user or AnonymousUser()
             mock_request.is_sudo = lambda: is_sudo
             mock_request.session = {}
             mock_request.superuser = Superuser(mock_request)

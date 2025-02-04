@@ -149,6 +149,22 @@ export function platformToPerformanceType(
   return PlatformKey;
 }
 
+export function platformToDomainView(
+  projects: Array<Project | ReleaseProject>,
+  projectIds: readonly number[]
+): DomainView | undefined {
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  switch (performanceType) {
+    case ProjectPerformanceType.FRONTEND:
+      return 'frontend';
+    case ProjectPerformanceType.BACKEND:
+      return 'backend';
+    case ProjectPerformanceType.MOBILE:
+      return 'mobile';
+    default:
+      return undefined;
+  }
+}
 /**
  * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
  */

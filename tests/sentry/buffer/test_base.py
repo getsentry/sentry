@@ -4,8 +4,7 @@ from unittest import mock
 from django.utils import timezone
 from pytest import raises
 
-from sentry.buffer.base import Buffer
-from sentry.db import models
+from sentry.buffer.base import Buffer, BufferField
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -25,7 +24,7 @@ class BufferTest(TestCase):
     def test_incr_delays_task(self, process_incr):
         model = mock.Mock()
         columns = {"times_seen": 1}
-        filters: dict[str, models.Model | str | int] = {"id": 1}
+        filters: dict[str, BufferField] = {"id": 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
         process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)

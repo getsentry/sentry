@@ -8,6 +8,7 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -40,6 +41,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
+  isAllowedSelection: boolean;
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
@@ -64,6 +66,7 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
+  isAllowedSelection,
   query,
   timeseriesResult,
 }: ExploreChartsProps) {
@@ -74,6 +77,7 @@ export function ExploreCharts({
 
   const extrapolationMetaResults = useExtrapolationMeta({
     dataset,
+    isAllowedSelection,
     query,
   });
 
@@ -269,9 +273,11 @@ export function ExploreCharts({
 export function useExtrapolationMeta({
   dataset,
   query,
+  isAllowedSelection,
 }: {
   dataset: DiscoverDatasets;
   query: string;
+  isAllowedSelection?: boolean;
 }) {
   const {selection} = usePageFilters();
 
@@ -299,7 +305,9 @@ export function useExtrapolationMeta({
     eventView: extrapolationMetaEventView,
     initialData: [],
     referrer: 'api.explore.spans-extrapolation-meta',
-    enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    enabled:
+      (defined(isAllowedSelection) ? isAllowedSelection : true) &&
+      dataset === DiscoverDatasets.SPANS_EAP_RPC,
     trackResponseAnalytics: false,
   });
 }

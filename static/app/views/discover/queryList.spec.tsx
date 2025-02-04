@@ -257,7 +257,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
     expect(withinCard.getByText('Saved query #1')).toBeInTheDocument();
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
@@ -339,7 +339,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Delete Query'));
@@ -374,7 +374,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
@@ -405,7 +405,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card!);
+    const withinCard = within(card);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 

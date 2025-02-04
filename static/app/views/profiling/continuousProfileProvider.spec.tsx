@@ -1,5 +1,5 @@
+import {uuid4} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import {uuid4} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';

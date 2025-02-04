@@ -7,7 +7,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
-  ModuleName.MOBILE_SCREENS,
+  ModuleName.MOBILE_VITALS,
   ModuleName.CRONS,
   ModuleName.UPTIME,
 ] as const;

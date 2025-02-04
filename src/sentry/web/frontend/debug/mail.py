@@ -509,10 +509,7 @@ def digest(request):
         group = next(group_generator)
         groups[group.id] = group
 
-        offset = timedelta(seconds=0)
         for _ in range(random.randint(1, 10)):
-            offset += timedelta(seconds=random.random() * 120)
-
             data_dct = dict(load_data("python"))
             data_dct["message"] = group.message
             data_dct.pop("logentry", None)

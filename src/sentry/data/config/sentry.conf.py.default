@@ -4,8 +4,6 @@ from sentry.conf.server import *
 
 import os.path
 
-CONF_ROOT = os.path.dirname(__file__)
-
 DATABASES = {
     'default': {
         'ENGINE': 'sentry.db.postgres',

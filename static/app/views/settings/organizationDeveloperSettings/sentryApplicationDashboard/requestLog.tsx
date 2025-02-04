@@ -54,7 +54,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   );
   if (issueLinkComponent) {
     issueLinkEvents = ['external_issue.created', 'external_issue.linked'];
-    if (componentHasSelectUri(issueLinkComponent as SentryAppSchemaIssueLink)) {
+    if (componentHasSelectUri(issueLinkComponent)) {
       issueLinkEvents.push('select_options.requested');
     }
   }

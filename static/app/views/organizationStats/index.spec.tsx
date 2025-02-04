@@ -39,7 +39,7 @@ describe('OrganizationStats', function () {
     ...router,
     selection: defaultSelection,
     route: {},
-    params: {orgId: organization.slug as string},
+    params: {orgId: organization.slug},
     routeParams: {},
   };
 

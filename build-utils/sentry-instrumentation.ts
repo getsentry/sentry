@@ -49,8 +49,8 @@ class SentryInstrumentation {
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
       integrations: [nodeProfilingIntegration()],
-      profilesSampler: ({transactionContext}) => {
-        if (transactionContext.name === INCREMENTAL_BUILD_TXN) {
+      profilesSampler: samplingContext => {
+        if (samplingContext.name === INCREMENTAL_BUILD_TXN) {
           return 0;
         }
         return 1;

@@ -13,6 +13,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface GroupRelease {
   firstRelease: Release;
@@ -32,10 +33,18 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
       gcTime: 30000,
     }
   );
+  const environments = useEnvironmentsFromUrl();
 
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
     ? group.openPeriods?.[0]?.lastChecked ?? group.lastSeen
     : group.lastSeen;
+
+  const shortEnvironmentLabel =
+    environments.length > 1
+      ? t('selected environments')
+      : environments.length === 1
+        ? environments[0]
+        : undefined;
 
   const dateGlobal = issueTypeConfig.useOpenPeriodChecks
     ? lastSeen
@@ -46,34 +55,28 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
       <div>
         <Flex gap={space(0.5)}>
           <Title>{t('Last seen')}</Title>
-          {group.lastSeen ? (
-            <SeenInfo
-              date={lastSeen}
-              dateGlobal={dateGlobal}
-              organization={organization}
-              projectId={project.id}
-              projectSlug={project.slug}
-            />
-          ) : (
-            t('N/A')
-          )}
+          <SeenInfo
+            date={lastSeen}
+            dateGlobal={dateGlobal}
+            organization={organization}
+            projectId={project.id}
+            projectSlug={project.slug}
+            environment={shortEnvironmentLabel}
+          />
         </Flex>
         <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
       </div>
       <div>
         <Flex gap={space(0.5)}>
           <Title>{t('First seen')}</Title>
-          {group.firstSeen ? (
-            <SeenInfo
-              date={group.firstSeen}
-              dateGlobal={allEnvironments?.firstSeen ?? group.firstSeen}
-              organization={organization}
-              projectId={project.id}
-              projectSlug={project.slug}
-            />
-          ) : (
-            t('N/A')
-          )}
+          <SeenInfo
+            date={group.firstSeen}
+            dateGlobal={allEnvironments?.firstSeen ?? group.firstSeen}
+            organization={organization}
+            projectId={project.id}
+            projectSlug={project.slug}
+            environment={shortEnvironmentLabel}
+          />
         </Flex>
         <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
       </div>

@@ -75,6 +75,7 @@ describe('Uptime Overview', function () {
           'insights-initial-modules',
           'insights-entry-points',
           'insights-uptime',
+          'uptime',
         ],
       },
     });

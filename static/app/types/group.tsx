@@ -102,6 +102,9 @@ export enum IssueType {
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!

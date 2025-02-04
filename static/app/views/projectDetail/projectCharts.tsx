@@ -314,17 +314,8 @@ class ProjectCharts extends Component<Props, State> {
   };
 
   render() {
-    const {
-      api,
-      router,
-      location,
-      organization,
-      theme,
-      projectId,
-      hasSessions,
-      query,
-      project,
-    } = this.props;
+    const {api, router, organization, theme, projectId, hasSessions, query, project} =
+      this.props;
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
@@ -411,9 +402,7 @@ class ProjectCharts extends Component<Props, State> {
                   />
                 ) : (
                   <ProjectErrorsBasicChart
-                    organization={organization}
                     projectId={projectId}
-                    location={location}
                     onTotalValuesChange={this.handleTotalValuesChange}
                   />
                 ))}

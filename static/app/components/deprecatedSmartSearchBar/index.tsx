@@ -1569,7 +1569,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   showDefaultSearches = async () => {
     const {query} = this.state;
-    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
+    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems;
 
     // Always clear searchTerm on showing default state.
     this.setState({searchTerm: ''});

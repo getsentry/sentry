@@ -172,7 +172,7 @@ function ProfilingMeasurements({
     return null;
   }
 
-  const data = profileData.measurements[measurementType]!;
+  const data = profileData.measurements[measurementType];
   const transactionDurationInMs = transactionDuration * MS_PER_S;
 
   return (

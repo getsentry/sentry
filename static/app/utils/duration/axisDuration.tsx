@@ -34,8 +34,9 @@ export function axisDuration(milliseconds: number, durationUnit?: number): strin
       const label = (milliseconds / SECOND).toFixed(0);
       return t('%ss', label);
     }
-    default:
+    default: {
       const label = milliseconds.toFixed(0);
       return t('%sms', label);
+    }
   }
 }

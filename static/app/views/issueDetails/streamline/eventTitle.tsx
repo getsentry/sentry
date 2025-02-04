@@ -141,7 +141,8 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                   {getShortEventId(event.id)}
                 </EventIdDropdownButton>
               )}
-              position="bottom"
+              position="bottom-start"
+              offset={4}
               size="xs"
               items={[
                 {

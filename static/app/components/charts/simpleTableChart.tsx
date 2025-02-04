@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -39,6 +40,7 @@ type Props = {
   ) => ReturnType<typeof getFieldRenderer> | null;
   loader?: PanelTableProps['loader'];
   metadata?: TableData['meta'];
+  minColumnWidth?: string;
   stickyHeaders?: boolean;
   topResultsIndicators?: number;
 };
@@ -58,6 +60,7 @@ function SimpleTableChart({
   location,
   fieldAliases,
   loader,
+  minColumnWidth,
 }: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -111,6 +114,12 @@ function SimpleTableChart({
     <Fragment>
       {title && <h4>{title}</h4>}
       <StyledPanelTable
+        css={css`
+          grid-template-columns: repeat(
+            ${columns.length},
+            ${minColumnWidth ? `minmax(${minColumnWidth}, auto)` : 'auto'}
+          );
+        `}
         className={className}
         isLoading={loading}
         loader={loader}

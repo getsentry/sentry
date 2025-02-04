@@ -71,6 +71,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
+import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -401,6 +402,9 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
+        {trace_id ? (
+          <TraceLevelOpsBreakdown traceSlug={trace_id} isTraceLoading={isLoading} />
+        ) : null}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -556,7 +560,7 @@ function RenderTraceRow(props: {
 
   const registerSpanArrowRef = useCallback(
     (ref: any) => {
-      props.manager.registerArrowRef(ref, node.space!, virtualized_index);
+      props.manager.registerArrowRef(ref, node.space, virtualized_index);
     },
     [props.manager, node, virtualized_index]
   );
@@ -581,14 +585,14 @@ function RenderTraceRow(props: {
         organization: props.organization,
       });
       e.stopPropagation();
-      props.manager.onZoomIntoSpace(node.space!);
+      props.manager.onZoomIntoSpace(node.space);
     },
     [node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
     (_e: React.MouseEvent) => {
-      props.manager.onBringRowIntoView(node.space!);
+      props.manager.onBringRowIntoView(node.space);
     },
     [node.space, props.manager]
   );
@@ -840,6 +844,9 @@ const TraceStylingWrapper = styled('div')`
     overflow-x: auto;
     overscroll-behavior: none;
     will-change: transform;
+    z-index: 10;
+    display: flex;
+    align-items: center;
 
     .TraceScrollbarScroller {
       height: 1px;

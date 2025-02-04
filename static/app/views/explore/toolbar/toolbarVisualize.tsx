@@ -202,18 +202,18 @@ export function ToolbarVisualize() {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
-                  <ColumnCompactSelect
-                    searchable
-                    options={fieldOptions}
-                    value={parsedVisualize.func.arguments[0]}
-                    onChange={newField => setChartField(group, index, newField)}
-                  />
                   <AggregateCompactSelect
                     options={aggregateOptions}
                     value={parsedVisualize.func.name}
                     onChange={newAggregate =>
                       setChartAggregate(group, index, newAggregate)
                     }
+                  />
+                  <ColumnCompactSelect
+                    searchable
+                    options={fieldOptions}
+                    value={parsedVisualize.func.arguments[0]}
+                    onChange={newField => setChartField(group, index, newField)}
                   />
                   <Button
                     borderless

@@ -327,6 +327,16 @@ class DetectorParams:
     )
 
 
+class WorkflowParams:
+    WORKFLOW_ID = OpenApiParameter(
+        name="workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+    )
+
+
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
@@ -344,6 +354,17 @@ class MetricAlertParams:
         required=True,
         type=int,
         description="The ID of the rule you'd like to query.",
+    )
+
+
+class SentryAppParams:
+    SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
+        name="sentry_app_id_or_slug",
+        location="path",
+        required=True,
+        many=False,
+        type=str,
+        description="The ID or slug of the custom integration.",
     )
 
 
