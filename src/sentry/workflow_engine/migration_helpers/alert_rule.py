@@ -521,18 +521,20 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[
 def dual_update_migrated_alert_rule_trigger(
     alert_rule_trigger: AlertRuleTrigger, updated_fields: dict[str, Any]
 ) -> tuple[DataCondition, DataCondition] | None:
+    # NOTE: update the trigger *AFTER* calling this helper so that we can get the right data conditions
     priority = PRIORITY_MAP[alert_rule_trigger.label]
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
 
-    # Fields have already been validated in logic.py, so we can update and not validate here
+    # Fields have already been validated in logic.py, so we can update without validating here
     updated_detector_trigger_fields: dict[str, Any] = {}
     updated_action_filter_fields: dict[str, Any] = {}
     if "label" in updated_fields:
-        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP[alert_rule_trigger.label]
-        updated_action_filter_fields["comparison"] = PRIORITY_MAP[alert_rule_trigger.label]
+        label = updated_fields["label"]
+        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP[label]
+        updated_action_filter_fields["comparison"] = PRIORITY_MAP[label]
     if "alert_threshold" in updated_fields:
         updated_detector_trigger_fields["comparison"] = updated_fields["alert_threshold"]
 
@@ -546,7 +548,7 @@ def dual_update_migrated_alert_rule_trigger(
 def dual_update_migrated_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction, updated_fields: dict[str, Any]
 ) -> Action | None:
-    # update the trigger before calling this method so that we can reuse the get_action_type method
+    # NOTE: update the action *BEFORE* calling this method so that we can reuse the get_action_type method
     alert_rule_trigger = trigger_action.alert_rule_trigger
     # Check that we dual wrote this action
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
