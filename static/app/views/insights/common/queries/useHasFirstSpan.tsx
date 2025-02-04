@@ -10,6 +10,7 @@ const excludedModuleNames = [
   ModuleName.MOBILE_VITALS,
   ModuleName.CRONS,
   ModuleName.UPTIME,
+  ModuleName.ERRORS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
