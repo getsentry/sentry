@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Self
 
 from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_user_group_model
@@ -17,12 +16,8 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
-    @classmethod
-    def base_handler(cls) -> type[Self]:
-        return cls
-
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -61,7 +56,9 @@ class EventUniqueUserFrequencyCountHandler(
     BaseEventFrequencyCountHandler,
     DataConditionHandler[WorkflowJob],
 ):
-    pass
+    @classmethod
+    def base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
+        return EventUniqueUserFrequencyConditionHandler
 
 
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
@@ -70,4 +67,6 @@ class EventUniqueUserFrequencyPercentHandler(
     BaseEventFrequencyPercentHandler,
     DataConditionHandler[WorkflowJob],
 ):
-    pass
+    @classmethod
+    def base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
+        return EventUniqueUserFrequencyConditionHandler

@@ -11,7 +11,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
@@ -368,7 +368,11 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         assert result[different_query] == {group3.id}
 
 
+@freeze_time(FROZEN_TIME)
 class TestGetSnubaResults(BaseWorkflowTest):
+    def tearDown(self):
+        super().tearDown()
+
     def create_events(self, comparison_type: ComparisonType) -> Event:
         # Create current events for the first query
         event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
@@ -449,21 +453,15 @@ class TestGetSnubaResults(BaseWorkflowTest):
         """
         count_dc = self.create_event_frequency_condition()
         percent_dc = self.create_event_frequency_condition(type=Condition.EVENT_FREQUENCY_PERCENT)
-        condition_groups, group_id, unique_queries = self.create_condition_groups(
+        condition_groups, group_id, all_queries = self.create_condition_groups(
             [count_dc, percent_dc]
         )
 
         results = get_condition_group_results(condition_groups)
 
-        count_query, present_percent_query, offset_percent_query = unique_queries
+        count_query, present_percent_query, offset_percent_query = all_queries
         # The count query and first percent query should be identical
-        count_information = asdict(count_query)
-        del count_information["handler"]
-
-        present_percent_information = asdict(present_percent_query)
-        del present_percent_information["handler"]
-
-        assert count_information == present_percent_information
+        assert count_query == present_percent_query
 
         # We should only query twice b/c the count query and first percent query
         # share a single scan.

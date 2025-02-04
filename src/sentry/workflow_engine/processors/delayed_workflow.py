@@ -40,7 +40,7 @@ class UniqueConditionQuery:
     same condition class can share the single query.
     """
 
-    handler: BaseEventFrequencyConditionHandler
+    handler: type[BaseEventFrequencyConditionHandler]
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None

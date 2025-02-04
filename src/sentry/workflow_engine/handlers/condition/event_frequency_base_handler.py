@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Literal, Self, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict
 
 from django.db.models import QuerySet
 
@@ -32,12 +32,8 @@ class _QSTypedDict(TypedDict):
 class BaseEventFrequencyConditionHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
 
-    def __call__(self) -> None:
-        pass
-
     @classmethod
-    @abstractmethod
-    def base_handler(cls) -> type[Self]:
+    def base_handler(cls) -> type["BaseEventFrequencyConditionHandler"]:
         # frequency and percent conditions can share the same base handler to query Snuba
         raise NotImplementedError
 
@@ -69,7 +65,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         model: TSDBModel,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: int | None,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -93,7 +89,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         organization_id: int,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: int | None,
         referrer_suffix: str,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -142,7 +138,7 @@ class BaseEventFrequencyConditionHandler(ABC):
 
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -154,7 +150,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         self,
         duration: timedelta,
         group_ids: set[int],
-        environment_id: int,
+        environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
     ) -> dict[int, int]:
