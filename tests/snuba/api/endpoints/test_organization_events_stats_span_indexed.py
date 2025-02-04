@@ -746,9 +746,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         for expected, actual in zip(event_counts, confidence[0:6]):
             if expected != 0:
-                assert actual[1][0]["count"] == "low"
+                assert actual["count()"] == "low"
             else:
-                assert actual[1][0]["count"] is None
+                assert actual["count()"] is None
 
     def test_confidence_is_set(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -810,9 +810,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert len(confidence) == len(event_counts)
             for count, row in zip(event_counts, confidence):
                 if count == 0:
-                    assert row[1][0]["count"] is None, y_axis
+                    assert row[y_axis] is None, y_axis
                 else:
-                    assert row[1][0]["count"] in {"low", "high"}, y_axis
+                    assert row[y_axis] in {"low", "high"}, y_axis
 
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]

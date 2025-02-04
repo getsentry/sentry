@@ -1644,6 +1644,9 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         assert response.data["meta"] == {
+            "accuracy": {
+                "confidence": [{}],
+            },
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {
