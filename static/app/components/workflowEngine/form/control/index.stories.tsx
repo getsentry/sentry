@@ -22,21 +22,7 @@ export default storyBook('Form Controls', story => {
             title="Prioritize"
             description="Update issue priority when the following thresholds are met:"
           >
-            <PriorityControl name="priority" limit={3} />
-          </FormSection>
-
-          <FormSection
-            title="Prioritize"
-            description="Update issue priority when the following thresholds are met:"
-          >
-            <PriorityControl name="priority" limit={2} />
-          </FormSection>
-
-          <FormSection
-            title="Prioritize"
-            description="Update issue priority when the following thresholds are met:"
-          >
-            <PriorityControl name="priority" limit={1} />
+            <PriorityControl name="priority" />
           </FormSection>
 
           <FormSection
