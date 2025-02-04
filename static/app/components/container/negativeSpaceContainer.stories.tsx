@@ -7,7 +7,7 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(NegativeSpaceContainer, story => {
+export default storyBook('NegativeSpaceContainer', story => {
   story('Empty', () => (
     <Fragment>
       <p>
