@@ -31,7 +31,7 @@ const stats: readonly TimeseriesValue[] = [
   [1715637600, 82],
 ];
 
-export default storyBook(GroupStatusChart, story => {
+export default storyBook('GroupStatusChart', story => {
   story('Default', () => {
     return (
       <GraphContainer>
