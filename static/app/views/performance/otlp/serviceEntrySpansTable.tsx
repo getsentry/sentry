@@ -9,12 +9,15 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, type EAPSpanResponse} from 'sentry/views/insights/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import useProjects from 'sentry/utils/useProjects';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -93,6 +96,9 @@ type Props = {
 export function ServiceEntrySpansTable({eventView}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const {projects} = useProjects();
+
+  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
   const {
     data: tableData,
@@ -147,7 +153,7 @@ export function ServiceEntrySpansTable({eventView}: Props) {
             column,
           }),
         renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, meta, location, organization),
+          renderBodyCell(column, row, meta, projectSlug, location, organization),
       }}
     />
   );
@@ -157,9 +163,25 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
+  projectSlug: string | undefined,
   location: Location,
   organization: Organization
 ) {
+  if (column.key === 'span_id') {
+    return (
+      <SpanIdCell
+        moduleName={ModuleName.OTHER}
+        projectSlug={projectSlug ?? ''}
+        traceId={row.trace}
+        timestamp={row.timestamp}
+        transactionId={row['span_id']}
+        spanId={row['span_id']}
+        source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
+        location={location}
+      />
+    );
+  }
+
   if (!meta || !meta?.fields) {
     return row[column.key];
   }
