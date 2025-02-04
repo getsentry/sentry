@@ -166,23 +166,24 @@ def test_add_extra_buckets_for_epoch_cutoff():
             (timestamp, {"failure": i % 3, "success": (3 - i % 3), "missed_window": 0})
         )
 
-    formatted_response = {"subscription1": data_points}
+    subscription_id = 1234
+    formatted_response = {subscription_id: data_points}
 
     result = add_extra_buckets_for_epoch_cutoff(
         formatted_response, epoch_cutoff, rollup, start, end
     )
 
     # Should have 24 buckets total (24 hours worth)
-    assert len(result["subscription1"]) == 24
+    assert len(result[subscription_id]) == 24
 
     # First bucket should be at start time
-    assert result["subscription1"][0][0] == int(start.timestamp())
+    assert result[subscription_id][0][0] == int(start.timestamp())
 
     # Last bucket should be the original last bucket
-    assert result["subscription1"][-1] == formatted_response["subscription1"][-1]
+    assert result[subscription_id][-1] == formatted_response[subscription_id][-1]
 
     # Added buckets should have zero counts
-    for bucket in result["subscription1"][:12]:
+    for bucket in result[subscription_id][:12]:
         assert bucket[1] == {"failure": 0, "success": 0, "missed_window": 0}
 
     # Test when epoch cutoff is before start - should return original
