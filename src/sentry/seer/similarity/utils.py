@@ -269,10 +269,7 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
 
 
 def get_stacktrace_string_with_metrics(
-    data: dict[str, Any],
-    platform: str | None,
-    referrer: ReferrerOptions,
-    logger_extra: dict[str, Any] | None = None,
+    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
     sample_rate = options.get("seer.similarity.metrics_sample_rate")
@@ -286,12 +283,6 @@ def get_stacktrace_string_with_metrics(
             tags={"platform": platform, "referrer": referrer},
         )
         if referrer == ReferrerOptions.INGEST:
-            # Temporary log to debug how we're still landing here, which we shouldn't be anymore
-            logger.info(
-                "record_did_call_seer_metric.over-threshold-frames",
-                extra=logger_extra,
-            )
-
             record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
