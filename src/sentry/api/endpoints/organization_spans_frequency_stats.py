@@ -40,7 +40,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             # todo adjust this to be the right thing
             return Response(
-                {"attributeDistributions": []}  # Empty response matching the expected structure
+                {"attributeDistributions": []}  # Empty ıresponse matching the expected structure
             )
 
         serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
@@ -61,36 +61,10 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
+        query = request.GET.get("query")
+        filter, _, _ = resolver.resolve_query(query)
 
-        # todo do we need this or it should be done in upstream?
-        # filter = TraceItemFilter(
-        #     and_filter=TraceItemFilter(
-        #         and_filter=AndTraceFilter(
-        #             filters=[
-        #                 TraceItemFilter(
-        #                     comparison_filter=ComparisonFilter(
-        #                         key=AttributeKey(
-        #                             type=AttributeKey.TYPE_STRING,
-        #                             name="timestamp",
-        #                         ),
-        #                         op=ComparisonFilter.OP_GREATER_THAN,
-        #                         value=AttributeValue(val_str=snuba_params.start_date),
-        #                     ),
-        #                 ),
-        #                 TraceItemFilter(
-        #                     comparison_filter=ComparisonFilter(
-        #                         key=AttributeKey(
-        #                             type=AttributeKey.TYPE_STRING,
-        #                             name="timestamp",
-        #                         ),
-        #                         op=ComparisonFilter.OP_LESS_THAN,
-        #                         value=AttributeValue(val_str=snuba_params.end_date),
-        #                     ),
-        #                 ),
-        #             ]
-        #         )
-        #     )
-        # )
+        # todo get helper to pass through the request
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
                 max_buckets=10, max_attributes=100
@@ -98,7 +72,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         rpc_request = TraceItemStatsRequest(
-            filter=None,
+            filter=filter,
             meta=meta,
             stats_types=[stats_type],
         )
