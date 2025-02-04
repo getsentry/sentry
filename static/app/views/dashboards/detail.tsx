@@ -16,7 +16,6 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-  clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -821,7 +820,6 @@ class DashboardDetail extends Component<Props, State> {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
-        clearIndicators();
       } else {
         // If we're in edit mode, update the edit state
         this.onUpdateWidget(newWidgets);
