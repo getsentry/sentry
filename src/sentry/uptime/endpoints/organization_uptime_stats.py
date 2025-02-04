@@ -237,6 +237,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         return None if value == 0 else value
 
 
+# TODO(jferg): remove after 90 days
 def add_extra_buckets_for_epoch_cutoff(
     formatted_response: dict[int, list[tuple[int, dict[str, int]]]],
     epoch_cutoff: datetime.datetime | None,
