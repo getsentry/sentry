@@ -4,40 +4,33 @@ import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect'
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {
+  type ReadableExploreQueryParts,
+  useUpdateQueryAtIndex,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 
-export function VisualizeSection() {
-  const numberTags = useSpanTags('number');
+type Props = {
+  index: number;
+  query: ReadableExploreQueryParts;
+};
 
-  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
-    const options = Object.values(numberTags).map(tag => {
-      return {
-        label: tag.name,
-        value: tag.key,
-        textValue: tag.name,
-      };
-    });
+export function VisualizeSection({query, index}: Props) {
+  const parsedFunction = query.yAxes.map(parseFunction).filter(defined)[0];
 
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+    yAxes: query.yAxes,
+  });
 
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return options;
-  }, [numberTags]);
+  const updateYAxis = useUpdateQueryAtIndex();
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -64,15 +57,21 @@ export function VisualizeSection() {
       <Fragment>
         <PageFilterBar>
           <CompactSelect
-            searchable
-            options={fieldOptions}
-            value={''}
-            onChange={_newField => {}}
+            options={aggregateOptions}
+            value={parsedFunction?.name}
+            onChange={newAggregate => {
+              const newYAxis = `${newAggregate.value}(${parsedFunction!.arguments[0]})`;
+              updateYAxis(index, {yAxes: [newYAxis]});
+            }}
           />
           <CompactSelect
-            options={aggregateOptions}
-            value={''}
-            onChange={_newAggregate => {}}
+            searchable
+            options={fieldOptions}
+            value={parsedFunction?.arguments[0]}
+            onChange={newField => {
+              const newYAxis = `${parsedFunction!.name}(${newField.value})`;
+              updateYAxis(index, {yAxes: [newYAxis]});
+            }}
           />
         </PageFilterBar>
       </Fragment>

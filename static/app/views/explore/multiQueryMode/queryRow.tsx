@@ -1,19 +1,25 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {GroupBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/groupBy';
 import {SearchBarSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/search';
 import {SortBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/sortBy';
 import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/visualize';
 
-export function QueryRow() {
+type Props = {
+  index: number;
+  query: ReadableExploreQueryParts;
+};
+
+export function QueryRow({query, index}: Props) {
   return (
     <QueryConstructionSection>
-      <SearchBarSection />
+      <SearchBarSection query={query} index={index} />
       <DropDownGrid>
-        <VisualizeSection />
-        <GroupBySection />
-        <SortBySection />
+        <VisualizeSection query={query} index={index} />
+        <GroupBySection query={query} index={index} />
+        <SortBySection query={query} index={index} />
       </DropDownGrid>
     </QueryConstructionSection>
   );
