@@ -207,6 +207,15 @@ class QueryResponse:
     source: str
 
 
+def _has_viewed_by_filter(search_filter: SearchFilter | str | ParenExpression):
+    if isinstance(search_filter, SearchFilter):
+        return search_filter.key.name in VIEWED_BY_KEYS
+    if isinstance(search_filter, ParenExpression):
+        return any([_has_viewed_by_filter(child) for child in search_filter.children])
+
+    return False  # isinstance(search_filter, str) - not parseable
+
+
 def query_using_optimized_search(
     fields: list[str],
     search_filters: Sequence[SearchFilter | str | ParenExpression],
@@ -234,7 +243,7 @@ def query_using_optimized_search(
     if any([project_id in viewed_by_denylist for project_id in project_ids]):
         # Skip all viewed by filters if in denylist
         for search_filter in search_filters:
-            if search_filter.key.name in VIEWED_BY_KEYS:
+            if _has_viewed_by_filter(search_filter):
                 raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
     else:
         # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
