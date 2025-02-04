@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.endpoints.project_transfer import SALT
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
@@ -33,7 +33,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
-    permission_classes = (SentryPermission,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get_validated_data(self, data, user):
         try:

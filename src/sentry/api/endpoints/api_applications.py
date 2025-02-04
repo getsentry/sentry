@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
@@ -17,7 +17,7 @@ class ApiApplicationsEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
-    permission_classes = (SentryPermission,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request) -> Response:
         queryset = ApiApplication.objects.filter(

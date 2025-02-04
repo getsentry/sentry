@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 
 from sentry import features
@@ -214,9 +214,6 @@ class SentryPermission(ScopedPermission):
         # TODO(iamrajjoshi): Remove this check once we have fully migrated to the new data secrecy logic
         organization = org_context.organization
 
-        if demo_mode.is_readonly_user(request.user):
-            org_context.member.scopes = demo_mode.get_readonly_scopes()
-
         if (
             request.user
             and request.user.is_superuser
@@ -289,6 +286,36 @@ class SentryPermission(ScopedPermission):
                 )
                 raise MemberDisabledOverLimit(organization)
 
+
+class ReadOnlyPermission(SentryPermission):
+    """
+    A permission class that extends `SentryPermission` to provide read-only access for users
+    in a demo mode. This class modifies the access control logic to ensure that users identified
+    as read-only can only perform safe operations, such as GET and HEAD requests, on resources.
+    """
+
+    def determine_access(
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization,
+    ) -> None:
+
+        org_context: RpcUserOrganizationContext | None
+        if isinstance(organization, RpcUserOrganizationContext):
+            org_context = organization
+        else:
+            org_context = organization_service.get_organization_by_id(
+                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+            )
+
+        if org_context is None:
+            assert False, "Failed to fetch organization in determine_access"
+
+        if demo_mode.is_readonly_user(request.user):
+            org_context.member.scopes = demo_mode.get_readonly_scopes()
+
+        return super().determine_access(request, org_context)
+
     def has_permission(self, request: Request, view: object) -> bool:
         if demo_mode.is_readonly_user(request.user) and request.method not in ("GET", "HEAD"):
             return False
@@ -300,3 +327,7 @@ class SentryPermission(ScopedPermission):
             return False
 
         return super().has_object_permission(request, view, obj)
+
+
+class SentryIsAuthenticated(IsAuthenticated, ReadOnlyPermission):
+    pass

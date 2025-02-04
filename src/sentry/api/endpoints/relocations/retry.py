@@ -17,7 +17,7 @@ from sentry.api.endpoints.relocations.index import (
     validate_relocation_uniqueness,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
@@ -44,7 +44,7 @@ class RelocationRetryEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SentryPermission,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def post(self, request: Request, relocation_uuid: str) -> Response:
         """
