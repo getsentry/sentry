@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -14,9 +15,9 @@ type TextProps = {
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;
   /**
-   * Apply a micro animation when the text value changes
+   * Enables subtle animations for both the text value change and the progress ring update.
    */
-  animateText?: boolean;
+  animate?: boolean;
   /**
    * The color of the ring background
    */
@@ -78,7 +79,7 @@ function ProgressRing({
   barWidth = 3,
   text,
   textCss,
-  animateText = false,
+  animate = false,
   progressColor = theme.green300,
   backgroundColor = theme.gray200,
   progressEndcaps,
@@ -92,23 +93,36 @@ function ProgressRing({
   const percent = progress * 100;
   const progressOffset = (1 - progress) * circumference;
 
-  const TextComponent = animateText ? AnimatedText : Text;
+  const TextComponent = animate ? AnimatedText : Text;
 
   let textNode = (
     <TextComponent
       key={text?.toString()}
-      {...(animateText ? animatedTextDefaultProps : {})}
+      {...(animate ? animatedTextDefaultProps : {})}
       {...{textCss, percent}}
     >
       {text}
     </TextComponent>
   );
 
-  textNode = animateText ? (
+  textNode = animate ? (
     <AnimatePresence initial={false}>{textNode}</AnimatePresence>
   ) : (
     textNode
   );
+
+  const ringCommonProps = useMemo(() => {
+    return {
+      strokeDashoffset: progressOffset,
+      strokeLinecap: progressEndcaps,
+      circumference,
+      r: radius,
+      barWidth,
+      cx: radius + barWidth / 2,
+      cy: radius + barWidth / 2,
+      color: progressColor,
+    };
+  }, [progressOffset, progressEndcaps, circumference, radius, barWidth, progressColor]);
 
   return (
     <RingSvg
@@ -124,16 +138,16 @@ function ProgressRing({
         cy={radius + barWidth / 2}
         color={backgroundColor}
       />
-      <RingBar
-        strokeDashoffset={progressOffset}
-        strokeLinecap={progressEndcaps}
-        circumference={circumference}
-        r={radius}
-        barWidth={barWidth}
-        cx={radius + barWidth / 2}
-        cy={radius + barWidth / 2}
-        color={progressColor}
-      />
+      {animate ? (
+        <MotionRingBar
+          {...ringCommonProps}
+          initial={{strokeDashoffset: circumference}}
+          animate={{strokeDashoffset: progressOffset}}
+          transition={{duration: 1.5, ease: 'easeInOut'}}
+        />
+      ) : (
+        <RingBar {...ringCommonProps} />
+      )}
       <foreignObject height="100%" width="100%">
         {text !== undefined && textNode}
       </foreignObject>
@@ -167,6 +181,8 @@ const RingBar = styled('circle')<{
     stroke-dashoffset 200ms,
     stroke 100ms;
 `;
+
+const MotionRingBar = motion(RingBar);
 
 export default ProgressRing;
 

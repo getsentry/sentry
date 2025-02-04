@@ -128,7 +128,7 @@ export function OnboardingStatus({
         }}
       >
         <ProgressRing
-          animateText
+          animate
           textCss={() => css`
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
