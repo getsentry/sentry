@@ -63,7 +63,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
         additionalContext={
           <span>
             {tct(
-              'Advanced data scrubbing rules can configured for each project. These rules will be applied in addition to any organization-level rules in in [linkToOrganizationSecurityAndPrivacy].',
+              'Advanced data scrubbing rules can configured for each project. These rules will be applied in addition to any organization-level rules in [linkToOrganizationSecurityAndPrivacy].',
               {
                 linkToOrganizationSecurityAndPrivacy: (
                   <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
