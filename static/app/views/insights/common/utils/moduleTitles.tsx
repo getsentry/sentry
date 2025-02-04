@@ -3,6 +3,7 @@ import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/insights/browser
 import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/insights/cache/settings';
 import {MODULE_TITLE as CRONS_MODULE_TITLE} from 'sentry/views/insights/crons/settings';
 import {MODULE_TITLE as DB_MODULE_TITLE} from 'sentry/views/insights/database/settings';
+import {MODULE_TITLE as ERRORS_MODULE_TITLE} from 'sentry/views/insights/errors/settings';
 import {
   FRONTEND_MODULE_TITLE as HTTP_FRONTEND_MODULE_TITLE,
   MOBILE_MODULE_TITLE as HTTP_MOBILE_MODULE_TITLE,
@@ -34,6 +35,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
   [ModuleName.CRONS]: CRONS_MODULE_TITLE,
   [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
+  [ModuleName.ERRORS]: ERRORS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 
