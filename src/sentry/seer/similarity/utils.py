@@ -114,11 +114,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         exc_type, exc_value, frame_strings, frame_metrics = process_exception_frames(
             exception, frame_metrics
         )
-        if (
-            platform not in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK
-            and frame_metrics["is_frames_truncated"]
-        ):
-            raise TooManyOnlySystemFramesException
 
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
