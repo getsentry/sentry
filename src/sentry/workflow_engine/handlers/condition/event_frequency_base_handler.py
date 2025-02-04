@@ -33,7 +33,8 @@ class BaseEventFrequencyConditionHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
 
     @classmethod
-    def base_handler(cls) -> type["BaseEventFrequencyConditionHandler"]:
+    @abstractmethod
+    def get_base_handler(cls) -> type["BaseEventFrequencyConditionHandler"]:
         # frequency and percent conditions can share the same base handler to query Snuba
         raise NotImplementedError
 

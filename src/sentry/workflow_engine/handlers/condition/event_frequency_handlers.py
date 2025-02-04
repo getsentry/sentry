@@ -17,7 +17,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
     @classmethod
-    def base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
+    def get_base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
         return EventFrequencyConditionHandler
 
     def batch_query(
