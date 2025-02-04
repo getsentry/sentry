@@ -169,31 +169,12 @@ describe('normalizeDateTimeParams', function () {
         statsPeriod: '14d',
       })
     ).toEqual({
-      utc: 'true',
       statsPeriod: '90d',
     });
   });
 
   it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function () {
     expect(normalizeDateTimeParams({}, {allowEmptyPeriod: true})).toEqual({});
-  });
-
-  it('should parse utc when it is defined', function () {
-    expect(normalizeDateTimeParams({utc: 'true'})).toEqual({
-      utc: 'true',
-      statsPeriod: '14d',
-    });
-    expect(normalizeDateTimeParams({utc: 'false'})).toEqual({
-      utc: 'false',
-      statsPeriod: '14d',
-    });
-    expect(normalizeDateTimeParams({utc: 'invalid'})).toEqual({
-      utc: 'false',
-      statsPeriod: '14d',
-    });
-
-    expect(normalizeDateTimeParams({utc: null})).toEqual({statsPeriod: '14d'});
-    expect(normalizeDateTimeParams({utc: undefined})).toEqual({statsPeriod: '14d'});
   });
 });
 
