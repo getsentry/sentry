@@ -2987,3 +2987,11 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Taskworker settings:
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

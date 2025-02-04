@@ -15,6 +15,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.taskworker.client import TaskworkerClient
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class MockServiceMethod:
@@ -73,6 +74,7 @@ class MockGrpcError(grpc.RpcError):
         return self._message
 
 
+@django_db_all
 def test_get_task_ok():
     channel = MockChannel()
     channel.add_response(
@@ -98,6 +100,7 @@ def test_get_task_ok():
         assert result.namespace == "testing"
 
 
+@django_db_all
 def test_get_task_with_namespace():
     channel = MockChannel()
     channel.add_response(
@@ -123,6 +126,7 @@ def test_get_task_with_namespace():
         assert result.namespace == "testing"
 
 
+@django_db_all
 def test_get_task_not_found():
     channel = MockChannel()
     channel.add_response(
@@ -137,6 +141,7 @@ def test_get_task_not_found():
         assert result is None
 
 
+@django_db_all
 def test_get_task_failure():
     channel = MockChannel()
     channel.add_response(
@@ -150,6 +155,7 @@ def test_get_task_failure():
             client.get_task()
 
 
+@django_db_all
 def test_update_task_ok_with_next():
     channel = MockChannel()
     channel.add_response(
@@ -175,6 +181,7 @@ def test_update_task_ok_with_next():
         assert result.id == "abc123"
 
 
+@django_db_all
 def test_update_task_ok_with_next_namespace():
     channel = MockChannel()
     channel.add_response(
@@ -201,6 +208,7 @@ def test_update_task_ok_with_next_namespace():
         assert result.namespace == "testing"
 
 
+@django_db_all
 def test_update_task_ok_no_next():
     channel = MockChannel()
     channel.add_response(
@@ -215,6 +223,7 @@ def test_update_task_ok_no_next():
         assert result is None
 
 
+@django_db_all
 def test_update_task_not_found():
     channel = MockChannel()
     channel.add_response(
