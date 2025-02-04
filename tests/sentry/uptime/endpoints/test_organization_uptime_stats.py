@@ -4,6 +4,7 @@ from unittest import skip
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
@@ -58,6 +59,23 @@ class OrganizationUptimeCheckIndexEndpointTest(
                 [1737399858, {"failure": 3, "success": 3, "missed_window": 0}],
             ]
         }
+
+    @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
+    @override_options({"uptime.date_cutoff_epoch_seconds": 1736881457})
+    def test_simple_with_date_cutoff(self):
+        """Test that the endpoint returns data for a simple uptime check."""
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+            since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
+            until=datetime.now(timezone.utc).timestamp(),
+            resolution="1d",
+        )
+        assert response.data is not None
+        data = json.loads(json.dumps(response.data))
+        assert len(data[str(self.project_uptime_subscription.id)]) == 90
 
     @freeze_time(datetime(2025, 1, 21, 19, 4, 18, tzinfo=timezone.utc))
     def test_invalid_uptime_subscription_id(self):

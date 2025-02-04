@@ -1,3 +1,4 @@
+import datetime
 import logging
 import uuid
 from collections import defaultdict
@@ -17,6 +18,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
@@ -65,22 +67,38 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         except ValueError:
             return self.respond("Invalid project uptime subscription ids provided", status=400)
 
+        epoch_cutoff = (
+            datetime.datetime.fromtimestamp(
+                self._get_date_cutoff_epoch_seconds(), tz=datetime.timezone.utc
+            )
+            if self._get_date_cutoff_epoch_seconds()
+            else None
+        )
+
         try:
             eap_response = self._make_eap_request(
-                organization, projects, subscription_ids, timerange_args
+                organization, projects, subscription_ids, timerange_args, epoch_cutoff
             )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
 
-        formatted_response = self._format_response(eap_response)
+        formatted_response = self._format_response(eap_response, epoch_cutoff)
 
         # Map the response back to project uptime subscription ids
         mapped_response = self._map_response_to_project_uptime_subscription_ids(
             subscription_id_to_project_uptime_subscription_id, formatted_response
         )
 
-        return self.respond(mapped_response)
+        response_with_extra_buckets = self._add_extra_buckets_for_epoch_cutoff(
+            mapped_response,
+            epoch_cutoff,
+            timerange_args["rollup"],
+            timerange_args["start"],
+            timerange_args["end"],
+        )
+
+        return self.respond(response_with_extra_buckets)
 
     def _authorize_and_map_project_uptime_subscription_ids(
         self, project_uptime_subscription_ids: list[str], projects: list[Project]
@@ -124,7 +142,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
+        epoch_cutoff: datetime.datetime,
     ) -> TimeSeriesResponse:
+
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(timerange_args["start"])
         end_timestamp = Timestamp()
@@ -174,7 +194,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         return responses[0]
 
     def _format_response(
-        self, response: TimeSeriesResponse
+        self, response: TimeSeriesResponse, epoch_cutoff: datetime.datetime | None = None
     ) -> dict[str, list[tuple[int, dict[str, int]]]]:
         """
         Formats the response from the EAP RPC request into a dictionary of subscription ids to a list of tuples
@@ -215,3 +235,43 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_project_uptime_subscription_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }
+
+    def _add_extra_buckets_for_epoch_cutoff(
+        self,
+        formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
+        epoch_cutoff: datetime.datetime | None,
+        rollup: int,
+        start: datetime.datetime,
+        end: datetime.datetime,
+    ) -> dict[str, list[tuple[int, dict[str, int]]]]:
+        if not epoch_cutoff:
+            return formatted_response
+
+        if not formatted_response:
+            return formatted_response
+        # Calculate the number of buckets needed TODO: how does this round if its not a multiple of the rollup?
+        total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
+        end_ts = int(end.timestamp())
+        rollup_secs = rollup
+        result = {}
+        for subscription_id, data in formatted_response.items():
+            # If we already have enough buckets, keep as-is
+            if len(data) >= total_buckets:
+                result[subscription_id] = data
+                continue
+            # Otherwise prepend empty buckets until we have enough
+            missing_buckets = []
+            num_missing = total_buckets - len(data)
+            first_ts = data[0][0] if data else end_ts
+
+            for i in range(num_missing):
+                ts = first_ts - ((num_missing - i) * rollup_secs)
+                missing_buckets.append((ts, {"failure": 0, "success": 0, "missed_window": 0}))
+
+            result[subscription_id] = missing_buckets + data
+
+        return result
+
+    def _get_date_cutoff_epoch_seconds(self) -> int | None:
+        value = options.get("uptime.date_cutoff_epoch_seconds")
+        return None if value == 0 else value
