@@ -49,16 +49,17 @@ function OrgDashboards(props: Props) {
     isPending: isDashboardsPending,
     isError: isDashboardsError,
     error: dashboardsError,
-  } = useApiQuery<DashboardListItem[]>([ENDPOINT], {staleTime: 0});
+  } = useApiQuery<DashboardListItem[]>([ENDPOINT], {staleTime: 0, retry: false});
 
   const {
     data: fetchedSelectedDashboard,
-    isPending: isSelectedDashboardPending,
+    isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
   } = useApiQuery<DashboardDetails>([`${ENDPOINT}${dashboardId}/`], {
     staleTime: 0,
     enabled: !!dashboardId,
+    retry: false,
   });
 
   const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
@@ -142,7 +143,7 @@ function OrgDashboards(props: Props) {
     }
   }, [location.query, navigate, organization]);
 
-  if (isDashboardsPending || isSelectedDashboardPending) {
+  if (isDashboardsPending || isSelectedDashboardLoading) {
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />
@@ -151,7 +152,7 @@ function OrgDashboards(props: Props) {
   }
 
   if (
-    (isDashboardsPending || isSelectedDashboardPending) &&
+    (isDashboardsPending || isSelectedDashboardLoading) &&
     selectedDashboard &&
     hasSavedPageFilters(selectedDashboard) &&
     Object.keys(location.query).length === 0
