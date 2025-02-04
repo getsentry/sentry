@@ -1,6 +1,5 @@
 from rest_framework import status
 from rest_framework.exceptions import ParseError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,10 +30,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.PERFORMANCE
 
-    permission_classes = (
-        IsAuthenticated,
-        DiscoverSavedQueryPermission,
-    )
+    permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
         return features.has(

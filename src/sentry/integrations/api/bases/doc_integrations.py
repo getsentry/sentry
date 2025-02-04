@@ -6,7 +6,7 @@ from django.http import Http404
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import ReadOnlyPermission, StaffPermissionMixin
 from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 from sentry.auth.superuser import is_active_superuser
 from sentry.integrations.api.bases.integration import PARANOID_GET
@@ -14,8 +14,8 @@ from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.utils.sdk import Scope
 
 
-class DocIntegrationsPermission(SentryPermission):
-    """
+class DocIntegrationsPermission(ReadOnlyPermission):
+    """ReadOnlyPermission
     Allows all org members to access GET as long as they have the necessary
     scopes. For item endpoints, the doc integration must be published.
 

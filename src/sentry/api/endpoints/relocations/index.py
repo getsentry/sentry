@@ -19,7 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import ReadOnlyPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.relocation import RelocationSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
@@ -162,7 +162,7 @@ class RelocationIndexEndpoint(Endpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SentryPermission,)
+    permission_classes = (ReadOnlyPermission,)
 
     def get(self, request: Request) -> Response:
         """

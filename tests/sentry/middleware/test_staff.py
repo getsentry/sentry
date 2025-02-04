@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.test import override_settings
 from django.urls import re_path
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -11,7 +10,7 @@ from sentry.testutils.silo import no_silo_test
 
 
 class APITestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     def get(self, request):
         return Response(status=200)

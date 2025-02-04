@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
-from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
 from sentry.auth.services.auth import AuthenticatedToken
@@ -21,7 +20,7 @@ CONCURRENT_RATE_LIMIT = 20
 
 
 class APITestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -229,7 +228,7 @@ class GetRateLimitKeyTest(TestCase):
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
 
 class TestDefaultToGroup(TestCase):

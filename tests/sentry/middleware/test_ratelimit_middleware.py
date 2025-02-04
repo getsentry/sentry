@@ -6,7 +6,6 @@ from unittest.mock import patch, sentinel
 from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -238,7 +237,7 @@ class TestGetRateLimitValue(TestCase):
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     enforce_rate_limit = True
     rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=100)}}
@@ -252,7 +251,7 @@ class RateLimitHeaderTestEndpoint(Endpoint):
 
 
 class RaceConditionEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     enforce_rate_limit = False
     rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=40, window=100)}}
@@ -266,7 +265,7 @@ CONCURRENT_ENDPOINT_DURATION = 0.2
 
 
 class ConcurrentRateLimitedEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         group="foo",
@@ -285,7 +284,7 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
 
 
 class CallableRateLimitConfigEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
     enforce_rate_limit = True
 
     @staticmethod

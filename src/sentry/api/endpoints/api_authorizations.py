@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import ReadOnlyPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apiapplication import ApiApplicationStatus
@@ -23,7 +23,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
     }
     owner = ApiOwner.ENTERPRISE
     authentication_classes = (SessionAuthentication,)
-    permission_classes = (SentryPermission,)
+    permission_classes = (ReadOnlyPermission,)
 
     def get(self, request: Request) -> Response:
         queryset = ApiAuthorization.objects.filter(

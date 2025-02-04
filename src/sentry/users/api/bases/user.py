@@ -3,12 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import ReadOnlyPermission, StaffPermissionMixin
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -21,7 +20,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class UserPermission(SentryPermission):
+class UserPermission(ReadOnlyPermission):
     def has_object_permission(
         self, request: Request, view: object | None, user: User | RpcUser | None = None
     ) -> bool:
@@ -105,7 +104,7 @@ class UserEndpoint(Endpoint):
     currently logged in user's ID.
     """
 
-    permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
+    permission_classes: tuple[type[ReadOnlyPermission], ...] = (UserPermission,)
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any

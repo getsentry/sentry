@@ -17,7 +17,6 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,6 +26,7 @@ from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
+from sentry.api.permissions import ReadOnlyPermission
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
@@ -216,7 +216,7 @@ class BaseEndpointMixin(abc.ABC):
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
-    permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
+    permission_classes: tuple[type[ReadOnlyPermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 

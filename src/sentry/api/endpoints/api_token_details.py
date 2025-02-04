@@ -11,7 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.endpoints.api_tokens import get_appropriate_user_id
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import ReadOnlyPermission
 from sentry.api.serializers import serialize
 from sentry.models.apitoken import ApiToken
 
@@ -30,7 +30,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.SECURITY
-    permission_classes = (SentryPermission,)
+    permission_classes = (ReadOnlyPermission,)
 
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:

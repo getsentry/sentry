@@ -8,7 +8,7 @@ from rest_framework.serializers import ListField
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import ReadOnlyPermission
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
@@ -59,7 +59,7 @@ class ApiApplicationDetailsEndpoint(ApiApplicationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
-    permission_classes = (SentryPermission,)
+    permission_classes = (ReadOnlyPermission,)
 
     def get(self, request: Request, application: ApiApplication) -> Response:
         return Response(serialize(application, request.user))

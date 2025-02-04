@@ -4,7 +4,6 @@ from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -28,7 +27,7 @@ from .base import ProjectMonitorPermission
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class ProjectProcessingErrorsDetailsEndpoint(ProjectEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+    permission_classes = (ProjectMonitorPermission,)
 
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,

@@ -1,12 +1,12 @@
 from base64 import b64encode
 
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.permissions import ReadOnlyPermission
 from sentry.auth.authenticators.base import ActivationChallengeResult
 from sentry.users.models.authenticator import Authenticator
 
@@ -17,7 +17,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (ReadOnlyPermission,)
 
     def get(self, request: Request) -> Response:
         """Returns u2f interface for a user, otherwise an empty array"""

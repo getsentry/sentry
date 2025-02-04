@@ -8,13 +8,12 @@ import sentry_sdk
 from django.core.cache import cache
 from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import ReadOnlyPermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -43,7 +42,7 @@ class NoProjects(Exception):
     pass
 
 
-class OrganizationPermission(SentryPermission):
+class OrganizationPermission(ReadOnlyPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:write", "org:admin"],
@@ -243,7 +242,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     A base class for endpoints that use an organization scoping but lives in the control silo
     """
 
-    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
+    permission_classes = (OrganizationPermission,)
 
     def convert_args(
         self,
@@ -330,7 +329,7 @@ def _validate_fetched_projects(
 
 
 class OrganizationEndpoint(Endpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
+    permission_classes: tuple[type[OrganizationPermission], ...] = (OrganizationPermission,)
 
     def get_projects(
         self,
