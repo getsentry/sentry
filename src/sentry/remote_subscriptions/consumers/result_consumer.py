@@ -85,9 +85,20 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         max_workers: int | None = None,
     ) -> None:
         self.mode = mode
+        metric_tags = {"identifier": self.identifier, "mode": self.mode}
         if mode == "parallel":
             self.parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
+            if max_workers is None:
+                metric_tags["workers"] = "default"
+            else:
+                metric_tags["workers"] = str(max_workers)
+
+        metrics.incr(
+            "remote_subscriptions.result_consumer.start",
+            1,
+            tags=metric_tags,
+        )
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
