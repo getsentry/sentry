@@ -1,3 +1,4 @@
+import type {To} from '@remix-run/router';
 import type {LocationDescriptor} from 'history';
 
 import type {FeatureProps} from 'sentry/components/acl/feature';
@@ -40,6 +41,11 @@ export interface NavSidebarItem extends NavItem {
    */
   icon: React.ReactElement;
   /**
+   * Defines the path that should be considered active for this item.
+   * Defaults to the `to` prop.
+   */
+  activeTo?: string;
+  /**
    * dropdown menu to display when this SidebarItem is clicked
    */
   dropdown?: MenuItemProps[];
@@ -68,11 +74,18 @@ export type NavConfig = NavItemLayout<NavSidebarItem>;
 
 export type NavigationItemStatus = 'inactive' | 'active' | 'active-parent';
 
-export function isLinkActive(to: string, pathname: string): boolean {
-  const normalizedTo = normalizeUrl(to);
-  const normalizedCurrent = normalizeUrl(pathname);
+export function isLinkActive(
+  to: To,
+  pathname: string,
+  options: {end?: boolean} = {end: false}
+): boolean {
+  const toPathname = normalizeUrl(typeof to === 'string' ? to : to.pathname ?? '/');
 
-  return normalizedCurrent.startsWith(normalizedTo);
+  if (options.end) {
+    return pathname === toPathname;
+  }
+
+  return pathname.startsWith(toPathname);
 }
 
 /**
