@@ -17,7 +17,7 @@ interface ExampleDataItem {
   name: string;
 }
 
-export default storyBook(GridEditable, story => {
+export default storyBook('GridEditable', story => {
   const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
