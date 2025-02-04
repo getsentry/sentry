@@ -23,10 +23,12 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import options
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
+from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
     PREFERRED_SOURCE,
+    VIEWED_BY_DENYLIST_MSG,
     Paginators,
     execute_query,
     make_full_aggregation_query,
@@ -122,7 +124,7 @@ def query_replay_viewed_by_ids(
 
     for project_id in project_ids:
         if project_id in options.get("replay.viewed-by.project-denylist"):
-            return []
+            raise BadRequest(VIEWED_BY_DENYLIST_MSG)
 
     return execute_query(
         query=make_full_aggregation_query(

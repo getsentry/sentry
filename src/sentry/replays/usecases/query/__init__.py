@@ -39,6 +39,7 @@ from snuba_sdk.expressions import Expression
 
 from sentry import options
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
+from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
@@ -47,8 +48,13 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
+VIEWED_BY_KEYS = ["viewed_by_me", "seen_by_me", "viewed_by_id", "seen_by_id"]
 NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
 DEFAULT_SORT_FIELD = "started_at"
+
+VIEWED_BY_DENYLIST_MSG = (
+    "Viewed by me search has been disabled for your project due to a data irregularity."
+)
 
 PREFERRED_SOURCE = Literal["aggregated", "scalar"]
 
@@ -227,16 +233,9 @@ def query_using_optimized_search(
     viewed_by_denylist = options.get("replay.viewed-by.project-denylist")
     if any([project_id in viewed_by_denylist for project_id in project_ids]):
         # Skip all viewed by filters if in denylist
-        new_filters = []
         for search_filter in search_filters:
-            if search_filter.key.name not in [
-                "viewed_by_id",
-                "viewed_by_me",
-                "seen_by_id",
-                "seen_by_me",
-            ]:
-                new_filters.append(search_filter)
-        search_filters = new_filters
+            if search_filter.key.name in VIEWED_BY_KEYS:
+                raise BadRequest(VIEWED_BY_DENYLIST_MSG)
     else:
         # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
         search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
