@@ -2987,7 +2987,7 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-  
+
 register(
     "taskworker.grpc_service_config",
     type=String,
