@@ -6,15 +6,19 @@ from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import split_conditions_and_filters
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition,
 )
+from sentry.workflow_engine.migration_helpers.rule_action import (
+    build_notification_actions_from_rule_data_actions,
+)
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
     Workflow,
@@ -24,7 +28,7 @@ from sentry.workflow_engine.models import (
 logger = logging.getLogger(__name__)
 
 
-def migrate_issue_alert(rule: Rule, user: RpcUser | None = None):
+def migrate_issue_alert(rule: Rule, user_id: int | None = None):
     data = rule.data
     project = rule.project
     organization = project.organization
@@ -43,7 +47,7 @@ def migrate_issue_alert(rule: Rule, user: RpcUser | None = None):
         rule=rule,
         detector=error_detector,
         when_condition_group=when_dcg,
-        user_id=user.id if user else None,
+        user_id=user_id,
         environment_id=rule.environment_id,
     )
     AlertRuleWorkflow.objects.create(rule=rule, workflow=workflow)
@@ -112,9 +116,13 @@ def create_if_dcg(
     return if_dcg
 
 
-def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, Any]]):
-    # TODO: create actions, need registry
-    pass
+def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, Any]]) -> None:
+    notification_actions = build_notification_actions_from_rule_data_actions(actions)
+    dcg_actions = [
+        DataConditionGroupAction(action=action, condition_group=if_dcg)
+        for action in notification_actions
+    ]
+    DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
 
 class UpdatedIssueAlertData(TypedDict):
@@ -218,6 +226,7 @@ def delete_migrated_issue_alert(rule: Rule):
         for workflow_dcg in workflow_dcgs:
             if_dcg = workflow_dcg.condition_group
             if_dcg.conditions.all().delete()
+            delete_workflow_actions(if_dcg=if_dcg)
             if_dcg.delete()
 
     except WorkflowDataConditionGroup.DoesNotExist:
@@ -239,5 +248,7 @@ def delete_migrated_issue_alert(rule: Rule):
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):
-    # TODO: delete actions, need registry
-    pass
+    dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
+    action_ids = dcg_actions.values_list("action_id", flat=True)
+    Action.objects.filter(id__in=action_ids).delete()
+    dcg_actions.delete()

@@ -84,6 +84,9 @@ export function updateLocationWithSortBys(
     location.query.sort = sortBys.map(sortBy =>
       sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
     );
+
+    // make sure to clear the cursor every time the query is updated
+    delete location.query.cursor;
   } else if (sortBys === null) {
     delete location.query.sort;
   }

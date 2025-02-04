@@ -43,6 +43,7 @@ describe('EventNavigation', () => {
         tags: {key: SectionKey.TAGS},
         replay: {key: SectionKey.REPLAY},
       },
+      detectorDetails: {},
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,

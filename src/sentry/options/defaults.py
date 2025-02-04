@@ -490,6 +490,13 @@ register(
     default=5000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Disables viewed by queries for a list of project ids.
+register(
+    "replay.viewed-by.project-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -569,7 +576,6 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("github-app.fetch-max-pages", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "github-app.get-trees-refactored-code",
     default=False,
@@ -2987,4 +2993,17 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.date_cutoff_epoch_seconds",
+    type=Int,
+    default=0,
 )
