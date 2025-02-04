@@ -11,6 +11,21 @@ def process_data_packets(
     """
     This method ties the two main pre-processing methods together to process
     the incoming data and create issue occurrences.
+
+    This is the general entry point for the workflow engine. It will create
+    a metric pipline with the following metrics:
+    - sentry.workflow_engine.process_data_sources
+        - sentry.workflow_engine.process_data_sources.detectors
+        - sentry.workflow_engine.process_data_sources.no_detectors
+    - sentry.workflow_engine.process_detectors
+        - sentry.workflow_engine.process_detectors.triggered
+    - sentry.workflow_engine.process_workflows
+        - sentry.workflow_engine.process_workflows.triggered_workflows
+        - sentry.workflow_engine.process_workflows.triggered_actions
+
+    This metric funnel can be used to monitor the health of the workflow engine.
+    TODO - saponifi3d - Create a monitoring dashboard for the workflow engine and link it here
+         - the dashboard should show the funnel as we process data.
     """
     processed_sources = process_data_sources(data_packets, query_type)
 

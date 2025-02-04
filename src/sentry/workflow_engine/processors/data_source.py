@@ -14,7 +14,7 @@ def process_data_sources(
 ) -> list[tuple[DataPacket, list[Detector]]]:
     metrics.incr("sentry.workflow_engine.process_data_sources", tags={"query_type": query_type})
 
-    # TODO - change data_source.query_id to be a string to support UUIDs
+    # TODO - saponifi3d - change data_source.query_id to be a string to support UUIDs
     data_packet_ids = {int(packet.query_id) for packet in data_packets}
 
     # Fetch all data sources and associated detectors for the given data packets
@@ -34,6 +34,12 @@ def process_data_sources(
         if detectors:
             data_packet_tuple = (packet, detectors)
             result.append(data_packet_tuple)
+
+            metrics.incr(
+                "sentry.workflow_engine.process_data_sources.detectors",
+                len(detectors),
+                tags={"detector_type": detectors[0].type},
+            )
         else:
             logger.warning(
                 "No detectors found", extra={"query_id": packet.query_id, "query_type": query_type}

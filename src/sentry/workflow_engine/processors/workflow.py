@@ -118,8 +118,6 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
     the workflow will be added to a unique list of triggered workflows.
 
-    TODO @saponifi3d add metrics for this method
-
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     # Check to see if the GroupEvent has an issue occurrence
@@ -133,13 +131,34 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
 
+    if workflows:
+        metrics.incr(
+            "workflow_engine.process_workflows",
+            len(workflows),
+            tags={"detector_type": detector.type},
+        )
+
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.evaluate_workflow_triggers"):
         triggered_workflows = evaluate_workflow_triggers(workflows, job)
+
+        if triggered_workflows:
+            metrics.incr(
+                "workflow_engine.process_workflows.triggered_workflows",
+                len(triggered_workflows),
+                tags={"detector_type": detector.type},
+            )
 
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
+
+        if actions:
+            metrics.incr(
+                "workflow_engine.process_workflows.triggered_actions",
+                len(actions),
+                tags={"detector_type": detector.type},
+            )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         for action in actions:
