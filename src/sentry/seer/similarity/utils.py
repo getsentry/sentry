@@ -255,7 +255,7 @@ def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
     return base64_encoded
 
 
-def get_stacktrace_string_with_metrics(data: dict[str, Any], platform: str | None) -> str | None:
+def get_stacktrace_string_with_metrics(data: dict[str, Any]) -> str | None:
     stacktrace_string = None
     try:
         stacktrace_string = get_stacktrace_string(data)
