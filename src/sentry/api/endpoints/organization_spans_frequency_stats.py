@@ -51,6 +51,15 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params.start = snuba_params.start_date
         snuba_params.end = snuba_params.end_date
 
+        # this parameter is not used yet, will be used for handling the numerical attributes
+        max_buckets = request.GET.get("maxBuckets", 10)
+        max_attributes = request.GET.get("maxAttributes", 100)
+        try:
+            max_buckets = int(max_buckets)
+            max_attributes = int(max_attributes)
+        except ValueError:
+            raise ParseError(detail="maxBuckets and maxAttributes must be integers")
+
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
         )
@@ -59,9 +68,6 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         query = request.GET.get("query")
         filter, _, _ = resolver.resolve_query(query)
 
-        # this parameter is not used yet, will be used for handling the numerical attributes
-        max_buckets = request.GET.get("maxBuckets", 10)
-        max_attributes = request.GET.get("maxAttributes", 100)
         # todo get helper to pass through the request
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
