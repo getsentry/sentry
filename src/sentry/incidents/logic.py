@@ -753,7 +753,10 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_alert_rule, dual_update_migrated_query
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule,
+        dual_update_migrated_query,
+    )
 
     snuba_query = _unpack_snuba_query(alert_rule)
     organization = _unpack_organization(alert_rule)
