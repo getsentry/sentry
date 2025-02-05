@@ -1,5 +1,4 @@
 import logging
-from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
@@ -14,21 +13,17 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 logger = logging.getLogger(__name__)
 
 
-class LegacyRegistryInvoker(ABC):
+class LegacyRegistryInvoker:
     """
     Abstract base class that defines the interface for notification handlers.
     """
 
-    def __call__(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
-        # Here we could add metrics collection or other common functionality
-        self.handle_workflow_action(job, action, detector)
-
-    @abstractmethod
-    def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+    @staticmethod
+    def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         """
         Implement this method to handle the specific notification logic for your handler.
         """
-        pass
+        raise NotImplementedError
 
 
 group_type_notification_registry = Registry[LegacyRegistryInvoker]()
@@ -44,7 +39,7 @@ class NotificationActionHandler(ActionHandler):
     ) -> None:
         try:
             handler = group_type_notification_registry.get(detector.type)
-            handler(job, action, detector)
+            handler.handle_workflow_action(job, action, detector)
         except NoRegistrationExistsError:
             logger.exception(
                 "No notification handler found for detector type: %s",
@@ -55,11 +50,11 @@ class NotificationActionHandler(ActionHandler):
 
 @group_type_notification_registry.register(ErrorGroupType.slug)
 class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
-    def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+    @staticmethod
+    def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         try:
-            issue_alert_handler_registry.get(action.type).invoke_legacy_registry(
-                job, action, detector
-            )
+            handler = issue_alert_handler_registry.get(action.type)
+            handler.invoke_legacy_registry(job, action, detector)
         except NoRegistrationExistsError:
             logger.exception(
                 "No issue alert handler found for action type: %s",
@@ -75,6 +70,7 @@ class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
 
 @group_type_notification_registry.register(MetricIssuePOC.slug)
 class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
-    def handle_workflow_action(self, job: WorkflowJob, action: Action, detector: Detector) -> None:
+    @staticmethod
+    def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         # TODO(iamrajjoshi): Implement this
         pass

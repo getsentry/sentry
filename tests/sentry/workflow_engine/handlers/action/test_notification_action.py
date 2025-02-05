@@ -27,7 +27,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         # Test passes if no exception is raised
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.group_type_notification_registry.get"
+        "sentry.workflow_engine.handlers.action.notification.notification.group_type_notification_registry.get"
     )
     def test_execute_error_group_type(self, mock_registry_get):
         """Test that execute calls correct handler for ErrorGroupType"""
@@ -43,7 +43,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         mock_handler.assert_called_once_with(self.job, self.action, self.detector)
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.group_type_notification_registry.get"
+        "sentry.workflow_engine.handlers.action.notification.notification.group_type_notification_registry.get"
     )
     def test_execute_metric_alert_type(self, mock_registry_get):
         """Test that execute calls correct handler for MetricIssuePOC"""
@@ -59,10 +59,10 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         mock_handler.assert_called_once_with(self.job, self.action, self.detector)
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.group_type_notification_registry.get",
+        "sentry.workflow_engine.handlers.action.notification.notification.group_type_notification_registry.get",
         side_effect=NoRegistrationExistsError,
     )
-    @mock.patch("sentry.workflow_engine.handlers.action.notification.logger")
+    @mock.patch("sentry.workflow_engine.handlers.action.notification.notification.logger")
     def test_execute_unknown_group_type(self, mock_logger, mock_registry_get):
         """Test that execute does nothing when detector has no group_type"""
         NotificationActionHandler.execute(self.job, self.action, self.detector)

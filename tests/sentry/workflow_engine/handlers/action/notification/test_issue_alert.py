@@ -1,8 +1,6 @@
 import uuid
 from unittest import mock
 
-import pytest
-
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
@@ -19,13 +17,24 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         super().setUp()
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
-        self.action = Action(type=Action.Type.DISCORD)
+        self.action = self.create_action(
+            type=Action.Type.DISCORD,
+            integration_id="1234567890",
+            target_identifier="channel456",
+            data={"tags": "environment,user,my_tag"},
+        )
         self.group, self.event, self.group_event = self.create_group_event()
         self.job = WorkflowJob(event=self.group_event)
 
         class TestHandler(BaseIssueAlertHandler):
-            def build_rule_action_blob(self, action: Action) -> dict:
-                return {"test": "data"}
+            @staticmethod
+            def build_rule_action_blob(action: Action) -> dict:
+                return {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                }
 
         self.handler = TestHandler()
 
@@ -37,46 +46,44 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.id == self.detector.id
         assert rule.project == self.detector.project
         assert rule.label == self.detector.name
-        assert rule.data == {"actions": [{"test": "data"}]}
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                }
+            ]
+        }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
     @mock.patch("sentry.workflow_engine.handlers.action.notification.issue_alert.safe_execute")
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.issue_alert.instantiate_action"
+        "sentry.workflow_engine.handlers.action.notification.issue_alert.activate_downstream_actions"
     )
     @mock.patch("uuid.uuid4")
-    def test_invoke_legacy_registry(self, mock_uuid, mock_instantiate_action, mock_safe_execute):
-        """Test that invoke_legacy_registry correctly processes the action"""
+    def test_invoke_legacy_registry(
+        self, mock_uuid, mock_activate_downstream_actions, mock_safe_execute
+    ):
+        # Test that invoke_legacy_registry correctly processes the action
         mock_uuid.return_value = uuid.UUID("12345678-1234-5678-1234-567812345678")
-        mock_action = mock.Mock()
-        mock_instantiate_action.return_value = mock_action
-        mock_future = mock.Mock()
-        mock_safe_execute.side_effect = [[mock_future], None]  # Return for after, then for callback
+
+        # Mock callback and futures
+        mock_callback = mock.Mock()
+        mock_futures = [mock.Mock()]
+        mock_activate_downstream_actions.return_value = {"some_key": (mock_callback, mock_futures)}
 
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
 
-        # Verify action instantiation
-        mock_instantiate_action.assert_called_once()
-
-        # Verify after method called with correct args
-        mock_safe_execute.assert_any_call(
-            mock_action.after,
-            event=self.job["event"],
-            notification_uuid="12345678-1234-5678-1234-567812345678",
+        # Verify activate_downstream_actions called with correct args
+        mock_activate_downstream_actions.assert_called_once_with(
+            mock.ANY, self.job["event"], "12345678-1234-5678-1234-567812345678"  # Rule instance
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_any_call(mock_future.callback, self.job["event"], mock.ANY)
-
-    @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.issue_alert.instantiate_action",
-        return_value=None,
-    )
-    def test_invoke_legacy_registry_no_action(self, mock_instantiate_action):
-        """Test that invoke_legacy_registry raises an error if no action is found"""
-        with pytest.raises(ValueError):
-            self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        mock_safe_execute.assert_called_once_with(mock_callback, self.job["event"], mock_futures)
 
 
 class TestDiscordIssueAlertHandler(BaseWorkflowTest):
