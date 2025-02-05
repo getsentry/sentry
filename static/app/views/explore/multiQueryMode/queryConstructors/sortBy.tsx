@@ -5,6 +5,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {
   Section,
   SectionHeader,
@@ -27,6 +29,13 @@ export function SortBySection() {
     ];
   }, []);
 
+  const fieldOptions = useSortByFields({
+    fields: [],
+    yAxes: [],
+    groupBys: [],
+    mode: Mode.AGGREGATE,
+  });
+
   return (
     <Section data-test-id="section-sort-by">
       <SectionHeader>
@@ -39,7 +48,11 @@ export function SortBySection() {
       </SectionHeader>
       <Fragment>
         <PageFilterBar>
-          <CompactSelect options={[]} value={undefined} onChange={_newSortField => {}} />
+          <CompactSelect
+            options={fieldOptions}
+            value={undefined}
+            onChange={_newSortField => {}}
+          />
           <CompactSelect
             options={kindOptions}
             value={undefined}

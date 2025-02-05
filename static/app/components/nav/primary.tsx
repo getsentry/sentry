@@ -276,7 +276,7 @@ const SidebarItemWrapper = styled('li')`
     height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: auto ${space(1.5)};
+    padding: 0 ${space(1.5)};
     color: var(--color, currentColor);
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
