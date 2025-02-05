@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -10,11 +11,11 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
+import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -45,7 +46,6 @@ export default function GroupUptimeChecks() {
 
   const {
     data: event,
-    isPending: isEventPending,
     isError: isEventError,
     refetch: refetchEvent,
   } = useGroupEvent({
@@ -102,7 +102,7 @@ export default function GroupUptimeChecks() {
       }}
     >
       <GridEditable
-        isLoading={isGroupPending || isEventPending}
+        isLoading={isGroupPending}
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
@@ -152,25 +152,30 @@ function CheckInBodyCell({
         ? 'MMM D, YYYY HH:mm:ss z'
         : 'MMM D, YYYY h:mm:ss A z';
       return (
-        <Cell style={{color: theme.subText}}>
-          <TimeSince
-            tooltipShowSeconds
-            date={cellData}
-            tooltipProps={{maxWidth: 300}}
-            tooltipBody={
+        <TimeCell>
+          <Tooltip
+            maxWidth={300}
+            isHoverable
+            title={
               <LabelledTooltip>
-                <dt>{t('Scheduled for')}</dt>
-                <dd>
-                  {moment
-                    .tz(dataRow.scheduledCheckTime, userOptions?.timezone ?? '')
-                    .format(format)}
-                </dd>
+                {dataRow.scheduledCheckTime && (
+                  <Fragment>
+                    <dt>{t('Scheduled for')}</dt>
+                    <dd>
+                      {moment
+                        .tz(dataRow.scheduledCheckTime, userOptions?.timezone ?? '')
+                        .format(format)}
+                    </dd>
+                  </Fragment>
+                )}
                 <dt>{t('Checked at')}</dt>
                 <dd>{moment.tz(cellData, userOptions?.timezone ?? '').format(format)}</dd>
               </LabelledTooltip>
             }
-          />
-        </Cell>
+          >
+            {FIELD_FORMATTERS.date.renderFunc('timestamp', dataRow)}
+          </Tooltip>
+        </TimeCell>
       );
     }
     case 'durationMs':
@@ -245,6 +250,12 @@ const Cell = styled('div')`
   align-items: center;
   text-align: left;
   gap: ${space(1)};
+`;
+
+const TimeCell = styled(Cell)`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+  text-decoration-style: dotted;
 `;
 
 const LinkCell = styled(Link)`
