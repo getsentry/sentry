@@ -8,12 +8,7 @@ from sentry.models.group import Group
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
     BaseEventFrequencyConditionHandler,
-    BaseEventFrequencyCountHandler,
-    BaseEventFrequencyPercentHandler,
 )
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
@@ -53,21 +48,3 @@ class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandle
             batch_sums.update(get_result(model, issue_ids))
 
         return batch_sums
-
-
-@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
-class EventUniqueUserFrequencyCountHandler(
-    EventUniqueUserFrequencyConditionHandler,
-    BaseEventFrequencyCountHandler,
-    DataConditionHandler[WorkflowJob],
-):
-    pass
-
-
-@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
-class EventUniqueUserFrequencyPercentHandler(
-    EventUniqueUserFrequencyConditionHandler,
-    BaseEventFrequencyPercentHandler,
-    DataConditionHandler[WorkflowJob],
-):
-    pass
