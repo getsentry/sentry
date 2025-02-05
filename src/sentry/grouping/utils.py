@@ -43,7 +43,18 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     return result.hexdigest()
 
 
-def get_fingerprint_type(fingerprint: list[str]) -> Literal["default", "hybrid", "custom"]:
+def get_fingerprint_type(
+    fingerprint: list[str] | None,
+) -> Literal["default", "hybrid", "custom"] | None:
+    """
+    Examine a fingerprint to determine if it's custom, hybrid, or the default fingerprint.
+
+    Accepts (and then returns) None for convenience, so the fingerprint's existence doesn't have to
+    be separately checked.
+    """
+    if not fingerprint:
+        return None
+
     return (
         "default"
         if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])

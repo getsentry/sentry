@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, TypeIs
 
 # NOTE: The structure in these metadata types is intentionaly flat, to make it easier to query in
 # Redash or BigQuery, and they are all merged into a single flat JSON blob (which is then stored in
@@ -157,3 +157,16 @@ HashingMetadata = (
     | ChecksumHashingMetadata
     | FallbackHashingMetadata
 )
+HashingMetadataWithFingerprint = (
+    FingerprintHashingMetadata
+    | SaltedMessageHashingMetadata
+    | SaltedStacktraceHashingMetadata
+    | SaltedSecurityHashingMetadata
+    | SaltedTemplateHashingMetadata
+)
+
+
+def has_fingerprint_data(
+    hashing_metadata: HashingMetadata,
+) -> TypeIs[HashingMetadataWithFingerprint]:
+    return "fingerprint" in hashing_metadata
