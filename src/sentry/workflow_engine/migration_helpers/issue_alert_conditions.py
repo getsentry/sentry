@@ -253,9 +253,8 @@ def create_latest_adopted_release_data_condition(
     )
 
 
-@data_condition_translator_registry.register(EventFrequencyCondition.id)
-def create_event_frequency_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+def create_base_event_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup, count_type: Condition, percent_type: Condition
 ) -> DataCondition:
     comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
     comparison = {
@@ -264,9 +263,9 @@ def create_event_frequency_data_condition(
     }
 
     if comparison_type == ComparisonType.COUNT:
-        type = Condition.EVENT_FREQUENCY_COUNT
+        type = count_type
     else:
-        type = Condition.EVENT_FREQUENCY_PERCENT
+        type = percent_type
         comparison["comparison_interval"] = data["comparisonInterval"]
 
     return DataCondition.objects.create(
@@ -277,25 +276,25 @@ def create_event_frequency_data_condition(
     )
 
 
+@data_condition_translator_registry.register(EventFrequencyCondition.id)
+def create_event_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.EVENT_FREQUENCY_COUNT,
+        percent_type=Condition.EVENT_FREQUENCY_PERCENT,
+    )
+
+
 @data_condition_translator_registry.register(EventUniqueUserFrequencyCondition.id)
 def create_event_unique_user_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
-    comparison = {
-        "interval": data["interval"],
-        "value": data["value"],
-    }
-
-    if comparison_type == ComparisonType.COUNT:
-        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-    else:
-        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
-        comparison["comparison_interval"] = data["comparisonInterval"]
-
-    return DataCondition.objects.create(
-        type=type,
-        comparison=comparison,
-        condition_result=True,
-        condition_group=dcg,
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+        percent_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
     )
