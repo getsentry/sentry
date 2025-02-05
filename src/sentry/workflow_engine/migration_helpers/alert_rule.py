@@ -480,10 +480,11 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        logger.exception(
-            "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": alert_rule.id},
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule},
         )
+        # This alert rule was not dual written
         return None
 
     detector: Detector = alert_rule_detector.detector
@@ -557,6 +558,10 @@ def dual_update_migrated_alert_rule_trigger(
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
+        )
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
 

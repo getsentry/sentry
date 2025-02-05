@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 
 describe('LineChartWidget', () => {
   describe('Layout', () => {

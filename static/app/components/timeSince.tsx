@@ -97,7 +97,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * extraShort:
    *   Like short but uses very short units (h, m, s)
    *
-   * NOTE: shot and extraShort do NOT currently support times in the future.
+   * NOTE: short and extraShort do NOT currently support times in the future.
    *
    * @default human
    */

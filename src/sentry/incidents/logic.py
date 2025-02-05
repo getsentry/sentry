@@ -753,7 +753,7 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_query
+    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_alert_rule, dual_update_migrated_query
 
     snuba_query = _unpack_snuba_query(alert_rule)
     organization = _unpack_organization(alert_rule)
@@ -889,6 +889,7 @@ def update_alert_rule(
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
         alert_rule.update(**updated_fields)
+        dual_update_migrated_alert_rule(alert_rule, updated_fields)
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -1097,6 +1098,9 @@ def update_alert_rule_trigger(
     alert rule
     :return: The updated AlertRuleTrigger
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule_trigger,
+    )
 
     if (
         AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
@@ -1114,6 +1118,8 @@ def update_alert_rule_trigger(
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
 
+    if updated_fields:
+        dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
             trigger.update(**updated_fields)
@@ -1342,6 +1348,10 @@ def update_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_update_migrated_alert_rule_trigger_action,
+    )
+
     updated_fields: dict[str, Any] = {}
     if type is not None:
         updated_fields["type"] = type.value
@@ -1393,6 +1403,7 @@ def update_alert_rule_trigger_action(
             updated_fields["sentry_app_config"] = {"priority": priority}
 
     trigger_action.update(**updated_fields)
+    dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 

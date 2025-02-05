@@ -24,7 +24,8 @@ const withApi = <P extends InjectedApiProps>(
   function WithApi({api: propsApi, ...props}: WrappedProps<P>) {
     const api = useApi({api: propsApi, ...options});
 
-    return <WrappedComponent {...(props as P)} api={api} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent {...(props as P as any)} api={api} />;
   }
 
   WithApi.displayName = `withApi(${getDisplayName(WrappedComponent)})`;
