@@ -3,16 +3,20 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, Self, TypedDict
+from typing import Any, Literal, TypedDict
 
 from django.db.models import QuerySet
 
+from sentry import tsdb
+from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import SNUBA_LIMIT, STANDARD_INTERVALS
+from sentry.rules.conditions.event_frequency import SNUBA_LIMIT
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.iterators import chunked
+from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
+from sentry.workflow_engine.models.data_condition import Condition
 
 
 class _QSTypedDict(TypedDict):
@@ -22,17 +26,7 @@ class _QSTypedDict(TypedDict):
     project__organization_id: int
 
 
-class BaseEventFrequencyConditionHandler(ABC):
-    @property
-    @abstractmethod
-    def base_handler(self) -> Self:
-        # frequency and percent conditions can share the same base handler to query Snuba
-        raise NotImplementedError
-
-    @property
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
-        return STANDARD_INTERVALS
-
+class BaseEventFrequencyQueryHandler(ABC):
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query.
@@ -171,3 +165,80 @@ class BaseEventFrequencyConditionHandler(ABC):
                 environment_id=environment_id,
             )
         return result
+
+
+slow_condition_query_handler_registry = Registry[BaseEventFrequencyQueryHandler](
+    enable_reverse_lookup=False
+)
+
+
+@slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
+@slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
+class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    def batch_query(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        category_group_ids = self.get_group_ids_by_category(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if not organization_id:
+            return batch_sums
+
+        def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
+            return self.get_chunked_result(
+                tsdb_function=tsdb.backend.get_sums,
+                model=model,
+                group_ids=group_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_frequency",
+            )
+
+        for category, issue_ids in category_group_ids.items():
+            model = get_issue_tsdb_group_model(category)
+            batch_sums.update(get_result(model, issue_ids))
+
+        return batch_sums
+
+
+@slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
+@slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
+class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    def batch_query(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        category_group_ids = self.get_group_ids_by_category(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if not organization_id:
+            return batch_sums
+
+        def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
+            return self.get_chunked_result(
+                tsdb_function=tsdb.backend.get_distinct_counts_totals,
+                model=model,
+                group_ids=group_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+            )
+
+        for category, issue_ids in category_group_ids.items():
+            model = get_issue_tsdb_user_group_model(
+                category
+            )  # TODO: may need to update logic for crons, metric issues, uptime
+            batch_sums.update(get_result(model, issue_ids))
+
+        return batch_sums
