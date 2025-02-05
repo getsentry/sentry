@@ -7,8 +7,11 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {useNavContext} from 'sentry/components/nav/context';
+import {NavLayout} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
 import {
+  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -108,6 +111,24 @@ function SidebarLink({children, to, activeTo = to, analyticsKey}: SidebarItemLin
   );
 }
 
+function CollapseButton() {
+  const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+
+  if (layout !== NavLayout.SIDEBAR) {
+    return null;
+  }
+
+  return (
+    <SidebarItemWrapper>
+      <NavButton onClick={() => setIsCollapsed(!isCollapsed)}>
+        <InteractionStateLayer />
+        <IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />
+        {isCollapsed ? t('Expand') : t('Collapse')}
+      </NavButton>
+    </SidebarItemWrapper>
+  );
+}
+
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
@@ -195,6 +216,8 @@ export function PrimaryNavigationItems() {
           <IconSettings />
           <span>{t('Settings')}</span>
         </SidebarLink>
+
+        <CollapseButton />
       </SidebarFooter>
     </Fragment>
   );
@@ -223,8 +246,7 @@ const SidebarItemWrapper = styled('li')`
     height: var(--size);
 
     @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      --size: 18px;
-      padding-top: ${space(0.5)};
+      --size: 16px;
     }
   }
   > a,
@@ -238,7 +260,7 @@ const SidebarItemWrapper = styled('li')`
     color: var(--color, currentColor);
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
-    line-height: 177.75%;
+    line-height: 1;
 
     & > * {
       pointer-events: none;
@@ -252,7 +274,7 @@ const SidebarItemWrapper = styled('li')`
       border-radius: ${p => p.theme.borderRadius};
       font-size: ${p => p.theme.fontSizeExtraSmall};
       margin-inline: ${space(1)};
-      gap: ${space(0.5)};
+      gap: ${space(0.75)};
     }
   }
 `;
