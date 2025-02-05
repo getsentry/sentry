@@ -1,7 +1,5 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {TimeseriesData} from '../common/types';
-
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 describe('splitSeriesIntoCompleteAndIncomplete', () => {
@@ -14,7 +12,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Does not split a series with all complete data', () => {
-    const serie: TimeseriesData = {
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -64,7 +62,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Does not split a series with all incomplete data', () => {
-    const serie: TimeseriesData = {
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -122,7 +120,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Splits a series with partial incomplete data', () => {
-    const serie: TimeseriesData = {
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -194,8 +192,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
   it('Splits a series with long buckets', () => {
     // The time buckets are an hour long. The ingestion delay is 90s. The last buckets should be marked incomplete.
-    //
-    const serie: TimeseriesData = {
+
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
