@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -37,7 +38,7 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
 
   return (
     <Fragment>
-      <SecondaryNav>
+      <SecondaryNav group={PrimaryNavGroup.INSIGHTS}>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/projects/`}>

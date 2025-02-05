@@ -8,7 +8,6 @@ import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
-from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas import get_codec
 
 from sentry.conf.types.kafka_definition import Topic
@@ -134,7 +133,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data["payload"]["values"] = data["payload"]["result"]
         data["payload"].pop("result")
         data["payload"].pop("request")
-        data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
+        data["payload"]["timestamp"] = datetime.fromisoformat(data["payload"]["timestamp"]).replace(
             tzinfo=timezone.utc
         )
         mock_callback.assert_called_once_with(data["payload"], sub)

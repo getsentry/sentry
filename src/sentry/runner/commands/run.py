@@ -267,6 +267,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(schedule_data)
 
+        runner.log_startup()
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
@@ -274,7 +275,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
 @run.command()
 @click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
-@click.option("--num-brokers", help="Number of brokers available to connect to", default=1)
+@click.option(
+    "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
+)
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
@@ -297,7 +300,7 @@ def taskworker(**options: Any) -> None:
 
 def run_taskworker(
     rpc_host: str,
-    num_brokers: int,
+    num_brokers: int | None,
     max_task_count: int,
     namespace: str | None,
     concurrency: int,

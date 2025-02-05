@@ -19,7 +19,8 @@ function withOrganization<P extends InjectedOrganizationProps>(
 
     const allProps = {organization, ...props} as P;
 
-    return <WrappedComponent {...allProps} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent {...(allProps as P as any)} />;
   }
 
   Wrapper.displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
