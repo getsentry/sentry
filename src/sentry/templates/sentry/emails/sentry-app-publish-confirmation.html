@@ -1,0 +1,24 @@
+{% extends "sentry/emails/base.html" %}
+{% load i18n %}
+{% load sentry_avatars%}
+{% load sentry_helpers %}
+
+{% block main %}
+<h3>Custom Integration Publishing Form Integration</h3>
+<p>
+  Thank you for your submission! This email is confirmation that user, {{ actor.email }}
+    has submitted the integration publishing form for
+  {{ sentry_app.slug }}. Please note our current processing times for integration
+  publishing requests is 4-5 weeks.
+</p>
+<table>
+	{% for question in questionnaire %}
+  <tr>
+    <td>
+      <strong>{{ question.question }}</strong><br />
+      > {{ question.answer }}<br />
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %} {% block footer %}{% endblock %}

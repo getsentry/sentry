@@ -14,6 +14,7 @@ import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 type Props = {
   app: SentryApp;
+  onPublishSubmission: () => void;
   onRemoveApp: (app: SentryApp) => void;
   organization: Organization;
 };
@@ -37,9 +38,15 @@ export default class SentryApplicationRow extends PureComponent<Props> {
   }
 
   handlePublish = () => {
-    const {app} = this.props;
+    const {app, onPublishSubmission} = this.props;
 
-    openModal(deps => <SentryAppPublishRequestModal app={app} {...deps} />);
+    openModal(deps => (
+      <SentryAppPublishRequestModal
+        app={app}
+        onPublishSubmission={onPublishSubmission}
+        {...deps}
+      />
+    ));
   };
 
   render() {

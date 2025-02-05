@@ -44,25 +44,15 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
   return permissions;
 };
 
-function transformData(data: Record<string, any>, model: FormModel) {
-  // map object to list of questions
-  const questionnaire = Array.from(model.fieldDescriptor.values()).map(field =>
-    // we read the meta for the question that has a react node for the label
-    ({
-      question: field.meta || field.label,
-      answer: data[field.name],
-    })
-  );
-  return {questionnaire};
-}
-
 type Props = ModalRenderProps & {
   app: SentryApp;
+  onPublishSubmission: () => void;
 };
 
 export default function SentryAppPublishRequestModal(props: Props) {
   const [form] = useState<FormModel>(() => new FormModel({transformData}));
-  const {app, closeModal, Header, Body} = props;
+
+  const {app, closeModal, Header, Body, onPublishSubmission} = props;
 
   const formFields = () => {
     const permissions = getPermissionSelectionsFromScopes(app.scopes);
@@ -135,9 +125,22 @@ export default function SentryAppPublishRequestModal(props: Props) {
     return baseFields;
   };
 
+  function transformData(data: Record<string, any>, model: FormModel) {
+    // map object to list of questions
+    const questionnaire = Array.from(model.fieldDescriptor.values()).map(field =>
+      // we read the meta for the question that has a react node for the label
+      ({
+        question: field.meta || field.label,
+        answer: data[field.name],
+      })
+    );
+    return {questionnaire};
+  }
+
   const handleSubmitSuccess = () => {
     addSuccessMessage(t('Request to publish %s successful.', app.slug));
     closeModal();
+    onPublishSubmission();
   };
 
   const handleSubmitError = (err: any) => {

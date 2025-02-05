@@ -1,0 +1,20 @@
+{% spaceless %}
+{% load sentry_helpers %}
+{% autoescape off %}
+
+Thank you for your submission! This email is confirmation that user, {{
+    actor.email }}, has submitted the integration publishing form for
+    {{sentry_app.slug}}. Please note our current processing times for integration
+    publishing requests is 4-5 weeks.
+
+Questions
+-------
+{% for question in questionnaire %}
+
+{{ question.question }}
+> {{ question.answer }}
+
+{% endfor %}
+
+{% endautoescape %}
+{% endspaceless %}
