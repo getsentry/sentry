@@ -7,11 +7,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {
-  isLinkActive,
-  makeLinkPropsFromTo,
-  type NavSidebarItem,
-} from 'sentry/components/nav/utils';
+import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
 import {
   IconDashboard,
   IconGraph,
@@ -29,13 +25,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface SidebarItemProps {
-  item: NavSidebarItem;
-  children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLElement>;
-}
-
 interface SidebarItemLinkProps {
+  analyticsKey: string;
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
@@ -43,9 +34,9 @@ interface SidebarItemLinkProps {
 }
 
 interface SidebarItemDropdownProps {
+  analyticsKey: string;
   items: MenuItemProps[];
   children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLElement>;
 }
 
 function SidebarBody({children}: {children: React.ReactNode}) {
@@ -60,83 +51,60 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   );
 }
 
-function SidebarItem({item}: SidebarItemProps) {
+function SidebarMenu({items, children, analyticsKey}: SidebarItemDropdownProps) {
   const organization = useOrganization();
-
   const recordAnalytics = useCallback(
-    () =>
-      trackAnalytics('growth.clicked_sidebar', {item: item.analyticsKey, organization}),
-    [organization, item.analyticsKey]
+    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
+    [organization, analyticsKey]
   );
 
-  if (item.to) {
-    return (
-      <SidebarItemWrapper>
-        <SidebarLink
-          to={item.to}
-          activeTo={item.activeTo}
-          key={item.label}
-          onClick={recordAnalytics}
-        >
-          {item.icon}
-          <span>{item.label}</span>
-        </SidebarLink>
-      </SidebarItemWrapper>
-    );
-  }
-
-  if (item.dropdown) {
-    return (
-      <SidebarItemWrapper>
-        <SidebarMenu items={item.dropdown} key={item.label} onClick={recordAnalytics}>
-          {item.icon}
-          <span>{item.label}</span>
-        </SidebarMenu>
-      </SidebarItemWrapper>
-    );
-  }
-
-  return null;
-}
-
-function SidebarMenu({items, children, onClick}: SidebarItemDropdownProps) {
   return (
-    <DropdownMenu
-      position="right-end"
-      trigger={(props, isOpen) => {
-        return (
-          <NavButton
-            {...props}
-            onClick={event => {
-              onClick?.(event);
-              props.onClick?.(event);
-            }}
-          >
-            <InteractionStateLayer hasSelectedBackground={isOpen} />
-            {children}
-          </NavButton>
-        );
-      }}
-      items={items}
-    />
+    <SidebarItemWrapper>
+      <DropdownMenu
+        position="right-end"
+        trigger={(props, isOpen) => {
+          return (
+            <NavButton
+              {...props}
+              onClick={event => {
+                recordAnalytics();
+                props.onClick?.(event);
+              }}
+            >
+              <InteractionStateLayer hasSelectedBackground={isOpen} />
+              {children}
+            </NavButton>
+          );
+        }}
+        items={items}
+      />
+    </SidebarItemWrapper>
   );
 }
 
-function SidebarLink({children, to, activeTo = to, onClick}: SidebarItemLinkProps) {
+function SidebarLink({children, to, activeTo = to, analyticsKey}: SidebarItemLinkProps) {
+  const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const linkProps = makeLinkPropsFromTo(to);
 
+  const recordAnalytics = useCallback(
+    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
+    [organization, analyticsKey]
+  );
+
   return (
-    <NavLink
-      {...linkProps}
-      onClick={onClick}
-      aria-selected={isActive}
-      aria-current={isActive ? 'page' : undefined}
-    >
-      <InteractionStateLayer hasSelectedBackground={isActive} />
-      {children}
-    </NavLink>
+    <SidebarItemWrapper>
+      <NavLink
+        {...linkProps}
+        onClick={recordAnalytics}
+        aria-selected={isActive}
+        aria-current={isActive ? 'page' : undefined}
+      >
+        <InteractionStateLayer hasSelectedBackground={isActive} />
+        {children}
+      </NavLink>
+    </SidebarItemWrapper>
   );
 }
 
@@ -147,96 +115,86 @@ export function PrimaryNavigationItems() {
   return (
     <Fragment>
       <SidebarBody>
-        <SidebarItem
-          item={{
-            label: t('Issues'),
-            icon: <IconIssues />,
-            analyticsKey: 'issues',
-            to: `/${prefix}/issues/`,
-          }}
-        />
-        <SidebarItem
-          item={{
-            label: t('Explore'),
-            icon: <IconSearch />,
-            analyticsKey: 'explore',
-            to: `/${prefix}/explore/traces/`,
-          }}
-        />
+        <SidebarLink to={`/${prefix}/issues/`} analyticsKey="issues">
+          <IconIssues />
+          <span>{t('Issues')}</span>
+        </SidebarLink>
+
+        <SidebarLink to={`/${prefix}/explore/traces/`} analyticsKey="explore">
+          <IconSearch />
+          <span>{t('Explore')}</span>
+        </SidebarLink>
+
         <Feature
           features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
           hookName="feature-disabled:dashboards-sidebar-item"
           requireAll={false}
         >
-          <SidebarItem
-            item={{
-              label: t('Boards'),
-              icon: <IconDashboard />,
-              analyticsKey: 'customizable-dashboards',
-              to: `/${prefix}/dashboards/`,
-            }}
-          />
+          <SidebarLink
+            to={`/${prefix}/dashboards/`}
+            analyticsKey="customizable-dashboards"
+          >
+            <IconDashboard />
+            <span>{t('Boards')}</span>
+          </SidebarLink>
         </Feature>
+
         <Feature features={['performance-view']}>
-          <SidebarItem
-            item={{
-              label: t('Insights'),
-              icon: <IconGraph />,
-              analyticsKey: 'insights-domains',
-              to: `/${prefix}/insights/frontend/`,
-            }}
-          />
+          <SidebarLink
+            to={`/${prefix}/insights/frontend/`}
+            analyticsKey="insights-domains"
+          >
+            <IconGraph />
+            <span>{t('Insights')}</span>
+          </SidebarLink>
         </Feature>
       </SidebarBody>
+
       <SidebarFooter>
-        <SidebarItem
-          item={{
-            label: t('Help'),
-            icon: <IconQuestion />,
-            analyticsKey: 'help',
-            dropdown: [
-              {
-                key: 'search',
-                label: t('Search Support, Docs and More'),
-                onAction() {
-                  openHelpSearchModal({organization});
-                },
+        <SidebarMenu
+          items={[
+            {
+              key: 'search',
+              label: t('Search Support, Docs and More'),
+              onAction() {
+                openHelpSearchModal({organization});
               },
-              {
-                key: 'help',
-                label: t('Visit Help Center'),
-                to: 'https://sentry.zendesk.com/hc/en-us',
-              },
-              {
-                key: 'discord',
-                label: t('Join our Discord'),
-                to: 'https://discord.com/invite/sentry',
-              },
-              {
-                key: 'support',
-                label: t('Contact Support'),
-                to: `mailto:${ConfigStore.get('supportEmail')}`,
-              },
-            ],
-          }}
-        />
-        <SidebarItem
-          item={{
-            label: t('Stats'),
-            icon: <IconStats />,
-            analyticsKey: 'stats',
-            to: `/${prefix}/stats/`,
-          }}
-        />
-        <SidebarItem
-          item={{
-            label: t('Settings'),
-            icon: <IconSettings />,
-            analyticsKey: 'settings',
-            to: `/${prefix}/settings/${organization.slug}/`,
-            activeTo: `/${prefix}/settings/`,
-          }}
-        />
+            },
+            {
+              key: 'help',
+              label: t('Visit Help Center'),
+              to: 'https://sentry.zendesk.com/hc/en-us',
+            },
+            {
+              key: 'discord',
+              label: t('Join our Discord'),
+              to: 'https://discord.com/invite/sentry',
+            },
+            {
+              key: 'support',
+              label: t('Contact Support'),
+              to: `mailto:${ConfigStore.get('supportEmail')}`,
+            },
+          ]}
+          analyticsKey="help"
+        >
+          <IconQuestion />
+          <span>{t('Help')}</span>
+        </SidebarMenu>
+
+        <SidebarLink to={`/${prefix}/stats/`} analyticsKey="stats">
+          <IconStats />
+          <span>{t('Stats')}</span>
+        </SidebarLink>
+
+        <SidebarLink
+          to={`/${prefix}/settings/`}
+          activeTo={`/${prefix}/settings/`}
+          analyticsKey="settings"
+        >
+          <IconSettings />
+          <span>{t('Settings')}</span>
+        </SidebarLink>
       </SidebarFooter>
     </Fragment>
   );
