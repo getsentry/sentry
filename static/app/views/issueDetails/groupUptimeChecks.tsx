@@ -27,6 +27,7 @@ import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeCheck
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 export default function GroupUptimeChecks() {
   const organization = useOrganization();
@@ -34,7 +35,6 @@ export default function GroupUptimeChecks() {
   const location = useLocation();
   const user = useUser();
   const {detectorDetails} = useIssueDetails();
-  const {detectorId: uptimeAlertId, detectorType} = detectorDetails;
 
   const {
     data: group,
@@ -43,11 +43,23 @@ export default function GroupUptimeChecks() {
     refetch: refetchGroup,
   } = useGroup({groupId});
 
+  const {
+    data: event,
+    isPending: isEventPending,
+    isError: isEventError,
+    refetch: refetchEvent,
+  } = useGroupEvent({
+    groupId,
+    eventId: user.options.defaultIssueEvent,
+  });
+
+  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
+  const uptimeAlertId =
+    detectorDetails.detectorId ??
+    event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
+
   const canFetchUptimeChecks =
-    Boolean(organization.slug) &&
-    Boolean(group?.project.slug) &&
-    Boolean(uptimeAlertId) &&
-    detectorType === 'uptime_monitor';
+    Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
 
   const {data: uptimeData, getResponseHeader} = useUptimeChecks(
     {
@@ -62,6 +74,11 @@ export default function GroupUptimeChecks() {
 
   if (isGroupError) {
     return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  // If the event query failed, only show an error if we don't already have the detector details
+  if (!canFetchUptimeChecks && isEventError) {
+    return <LoadingError onRetry={refetchEvent} />;
   }
 
   if (isGroupPending || !uptimeData) {
@@ -85,7 +102,7 @@ export default function GroupUptimeChecks() {
       }}
     >
       <GridEditable
-        isLoading={isGroupPending}
+        isLoading={isGroupPending || isEventPending}
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
