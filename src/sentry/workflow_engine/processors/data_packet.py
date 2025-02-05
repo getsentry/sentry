@@ -14,14 +14,14 @@ def process_data_packets(
 
     This is the general entry point for the workflow engine. It will create
     a metric pipline with the following metrics:
-    - sentry.workflow_engine.process_data_sources
-        - sentry.workflow_engine.process_data_sources.detectors
-        - sentry.workflow_engine.process_data_sources.no_detectors
-    - sentry.workflow_engine.process_detectors
-        - sentry.workflow_engine.process_detectors.triggered
-    - sentry.workflow_engine.process_workflows
-        - sentry.workflow_engine.process_workflows.triggered_workflows
-        - sentry.workflow_engine.process_workflows.triggered_actions
+    - workflow_engine.process_data_sources
+        - workflow_engine.process_data_sources.detectors
+        - workflow_engine.process_data_sources.no_detectors
+    - workflow_engine.process_detectors
+        - workflow_engine.process_detectors.triggered
+    - workflow_engine.process_workflows
+        - workflow_engine.process_workflows.triggered_workflows
+        - workflow_engine.process_workflows.triggered_actions
 
     This metric funnel can be used to monitor the health of the workflow engine.
     TODO - saponifi3d - Create a monitoring dashboard for the workflow engine and link it here

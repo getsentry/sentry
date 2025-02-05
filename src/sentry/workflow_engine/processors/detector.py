@@ -56,7 +56,7 @@ def process_detectors(
             continue
 
         metrics.incr(
-            "sentry.workflow_engine.process_detector",
+            "workflow_engine.process_detector",
             tags={"detector_type": detector.type},
         )
 
@@ -65,7 +65,7 @@ def process_detectors(
         for result in detector_results.values():
             if result.result is not None:
                 metrics.incr(
-                    "sentry.workflow_engine.process_detector.triggered",
+                    "workflow_engine.process_detector.triggered",
                     tags={"detector_type": detector.type},
                 )
                 create_issue_occurrence_from_result(result)

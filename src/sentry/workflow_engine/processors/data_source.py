@@ -12,13 +12,13 @@ logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 def process_data_sources(
     data_packets: list[DataPacket], query_type: str
 ) -> list[tuple[DataPacket, list[Detector]]]:
-    metrics.incr("sentry.workflow_engine.process_data_sources", tags={"query_type": query_type})
+    metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
     # TODO - saponifi3d - change data_source.query_id to be a string to support UUIDs
     data_packet_ids = {int(packet.query_id) for packet in data_packets}
 
     # Fetch all data sources and associated detectors for the given data packets
-    with sentry_sdk.start_span(op="sentry.workflow_engine.process_data_sources.fetch_data_sources"):
+    with sentry_sdk.start_span(op="workflow_engine.process_data_sources.fetch_data_sources"):
         data_sources = DataSource.objects.filter(
             query_id__in=data_packet_ids, type=query_type
         ).prefetch_related(Prefetch("detectors"))
@@ -36,7 +36,7 @@ def process_data_sources(
             result.append(data_packet_tuple)
 
             metrics.incr(
-                "sentry.workflow_engine.process_data_sources.detectors",
+                "workflow_engine.process_data_sources.detectors",
                 len(detectors),
                 tags={"detector_type": detectors[0].type},
             )
@@ -45,7 +45,7 @@ def process_data_sources(
                 "No detectors found", extra={"query_id": packet.query_id, "query_type": query_type}
             )
             metrics.incr(
-                "sentry.workflow_engine.process_data_sources.no_detectors",
+                "workflow_engine.process_data_sources.no_detectors",
                 tags={"query_type": query_type},
             )
 

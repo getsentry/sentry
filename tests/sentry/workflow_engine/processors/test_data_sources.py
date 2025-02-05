@@ -97,7 +97,7 @@ class TestProcessDataSources(BaseWorkflowTest):
             process_data_sources(self.data_packets, "test")
 
             mock_incr.assert_any_call(
-                "sentry.workflow_engine.process_data_sources", tags={"query_type": "test"}
+                "workflow_engine.process_data_sources", tags={"query_type": "test"}
             )
 
     def test_metrics_are_sent_for_detector_types(self):
@@ -105,7 +105,7 @@ class TestProcessDataSources(BaseWorkflowTest):
             process_data_sources(self.data_packets, "test")
 
             mock_incr.assert_any_call(
-                "sentry.workflow_engine.process_data_sources.detectors",
+                "workflow_engine.process_data_sources.detectors",
                 1,
                 tags={"detector_type": self.detector_one.type},
             )
@@ -115,6 +115,6 @@ class TestProcessDataSources(BaseWorkflowTest):
             process_data_sources(self.data_packets, "test3")
 
             mock_incr.assert_any_call(
-                "sentry.workflow_engine.process_data_sources.no_detectors",
+                "workflow_engine.process_data_sources.no_detectors",
                 tags={"query_type": "test3"},
             )

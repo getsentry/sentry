@@ -153,12 +153,11 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     ):
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
-        if actions:
-            metrics.incr(
-                "workflow_engine.process_workflows.triggered_actions",
-                len(actions),
-                tags={"detector_type": detector.type},
-            )
+        metrics.incr(
+            "workflow_engine.process_workflows.triggered_actions",
+            len(actions),
+            tags={"detector_type": detector.type},
+        )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         for action in actions:
