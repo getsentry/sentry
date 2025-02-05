@@ -18,6 +18,7 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
+  SOLUTION = 'solution',
 }
 
 export enum AutofixCodebaseIndexingStatus {
@@ -77,7 +78,11 @@ export type AutofixProgressItem = {
   data?: any;
 };
 
-export type AutofixStep = AutofixDefaultStep | AutofixRootCauseStep | AutofixChangesStep;
+export type AutofixStep =
+  | AutofixDefaultStep
+  | AutofixRootCauseStep
+  | AutofixSolutionStep
+  | AutofixChangesStep;
 
 interface BaseStep {
   id: string;
@@ -135,6 +140,13 @@ export interface AutofixRootCauseStep extends BaseStep {
   termination_reason?: string;
 }
 
+export interface AutofixSolutionStep extends BaseStep {
+  solution: AutofixSolutionTimelineEvent[];
+  solution_selected: boolean;
+  type: AutofixStepType.SOLUTION;
+  custom_solution?: string;
+}
+
 export type AutofixCodebaseChange = {
   description: string;
   diff: FilePatch[];
@@ -161,12 +173,15 @@ export type AutofixTimelineEvent = {
   code_snippet_and_analysis: string;
   is_most_important_event: boolean;
   relevant_code_file: AutofixRelevantCodeFile;
-  timeline_item_type:
-    | 'environment'
-    | 'database'
-    | 'code'
-    | 'api_request'
-    | 'human_action';
+  timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
+  title: string;
+};
+
+export type AutofixSolutionTimelineEvent = {
+  code_snippet_and_analysis: string;
+  is_new_event: boolean;
+  relevant_code_file: AutofixRelevantCodeFile;
+  timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
   title: string;
 };
 

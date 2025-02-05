@@ -40,9 +40,6 @@ describe('AutofixRootCause', function () {
         defaultProps.causes[0]!.root_cause_reproduction![0]!.code_snippet_and_analysis
       )
     ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Find Fix'})).toBeInTheDocument();
   });
 
   it('shows graceful error state when there are no causes', function () {
@@ -65,7 +62,7 @@ describe('AutofixRootCause', function () {
     render(<AutofixRootCause {...defaultProps} />);
 
     // Click edit button
-    await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
+    await userEvent.click(screen.getByTestId('autofix-root-cause-edit-button'));
 
     // Verify textarea appears
     const textarea = screen.getByPlaceholderText('Propose your own root cause...');
@@ -74,8 +71,8 @@ describe('AutofixRootCause', function () {
     // Enter custom root cause
     await userEvent.type(textarea, 'This is a custom root cause');
 
-    // Click Find Fix button
-    await userEvent.click(screen.getByRole('button', {name: 'Find Fix'}));
+    // Click Save button
+    await userEvent.click(screen.getByTestId('autofix-root-cause-save-edit-button'));
 
     // Verify API was called with correct payload
     expect(mockApi).toHaveBeenCalledWith(
@@ -87,29 +84,6 @@ describe('AutofixRootCause', function () {
           payload: {
             type: 'select_root_cause',
             custom_root_cause: 'This is a custom root cause',
-          },
-        },
-      })
-    );
-  });
-
-  it('can select suggested root cause', async function () {
-    const cause = AutofixRootCauseData();
-    render(<AutofixRootCause {...defaultProps} causes={[cause]} />);
-
-    // Click Find Fix button
-    await userEvent.click(screen.getByRole('button', {name: 'Find Fix'}));
-
-    // Verify API was called with correct payload
-    expect(mockApi).toHaveBeenCalledWith(
-      '/issues/1/autofix/update/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          run_id: '101',
-          payload: {
-            type: 'select_root_cause',
-            cause_id: cause.id,
           },
         },
       })
@@ -134,10 +108,6 @@ describe('AutofixRootCause', function () {
     expect(
       screen.getByText(selectedCause.root_cause_reproduction![0]!.title)
     ).toBeInTheDocument();
-
-    // Verify edit/find fix buttons are not present
-    expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Find Fix'})).not.toBeInTheDocument();
   });
 
   it('shows custom root cause when rootCauseSelection has custom_root_cause', function () {

@@ -25,7 +25,7 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconCopy, IconFix, IconOpen} from 'sentry/icons';
+import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -460,8 +460,6 @@ export function AutofixChanges({
     );
   }
 
-  const allChangesHavePullRequests = step.changes.every(change => change.pull_request);
-
   const prsMade =
     step.status === AutofixStatus.COMPLETED &&
     step.changes.length >= 1 &&
@@ -475,12 +473,12 @@ export function AutofixChanges({
   return (
     <AnimatePresence initial>
       <AnimationWrapper key="card" {...cardAnimationProps}>
-        <ChangesContainer allChangesHavePullRequests={allChangesHavePullRequests}>
+        <ChangesContainer>
           <ClippedBox clipHeight={408}>
             <HeaderWrapper>
               <HeaderText>
-                <IconFix size="sm" />
-                {t('Fixes')}
+                <IconCode size="sm" />
+                {t('Code Changes')}
               </HeaderText>
               {!prsMade && (
                 <ButtonBar gap={1}>
@@ -593,17 +591,12 @@ const AnimationWrapper = styled(motion.div)`
 
 const PrefixText = styled('span')``;
 
-const ChangesContainer = styled('div')<{allChangesHavePullRequests: boolean}>`
-  border: 2px solid
-    ${p =>
-      p.allChangesHavePullRequests
-        ? p.theme.alert.success.border
-        : p.theme.alert.info.border};
+const ChangesContainer = styled('div')`
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${space(2)};
   padding-right: ${space(2)};
-  padding-top: ${space(1)};
 `;
 
 const Content = styled('div')`
@@ -636,7 +629,7 @@ const Separator = styled('hr')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: 1.2em;
+  font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;
   gap: ${space(1)};
