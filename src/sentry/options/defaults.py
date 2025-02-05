@@ -3006,4 +3006,5 @@ register(
     "uptime.date_cutoff_epoch_seconds",
     type=Int,
     default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
