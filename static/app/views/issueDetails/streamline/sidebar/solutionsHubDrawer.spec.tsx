@@ -87,7 +87,7 @@ describe('SolutionsHubDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry AI beta'})).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
@@ -109,7 +109,7 @@ describe('SolutionsHubDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry AI beta'})).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     expect(startButton).toBeInTheDocument();
@@ -207,7 +207,7 @@ describe('SolutionsHubDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry AI beta'})).toBeInTheDocument();
 
     expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
 
