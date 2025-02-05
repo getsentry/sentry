@@ -30,6 +30,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:56:00.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
@@ -76,6 +84,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:58:20.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
@@ -130,6 +146,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:59:00.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
@@ -191,6 +215,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:00:00.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
