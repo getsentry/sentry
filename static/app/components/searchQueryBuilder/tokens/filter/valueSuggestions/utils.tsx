@@ -6,6 +6,7 @@ import {DEFAULT_BOOLEAN_SUGGESTIONS} from 'sentry/components/searchQueryBuilder/
 import {getRelativeDateSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import {getDurationSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/duration';
 import {getNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
+import {getSizeSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/size';
 import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -28,6 +29,8 @@ export function getValueSuggestions({
       return getNumericSuggestions(filterValue);
     case FieldValueType.DURATION:
       return getDurationSuggestions(filterValue, token);
+    case FieldValueType.SIZE:
+      return getSizeSuggestions(filterValue, token);
     case FieldValueType.PERCENTAGE:
       return [];
     case FieldValueType.BOOLEAN:
