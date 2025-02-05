@@ -12,12 +12,14 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import type {Project} from 'sentry/types/project';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconAdd, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
+import type {TeamWithProjects, FilteredProject} from './types';
+
+function ProjectCardList({projects}: {projects: Project[]}) {
+  const organization = useOrganization();
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
@@ -123,14 +125,17 @@ function Dashboard() {
   const myTeams = includeMyTeams ? userTeams : [];
   const otherTeams = isAllTeams
     ? allTeams
-    : hasOtherTeams
       ? allTeams.filter(team => selectedTeams.includes(`${team.id}`))
       : [];
   const filteredTeams = [...myTeams, ...otherTeams].filter(team => {
     if (showNonMemberProjects) {
       return true;
-    }
+    filteredTeams.flatMap(team => team.projects?.filter(Boolean) || []),
 
+  );
+  setGroupedEntityTag('projects.total', 1000, projects.length);
+
+  const filteredProjects = currentProjects.filter(project => project?.slug?.includes(projectQuery));
     return team.isMember;
   });
   const filteredTeamsWithProjects = addProjectsToTeams(filteredTeams, projects);
