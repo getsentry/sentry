@@ -139,6 +139,10 @@ class ScheduleRunner:
         self._entries.append(entry)
         self._heap = []
 
+    def log_startup(self) -> None:
+        task_names = [entry.fullname for entry in self._entries]
+        logger.info("taskworker.scheduler.startup", extra={"tasks": task_names})
+
     def tick(self) -> float:
         """
         Check if any tasks are due to run at current_time, and spawn them.

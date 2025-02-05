@@ -35,7 +35,14 @@ class Schedule(metaclass=abc.ABCMeta):
 
 
 class TimedeltaSchedule(Schedule):
-    """Task schedules defined as `datetime.timedelta` intervals"""
+    """
+    Task schedules defined as `datetime.timedelta` intervals
+
+    If a timedelta interval loses it's last_run state, it will assume
+    that at least one interval has been missed, and it will become due immediately.
+
+    After the first spawn, the schedule will align to to the interval's duration.
+    """
 
     def __init__(self, delta: timedelta) -> None:
         self._delta = delta
@@ -71,13 +78,16 @@ class CrontabSchedule(Schedule):
     """
     Task schedules defined as crontab expressions.
 
-    Last run state is used to determine the next scheduled time.
+    crontab expressions naturally align to clock intervals. For example
+    an interval of `crontab(minute="*/2")` will spawn on the even numbered minutes.
 
-    If last run is in the future, the future value will be used to
-    calculate the next scheduled time.
+    If a crontab schedule loses its last_run state, it will assume that
+    one or more intervals have been missed, and it will align to the next
+    interval window. Missed intervals will not be recovered.
 
-    If runs are missed, the schedule will align to the next interval
-    that would be scheduled. Lost runs are not recovered.
+    For tasks with very long intervals, you should consider the impact of a deploy
+    or scheduler restart causing a missed window. Consider a more frequent interval
+    to help spread load out and reduce the impacts of missed intervals.
     """
 
     def __init__(self, name: str, crontab: crontab) -> None:

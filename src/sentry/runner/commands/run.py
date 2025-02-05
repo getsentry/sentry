@@ -267,6 +267,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(schedule_data)
 
+        runner.log_startup()
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
