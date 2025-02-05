@@ -438,7 +438,9 @@ def migrate_alert_rule(
     )
 
 
-def dual_update_migrated_query(old_subscription_id: int, alert_rule: AlertRule) -> DataSource:
+def dual_update_migrated_query(
+    old_subscription_id: int, alert_rule: AlertRule
+) -> DataSource | None:
     """
     If a legacy alert rule's snuba query is updated, then we need to update the data source with
     the new subscription ID. We'll need to fetch the data source using the old subscription ID.
