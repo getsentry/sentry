@@ -32,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
 import {UptimeIssues} from './uptimeIssues';
 
@@ -137,6 +138,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <DatePageFilter />
             <EnvironmentPageFilter />
           </StyledPageFilterBar>
+          <DetailsTimeline uptimeRule={uptimeRule} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
         </Layout.Main>
         <Layout.Side>
