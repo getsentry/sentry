@@ -114,7 +114,7 @@ function FrontendOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const frontendSelectedProjects: Project[] = getSelectedProjectList(
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
     selection.projects,
     projects
   ).filter((project): project is Project =>
@@ -124,10 +124,13 @@ function FrontendOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
-  existingQuery.addFilterValue(
-    'project.id',
-    `[${frontendSelectedProjects.map(({id}) => id).join(',')}]`
-  );
+  if (selectedFrontendProjects.length > 0) {
+    existingQuery.addOp('OR');
+    existingQuery.addFilterValue(
+      'project.id',
+      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
+    );
+  }
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;

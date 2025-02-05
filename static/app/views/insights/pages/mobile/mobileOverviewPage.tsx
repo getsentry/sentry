@@ -105,7 +105,7 @@ function MobileOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const mobileSelectedProjects: Project[] = getSelectedProjectList(
+  const selectedMobileProjects: Project[] = getSelectedProjectList(
     selection.projects,
     projects
   ).filter((project): project is Project =>
@@ -114,10 +114,14 @@ function MobileOverviewPage() {
 
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
-  existingQuery.addFilterValue(
-    'project.id',
-    `[${mobileSelectedProjects.map(({id}) => id).join(',')}]`
-  );
+  if (selectedMobileProjects.length > 0) {
+    existingQuery.addOp('OR');
+    existingQuery.addFilterValue(
+      'project.id',
+      `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
+    );
+  }
+
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;

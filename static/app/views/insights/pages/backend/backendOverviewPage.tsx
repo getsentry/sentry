@@ -123,14 +123,14 @@ function BackendOverviewPage() {
     ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
   ];
 
-  const frontendSelectedProjects: Project[] = getSelectedProjectList(
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
     selection.projects,
     projects
   ).filter((project): project is Project =>
     Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
   );
 
-  const mobileSelectedProjects: Project[] = getSelectedProjectList(
+  const selectedMobileProjects: Project[] = getSelectedProjectList(
     selection.projects,
     projects
   ).filter((project): project is Project =>
@@ -139,11 +139,17 @@ function BackendOverviewPage() {
 
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
-  // TODO - make this a not condtion
-  existingQuery.addFilterValues('project', [
-    ...frontendSelectedProjects.map(project => project.id),
-    ...mobileSelectedProjects.map(project => project.id),
-  ]);
+
+  if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
+    existingQuery.addFilterValue(
+      '!project.id',
+      `[${[
+        ...selectedFrontendProjects.map(project => project.id),
+        ...selectedMobileProjects.map(project => project.id),
+      ]}]`
+    );
+  }
+
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
