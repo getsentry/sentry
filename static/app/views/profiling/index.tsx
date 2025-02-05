@@ -1,7 +1,9 @@
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -13,6 +15,15 @@ type Props = {
 
 function ProfilingContainer({children}: Props) {
   const organization = useOrganization();
+
+  const redirectPath = useRedirectNavV2Routes({
+    oldPathPrefix: '/profiling/',
+    newPathPrefix: '/explore/profiling/',
+  });
+
+  if (redirectPath) {
+    return <Redirect to={redirectPath} />;
+  }
 
   return (
     <Feature
