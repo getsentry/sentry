@@ -6,7 +6,7 @@ from sentry.models.group import Group
 from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
-    EventFrequencyCountHandler,
+    EventFrequencyConditionHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
@@ -23,7 +23,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 1000,
+        "value": 50,
         "comparisonType": ComparisonType.COUNT,
     }
 
@@ -34,14 +34,14 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
     def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
-            comparison={"interval": "1h", "value": 1000},
+            comparison={"interval": "1h", "value": 50},
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [1001]
+        self.job["snuba_results"] = [51]
         self.assert_passes(dc, self.job)
 
-        self.job["snuba_results"] = [999]
+        self.job["snuba_results"] = [49]
         self.assert_does_not_pass(dc, self.job)
 
     def test_dual_write_count(self):
@@ -50,8 +50,8 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "interval": "1h",
-            "value": 1000,
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -62,7 +62,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
                 type=self.condition,
                 comparison={
                     "interval": "asdf",
-                    "value": 100,
+                    "value": 50,
                 },
                 condition_result=True,
             )
@@ -83,7 +83,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 1000,
+        "value": 50,
         "comparisonType": ComparisonType.PERCENT,
         "comparisonInterval": "1d",
     }
@@ -115,9 +115,9 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "interval": "1h",
-            "value": 1000,
-            "comparison_interval": "1d",
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
+            "comparison_interval": self.payload["comparisonInterval"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -158,7 +158,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
 
 
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
-    handler = EventFrequencyCountHandler
+    handler = EventFrequencyConditionHandler
 
     def test_batch_query(self):
         batch_query = self.handler().batch_query(
@@ -166,6 +166,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
+            interval="1m",  # unused in this handler
         )
         assert batch_query == {
             self.event.group_id: 1,
@@ -178,6 +179,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
+            interval="1m",  # unused in this handler
         )
         assert batch_query == {self.event3.group_id: 1}
 

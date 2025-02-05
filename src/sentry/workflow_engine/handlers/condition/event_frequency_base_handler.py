@@ -31,6 +31,7 @@ class _QSTypedDict(TypedDict):
 
 class BaseEventFrequencyConditionHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
+    comparison_json_schema: ClassVar[dict[str, Any]]
 
     @classmethod
     @abstractmethod
@@ -139,7 +140,12 @@ class BaseEventFrequencyConditionHandler(ABC):
 
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        interval: str,
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -154,6 +160,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
+        interval: str,
     ) -> dict[int, int]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
@@ -174,12 +181,13 @@ class BaseEventFrequencyConditionHandler(ABC):
                 start=start,
                 end=end,
                 environment_id=environment_id,
+                interval=interval,
             )
         return result
 
 
 class BaseEventFrequencyCountHandler:
-    comparison_json_schema = {
+    comparison_json_schema: ClassVar[dict[str, Any]] = {
         "type": "object",
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
@@ -197,7 +205,7 @@ class BaseEventFrequencyCountHandler:
 
 
 class BaseEventFrequencyPercentHandler:
-    comparison_json_schema = {
+    comparison_json_schema: ClassVar[dict[str, Any]] = {
         "type": "object",
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},

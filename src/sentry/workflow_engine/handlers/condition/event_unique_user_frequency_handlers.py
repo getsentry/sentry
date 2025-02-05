@@ -21,7 +21,12 @@ class EventUniqueUserFrequencyConditionHandler(BaseEventFrequencyConditionHandle
         return EventUniqueUserFrequencyConditionHandler
 
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(

@@ -5,6 +5,8 @@ __all__ = [
     "EventSeenCountConditionHandler",
     "EventUniqueUserFrequencyCountHandler",
     "EventUniqueUserFrequencyPercentHandler",
+    "PercentSessionsCountHandler",
+    "PercentSessionsPercentHandler",
     "ReappearedEventConditionHandler",
     "RegressionEventConditionHandler",
     "ExistingHighPriorityIssueConditionHandler",
@@ -41,6 +43,7 @@ from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
 from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler
 from .new_high_priority_issue_handler import NewHighPriorityIssueConditionHandler
+from .percent_sessions_handlers import PercentSessionsCountHandler, PercentSessionsPercentHandler
 from .reappeared_event_handler import ReappearedEventConditionHandler
 from .regression_event_handler import RegressionEventConditionHandler
 from .tagged_event_handler import TaggedEventConditionHandler
