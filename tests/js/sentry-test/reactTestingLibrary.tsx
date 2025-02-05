@@ -281,7 +281,7 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     const queryString = qs.stringify(location.query);
     return {
       pathname: location.pathname,
-      search: queryString,
+      search: queryString ? `?${queryString}` : '',
     };
   }
 

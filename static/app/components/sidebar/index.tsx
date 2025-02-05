@@ -78,6 +78,7 @@ import {
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../demo/demoHeader';
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
@@ -679,7 +680,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
           : 'expandedWidth'
     ]};
   position: fixed;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;
@@ -730,8 +731,8 @@ const PrimaryItems = styled('div')`
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
 
-  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
-    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-color: ${p =>
+    `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
   scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
 
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {

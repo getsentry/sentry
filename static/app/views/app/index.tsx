@@ -39,6 +39,8 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
+
 type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
@@ -313,5 +315,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  padding-top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
 `;
