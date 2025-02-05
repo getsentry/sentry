@@ -165,7 +165,7 @@ def generate_unique_queries(
     if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
         return []
 
-    base_handler = handler.get_base_handler()  # type: ignore[attr-defined]
+    base_handler = handler.base_handler  # type: ignore[attr-defined]
 
     unique_queries = [
         UniqueConditionQuery(
@@ -224,7 +224,7 @@ def get_condition_group_results(
             )
 
         result = safe_execute(
-            handler().get_rate_bulk,
+            handler.get_rate_bulk,
             duration=duration,
             group_ids=group_ids,
             environment_id=unique_condition.environment_id,

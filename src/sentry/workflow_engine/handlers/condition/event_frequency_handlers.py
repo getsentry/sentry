@@ -20,21 +20,22 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
     def get_base_handler(cls) -> type[BaseEventFrequencyConditionHandler]:
         return EventFrequencyConditionHandler
 
+    @classmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        cls, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
-        category_group_ids = self.get_group_ids_by_category(groups)
-        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+        category_group_ids = cls.get_group_ids_by_category(groups)
+        organization_id = cls.get_value_from_groups(groups, "project__organization_id")
 
         if not organization_id:
             return batch_sums
 
         def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
-            return self.get_chunked_result(
+            return cls.get_chunked_result(
                 tsdb_function=tsdb.backend.get_sums,
                 model=model,
                 group_ids=group_ids,

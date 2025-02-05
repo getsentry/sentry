@@ -38,7 +38,8 @@ class BaseEventFrequencyConditionHandler(ABC):
         # frequency and percent conditions can share the same base handler to query Snuba
         raise NotImplementedError
 
-    def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
+    @classmethod
+    def get_query_window(cls, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query.
         "duration" is the length of the window we're querying over.
@@ -46,8 +47,9 @@ class BaseEventFrequencyConditionHandler(ABC):
         start = end - duration
         return (start, end)
 
+    @classmethod
     def disable_consistent_snuba_mode(
-        self, duration: timedelta
+        cls, duration: timedelta
     ) -> contextlib.AbstractContextManager[object]:
         """For conditions with interval >= 1 hour we don't need to worry about read your writes
         consistency. Disable it so that we can scale to more nodes.
@@ -57,8 +59,9 @@ class BaseEventFrequencyConditionHandler(ABC):
             option_override_cm = options_override({"consistent": False})
         return option_override_cm
 
+    @classmethod
     def get_snuba_query_result(
-        self,
+        cls,
         tsdb_function: Callable[..., Any],
         keys: list[int],
         group_id: int,
@@ -82,8 +85,9 @@ class BaseEventFrequencyConditionHandler(ABC):
         )
         return result
 
+    @classmethod
     def get_chunked_result(
-        self,
+        cls,
         tsdb_function: Callable[..., Any],
         model: TSDBModel,
         group_ids: list[int],
@@ -96,7 +100,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
         for group_chunk in chunked(group_ids, SNUBA_LIMIT):
-            result = self.get_snuba_query_result(
+            result = cls.get_snuba_query_result(
                 tsdb_function=tsdb_function,
                 model=model,
                 keys=[group_id for group_id in group_chunk],
@@ -110,8 +114,9 @@ class BaseEventFrequencyConditionHandler(ABC):
             batch_totals.update(result)
         return batch_totals
 
+    @classmethod
     def get_group_ids_by_category(
-        self,
+        cls,
         groups: QuerySet[Group, _QSTypedDict],
     ) -> dict[GroupCategory, list[int]]:
         """
@@ -126,8 +131,9 @@ class BaseEventFrequencyConditionHandler(ABC):
 
         return category_group_ids
 
+    @classmethod
     def get_value_from_groups(
-        self,
+        cls,
         groups: QuerySet[Group, _QSTypedDict] | None,
         value: Literal["id", "project_id", "project__organization_id"],
     ) -> int | None:
@@ -137,9 +143,10 @@ class BaseEventFrequencyConditionHandler(ABC):
             result = group.get(value)
         return result
 
+    @classmethod
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        cls, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -147,8 +154,9 @@ class BaseEventFrequencyConditionHandler(ABC):
         """
         raise NotImplementedError
 
+    @classmethod
     def get_rate_bulk(
-        self,
+        cls,
         duration: timedelta,
         group_ids: set[int],
         environment_id: int | None,
@@ -166,10 +174,10 @@ class BaseEventFrequencyConditionHandler(ABC):
         """
         if comparison_interval:
             current_time -= comparison_interval
-        start, end = self.get_query_window(end=current_time, duration=duration)
+        start, end = cls.get_query_window(end=current_time, duration=duration)
 
-        with self.disable_consistent_snuba_mode(duration):
-            result = self.batch_query(
+        with cls.disable_consistent_snuba_mode(duration):
+            result = cls.batch_query(
                 group_ids=group_ids,
                 start=start,
                 end=end,
@@ -207,10 +215,7 @@ class BaseEventFrequencyPercentHandler:
         "required": ["interval", "value", "comparison_interval"],
         "additionalProperties": False,
     }
-
-    @property
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
-        return PERCENT_INTERVALS
+    intervals: ClassVar[dict[str, tuple[str, timedelta]]] = PERCENT_INTERVALS
 
     @staticmethod
     def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
