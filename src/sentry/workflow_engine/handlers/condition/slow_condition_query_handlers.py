@@ -238,9 +238,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
             )
 
         for category, issue_ids in category_group_ids.items():
-            model = get_issue_tsdb_user_group_model(
-                category
-            )  # TODO: may need to update logic for crons, metric issues, uptime
+            model = get_issue_tsdb_user_group_model(category)
             batch_sums.update(get_result(model, issue_ids))
 
         return batch_sums
