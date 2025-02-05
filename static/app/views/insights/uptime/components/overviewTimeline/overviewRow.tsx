@@ -23,9 +23,15 @@ import {useUptimeMonitorStats} from '../../utils/useUptimeMonitorStats';
 interface Props {
   timeWindowConfig: TimeWindowConfig;
   uptimeRule: UptimeRule;
+  /**
+   * Whether only one uptime rule is being rendered in a larger view with this
+   * component. turns off things like zebra striping, hover effect, and showing
+   * rule name.
+   */
+  singleRuleView?: boolean;
 }
 
-export function OverviewRow({uptimeRule, timeWindowConfig}: Props) {
+export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({
     organization,
@@ -40,7 +46,7 @@ export function OverviewRow({uptimeRule, timeWindowConfig}: Props) {
     timeWindowConfig,
   });
 
-  const ruleDetails = (
+  const ruleDetails = singleRuleView ? null : (
     <DetailsArea>
       <DetailsLink
         to={{
@@ -73,7 +79,11 @@ export function OverviewRow({uptimeRule, timeWindowConfig}: Props) {
   );
 
   return (
-    <TimelineRow key={uptimeRule.id}>
+    <TimelineRow
+      key={uptimeRule.id}
+      singleRuleView={singleRuleView}
+      as={singleRuleView ? 'div' : 'li'}
+    >
       {ruleDetails}
       <TimelineContainer>
         {isPending ? (
@@ -150,7 +160,7 @@ const ScheduleDetails = styled('small')`
 
 interface TimelineRowProps {
   isDisabled?: boolean;
-  singleMonitorView?: boolean;
+  singleRuleView?: boolean;
 }
 
 const TimelineRow = styled('li')<TimelineRowProps>`
@@ -159,7 +169,7 @@ const TimelineRow = styled('li')<TimelineRowProps>`
   grid-template-columns: subgrid;
 
   ${p =>
-    !p.singleMonitorView &&
+    !p.singleRuleView &&
     css`
       transition: background 50ms ease-in-out;
 

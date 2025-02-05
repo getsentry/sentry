@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,7 +22,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
 
   return (
     <Fragment>
-      <SecondaryNav>
+      <SecondaryNav group={PrimaryNavGroup.ISSUES}>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
