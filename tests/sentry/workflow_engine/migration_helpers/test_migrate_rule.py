@@ -8,7 +8,6 @@ from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.types.actor import Actor
-from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.rule import (
     UpdatedIssueAlertData,
     delete_migrated_issue_alert,
@@ -59,10 +58,9 @@ class RuleMigrationHelpersTest(APITestCase):
             filter_match="any",
             action_data=action_data,
         )
-        self.rpc_user = user_service.get_user(user_id=self.user.id)
 
     def test_create_issue_alert(self):
-        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        migrate_issue_alert(self.issue_alert, self.user.id)
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         issue_alert_detector = AlertRuleDetector.objects.get(rule=self.issue_alert)
@@ -116,7 +114,7 @@ class RuleMigrationHelpersTest(APITestCase):
 
     def test_create_issue_alert_detector_exists(self):
         project_detector = self.create_detector(project=self.project)
-        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        migrate_issue_alert(self.issue_alert, self.user.id)
 
         # does not create a new error detector
 
@@ -124,7 +122,7 @@ class RuleMigrationHelpersTest(APITestCase):
         assert detector == project_detector
 
     def test_update_issue_alert(self):
-        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        migrate_issue_alert(self.issue_alert, self.user.id)
         conditions_payload = [
             {
                 "id": FirstSeenEventCondition.id,
@@ -185,7 +183,7 @@ class RuleMigrationHelpersTest(APITestCase):
         assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
 
     def test_required_fields_only(self):
-        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        migrate_issue_alert(self.issue_alert, self.user.id)
         payload: UpdatedIssueAlertData = {
             "name": "hello world",
             "owner": None,
@@ -217,7 +215,7 @@ class RuleMigrationHelpersTest(APITestCase):
         assert filters.count() == 0
 
     def test_delete_issue_alert(self):
-        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        migrate_issue_alert(self.issue_alert, self.user.id)
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         workflow = alert_rule_workflow.workflow

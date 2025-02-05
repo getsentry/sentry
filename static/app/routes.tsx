@@ -1076,7 +1076,7 @@ function buildRoutes() {
   );
 
   const dashboardRoutes = (
-    <Fragment>
+    <Route component={make(() => import('sentry/views/dashboards/navigation'))}>
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
@@ -1220,7 +1220,7 @@ function buildRoutes() {
           component={make(() => import('sentry/views/dashboards/view'))}
         />
       </Route>
-    </Fragment>
+    </Route>
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
@@ -1864,10 +1864,6 @@ function buildRoutes() {
         {moduleRoutes}
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
-        />
-        {transactionSummaryRoutes}
         {traceViewRoute}
         <Route
           path="trends/"
@@ -2058,8 +2054,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
       />
       <Route
-        path={TabPaths[Tab.CHECK_INS]}
-        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
+        path={TabPaths[Tab.UPTIME_CHECKS]}
+        component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
       />
       <Route
         path={TabPaths[Tab.TAGS]}

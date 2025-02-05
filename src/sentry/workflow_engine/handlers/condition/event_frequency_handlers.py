@@ -1,32 +1,25 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Self
+from datetime import datetime
+from typing import Self
 
 from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import (
-    COMPARISON_INTERVALS,
-    STANDARD_INTERVALS,
-    percent_increase,
-)
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
     BaseEventFrequencyConditionHandler,
+    BaseEventFrequencyCountHandler,
+    BaseEventFrequencyPercentHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
     @property
     def base_handler(self) -> Self:
         return self
-
-    @property
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
-        return STANDARD_INTERVALS
 
     def batch_query(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
@@ -63,44 +56,18 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHandler[WorkflowJob]):
-    comparison_json_schema = {
-        "type": "object",
-        "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
-            "value": {"type": "integer", "minimum": 0},
-        },
-        "required": ["interval", "value"],
-        "additionalProperties": False,
-    }
-
-    @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 1:
-            return False
-        return value["snuba_results"][0] > comparison["value"]
+class EventFrequencyCountHandler(
+    EventFrequencyConditionHandler,
+    BaseEventFrequencyCountHandler,
+    DataConditionHandler[WorkflowJob],
+):
+    pass
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyPercentHandler(
-    EventFrequencyConditionHandler, DataConditionHandler[WorkflowJob]
+    EventFrequencyConditionHandler,
+    BaseEventFrequencyPercentHandler,
+    DataConditionHandler[WorkflowJob],
 ):
-    comparison_json_schema = {
-        "type": "object",
-        "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
-            "value": {"type": "integer", "minimum": 0},
-            "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
-        },
-        "required": ["interval", "value", "comparison_interval"],
-        "additionalProperties": False,
-    }
-
-    @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 2:
-            return False
-        return (
-            percent_increase(value["snuba_results"][0], value["snuba_results"][1])
-            > comparison["value"]
-        )
+    pass
