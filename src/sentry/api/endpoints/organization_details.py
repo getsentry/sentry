@@ -1051,8 +1051,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         rebalanced_projects = calculate_sample_rates_of_projects(
             org_id, projects_with_tx_count_and_rates
         )
-        # get all active projects associated with the org
-        # filter rebalanced_projects by those where the project actually exists
         project_ids = Project.objects.filter(organization_id=org_id).values_list("id", flat=True)
 
         if rebalanced_projects is not None:
