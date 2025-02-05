@@ -511,6 +511,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
                           value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
+                          position="bottom-end"
                           onChange={aggregateSelection => {
                             const isNone = aggregateSelection.value === NONE;
                             const newFields = cloneDeep(fields);
