@@ -1087,10 +1087,16 @@ class JiraServerIntegration(IssueSyncIntegration):
                 total_queried_jira_users += len(possible_users)
 
                 if len(possible_users) == 1:
+                    # Assume the only user returned is a full match for the email,
+                    # as we search by username. This addresses visibility issues
+                    # in some cases where Jira server does not populate `emailAddress`
+                    # fields on user responses.
                     jira_user = possible_users[0]
                     break
 
                 for possible_user in possible_users:
+                    # Continue matching on email address, since we can't guarantee
+                    # a clean match.
                     email = possible_user.get("emailAddress")
 
                     if not email:
