@@ -17,7 +17,7 @@ describe('api', function () {
   });
 
   describe('Client', function () {
-    describe('cancel()', function () {
+    describe('cancel', function () {
       it('should abort any open XHR requests', function () {
         const abort1 = jest.fn();
         const abort2 = jest.fn();
