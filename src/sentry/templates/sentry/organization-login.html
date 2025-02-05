@@ -158,10 +158,9 @@
               {{ register_form|as_crispy_errors }}
 
               {% for field in register_form %}
-                {{ field|as_crispy_field }}
+              {{ field|as_crispy_field }}
               {% endfor %}
 
-              <input type="hidden" id="timezone-input" name="timezone">
               <div class="password-strength"></div>
               <div class="auth-footer m-t-1">
                 <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
@@ -184,7 +183,7 @@
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const timezoneInput = document.getElementById('timezone-input');
+      const timezoneInput = document.querySelector('input[name=timezone]');
       if (timezoneInput) {
         timezoneInput.value = timezone
       }
