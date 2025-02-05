@@ -784,7 +784,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         assert assign_issue_response.request.body == b'{"name": "Alive Tofu"}'
 
     @responses.activate
-    def test_sync_assignee_outbound_no_email(self):
+    def test_sync_assignee_outbound_no_emails_for_multiple_users(self):
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         external_issue = ExternalIssue.objects.create(
@@ -795,7 +795,14 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/user/assignable/search",
-            json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
+            json=[
+                {"accountId": "deadbeef123", "displayName": "Dead Beef", "name": "Beef"},
+                {
+                    "accountId": "alicetofu",
+                    "displayName": "Alice Tofu",
+                    "name": "Alice Tofu",
+                },
+            ],
         )
 
         with pytest.raises(IntegrationError) as e:
@@ -806,31 +813,57 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_sync_assignee_only_matching_username(self):
-        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+    def test_sync_assignee_outbound_user_email_empty(self):
+        user = serialize_rpc_user(self.create_user(email=""))
         issue_id = "APP-123"
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.installation.model.id,
             key=issue_id,
         )
-        assign_issue_url = "https://jira.example.org/rest/api/2/issue/%s/assignee" % issue_id
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/user/assignable/search",
             json=[
+                {"accountId": "deadbeef123", "displayName": "Dead Beef", "name": "Beef"},
                 {
-                    "accountId": "deadbeef123",
-                    "displayName": "Dead Beef",
-                    "username": "bob@example.com",
-                }
+                    "accountId": "alicetofu",
+                    "displayName": "Alice Tofu",
+                    "name": "Alice Tofu",
+                },
             ],
         )
-        responses.add(responses.PUT, assign_issue_url, json={})
+
+        with pytest.raises(AssertionError) as e:
+            self.installation.sync_assignee_outbound(external_issue, user)
+        assert str(e.value) == "Expected a valid user email, received falsy value"
+
+        # No sync made as jira users don't have email addresses
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
+    def test_sync_assignee_outbound_no_email(self, mock_assign_issue):
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
+        issue_id = "APP-123"
+        fake_jira_user = {"accountId": "deadbeef123", "displayName": "Dead Beef", "name": "Beef"}
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.installation.model.id,
+            key=issue_id,
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/user/assignable/search",
+            json=[fake_jira_user],
+        )
+
         self.installation.sync_assignee_outbound(external_issue, user)
 
-        # Assert that we properly assign the user
-        assert len(responses.calls) == 2
+        mock_assign_issue.assert_called_with(
+            issue_id,
+            "Beef",
+        )
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
