@@ -23,7 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
-import {useUptimeCheckIns} from 'sentry/views/issueDetails/queries/useUptimeCheckIns';
+import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -55,7 +55,7 @@ export default function GroupUptimeChecks() {
   const isUptimeAlert =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
 
-  const {data: uptimeData, getResponseHeader} = useUptimeCheckIns(
+  const {data: uptimeData, getResponseHeader} = useUptimeChecks(
     {
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
