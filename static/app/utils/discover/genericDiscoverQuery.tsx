@@ -320,7 +320,8 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
     orgSlug,
     eventView,
   };
-  return <_GenericDiscoverQuery<T, P> {..._props} />;
+  // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+  return <_GenericDiscoverQuery<T, P> {...(_props as any)} />;
 }
 
 export type DiscoverQueryRequestParams = Partial<

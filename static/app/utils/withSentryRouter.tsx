@@ -26,10 +26,14 @@ function withSentryRouter<P extends Partial<WithRouterProps>>(
 
     if (USING_CUSTOMER_DOMAIN) {
       const newParams = {...params, orgId: CUSTOMER_DOMAIN};
-      return <WrappedComponent {...routerParam} {...(props as P)} params={newParams} />;
+      // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+      return (
+        <WrappedComponent {...routerParam} {...(props as P as any)} params={newParams} />
+      );
     }
 
-    return <WrappedComponent {...routerParam} {...(props as P)} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent {...routerParam} {...(props as P as any)} />;
   }
   return WithSentryRouterWrapper;
 }
