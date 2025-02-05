@@ -38,6 +38,12 @@ export interface RollupConfig {
    * How many total number of buckets are we fitting into our timeline
    */
   totalBuckets: number;
+  /**
+   * When there is an underscan we also will likely want to query the
+   * additional time range for that underscan, this is the additional period of
+   * time that the underscan represents in seconds.
+   */
+  underscanPeriod: number;
 }
 
 export interface TimeWindowConfig {

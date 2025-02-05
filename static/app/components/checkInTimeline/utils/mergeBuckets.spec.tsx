@@ -19,6 +19,7 @@ describe.skip('mergeBucketsWithStats', function () {
     interval: 0,
     timelineUnderscanWidth: 0,
     totalBuckets: 0,
+    underscanPeriod: 0,
   };
 
   it('does not generate ticks less than 3px width', function () {
