@@ -1,6 +1,7 @@
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
 import {parseFilterValuePercentage} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/percentage/parser';
+import {parseFilterValueSize} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/size/parser';
 import {escapeTagValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {DEFAULT_BOOLEAN_SUGGESTIONS} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/boolean';
 import {getRelativeDateSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
@@ -78,6 +79,17 @@ export function cleanFilterValue({
       // Default to ms if no unit is provided
       if (!parsed.unit) {
         return `${parsed.value}ms`;
+      }
+      return value;
+    }
+    case FieldValueType.SIZE: {
+      const parsed = parseFilterValueSize(value);
+      if (!parsed) {
+        return null;
+      }
+      // Default to ms if no unit is provided
+      if (!parsed.unit) {
+        return `${parsed.value}bytes`;
       }
       return value;
     }
