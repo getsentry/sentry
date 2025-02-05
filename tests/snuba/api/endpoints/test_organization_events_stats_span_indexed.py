@@ -430,7 +430,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     duration=2000,
                 ),
                 self.create_span(
-                    {"segment_name": "baz", "sentry_tags": {"status": "success"}},
+                    {"sentry_tags": {"transaction": "baz", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "qux", "status": "success"}},
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
@@ -456,10 +460,16 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert "foo" in response.data
         assert "bar" in response.data
         assert len(response.data["Other"]["data"]) == 6
-        for key in ["Other", "foo", "bar"]:
+
+        for key in ["foo", "bar"]:
             rows = response.data[key]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
                 assert result[1][0]["count"] == expected, key
+
+        rows = response.data["Other"]["data"][0:6]
+        for expected, result in zip([0, 2, 0, 0, 0, 0], rows):
+            assert result[1][0]["count"] == expected, "Other"
+
         assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
     def test_top_events_empty_other(self):
