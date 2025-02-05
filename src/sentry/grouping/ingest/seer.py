@@ -229,22 +229,6 @@ def get_seer_similar_issues(
         get_stacktrace_string(get_grouping_info_from_variants(variants)),
     )
 
-    if not stacktrace_string:
-        # TODO: remove this log once we've confirmed it isn't happening
-        logger.info(
-            "get_seer_similar_issues.empty_stacktrace",
-            extra={
-                "event_id": event.event_id,
-                "project_id": event.project.id,
-                "stacktrace_string": stacktrace_string,
-            },
-        )
-        similar_issues_metadata_empty = {
-            "results": [],
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-        }
-        return (similar_issues_metadata_empty, None)
-
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event_hash,
