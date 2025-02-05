@@ -1,6 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -88,7 +87,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 endpoint=None,
             )
 
-            result = parse_datetime(resp["endpoint"])
+            result = datetime.fromisoformat(resp["endpoint"])
             endpoint = time_to_freeze.replace(tzinfo=result.tzinfo)
             assert result == endpoint
             frozen_time.shift(1)
@@ -106,7 +105,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 endpoint=endpoint,
             )
 
-            assert parse_datetime(resp["endpoint"]) == endpoint
+            assert datetime.fromisoformat(resp["endpoint"]) == endpoint
 
     def test_inbox_reason(self):
         prev_hour = timezone.now() - timedelta(hours=1)

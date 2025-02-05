@@ -133,6 +133,23 @@ import sentry.testutils.outbox as outbox_utils
     ]
 
 
+def test_s008():
+    src = """\
+from dateutil.parser import parse
+"""
+    # no errors in source
+    assert _run(src, filename="src/sentry/example.py") == []
+
+    # errors in tests
+    tests1 = _run(src, filename="tests/test_example.py")
+    tests2 = _run(src, filename="src/sentry/testutils/example.py")
+    assert (
+        tests1
+        == tests2
+        == ["t.py:1:0: S008 Use datetime.fromisoformat rather than guessing at date formats"]
+    )
+
+
 def test_S009():
     src = """\
 try:
