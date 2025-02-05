@@ -168,6 +168,7 @@ function ProjectVelocityScoreCard(props: Props) {
         fields: {
           'count()': 'number',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}
