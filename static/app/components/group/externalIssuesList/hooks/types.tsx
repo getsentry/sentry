@@ -35,6 +35,10 @@ export interface ExternalIssueAction {
    * Helps differentiate between actions with the same name
    */
   nameSubText?: string;
+  /**
+   * Used with pluginActions to link to specific url
+   */
+  to?: string;
 }
 
 /**

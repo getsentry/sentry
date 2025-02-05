@@ -229,4 +229,30 @@ describe('ExternalIssueList', () => {
     // Item with name matching integration name should only show subtext
     expect(screen.getByRole('menuitemradio', {name: 'example.com'})).toBeInTheDocument();
   });
+
+  it('should render links to group.pluginActions', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+
+    const groupWithPluginActions = GroupFixture({
+      pluginActions: [['Create Redmine Issue', '/path/to/redmine']],
+    });
+    render(
+      <ExternalIssueList event={event} group={groupWithPluginActions} project={project} />
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Redmine Issue'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create Redmine Issue'})).toHaveAttribute(
+      'href',
+      '/path/to/redmine'
+    );
+  });
 });

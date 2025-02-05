@@ -20,6 +20,12 @@ interface Props {
 }
 
 function getPluginNames(pluginIssue: PluginIssueComponent | PluginActionComponent) {
+  if (Array.isArray(pluginIssue.props.plugin)) {
+    return {
+      name: pluginIssue.props.plugin[0],
+      icon: '',
+    };
+  }
   return {
     name: pluginIssue.props.plugin.name ?? '',
     icon: pluginIssue.props.plugin.slug ?? '',
