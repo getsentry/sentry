@@ -439,7 +439,7 @@ class SentryAppActionTranslator(BaseActionTranslator):
         )
 
         if sentry_app_installation:
-            assert len(sentry_app_installation) == 1
+            assert len(sentry_app_installation) == 1, "Expected exactly one sentry app installation"
             return str(sentry_app_installation[0].sentry_app.id)
 
         raise ValueError("Sentry app installation not found")
