@@ -154,7 +154,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             process_detectors(data_packet, [detector])
 
             mock_incr.assert_called_once_with(
-                "sentry.workflow_engine.process_detector",
+                "workflow_engine.process_detector",
                 tags={"detector_type": detector.type},
             )
 
@@ -166,7 +166,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             process_detectors(data_packet, [detector])
 
             mock_incr.assert_any_call(
-                "sentry.workflow_engine.process_detector.triggered",
+                "workflow_engine.process_detector.triggered",
                 tags={"detector_type": detector.type},
             )
 
