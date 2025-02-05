@@ -505,8 +505,16 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[
                     dc.update(type=threshold_type)
 
         if "resolve_threshold" in updated_fields:
-            resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
-            resolve_condition.update(comparison=updated_fields["resolve_threshold"])
+            resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+            if updated_fields["resolve_threshold"] is None:
+                # we need to figure out the resolve threshold ourselves
+                resolve_threshold = get_resolve_threshold(data_condition_group)
+                if resolve_threshold != -1:
+                    resolve_condition.update(comparison=resolve_threshold)
+                else:
+                    raise UnresolvableResolveThreshold
+            else:
+                resolve_condition.update(comparison=updated_fields["resolve_threshold"])
 
     detector.update(**updated_detector_fields)
 
