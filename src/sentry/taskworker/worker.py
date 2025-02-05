@@ -75,6 +75,10 @@ def child_worker(
     shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
+    from sentry.runner import configure
+
+    configure()
+
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
