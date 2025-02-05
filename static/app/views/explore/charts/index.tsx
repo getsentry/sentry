@@ -16,7 +16,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {X_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
 import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loadingPanel';
@@ -256,21 +255,19 @@ export function ExploreCharts({
                 />,
               ]}
               Visualization={
-                <VisualizationWrapper>
-                  <TimeSeriesWidgetVisualization
-                    dataCompletenessDelay={INGESTION_DELAY}
-                    visualizationType={
-                      chartInfo.chartType === ChartType.AREA
-                        ? 'area'
-                        : chartInfo.chartType === ChartType.LINE
-                          ? 'line'
-                          : 'bar'
-                    }
-                    timeseries={chartInfo.data}
-                  />
-                </VisualizationWrapper>
+                <TimeSeriesWidgetVisualization
+                  dataCompletenessDelay={INGESTION_DELAY}
+                  visualizationType={
+                    chartInfo.chartType === ChartType.AREA
+                      ? 'area'
+                      : chartInfo.chartType === ChartType.LINE
+                        ? 'line'
+                        : 'bar'
+                  }
+                  timeseries={chartInfo.data}
+                />
               }
-              Caption={
+              Footer={
                 dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={extrapolationMetaResults.data?.[0]?.['count_sample()']}
@@ -332,11 +329,6 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(2)};
   margin-bottom: ${space(2)};
-`;
-
-const VisualizationWrapper = styled('div')`
-  flex-grow: 1;
-  padding: 0 ${X_GUTTER} 0 ${X_GUTTER};
 `;
 
 const ChartLabel = styled('div')`

@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-export default storyBook(WidgetFrame, story => {
+export default storyBook('WidgetFrame', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -40,7 +40,9 @@ export default storyBook(WidgetFrame, story => {
             <WidgetFrame
               title="Count"
               description="This counts up the amount of something that happens."
-            />
+            >
+              <p>Lorem whoopsie, feed me pickles please I am lacking in probiotics</p>
+            </WidgetFrame>
           </NormalWidget>
           <NormalWidget>
             <WidgetFrame

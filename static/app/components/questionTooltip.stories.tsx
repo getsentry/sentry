@@ -7,7 +7,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(QuestionTooltip, story => {
+export default storyBook('QuestionTooltip', story => {
   story('Basics', () => {
     return (
       <Fragment>

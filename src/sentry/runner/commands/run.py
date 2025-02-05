@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import time
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -237,7 +238,43 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 
 
 @run.command()
+@click.option(
+    "--redis-cluster",
+    help="The rediscluster name to store run state in.",
+    default="default",
+)
+@log_options()
+@configuration
+def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
+    """
+    Run a scheduler for taskworkers
+
+    All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
+    """
+    from django.conf import settings
+
+    from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
+    from sentry.utils.redis import redis_clusters
+
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
+    run_storage = RunStorage(redis_clusters.get(redis_cluster))
+
+    with managed_bgtasks(role="taskworker-scheduler"):
+        runner = ScheduleRunner(taskregistry, run_storage)
+        for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(schedule_data)
+
+        while True:
+            sleep_time = runner.tick()
+            time.sleep(sleep_time)
+
+
+@run.command()
 @click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
+@click.option("--num-brokers", help="Number of brokers available to connect to", default=1)
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
@@ -259,7 +296,12 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str, max_task_count: int, namespace: str | None, concurrency: int, **options: Any
+    rpc_host: str,
+    num_brokers: int,
+    max_task_count: int,
+    namespace: str | None,
+    concurrency: int,
+    **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
@@ -269,6 +311,7 @@ def run_taskworker(
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
             rpc_host=rpc_host,
+            num_brokers=num_brokers,
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,

@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
-export default storyBook(CompactSelect, story => {
+export default storyBook('CompactSelect', story => {
   story('Basics', () => {
     return (
       <Fragment>

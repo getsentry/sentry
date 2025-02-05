@@ -66,12 +66,20 @@ describe('SolutionsSection', () => {
         resolution: 'Resolved',
         eventUnits: 'Events',
       },
+      pages: {
+        landingPage: Tab.DETAILS,
+        events: {enabled: false},
+        openPeriods: {enabled: false},
+        checkIns: {enabled: false},
+        attachments: {enabled: false},
+        userFeedback: {enabled: false},
+        replays: {enabled: false},
+        tagsTab: {enabled: false},
+      },
       detector: {enabled: false},
-      attachments: {enabled: false},
       autofix: true,
       discover: {enabled: false},
       eventAndUserCounts: {enabled: true},
-      events: {enabled: false},
       evidence: null,
       header: {
         filterBar: {enabled: true, fixedEnvironment: false},
@@ -79,22 +87,18 @@ describe('SolutionsSection', () => {
         tagDistribution: {enabled: false},
         occurrenceSummary: {enabled: false},
       },
-      allEventsPath: Tab.EVENTS,
       logLevel: {enabled: true},
       mergedIssues: {enabled: false},
       performanceDurationRegression: {enabled: false},
       profilingDurationRegression: {enabled: false},
       regression: {enabled: false},
-      replays: {enabled: false},
       showFeedbackWidget: false,
       similarIssues: {enabled: false},
       spanEvidence: {enabled: false},
       stacktrace: {enabled: false},
       stats: {enabled: false},
       tags: {enabled: false},
-      tagsTab: {enabled: false},
       useOpenPeriodChecks: false,
-      userFeedback: {enabled: false},
       usesIssuePlatform: false,
     });
   });
@@ -116,7 +120,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2); // whatsWrong and Open Autofix
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {

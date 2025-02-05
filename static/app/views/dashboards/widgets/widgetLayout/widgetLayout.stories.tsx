@@ -14,7 +14,7 @@ import {WidgetDescription} from './widgetDescription';
 import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
-export default storyBook(WidgetLayout, story => {
+export default storyBook('WidgetLayout', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -72,7 +72,7 @@ import {WidgetTitle} from './widgetTitle';
   Visualization={
     <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
   }
-  Caption={<p>This data is incomplete!</p>}
+  Footer={<span>This data is incomplete!</span>}
 />
 
         `}
@@ -94,7 +94,7 @@ import {WidgetTitle} from './widgetTitle';
             Visualization={
               <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
             }
-            Caption={<p>This data is incomplete!</p>}
+            Footer={<span>This data is incomplete!</span>}
           />
         </SmallSizingWindow>
       </Fragment>

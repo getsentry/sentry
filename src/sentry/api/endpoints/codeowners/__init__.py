@@ -51,7 +51,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
         # We do something similar with ProjectOwnership at the API level.
         existing_raw = self.instance.raw if self.instance else ""
         max_length = self.get_max_length()
-        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:  # type: ignore[arg-type]  # raw is incorrectly null
+        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
             analytics.record(
                 "codeowners.max_length_exceeded",
                 organization_id=self.context["project"].organization.id,

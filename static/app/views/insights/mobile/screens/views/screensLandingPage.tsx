@@ -201,8 +201,8 @@ export function ScreensLandingPage() {
     },
   ];
 
-  const metricsFields: string[] = new Array();
-  const spanMetricsFields: string[] = new Array();
+  const metricsFields: string[] = [];
+  const spanMetricsFields: string[] = [];
   const [state, setState] = useState<{
     status: VitalStatus | undefined;
     vital: VitalItem | undefined;

@@ -7,6 +7,7 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
+import {StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
@@ -20,7 +21,7 @@ export function StoryTypes(props: StoryTypesProps) {
 
   return (
     <Fragment>
-      <h3>API Reference</h3>
+      <StoryTitle>API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
         <InputGroup>

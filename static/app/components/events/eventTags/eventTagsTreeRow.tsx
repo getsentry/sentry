@@ -128,6 +128,7 @@ function EventTagsTreeRowDropdown({
   const location = useLocation();
   const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
   });
@@ -185,13 +186,14 @@ function EventTagsTreeRowDropdown({
     },
   ];
 
-  if (hasNewTraceUi) {
+  if (hasNewTraceUi && hasTraceDrawerAction) {
     items.push({
       key: 'view-traces',
-      label: t('Search explore with this tag value'),
+      label: t('Find more samples with this value'),
       to: getSearchInExploreTarget(
         organization,
         location,
+        project.id,
         originalTag.key,
         originalTag.value,
         TraceDrawerActionKind.INCLUDE
@@ -325,7 +327,7 @@ function EventTagsTreeValue({
         </VersionHoverCard>
       );
       break;
-    case 'transaction':
+    case 'transaction': {
       const transactionQuery = qs.stringify({
         project: event.projectID,
         transaction: content.value,
@@ -338,8 +340,9 @@ function EventTagsTreeValue({
         </TagLinkText>
       );
       break;
+    }
     case 'replayId':
-    case 'replay_id':
+    case 'replay_id': {
       const replayQuery = qs.stringify({referrer});
       const replayDestination = `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`;
       tagValue = (
@@ -348,6 +351,7 @@ function EventTagsTreeValue({
         </TagLinkText>
       );
       break;
+    }
     default:
       tagValue = defaultValue;
   }
