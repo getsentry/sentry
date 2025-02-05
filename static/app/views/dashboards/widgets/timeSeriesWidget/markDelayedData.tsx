@@ -13,6 +13,9 @@ export function markDelayedData(timeserie: TimeseriesData, delay: number) {
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
+  // TODO: Since the data is guaranteed to be ordered and we know that only the
+  // last few points are affected, we can make this a lot faster by iterating
+  // backwards and immediately stopping once we see the first complete point
   return {
     ...timeserie,
     data: timeserie.data.map(datum => {
