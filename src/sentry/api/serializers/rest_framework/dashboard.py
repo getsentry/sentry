@@ -835,7 +835,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 ).values()
             )
             set_or_create_on_demand_state(
-                new_query, organization, query_cardinality, ondemand_feature, current_widget_specs
+                new_query,
+                organization,
+                query_cardinality,
+                ondemand_feature,
+                current_widget_specs,
             )
 
     def update_widget(self, widget, data, order):
