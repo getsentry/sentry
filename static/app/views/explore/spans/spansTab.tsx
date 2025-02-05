@@ -282,6 +282,7 @@ const Body = styled(Layout.Body)<{withToolbar: boolean}>`
       p.withToolbar
         ? `grid-template-columns: 300px minmax(100px, auto);`
         : `grid-template-columns: 0px minmax(100px, auto);`}
+    align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
     transition: 700ms;
   }
