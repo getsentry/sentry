@@ -305,40 +305,43 @@ class GetSeerSimilarIssuesTest(TestCase):
         existing_grouphash = GroupHash.objects.filter(
             hash=existing_hash, project_id=self.project.id
         ).first()
-
         assert existing_event.group_id
+
+        new_event, new_variants, _ = self.create_new_event()
+
         seer_result_data = SeerSimilarIssueData(
             parent_hash=existing_hash,
             parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [asdict(seer_result_data)],
-        }
-        new_event, new_variants, _ = self.create_new_event()
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [asdict(seer_result_data)],
+            }
+
             assert get_seer_similar_issues(new_event, new_variants) == (
                 expected_metadata,
                 existing_grouphash,
             )
 
     def test_no_parent_group_found(self) -> None:
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [],
-        }
         new_event, new_variants, _ = self.create_new_event()
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [],
+            }
+
             assert get_seer_similar_issues(new_event, new_variants) == (
                 expected_metadata,
                 None,
