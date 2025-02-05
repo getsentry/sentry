@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Placeholder from 'sentry/components/placeholder';
+import Timeline from 'sentry/components/timeline';
 import {IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -164,19 +165,26 @@ export function GroupSummary({
     (data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
       data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
 
+  const iconProps = {
+    style: {
+      marginLeft: 3,
+      marginTop: 2,
+    },
+  };
+
   const insightCards = [
     {
       id: 'whats_wrong',
       title: t("What's wrong"),
       insight: data?.whatsWrong,
-      icon: <IconFatal size="sm" />,
+      icon: <IconFatal {...iconProps} />,
       showWhenLoading: true,
     },
     {
       id: 'trace',
       title: t('In the trace'),
       insight: data?.trace,
-      icon: <IconSpan size="sm" />,
+      icon: <IconSpan {...iconProps} />,
       showWhenLoading: false,
     },
     ...(shouldShowPossibleCause
@@ -185,7 +193,7 @@ export function GroupSummary({
             id: 'possible_cause',
             title: t('Possible cause'),
             insight: data?.possibleCause,
-            icon: <IconFocus size="sm" />,
+            icon: <IconFocus {...iconProps} />,
             showWhenLoading: false,
           },
         ]
@@ -213,28 +221,28 @@ export function GroupSummary({
             />
           </TooltipWrapper>
         )}
-        <InsightGrid>
+        <StyledTimelineContainer>
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
             }
 
             return (
-              <InsightCard key={card.id}>
-                <CardTitle preview={preview}>
-                  <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <CardTitleText>{card.title}</CardTitleText>
-                </CardTitle>
-                <CardContentContainer>
-                  <CardLineDecorationWrapper>
-                    <CardLineDecoration />
-                  </CardLineDecorationWrapper>
-                  {isPending ? (
-                    <CardContent>
-                      <Placeholder height="1.5rem" />
-                    </CardContent>
-                  ) : (
-                    card.insight && (
+              <Timeline.Item
+                key={card.id}
+                title={card.title}
+                icon={card.icon}
+                colorConfig={{
+                  title: 'gray300',
+                  icon: 'gray300',
+                  iconBorder: 'gray300',
+                }}
+              >
+                {isPending ? (
+                  <StyledPlaceholder height="1.5rem" />
+                ) : (
+                  card.insight && (
+                    <StyledTimelineText>
                       <CardContent
                         dangerouslySetInnerHTML={{
                           __html: marked(
@@ -244,78 +252,28 @@ export function GroupSummary({
                           ),
                         }}
                       />
-                    )
-                  )}
-                </CardContentContainer>
-              </InsightCard>
+                    </StyledTimelineText>
+                  )
+                )}
+              </Timeline.Item>
             );
           })}
-        </InsightGrid>
+        </StyledTimelineContainer>
       </Content>
     </div>
   );
 }
+
+const StyledTimelineContainer = styled(Timeline.Container)`
+  position: relative;
+  left: -${space(0.5)};
+`;
 
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
   position: relative;
-`;
-
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const InsightCard = styled('div')`
-  display: flex;
-  flex-direction: column;
-  border-radius: ${p => p.theme.borderRadius};
-  width: 100%;
-  min-height: 0;
-`;
-
-const CardTitle = styled('div')<{preview?: boolean}>`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.subText};
-  padding-bottom: ${space(0.5)};
-`;
-
-const CardTitleText = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const CardTitleIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const CardContentContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const CardLineDecorationWrapper = styled('div')`
-  display: flex;
-  width: 14px;
-  align-self: stretch;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0.275rem 0;
-`;
-
-const CardLineDecoration = styled('div')`
-  width: 2px;
-  align-self: stretch;
-  background-color: ${p => p.theme.border};
 `;
 
 const CardContent = styled('div')`
@@ -328,7 +286,6 @@ const CardContent = styled('div')`
   code {
     word-break: break-all;
   }
-  flex: 1;
 `;
 
 const TooltipWrapper = styled('div')`
@@ -339,4 +296,13 @@ const TooltipWrapper = styled('div')`
 
 const StyledIconEllipsis = styled(IconEllipsis)`
   color: ${p => p.theme.subText};
+`;
+
+const StyledPlaceholder = styled(Placeholder)`
+  margin: ${space(0.5)} 0;
+`;
+
+const StyledTimelineText = styled(Timeline.Text)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
 `;

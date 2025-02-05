@@ -357,7 +357,7 @@ const StyledCard = styled('div')`
   overflow: hidden;
   border: 2px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
+  padding: ${space(2)} 18px;
 `;
 
 const HeaderText = styled('div')`
