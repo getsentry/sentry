@@ -1053,11 +1053,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         )
         # get all active projects associated with the org
         # filter rebalanced_projects by those where the project actually exists
-        project_ids = Project.objects.filter(organization_id=org_id).values("id").distinct()
+        project_ids = Project.objects.filter(organization_id=org_id).values_list("id", flat=True)
 
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
-                if rebalanced_item.id in project_ids:
+                if int(rebalanced_item.id) in project_ids:
                     ProjectOption.objects.create_or_update(
                         project_id=rebalanced_item.id,
                         key="sentry:target_sample_rate",
