@@ -152,6 +152,7 @@ describe('ensureQuotedTextFilters', () => {
     expect(
       ensureQuotedTextFilters('transaction.duration:100', {
         numericKeys: new Set([]),
+        durationKeys: new Set([]),
       })
     ).toBe('transaction.duration:"100"');
   });
