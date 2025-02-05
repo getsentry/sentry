@@ -132,7 +132,7 @@ jobs:
           if [ ${{ github.ref }} = 'refs/heads/master' ]; then
             JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --coverage
           else
-            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+            JEST_TESTS=$(yarn -s jest --listTests --json) timeout --signal=INT 600 yarn test-ci --forceExit
           fi
 
       # We only upload coverage data for FE changes since it conflicts with
