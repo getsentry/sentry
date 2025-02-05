@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -19,7 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.models import ProjectUptimeSubscription
@@ -40,10 +40,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         project: Project,
         uptime_subscription: ProjectUptimeSubscription,
     ) -> Response:
+        start, end = get_date_range_from_params(request.GET)
 
         def data_fn(offset: int, limit: int) -> Any:
             rpc_response = self._make_eap_request(
-                project, uptime_subscription, offset=offset, limit=limit
+                project, uptime_subscription, offset=offset, limit=limit, start=start, end=end
             )
             return self._format_response(rpc_response, uptime_subscription)
 
@@ -61,11 +62,13 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         uptime_subscription: ProjectUptimeSubscription,
         offset: int,
         limit: int,
+        start: datetime,
+        end: datetime,
     ) -> TraceItemTableResponse:
         start_timestamp = Timestamp()
-        start_timestamp.FromDatetime(datetime.now() - timedelta(days=90))
+        start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
-        end_timestamp.FromDatetime(datetime.now())
+        end_timestamp.FromDatetime(end)
         rpc_request = TraceItemTableRequest(
             meta=RequestMeta(
                 referrer="uptime_alert_checks_index",
