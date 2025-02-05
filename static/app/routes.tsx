@@ -1466,7 +1466,11 @@ function buildRoutes() {
   );
   const releasesRoutes = (
     <Fragment>
-      <Route path="/releases/" withOrgPath>
+      <Route
+        path="/releases/"
+        component={make(() => import('sentry/views/releases/index'))}
+        withOrgPath
+      >
         {releasesChildRoutes}
       </Route>
       <Redirect
@@ -1997,7 +2001,12 @@ function buildRoutes() {
       <Route path="discover/" component={make(() => import('sentry/views/discover'))}>
         {discoverChildRoutes}
       </Route>
-      <Route path="releases/">{releasesChildRoutes}</Route>
+      <Route
+        path="releases/"
+        component={make(() => import('sentry/views/releases/index'))}
+      >
+        {releasesChildRoutes}
+      </Route>
       <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
     </Route>
   );
