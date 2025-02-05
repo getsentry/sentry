@@ -12,6 +12,8 @@ class crontab:
     crontab schedule value object
 
     Used in configuration to define a task schedule.
+
+    :see sentry.taskworker.scheduler.schedules.CrontabSchedule for more details.
     """
 
     minute: str = "*"
