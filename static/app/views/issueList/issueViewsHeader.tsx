@@ -419,6 +419,8 @@ function IssueViewsIssueListHeaderTabsContent({
               query: view.unsavedChanges?.query ?? view.query,
               sort: view.unsavedChanges?.querySort ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+              cursor: undefined,
+              page: undefined,
             },
             pathname: `/organizations/${organization.slug}/issues/`,
           })}
