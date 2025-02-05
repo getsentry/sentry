@@ -232,7 +232,7 @@ class TaskWorker:
     def __init__(
         self,
         rpc_host: str,
-        num_brokers: int,
+        num_brokers: int | None,
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
