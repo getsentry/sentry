@@ -1116,13 +1116,6 @@ const commonTheme = {
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
 
-    // @TODO(jonasbadalic) This should exist on pageTitle component
-    pageTitle: {
-      fontSize: '1.625rem',
-      fontWeight: 600,
-      letterSpacing: '-0.01em',
-      lineHeight: 1.2,
-    },
     cardTitle: {
       fontSize: '1rem',
       fontWeight: 600,
