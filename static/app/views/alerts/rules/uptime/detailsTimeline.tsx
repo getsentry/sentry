@@ -42,6 +42,7 @@ export function DetailsTimeline({uptimeRule}: Props) {
 
 const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
+  z-index: 1;
 `;
 
 const AlignedGridLineOverlay = styled(GridLineOverlay)`
