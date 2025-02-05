@@ -99,6 +99,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_query
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -912,6 +913,9 @@ def update_alert_rule(
                     "resolution", timedelta(seconds=snuba_query.resolution)
                 )
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
+            # call the dual update helper once the alert rule's query has been updated
+            old_subscription_id = alert_rule.snuba_query.subscriptions.get().subscription_id
+            dual_update_migrated_query(old_subscription_id, alert_rule)
 
         existing_subs: Iterable[QuerySubscription] = ()
         if (

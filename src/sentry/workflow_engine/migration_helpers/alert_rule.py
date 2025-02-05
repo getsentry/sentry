@@ -438,6 +438,36 @@ def migrate_alert_rule(
     )
 
 
+def dual_update_migrated_query(old_subscription_id: int, alert_rule: AlertRule) -> DataSource:
+    """
+    If a legacy alert rule's snuba query is updated, then we need to update the data source with
+    the new subscription ID. We'll need to fetch the data source using the old subscription ID.
+    """
+    organization = alert_rule.organization
+    if not organization:
+        # This shouldn't be possible, but just in case.
+        return None
+    try:
+        data_source = DataSource.objects.get(
+            organization=organization,
+            query_id=old_subscription_id,
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+    except DataSource.DoesNotExist:
+        # indicates that this alert wasn't dual written
+        return None
+
+    snuba_query = alert_rule.snuba_query
+    if not snuba_query:
+        return None
+    try:
+        query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+    except QuerySubscription.DoesNotExist:
+        return None
+    data_source.update(query_id=query_subscription.id)
+    return data_source
+
+
 def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
     tuple[
         DetectorState,
