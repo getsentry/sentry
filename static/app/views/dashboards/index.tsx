@@ -21,21 +21,15 @@ type Props = RouteComponentProps<{}, {}> & {
 };
 
 function DashboardsV2Container(props: Props) {
-  const {organization, api, location, children} = props;
+  const {organization, children} = props;
 
   if (organization.features.includes('dashboards-edit')) {
     return <Fragment>{children}</Fragment>;
   }
-  const params = {...props.params, orgId: organization.slug};
 
   return (
     <DashboardBasicFeature organization={organization}>
-      <OrgDashboards
-        api={api}
-        location={location}
-        params={params}
-        organization={organization}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />

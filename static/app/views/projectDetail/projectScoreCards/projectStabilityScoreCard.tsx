@@ -156,6 +156,7 @@ function ProjectStabilityScoreCard(props: Props) {
         fields: {
           [`${props.field}()`]: 'percentage',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}
