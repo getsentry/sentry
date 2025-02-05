@@ -1,7 +1,6 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -62,8 +61,6 @@ const DEFAULT_FIELD: QueryFieldValue = {
   function: ['count', '', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
-
-export type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
