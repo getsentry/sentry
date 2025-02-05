@@ -282,42 +282,16 @@ class GetSeerSimilarIssuesTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
-        error_type = "FailedToFetchError"
-        error_value = "Charlie didn't bring the ball back"
-        context_line = f"raise {error_type}('{error_value}')"
-        new_event = Event(
-            project_id=self.project.id,
-            event_id="12312012112120120908201304152013",
-            data={
-                "title": f"{error_type}('{error_value}')",
-                "exception": {
-                    "values": [
-                        {
-                            "type": error_type,
-                            "value": error_value,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "play_fetch",
-                                        "filename": "dogpark.py",
-                                        "context_line": context_line,
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "platform": "python",
-            },
-        )
-        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
+        new_event, new_variants, new_stacktrace_string = self.create_new_event()
+
+        get_seer_similar_issues(new_event, new_variants)
 
         mock_get_similarity_data.assert_called_with(
             {
                 "event_id": new_event.event_id,
                 "hash": new_event.get_primary_hash(),
                 "project_id": self.project.id,
-                "stacktrace": f'{error_type}: {error_value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
+                "stacktrace": new_stacktrace_string,
                 "exception_type": "FailedToFetchError",
                 "k": 1,
                 "referrer": "ingest",
@@ -326,10 +300,16 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
 
     def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self) -> None:
-        assert self.existing_event.group_id
+        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        existing_hash = existing_event.get_primary_hash()
+        existing_grouphash = GroupHash.objects.filter(
+            hash=existing_hash, project_id=self.project.id
+        ).first()
+
+        assert existing_event.group_id
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=self.existing_event.get_primary_hash(),
-            parent_group_id=self.existing_event.group_id,
+            parent_hash=existing_hash,
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
@@ -337,14 +317,15 @@ class GetSeerSimilarIssuesTest(TestCase):
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [asdict(seer_result_data)],
         }
-        self.new_event.data["stacktrace_string"] = "stacktrace"
+        new_event, new_variants, _ = self.create_new_event()
+
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ):
-            assert get_seer_similar_issues(self.new_event, self.variants) == (
+            assert get_seer_similar_issues(new_event, new_variants) == (
                 expected_metadata,
-                self.existing_event_grouphash,
+                existing_grouphash,
             )
 
     def test_returns_no_grouphash_and_empty_metadata_if_no_similar_group_found(self) -> None:
@@ -352,12 +333,13 @@ class GetSeerSimilarIssuesTest(TestCase):
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [],
         }
-        self.new_event.data["stacktrace_string"] = "stacktrace"
+        new_event, new_variants, _ = self.create_new_event()
+
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
-            assert get_seer_similar_issues(self.new_event, self.variants) == (
+            assert get_seer_similar_issues(new_event, new_variants) == (
                 expected_metadata,
                 None,
             )
