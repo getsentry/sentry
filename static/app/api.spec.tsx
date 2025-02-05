@@ -253,7 +253,7 @@ describe('isSimilarOrigin', function () {
     ['https://acme.sentry.io', 'https://acme.sent.ryio', false],
     ['https://woof.example.io', 'https://woof.sentry.io', false],
     ['https://woof.sentry.io', 'https://sentry.woof.io', false],
-  ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {
+  ])('allows sibling domains %s and %s %s', (target, origin, expected) => {
     expect(isSimilarOrigin(target, origin)).toBe(expected);
   });
 });
