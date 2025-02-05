@@ -1250,7 +1250,7 @@ export const darkTheme = {
   sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
   superuserSidebar: '#620808',
-};
+} satisfies SentryTheme;
 
 // Theme type exports
 type SentryTheme = typeof lightTheme;
