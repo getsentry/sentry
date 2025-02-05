@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict
 
 from django.db.models import QuerySet
 
@@ -11,7 +11,7 @@ from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import SNUBA_LIMIT
+from sentry.rules.conditions.event_frequency import SNUBA_LIMIT, STANDARD_INTERVALS
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
@@ -27,6 +27,8 @@ class _QSTypedDict(TypedDict):
 
 
 class BaseEventFrequencyQueryHandler(ABC):
+    intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
+
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query.
@@ -38,7 +40,7 @@ class BaseEventFrequencyQueryHandler(ABC):
     def disable_consistent_snuba_mode(
         self, duration: timedelta
     ) -> contextlib.AbstractContextManager[object]:
-        """For conditions with interval >= 1 hour we don't need to worry about read your writes
+        """For conditions with interval >= 1 hour we don't need to worry about read or writes
         consistency. Disable it so that we can scale to more nodes.
         """
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
@@ -55,7 +57,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         model: TSDBModel,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: int | None,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -79,7 +81,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         organization_id: int,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: int | None,
         referrer_suffix: str,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -128,7 +130,7 @@ class BaseEventFrequencyQueryHandler(ABC):
 
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -140,7 +142,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         self,
         duration: timedelta,
         group_ids: set[int],
-        environment_id: int,
+        environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
     ) -> dict[int, int]:
@@ -167,7 +169,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         return result
 
 
-slow_condition_query_handler_registry = Registry[BaseEventFrequencyQueryHandler](
+slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHandler]](
     enable_reverse_lookup=False
 )
 
@@ -176,7 +178,7 @@ slow_condition_query_handler_registry = Registry[BaseEventFrequencyQueryHandler]
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -211,7 +213,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
