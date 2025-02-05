@@ -24,6 +24,8 @@ import {
   ResponsePayloadSection,
 } from 'sentry/views/replays/detail/network/details/sections';
 
+import {ResponseTab} from './responseTab';
+
 type Props = Parameters<typeof getOutputType>[0] & SectionProps;
 
 export default function NetworkDetailsContent(props: Props) {
@@ -61,32 +63,7 @@ export default function NetworkDetailsContent(props: Props) {
     case 'response':
       return (
         <OverflowFluidHeight>
-          {output === Output.DATA && (
-            <SectionList>
-              <ResponsePayloadSection {...props} />
-            </SectionList>
-          )}
-          {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
-            <Setup showSnippet={output} {...props} />
-          )}
-          {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
-          {output === Output.BODY_PARSE_ERROR && (
-            <ParseError>{t('The SDK was unable to parse the response body.')}</ParseError>
-          )}
-          {output === Output.UNPARSEABLE_BODY_TYPE && (
-            <ParseError>
-              {t(
-                'This request body contains an unsupported type and was not captured. For example, blobs are unsupported as they are not human-readable.'
-              )}
-            </ParseError>
-          )}
-          {output === Output.BODY_PARSE_TIMEOUT && (
-            <ParseError>
-              {t(
-                'The SDK timed out while parsing response body. This is to reduce CPU usage on client browsers.'
-              )}
-            </ParseError>
-          )}
+          <ResponseTab {...props} />
         </OverflowFluidHeight>
       );
     case 'details':

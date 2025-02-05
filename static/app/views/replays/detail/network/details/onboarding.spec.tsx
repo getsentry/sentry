@@ -108,7 +108,7 @@ describe('Setup', () => {
   });
 
   describe('Body is skipped', () => {
-    it('should render a note on the Requst & Response tabs to enable capturing bodies', () => {
+    it('should render a note on the Request & Response tabs to enable capturing bodies', () => {
       render(
         <Setup
           item={MOCK_ITEM!}
