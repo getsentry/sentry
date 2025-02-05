@@ -1,13 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
+import {SECONDARY_SIDEBAR_WIDTH} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 
-export function Sidebar() {
+type SidebarProps = {
+  isHovered: boolean;
+};
+
+export function Sidebar({isHovered}: SidebarProps) {
   const {isCollapsed} = useNavContext();
 
   return (
@@ -19,13 +25,26 @@ export function Sidebar() {
         <PrimaryNavigationItems />
       </SidebarWrapper>
       {isCollapsed ? null : <SecondarySidebar />}
+
+      {isCollapsed ? (
+        <CollapsedSecondaryWrapper
+          initial="hidden"
+          animate={isHovered ? 'visible' : 'hidden'}
+          variants={{
+            visible: {x: 0},
+            hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
+          }}
+          transition={{duration: 0.3}}
+        >
+          <SecondarySidebar />
+        </CollapsedSecondaryWrapper>
+      ) : null}
     </Fragment>
   );
 }
 
 const SidebarWrapper = styled('div')`
-  height: 40px;
-  width: 100vw;
+  width: 74px;
   padding: ${space(2)} 0;
   border-right: 1px solid ${p => p.theme.translucentGray100};
   background: #3e2648;
@@ -33,11 +52,13 @@ const SidebarWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   z-index: ${p => p.theme.zIndex.sidebar};
+`;
 
-  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
-    height: unset;
-    width: 74px;
-  }
+const CollapsedSecondaryWrapper = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 74px;
+  height: 100%;
 `;
 
 const SidebarHeader = styled('header')`

@@ -10,3 +10,5 @@ export const NAV_GROUP_LABELS: Record<PrimaryNavGroup, string> = {
   [PrimaryNavGroup.INSIGHTS]: t('Insights'),
   [PrimaryNavGroup.SETTINGS]: t('Settings'),
 };
+
+export const SECONDARY_SIDEBAR_WIDTH = 190;
