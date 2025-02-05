@@ -176,6 +176,45 @@ describe('normalizeDateTimeParams', function () {
   it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function () {
     expect(normalizeDateTimeParams({}, {allowEmptyPeriod: true})).toEqual({});
   });
+
+  it('should parse utc when it is defined', function () {
+    expect(
+      normalizeDateTimeParams({
+        utc: 'true',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+      })
+    ).toEqual({
+      utc: 'true',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+    });
+    expect(
+      normalizeDateTimeParams({
+        utc: 'false',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+      })
+    ).toEqual({
+      utc: 'false',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+    });
+    expect(
+      normalizeDateTimeParams({
+        utc: 'invalid',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+      })
+    ).toEqual({
+      utc: 'false',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+    });
+
+    expect(normalizeDateTimeParams({utc: null})).toEqual({statsPeriod: '14d'});
+    expect(normalizeDateTimeParams({utc: undefined})).toEqual({statsPeriod: '14d'});
+  });
 });
 
 describe('parseStatsPeriod', function () {
