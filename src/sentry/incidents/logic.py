@@ -913,9 +913,9 @@ def update_alert_rule(
                 updated_query_fields.setdefault(
                     "resolution", timedelta(seconds=snuba_query.resolution)
                 )
+            old_subscription = alert_rule.snuba_query.subscriptions.get()
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
             # call the dual update helper once the alert rule's query has been updated
-            old_subscription = alert_rule.snuba_query.subscriptions.get()
             dual_update_migrated_query(old_subscription.id, alert_rule)
 
         existing_subs: Iterable[QuerySubscription] = ()
