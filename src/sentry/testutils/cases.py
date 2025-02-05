@@ -1362,6 +1362,8 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
+        transaction = transaction or "/hello"
+
         payload = {
             "project_id": project_id,
             "organization_id": organization_id,
@@ -1374,7 +1376,8 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": True,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
-            "sentry_tags": {"transaction": transaction or "/hello"},
+            "description": transaction,
+            "sentry_tags": {"transaction": transaction},
             "retention_days": 90,
         }
 

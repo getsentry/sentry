@@ -16,6 +16,7 @@ from sentry.utils.samples import load_data
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
+    use_rpc: bool = False
 
     def setUp(self):
         super().setUp()
@@ -282,6 +283,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
         if self.is_eap:
             query["dataset"] = "spans"
+        query["useRpc"] = "1" if self.use_rpc else "0"
 
         with self.feature(features):
             return self.client.get(
@@ -675,7 +677,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
         } == actual_referrers
 
-    def test_matching_tag(self):
+    def test_matching_tag_foo(self):
         (
             project_1,
             project_2,
@@ -2540,6 +2542,10 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 assert next_link["results"] == "false"
 
 
+class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
+    use_rpc = True
+
+
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
     is_eap: bool = True
 
@@ -2548,5 +2554,13 @@ class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
         pass
 
 
+# class OrganizationTraceSpansEAPRPCEndpointTest(OrganizationTraceSpansEAPEndpointTest):
+#     use_rpc: bool = True
+
+
 class OrganizationTracesStatsEAPEndpointTest(OrganizationTracesStatsEndpointTest):
     is_eap: bool = True
+
+
+# class OrganizationTracesStatsEAPRPCEndpointTest(OrganizationTracesStatsEAPEndpointTest):
+#     use_rpc: bool = True

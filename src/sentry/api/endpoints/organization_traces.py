@@ -12,6 +12,13 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
+    GetTracesRequest,
+    GetTracesResponse,
+    TraceAttribute,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 from urllib3.exceptions import ReadTimeoutError
 
@@ -38,6 +45,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereTyp
 from sentry.snuba import discover, spans_indexed
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils import snuba_rpc
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_measurement
@@ -93,6 +101,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     sort = serializers.CharField(required=False)
+    useRpc = serializers.BooleanField(required=False)
 
     def validate_dataset(self, value):
         if value == "spans":
@@ -167,6 +176,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             ),
+            use_rpc=bool(serialized["useRpc"]),
         )
 
         return self.paginate(
@@ -342,6 +352,7 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
+        use_rpc: bool,
     ):
         self.dataset = dataset
         self.snuba_params = snuba_params
@@ -351,6 +362,7 @@ class TracesExecutor:
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.get_all_projects = get_all_projects
+        self.use_rpc = use_rpc
 
     def params_with_all_projects(self) -> SnubaParams:
         all_projects_snuba_params = dataclasses.replace(
@@ -366,7 +378,56 @@ class TracesExecutor:
             self.offset = offset
             self.limit = limit
 
+        if self.use_rpc:
+            return {"data": self._execute_rpc()}
+
         return {"data": self._execute()}
+
+    def _execute_rpc(self):
+        if self.snuba_params.organization_id is None:
+            raise Exception("An organization is required to resolve queries")
+
+        meta = RequestMeta(
+            organization_id=self.snuba_params.organization_id,
+            referrer=Referrer.API_TRACE_EXPLORER_SPANS_LIST.value,
+            project_ids=self.snuba_params.project_ids,
+            start_timestamp=self.snuba_params.rpc_start_date,
+            end_timestamp=self.snuba_params.rpc_end_date,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UNSPECIFIED,
+        )
+
+        rpc_request = GetTracesRequest(
+            meta=meta,
+            page_token=PageToken(offset=0),
+            limit=self.limit,
+            filters=[],
+            order_by=[
+                GetTracesRequest.OrderBy(
+                    key=TraceAttribute.Key.KEY_START_TIMESTAMP, descending=True
+                ),
+            ],
+            attributes=[
+                TraceAttribute(key=TraceAttribute.Key.KEY_TRACE_ID),
+                TraceAttribute(key=TraceAttribute.Key.KEY_START_TIMESTAMP),
+                TraceAttribute(key=TraceAttribute.Key.KEY_TOTAL_ITEM_COUNT),
+                TraceAttribute(key=TraceAttribute.Key.KEY_FILTERED_ITEM_COUNT),
+                TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_NAME),
+                # TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_DURATION_MS),
+                # TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_PROJECT_ID),
+                # TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_SPAN_NAME),
+                # TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN_NAME),
+            ],
+        )
+
+        rpc_response = snuba_rpc.traces_rpc(rpc_request)
+
+        data = []
+
+        for trace in rpc_response.traces:
+            result = format_trace_result(trace)
+            data.append(result)
+
+        return data
 
     def _execute(self):
         with handle_span_query_errors():
@@ -469,13 +530,6 @@ class TracesExecutor:
     def get_traces_matching_conditions(
         self,
         snuba_params: SnubaParams,
-    ) -> tuple[datetime, datetime, list[str]]:
-        return self.get_traces_matching_span_conditions(snuba_params)
-
-    def get_traces_matching_span_conditions(
-        self,
-        snuba_params: SnubaParams,
-        trace_ids: list[str] | None = None,
     ) -> tuple[datetime, datetime, list[str]]:
         query, timestamp_column = self.get_traces_matching_span_conditions_query(
             snuba_params,
@@ -1818,3 +1872,84 @@ def format_as_trace_condition(span_condition: WhereType) -> Function:
             raise ValueError(f"{span_condition.op} is not a BooleanOp")
     else:
         raise ValueError(f"{span_condition} is not a Condition or BooleanCondition")
+
+
+def format_trace_result(trace: GetTracesResponse.Trace) -> TraceResult:
+    result: TraceResult = {
+        "trace": "",
+        "numErrors": 0,  # TODO
+        "numOccurrences": 0,  # TODO
+        "matchingSpans": 0,
+        "numSpans": 0,
+        "project": None,  # TODO
+        "name": None,  # TODO
+        "rootDuration": None,  # TODO
+        "duration": 0,  # TODO
+        "start": 0,
+        "end": 0,  # TODO
+        "breakdowns": [],  # TODO
+    }
+
+    # This is the name of the trace's root span without a parent span
+    primary_name: str | None = None
+
+    # This is the name of a span that can take the place of the trace's root
+    # based on some heuristics for that type of trace
+    fallback_name: str | None = None
+
+    # This is the name of the first span in the trace that will be used if
+    # no other candidates names are found
+    default_name: str | None = None
+
+    for attribute in trace.attributes:
+        if attribute.key == TraceAttribute.Key.KEY_TRACE_ID:
+            if attribute.type != AttributeKey.Type.TYPE_STRING:
+                raise ValueError(
+                    f"Expected {attribute.key} to be of type {AttributeKey.Type.TYPE_STRING} but got {attribute.type}"
+                )
+            result["trace"] = attribute.value.val_str
+        elif attribute.key == TraceAttribute.Key.KEY_START_TIMESTAMP:
+            if attribute.type != AttributeKey.Type.TYPE_DOUBLE:
+                raise ValueError(
+                    f"Expected {attribute.key} to be of type {AttributeKey.Type.TYPE_DOUBLE} but got {attribute.type}"
+                )
+            result["start"] = int(attribute.value.val_double * 1000)  # convert to milliseconds
+        # elif attribute.key == TraceAttribute.Key.KEY_END_TIMESTAMP:
+        #     if attribute.type != AttributeKey.Type.TYPE_DOUBLE:
+        #         raise ValueError(f"Expected {attribute.key} to be of type {AttributeKey.Type.TYPE_DOUBLE} but got {attribute.type}")
+        #     result["end"] = int(attribute.value.val_double * 1000)  # convert to milliseconds
+        elif attribute.key == TraceAttribute.Key.KEY_TOTAL_ITEM_COUNT:
+            if attribute.type != AttributeKey.Type.TYPE_INT:
+                raise ValueError(
+                    f"Expected {attribute.key} to be of type {AttributeKey.Type.TYPE_INT} but got {attribute.type}"
+                )
+            result["numSpans"] = attribute.value.val_int
+        elif attribute.key == TraceAttribute.Key.KEY_FILTERED_ITEM_COUNT:
+            if attribute.type != AttributeKey.Type.TYPE_INT:
+                raise ValueError(
+                    f"Expected {attribute.key} to be of type {AttributeKey.Type.TYPE_INT} but got {attribute.type}"
+                )
+            result["matchingSpans"] = attribute.value.val_int
+        # elif attribute.key == TraceAttribute.Key.KEY_ROOT_SPAN_DURATION_MS:
+        #     pass
+        elif attribute.key == TraceAttribute.Key.KEY_ROOT_SPAN_NAME:
+            if attribute.type != AttributeKey.Type.TYPE_STRING:
+                raise ValueError(
+                    f"Expected {attribute.key} to be of type {AttributeKey.Type.TYPE_STRING} but got {attribute.type}"
+                )
+            # TODO: is this right?
+            primary_name = attribute.value.val_str
+        else:
+            raise ValueError(f"Unexpected attribute found: {attribute.key}")
+
+    result["name"] = (
+        primary_name
+        if primary_name is not None
+        else (
+            fallback_name
+            if fallback_name is not None
+            else default_name if default_name is not None else result["name"]
+        )
+    )
+
+    return result
