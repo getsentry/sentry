@@ -24,7 +24,9 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
       <SecondaryNav>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={baseUrl}>{t('All')}</SecondaryNav.Item>
+            <SecondaryNav.Item to={`${baseUrl}/`} end>
+              {t('All')}
+            </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
               {t('Feedback')}
             </SecondaryNav.Item>
