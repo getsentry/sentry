@@ -17,6 +17,7 @@ import type {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
@@ -59,7 +60,7 @@ export function getKeyLabel(
     return `${tag.key}()`;
   }
 
-  return tag.key;
+  return prettifyTagKey(tag.key);
 }
 
 export function createSection(

@@ -37,7 +37,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
   const currentFilterValueType = getFilterValueType(
     token,
-    getFieldDefinition(getKeyName(token.key))
+    getFieldDefinition(getKeyName(token.key, {showExplicitTagPrefix: true})) ||
+      getFieldDefinition(getKeyName(token.key))
   );
 
   const handleSelectKey = useCallback(

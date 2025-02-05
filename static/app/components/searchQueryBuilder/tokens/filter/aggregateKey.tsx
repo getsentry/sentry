@@ -17,6 +17,7 @@ import type {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {prettifyTagKey} from 'sentry/utils/discover/fields';
 
 type AggregateKeyProps = {
   filterRef: React.RefObject<HTMLDivElement>;
@@ -28,7 +29,7 @@ type AggregateKeyProps = {
 
 export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
   const fnName = getKeyName(token.key);
-  const fnParams = token.key.args?.text ?? '';
+  const fnParams = prettifyTagKey(token.key.args?.text ?? '');
 
   return (
     <Fragment>

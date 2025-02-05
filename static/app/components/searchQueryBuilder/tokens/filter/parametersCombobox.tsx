@@ -10,6 +10,7 @@ import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/f
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 type ParametersComboboxProps = {
@@ -120,7 +121,7 @@ function useParameterSuggestions({
                   FieldValueType.STRING,
               })
             )
-            .map(col => ({value: col.key, label: col.key}));
+            .map(col => ({value: col.key, label: prettifyTagKey(col.key)}));
         }
 
         return potentialColumns
@@ -129,7 +130,7 @@ function useParameterSuggestions({
               getFieldDefinition(col.key)?.valueType ?? FieldValueType.STRING
             )
           )
-          .map(col => ({value: col.key, label: col.key}));
+          .map(col => ({value: col.key, label: prettifyTagKey(col.key)}));
       }
       case 'value':
         if (parameterDefinition.options) {
@@ -178,6 +179,7 @@ export function SearchQueryBuilderParametersCombobox({
   const inputRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilder();
   const [inputValue, setInputValue] = useState(() => getInitialInputValue(token));
+
   const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
     inputRef,
     inputValue,
