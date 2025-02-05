@@ -90,7 +90,6 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -972,7 +971,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if "samplingMode" in changed_data:
                     with transaction.atomic(router.db_for_write(ProjectOption)):
                         if is_project_mode_sampling(organization):
-                            self._compute_project_target_sample_rates(organization)
+                            self._compute_project_target_sample_rates(request, organization)
                             organization.delete_option("sentry:target_sample_rate")
 
                         elif is_org_mode:
@@ -1031,7 +1030,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _compute_project_target_sample_rates(self, organization: Organization):
+    def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
@@ -1051,7 +1050,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         rebalanced_projects = calculate_sample_rates_of_projects(
             org_id, projects_with_tx_count_and_rates
         )
-        project_ids = Project.objects.filter(organization_id=org_id).values_list("id", flat=True)
+        project_ids = [project.id for project in self.get_projects(request, organization)]
 
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
