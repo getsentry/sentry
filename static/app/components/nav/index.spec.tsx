@@ -108,6 +108,28 @@ describe('Nav', function () {
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
     });
+
+    describe('collapse behavior', function () {
+      it('can collpase and expand secondary sidebar', async function () {
+        renderNav();
+
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+        expect(
+          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('mobile navigation', function () {
