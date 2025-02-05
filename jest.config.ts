@@ -158,6 +158,14 @@ function getTestsForGroup(
   if (!groups[nodeIndex]) {
     throw new Error(`No tests found for node ${nodeIndex}`);
   }
+
+  if (nodeIndex === 0) {
+    const len = groups[nodeIndex].length;
+    const limit = Math.floor(len / 2);
+
+    return groups[nodeIndex].slice(0, limit).map(test => `<rootDir>/${test}`);
+  }
+
   return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
 

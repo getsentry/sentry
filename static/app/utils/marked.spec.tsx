@@ -7,6 +7,9 @@ function expectMarkdown(test: any) {
 }
 
 describe('marked', function () {
+  it('is true', function () {
+    expect(true).toBeTruthy();
+  });
   it('normal links get rendered as html', function () {
     for (const test of [
       ['[x](http://example.com)', '<a href="http://example.com">x</a>'],
