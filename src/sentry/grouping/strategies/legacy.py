@@ -448,7 +448,7 @@ def stacktrace_legacy(
         prev_frame = frame
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
-        frame_components, frames_for_filtering, event.platform
+        variant_name, frame_components, frames_for_filtering, event.platform
     )
     stacktrace_component.update(contributes=contributes, hint=hint)
     return {variant_name: stacktrace_component}

@@ -22,7 +22,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
   });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
-  if (!issueTypeConfig.replays.enabled || replaysCount <= 0) {
+  if (!issueTypeConfig.pages.replays.enabled || replaysCount <= 0) {
     return null;
   }
 

@@ -28,9 +28,6 @@ filterwarnings = [
   # Consider all warnings to be errors other than the ignored ones.
   "error",
 
-  # phabricator uses `pkg_resources` apis
-  "ignore:pkg_resources is deprecated as an API",
-
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
 
@@ -101,7 +98,6 @@ module = [
     "onelogin.saml2.auth.*",
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
-    "phabricator.*",
     "rb.*",
     "sqlparse.*",
     "statsd.*",
@@ -144,7 +140,6 @@ module = [
     "sentry.api.invite_helper",
     "sentry.api.paginator",
     "sentry.api.permissions",
-    "sentry.api.serializers.models.auth_provider",
     "sentry.api.serializers.models.event",
     "sentry.auth.helper",
     "sentry.auth.provider",
@@ -270,7 +265,6 @@ disable_error_code = [
     "misc",
     "operator",
     "override",
-    "return-value",
     "typeddict-item",
     "union-attr",
     "unreachable",
@@ -372,6 +366,7 @@ module = [
     "sentry.issues.endpoints.group_events",
     "sentry.issues.endpoints.group_notes",
     "sentry.issues.endpoints.group_notes_details",
+    "sentry.issues.endpoints.group_open_periods",
     "sentry.issues.endpoints.group_similar_issues_embeddings",
     "sentry.issues.endpoints.group_tombstone",
     "sentry.issues.endpoints.group_tombstone_details",
@@ -412,6 +407,7 @@ module = [
     "sentry.issues.status_change",
     "sentry.issues.status_change_consumer",
     "sentry.issues.status_change_message",
+    "sentry.issues.streamline",
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
     "sentry.llm.*",
@@ -434,6 +430,7 @@ module = [
     "sentry.nodestore.filesystem.backend",
     "sentry.nodestore.models",
     "sentry.notifications.services.*",
+    "sentry.options.rollout",
     "sentry.organizations.*",
     "sentry.ownership.*",
     "sentry.plugins.base.response",
@@ -557,6 +554,7 @@ module = [
     "tests.sentry.issues.endpoints.test_group_hashes",
     "tests.sentry.issues.endpoints.test_group_notes",
     "tests.sentry.issues.endpoints.test_group_notes_details",
+    "tests.sentry.issues.endpoints.test_group_open_periods",
     "tests.sentry.issues.endpoints.test_group_similar_issues_embeddings",
     "tests.sentry.issues.endpoints.test_group_tombstone",
     "tests.sentry.issues.endpoints.test_group_tombstone_details",

@@ -560,7 +560,8 @@ export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
               ...context,
             } as P;
 
-            return <WrappedComponent {...props} />;
+            // TODO(any): HoC types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+            return <WrappedComponent {...(props as any)} />;
           }}
         </ScrollbarManagerContext.Consumer>
       );

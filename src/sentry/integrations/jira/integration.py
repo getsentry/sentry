@@ -130,8 +130,8 @@ class JiraIntegration(IssueSyncIntegration):
     def use_email_scope(cls):
         return settings.JIRA_USE_EMAIL_SCOPE
 
-    def get_organization_config(self) -> dict[str, Any]:
-        configuration = [
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        configuration: list[dict[str, Any]] = [
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",
@@ -987,7 +987,9 @@ class JiraIntegration(IssueSyncIntegration):
             }
         )
 
-    def parse_jira_issue_metadata(self, meta: dict[str, Any]) -> list[JiraIssueTypeMetadata] | None:
+    def parse_jira_issue_metadata(
+        self, meta: dict[str, Any]
+    ) -> dict[str, JiraIssueTypeMetadata] | None:
         try:
             return JiraIssueTypeMetadata.from_jira_meta_config(meta)
         except Exception as e:

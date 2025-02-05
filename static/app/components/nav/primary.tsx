@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,6 +37,7 @@ interface SidebarItemProps {
 
 interface SidebarItemLinkProps {
   to: string;
+  activeTo?: string;
   children?: React.ReactNode;
   onClick?: MouseEventHandler<HTMLElement>;
 }
@@ -70,7 +72,12 @@ function SidebarItem({item}: SidebarItemProps) {
   if (item.to) {
     return (
       <SidebarItemWrapper>
-        <SidebarLink to={item.to} key={item.label} onClick={recordAnalytics}>
+        <SidebarLink
+          to={item.to}
+          activeTo={item.activeTo}
+          key={item.label}
+          onClick={recordAnalytics}
+        >
           {item.icon}
           <span>{item.label}</span>
         </SidebarLink>
@@ -115,9 +122,9 @@ function SidebarMenu({items, children, onClick}: SidebarItemDropdownProps) {
   );
 }
 
-function SidebarLink({children, to, onClick}: SidebarItemLinkProps) {
+function SidebarLink({children, to, activeTo = to, onClick}: SidebarItemLinkProps) {
   const location = useLocation();
-  const isActive = isLinkActive(to, location.pathname);
+  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const linkProps = makeLinkPropsFromTo(to);
 
   return (
@@ -226,7 +233,8 @@ export function PrimaryNavigationItems() {
             label: t('Settings'),
             icon: <IconSettings />,
             analyticsKey: 'settings',
-            to: `${prefix}/settings/${organization.slug}/`,
+            to: `/${prefix}/settings/${organization.slug}/`,
+            activeTo: `/${prefix}/settings/`,
           }}
         />
       </SidebarFooter>
@@ -268,7 +276,7 @@ const SidebarItemWrapper = styled('li')`
     height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: auto ${space(1.5)};
+    padding: 0 ${space(1.5)};
     color: var(--color, currentColor);
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
