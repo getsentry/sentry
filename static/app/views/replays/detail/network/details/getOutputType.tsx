@@ -9,6 +9,7 @@ export enum Output {
   BODY_SKIPPED = 'body_skipped',
   BODY_PARSE_ERROR = 'body_parse_error',
   BODY_PARSE_TIMEOUT = 'body_parse_timeout',
+  UNPARSEABLE_BODY_TYPE = 'unparseable_body_type',
   DATA = 'data',
 }
 
@@ -53,6 +54,11 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
 
   if (respWarnings?.includes('BODY_PARSE_TIMEOUT')) {
     return Output.BODY_PARSE_TIMEOUT;
+  }
+
+  if (respWarnings?.includes('UNPARSEABLE_BODY_TYPE')) {
+    // Differs from BODY_PARSE_ERROR in that we did not attempt to parse it
+    return Output.UNPARSEABLE_BODY_TYPE;
   }
 
   if (isReqUrlSkipped || isRespUrlSkipped) {

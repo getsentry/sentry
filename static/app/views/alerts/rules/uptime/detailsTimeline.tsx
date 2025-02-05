@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -10,19 +10,34 @@ import Panel from 'sentry/components/panels/panel';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {OverviewRow} from 'sentry/views/insights/uptime/components/overviewTimeline/overviewRow';
+import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
-import type {UptimeRule} from './types';
+import type {CheckStatusBucket, UptimeRule} from './types';
 
 interface Props {
+  /**
+   * Called when stats have been loaded for this timeline.
+   */
+  onStatsLoaded: (stats: CheckStatusBucket[]) => void;
   uptimeRule: UptimeRule;
 }
 
-export function DetailsTimeline({uptimeRule}: Props) {
+export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+
+  const {data: uptimeStats} = useUptimeMonitorStats({
+    ruleIds: [uptimeRule.id],
+    timeWindowConfig,
+  });
+
+  useEffect(
+    () => uptimeStats?.[uptimeRule.id] && onStatsLoaded?.(uptimeStats[uptimeRule.id]!),
+    [onStatsLoaded, uptimeStats, uptimeRule.id]
+  );
 
   return (
     <Panel>
@@ -42,6 +57,7 @@ export function DetailsTimeline({uptimeRule}: Props) {
 
 const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
+  z-index: 1;
 `;
 
 const AlignedGridLineOverlay = styled(GridLineOverlay)`
