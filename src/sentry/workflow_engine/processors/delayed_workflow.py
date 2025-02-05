@@ -10,8 +10,9 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
-    BaseEventFrequencyConditionHandler,
+from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+    BaseEventFrequencyQueryHandler,
+    slow_condition_query_handler_registry,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import (
@@ -20,7 +21,6 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
-from sentry.workflow_engine.registry import condition_handler_registry
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 
@@ -33,7 +33,7 @@ class UniqueConditionQuery:
     same condition class can share the single query.
     """
 
-    handler: BaseEventFrequencyConditionHandler
+    handler: type[BaseEventFrequencyQueryHandler]
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
@@ -147,7 +147,7 @@ def generate_unique_queries(
         return []
 
     try:
-        handler = condition_handler_registry.get(condition_type)
+        handler = slow_condition_query_handler_registry.get(condition_type)
     except NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
@@ -155,14 +155,9 @@ def generate_unique_queries(
         )
         return []
 
-    if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
-        return []
-
-    base_handler = handler.base_handler  # type: ignore[attr-defined]
-
     unique_queries = [
         UniqueConditionQuery(
-            handler=base_handler,
+            handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
         )
@@ -170,7 +165,7 @@ def generate_unique_queries(
     if condition_type in PERCENT_CONDITIONS:
         unique_queries.append(
             UniqueConditionQuery(
-                handler=base_handler,
+                handler=handler,
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
