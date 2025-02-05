@@ -222,6 +222,7 @@ def get_condition_group_results(
             environment_id=unique_condition.environment_id,
             current_time=current_time,
             comparison_interval=comparison_interval,
+            interval=unique_condition.interval,
         )
         condition_group_results[unique_condition] = result or {}
 

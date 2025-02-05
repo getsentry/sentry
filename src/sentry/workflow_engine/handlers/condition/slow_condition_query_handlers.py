@@ -136,7 +136,12 @@ class BaseEventFrequencyQueryHandler(ABC):
 
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        interval: str,
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -151,6 +156,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
+        interval: str,
     ) -> dict[int, int]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
@@ -171,6 +177,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 start=start,
                 end=end,
                 environment_id=environment_id,
+                interval=interval,
             )
         return result
 
@@ -184,7 +191,12 @@ slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHan
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -219,7 +231,12 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int | None,
+        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
