@@ -18,7 +18,7 @@ type ExtendedTimelineEvent = AutofixTimelineEvent & {
 
 type Props = {
   events: ExtendedTimelineEvent[];
-  color?: Color;
+  activeColor?: Color;
   getCustomIcon?: (event: ExtendedTimelineEvent) => React.ReactNode;
 };
 
@@ -41,15 +41,15 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive: boolean, color?: Color): ColorConfig {
+function getEventColor(isActive: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? color ?? 'pink400' : 'gray400',
-    iconBorder: isActive ? color ?? 'pink400' : 'gray400',
+    icon: isActive ? activeColor ?? 'pink400' : 'gray400',
+    iconBorder: isActive ? activeColor ?? 'pink400' : 'gray400',
   };
 }
 
-export function AutofixTimeline({events, color, getCustomIcon}: Props) {
+export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
   if (!events?.length) {
@@ -89,7 +89,7 @@ export function AutofixTimeline({events, color, getCustomIcon}: Props) {
             }
             isActive={isActive}
             icon={getCustomIcon?.(event) ?? getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive, color)}
+            colorConfig={getEventColor(isActive, activeColor)}
           >
             <AnimatePresence>
               {!isTruncated && expandedItems.includes(index) && (

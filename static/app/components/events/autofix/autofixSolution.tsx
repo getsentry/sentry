@@ -247,7 +247,7 @@ function SolutionDescription({
       <div ref={containerRef}>
         <AutofixTimeline
           events={filteredEvents}
-          color="green400"
+          activeColor="green400"
           getCustomIcon={(event: AutofixTimelineEvent & {isTruncated?: boolean}) =>
             event.isTruncated ? <VerticalEllipsis /> : undefined
           }
