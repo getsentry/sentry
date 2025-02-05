@@ -33,7 +33,6 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            # todo adjust this to be the right thing
             return Response(
                 {"attributeDistributions": []}  # Empty ıresponse matching the expected structure
             )
@@ -47,13 +46,15 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         if serialized["dataset"] != "spans":
             raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
 
-        # keep start and end as is, we need them for the filter
+        # keep start and end as is
         snuba_params.start = snuba_params.start_date
         snuba_params.end = snuba_params.end_date
 
-        # this parameter is not used yet, will be used for handling the numerical attributes
-        max_buckets = request.GET.get("maxBuckets", 10)
-        max_attributes = request.GET.get("maxAttributes", 100)
+        # if values are not provided, we will use zeros and then snuba RPC will set the defaults
+        # Top number of frequencies to return for each attribute, defaults in snuba to 10 and can't be more than 100
+        max_buckets = request.GET.get("maxBuckets", 0)
+        # Total number of attributes to return, defaults in snuba to 10_000
+        max_attributes = request.GET.get("maxAttributes", 0)
         try:
             max_buckets = int(max_buckets)
             max_attributes = int(max_attributes)
@@ -68,7 +69,6 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         query = request.GET.get("query")
         filter, _, _ = resolver.resolve_query(query)
 
-        # todo get helper to pass through the request
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
                 max_buckets=max_buckets, max_attributes=max_attributes
@@ -80,10 +80,9 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
             meta=meta,
             stats_types=[stats_type],
         )
-        # this part is mocked until the snuba changes are merged
+
         rpc_response = snuba_rpc.attribute_frequency_stats_rpc(rpc_request)
 
-        # tod this part might change
         response_data = MessageToDict(rpc_response)
 
         return Response(response_data)
