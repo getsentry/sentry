@@ -1,10 +1,12 @@
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
+import type {To} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
+import {isLinkActive} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -12,9 +14,14 @@ type SecondaryNavProps = {
   children: ReactNode;
 };
 
-interface SecondaryNavItemProps extends Omit<LinkProps, 'ref'> {
+interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
-  to: string;
+  to: To;
+  /**
+   * When passed, will not show the link as active for descendant paths.
+   * Same as the RR6 `NavLink` `end` prop.
+   */
+  end?: boolean;
   isActive?: boolean;
 }
 
@@ -52,10 +59,12 @@ SecondaryNav.Item = function SecondaryNavItem({
   children,
   to,
   isActive: incomingIsActive,
+  end = false,
   ...linkProps
 }: SecondaryNavItemProps) {
-  const {pathname} = useLocation();
-  const isActive = incomingIsActive || pathname.startsWith(to);
+  const location = useLocation();
+
+  const isActive = incomingIsActive || isLinkActive(to, location.pathname, {end});
 
   return (
     <Item

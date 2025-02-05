@@ -45,12 +45,18 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
+LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_identifier", "target_type"]
+ACTION_DATA_FIELDS = ["type", "sentry_app_id", "sentry_app_config"]
+
 
 class MissingDataConditionGroup(Exception):
     pass
 
 
 class UnresolvableResolveThreshold(Exception):
+    pass
+  
+class InvalidActionType(Exception):
     pass
 
 
@@ -429,7 +435,7 @@ def migrate_alert_rule(
     )
 
 
-def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
+def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
     tuple[
         DetectorState,
         Detector,
@@ -546,6 +552,76 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
     resolve_condition.update(comparison=resolve_threshold)
 
     return resolve_condition
+
+  
+def dual_update_migrated_alert_rule_trigger(
+    alert_rule_trigger: AlertRuleTrigger, updated_fields: dict[str, Any]
+) -> tuple[DataCondition, DataCondition] | None:
+    # NOTE: update the trigger *AFTER* calling this helper so that we can get the right data conditions
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        return None
+    action_filter = get_action_filter(alert_rule_trigger, priority)
+
+    # Fields have already been validated in logic.py, so we can update without validating here
+    updated_detector_trigger_fields: dict[str, Any] = {}
+    updated_action_filter_fields: dict[str, Any] = {}
+    if "label" in updated_fields:
+        label = updated_fields["label"]
+        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+        updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+    if "alert_threshold" in updated_fields:
+        updated_detector_trigger_fields["comparison"] = updated_fields["alert_threshold"]
+
+    detector_trigger.update(**updated_detector_trigger_fields)
+    if updated_action_filter_fields:
+        action_filter.update(**updated_action_filter_fields)
+
+    return detector_trigger, action_filter
+
+
+def dual_update_migrated_alert_rule_trigger_action(
+    trigger_action: AlertRuleTriggerAction, updated_fields: dict[str, Any]
+) -> Action | None:
+    # NOTE: update the action *BEFORE* calling this method so that we can reuse the get_action_type method
+    alert_rule_trigger = trigger_action.alert_rule_trigger
+    # Check that we dual wrote this action
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
+        )
+        return None
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    action = aarta.action
+
+    updated_action_fields: dict[str, Any] = {}
+    action_type = get_action_type(trigger_action)
+    if not action_type:
+        logger.error(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        )
+        raise InvalidActionType
+    updated_action_fields["type"] = action_type
+    data = action.data.copy()
+    for field in LEGACY_ACTION_FIELDS:
+        if field in updated_fields:
+            updated_action_fields[field] = updated_fields[field]
+    for field in ACTION_DATA_FIELDS:
+        if field in updated_fields:
+            data[field] = updated_fields[field]
+    updated_action_fields["data"] = data
+
+    action.update(**updated_action_fields)
+    return action
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:

@@ -490,6 +490,13 @@ register(
     default=5000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Disables viewed by queries for a list of project ids.
+register(
+    "replay.viewed-by.project-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -511,6 +518,15 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
+#
+# NOTE: Any value below 1.0 will break the product. Do not override in production.
+register(
+    "relay.ourlogs-breadcrumb-extraction.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -2821,6 +2837,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_processing.emit_logs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2971,4 +2993,17 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.date_cutoff_epoch_seconds",
+    type=Int,
+    default=0,
 )

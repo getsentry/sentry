@@ -355,7 +355,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           <Row title={t('Description')}>
             <Link
               to={transactionSummaryRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 transaction: detail.traceFullDetailedEvent.transaction,
                 query: omit(location.query, Object.values(PAGE_URL_PARAM)),
                 projectID: String(detail.traceFullDetailedEvent.project_id),

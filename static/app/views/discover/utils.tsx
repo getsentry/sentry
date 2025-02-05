@@ -1,4 +1,3 @@
-import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
@@ -15,7 +14,7 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined, urlEncode} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -742,7 +741,9 @@ export function handleAddQueryToDashboard({
       },
     },
     widget: {
-      title: (query?.name ?? eventView.name)!,
+      // We need the event view name for when we're adding from a saved query page
+      title: (query?.name ??
+        (eventView.name === 'All Errors' ? t('Custom Widget') : eventView.name))!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
@@ -794,7 +795,7 @@ export function getTargetForTransactionSummaryLink(
   }
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(dataRow.transaction),
     projectID,
     query: nextView?.getPageFiltersQuery() || {},

@@ -17,7 +17,9 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -152,12 +154,12 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({tags}: {tags: GroupTag[]}) {
+function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: string}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  if (tags.length === 0) {
+  if (tags.length === 0 || searchQuery) {
     return (
-      <HorizontalIssueTagsButton
+      <VerticalIssueTagsButton
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
@@ -165,10 +167,10 @@ function IssueTagButton({tags}: {tags: GroupTag[]}) {
           query: location.query,
           replace: true,
         }}
-        disabled
+        disabled={tags.length === 0}
       >
         {t('All Tags')}
-      </HorizontalIssueTagsButton>
+      </VerticalIssueTagsButton>
     );
   }
 
@@ -199,6 +201,19 @@ export default function IssueTagsPreview({
   project: Project;
 }) {
   const searchQuery = useEventQuery({groupId});
+  const organization = useOrganization();
+
+  const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+    const highlightDefaults =
+      detailedProject?.highlightPreset?.tags ?? project?.highlightPreset?.tags ?? [];
+    return tagKeys.filter(tag => !highlightDefaults.includes(tag));
+  }, [detailedProject, project]);
 
   const {
     isError,
@@ -213,6 +228,10 @@ export default function IssueTagsPreview({
       return [];
     }
 
+    const highlightTags = tags
+      .filter(tag => highlightTagKeys.includes(tag.key))
+      .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
+
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
       : frontend.some(val => val === project?.platform)
@@ -225,34 +244,43 @@ export default function IssueTagsPreview({
       .filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
-    return sortedTags.slice(0, 4);
-  }, [tags, project?.platform]);
+    const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
+    const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
+    const uniqueTags = [...new Set(orderedTags)];
+    return uniqueTags.slice(0, 4);
+  }, [tags, project?.platform, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightPending) {
     return (
-      <IssueTagPreviewSection>
-        <Placeholder width="240px" height="100px" />
-      </IssueTagPreviewSection>
+      <Fragment>
+        <SectionDivider />
+        <IssueTagPreviewSection>
+          <Placeholder width="240px" height="100px" />
+        </IssueTagPreviewSection>
+      </Fragment>
     );
   }
 
-  if (isError || searchQuery) {
+  if (isError) {
     return null;
   }
 
-  if (tagsToPreview.length === 0) {
-    return <IssueTagButton tags={tagsToPreview} />;
+  if (tagsToPreview.length === 0 || searchQuery) {
+    return <IssueTagButton tags={tagsToPreview} searchQuery={searchQuery} />;
   }
 
   return (
-    <IssueTagPreviewSection>
-      <TagsPreview>
-        {tagsToPreview.map(tag => (
-          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-        ))}
-      </TagsPreview>
-      <IssueTagButton tags={tagsToPreview} />
-    </IssueTagPreviewSection>
+    <Fragment>
+      <SectionDivider />
+      <IssueTagPreviewSection>
+        <TagsPreview>
+          {tagsToPreview.map(tag => (
+            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+          ))}
+        </TagsPreview>
+        <IssueTagButton tags={tagsToPreview} />
+      </IssueTagPreviewSection>
+    </Fragment>
   );
 }
 
@@ -369,7 +397,7 @@ const IssueTagsButton = styled(LinkButton)`
   }
 `;
 
-const HorizontalIssueTagsButton = styled(LinkButton)`
+const VerticalIssueTagsButton = styled(LinkButton)`
   display: block;
   flex: 0;
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
@@ -380,4 +408,11 @@ const HorizontalIssueTagsButton = styled(LinkButton)`
   span {
     white-space: unset;
   }
+`;
+
+const SectionDivider = styled('div')`
+  border-left: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  align-items: center;
+  margin: ${space(1)};
 `;

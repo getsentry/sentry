@@ -19,11 +19,15 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
+from sentry.rules.processing.buffer_processing import (
+    bucket_num_groups,
+    process_buffer,
+    process_in_batches,
+)
 from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
     UniqueConditionQuery,
     apply_delayed,
-    bucket_num_groups,
     bulk_fetch_events,
     cleanup_redis_buffer,
     generate_unique_queries,
@@ -34,8 +38,6 @@ from sentry.rules.processing.delayed_processing import (
     get_rules_to_groups,
     get_slow_conditions,
     parse_rulegroup_to_event_data,
-    process_delayed_alert_conditions,
-    process_rulegroups_in_batches,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
@@ -761,12 +763,12 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
         self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
 
-    @patch("sentry.rules.processing.delayed_processing.process_rulegroups_in_batches")
+    @patch("sentry.rules.processing.buffer_processing.process_in_batches")
     def test_fetches_from_buffer_and_executes(self, mock_process_in_batches):
         self._push_base_events()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
-        process_delayed_alert_conditions()
+        process_buffer()
 
         for project, rule_group_event_mapping in (
             (self.project, self.rulegroup_event_mapping_one),
@@ -1502,7 +1504,7 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
     def test_no_redis_data(self, mock_apply_delayed):
-        process_rulegroups_in_batches(self.project.id)
+        process_in_batches(self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(self.project.id)
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
@@ -1511,7 +1513,7 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_rulegroups_in_batches(self.project.id)
+        process_in_batches(self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(self.project.id)
 
     @override_options({"delayed_processing.batch_size": 2})
@@ -1521,7 +1523,7 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_rulegroups_in_batches(self.project.id)
+        process_in_batches(self.project.id, "delayed_processing")
         assert mock_apply_delayed.call_count == 2
 
         # Validate the batches are created correctly
@@ -1601,7 +1603,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_two.id)
         rules_to_groups[self.rule.id].add(group_three.id)
 
-        process_rulegroups_in_batches(self.project.id)
+        process_in_batches(self.project.id, "delayed_processing")
         batch_one_key = mock_apply_delayed.call_args_list[0][0][1]
         batch_two_key = mock_apply_delayed.call_args_list[1][0][1]
 

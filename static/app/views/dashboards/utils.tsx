@@ -289,7 +289,7 @@ export function getWidgetDiscoverUrl(
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;
-    case DisplayType.TOP_N:
+    case DisplayType.TOP_N: {
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
       const aggregates = widget.queries[0]!.aggregates;
@@ -298,6 +298,7 @@ export function getWidgetDiscoverUrl(
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
+    }
     default:
       break;
   }
