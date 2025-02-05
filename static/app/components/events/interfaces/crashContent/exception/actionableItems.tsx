@@ -362,11 +362,10 @@ function groupedErrors(
 
 interface ActionableItemsProps {
   event: Event;
-  isShare: boolean;
   project: Project;
 }
 
-export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
+export function ActionableItems({event, project}: ActionableItemsProps) {
   const organization = useOrganization();
   const {data, isPending} = useActionableItems({
     eventId: event.id,
@@ -377,7 +376,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
     event,
     project,
-    isShare,
+    isShare: false,
   });
 
   useEffect(() => {
