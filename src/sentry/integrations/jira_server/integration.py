@@ -1063,6 +1063,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             total_queried_jira_users = 0
             total_available_jira_emails = 0
             for ue in user.emails:
+                assert ue is not None, "Expected a valid user email, received empty string"
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue)
                 except ApiUnauthorized:
@@ -1084,8 +1085,13 @@ class JiraServerIntegration(IssueSyncIntegration):
                     continue
 
                 total_queried_jira_users += len(possible_users)
+
+                if len(possible_users) == 1:
+                    jira_user = possible_users[0]
+                    break
+
                 for possible_user in possible_users:
-                    email = possible_user.get("emailAddress") or possible_user.get("username")
+                    email = possible_user.get("emailAddress")
 
                     if not email:
                         continue
