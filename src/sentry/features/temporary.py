@@ -490,8 +490,6 @@ def register_temporary_features(manager: FeatureManager):
 
     # Project scoped features #
     ###########################
-    # Enable AI Autofix feture on the Issue Details page.
-    manager.add("projects:ai-autofix", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Adds additional filters and a new section to issue alert rules.
     manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
