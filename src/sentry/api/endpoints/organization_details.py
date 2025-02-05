@@ -90,6 +90,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -1050,14 +1051,18 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         rebalanced_projects = calculate_sample_rates_of_projects(
             org_id, projects_with_tx_count_and_rates
         )
+        # get all active projects associated with the org
+        # filter rebalanced_projects by those where the project actually exists
+        project_ids = Project.objects.filter(organization_id=org_id).values("id").distinct()
 
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
-                ProjectOption.objects.create_or_update(
-                    project_id=rebalanced_item.id,
-                    key="sentry:target_sample_rate",
-                    values={"value": round(rebalanced_item.new_sample_rate, 4)},
-                )
+                if rebalanced_item.id in project_ids:
+                    ProjectOption.objects.create_or_update(
+                        project_id=rebalanced_item.id,
+                        key="sentry:target_sample_rate",
+                        values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                    )
 
     def handle_delete(self, request: Request, organization: Organization):
         """
