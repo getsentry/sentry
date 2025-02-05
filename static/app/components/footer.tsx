@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Hook from 'sentry/components/hook';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconSentry} from 'sentry/icons';
+import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -12,10 +12,20 @@ import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const SentryLogoHook = HookOrDefault({
-  hookName: 'component:sentry-logo',
-  defaultComponent: () => <IconSentry size="lg" />,
-});
+type SentryLogoProps = SVGIconProps & {
+  /**
+   * Displays the sentry pride logo instead of the regular logo
+   */
+  pride?: boolean;
+};
+
+function SentryLogo({pride, fill, ...props}: SentryLogoProps) {
+  if (pride) {
+    return <IconSentryPrideLogo {...props} />;
+  }
+
+  return <IconSentry fill={fill} {...props} />;
+}
 
 type Props = {
   className?: string;
@@ -48,7 +58,7 @@ function BaseFooter({className}: Props) {
         {termsUrl && <FooterLink href={termsUrl}>{t('Terms of Use')}</FooterLink>}
       </LeftLinks>
       <SentryLogoLink href="https://sentry.io/welcome/" tabIndex={-1}>
-        <SentryLogoHook
+        <SentryLogo
           size="lg"
           pride={(organization?.features ?? []).includes('sentry-pride-logo-footer')}
         />
