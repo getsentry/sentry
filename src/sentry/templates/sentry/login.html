@@ -153,7 +153,10 @@
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      document.getElementById('timezone-input').value = timezone;
+      const timezoneInput =   document.getElementById('timezone-input');
+      if (timezoneInput) {
+        timezoneInput.value = timezone
+      }
     });
   </script>
   {% endscript %}
