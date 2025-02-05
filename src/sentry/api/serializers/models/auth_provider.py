@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import F
 
 from sentry import features
@@ -9,7 +13,18 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.absolute_url import organization_absolute_url
-from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+
+class AuthProviderDict(TypedDict):
+    id: str
+    provider_name: str
+    pending_links_count: int
+    login_url: str
+    default_role: str
+    require_link: bool
+    scim_enabled: bool
 
 
 @register(AuthProvider)
@@ -17,10 +32,11 @@ class AuthProviderSerializer(Serializer):
     def serialize(
         self,
         obj: AuthProvider | RpcAuthProvider,
-        attrs,
-        user,
-        organization: Organization | RpcOrganization,
-    ):
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthProviderDict:
+        organization = kwargs.pop("organization")  # required arg
         pending_links_count = OrganizationMember.objects.filter(
             organization_id=organization.id,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),

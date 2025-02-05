@@ -72,7 +72,7 @@ export type IssueTypeConfig = {
       type: 'discover-events' | 'checkin-timeline' | 'detector-history';
     };
     occurrenceSummary: DisabledWithReasonConfig & {
-      duration?: boolean;
+      downtime?: boolean;
     };
     tagDistribution: DisabledWithReasonConfig;
   };

@@ -1863,10 +1863,6 @@ function buildRoutes() {
         {moduleRoutes}
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
-        />
-        {transactionSummaryRoutes}
         {traceViewRoute}
         <Route
           path="trends/"
@@ -2057,8 +2053,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupOpenPeriods'))}
       />
       <Route
-        path={TabPaths[Tab.CHECK_INS]}
-        component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
+        path={TabPaths[Tab.UPTIME_CHECKS]}
+        component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
       />
       <Route
         path={TabPaths[Tab.TAGS]}
