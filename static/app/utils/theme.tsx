@@ -1,9 +1,495 @@
+/**
+ * This file is the source of truth for the theme,
+ * it is roughly split into the following sections:
+ *
+ * - Theme helpers (color generation and aliases)
+ * - Common type definitions for certain fields like button kinds and variants
+ * - Light and dark theme definitions
+ * - Theme type exports
+ */
 import {css} from '@emotion/react';
 import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {type DataCategory, Outcome} from 'sentry/types/core';
+
+const generateAliases = (colors: Colors) => ({
+  /**
+   * Heading text color
+   */
+  headingColor: colors.gray500,
+
+  /**
+   * Primary text color
+   */
+  textColor: colors.gray400,
+
+  /**
+   * Text that should not have as much emphasis
+   */
+  subText: colors.gray300,
+
+  /**
+   * Background for the main content area of a page?
+   */
+  bodyBackground: colors.surface200,
+
+  /**
+   * Primary background color
+   */
+  background: colors.surface300,
+
+  /**
+   * Elevated background color
+   */
+  backgroundElevated: colors.surface400,
+
+  /**
+   * Secondary background color used as a slight contrast against primary background
+   */
+  backgroundSecondary: colors.surface200,
+
+  /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: colors.surface100,
+
+  /**
+   * Background for the header of a page
+   */
+  headerBackground: colors.surface300,
+
+  /**
+   * Primary border color
+   */
+  border: colors.gray200,
+  translucentBorder: colors.translucentGray200,
+
+  /**
+   * Inner borders, e.g. borders inside of a grid
+   */
+  innerBorder: colors.gray100,
+  translucentInnerBorder: colors.translucentGray100,
+
+  /**
+   * A color that denotes a "success", or something good
+   */
+  success: colors.green300,
+  successText: colors.green400,
+  successFocus: colors.green200,
+
+  /**
+   * A color that denotes an error, or something that is wrong
+   */
+  error: colors.red300,
+  errorText: colors.red400,
+  errorFocus: colors.red200,
+
+  /**
+   * A color that denotes danger, for dangerous actions like deletion
+   */
+  danger: colors.red300,
+  dangerText: colors.red400,
+  dangerFocus: colors.red200,
+
+  /**
+   * A color that denotes a warning
+   */
+  warning: colors.yellow300,
+  warningText: colors.yellow400,
+  warningFocus: colors.yellow200,
+
+  /**
+   * A color that indicates something is disabled where user can not interact or use
+   * it in the usual manner (implies that there is an "enabled" state)
+   */
+  disabled: colors.gray300,
+  disabledBorder: colors.gray200,
+
+  /**
+   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
+   * interaction (hover/press) states.
+   * @deprecated
+   */
+  hover: colors.surface500,
+
+  /**
+   * Indicates that something is "active" or "selected"
+   */
+  active: colors.purple300,
+  activeHover: colors.purple400,
+  activeText: colors.purple400,
+
+  /**
+   * Indicates that something has "focus", which is different than "active" state as it is more temporal
+   * and should be a bit subtler than active
+   */
+  focus: colors.purple200,
+  focusBorder: colors.purple300,
+
+  /**
+   * Inactive
+   */
+  inactive: colors.gray300,
+
+  /**
+   * Link color indicates that something is clickable
+   */
+  linkColor: colors.blue400,
+  linkHoverColor: colors.blue400,
+  linkUnderline: colors.blue200,
+  linkFocus: colors.blue300,
+
+  /**
+   * Form placeholder text color
+   */
+  formPlaceholder: colors.gray300,
+
+  /**
+   * Default form text color
+   */
+  formText: colors.gray400,
+
+  /**
+   *
+   */
+  rowBackground: colors.surface400,
+
+  /**
+   * Color of lines that flow across the background of the chart to indicate axes levels
+   * (This should only be used for yAxis)
+   */
+  chartLineColor: colors.gray100,
+
+  /**
+   * Color for chart label text
+   */
+  chartLabel: colors.gray300,
+
+  /**
+   * Color for the 'others' series in topEvent charts
+   */
+  chartOther: colors.gray200,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBar: colors.purple300,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBackground: colors.gray100,
+
+  /**
+   * Overlay for partial opacity
+   */
+  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
+
+  /**
+   * Tag progress bars
+   */
+  tagBarHover: colors.purple200,
+  tagBar: colors.gray200,
+
+  /**
+   * Search filter "token" background
+   */
+  searchTokenBackground: {
+    valid: colors.blue100,
+    validActive: color(colors.blue100).opaquer(1.0).string(),
+    invalid: colors.red100,
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+  },
+
+  /**
+   * Search filter "token" border
+   */
+  searchTokenBorder: {
+    valid: colors.blue200,
+    validActive: color(colors.blue200).opaquer(1).string(),
+    invalid: colors.red200,
+    invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
+  },
+
+  /**
+   * Count on button when active
+   */
+  buttonCountActive: colors.white,
+
+  /**
+   * Count on button
+   */
+  buttonCount: colors.gray500,
+
+  /**
+   * Background of alert banners at the top
+   */
+  bannerBackground: colors.gray500,
+});
+
+type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
+
+type AlertColors = {
+  [key in Alert]: {
+    background: string;
+    backgroundLight: string;
+    border: string;
+    borderHover: string;
+    color: string;
+    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
+    textLight?: string;
+  };
+};
+
+const generateUtils = (colors: Colors, aliases: Aliases) => ({
+  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+    textDecoration: `underline dotted ${
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      colors[underlineColor] ?? aliases[underlineColor]
+    }`,
+    textDecorationThickness: '0.75px',
+    textUnderlineOffset: '1.25px',
+  }),
+  overflowEllipsis: css`
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `,
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css`
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  `,
+});
+
+const generatePrismVariables = (
+  prismColors: typeof prismLight,
+  blockBackground: string
+) =>
+  // eslint-disable-next-line @emotion/syntax-preference
+  css({
+    // block background differs based on light/dark mode
+    '--prism-block-background': blockBackground,
+    ...prismColors,
+  });
+
+const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+  default: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: alias.background,
+    backgroundActive: alias.hover,
+    border: alias.border,
+    borderActive: alias.border,
+    borderTranslucent: alias.translucentBorder,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
+  },
+  primary: {
+    color: colors.white,
+    colorActive: colors.white,
+    background: colors.purple300,
+    backgroundActive: colors.purple400,
+    border: colors.purple300,
+    borderActive: colors.purple300,
+    borderTranslucent: colors.purple300,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
+  },
+  danger: {
+    color: colors.white,
+    colorActive: colors.white,
+    background: colors.red300,
+    backgroundActive: colors.red400,
+    border: colors.red300,
+    borderActive: colors.red300,
+    borderTranslucent: colors.red300,
+    focusBorder: colors.red300,
+    focusShadow: colors.red200,
+  },
+  link: {
+    color: alias.linkColor,
+    colorActive: alias.linkHoverColor,
+    background: 'transparent',
+    backgroundActive: 'transparent',
+    border: 'transparent',
+    borderActive: 'transparent',
+    borderTranslucent: 'transparent',
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
+  },
+  disabled: {
+    color: alias.disabled,
+    colorActive: alias.disabled,
+    background: alias.background,
+    backgroundActive: alias.background,
+    border: alias.disabledBorder,
+    borderActive: alias.disabledBorder,
+    borderTranslucent: alias.translucentInnerBorder,
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
+  },
+});
+
+const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+  muted: {
+    background: colors.gray200,
+    backgroundLight: alias.backgroundSecondary,
+    border: alias.border,
+    borderHover: alias.border,
+    color: 'inherit',
+  },
+  info: {
+    background: colors.blue300,
+    backgroundLight: colors.blue100,
+    border: colors.blue200,
+    borderHover: colors.blue300,
+    color: colors.blue400,
+  },
+  warning: {
+    background: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
+    borderHover: colors.yellow300,
+    color: colors.yellow400,
+  },
+  success: {
+    background: colors.green300,
+    backgroundLight: colors.green100,
+    border: colors.green200,
+    borderHover: colors.green300,
+    color: colors.green400,
+  },
+  error: {
+    background: colors.red300,
+    backgroundLight: colors.red100,
+    border: colors.red200,
+    borderHover: colors.red300,
+    color: colors.red400,
+    textLight: colors.red200,
+  },
+});
+
+const generateLevelTheme = (colors: Colors): LevelColors => ({
+  sample: colors.purple300,
+  info: colors.blue300,
+  warning: colors.yellow300,
+  // Hardcoded legacy color (orange400). We no longer use orange anywhere
+  // else in the app (except for the chart palette). This needs to be harcoded
+  // here because existing users may still associate orange with the "error" level.
+  error: '#FF7738',
+  fatal: colors.red300,
+  default: colors.gray300,
+  unknown: colors.gray200,
+});
+
+const generateBadgeTheme = (colors: Colors): BadgeColors => ({
+  default: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
+  },
+  alpha: {
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
+    indicatorColor: colors.pink300,
+    color: colors.white,
+  },
+  beta: {
+    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
+    indicatorColor: colors.purple300,
+    color: colors.white,
+  },
+  new: {
+    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
+    indicatorColor: colors.green300,
+    color: colors.white,
+  },
+  experimental: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
+  },
+  internal: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
+  },
+  warning: {
+    background: colors.yellow300,
+    indicatorColor: colors.yellow300,
+    color: colors.gray500,
+  },
+  gray: {
+    background: `rgba(43, 34, 51, 0.08)`,
+    indicatorColor: `rgba(43, 34, 51, 0.08)`,
+    color: colors.gray500,
+  },
+});
+
+const generateTagTheme = (colors: Colors): TagColors => ({
+  default: {
+    background: colors.surface400,
+    border: colors.translucentGray200,
+    color: colors.gray400,
+  },
+  promotion: {
+    background: colors.pink100,
+    border: colors.pink100,
+    color: colors.pink400,
+  },
+  highlight: {
+    background: colors.purple100,
+    border: colors.purple100,
+    color: colors.purple400,
+  },
+  warning: {
+    background: colors.yellow100,
+    border: colors.yellow100,
+    color: colors.yellow400,
+  },
+  success: {
+    background: colors.green100,
+    border: colors.green100,
+    color: colors.green400,
+  },
+  error: {
+    background: colors.red100,
+    border: colors.red100,
+    color: colors.red400,
+  },
+  info: {
+    background: colors.purple100,
+    border: colors.purple100,
+    color: colors.purple400,
+  },
+  white: {
+    background: colors.white,
+    border: colors.white,
+    color: colors.black,
+  },
+  black: {
+    background: colors.black,
+    border: colors.black,
+    color: colors.white,
+  },
+});
+
+/**
+ * Theme definition
+ */
 
 /* eslint-disable typescript-sort-keys/interface */
 interface Colors {
@@ -261,277 +747,6 @@ const sidebarBackground = {
   dark: '#181622',
 };
 
-const generateAliases = (colors: Colors) => ({
-  /**
-   * Heading text color
-   */
-  headingColor: colors.gray500,
-
-  /**
-   * Primary text color
-   */
-  textColor: colors.gray400,
-
-  /**
-   * Text that should not have as much emphasis
-   */
-  subText: colors.gray300,
-
-  /**
-   * Background for the main content area of a page?
-   */
-  bodyBackground: colors.surface200,
-
-  /**
-   * Primary background color
-   */
-  background: colors.surface300,
-
-  /**
-   * Elevated background color
-   */
-  backgroundElevated: colors.surface400,
-
-  /**
-   * Secondary background color used as a slight contrast against primary background
-   */
-  backgroundSecondary: colors.surface200,
-
-  /**
-   * Tertiary background color used as a stronger contrast against primary background
-   */
-  backgroundTertiary: colors.surface100,
-
-  /**
-   * Background for the header of a page
-   */
-  headerBackground: colors.surface300,
-
-  /**
-   * Primary border color
-   */
-  border: colors.gray200,
-  translucentBorder: colors.translucentGray200,
-
-  /**
-   * Inner borders, e.g. borders inside of a grid
-   */
-  innerBorder: colors.gray100,
-  translucentInnerBorder: colors.translucentGray100,
-
-  /**
-   * A color that denotes a "success", or something good
-   */
-  success: colors.green300,
-  successText: colors.green400,
-  successFocus: colors.green200,
-
-  /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: colors.red300,
-  errorText: colors.red400,
-  errorFocus: colors.red200,
-
-  /**
-   * A color that denotes danger, for dangerous actions like deletion
-   */
-  danger: colors.red300,
-  dangerText: colors.red400,
-  dangerFocus: colors.red200,
-
-  /**
-   * A color that denotes a warning
-   */
-  warning: colors.yellow300,
-  warningText: colors.yellow400,
-  warningFocus: colors.yellow200,
-
-  /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   */
-  disabled: colors.gray300,
-  disabledBorder: colors.gray200,
-
-  /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
-   * @deprecated
-   */
-  hover: colors.surface500,
-
-  /**
-   * Indicates that something is "active" or "selected"
-   */
-  active: colors.purple300,
-  activeHover: colors.purple400,
-  activeText: colors.purple400,
-
-  /**
-   * Indicates that something has "focus", which is different than "active" state as it is more temporal
-   * and should be a bit subtler than active
-   */
-  focus: colors.purple200,
-  focusBorder: colors.purple300,
-
-  /**
-   * Inactive
-   */
-  inactive: colors.gray300,
-
-  /**
-   * Link color indicates that something is clickable
-   */
-  linkColor: colors.blue400,
-  linkHoverColor: colors.blue400,
-  linkUnderline: colors.blue200,
-  linkFocus: colors.blue300,
-
-  /**
-   * Form placeholder text color
-   */
-  formPlaceholder: colors.gray300,
-
-  /**
-   * Default form text color
-   */
-  formText: colors.gray400,
-
-  /**
-   *
-   */
-  rowBackground: colors.surface400,
-
-  /**
-   * Color of lines that flow across the background of the chart to indicate axes levels
-   * (This should only be used for yAxis)
-   */
-  chartLineColor: colors.gray100,
-
-  /**
-   * Color for chart label text
-   */
-  chartLabel: colors.gray300,
-
-  /**
-   * Color for the 'others' series in topEvent charts
-   */
-  chartOther: colors.gray200,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBar: colors.purple300,
-
-  /**
-   * Default Progressbar color
-   */
-  progressBackground: colors.gray100,
-
-  /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
-
-  /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.purple200,
-  tagBar: colors.gray200,
-
-  /**
-   * Search filter "token" background
-   */
-  searchTokenBackground: {
-    valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
-    invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
-    warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
-  },
-
-  /**
-   * Search filter "token" border
-   */
-  searchTokenBorder: {
-    valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
-    invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
-    warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
-  },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: colors.gray500,
-
-  /**
-   * Background of alert banners at the top
-   */
-  bannerBackground: colors.gray500,
-});
-
-type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
-type AlertColors = {
-  [key in Alert]: {
-    background: string;
-    backgroundLight: string;
-    border: string;
-    borderHover: string;
-    color: string;
-    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
-    textLight?: string;
-  };
-};
-
-const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
-  muted: {
-    background: colors.gray200,
-    backgroundLight: alias.backgroundSecondary,
-    border: alias.border,
-    borderHover: alias.border,
-    color: 'inherit',
-  },
-  info: {
-    background: colors.blue300,
-    backgroundLight: colors.blue100,
-    border: colors.blue200,
-    borderHover: colors.blue300,
-    color: colors.blue400,
-  },
-  warning: {
-    background: colors.yellow300,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow300,
-    color: colors.yellow400,
-  },
-  success: {
-    background: colors.green300,
-    backgroundLight: colors.green100,
-    border: colors.green200,
-    borderHover: colors.green300,
-    color: colors.green400,
-  },
-  error: {
-    background: colors.red300,
-    backgroundLight: colors.red100,
-    border: colors.red200,
-    borderHover: colors.red300,
-    color: colors.red400,
-    textLight: colors.red200,
-  },
-});
-
 type Badge =
   | 'default'
   | 'alpha'
@@ -539,9 +754,10 @@ type Badge =
   | 'warning'
   | 'new'
   | 'experimental'
-  // @TODO(jonasbadalic): What is this tag?
+  // @TODO(jonasbadalic): What is gray a tag type?
   | 'gray'
   | 'internal';
+
 type BadgeColors = {
   [key in Badge]: {
     background: string;
@@ -549,49 +765,6 @@ type BadgeColors = {
     indicatorColor: string;
   };
 };
-
-const generateBadgeTheme = (colors: Colors): BadgeColors => ({
-  default: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  alpha: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.pink300,
-    color: colors.white,
-  },
-  beta: {
-    background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
-    indicatorColor: colors.purple300,
-    color: colors.white,
-  },
-  new: {
-    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
-    indicatorColor: colors.green300,
-    color: colors.white,
-  },
-  experimental: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  internal: {
-    background: colors.gray100,
-    indicatorColor: colors.gray100,
-    color: colors.gray500,
-  },
-  warning: {
-    background: colors.yellow300,
-    indicatorColor: colors.yellow300,
-    color: colors.gray500,
-  },
-  gray: {
-    background: `rgba(43, 34, 51, 0.08)`,
-    indicatorColor: `rgba(43, 34, 51, 0.08)`,
-    color: colors.gray500,
-  },
-});
 
 type Tag =
   | 'default'
@@ -613,72 +786,11 @@ type TagColors = {
   };
 };
 
-const generateTagTheme = (colors: Colors): TagColors => ({
-  default: {
-    background: colors.surface400,
-    border: colors.translucentGray200,
-    color: colors.gray400,
-  },
-  promotion: {
-    background: colors.pink100,
-    border: colors.pink100,
-    color: colors.pink400,
-  },
-  highlight: {
-    background: colors.purple100,
-    border: colors.purple100,
-    color: colors.purple400,
-  },
-  warning: {
-    background: colors.yellow100,
-    border: colors.yellow100,
-    color: colors.yellow400,
-  },
-  success: {
-    background: colors.green100,
-    border: colors.green100,
-    color: colors.green400,
-  },
-  error: {
-    background: colors.red100,
-    border: colors.red100,
-    color: colors.red400,
-  },
-  info: {
-    background: colors.purple100,
-    border: colors.purple100,
-    color: colors.purple400,
-  },
-  white: {
-    background: colors.white,
-    border: colors.white,
-    color: colors.black,
-  },
-  black: {
-    background: colors.black,
-    border: colors.black,
-    color: colors.white,
-  },
-});
-
 // @TODO: is this loose coupling enough?
 type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
 type LevelColors = {
   [key in Level]: string;
 };
-
-const generateLevelTheme = (colors: Colors): LevelColors => ({
-  sample: colors.purple300,
-  info: colors.blue300,
-  warning: colors.yellow300,
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
-  fatal: colors.red300,
-  default: colors.gray300,
-  unknown: colors.gray200,
-});
 
 // @TODO(jonasbadalic): Disabled is not a button variant, it's a state
 type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
@@ -696,134 +808,34 @@ type ButtonColors = {
   };
 };
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
-  default: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.border,
-    borderActive: alias.border,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
-  },
-  primary: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.purple300,
-    backgroundActive: colors.purple400,
-    border: colors.purple300,
-    borderActive: colors.purple300,
-    borderTranslucent: colors.purple300,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
-  },
-  danger: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.red300,
-    backgroundActive: colors.red400,
-    border: colors.red300,
-    borderActive: colors.red300,
-    borderTranslucent: colors.red300,
-    focusBorder: colors.red300,
-    focusShadow: colors.red200,
-  },
-  link: {
-    color: alias.linkColor,
-    colorActive: alias.linkHoverColor,
-    background: 'transparent',
-    backgroundActive: 'transparent',
-    border: 'transparent',
-    borderActive: 'transparent',
-    borderTranslucent: 'transparent',
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
-  },
-  disabled: {
-    color: alias.disabled,
-    colorActive: alias.disabled,
-    background: alias.background,
-    backgroundActive: alias.background,
-    border: alias.disabledBorder,
-    borderActive: alias.disabledBorder,
-    borderTranslucent: alias.translucentInnerBorder,
-    focusBorder: 'transparent',
-    focusShadow: 'transparent',
-  },
-});
-
-const generateUtils = (colors: Colors, aliases: Aliases) => ({
-  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
-    textDecoration: `underline dotted ${
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      colors[underlineColor] ?? aliases[underlineColor]
-    }`,
-    textDecorationThickness: '0.75px',
-    textUnderlineOffset: '1.25px',
-  }),
-  overflowEllipsis: css`
-    display: block;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  `,
-  // https://css-tricks.com/inclusively-hidden/
-  visuallyHidden: css`
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
-  `,
-});
-
-const generatePrismVariables = (
-  prismColors: typeof prismLight,
-  blockBackground: string
-) =>
-  // eslint-disable-next-line @emotion/syntax-preference
-  css({
-    // block background differs based on light/dark mode
-    '--prism-block-background': blockBackground,
-    ...prismColors,
-  });
-
-// @TODO(jonasbadalic): This was missing profiles, profileChunks, profileDuration, spans, spansIndexed, uptime, what do we do with them?
-const dataCategory: Record<
-  Exclude<
-    DataCategory,
-    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
-  >,
-  string
-> = {
-  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
-  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
-  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
-  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+type ButtonSize = 'md' | 'sm' | 'xs';
+type ButtonPaddingSizes = {
+  [key in ButtonSize]: {
+    paddingBottom: number;
+    paddingLeft: number;
+    paddingRight: number;
+    paddingTop: number;
+  };
 };
-
-/**
- * Default colors for data usage outcomes
- * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
- */
-type OutcomeColors = Record<
-  Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
-  string
->;
-
-const outcome: OutcomeColors = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
+const buttonPaddingSizes: ButtonPaddingSizes = {
+  md: {
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  sm: {
+    paddingLeft: 12,
+    paddingRight: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  xs: {
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
 };
 
 type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
@@ -862,6 +874,67 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
   left: 270,
 } as const;
 
+export type FormSize = 'xs' | 'sm' | 'md';
+
+type FormSizes = {
+  [key in FormSize]: {
+    fontSize: string;
+    height: number;
+    lineHeight: string;
+    minHeight: number;
+  };
+};
+
+const formSizes: FormSizes = {
+  md: {
+    height: 38,
+    minHeight: 38,
+    fontSize: '0.875rem',
+    lineHeight: '1rem',
+  },
+  sm: {
+    height: 32,
+    minHeight: 32,
+    fontSize: '0.875rem',
+    lineHeight: '1rem',
+  },
+  xs: {
+    height: 26,
+    minHeight: 26,
+    fontSize: '0.75rem',
+    lineHeight: '0.875rem',
+  },
+} as const;
+
+type FormPaddingSizes = {
+  [key in FormSize]: {
+    paddingBottom: number;
+    paddingLeft: number;
+    paddingRight: number;
+    paddingTop: number;
+  };
+};
+const formPaddingSizes: FormPaddingSizes = {
+  md: {
+    paddingLeft: 16,
+    paddingRight: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  sm: {
+    paddingLeft: 12,
+    paddingRight: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  xs: {
+    paddingLeft: 8,
+    paddingRight: 6,
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
+};
+
 const iconSizes: Sizes = {
   xs: `${iconNumberSizes.xs}px`,
   sm: `${iconNumberSizes.sm}px`,
@@ -871,6 +944,42 @@ const iconSizes: Sizes = {
   xxl: `${iconNumberSizes.xxl}px`,
 } as const;
 
+// @TODO(jonasbadalic): This was missing profiles, profileChunks, profileDuration, spans, spansIndexed, uptime, what do we do with them?
+const dataCategory: Record<
+  Exclude<
+    DataCategory,
+    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
+  >,
+  string
+> = {
+  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
+  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
+  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+};
+
+/**
+ * Default colors for data usage outcomes
+ * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
+ */
+type OutcomeColors = Record<
+  Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
+  string
+>;
+
+const outcome: OutcomeColors = {
+  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
+  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
+  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
+  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
+  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
+  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
+};
+
+/**
+ * Values shared between light and dark theme
+ */
 const commonTheme = {
   isChonk: false,
   breakpoints,
@@ -1025,82 +1134,26 @@ const commonTheme = {
    * Common styles for form inputs & buttons, separated by size.
    * Should be used to ensure consistent sizing among form elements.
    */
-  form: {
-    md: {
-      height: 38,
-      minHeight: 38,
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    sm: {
-      height: 32,
-      minHeight: 32,
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    xs: {
-      height: 26,
-      minHeight: 26,
-      fontSize: '0.75rem',
-      lineHeight: '0.875rem',
-    },
-  },
+  form: formSizes,
 
   /**
    * Padding for buttons
    * @TODO(jonasbadalic) This should exist on button component
    */
-  buttonPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 10,
-      paddingBottom: 10,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-    },
-  },
+  buttonPadding: buttonPaddingSizes,
 
   /**
    * Padding for form inputs
    * @TODO(jonasbadalic) This should exist on form component
    */
-  formPadding: {
-    md: {
-      paddingLeft: 16,
-      paddingRight: 12,
-      paddingTop: 10,
-      paddingBottom: 10,
-    },
-    sm: {
-      paddingLeft: 12,
-      paddingRight: 10,
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
-    xs: {
-      paddingLeft: 8,
-      paddingRight: 6,
-      paddingTop: 6,
-      paddingBottom: 6,
-    },
-  },
-
-  dataCategory,
-  outcome,
+  formPadding: formPaddingSizes,
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
+
+  // @TODO(jonasbadalic) Do these need to be here?
+  outcome,
+  dataCategory,
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -1123,14 +1176,20 @@ const commonTheme = {
   // Similarity spectrum used in "Similar Issues" in group details
   similarity: {
     empty: '#e2dee6',
-    colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
+    colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
 
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
 
-  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'],
-  barBreakdownFontColors: ['#564277', '#E8E2F1', '#E8E2F1', '#E8E2F1', '#E8E2F1'],
+  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'] as const,
+  barBreakdownFontColors: [
+    '#564277',
+    '#E8E2F1',
+    '#E8E2F1',
+    '#E8E2F1',
+    '#E8E2F1',
+  ] as const,
 
   // @TODO(jonasbadalic) what is this?
   demo: {
@@ -1138,6 +1197,7 @@ const commonTheme = {
   },
 };
 
+// Light and dark theme definitions
 const lightAliases = generateAliases(lightColors);
 const darkAliases = generateAliases(darkColors);
 
@@ -1203,6 +1263,7 @@ export const darkTheme = {
   superuserSidebar: '#620808',
 };
 
+// Theme type exports
 type SentryTheme = typeof lightTheme;
 
 export type Color = keyof typeof lightColors;
