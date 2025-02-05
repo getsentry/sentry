@@ -79,7 +79,6 @@ def create_existing_high_priority_issue_data_condition(
 def create_event_attribute_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "match": data["match"],
         "value": data["value"],
@@ -121,7 +120,6 @@ def create_new_high_priority_issue_data_condition(
 @data_condition_translator_registry.register(LevelCondition.id)
 @data_condition_translator_registry.register(LevelFilter.id)
 def create_level_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {"match": data["match"], "level": data["level"]}
 
     return DataCondition.objects.create(
@@ -137,7 +135,6 @@ def create_level_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -
 def create_tagged_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "match": data["match"],
         "key": data["key"],
@@ -175,7 +172,6 @@ def create_age_comparison_data_condition(
 def create_assigned_to_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "target_type": data["targetType"],
         "target_identifier": data["targetIdentifier"],
@@ -193,7 +189,6 @@ def create_assigned_to_data_condition(
 def create_issue_category_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "value": data["value"],
     }
@@ -210,7 +205,6 @@ def create_issue_category_data_condition(
 def create_issue_occurrences_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "value": data["value"],
     }
@@ -239,7 +233,6 @@ def create_latest_release_data_condition(
 def create_latest_adopted_release_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "release_age_type": data["oldest_or_newest"],
         "age_comparison": data["older_or_newer"],
@@ -253,9 +246,8 @@ def create_latest_adopted_release_data_condition(
     )
 
 
-@data_condition_translator_registry.register(EventFrequencyCondition.id)
-def create_event_frequency_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup
+def create_base_event_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup, count_type: Condition, percent_type: Condition
 ) -> DataCondition:
     comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
     comparison = {
@@ -264,9 +256,9 @@ def create_event_frequency_data_condition(
     }
 
     if comparison_type == ComparisonType.COUNT:
-        type = Condition.EVENT_FREQUENCY_COUNT
+        type = count_type
     else:
-        type = Condition.EVENT_FREQUENCY_PERCENT
+        type = percent_type
         comparison["comparison_interval"] = data["comparisonInterval"]
 
     return DataCondition.objects.create(
@@ -277,25 +269,25 @@ def create_event_frequency_data_condition(
     )
 
 
+@data_condition_translator_registry.register(EventFrequencyCondition.id)
+def create_event_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.EVENT_FREQUENCY_COUNT,
+        percent_type=Condition.EVENT_FREQUENCY_PERCENT,
+    )
+
+
 @data_condition_translator_registry.register(EventUniqueUserFrequencyCondition.id)
 def create_event_unique_user_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
-    comparison = {
-        "interval": data["interval"],
-        "value": data["value"],
-    }
-
-    if comparison_type == ComparisonType.COUNT:
-        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-    else:
-        type = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
-        comparison["comparison_interval"] = data["comparisonInterval"]
-
-    return DataCondition.objects.create(
-        type=type,
-        comparison=comparison,
-        condition_result=True,
-        condition_group=dcg,
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+        percent_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
     )
