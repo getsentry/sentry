@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.silo import region_silo_test
@@ -54,6 +55,30 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         ]:
             assert key in first, f"{key} not in {first}"
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
+
+    def test_datetime_range(self):
+        # all of our checks are stored in the last 5 minutes, so query for 10 days ago and expect 0 results
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={
+                "start": datetime.now() - timedelta(days=10),
+                "end": datetime.now() - timedelta(days=9),
+            },
+        )
+        assert len(response.data) == 0
+        # query for the last 3 days and expect 6 results
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={
+                "start": datetime.now() - timedelta(days=3),
+                "end": datetime.now(),
+            },
+        )
+        assert len(response.data) == 6
 
     # TODO: fix this test once snuba is fixed
     def test_get_paginated(self):
