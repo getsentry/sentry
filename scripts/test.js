@@ -20,4 +20,6 @@ if (process.env.CI || process.env.SENTRY_PRECOMMIT || argv.includes('--coverage'
   argv = argv.filter(arg => arg !== '--watch');
 }
 
+argv.push('--detectOpenHandles');
+
 require('jest').run(argv);
