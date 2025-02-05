@@ -1073,10 +1073,11 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 2
+        assert len(actions) == 1
         assert actions[0].type == Action.Type.SENTRY_APP
         assert actions[0].target_identifier == str(app.id)
         assert actions[0].target_type == ActionTarget.SENTRY_APP
+        assert actions[0].data == {}
 
     def test_webhook_action_migration_malformed(self):
         action_data = [
