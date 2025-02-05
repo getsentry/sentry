@@ -657,7 +657,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 }
             )
             assert response.status_code == 200, response.content
-            assert response.data["meta"] == {
+            expected = {
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
                 "fields": {
@@ -674,6 +674,11 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "project.name": None,
                 },
             }
+            if self.use_rpc:
+                expected["accuracy"] = {
+                    "confidence": [{}],
+                }
+            assert response.data["meta"] == expected
             assert response.data["data"] == [
                 {
                     key: pytest.approx((i + 1) / 10),
@@ -1643,7 +1648,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "id": mock.ANY,
             },
         ]
-        assert response.data["meta"] == {
+        expected = {
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {
@@ -1664,6 +1669,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "project.name": None,
             },
         }
+        if self.use_rpc:
+            expected["accuracy"] = {
+                "confidence": [{}],
+            }
+        assert response.data["meta"] == expected
 
     def test_filtering_numeric_attr(self):
         span_1 = self.create_span(
@@ -1810,7 +1820,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 2
         assert len(confidence) == 2
         assert data[0]["count()"] == 10
@@ -1901,7 +1912,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 1
         assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
         assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)
