@@ -177,7 +177,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
-  const {cursor: _cursor, page: _page, ...queryParams} = router.location.query;
+  const queryParams = router.location.query;
   const {query, sort, viewId, project, environment} = queryParams;
   const queryParamsWithPageFilters = useMemo(() => {
     return {
@@ -419,6 +419,8 @@ function IssueViewsIssueListHeaderTabsContent({
               query: view.unsavedChanges?.query ?? view.query,
               sort: view.unsavedChanges?.querySort ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+              cursor: undefined,
+              page: undefined,
             },
             pathname: `/organizations/${organization.slug}/issues/`,
           })}
