@@ -1075,7 +1075,7 @@ function buildRoutes() {
   );
 
   const dashboardRoutes = (
-    <Fragment>
+    <Route component={make(() => import('sentry/views/dashboards/navigation'))}>
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
@@ -1219,7 +1219,7 @@ function buildRoutes() {
           component={make(() => import('sentry/views/dashboards/view'))}
         />
       </Route>
-    </Fragment>
+    </Route>
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
