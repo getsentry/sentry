@@ -15,8 +15,6 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
-
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -143,7 +141,7 @@ function Wrapper({children}: any) {
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  inset: 0;
 
   color: ${p => p.theme.headingColor};
 

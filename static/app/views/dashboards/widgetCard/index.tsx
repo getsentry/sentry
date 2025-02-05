@@ -333,6 +333,7 @@ function WidgetCard(props: Props) {
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             forceDescriptionTooltip={props.forceDescriptionTooltip}
+            noVisualizationPadding
           >
             <WidgetCardChartContainer
               location={location}

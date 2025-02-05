@@ -40,7 +40,9 @@ export default storyBook('WidgetFrame', story => {
             <WidgetFrame
               title="Count"
               description="This counts up the amount of something that happens."
-            />
+            >
+              <p>Lorem whoopsie, feed me pickles please I am lacking in probiotics</p>
+            </WidgetFrame>
           </NormalWidget>
           <NormalWidget>
             <WidgetFrame
