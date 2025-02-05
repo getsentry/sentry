@@ -417,7 +417,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             from sentry.grouping.strategies.base import StrategyConfiguration
 
             if isinstance(force_config, str):
-                # A string like `"newstyle:2023-01-11"`
+                # A string like `"newstyle:YYYY-MM-DD"`
                 stored_config = self.get_grouping_config()
                 grouping_config = stored_config.copy()
                 grouping_config["id"] = force_config
