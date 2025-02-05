@@ -7,6 +7,7 @@ import queue
 import signal
 import sys
 import time
+from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
 from types import FrameType
 from typing import Any
@@ -32,6 +33,7 @@ from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
+mp_context = multiprocessing.get_context("fork")
 logger = logging.getLogger("sentry.taskworker.worker")
 
 
@@ -75,10 +77,6 @@ def child_worker(
     shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
-    from sentry.runner import configure
-
-    configure()
-
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
@@ -249,14 +247,14 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = multiprocessing.Queue(
+        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=(concurrency * 10)
         )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = multiprocessing.Queue(
+        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(
             maxsize=(concurrency * 10)
         )
-        self._children: list[multiprocessing.Process] = []
-        self._shutdown_event = multiprocessing.Event()
+        self._children: list[ForkProcess] = []
+        self._shutdown_event = mp_context.Event()
         self.backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
@@ -375,7 +373,7 @@ class TaskWorker:
         if len(active_children) >= self._concurrency:
             return
         for _ in range(self._concurrency - len(active_children)):
-            process = multiprocessing.Process(
+            process = mp_context.Process(
                 target=child_worker,
                 args=(
                     self._child_tasks,
