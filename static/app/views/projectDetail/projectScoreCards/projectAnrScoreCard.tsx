@@ -150,6 +150,7 @@ export function ProjectAnrScoreCard({
         fields: {
           'anr_rate()': 'percentage',
         },
+        units: {},
       }}
       actions={[
         {
