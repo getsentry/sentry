@@ -55,7 +55,8 @@ class MissingDataConditionGroup(Exception):
 
 class UnresolvableResolveThreshold(Exception):
     pass
-  
+
+
 class InvalidActionType(Exception):
     pass
 
@@ -553,7 +554,7 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
 
     return resolve_condition
 
-  
+
 def dual_update_migrated_alert_rule_trigger(
     alert_rule_trigger: AlertRuleTrigger, updated_fields: dict[str, Any]
 ) -> tuple[DataCondition, DataCondition] | None:
