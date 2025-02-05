@@ -7,17 +7,26 @@ from uuid import uuid1
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import (
     _event_content_is_seer_eligible,
     get_seer_similar_issues,
     maybe_check_seer_for_matching_grouphash,
     should_call_seer_for_grouping,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.seer.similarity.types import SeerSimilarIssueData
-from sentry.seer.similarity.utils import MAX_FRAME_COUNT, SEER_INELIGIBLE_EVENT_PLATFORMS
+from sentry.seer.similarity.utils import (
+    MAX_FRAME_COUNT,
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
+    get_stacktrace_string,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.helpers.options import override_options
 
 
@@ -220,23 +229,56 @@ class ShouldCallSeerTest(TestCase):
         assert event.data.get("stacktrace_string") is None
 
 
+@apply_feature_flag_on_cls("organizations:grouphash-metadata-creation")
 class GetSeerSimilarIssuesTest(TestCase):
-    def setUp(self) -> None:
-        self.existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
-        assert self.existing_event.get_primary_hash() == "04e89719410791836f0a0bbf03bf0d2e"
-        # In real life just filtering on group id wouldn't be enough to guarantee us a single,
-        # specific GroupHash record, but since the database resets before each test, here it's okay
-        assert self.existing_event.group_id is not None
-        self.existing_event_grouphash = GroupHash.objects.filter(
-            group_id=self.existing_event.group_id
-        ).first()
-        self.new_event = Event(
+    def create_new_event(
+        self,
+        num_frames: int = 1,
+        stacktrace_string: str | None = None,
+        fingerprint: list[str] | None = None,
+    ) -> tuple[Event, dict[str, BaseVariant], str]:
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        event = Event(
             project_id=self.project.id,
-            event_id="11212012123120120415201309082013",
-            data={"message": "Adopt don't shop"},
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": f"{error_type}('{error_value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": error_type,
+                            "value": error_value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": f"play_fetch_{i}",
+                                        "filename": f"dogpark{i}.py",
+                                        "context_line": f"raise {error_type}('{error_value}')",
+                                    }
+                                    for i in range(num_frames)
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+                "fingerprint": fingerprint or ["{{ default }}"],
+            },
         )
-        self.variants = self.new_event.get_grouping_variants()
-        assert self.new_event.get_primary_hash() == "3f11319f08263b2ee1e654779742955a"
+        variants = event.get_grouping_variants()
+        grouphash = GroupHash.objects.create(
+            hash=event.get_primary_hash(), project_id=self.project.id
+        )
+        create_or_update_grouphash_metadata_if_needed(
+            event, self.project, grouphash, True, DEFAULT_GROUPING_CONFIG, variants
+        )
+
+        if stacktrace_string is None:
+            stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+        event.data["stacktrace_string"] = stacktrace_string
+
+        return (event, variants, stacktrace_string)
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
