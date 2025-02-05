@@ -165,7 +165,7 @@ def generate_unique_queries(
     if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
         return []
 
-    base_handler = handler.base_handler  # type: ignore[attr-defined]
+    base_handler = handler.get_base_handler()  # type: ignore[attr-defined]
 
     unique_queries = [
         UniqueConditionQuery(
