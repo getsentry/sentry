@@ -437,7 +437,7 @@ class FingerprintMatcher:
                 return True
             alt_value = values.get("filename")
             if alt_value != value:
-                if self._positive_path_match(value):
+                if self._positive_path_match(alt_value):
                     return True
             return False
 
