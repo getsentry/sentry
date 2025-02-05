@@ -40,7 +40,9 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         NotificationActionHandler.execute(self.job, self.action, self.detector)
 
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
-        mock_handler.assert_called_once_with(self.job, self.action, self.detector)
+        mock_handler.handle_workflow_action.assert_called_once_with(
+            self.job, self.action, self.detector
+        )
 
     @mock.patch(
         "sentry.workflow_engine.handlers.action.notification.notification.group_type_notification_registry.get"
@@ -56,7 +58,9 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         NotificationActionHandler.execute(self.job, self.action, self.detector)
 
         mock_registry_get.assert_called_once_with(MetricIssuePOC.slug)
-        mock_handler.assert_called_once_with(self.job, self.action, self.detector)
+        mock_handler.handle_workflow_action.assert_called_once_with(
+            self.job, self.action, self.detector
+        )
 
     @mock.patch(
         "sentry.workflow_engine.handlers.action.notification.notification.group_type_notification_registry.get",
