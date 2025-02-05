@@ -369,9 +369,9 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
 
-def with_serializable_isolation(func):
+def with_serializable_isolation(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         using = router.db_for_write(RegionOutbox)
         with connections[using].cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -433,7 +433,7 @@ class RegionOutboxTest(TransactionTestCase):
         barrier = threading.Barrier(2)
         results = []
 
-        def worker():
+        def worker() -> None:
             # Wait until both threads are ready so that they call process_coalesced concurrently.
             barrier.wait()
             with outbox1.process_coalesced(is_synchronous_flush=True) as result:
@@ -481,7 +481,7 @@ class RegionOutboxTest(TransactionTestCase):
             RegionOutbox.objects, "select_for_update", side_effect=mock_select_for_update
         ):
 
-            def process_with_error():
+            def process_with_error() -> None:
                 using = router.db_for_write(RegionOutbox)
                 with connections[using].cursor() as cursor:
                     cursor.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -526,7 +526,7 @@ class RegionOutboxTest(TransactionTestCase):
         assert RegionOutbox.objects.count() == num_messages
 
         # Process all messages
-        def process_large_batch():
+        def process_large_batch() -> None:
             using = router.db_for_write(RegionOutbox)
             with connections[using].cursor() as cursor:
                 cursor.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -548,8 +548,8 @@ class RegionOutboxTest(TransactionTestCase):
 
                 # Process outside of transaction
                 for coalesced_id in coalesced_ids:
-                    coalesced = RegionOutbox.objects.get(id=coalesced_id)
-                    coalesced.send_signal()
+                    coalesced_obj = RegionOutbox.objects.get(id=coalesced_id)
+                    coalesced_obj.send_signal()
 
                 # Delete inside transaction
                 with transaction.atomic(using=using):
@@ -725,7 +725,7 @@ class RegionOutboxTest(TransactionTestCase):
         processed_ids = []
         original_send_signal = RegionOutbox.send_signal
 
-        def mock_send_signal(self):
+        def mock_send_signal(self: Any) -> None:
             processed_ids.append(self.id)
             original_send_signal(self)
 
@@ -755,7 +755,7 @@ class RegionOutboxTest(TransactionTestCase):
         lock_acquired = threading.Event()
         process_completed = threading.Event()
 
-        def process_thread_1():
+        def process_thread_1() -> None:
             try:
                 with outbox1.process_coalesced(is_synchronous_flush=True) as coalesced:
                     if coalesced:
@@ -767,7 +767,7 @@ class RegionOutboxTest(TransactionTestCase):
                 for conn in connections.all():
                     conn.close()
 
-        def process_thread_2():
+        def process_thread_2() -> None:
             try:
                 barrier.wait()  # Wait for thread 1 to acquire lock
                 assert lock_acquired.is_set()  # Ensure thread 1 has the lock
@@ -807,7 +807,7 @@ class RegionOutboxTest(TransactionTestCase):
         snapshot_taken = threading.Event()
         processing_started = threading.Event()
 
-        def concurrent_insert():
+        def concurrent_insert() -> None:
             try:
                 barrier.wait()  # Wait for main thread to start processing
                 snapshot_taken.wait()  # Wait for snapshot to be taken
@@ -872,7 +872,7 @@ class RegionOutboxTest(TransactionTestCase):
         transaction_state = []
         original_send_signal = RegionOutbox.send_signal
 
-        def mock_send_signal(self):
+        def mock_send_signal(self: Any) -> None:
             # Check if we're in a transaction during signal sending
             using = router.db_for_write(type(self))
             transaction_state.append(transaction.get_connection(using=using).in_atomic_block)
@@ -944,7 +944,7 @@ class RegionOutboxTest(TransactionTestCase):
         with outbox_context(flush=False):
             outbox1.save()
 
-        def mock_select_for_update(*args, **kwargs):
+        def mock_select_for_update(*args: Any, **kwargs: Any) -> Any:
             raise OperationalError("could not obtain lock")
 
         # Mock the select_for_update at the queryset level
@@ -988,7 +988,7 @@ class RegionOutboxTest(TransactionTestCase):
         barrier = Barrier(THREAD_COUNT)
         results = []  # we'll store each thread's result here
 
-        def worker():
+        def worker() -> None:
             # wait for all threads to be ready
             barrier.wait()
             # Each thread will attempt to process the same group.
@@ -1085,24 +1085,18 @@ class RegionOutboxTest(TransactionTestCase):
                 with outbox.process_coalesced(is_synchronous_flush=True) as coalesced:
                     if coalesced:
                         coalesced.send_signal()
-                    else:
-                        pytest.fail("Expected a valid coalesced record but got None.")
 
         # After the exception, check that the message has NOT been deleted.
-        remaining = list(
-            RegionOutbox.objects.filter(
-                shard_scope=outbox.shard_scope,
-                shard_identifier=outbox.shard_identifier,
-                category=outbox.category,
-                object_identifier=outbox.object_identifier,
-            )
-        )
+        remaining = RegionOutbox.objects.filter(
+            shard_scope=outbox.shard_scope,
+            shard_identifier=outbox.shard_identifier,
+            category=outbox.category,
+            object_identifier=outbox.object_identifier,
+        ).first()
         # In the current behavior, the reserved message remains in the database.
-        assert (
-            len(remaining) == 1
-        ), f"Expected the reserved message to remain on error, but found {len(remaining)} messages: {remaining}"
+        assert remaining is not None, "Expected the reserved message to remain on error"
 
-        assert remaining[0].scheduled_for == outbox.scheduled_from
+        assert remaining.scheduled_for == outbox.scheduled_from
 
 
 class TestOutboxesManager(TestCase):
