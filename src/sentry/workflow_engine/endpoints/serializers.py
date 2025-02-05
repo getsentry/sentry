@@ -62,10 +62,10 @@ class DataSourceSerializer(Serializer):
         self, obj: DataSource, attrs: Mapping[str, Any], user, **kwargs
     ) -> dict[str, Any]:
         return {
-            "id": str(obj.id),
-            "organizationId": str(obj.organization_id),
+            "id": obj.id,
+            "organizationId": obj.organization_id,
             "type": obj.type,
-            "queryId": str(obj.query_id),
+            "sourceId": str(obj.source_id),
             "queryObj": attrs["query_obj"],
         }
 

@@ -71,12 +71,11 @@ class TestDetectorSerializer(TestCase):
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
         data_source.detectors.set([detector])
 
         result = serialize(detector)
-        # print("result: ", result)
         assert result == {
             "id": str(detector.id),
             "projectId": str(detector.project_id),
@@ -86,10 +85,10 @@ class TestDetectorSerializer(TestCase):
             "dateUpdated": detector.date_updated,
             "dataSources": [
                 {
-                    "id": str(data_source.id),
-                    "organizationId": str(self.organization.id),
+                    "id": data_source.id,
+                    "organizationId": self.organization.id,
                     "type": type_name,
-                    "queryId": str(subscription.id),
+                    "sourceId": str(subscription.id),
                     "queryObj": {
                         "id": str(subscription.id),
                         "snubaQuery": {
@@ -108,13 +107,13 @@ class TestDetectorSerializer(TestCase):
             "conditionGroup": {
                 "id": str(condition_group.id),
                 "organizationId": str(self.organization.id),
-                "logicType": DataConditionGroup.Type.ANY,
+                "logicType": DataConditionGroup.Type.ANY.value,
                 "conditions": [
                     {
                         "id": str(condition.id),
                         "condition": Condition.GREATER.value,
                         "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH,
+                        "result": DetectorPriorityLevel.HIGH.value,
                     }
                 ],
                 "actions": [
@@ -159,19 +158,20 @@ class TestDataSourceSerializer(TestCase):
         subscription = create_snuba_subscription(
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
+
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
 
         result = serialize(data_source)
 
         assert result == {
-            "id": str(data_source.id),
-            "organizationId": str(self.organization.id),
+            "id": data_source.id,
+            "organizationId": self.organization.id,
             "type": type_name,
-            "queryId": str(subscription.id),
+            "sourceId": str(subscription.id),
             "queryObj": {
                 "id": str(subscription.id),
                 "snubaQuery": {

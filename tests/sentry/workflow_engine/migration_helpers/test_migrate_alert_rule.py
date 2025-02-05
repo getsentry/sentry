@@ -89,7 +89,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
 
     query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
     data_source = DataSource.objects.get(
-        organization_id=alert_rule.organization_id, query_id=query_subscription.id
+        organization_id=alert_rule.organization_id, source_id=str(query_subscription.id)
     )
     assert data_source.type == "snuba_query_subscription"
     detector_state = DetectorState.objects.get(detector=detector)
@@ -206,7 +206,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         query_subscription = QuerySubscription.objects.get(snuba_query=metric_alert.snuba_query)
         data_source = self.create_data_source(
             organization=self.organization,
-            query_id=query_subscription.id,
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
         detector_data_condition_group = self.create_data_condition_group(

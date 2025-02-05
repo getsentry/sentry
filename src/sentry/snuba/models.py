@@ -150,7 +150,9 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
         data_sources: list[DataSource],
     ) -> dict[int, QuerySubscription | None]:
         qs_lookup = {
-            qs.id: qs
-            for qs in QuerySubscription.objects.filter(id__in=[ds.query_id for ds in data_sources])
+            str(qs.id): qs
+            for qs in QuerySubscription.objects.filter(
+                id__in=[int(ds.source_id) for ds in data_sources]
+            )
         }
-        return {ds.id: qs_lookup.get(ds.query_id) for ds in data_sources}
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
