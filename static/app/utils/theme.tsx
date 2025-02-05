@@ -3,9 +3,77 @@ import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Outcome} from 'sentry/types/core';
+import {type DataCategory, Outcome} from 'sentry/types/core';
 
-const lightColors = {
+/* eslint-disable typescript-sort-keys/interface */
+interface Colors {
+  black: string;
+  white: string;
+
+  lightModeBlack: string;
+  lightModeWhite: string;
+
+  surface100: string;
+  surface200: string;
+  surface300: string;
+  surface400: string;
+
+  translucentSurface100: string;
+  translucentSurface200: string;
+
+  /**
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
+   * @deprecated
+   */
+  surface500: string;
+
+  gray500: string;
+  gray400: string;
+  gray300: string;
+  gray200: string;
+  gray100: string;
+
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: string;
+  translucentGray100: string;
+
+  purple400: string;
+  purple300: string;
+  purple200: string;
+  purple100: string;
+
+  blue400: string;
+  blue300: string;
+  blue200: string;
+  blue100: string;
+
+  green400: string;
+  green300: string;
+  green200: string;
+  green100: string;
+
+  yellow400: string;
+  yellow300: string;
+  yellow200: string;
+  yellow100: string;
+
+  red400: string;
+  red300: string;
+  red200: string;
+  red100: string;
+
+  pink400: string;
+  pink300: string;
+  pink200: string;
+  pink100: string;
+}
+/* eslint-enable typescript-sort-keys/interface */
+
+const lightColors: Colors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -71,7 +139,7 @@ const lightColors = {
   pink100: 'rgba(249, 26, 138, 0.09)',
 };
 
-const darkColors = {
+const darkColors: Colors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -193,9 +261,7 @@ const sidebarBackground = {
   dark: '#181622',
 };
 
-type BaseColors = typeof lightColors;
-
-const generateAliases = (colors: BaseColors) => ({
+const generateAliases = (colors: Colors) => ({
   /**
    * Heading text color
    */
@@ -414,27 +480,20 @@ const generateAliases = (colors: BaseColors) => ({
   bannerBackground: colors.gray500,
 });
 
-const dataCategory = {
-  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
-  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
-  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
-  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
+type AlertColors = {
+  [key in Alert]: {
+    background: string;
+    backgroundLight: string;
+    border: string;
+    borderHover: string;
+    color: string;
+    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
+    textLight?: string;
+  };
 };
 
-/**
- * Default colors for data usage outcomes
- */
-const outcome = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
-};
-
-const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
+const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   muted: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
@@ -473,7 +532,25 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
   },
 });
 
-const generateBadgeTheme = (colors: BaseColors) => ({
+type Badge =
+  | 'default'
+  | 'alpha'
+  | 'beta'
+  | 'warning'
+  | 'new'
+  | 'experimental'
+  // @TODO(jonasbadalic): What is this tag?
+  | 'gray'
+  | 'internal';
+type BadgeColors = {
+  [key in Badge]: {
+    background: string;
+    color: string;
+    indicatorColor: string;
+  };
+};
+
+const generateBadgeTheme = (colors: Colors): BadgeColors => ({
   default: {
     background: colors.gray100,
     indicatorColor: colors.gray100,
@@ -516,7 +593,27 @@ const generateBadgeTheme = (colors: BaseColors) => ({
   },
 });
 
-const generateTagTheme = (colors: BaseColors) => ({
+type Tag =
+  | 'default'
+  | 'promotion'
+  | 'highlight'
+  | 'warning'
+  | 'success'
+  | 'error'
+  | 'info'
+  // @TODO(jonasbadalic): What are white and black tags?
+  | 'white'
+  | 'black';
+
+type TagColors = {
+  [key in Tag]: {
+    background: string;
+    border: string;
+    color: string;
+  };
+};
+
+const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
     background: colors.surface400,
     border: colors.translucentGray200,
@@ -564,7 +661,13 @@ const generateTagTheme = (colors: BaseColors) => ({
   },
 });
 
-const generateLevelTheme = (colors: BaseColors) => ({
+// @TODO: is this loose coupling enough?
+type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
+type LevelColors = {
+  [key in Level]: string;
+};
+
+const generateLevelTheme = (colors: Colors): LevelColors => ({
   sample: colors.purple300,
   info: colors.blue300,
   warning: colors.yellow300,
@@ -577,7 +680,23 @@ const generateLevelTheme = (colors: BaseColors) => ({
   unknown: colors.gray200,
 });
 
-const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
+// @TODO(jonasbadalic): Disabled is not a button variant, it's a state
+type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
+type ButtonColors = {
+  [key in Button]: {
+    background: string;
+    backgroundActive: string;
+    border: string;
+    borderActive: string;
+    borderTranslucent: string;
+    color: string;
+    colorActive: string;
+    focusBorder: string;
+    focusShadow: string;
+  };
+};
+
+const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
   default: {
     color: alias.textColor,
     colorActive: alias.textColor,
@@ -635,7 +754,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
   },
 });
 
-const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
+const generateUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: `underline dotted ${
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -674,7 +793,58 @@ const generatePrismVariables = (
     ...prismColors,
   });
 
-const iconNumberSizes = {
+// @TODO(jonasbadalic): This was missing profiles, profileChunks, profileDuration, spans, spansIndexed, uptime, what do we do with them?
+const dataCategory: Record<
+  Exclude<
+    DataCategory,
+    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
+  >,
+  string
+> = {
+  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
+  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
+  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+};
+
+/**
+ * Default colors for data usage outcomes
+ * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
+ */
+type OutcomeColors = Record<
+  Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
+  string
+>;
+
+const outcome: OutcomeColors = {
+  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
+  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
+  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
+  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
+  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
+  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
+};
+
+type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
+type Breakpoints = {
+  [key in Breakpoint]: string;
+};
+
+const breakpoints: Breakpoints = {
+  xsmall: '500px',
+  small: '800px',
+  medium: '992px',
+  large: '1200px',
+  xlarge: '1440px',
+  xxlarge: '2560px',
+} as const;
+
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+type Sizes = {
+  [key in Size]: string;
+};
+const iconNumberSizes: Record<Size, number> = {
   xs: 12,
   sm: 14,
   md: 18,
@@ -683,7 +853,16 @@ const iconNumberSizes = {
   xxl: 72,
 } as const;
 
-const iconSizes = {
+// @TODO: this needs to directly reference the icon direction
+type IconDirection = 'up' | 'right' | 'down' | 'left';
+const iconDirectionToAngle: Record<IconDirection, number> = {
+  up: 0,
+  right: 90,
+  down: 180,
+  left: 270,
+} as const;
+
+const iconSizes: Sizes = {
   xs: `${iconNumberSizes.xs}px`,
   sm: `${iconNumberSizes.sm}px`,
   md: `${iconNumberSizes.md}px`,
@@ -694,37 +873,24 @@ const iconSizes = {
 
 const commonTheme = {
   isChonk: false,
-  breakpoints: {
-    xsmall: '500px',
-    small: '800px',
-    medium: '992px',
-    large: '1200px',
-    xlarge: '1440px',
-    xxlarge: '2560px',
-  },
+  breakpoints,
 
   ...lightColors,
-
   ...lightShadows,
 
+  // Icons
   iconSizes,
   iconNumberSizes,
-
-  iconDirections: {
-    up: '0',
-    right: '90',
-    down: '180',
-    left: '270',
-  },
+  iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
   zIndex: {
     // Generic z-index when you hope your component is isolated and
     // does not need to battle others for z-index priority
     initial: 1,
-
     truncationFullValue: 10,
 
+    // @TODO(jonasbadalic) This should exist on traceView component
     traceView: {
       spanTreeToggler: 900,
       dividerLine: 909,
@@ -741,14 +907,15 @@ const commonTheme = {
       // (e.g. Issue Details "seen" dots on chart is 2)
       // stream header is 1000
       menu: 1007,
-
       // needs to be above menu
+      // @TODO(jonasbadalic) why does it need to be above menu?
       actor: 1008,
     },
 
     globalSelectionHeader: 1009,
 
     // needs to be below sidebar
+    // @TODO(jonasbadalic) why does it need to be below sidebar?
     widgetBuilderDrawer: 1016,
 
     settingsSidebarNavMask: 1017,
@@ -786,6 +953,7 @@ const commonTheme = {
   borderRadiusLeft: '6px 0 0 6px',
   borderRadiusRight: '0 6px 6px 0',
 
+  // @TODO(jonasbadalic) This should exist their respective components
   panelBorderRadius: '6px',
   modalBorderRadius: '8px',
   linkBorderRadius: '2px',
@@ -794,19 +962,20 @@ const commonTheme = {
   headerSelectorLabelHeight: 28,
 
   // Relative font sizes
+  // @TODO(jonasbadalic) why do we need these
   fontSizeRelativeSmall: '0.9em',
+  fontSizeExtraSmall: '11px',
+  fontSizeSmall: '12px',
+  fontSizeMedium: '14px',
+  fontSizeLarge: '16px',
+  fontSizeExtraLarge: '18px',
+  codeFontSize: '13px',
+  headerFontSize: '22px',
 
-  fontSizeExtraSmall: '11px' as const,
-  fontSizeSmall: '12px' as const,
-  fontSizeMedium: '14px' as const,
-  fontSizeLarge: '16px' as const,
-  fontSizeExtraLarge: '18px' as const,
-  codeFontSize: '13px' as const,
-  headerFontSize: '22px' as const,
+  fontWeightNormal: 400,
+  fontWeightBold: 600,
 
-  fontWeightNormal: 400 as const,
-  fontWeightBold: 600 as const,
-
+  // @TODO(jonasbadalic) This should exist on settings component
   settings: {
     // Max-width for settings breadcrumbs
     // i.e. organization, project, or team
@@ -817,6 +986,7 @@ const commonTheme = {
     sidebarWidth: '220px',
   },
 
+  // @TOOD(jonasbadalic) This should exist on sidebar component
   sidebar: {
     boxShadow: '0 3px 3px #2f2936',
     color: '#9586a5',
@@ -836,6 +1006,8 @@ const commonTheme = {
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
+
+    // @TODO(jonasbadalic) This should exist on pageTitle component
     pageTitle: {
       fontSize: '1.625rem',
       fontWeight: 600,
@@ -876,6 +1048,7 @@ const commonTheme = {
 
   /**
    * Padding for buttons
+   * @TODO(jonasbadalic) This should exist on button component
    */
   buttonPadding: {
     md: {
@@ -900,6 +1073,7 @@ const commonTheme = {
 
   /**
    * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
    */
   formPadding: {
     md: {
@@ -926,7 +1100,6 @@ const commonTheme = {
   outcome,
 
   tag: generateTagTheme(lightColors),
-
   level: generateLevelTheme(lightColors),
 
   charts: {
@@ -959,6 +1132,7 @@ const commonTheme = {
   barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'],
   barBreakdownFontColors: ['#564277', '#E8E2F1', '#E8E2F1', '#E8E2F1', '#E8E2F1'],
 
+  // @TODO(jonasbadalic) what is this?
   demo: {
     headerSize: '70px',
   },
@@ -998,7 +1172,7 @@ export const lightTheme = {
   superuserSidebar: '#880808',
 };
 
-export const darkTheme: Theme = {
+export const darkTheme = {
   ...commonTheme,
   ...darkColors,
   ...darkAliases,
@@ -1029,23 +1203,19 @@ export const darkTheme: Theme = {
   superuserSidebar: '#620808',
 };
 
-type Theme = typeof lightTheme;
+type SentryTheme = typeof lightTheme;
 
 export type Color = keyof typeof lightColors;
+export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
-export type IconSize = keyof typeof iconSizes;
-export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
-
-// Be clear about what the [@emotion/React].THeme is extending
-type SentryTheme = Theme;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
-  // eslint-disable-next-line @typescript-eslint/no-shadow
+  // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
   export interface Theme extends SentryTheme {}
 }
