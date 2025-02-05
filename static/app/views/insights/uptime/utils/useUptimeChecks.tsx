@@ -13,7 +13,7 @@ interface UptimeChecksParameters {
   limit?: number;
 }
 
-export function makeUptimeCheckInsQueryKey({
+export function makeUptimeChecksQueryKey({
   orgSlug,
   projectSlug,
   uptimeAlertId,
@@ -26,12 +26,12 @@ export function makeUptimeCheckInsQueryKey({
   ];
 }
 
-export function useUptimeCheckIns(
+export function useUptimeChecks(
   params: UptimeChecksParameters,
   options: Partial<UseApiQueryOptions<UptimeCheck[]>> = {}
 ) {
   // TODO(Leander): Add querying and sorting, when the endpoint supports it
-  return useApiQuery<UptimeCheck[]>(makeUptimeCheckInsQueryKey(params), {
+  return useApiQuery<UptimeCheck[]>(makeUptimeChecksQueryKey(params), {
     staleTime: 10000,
     retry: false,
     ...options,
