@@ -116,6 +116,8 @@ describe('OrganizationLayout', function () {
   });
 
   it('displays system alerts', async function () {
+    OrganizationStore.onUpdate(OrganizationFixture());
+
     AlertStore.addAlert({
       id: 'abc123',
       message: 'Celery workers have not checked in',
