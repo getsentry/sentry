@@ -3,10 +3,11 @@ from __future__ import annotations
 import dataclasses
 import logging
 import multiprocessing
-import queue
 import signal
 import sys
 import time
+from collections import deque
+from multiprocessing.connection import Connection
 from multiprocessing.synchronize import Event
 from types import FrameType
 from typing import Any
@@ -70,8 +71,7 @@ def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
 
 
 def child_worker(
-    child_tasks: queue.Queue[TaskActivation],
-    processed_tasks: queue.Queue[ProcessingResult],
+    pipe: Connection,
     shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
@@ -88,12 +88,13 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        nonlocal current_task_id, processed_tasks
+        nonlocal current_task_id, pipe
 
         if current_task_id:
-            processed_tasks.put(
+            pipe.send(
                 ProcessingResult(task_id=current_task_id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
+            pipe.close()
         metrics.incr("taskworker.worker.processing_deadline_exceeded")
         sys.exit(1)
 
@@ -112,9 +113,13 @@ def child_worker(
             logger.info("taskworker.worker.shutdown_event")
             break
 
+        if not pipe.poll(timeout=0.1):
+            continue
+
         try:
-            activation = child_tasks.get(timeout=0.1)
-        except queue.Empty:
+            logger.info("wait recv")
+            activation = pipe.recv()
+        except EOFError:
             continue
 
         task_func = _get_known_task(activation)
@@ -123,7 +128,7 @@ def child_worker(
                 "taskworker.worker.unknown_task",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            processed_tasks.put(
+            pipe.send(
                 ProcessingResult(task_id=activation.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
             continue
@@ -166,7 +171,7 @@ def child_worker(
 
         # Get completion time before pushing to queue to avoid inflating latency metrics.
         execution_complete_time = time.time()
-        processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
+        pipe.send(ProcessingResult(task_id=activation.id, status=next_state))
 
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = execution_complete_time - execution_start_time
@@ -245,14 +250,11 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = multiprocessing.Queue(
-            maxsize=(concurrency * 10)
-        )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = multiprocessing.Queue(
-            maxsize=(concurrency * 10)
-        )
         self._children: list[multiprocessing.Process] = []
+        self._pipes: dict[int, Connection] = {}
         self._shutdown_event = multiprocessing.Event()
+        self._buffered_tasks: deque[TaskActivation] = deque()
+        self._busy: dict[int, bool] = {}
         self.backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
@@ -279,9 +281,10 @@ class TaskWorker:
 
     def run_once(self) -> None:
         """Access point for tests to run a single worker loop"""
+        self._spawn_children()
         self._add_task()
         self._drain_result()
-        self._spawn_children()
+        self._send_tasks()
 
     def _handle_sigint(self, signum: int, frame: FrameType | None) -> None:
         logger.info("taskworker.worker.sigint_received")
@@ -307,18 +310,13 @@ class TaskWorker:
         """
         Add a task to child tasks queue
         """
-        if self._child_tasks.full():
+        if len(self._buffered_tasks) >= self._concurrency:
             return
 
         task = self.fetch_task()
         if task:
-            try:
-                self.backoff_sleep_seconds = 0
-                self._child_tasks.put(task, timeout=0.1)
-            except queue.Full:
-                logger.warning(
-                    "taskworker.add_task.child_task_queue_full", extra={"task_id": task.id}
-                )
+            self.backoff_sleep_seconds = 0
+            self._buffered_tasks.append(task)
         else:
             time.sleep(self.backoff_sleep_seconds)
             self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
@@ -327,62 +325,86 @@ class TaskWorker:
         """
         Consume results from children and update taskbroker
         """
-        try:
-            result = self._processed_tasks.get_nowait()
-        except queue.Empty:
-            return False
-
-        if fetch:
-            fetch_next = None
-            if not self._child_tasks.full():
-                fetch_next = FetchNextTask(namespace=self._namespace)
+        for pid, pipe in self._pipes.items():
+            if not pipe.poll(timeout=0.1):
+                continue
 
             try:
-                next_task = self.client.update_task(
-                    task_id=result.task_id,
-                    status=result.status,
-                    fetch_next_task=fetch_next,
-                )
-            except grpc.RpcError as e:
-                logger.exception(
-                    "taskworker.drain_result.update_task_failed",
-                    extra={"task_id": result.task_id, "error": e},
-                )
-                return False
+                result: ProcessingResult = pipe.recv()
+            except EOFError:
+                continue
 
-            if next_task:
+            self._busy[pid] = False
+
+            if fetch:
+                fetch_next = None
+                if len(self._buffered_tasks) < self._concurrency:
+                    fetch_next = FetchNextTask(namespace=self._namespace)
+
                 try:
-                    self._child_tasks.put(next_task, block=False)
-                except queue.Full:
-                    logger.warning(
-                        "taskworker.drain_result.child_task_queue_full",
-                        extra={"task_id": next_task.id},
+                    next_task = self.client.update_task(
+                        task_id=result.task_id,
+                        status=result.status,
+                        fetch_next_task=fetch_next,
                     )
-            return True
+                except grpc.RpcError as e:
+                    logger.exception(
+                        "taskworker.drain_result.update_task_failed",
+                        extra={"task_id": result.task_id, "error": e},
+                    )
+                    return False
 
-        self.client.update_task(
-            task_id=result.task_id,
-            status=result.status,
-        )
-        return True
+                if next_task:
+                    self._buffered_tasks.append(next_task)
+                return True
+
+            self.client.update_task(
+                task_id=result.task_id,
+                status=result.status,
+            )
+            return True
+        return False
+
+    def _send_tasks(self) -> None:
+        """
+        Send tasks to child processes
+        """
+        for pid, pipe in self._pipes.items():
+            if not len(self._buffered_tasks):
+                break
+            if not self._busy[pid]:
+                task = self._buffered_tasks.popleft()
+                pipe.send(task)
+                self._busy[pid] = True
 
     def _spawn_children(self) -> None:
         active_children = [child for child in self._children if child.is_alive()]
         if len(active_children) >= self._concurrency:
             return
+
+        active_pids = {child.pid for child in active_children}
+        previous_pids = self._pipes.keys()
+        for pid in previous_pids:
+            if pid not in active_pids:
+                del self._pipes[pid]
+                del self._busy[pid]
+
         for _ in range(self._concurrency - len(active_children)):
+            parent_conn, child_conn = multiprocessing.Pipe()
             process = multiprocessing.Process(
                 target=child_worker,
                 args=(
-                    self._child_tasks,
-                    self._processed_tasks,
+                    child_conn,
                     self._shutdown_event,
                     self._max_task_count,
                 ),
             )
             process.start()
-            active_children.append(process)
-            logger.info("taskworker.spawn_child", extra={"pid": process.pid})
+            if process.pid:
+                active_children.append(process)
+                self._pipes[process.pid] = parent_conn
+                self._busy[process.pid] = False
+                logger.info("taskworker.spawn_child", extra={"pid": process.pid})
 
         self._children = active_children
 
