@@ -13,9 +13,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Release, TimeseriesData} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleLatencyTimeSeries} from './fixtures/sampleLatencyTimeSeries';
+import {sampleSpanDurationTimeSeries} from './fixtures/sampleSpanDurationTimeSeries';
 import {AreaChartWidget} from './areaChartWidget';
-import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
-import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
 export default storyBook('AreaChartWidget', story => {
   story('Getting Started', () => {
@@ -43,14 +43,10 @@ export default storyBook('AreaChartWidget', story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
-    const latencyTimeSeries = toTimeSeriesSelection(
-      sampleLatencyTimeSeries as unknown as TimeseriesData,
-      start,
-      end
-    );
+    const latencyTimeSeries = toTimeSeriesSelection(sampleLatencyTimeSeries, start, end);
 
     const spanDurationTimeSeries = toTimeSeriesSelection(
-      sampleSpanDurationTimeSeries as unknown as TimeseriesData,
+      sampleSpanDurationTimeSeries,
       start,
       end
     );
