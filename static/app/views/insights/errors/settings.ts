@@ -10,4 +10,3 @@ export const BASE_URL = 'errors';
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/';
 
 export const MODULE_VISIBLE_FEATURES = ['insights-chart-ui'];
-export const MODULE_FEATURES = ['insights-chart-ui'];
