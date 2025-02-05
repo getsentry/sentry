@@ -1190,11 +1190,6 @@ const commonTheme = {
     '#E8E2F1',
     '#E8E2F1',
   ] as const,
-
-  // @TODO(jonasbadalic) what is this?
-  demo: {
-    headerSize: '70px',
-  },
 };
 
 // Light and dark theme definitions

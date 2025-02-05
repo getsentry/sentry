@@ -28,6 +28,8 @@ import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../../../demo/demoHeader';
+
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_HEIGHT,
@@ -809,7 +811,7 @@ export const HeaderContainer = styled('div')<{
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
