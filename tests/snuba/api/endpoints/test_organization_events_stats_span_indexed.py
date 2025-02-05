@@ -870,6 +870,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             else:
                 assert actual[1][0]["count"] is None
 
+        sample_count = response.data["count()"]["meta"]["accuracy"]["sampleCount"]
+        for expected, actual in zip(event_counts, sample_count[0:6]):
+            assert actual[1][0]["count"] == expected
+
+        sample_rate = response.data["count()"]["meta"]["accuracy"]["samplingRate"]
+        for expected, actual in zip(event_counts, sample_rate[0:6]):
+            assert actual[1][0]["count"] == 0.1
+
         p95_rows = p95_data[0:6]
         for test in zip(event_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]

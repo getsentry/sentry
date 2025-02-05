@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Sequence
 from datetime import timedelta
 from typing import Any
@@ -355,7 +356,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if "confidence" in results:
                 meta["accuracy"] = {
                     "confidence": results["confidence"],
-                    # TODO: add sampleCount and rampleRate here
                 }
                 # Confidence being a top level key is going to be deprecated in favour of confidence being in the meta
                 return {"data": data, "meta": meta, "confidence": results["confidence"]}
@@ -617,14 +617,43 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if is_equation(query_column):
                 equations += 1
             # TODO: confidence is being split up in the serializer right now, need to move that here once its deprecated
-            if "confidence" in result[columns[index]]:
-                meta["accuracy"] = {"confidence": result[columns[index]]["confidence"]}
+            if "processed_timeseries" in event_result.data:
+                processed_timeseries = event_result.data["processed_timeseries"]
+                meta["accuracy"] = {
+                    "confidence": self.serialize_accuracy_data(
+                        processed_timeseries.confidence, query_column
+                    ),
+                    "sampleCount": self.serialize_accuracy_data(
+                        processed_timeseries.sample_count, query_column
+                    ),
+                    "samplingRate": self.serialize_accuracy_data(
+                        processed_timeseries.sampling_rate, query_column
+                    ),
+                }
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
 
         return result
+
+    def serialize_accuracy_data(
+        self, data: Any, column: str, extra_columns: list[str] | None = None
+    ):
+        if extra_columns is None:
+            extra_columns = []
+        serialized_values = []
+        for key, group in itertools.groupby(data, key=lambda r: r["time"]):
+            result_row = []
+            for confidence_row in group:
+                item = {"count": confidence_row.get(column, None)}
+                if extra_columns is not None:
+                    for extra_column in extra_columns:
+                        item[extra_column] = confidence_row.get(extra_column, 0)
+                result_row.append(item)
+            serialized_values.append((key, result_row))
+        # confidence only comes from the RPC which already helps us zerofill by returning all buckets
+        return serialized_values
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
