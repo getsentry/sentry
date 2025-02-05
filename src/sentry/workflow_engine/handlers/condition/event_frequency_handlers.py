@@ -10,7 +10,9 @@ from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult, WorkflowJob
 
 
-class BaseEventFrequencyCountHandler:
+@condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
+@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
+class EventFrequencyCountHandler(DataConditionHandler[WorkflowJob]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -28,7 +30,9 @@ class BaseEventFrequencyCountHandler:
         return value["snuba_results"][0] > comparison["value"]
 
 
-class BaseEventFrequencyPercentHandler:
+@condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
+@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
+class EventFrequencyPercentHandler(DataConditionHandler[WorkflowJob]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -48,21 +52,3 @@ class BaseEventFrequencyPercentHandler:
             percent_increase(value["snuba_results"][0], value["snuba_results"][1])
             > comparison["value"]
         )
-
-
-@condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
-@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(
-    BaseEventFrequencyCountHandler,
-    DataConditionHandler[WorkflowJob],
-):
-    pass
-
-
-@condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
-@condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(
-    BaseEventFrequencyPercentHandler,
-    DataConditionHandler[WorkflowJob],
-):
-    pass
