@@ -22,10 +22,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {
-  type UptimeCheckIn,
-  useUptimeCheckIns,
-} from 'sentry/views/issueDetails/queries/useUptimeCheckIns';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {useUptimeCheckIns} from 'sentry/views/issueDetails/queries/useUptimeCheckIns';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -130,11 +128,11 @@ function CheckInBodyCell({
   userOptions,
 }: {
   column: GridColumnOrder<string>;
-  dataRow: UptimeCheckIn;
+  dataRow: UptimeCheck;
   userOptions: User['options'];
 }) {
   const theme = useTheme();
-  const columnKey = column.key as keyof UptimeCheckIn;
+  const columnKey = column.key as keyof UptimeCheck;
   const cellData = dataRow[columnKey];
 
   if (!cellData) {
