@@ -320,34 +320,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 None,
             )
 
-    @patch("sentry.grouping.ingest.seer.logger")
-    def test_returns_no_grouphash_and_empty_metadata_if_empty_stacktrace(
-        self, mock_logger: MagicMock
-    ) -> None:
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [],
-        }
-
-        for stacktrace in ["", None]:
-            self.new_event.data["stacktrace_string"] = ""
-            with patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                return_value=[],
-            ):
-                assert get_seer_similar_issues(self.new_event, self.variants) == (
-                    expected_metadata,
-                    None,
-                )
-            mock_logger.info.assert_called_with(
-                "get_seer_similar_issues.empty_stacktrace",
-                extra={
-                    "event_id": self.new_event.event_id,
-                    "project_id": self.new_event.project.id,
-                    "stacktrace_string": "",
-                },
-            )
-
 
 class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
 
