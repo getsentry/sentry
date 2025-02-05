@@ -25,7 +25,7 @@ type Props = {
 function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   const iconProps = {
     style: {
-      marginLeft: 3,
+      margin: 3,
     },
   };
 
