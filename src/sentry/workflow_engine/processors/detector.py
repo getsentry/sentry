@@ -13,12 +13,12 @@ from sentry.workflow_engine.types import DetectorGroupKey, WorkflowJob
 logger = logging.getLogger(__name__)
 
 
-# TODO - saponifi3d - cache these by evt.group_id? :thinking:
 def get_detector_by_event(job: WorkflowJob) -> Detector:
     evt = job["event"]
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:
+        # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
         detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
     else:
         detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
