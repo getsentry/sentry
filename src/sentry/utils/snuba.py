@@ -2088,25 +2088,28 @@ def bulk_raw_query_with_override(
 
 
 def _has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if condition.name.startswith("tags[") and condition.name.endswith("]"):
-            return True
+    if isinstance(condition, Column) and condition.name.startswith("tags["):
+        return True
     elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return _has_tags_filter(parameter)
-    return False
+        for param in condition.parameters:
+            if isinstance(param, (Column, Function)):
+                return _has_tags_filter(param)
+        return False
+    else:
+        return False
 
 
-def _substitute_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if condition.name.startswith("tags[") and condition.name.endswith("]"):
-            return Column(
-                name=f"flags[{condition.name[5:-1]}]",
-                entity=condition.entity,
-            )
+def _substitute_tags_filter(condition: Any) -> Any:
+    if isinstance(condition, Column) and condition.name.startswith("tags["):
+        return Column(
+            name=condition.name.replace("tags[", "flags["),
+            entity=condition.entity,
+        )
     elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return _substitute_tags_filter(parameter)
-    return condition
+        return Function(
+            condition.function,
+            [_substitute_tags_filter(param) for param in condition.parameters],
+            condition.alias,
+        )
+    else:
+        return condition
