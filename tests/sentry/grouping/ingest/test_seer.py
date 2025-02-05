@@ -299,7 +299,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             }
         )
 
-    def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self) -> None:
+    def test_parent_group_found(self) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
         existing_grouphash = GroupHash.objects.filter(
@@ -328,7 +328,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 existing_grouphash,
             )
 
-    def test_returns_no_grouphash_and_empty_metadata_if_no_similar_group_found(self) -> None:
+    def test_no_parent_group_found(self) -> None:
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [],
@@ -348,9 +348,7 @@ class GetSeerSimilarIssuesTest(TestCase):
 class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
-    def test_valid_maybe_check_seer_for_matching_group_hash(
-        self, mock_get_similarity_data: MagicMock
-    ) -> None:
+    def test_simple(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         error_type = "FailedToFetchError"
@@ -405,7 +403,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_frames_maybe_check_seer_for_matching_group_hash(
+    def test_too_many_frames(
         self,
         mock_metrics: MagicMock,
         mock_get_similar_issues: MagicMock,
@@ -467,9 +465,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
         mock_get_similar_issues.assert_not_called()
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
-    def test_too_many_frames_maybe_check_seer_for_matching_group_hash_bypassed_platform(
-        self, mock_get_similarity_data: MagicMock
-    ) -> None:
+    def test_too_many_frames_bypassed_platform(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         error_type = "FailedToFetchError"
