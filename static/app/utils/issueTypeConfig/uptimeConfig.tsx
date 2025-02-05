@@ -31,7 +31,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
     },
     pages: {
       landingPage: Tab.EVENTS,
-      events: {enabled: false},
+      events: {enabled: true},
       openPeriods: {enabled: false},
       checkIns: {enabled: true},
       attachments: {enabled: false},

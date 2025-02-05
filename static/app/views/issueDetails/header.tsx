@@ -35,7 +35,7 @@ import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import {GroupActions} from './actions';
-import {Tab} from './types';
+import {Tab, TabPaths} from './types';
 import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
@@ -171,6 +171,14 @@ export function GroupHeaderTabs({
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
+      </TabList.Item>
+      <TabList.Item
+        key={Tab.UPTIME_CHECKS}
+        textValue={t('Uptime Checks')}
+        hidden={!issueTypeConfig.pages.checkIns.enabled}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`, query: queryParams}}
+      >
+        {t('Uptime Checks')}
       </TabList.Item>
     </StyledTabList>
   );
