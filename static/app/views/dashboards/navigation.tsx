@@ -3,14 +3,13 @@ import {Fragment} from 'react';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface IssuesWrapperProps extends RouteComponentProps<{}, {}> {
+type DashboardsNavigationProps = {
   children: React.ReactNode;
-}
+};
 
-export function IssueNavigation({children}: IssuesWrapperProps) {
+export default function DashboardsNavigation({children}: DashboardsNavigationProps) {
   const organization = useOrganization();
   const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
 
@@ -18,24 +17,18 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
     return children;
   }
 
-  const baseUrl = `/organizations/${organization.slug}/issues`;
+  const baseUrl = `/organizations/${organization.slug}/dashboards`;
 
   return (
     <Fragment>
-      <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+      <SecondaryNav group={PrimaryNavGroup.DASHBOARDS}>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>
               {t('All')}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
-              {t('Feedback')}
-            </SecondaryNav.Item>
           </SecondaryNav.Section>
         </SecondaryNav.Body>
-        <SecondaryNav.Footer>
-          <SecondaryNav.Item to={`${baseUrl}/alerts/`}>{t('Alerts')}</SecondaryNav.Item>
-        </SecondaryNav.Footer>
       </SecondaryNav>
       {children}
     </Fragment>
