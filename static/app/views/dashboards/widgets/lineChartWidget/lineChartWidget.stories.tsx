@@ -14,9 +14,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Release, TimeseriesData, TimeseriesSelection} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -65,13 +65,13 @@ export default storyBook('LineChartWidget', story => {
     };
 
     const throughputTimeSeries = toTimeSeriesSelection(
-      sampleThroughputTimeSeries as unknown as TimeseriesData,
+      sampleThroughputTimeSeries,
       start,
       end
     );
 
     const durationTimeSeries1 = toTimeSeriesSelection(
-      sampleDurationTimeSeries as unknown as TimeseriesData,
+      sampleDurationTimeSeries,
       start,
       end
     );
@@ -248,7 +248,7 @@ export default storyBook('LineChartWidget', story => {
                   },
                 },
                 color: theme.error,
-              } as unknown as TimeseriesData,
+              },
             ]}
           />
         </MediumWidget>
@@ -291,7 +291,7 @@ export default storyBook('LineChartWidget', story => {
                     'error_rate()': '1/second',
                   },
                 },
-              } as unknown as TimeseriesData,
+              },
             ]}
             releases={releases}
           />

@@ -1,12 +1,10 @@
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 
-import type {TimeseriesData} from '../common/types';
-
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 
 describe('scaleTimeSeriesData', () => {
   describe('does not scale unscalable types', () => {
-    const timeserie: TimeseriesData = {
+    const timeserie = {
       field: 'user',
       data: [
         {
@@ -33,7 +31,7 @@ describe('scaleTimeSeriesData', () => {
   });
 
   it('does not scale duration units from second to gigabyte', () => {
-    const timeserie: TimeseriesData = {
+    const timeserie = {
       field: 'transaction.duration',
       data: [
         {
@@ -55,7 +53,7 @@ describe('scaleTimeSeriesData', () => {
   });
 
   it('scales duration units from second to millisecond', () => {
-    const timeserie: TimeseriesData = {
+    const timeserie = {
       field: 'transaction.duration',
       data: [
         {
@@ -93,7 +91,7 @@ describe('scaleTimeSeriesData', () => {
   });
 
   it('scales size units from mebibyte to byte', () => {
-    const timeserie: TimeseriesData = {
+    const timeserie = {
       field: 'file.size',
       data: [
         {
