@@ -37,7 +37,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.snuba.metrics import TransactionMRI
+from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -85,7 +86,11 @@ class MockAccess:
 
 
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
-class OrganizationDetailsTest(OrganizationDetailsTestBase):
+class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
+    @property
+    def now(self):
+        return datetime.now().replace(microsecond=0)
+
     def test_simple(self):
         response = self.get_success_response(
             self.organization.slug, qs_params={"include_feature_flags": 1}
@@ -558,6 +563,38 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             )
 
         assert response.status_code == 403
+
+    @django_db_all
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_sampling_mode_change_with_deleted_projects_that_had_metrics(self):
+        project_1 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(organization=self.organization)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=60 * 24 * 12,
+            value=1,
+            project_id=project_1.id,
+            org_id=self.organization.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=60 * 24 * 12,
+            value=1,
+            project_id=project_2.id,
+            org_id=self.organization.id,
+        )
+
+        project_2.delete()
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.PROJECT.value,
+            )
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
