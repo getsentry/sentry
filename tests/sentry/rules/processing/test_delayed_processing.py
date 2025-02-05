@@ -411,11 +411,130 @@ class GetRulesToFireTest(TestCase):
         self.rules_to_groups[self.rule1.id].add(self.group2.id)
 
         # Mock passes_comparison function
-        self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
-        self.mock_passes_comparison = self.patcher.start()
+        # self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
+        # self.mock_passes_comparison = self.patcher.start()
 
-    def tearDown(self):
-        self.patcher.stop()
+    # def tearDown(self):
+    #     self.patcher.stop()
+
+    def test_env_picker_vs_filter(self):
+        from datetime import UTC, datetime, timedelta
+
+        from sentry.testutils.factories import EventType
+
+        prod_env = self.create_environment(
+            self.project, name="production", organization=self.organization
+        )
+        staging_env = self.create_environment(
+            self.project, name="staging", organization=self.organization
+        )
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "interval": "1h",
+                "value": 2,
+            }
+        ]
+        env_filter = {
+            "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+            "attribute": "environment",
+            "match": "eq",
+            "value": "production",
+        }
+        env_picker_rule = self.create_project_rule(
+            project=self.project,
+            name="env picker rule",
+            action_data=actions,
+            condition_data=conditions,
+            environment_id=prod_env.id,
+        )
+        conditions.append(env_filter)
+        env_filter_rule = self.create_project_rule(
+            project=self.project,
+            name="env filter rule",
+            action_data=actions,
+            condition_data=conditions,
+        )
+
+        now = datetime.now(UTC)
+        thirty_mins_ago = now - timedelta(minutes=30)
+
+        data = {
+            "timestamp": thirty_mins_ago.isoformat(),
+            "fingerprint": ["group-1"],
+            "tags": [("environment", prod_env.name)],
+            "level": "error",
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
+            },
+        }
+        # store 3 prod env events
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        event = self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        group1 = event.group
+
+        # store a staging env event
+        data["tags"] = [("environment", staging_env.name)]
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+
+        rules_to_slow_conditions = defaultdict(list)
+        for rule in [env_picker_rule, env_filter_rule]:
+            rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
+
+        rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
+        rules_to_groups[env_picker_rule.id].add(group1.id)
+
+        rules_to_groups = {
+            env_picker_rule.id: {group1.id},
+            env_filter_rule.id: {group1.id},
+        }
+
+        condition_groups = get_condition_query_groups([env_picker_rule, env_filter_rule], rules_to_groups)  # type: ignore[arg-type]
+        condition_group_results = get_condition_group_results(condition_groups, self.project)
+
+        result = get_rules_to_fire(
+            condition_group_results,
+            rules_to_slow_conditions,
+            rules_to_groups,
+            self.project.id,
+        )
+
+        assert result[env_filter_rule] == {group1.id}
+        assert result[env_picker_rule] == {group1.id}
 
     def test_comparison(self):
         self.mock_passes_comparison.return_value = True
