@@ -82,7 +82,7 @@ class BaseIssueAlertHandler:
     ) -> None:
         """
         This method will execute the futures.
-        Based off of proccess_rules in post_process.py
+        Based off of process_rules in post_process.py
         """
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
@@ -100,9 +100,9 @@ class BaseIssueAlertHandler:
         """
         This method will create a rule instance from the Action model, and then invoke the legacy registry.
         This method encompases the following logic in our legacy system:
-        1. post_proccess proccess_rules calls rule_processor.apply
+        1. post_process process_rules calls rule_processor.apply
         2. activate_downstream_actions
-        3. execute_futures (also in post_process proccess_rules)
+        3. execute_futures (also in post_process process_rules)
         """
 
         with sentry_sdk.start_span(
