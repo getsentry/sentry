@@ -134,6 +134,7 @@ function ProjectApdexScoreCard(props: Props) {
         fields: {
           'apdex()': 'number',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}

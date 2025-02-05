@@ -37,7 +37,12 @@ const TEMPORARY_TAB_KEY = 'temporary-tab';
 
 export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
-export interface IssueView {
+export interface IssueViewParams {
+  query: string;
+  querySort: IssueSortOptions;
+}
+
+export interface IssueView extends IssueViewParams {
   id: string;
   /**
    * False for tabs that were added view the "Add View" button, but
@@ -47,10 +52,8 @@ export interface IssueView {
   isCommitted: boolean;
   key: string;
   label: string;
-  query: string;
-  querySort: IssueSortOptions;
   content?: React.ReactNode;
-  unsavedChanges?: [string, IssueSortOptions];
+  unsavedChanges?: IssueViewParams;
 }
 
 type BaseIssueViewsAction = {
@@ -106,7 +109,8 @@ type SaveTempViewAction = {
 
 type UpdateUnsavedChangesAction = {
   type: 'UPDATE_UNSAVED_CHANGES';
-  unsavedChanges: [string, IssueSortOptions] | undefined;
+  // Explicitly typed as | undefined instead of optional to make it clear that `undefined` = no unsaved changes
+  unsavedChanges: IssueViewParams | undefined;
   isCommitted?: boolean;
 } & BaseIssueViewsAction;
 
@@ -188,8 +192,8 @@ function saveChanges(state: IssueViewsState, tabListState: TabListState<any>) {
       return tab.key === tabListState?.selectedKey && tab.unsavedChanges
         ? {
             ...tab,
-            query: tab.unsavedChanges[0],
-            querySort: tab.unsavedChanges[1],
+            query: tab.unsavedChanges.query,
+            querySort: tab.unsavedChanges.querySort,
             unsavedChanges: undefined,
           }
         : tab;
@@ -372,7 +376,7 @@ export function IssueViewsStateProvider({
   const [tabListState, setTabListState] = useState<TabListState<any>>();
   const {className: _className, ...restProps} = props;
 
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+  const {cursor: _cursor, page: _page, ...queryParams} = router.location.query;
   const {query, sort, viewId, project, environment} = queryParams;
 
   const queryParamsWithPageFilters = useMemo(() => {
@@ -561,7 +565,7 @@ export function IssueViewsStateProvider({
           querySort: IssueSortOptions.DATE,
           unsavedChanges: view.saveQueryToView
             ? undefined
-            : [view.query, IssueSortOptions.DATE],
+            : {query: view.query, querySort: IssueSortOptions.DATE},
           isCommitted: true,
         };
         return viewToTab;
@@ -573,7 +577,9 @@ export function IssueViewsStateProvider({
             label,
             query: saveQueryToView ? newQuery : '',
             querySort: IssueSortOptions.DATE,
-            unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+            unsavedChanges: saveQueryToView
+              ? undefined
+              : {query, querySort: IssueSortOptions.DATE},
             isCommitted: true,
           };
         }

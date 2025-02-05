@@ -288,10 +288,8 @@ export default typescript.config([
       // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
-      'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
+      'no-prototype-builtins': 'off',
+      'no-useless-escape': 'off',
     },
   },
   {
@@ -408,14 +406,13 @@ export default typescript.config([
     // https://typescript-eslint.io/rules/
     plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      'prefer-spread': 'off', // TODO(ryan953): Fix violations and delete this line
+      'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-namespace': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line

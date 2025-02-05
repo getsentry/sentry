@@ -11,6 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
+import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 interface OpenPeriodDisplayData {
@@ -79,21 +80,23 @@ function IssueOpenPeriodsList() {
   };
 
   return (
-    <GridEditable
-      isLoading={isGroupPending}
-      data={data}
-      columnOrder={[
-        {key: 'title', width: COL_WIDTH_UNDEFINED, name: t('Title')},
-        {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
-        {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
-        {key: 'duration', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
-      ]}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-    />
+    <EventListTable title={t('All Open Periods')} pagination={{enabled: false}}>
+      <GridEditable
+        isLoading={isGroupPending}
+        data={data}
+        columnOrder={[
+          {key: 'title', width: COL_WIDTH_UNDEFINED, name: t('Title')},
+          {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
+          {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
+          {key: 'duration', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
+        ]}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+      />
+    </EventListTable>
   );
 }
 
