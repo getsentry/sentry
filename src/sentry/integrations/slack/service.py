@@ -202,7 +202,7 @@ class SlackService:
             use_open_period_start = False
             if (
                 features.has(
-                    "organizations:issue-alerts-thread-open-period",
+                    "organizations:slack-threads-refactor-uptime",
                     activity.group.project.organization,
                 )
                 and activity.group.issue_category == GroupCategory.UPTIME
