@@ -26,7 +26,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     DataSourceCreator,
     NumericComparisonConditionValidator,
 )
-from sentry.workflow_engine.endpoints.validators.base.metric_alerts import (
+from sentry.workflow_engine.endpoints.validators.metric_alert_detector import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
 )

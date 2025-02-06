@@ -13,7 +13,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.endpoints.validators.base.metric_alerts import (
+from sentry.workflow_engine.endpoints.validators.metric_alert_detector import (
     MetricAlertsDetectorValidator,
 )
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler

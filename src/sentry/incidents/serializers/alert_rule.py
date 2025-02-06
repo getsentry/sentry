@@ -47,6 +47,10 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.workflow_engine.endpoints.validators.base.constants import (
+    CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
+    UNSUPPORTED_QUERIES,
+)
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
     dual_update_resolve_condition,
@@ -55,12 +59,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 )
 
 from ...snuba.metrics.naming_layer.mri import is_mri
-from . import (
-    CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
-    QUERY_TYPE_VALID_DATASETS,
-    QUERY_TYPE_VALID_EVENT_TYPES,
-    UNSUPPORTED_QUERIES,
-)
+from . import QUERY_TYPE_VALID_DATASETS, QUERY_TYPE_VALID_EVENT_TYPES
 from .alert_rule_trigger import AlertRuleTriggerSerializer
 
 logger = logging.getLogger(__name__)
