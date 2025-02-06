@@ -2,12 +2,8 @@ import Color from 'color';
 
 import BarSeries from 'sentry/components/charts/series/barSeries';
 
-import type {TimeseriesData} from '../common/types';
+import type {TimeseriesData} from '../../common/types';
 
-/**
- *
- * @param timeserie
- */
 export function BarChartWidgetSeries(timeserie: TimeseriesData) {
   return BarSeries({
     name: timeserie.field,
