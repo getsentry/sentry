@@ -109,7 +109,7 @@ export function useSpanSamplesWebVitalsQuery({
                 row[SpanIndexedField.USER_ID],
                 row[SpanIndexedField.USER_IP],
                 row[SpanIndexedField.USER],
-              ].find(field => field !== '') ?? undefined,
+              ].find(field => field && field !== '') ?? undefined,
             replayId: row[SpanIndexedField.REPLAY_ID],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
