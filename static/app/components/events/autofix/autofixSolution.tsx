@@ -257,7 +257,18 @@ function SolutionDescription({
   );
 }
 
-function formatSolutionText(solution: AutofixSolutionTimelineEvent[]) {
+function formatSolutionText(
+  solution: AutofixSolutionTimelineEvent[],
+  customSolution?: string
+) {
+  if (!solution && !customSolution) {
+    return '';
+  }
+
+  if (customSolution) {
+    return `# Proposed Changes\n\n${customSolution}`;
+  }
+
   if (!solution || solution.length === 0) {
     return '';
   }
@@ -285,8 +296,19 @@ function formatSolutionText(solution: AutofixSolutionTimelineEvent[]) {
   return parts.join('\n\n');
 }
 
-function CopySolutionButton({solution}: {solution: AutofixSolutionTimelineEvent[]}) {
-  const text = formatSolutionText(solution);
+function CopySolutionButton({
+  solution,
+  customSolution,
+  isEditing,
+}: {
+  solution: AutofixSolutionTimelineEvent[];
+  customSolution?: string;
+  isEditing?: boolean;
+}) {
+  if (isEditing) {
+    return null;
+  }
+  const text = formatSolutionText(solution, customSolution);
   return <CopyToClipboardButton size="sm" text={text} borderless />;
 }
 
@@ -316,7 +338,7 @@ function AutofixSolutionDisplay({
               <IconFix size="sm" />
               {t('Custom Solution')}
             </HeaderText>
-            <CopySolutionButton solution={solution} />
+            <CopySolutionButton solution={solution} customSolution={customSolution} />
           </HeaderWrapper>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
@@ -338,7 +360,9 @@ function AutofixSolutionDisplay({
           </HeaderText>
           <ButtonBar gap={1}>
             <ButtonBar>
-              {!isEditing && <CopySolutionButton solution={solution} />}
+              {!isEditing && (
+                <CopySolutionButton solution={solution} isEditing={isEditing} />
+              )}
               <EditButton
                 size="sm"
                 borderless
