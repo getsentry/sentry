@@ -25,7 +25,6 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            interval="1m",
         )
         assert batch_query == {
             self.event.group_id: 1,
@@ -38,7 +37,6 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
-            interval="1m",
         )
         assert batch_query == {self.event3.group_id: 1}
 
@@ -62,7 +60,6 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            interval="1m",
         )
         assert batch_query == {
             self.event.group_id: 1,
@@ -75,7 +72,6 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
-            interval="1m",
         )
         assert batch_query == {self.event3.group_id: 1}
 
@@ -99,7 +95,6 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            interval="5m",
         )
         percent_of_sessions = 20
         assert batch_query == {
@@ -114,7 +109,6 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
-            interval="5m",
         )
         assert batch_query == {self.event3.group_id: percent_of_sessions}
 
@@ -134,7 +128,6 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            interval="5m",
         )
         percent = 0
         assert batch_query == {
@@ -149,6 +142,5 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
-            interval="5m",
         )
         assert batch_query == {self.event3.group_id: percent}

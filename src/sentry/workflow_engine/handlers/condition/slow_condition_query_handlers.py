@@ -156,7 +156,6 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
-        interval: str,
     ) -> dict[int, int]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
@@ -177,7 +176,6 @@ class BaseEventFrequencyQueryHandler(ABC):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                interval=interval,
             )
         return result
 
@@ -196,7 +194,6 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -236,7 +233,6 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -290,9 +286,9 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
             cache.set(cache_key, session_count_last_hour, 600)
         return session_count_last_hour
 
-    def get_session_interval(self, session_count: int, interval: str) -> int | None:
+    def get_session_interval(self, session_count: int, duration: timedelta) -> int | None:
         if session_count >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = PERCENT_INTERVALS[interval][1].total_seconds() // 60
+            interval_in_minutes = duration.total_seconds() // 60
             return int(session_count / (60 / interval_in_minutes))
         return None
 
@@ -302,8 +298,8 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        interval: str,
     ) -> dict[int, int]:
+
         batch_percents: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
@@ -315,7 +311,9 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
             return {group["id"]: 0 for group in groups}
 
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
-        avg_sessions_in_interval = self.get_session_interval(session_count_last_hour, interval)
+
+        duration = end - start  # recalculated duration
+        avg_sessions_in_interval = self.get_session_interval(session_count_last_hour, duration)
 
         if not avg_sessions_in_interval:
             return {group["id"]: 0 for group in groups}
