@@ -34,7 +34,7 @@ describe('ProjectCspReports', function () {
 
     // Heading
     expect(
-      await screen.findByText('Content Security Policy', {selector: 'h4'})
+      await screen.findByText('Content Security Policy', {selector: 'h1'})
     ).toBeInTheDocument();
   });
 
