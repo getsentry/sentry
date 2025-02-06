@@ -194,6 +194,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   renderPermissions() {
     const permissions = this.permissions;
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (!Object.keys(permissions).some(scope => permissions[scope].length > 0)) {
       return null;
     }
@@ -307,7 +308,7 @@ const Title = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
+const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   align-self: center;
   color: ${p => p.theme.success};
 `;

@@ -27,9 +27,6 @@ class MsTeamsClientMixin:
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def get_team_info(self, team_id: str):
-        return self.get(self.TEAM_URL % team_id)
-
     def get_channel_list(self, team_id: str):
         resp = self.get(self.CHANNEL_URL % team_id)
         return resp.get("conversations")

@@ -99,7 +99,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
         SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
-    }[metric_name]
+    }[metric_name].value
 
 
 @django_db_all

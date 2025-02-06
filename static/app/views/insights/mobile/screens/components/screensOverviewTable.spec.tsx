@@ -23,7 +23,7 @@ describe('ScreensOverviewTable', () => {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
     query: {
       project: project.id,
     },
@@ -56,8 +56,8 @@ describe('ScreensOverviewTable', () => {
       {
         id: '1',
         transaction: 'Screen 01',
-        'avg(mobile.slow_frames)': 12,
-        'avg(mobile.frozen_frames)': 23,
+        'division(mobile.slow_frames,mobile.total_frames)': 0.12,
+        'division(mobile.frozen_frames,mobile.total_frames)': 0.23,
         'count()': 45,
       },
     ],
@@ -81,14 +81,14 @@ describe('ScreensOverviewTable', () => {
 
     // headers
     expect(await screen.findByText('Screen')).toBeInTheDocument();
-    expect(await screen.findByText('Slow Frames')).toBeInTheDocument();
-    expect(await screen.findByText('Frozen Frames')).toBeInTheDocument();
+    expect(await screen.findByText('Slow Frame Rate')).toBeInTheDocument();
+    expect(await screen.findByText('Frozen Frame Rate')).toBeInTheDocument();
 
     expect(await screen.findByText('Screen 01')).toBeInTheDocument();
     // slow frames
-    expect(await screen.findByText('12')).toBeInTheDocument();
+    expect(await screen.findByText('12%')).toBeInTheDocument();
     // frozen frames
-    expect(await screen.findByText('23')).toBeInTheDocument();
+    expect(await screen.findByText('23%')).toBeInTheDocument();
     // count
     expect(await screen.findByText('45')).toBeInTheDocument();
   });

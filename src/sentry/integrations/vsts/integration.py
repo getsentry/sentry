@@ -298,7 +298,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
@@ -434,9 +434,17 @@ class VstsIntegrationProvider(IntegrationProvider):
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
+            logger.info(
+                "vsts.get_scopes.new_scopes",
+                extra={"organization_id": self.pipeline.organization.id},
+            )
             # This is the new way we need to pass scopes to the OAuth flow
             # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
             return VstsIntegrationProvider.NEW_SCOPES
+        logger.info(
+            "vsts.get_scopes.old_scopes",
+            extra={"organization_id": self.pipeline.organization.id},
+        )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -461,6 +469,11 @@ class VstsIntegrationProvider(IntegrationProvider):
         user = get_user_info(data["access_token"])
         scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
+
+        logger.info(
+            "vsts.build_integration.base_config",
+            extra={"scopes": scopes, "organization_id": self.pipeline.organization.id},
+        )
 
         integration: MutableMapping[str, Any] = {
             "name": account["accountName"],
@@ -538,7 +551,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 sample_rate=1.0,
             )
 
+        # Assertion error happens when org_integration does not exist
+        # KeyError happens when subscription is not found
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            if features.has(
+                "organizations:migrate-azure-devops-integration", self.pipeline.organization
+            ):
+                # If there is a new integration, we need to set the migration version to 1
+                integration["metadata"][
+                    "integration_migration_version"
+                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+
             logger.warning(
                 "vsts.build_integration.error",
                 extra={

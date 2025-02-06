@@ -212,7 +212,7 @@ class VitalCard extends Component<Props, State> {
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])
-              .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+              .getPerformanceTransactionEventsViewUrlTarget(organization, {
                 showTransactions:
                   dataFilter === 'all'
                     ? EventsDisplayFilterName.P100
@@ -245,7 +245,7 @@ class VitalCard extends Component<Props, State> {
       }
 
       const refPixelRect =
-        refDataRect === null ? null : asPixelRect(chartRef, refDataRect!);
+        refDataRect === null ? null : asPixelRect(chartRef, refDataRect);
       if (refPixelRect !== null && !isEqual(refPixelRect, this.state.refPixelRect)) {
         this.setState({refPixelRect});
       }
@@ -360,13 +360,13 @@ class VitalCard extends Component<Props, State> {
     // We can assume that all buckets are of equal width, use the first two
     // buckets to get the width. The value of each histogram function indicates
     // the beginning of the bucket.
-    return chartData.length >= 2 ? chartData[1].bin - chartData[0].bin : 0;
+    return chartData.length >= 2 ? chartData[1]!.bin - chartData[0]!.bin : 0;
   }
 
   getSeries() {
     const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
-    const additionalFieldsFn = bucket => {
+    const additionalFieldsFn = (bucket: any) => {
       return {
         itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
       };
@@ -385,7 +385,9 @@ class VitalCard extends Component<Props, State> {
   }
 
   getVitalsColor(vital: WebVital, value: number) {
+    // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const poorThreshold = webVitalPoor[vital];
+    // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const mehThreshold = webVitalMeh[vital];
 
     if (value >= poorThreshold) {
@@ -416,7 +418,7 @@ class VitalCard extends Component<Props, State> {
         y: 0,
       },
       this.state.refDataRect!,
-      this.state.refPixelRect!
+      this.state.refPixelRect
     );
     if (thresholdPixelBottom === null) {
       return null;
@@ -429,7 +431,7 @@ class VitalCard extends Component<Props, State> {
         y: Math.max(...chartData.map(data => data.count)) || 1,
       },
       this.state.refDataRect!,
-      this.state.refPixelRect!
+      this.state.refPixelRect
     );
     if (thresholdPixelTop === null) {
       return null;

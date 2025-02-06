@@ -7,8 +7,10 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -48,12 +50,22 @@ export function IssueWidgetCard({
     return <LoadingPlaceholder height="200px" />;
   }
 
-  const query = widget.queries[0];
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+
+  const getCustomFieldRenderer = (
+    field: string,
+    meta: MetaType,
+    organization?: Organization
+  ) => {
+    return (
+      datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
+    );
+  };
 
   return (
     <StyledSimpleTableChart
@@ -65,7 +77,7 @@ export function IssueWidgetCard({
       loading={loading}
       metadata={ISSUE_FIELDS}
       data={transformedResults}
-      getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+      getCustomFieldRenderer={getCustomFieldRenderer}
       fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
       stickyHeaders
     />

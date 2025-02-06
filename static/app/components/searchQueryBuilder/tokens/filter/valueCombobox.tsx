@@ -7,6 +7,11 @@ import type {KeyboardEvent} from '@react-types/shared';
 import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
+import {
+  ItemType,
+  type SearchGroup,
+  type SearchItem,
+} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   type CustomComboboxMenu,
@@ -44,11 +49,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import {
-  ItemType,
-  type SearchGroup,
-  type SearchItem,
-} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -230,7 +230,7 @@ function tokenSupportsMultipleValues(
   fieldDefinition: FieldDefinition | null
 ): boolean {
   switch (token.filter) {
-    case FilterType.TEXT:
+    case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
       const key = keys[getKeyName(token.key)];
@@ -240,6 +240,7 @@ function tokenSupportsMultipleValues(
 
       const valueType = getFilterValueType(token, fieldDefinition);
       return valueType === FieldValueType.STRING;
+    }
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -350,7 +351,7 @@ function useFilterSuggestions({
         textValue: suggestion.value,
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
-        trailingItems: ({isFocused, disabled}) => {
+        trailingItems: ({isFocused, disabled}: any) => {
           if (!canSelectMultipleValues) {
             return null;
           }

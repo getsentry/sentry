@@ -33,7 +33,7 @@ export function useSyncedLocalStorageState<S>(
   const [value, setValue] = useLocalStorageState(key, initialState);
 
   const setValueAndNotify = useCallback(
-    newValue => {
+    (newValue: any) => {
       setValue(newValue);
 
       // We use a custom event to notify all consumers of this hook

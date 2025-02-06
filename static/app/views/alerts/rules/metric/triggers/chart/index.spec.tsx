@@ -23,6 +23,11 @@ describe('Incident Rules Create', () => {
       url: '/organizations/org-slug/events-meta/',
       body: {count: 5},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {},
+    });
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -282,7 +287,7 @@ describe('Incident Rules Create', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'spans',
-          statsPeriod: '7d',
+          statsPeriod: '9998m',
           yAxis: 'count(span.duration)',
         }),
       })

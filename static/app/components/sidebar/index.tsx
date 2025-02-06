@@ -9,18 +9,13 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
-import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
-import {isDone} from 'sentry/components/sidebar/utils';
+import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {
   IconDashboard,
   IconGraph,
@@ -45,7 +40,6 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -55,7 +49,9 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -77,23 +73,22 @@ import {
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {
+  getPerformanceBaseUrl,
+  platformToDomainView,
+} from 'sentry/views/performance/utils';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../demo/demoHeader';
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
-import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
-
-function activatePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.activatePanel(panel);
-}
 
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
@@ -103,43 +98,14 @@ function hidePanel(hash?: string) {
   SidebarPanelStore.hidePanel(hash);
 }
 
-function useOpenOnboardingSidebar(organization?: Organization) {
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects: project} = useProjects();
-  const location = useLocation();
-
-  const openOnboardingSidebar = (() => {
-    if (location?.hash === '#welcome') {
-      if (organization && !isDemoModeEnabled()) {
-        const tasks = getMergedTasks({
-          organization,
-          projects: project,
-          onboardingContext,
-        });
-
-        const allDisplayedTasks = tasks.filter(task => task.display);
-        const doneTasks = allDisplayedTasks.filter(isDone);
-
-        return !(doneTasks.length >= allDisplayedTasks.length);
-      }
-      return true;
-    }
-    return false;
-  })();
-
-  useEffect(() => {
-    if (openOnboardingSidebar) {
-      activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
-    }
-  }, [openOnboardingSidebar]);
-}
-
 function Sidebar() {
   const location = useLocation();
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
+  const {selection} = usePageFilters();
+  const {projects: projectList} = useProjects();
   const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -166,8 +132,6 @@ function Sidebar() {
   const isExcludedOrg = () => {
     return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
   };
-
-  useOpenOnboardingSidebar();
 
   const toggleCollapse = useCallback(() => {
     if (collapsed) {
@@ -278,11 +242,28 @@ function Sidebar() {
         to={`/organizations/${organization.slug}/traces/`}
         id="performance-trace-explorer"
         icon={<SubitemDot collapsed />}
-        isBeta
       />
     </Feature>
   );
 
+  const logs = hasOrganization && (
+    <Feature features="ourlogs-enabled">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="logs">{t('Logs')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/logs/`}
+        id="ourlogs"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const hasPerfLandingRemovalFlag = organization?.features.includes(
+    'insights-performance-landing-removal'
+  );
+  const view = hasPerfLandingRemovalFlag
+    ? platformToDomainView(projectList, selection.projects)
+    : undefined;
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
@@ -297,7 +278,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={`${getPerformanceBaseUrl(organization.slug)}/`}
+        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
         id="performance"
       />
     </Feature>
@@ -482,7 +463,7 @@ function Sidebar() {
         <SidebarItem
           {...sidebarItemProps}
           label={AI_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
           id="performance-domains-ai"
           icon={<SubitemDot collapsed />}
         />
@@ -501,6 +482,7 @@ function Sidebar() {
       exact={!shouldAccordionFloat}
     >
       {traces}
+      {logs}
       {metrics}
       {profiling}
       {replays}
@@ -529,14 +511,6 @@ function Sidebar() {
               <Hook name="component:superuser-warning" organization={organization} />
             )}
           </DropdownSidebarSection>
-
-          {organization ? (
-            <DismissableRollbackBanner
-              organization={organization}
-              collapsed={collapsed || horizontal}
-            />
-          ) : null}
-
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
@@ -624,27 +598,17 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              {hasQuickStartUpdatesFeature(organization) ? (
-                <NewOnboardingStatus
-                  currentPanel={activePanel}
-                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                  hidePanel={hidePanel}
-                  {...sidebarItemProps}
-                />
-              ) : (
-                <OnboardingStatus
-                  org={organization}
-                  currentPanel={activePanel}
-                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                  hidePanel={hidePanel}
-                  {...sidebarItemProps}
-                />
-              )}
+              <OnboardingStatus
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                hidePanel={hidePanel}
+                {...sidebarItemProps}
+              />
             </SidebarSection>
 
             <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
+                HookStore.get('sidebar:bottom-items')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,
@@ -716,7 +680,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
           : 'expandedWidth'
     ]};
   position: fixed;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;
@@ -767,8 +731,8 @@ const PrimaryItems = styled('div')`
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
 
-  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
-    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-color: ${p =>
+    `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
   scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
 
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {

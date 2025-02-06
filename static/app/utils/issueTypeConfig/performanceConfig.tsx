@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const performanceConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -19,17 +20,25 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
-    attachments: {enabled: false},
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: true},
+      tagsTab: {enabled: true},
+    },
     autofix: false,
     mergedIssues: {enabled: false},
-    replays: {enabled: true},
     similarIssues: {enabled: false},
     stacktrace: {enabled: false},
     spanEvidence: {enabled: true},
-    userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
     evidence: null,
     usesIssuePlatform: true,
@@ -194,13 +203,21 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
   },
   [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     discover: {enabled: false},
     regression: {enabled: true},
-    replays: {enabled: false},
     performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
     // We show the regression summary instead
     spanEvidence: {enabled: false},
   },
@@ -223,19 +240,28 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {
         enabled: false,
         disabledReason: t('Not yet supported for regression issues'),
       },
       share: {enabled: true},
     },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     discover: {enabled: false},
     regression: {enabled: true},
     performanceDurationRegression: {enabled: true},
-    replays: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
     // We show the regression summary instead
     spanEvidence: {enabled: false},
   },
@@ -324,16 +350,23 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
   },
   [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     discover: {enabled: false},
-    events: {enabled: false},
     regression: {enabled: true},
     profilingDurationRegression: {enabled: true},
-    replays: {enabled: false},
     // We show the regression summary instead
     spanEvidence: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
   },
   [IssueType.PROFILE_FUNCTION_REGRESSION]: {
     actions: {
@@ -354,22 +387,30 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {
         enabled: false,
         disabledReason: t('Not yet supported for regression issues'),
       },
       share: {enabled: true},
     },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: false},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     discover: {enabled: false},
-    events: {enabled: false},
     regression: {enabled: true},
     profilingDurationRegression: {enabled: true},
-    replays: {enabled: false},
     stats: {enabled: false},
     // We show the regression summary instead
     spanEvidence: {enabled: false},
     tags: {enabled: false},
-    tagsTab: {enabled: false},
   },
 };
 

@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 import {EventTitle} from './eventTitle';
 
@@ -30,12 +30,16 @@ describe('EventNavigation', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(useEventDetails).mockReturnValue({
+    jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
         tags: {key: SectionKey.TAGS},
         replay: {key: SectionKey.REPLAY},
       },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
       dispatch: jest.fn(),
     });
     Object.assign(navigator, {
@@ -53,8 +57,12 @@ describe('EventNavigation', () => {
   });
 
   it('does not show jump to sections by default', () => {
-    jest.mocked(useEventDetails).mockReturnValue({
+    jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {},
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
       dispatch: jest.fn(),
     });
     render(<EventTitle {...defaultProps} />);

@@ -10,6 +10,7 @@ import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 jest.mock('sentry/utils/issueTypeConfig');
 
@@ -57,28 +58,47 @@ describe('SolutionsSection', () => {
         deleteAndDiscard: {enabled: false},
         ignore: {enabled: false},
         merge: {enabled: false},
+        resolve: {enabled: true},
         resolveInRelease: {enabled: false},
         share: {enabled: false},
       },
-      attachments: {enabled: false},
+      customCopy: {
+        resolution: 'Resolved',
+        eventUnits: 'Events',
+      },
+      pages: {
+        landingPage: Tab.DETAILS,
+        events: {enabled: false},
+        openPeriods: {enabled: false},
+        checkIns: {enabled: false},
+        attachments: {enabled: false},
+        userFeedback: {enabled: false},
+        replays: {enabled: false},
+        tagsTab: {enabled: false},
+      },
+      detector: {enabled: false},
       autofix: true,
       discover: {enabled: false},
-      events: {enabled: false},
+      eventAndUserCounts: {enabled: true},
       evidence: null,
-      filterAndSearchHeader: {enabled: false},
+      header: {
+        filterBar: {enabled: true, fixedEnvironment: false},
+        graph: {enabled: true, type: 'discover-events'},
+        tagDistribution: {enabled: false},
+        occurrenceSummary: {enabled: false},
+      },
+      logLevel: {enabled: true},
       mergedIssues: {enabled: false},
       performanceDurationRegression: {enabled: false},
       profilingDurationRegression: {enabled: false},
       regression: {enabled: false},
-      replays: {enabled: false},
       showFeedbackWidget: false,
       similarIssues: {enabled: false},
       spanEvidence: {enabled: false},
       stacktrace: {enabled: false},
       stats: {enabled: false},
       tags: {enabled: false},
-      tagsTab: {enabled: false},
-      userFeedback: {enabled: false},
+      useOpenPeriodChecks: false,
       usesIssuePlatform: false,
     });
   });
@@ -100,7 +120,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2); // whatsWrong and Open Autofix
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {

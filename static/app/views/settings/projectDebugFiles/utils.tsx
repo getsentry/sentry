@@ -29,7 +29,9 @@ const PRETTY_FILE_TYPES = {
 export function getPrettyFileType(dsym: DebugFile) {
   const {symbolType, data, cpuName} = dsym;
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const prettySymbolType = PRETTY_SYMBOL_TYPES[symbolType] ?? symbolType;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const prettyFileType = PRETTY_FILE_TYPES[data?.type ?? '_'];
   const prettyCpuName =
     cpuName && cpuName !== 'any' && cpuName !== 'unknown' ? `(${cpuName})` : null;

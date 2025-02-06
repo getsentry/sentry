@@ -37,8 +37,8 @@ def clamp_pagination_per_page(
         raise ValueError("Invalid per_page parameter.")
 
     max_per_page = max(max_per_page, default_per_page)
-    if per_page > max_per_page:
-        raise ValueError(f"Invalid per_page value. Cannot exceed {max_per_page}.")
+    if per_page < 1 or per_page > max_per_page:
+        raise ValueError(f"Invalid per_page value. Must be between 1 and {max_per_page}.")
 
     return per_page
 

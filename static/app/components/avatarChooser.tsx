@@ -101,7 +101,9 @@ class AvatarChooser extends Component<Props, State> {
       return resp;
     }
     const isColor = type === 'sentryAppColor';
-    return {avatar: resp?.avatars?.find(({color}) => color === isColor) ?? undefined};
+    return {
+      avatar: resp?.avatars?.find(({color}: any) => color === isColor) ?? undefined,
+    };
   }
 
   handleError(msg: string) {
@@ -147,9 +149,11 @@ class AvatarChooser extends Component<Props, State> {
       },
       error: resp => {
         const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
-        avatarPhotoErrors.length
-          ? avatarPhotoErrors.map(this.handleError)
-          : this.handleError.bind(this, t('There was an error saving your preferences.'));
+        if (avatarPhotoErrors.length) {
+          avatarPhotoErrors.map(this.handleError);
+        } else {
+          this.handleError.bind(this, t('There was an error saving your preferences.'));
+        }
       },
     });
   };
@@ -194,7 +198,7 @@ class AvatarChooser extends Component<Props, State> {
     const isOrganization = type === 'organization';
     const isSentryApp = type?.startsWith('sentryApp');
 
-    const choices: [AvatarType, string][] = [];
+    const choices: Array<[AvatarType, string]> = [];
 
     if (allowDefault && preview) {
       choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);

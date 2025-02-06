@@ -14,7 +14,6 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types/event';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 
@@ -88,7 +87,7 @@ describe('SolutionsHubDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry AI beta'})).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
@@ -110,7 +109,7 @@ describe('SolutionsHubDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry AI beta'})).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     expect(startButton).toBeInTheDocument();
@@ -142,9 +141,7 @@ describe('SolutionsHubDrawer', () => {
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     await userEvent.click(startButton);
 
-    expect(
-      await screen.findByRole('button', {name: t('Start Over')})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
   it('displays autofix steps and Start Over button when autofixData is available', async () => {
@@ -158,9 +155,7 @@ describe('SolutionsHubDrawer', () => {
       {organization}
     );
 
-    expect(
-      await screen.findByRole('button', {name: t('Start Over')})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
   it('resets autofix on clicking the start over button', async () => {
@@ -174,7 +169,7 @@ describe('SolutionsHubDrawer', () => {
       {organization}
     );
 
-    const startOverButton = await screen.findByRole('button', {name: t('Start Over')});
+    const startOverButton = await screen.findByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     await userEvent.click(startOverButton);
 
@@ -212,7 +207,7 @@ describe('SolutionsHubDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sentry AI beta'})).toBeInTheDocument();
 
     expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
 

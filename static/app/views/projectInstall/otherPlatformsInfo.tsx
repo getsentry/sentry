@@ -45,7 +45,7 @@ export function OtherPlatformsInfo({
         platform
       )}
       <CodeSnippet dark language="properties">
-        {t('dsn: %s', data[0].dsn.public)}
+        {t('dsn: %s', data[0]!.dsn.public)}
       </CodeSnippet>
       <Suggestion>
         {t(

@@ -5,7 +5,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 
 describe('FormField + model', function () {
-  let model;
+  let model!: FormModel;
 
   beforeEach(function () {
     model = new FormModel();

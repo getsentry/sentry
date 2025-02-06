@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export const useDeleteFeedback = (feedbackIds, projectId) => {
+export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
   const api = useApi({
     persistInFlight: false,

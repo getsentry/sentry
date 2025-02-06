@@ -12,7 +12,6 @@ import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -197,7 +196,7 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    const childTransaction = childTransactions[0];
+    const childTransaction = childTransactions[0]!;
 
     const transactionResult: TransactionResult = {
       'project.name': childTransaction.project_slug,
@@ -221,7 +220,7 @@ function SpanDetail(props: Props) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.project_id),
@@ -277,7 +276,7 @@ function SpanDetail(props: Props) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: span.op, group: span.hash},
@@ -362,20 +361,23 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function partitionSizes(data): {
+  function partitionSizes(data: any): {
     nonSizeKeys: {[key: string]: unknown};
     sizeKeys: {[key: string]: number};
   } {
-    const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key) && defined(data[key])) {
-        try {
-          keys[key] = parseInt(data[key], 10);
-        } catch (e) {
-          keys[key] = data[key];
+    const sizeKeys = SIZE_DATA_KEYS.reduce(
+      (keys, key) => {
+        if (data.hasOwnProperty(key) && defined(data[key])) {
+          try {
+            keys[key] = parseInt(data[key], 10);
+          } catch (e) {
+            keys[key] = data[key];
+          }
         }
-      }
-      return keys;
-    }, {});
+        return keys;
+      },
+      {} as Record<string, number>
+    );
 
     const nonSizeKeys = {...data};
     SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -573,18 +575,11 @@ function SpanDetail(props: Props) {
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {maybeStringify(span[key])}
+                  {maybeStringify(span[key as never])}
                 </Row>
               ))}
             </tbody>
           </table>
-          {span._metrics_summary && (
-            <CustomMetricsEventData
-              projectId={event.projectID}
-              metricsSummary={span._metrics_summary}
-              startTimestamp={span.start_timestamp}
-            />
-          )}
         </SpanDetails>
       </Fragment>
     );
@@ -649,7 +644,7 @@ const StyledText = styled('p')`
   margin: ${space(2)} 0;
 `;
 
-function TextTr({children}) {
+function TextTr({children}: any) {
   return (
     <tr>
       <td className="key" />

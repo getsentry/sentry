@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from functools import reduce
 
 from snuba_sdk import Column, Condition, Function, Op
 
@@ -54,19 +53,16 @@ def release_filter_converter(
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
-            reduce(
-                lambda x, y: x + y,  # type: ignore[operator]
-                [
-                    parse_release(
-                        v,
-                        builder.params.project_ids,
-                        builder.params.environments,
-                        builder.params.organization.id if builder.params.organization else None,
-                    )
-                    for v in to_list(search_filter.value.value)
-                ],
-                [],
-            )
+            [
+                part
+                for v in to_list(search_filter.value.value)
+                for part in parse_release(
+                    v,
+                    builder.params.project_ids,
+                    builder.params.environments,
+                    builder.params.organization.id if builder.params.organization else None,
+                )
+            ]
         )
 
     return builder.default_filter_converter(SearchFilter(search_filter.key, operator, value))
@@ -375,41 +371,26 @@ def message_filter_converter(
 ) -> WhereType | None:
     value = search_filter.value.value
     if search_filter.value.is_wildcard():
-        kind = (
-            search_filter.value.classify_wildcard()
-            if builder.config.optimize_wildcard_searches
-            else "other"
-        )
+        if builder.config.optimize_wildcard_searches:
+            kind, value_o = search_filter.value.classify_and_format_wildcard()
+        else:
+            kind, value_o = "other", search_filter.value.value
+
         if kind == "prefix":
             return Condition(
-                Function(
-                    "startsWith",
-                    [
-                        Function("lower", [builder.column("message")]),
-                        search_filter.value.format_wildcard(kind).lower(),
-                    ],
-                ),
+                Function("startsWith", [Function("lower", [builder.column("message")]), value_o]),
                 Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                 1,
             )
         elif kind == "suffix":
             return Condition(
-                Function(
-                    "endsWith",
-                    [
-                        Function("lower", [builder.column("message")]),
-                        search_filter.value.format_wildcard(kind).lower(),
-                    ],
-                ),
+                Function("endsWith", [Function("lower", [builder.column("message")]), value_o]),
                 Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                 1,
             )
         elif kind == "infix":
             return Condition(
-                Function(
-                    "positionCaseInsensitive",
-                    [builder.column("message"), search_filter.value.format_wildcard(kind)],
-                ),
+                Function("positionCaseInsensitive", [builder.column("message"), value_o]),
                 Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                 0,
             )

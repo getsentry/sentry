@@ -47,7 +47,7 @@ class RateLimitedEndpoint(Endpoint):
     )
 
     def get(self, request):
-        return Response({"ok": True})
+        raise NotImplementedError
 
 
 class ConcurrentRateLimitedEndpoint(Endpoint):
@@ -200,7 +200,6 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 
     def test_access_log_success(self):
         self._caplog.set_level(logging.INFO, logger="sentry")
-        token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.login_as(user=self.create_user())
@@ -209,6 +208,16 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         tested_log = self.get_tested_log()
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
+
+    def test_with_subdomain_redirect(self):
+        # the subdomain middleware is in between this and the access log middelware
+        # meaning if a request is rejected between those then it will not have `auth`
+        # set up properly
+        # this previously logged an error to sentry
+        resp = self.get_response(extra_headers={"HTTP_HOST": "invalid_domain.testserver"})
+        assert resp.status_code == 302
+        records = [record for record in self._caplog.records if record.levelno == logging.ERROR]
+        assert not records  # no errors should occur
 
 
 @all_silo_test

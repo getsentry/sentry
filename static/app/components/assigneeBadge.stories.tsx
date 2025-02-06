@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {uuid4} from '@sentry/utils';
+import {uuid4} from '@sentry/core';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import storyBook from 'sentry/stories/storyBook';
@@ -42,7 +42,7 @@ export default storyBook('AssigneeBadge', story => {
     const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
 
     const team: Team = teams.length
-      ? teams[0]
+      ? teams[0]!
       : {
           id: '1',
           slug: 'team-slug',

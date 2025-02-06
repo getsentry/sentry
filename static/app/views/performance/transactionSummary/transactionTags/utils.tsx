@@ -7,13 +7,13 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export function generateTagsRoute({
-  orgSlug,
+  organization,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   view?: DomainView;
 }): string {
-  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/tags/`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/tags/`;
 }
 
 export function decodeSelectedTagKey(location: Location): string | undefined {
@@ -25,20 +25,20 @@ export function trackTagPageInteraction(organization: Organization) {
 }
 
 export function tagsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
   view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
   view?: DomainView;
 }) {
   const pathname = generateTagsRoute({
-    orgSlug,
+    organization,
     view,
   });
 
@@ -77,8 +77,8 @@ export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) 
   const parts = field.split('_');
   return {
     histogramField: field,
-    bucketSize: parseInt(parts[parts.length - 3], 10),
-    offset: parseInt(parts[parts.length - 2], 10),
-    multiplier: parseInt(parts[parts.length - 1], 10),
+    bucketSize: parseInt(parts[parts.length - 3]!, 10),
+    offset: parseInt(parts[parts.length - 2]!, 10),
+    multiplier: parseInt(parts[parts.length - 1]!, 10),
   };
 }

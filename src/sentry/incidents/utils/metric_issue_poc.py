@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
+from sentry import features
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import get_incident_status_text
 from sentry.issues.grouptype import MetricIssuePOC
@@ -9,6 +13,24 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.types.group import PriorityLevel
+
+
+@dataclass
+class OpenPeriod:
+    start: datetime
+    end: datetime | None
+    duration: timedelta | None
+    is_open: bool
+    last_checked: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start": self.start,
+            "end": self.end,
+            "duration": self.duration,
+            "isOpen": self.is_open,
+            "lastChecked": self.last_checked,
+        }
 
 
 def _build_occurrence_from_incident(
@@ -37,7 +59,7 @@ def _build_occurrence_from_incident(
         culprit="",
         initial_issue_priority=initial_issue_priority,
         # TODO(snigdha): Add more data here as needed
-        evidence_data={"metric_value": metric_value},
+        evidence_data={"metric_value": metric_value, "alert_rule_id": incident.alert_rule.id},
         evidence_display=[],
     )
 
@@ -50,13 +72,19 @@ def create_or_update_metric_issue(
     if not project:
         return None
 
+    if not features.has("projects:metric-issue-creation", project):
+        # We've already checked for the feature flag at the organization level,
+        # but this flag helps us test with a smaller set of projects.
+        return None
+
     # collect the data from the incident to treat as an event
-    event_data: dict[str, str | int] = {
+    event_data: dict[str, Any] = {
         "event_id": uuid4().hex,
         "project_id": project.id,
         "timestamp": incident.date_started.isoformat(),
         "platform": project.platform or "",
         "received": incident.date_started.isoformat(),
+        "contexts": {"metric_alert": {"alert_rule_id": incident.alert_rule.id}},
     }
 
     occurrence = _build_occurrence_from_incident(project, incident, event_data, metric_value)

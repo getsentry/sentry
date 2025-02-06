@@ -76,7 +76,7 @@ describe('Quick Context Commit Row', () => {
     const pullRequestLink = screen.getByText(
       /feat\(quick-context-commit-row\): Added new component/
     );
-    expect(screen.queryByTestId('quick-context-commit-row-pr-link')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-context-commit-row-pr-link')).toBeInTheDocument();
     expect(pullRequestLink).toBeInTheDocument();
     expect(pullRequestLink).toHaveAttribute(
       'href',

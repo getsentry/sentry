@@ -42,7 +42,7 @@ type Props = {
   transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
-  onApply?: (threshold, metric) => void;
+  onApply?: (threshold: any, metric: any) => void;
   project?: string;
 } & ModalRenderProps;
 
@@ -237,7 +237,7 @@ class TransactionThresholdModal extends Component<Props, State> {
     const summaryView = eventView.clone();
     summaryView.query = summaryView.getQueryWithAdditionalConditions();
     const target = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transactionName,
       query: summaryView.generateQueryStringObject(),
       projectID: project?.id,

@@ -1,10 +1,10 @@
-/* eslint-env node */
+'use strict';
 
-const crypto = require('node:crypto');
+const nodeCrypto = require('node:crypto');
 const peggy = require('peggy');
 
 function getCacheKey(fileData, _filePath, config, _options) {
-  return crypto
+  return nodeCrypto
     .createHash('md5')
     .update(fileData)
     .update(config.configString)

@@ -13,6 +13,7 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
@@ -360,7 +361,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 )
             request = copy.deepcopy(self.request)
             request.user = AnonymousUser()
-            request.auth = api_key
+            request.auth = AuthenticatedToken.from_token(api_key)
             self.org.handle_2fa_required(request)
         self.is_pending_organization_member(user.id, member.id)
         self.assert_org_member_mapping(org_member=member)

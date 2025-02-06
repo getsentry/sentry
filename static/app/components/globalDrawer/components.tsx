@@ -70,7 +70,7 @@ interface DrawerHeaderProps {
   hideCloseButton?: boolean;
 }
 
-export const DrawerHeader = forwardRef(function _DrawerHeader(
+export const DrawerHeader = forwardRef(function DrawerHeaderInner(
   {
     className,
     children = null,

@@ -107,18 +107,15 @@ def test_reverse_resolve_reindexed():
 def test_shared_mri_string_range(mri, id):
     parsed_mri = parse_mri(mri)
     assert parsed_mri is not None, mri
-    try:
-        start, end = {
-            "sessions": (1, 99),
-            "transactions": (100, 199),
-            "spans": (400, 499),
-            "escalating_issues": (500, 599),
-            "profiles": (600, 699),
-            "bundle_analysis": (700, 799),
-            "metric_stats": (800, 899),
-        }[parsed_mri.namespace]
-    except KeyError:
-        raise Exception(f"Unknown namespace: {parsed_mri.namespace}")
+    start, end = {
+        "sessions": (1, 99),
+        "transactions": (100, 199),
+        "spans": (400, 499),
+        "escalating_issues": (500, 599),
+        "profiles": (600, 699),
+        "bundle_analysis": (700, 799),
+        "metric_stats": (800, 899),
+    }[parsed_mri.namespace]
 
     start += PREFIX
     end += PREFIX

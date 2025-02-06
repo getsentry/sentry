@@ -4,38 +4,52 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
   createOnDemandFilterWarning,
   shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  type ValidateWidgetResponse,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 interface WidgetBuilderQueryFilterBuilderProps {
   onQueryConditionChange: (valid: boolean) => void;
+  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
 function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
+  validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>(() => {
     // Make a validity entry for each query condition initially
     return state.query?.map(() => true) ?? [];
   });
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
 
   const widgetType = state.dataset ?? WidgetType.ERRORS;
   const datasetConfig = getDatasetConfig(state.dataset);
@@ -44,6 +58,13 @@ function WidgetBuilderQueryFilterBuilder({
 
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
+    state.displayType !== DisplayType.BIG_NUMBER &&
+    state.dataset !== WidgetType.SPANS &&
+    state.query &&
+    state.query.length < 3;
+
+  const canHaveAlias =
+    state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
 
   const onAddSearchConditions = () => {
@@ -51,6 +72,20 @@ function WidgetBuilderQueryFilterBuilder({
     dispatch({
       type: BuilderStateAction.SET_QUERY,
       payload: state.query?.length ? [...state.query, ''] : ['', ''],
+    });
+
+    dispatch({
+      type: BuilderStateAction.SET_LEGEND_ALIAS,
+      payload: state.legendAlias?.length ? [...state.legendAlias, ''] : ['', ''],
+    });
+    trackAnalytics('dashboards_views.widget_builder.change', {
+      builder_version: WidgetBuilderVersion.SLIDEOUT,
+      field: 'filter.add',
+      from: source,
+      new_widget: !isEditing,
+      value: '',
+      widget_type: state.dataset ?? '',
+      organization,
     });
   };
 
@@ -80,8 +115,31 @@ function WidgetBuilderQueryFilterBuilder({
         type: BuilderStateAction.SET_QUERY,
         payload: state.query?.filter((_, i) => i !== queryIndex) ?? [],
       });
+      dispatch({
+        type: BuilderStateAction.SET_LEGEND_ALIAS,
+        payload: state.legendAlias?.filter((_, i) => i !== queryIndex) ?? [],
+      });
+      trackAnalytics('dashboards_views.widget_builder.change', {
+        builder_version: WidgetBuilderVersion.SLIDEOUT,
+        field: 'filter.delete',
+        from: source,
+        new_widget: !isEditing,
+        value: '',
+        widget_type: state.dataset ?? '',
+        organization,
+      });
     },
-    [dispatch, queryConditionValidity, state.query, onQueryConditionChange]
+    [
+      dispatch,
+      queryConditionValidity,
+      state.query,
+      onQueryConditionChange,
+      state.legendAlias,
+      state.dataset,
+      source,
+      isEditing,
+      organization,
+    ]
   );
 
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
@@ -106,12 +164,12 @@ function WidgetBuilderQueryFilterBuilder({
         }
         optional
       />
-      {!state.query?.length ? (
-        <QueryFieldRowWrapper key={0}>
+      {state.query?.map((_, index) => (
+        <QueryFieldRowWrapper key={index}>
           <datasetConfig.SearchBar
             getFilterWarning={
               shouldDisplayOnDemandWidgetWarning(
-                widget.queries[0],
+                widget.queries[index]!,
                 widgetType,
                 organization
               )
@@ -119,69 +177,77 @@ function WidgetBuilderQueryFilterBuilder({
                 : undefined
             }
             pageFilters={selection}
-            onClose={handleClose(0)}
+            onClose={handleClose(index)}
             onSearch={queryString => {
               dispatch({
                 type: BuilderStateAction.SET_QUERY,
-                payload: [queryString],
+                payload:
+                  state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+              });
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'filter.update',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
               });
             }}
-            widgetQuery={widget.queries[0]}
+            widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
           />
-          {canAddSearchConditions && (
-            // TODO: Hook up alias to query hook when it's implemented
+          {canHaveAlias && (
             <LegendAliasInput
               type="text"
               name="name"
               placeholder={t('Legend Alias')}
-              onChange={() => {}}
-            />
-          )}
-        </QueryFieldRowWrapper>
-      ) : (
-        state.query?.map((_, index) => (
-          <QueryFieldRowWrapper key={index}>
-            <datasetConfig.SearchBar
-              getFilterWarning={
-                shouldDisplayOnDemandWidgetWarning(
-                  widget.queries[index],
-                  widgetType,
-                  organization
-                )
-                  ? getOnDemandFilterWarning
-                  : undefined
-              }
-              pageFilters={selection}
-              onClose={handleClose(index)}
-              onSearch={queryString => {
+              value={state.legendAlias?.[index] || ''}
+              onChange={e => {
                 dispatch({
-                  type: BuilderStateAction.SET_QUERY,
-                  payload:
-                    state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+                  type: BuilderStateAction.SET_LEGEND_ALIAS,
+                  payload: state.legendAlias?.length
+                    ? state.legendAlias?.map((q, i) => (i === index ? e.target.value : q))
+                    : [e.target.value],
                 });
               }}
-              widgetQuery={widget.queries[index]}
-              dataset={getDiscoverDatasetFromWidgetType(widgetType)}
+              onBlur={() => {
+                trackAnalytics('dashboards_views.widget_builder.change', {
+                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                  field: 'filter.alias',
+                  from: source,
+                  new_widget: !isEditing,
+                  value: '',
+                  widget_type: state.dataset ?? '',
+                  organization,
+                });
+              }}
             />
-            {canAddSearchConditions && (
-              // TODO: Hook up alias to query hook when it's implemented
-              <LegendAliasInput
-                type="text"
-                name="name"
-                placeholder={t('Legend Alias')}
-                onChange={() => {}}
-              />
-            )}
-            {state.query && state.query?.length > 1 && canAddSearchConditions && (
-              <DeleteButton onDelete={handleRemove(index)} />
-            )}
-          </QueryFieldRowWrapper>
-        ))
-      )}
+          )}
+          {shouldDisplayOnDemandWidgetWarning(
+            widget.queries[index]!,
+            widgetType,
+            organization
+          ) && (
+            <WidgetOnDemandQueryWarning
+              query={widget.queries[index]!}
+              validatedWidgetResponse={validatedWidgetResponse}
+              queryIndex={index}
+            />
+          )}
+          {state.query && state.query?.length > 1 && (
+            <DeleteButton onDelete={handleRemove(index)} />
+          )}
+        </QueryFieldRowWrapper>
+      ))}
       {canAddSearchConditions && (
-        <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
-          {t('Add Filter')}
+        <Button
+          size="sm"
+          priority="link"
+          onClick={onAddSearchConditions}
+          aria-label={t('Add Filter')}
+        >
+          {t('+ Add Filter')}
         </Button>
       )}
     </Fragment>

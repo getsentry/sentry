@@ -1,5 +1,9 @@
 # Export any handlers we want to include into the registry
-__all__ = ["NotificationActionHandler", "GroupEventConditionHandler"]
+__all__ = [
+    "NotificationActionHandler",
+    "EventCreatedByDetectorConditionHandler",
+    "EventSeenCountConditionHandler",
+]
 
 from .action import NotificationActionHandler
-from .condition import GroupEventConditionHandler
+from .condition import EventCreatedByDetectorConditionHandler, EventSeenCountConditionHandler

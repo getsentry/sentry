@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {generateSentryTraceHeader} from '@sentry/utils';
+import {generateSentryTraceHeader} from '@sentry/core';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t} from 'sentry/locale';
@@ -36,7 +36,7 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
     ...headers,
     [
       'User-Agent',
-      'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
+      'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)',
     ],
     ['Sentry-Trace', exampleTrace],
   ];

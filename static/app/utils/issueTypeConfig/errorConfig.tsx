@@ -8,6 +8,7 @@ import type {
 } from 'sentry/utils/issueTypeConfig/types';
 import {ErrorHelpType} from 'sentry/utils/issueTypeConfig/types';
 import isHydrationError from 'sentry/utils/react/isHydrationError';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 export const errorConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -17,15 +18,24 @@ export const errorConfig: IssueCategoryConfigMapping = {
       deleteAndDiscard: {enabled: true},
       ignore: {enabled: true},
       merge: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
-    attachments: {enabled: true},
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: true},
+      userFeedback: {enabled: true},
+      replays: {enabled: true},
+      tagsTab: {enabled: true},
+    },
     autofix: true,
+    logLevel: {enabled: true},
     mergedIssues: {enabled: true},
-    replays: {enabled: true},
     similarIssues: {enabled: true},
-    userFeedback: {enabled: true},
     usesIssuePlatform: false,
     issueSummary: {enabled: true},
   },
@@ -37,7 +47,7 @@ type ErrorInfo = {
   projectPlatforms: PlatformKey[];
 };
 
-const ErrorInfoChecks: Array<ErrorInfo> = [
+const ErrorInfoChecks: ErrorInfo[] = [
   {
     errorTitle: 'ChunkLoadError',
     projectPlatforms: ['javascript'],

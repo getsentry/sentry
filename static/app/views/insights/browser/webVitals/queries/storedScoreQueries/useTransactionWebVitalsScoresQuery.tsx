@@ -6,7 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   RowWithScoreAndOpportunity,
@@ -117,18 +117,18 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   const tableData: RowWithScoreAndOpportunity[] =
     !isPending && data?.data.length
-      ? data.data.map(row => {
+      ? data.data.map<RowWithScoreAndOpportunity>(row => {
           // Map back performance score key so we don't have to handle both keys in the UI
           if (row['performance_score(measurements.score.total)'] !== undefined) {
             row['avg(measurements.score.total)'] =
               row['performance_score(measurements.score.total)'];
           }
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
-            calculatePerformanceScoreFromStoredTableDataRow(row);
+            getWebVitalScoresFromTableDataRow(row);
           return {
-            transaction: row.transaction?.toString(),
-            project: row.project?.toString(),
-            'project.id': parseInt(row['project.id'].toString(), 10),
+            transaction: row.transaction?.toString()!,
+            project: row.project?.toString()!,
+            'project.id': parseInt(row['project.id']!.toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,

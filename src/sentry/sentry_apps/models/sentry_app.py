@@ -128,7 +128,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     status = BoundedPositiveIntegerField(
         default=SentryAppStatus.UNPUBLISHED, choices=SentryAppStatus.as_choices(), db_index=True
     )
-    uuid = models.CharField(max_length=64, default=default_uuid)
+    uuid = models.CharField(max_length=64, default=default_uuid, unique=True)
 
     redirect_url = models.URLField(null=True)
     webhook_url = models.URLField(max_length=512, null=True)

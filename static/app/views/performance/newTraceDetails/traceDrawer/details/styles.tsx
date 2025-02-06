@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -18,6 +18,7 @@ import KeyValueData, {
   CardPanel,
   type KeyValueDataContentProps,
   Subject,
+  ValueSection,
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
@@ -30,6 +31,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCircleFill,
+  IconEllipsis,
   IconFocus,
   IconJson,
   IconOpen,
@@ -42,17 +44,27 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {
+  SENTRY_SPAN_NUMBER_TAGS,
+  SENTRY_SPAN_STRING_TAGS,
+} from 'sentry/views/explore/constants';
 
 import {traceAnalytics} from '../../traceAnalytics';
 import {useTransaction} from '../../traceApi/useTransaction';
 import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
-import {makeTraceContinuousProfilingLink} from '../../traceDrawer/traceProfilingLink';
+import {
+  makeTraceContinuousProfilingLink,
+  makeTransactionProfilingLink,
+} from '../../traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -69,15 +81,29 @@ import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
-const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+  TraceDrawerActionValueKind,
+} from './utils';
+
+const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
-  padding: ${p => (p.hasNewTraceUi ? `${space(1)} ${space(2)}` : space(1))};
+  padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
+  height: calc(100% - 52px);
+  overflow: auto;
 
   ${DataSection} {
     padding: 0;
   }
+`;
+
+const DetailContainer = styled('div')`
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: ${space(1)};
 `;
 
 const FlexBox = styled('div')`
@@ -210,6 +236,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
 `;
 
 const LegacyHeaderContainer = styled(FlexBox)`
+  margin: ${space(1)};
   justify-content: space-between;
   gap: ${space(3)};
   container-type: inline-size;
@@ -234,7 +261,9 @@ const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
   gap: ${space(3)};
-  margin-bottom: ${space(1.5)};
+  padding: ${space(0.25)} 0 ${space(0.5)} 0;
+  margin: 0 ${space(2)} ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -517,7 +546,9 @@ const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
   margin-top: ${space(1.5)};
 `;
 
-const HiglightsDurationComparison = styled('div')<{status: string}>`
+const HiglightsDurationComparison = styled('div')<
+  Pick<NonNullable<DurationComparison>, 'status'>
+>`
   white-space: nowrap;
   border-radius: 12px;
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
@@ -570,7 +601,6 @@ const HighlightsWrapper = styled('div')`
   align-items: stretch;
   gap: ${space(1)};
   width: 100%;
-  overflow: hidden;
   margin: ${space(1)} 0;
 `;
 
@@ -698,6 +728,151 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
+type KeyValueActionProps = {
+  rowKey: string;
+  rowValue: React.ReactNode;
+  kind?: TraceDrawerActionValueKind;
+  projectIds?: string | string[];
+};
+
+function KeyValueAction({
+  rowKey,
+  rowValue,
+  projectIds,
+  kind = TraceDrawerActionValueKind.SENTRY_TAG,
+}: KeyValueActionProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const hasNewTraceUi = useHasTraceNewUi();
+  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const [isVisible, setIsVisible] = useState(false);
+
+  if (
+    !hasNewTraceUi ||
+    !hasTraceDrawerAction ||
+    !defined(rowValue) ||
+    !defined(rowKey) ||
+    !['string', 'number'].includes(typeof rowValue)
+  ) {
+    return null;
+  }
+
+  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
+  // Any other key must exist in the static list of sentry tags to be deemed searchable.
+  if (
+    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
+    !(
+      SENTRY_SPAN_NUMBER_TAGS.includes(rowKey) || SENTRY_SPAN_STRING_TAGS.includes(rowKey)
+    )
+  ) {
+    return null;
+  }
+
+  const dropdownOptions = [
+    {
+      key: 'include',
+      label: t('Find more samples with this value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        projectIds,
+        rowKey,
+        rowValue.toString(),
+        TraceDrawerActionKind.INCLUDE
+      ),
+    },
+    {
+      key: 'exclude',
+      label: t('Find samples excluding this value'),
+      to: getSearchInExploreTarget(
+        organization,
+        location,
+        projectIds,
+        rowKey,
+        rowValue.toLocaleString(),
+        TraceDrawerActionKind.EXCLUDE
+      ),
+    },
+  ];
+
+  const valueType = getFieldDefinition(rowKey)?.valueType;
+  const isMeasurement =
+    valueType &&
+    [
+      FieldValueType.DURATION,
+      FieldValueType.NUMBER,
+      FieldValueType.INTEGER,
+      FieldValueType.PERCENTAGE,
+    ].includes(valueType);
+
+  if (isMeasurement) {
+    dropdownOptions.push(
+      {
+        key: 'includeGreaterThan',
+        label: t('Find samples with values greater than'),
+        to: getSearchInExploreTarget(
+          organization,
+          location,
+          projectIds,
+          rowKey,
+          rowValue.toString(),
+          TraceDrawerActionKind.GREATER_THAN
+        ),
+      },
+      {
+        key: 'includeLessThan',
+        label: t('Find samples with values less than'),
+        to: getSearchInExploreTarget(
+          organization,
+          location,
+          projectIds,
+          rowKey,
+          rowValue.toString(),
+          TraceDrawerActionKind.LESS_THAN
+        ),
+      }
+    );
+  }
+
+  return (
+    <KeyValueActionDropdown
+      preventOverflowOptions={{padding: 4}}
+      className={isVisible ? '' : 'invisible'}
+      position="bottom-end"
+      size="xs"
+      onOpenChange={isOpen => setIsVisible(isOpen)}
+      triggerProps={{
+        'aria-label': t('Key Value Action Menu'),
+        icon: <IconEllipsis />,
+        showChevron: false,
+        className: 'trigger-button',
+      }}
+      onAction={key => {
+        traceAnalytics.trackExploreSearch(
+          organization,
+          rowKey,
+          rowValue.toString(),
+          key as TraceDrawerActionKind
+        );
+      }}
+      items={dropdownOptions}
+    />
+  );
+}
+
+const KeyValueActionDropdown = styled(DropdownMenu)`
+  display: block;
+  margin: 1px;
+  height: 20px;
+  .trigger-button {
+    height: 20px;
+    min-height: 20px;
+    padding: 0 ${space(0.75)};
+    border-radius: ${space(0.5)};
+    z-index: 1;
+  }
+`;
+
 function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
@@ -788,30 +963,44 @@ function NodeActions(props: {
     organization,
   });
 
-  const profilerId: string = useMemo(() => {
-    if (isTransactionNode(props.node)) {
-      return props.node.value.profiler_id;
+  const transactionProfileTarget = useMemo(() => {
+    const profileId = isTransactionNode(props.node)
+      ? props.node.value.profile_id
+      : isSpanNode(props.node)
+        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        : '';
+    if (!profileId) {
+      return null;
     }
-    if (isSpanNode(props.node)) {
-      return props.node.value.sentry_tags?.profiler_id ?? '';
-    }
-    return '';
-  }, [props]);
+    return makeTransactionProfilingLink(profileId, {
+      orgSlug: props.organization.slug,
+      projectSlug: props.node.metadata.project_slug ?? '',
+    });
+  }, [props.node, props.organization]);
 
-  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
-    orgSlug: props.organization.slug,
-    projectSlug: props.node.metadata.project_slug ?? '',
-    traceId: params.traceSlug ?? '',
-    threadId: getThreadIdFromNode(props.node, transaction),
-  });
+  const continuousProfileTarget = useMemo(() => {
+    const profilerId = isTransactionNode(props.node)
+      ? props.node.value.profiler_id
+      : isSpanNode(props.node)
+        ? props.node.value.sentry_tags?.profiler_id ?? null
+        : null;
+    if (!profilerId) {
+      return null;
+    }
+    return makeTraceContinuousProfilingLink(props.node, profilerId, {
+      orgSlug: props.organization.slug,
+      projectSlug: props.node.metadata.project_slug ?? '',
+      traceId: params.traceSlug ?? '',
+      threadId: getThreadIdFromNode(props.node, transaction),
+    });
+  }, [params.traceSlug, props.node, props.organization, transaction]);
 
   if (!hasNewTraceUi) {
     return (
       <LegacyNodeActions
         {...props}
-        profileLink={profileLink}
-        profilerId={profilerId}
-        transaction={transaction}
+        continuousProfileTarget={continuousProfileTarget}
+        transactionProfileTarget={transactionProfileTarget}
       />
     );
   }
@@ -840,11 +1029,23 @@ function NodeActions(props: {
           />
         </Tooltip>
       ) : null}
-      {profileLink ? (
-        <Tooltip title={t('Continuous Profile')}>
+      {continuousProfileTarget ? (
+        <Tooltip title={t('Profile')}>
           <ActionButton
+            onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
+            to={continuousProfileTarget}
             size="xs"
-            aria-label={t('Continuous Profile')}
+            aria-label={t('Profile')}
+            icon={<IconProfiling size="xs" />}
+          />
+        </Tooltip>
+      ) : transactionProfileTarget ? (
+        <Tooltip title={t('Profile')}>
+          <ActionButton
+            onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
+            to={transactionProfileTarget}
+            size="xs"
+            aria-label={t('Profile')}
             icon={<IconProfiling size="xs" />}
           />
         </Tooltip>
@@ -878,6 +1079,7 @@ const ActionWrapper = styled('div')`
 `;
 
 function LegacyNodeActions(props: {
+  continuousProfileTarget: LocationDescriptor | null;
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
     node:
@@ -886,20 +1088,18 @@ function LegacyNodeActions(props: {
       | SiblingAutogroupNode
       | MissingInstrumentationNode
   ) => void;
-  profileLink: LocationDescriptor | null;
-  profilerId: string;
-  transaction: EventTransaction | undefined;
+  organization: Organization;
+  transactionProfileTarget: LocationDescriptor | null;
   eventSize?: number | undefined;
 }) {
   const navigate = useNavigate();
-  const organization = useOrganization();
 
   const items = useMemo((): MenuItemProps[] => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
       label: t('Show in View'),
       onAction: () => {
-        traceAnalytics.trackShowInView(organization);
+        traceAnalytics.trackShowInView(props.organization);
         props.onTabScrollToNode(props.node);
       },
     };
@@ -915,9 +1115,9 @@ function LegacyNodeActions(props: {
     const jsonDetails: MenuItemProps = {
       key: 'json-details',
       onAction: () => {
-        traceAnalytics.trackViewEventJSON(organization);
+        traceAnalytics.trackViewEventJSON(props.organization);
         window.open(
-          `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/json/`,
+          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
           '_blank'
         );
       },
@@ -926,28 +1126,37 @@ function LegacyNodeActions(props: {
         (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
     };
 
-    const continuousProfileLink: MenuItemProps | null = props.profileLink
+    const profileLink: MenuItemProps | null = props.continuousProfileTarget
       ? {
-          key: 'continuous-profile',
+          key: 'profile',
           onAction: () => {
-            traceAnalytics.trackViewContinuousProfile(organization);
-            navigate(props.profileLink!);
+            traceAnalytics.trackViewContinuousProfile(props.organization);
+            navigate(props.continuousProfileTarget!);
           },
-          label: t('Continuous Profile'),
+          label: t('View Profile'),
         }
-      : null;
+      : props.transactionProfileTarget
+        ? {
+            key: 'profile',
+            onAction: () => {
+              traceAnalytics.trackViewTransactionProfile(props.organization);
+              navigate(props.transactionProfileTarget!);
+            },
+            label: t('View Profile'),
+          }
+        : null;
 
     if (isTransactionNode(props.node)) {
-      return [showInView, jsonDetails, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, jsonDetails, profileLink].filter(TypeSafeBoolean);
     }
     if (isSpanNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isMissingInstrumentationNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isTraceErrorNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isRootNode(props.node)) {
       return [showInView];
@@ -957,20 +1166,24 @@ function LegacyNodeActions(props: {
     }
 
     return [showInView];
-  }, [props, navigate, organization]);
+  }, [props, navigate]);
 
   return (
     <ActionsContainer>
       <Actions className="Actions">
-        {props.profileLink ? (
-          <LinkButton size="xs" to={props.profileLink}>
-            {t('Continuous Profile')}
+        {props.continuousProfileTarget ? (
+          <LinkButton size="xs" to={props.continuousProfileTarget}>
+            {t('View Profile')}
+          </LinkButton>
+        ) : props.transactionProfileTarget ? (
+          <LinkButton size="xs" to={props.transactionProfileTarget}>
+            {t('View Profile')}
           </LinkButton>
         ) : null}
         <Button
           size="xs"
           onClick={_e => {
-            traceAnalytics.trackShowInView(organization);
+            traceAnalytics.trackShowInView(props.organization);
             props.onTabScrollToNode(props.node);
           }}
         >
@@ -981,8 +1194,8 @@ function LegacyNodeActions(props: {
           <LinkButton
             size="xs"
             icon={<IconOpen />}
-            onClick={() => traceAnalytics.trackViewEventJSON(organization)}
-            href={`/api/0/projects/${organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
             external
           >
             {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
@@ -1083,9 +1296,15 @@ const CardWrapper = styled('div')`
   }
 
   ${Subject} {
+    display: flex;
+    align-items: center;
     @container (width < 350px) {
       max-width: 200px;
     }
+  }
+
+  ${ValueSection} {
+    align-items: center;
   }
 `;
 
@@ -1167,6 +1386,7 @@ export const CardContentSubject = styled('div')`
 
 const TraceDrawerComponents = {
   DetailContainer,
+  BodyContainer,
   FlexBox,
   Title: TitleWithTestId,
   Type,
@@ -1176,6 +1396,7 @@ const TraceDrawerComponents = {
   Highlights,
   Actions,
   NodeActions,
+  KeyValueAction,
   Table,
   IconTitleWrapper,
   IconBorder,

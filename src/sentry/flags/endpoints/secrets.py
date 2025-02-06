@@ -11,7 +11,10 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationFlagWebHookSigningSecretPermission,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.flags.models import FlagWebHookSigningSecretModel
@@ -39,14 +42,16 @@ class FlagWebhookSigningSecretSerializer(Serializer):
 
 
 class FlagWebhookSigningSecretValidator(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=[("launchdarkly", "launchdarkly")], required=True)
+    provider = serializers.ChoiceField(
+        choices=["launchdarkly", "generic", "unleash"], required=True
+    )
     secret = serializers.CharField(required=True, max_length=32, min_length=32)
 
 
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
-    permission_classes = (OrgAuthTokenPermission,)
+    permission_classes = (OrganizationFlagWebHookSigningSecretPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -78,24 +83,44 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        FlagWebHookSigningSecretModel.objects.create_or_update(
-            organization=organization,
-            provider=validator.validated_data["provider"],
-            values={
-                "created_by": request.user.id,
-                "date_added": datetime.now(tz=timezone.utc),
-                "provider": validator.validated_data["provider"],
-                "secret": validator.validated_data["secret"],
-            },
+        # these scopes can always update or post secrets
+        has_permission = request.access.has_scope("org:write") or request.access.has_scope(
+            "org:admin"
         )
 
-        return Response(status=201)
+        try:
+            secret = FlagWebHookSigningSecretModel.objects.filter(
+                organization_id=organization.id
+            ).get(provider=validator.validated_data["provider"])
+            # allow update access if the user created the secret
+            is_creator = request.user.id == secret.created_by
+        except FlagWebHookSigningSecretModel.DoesNotExist:
+            # anyone can post a new secret
+            is_creator = True
+
+        if is_creator or has_permission:
+            FlagWebHookSigningSecretModel.objects.create_or_update(
+                organization=organization,
+                provider=validator.validated_data["provider"],
+                values={
+                    "created_by": request.user.id,
+                    "date_added": datetime.now(tz=timezone.utc),
+                    "provider": validator.validated_data["provider"],
+                    "secret": validator.validated_data["secret"],
+                },
+            )
+            return Response(status=201)
+        else:
+            return Response(
+                "You must be an organization owner or manager, or the creator of this secret in order to perform this action.",
+                status=403,
+            )
 
 
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
-    permission_classes = (OrgAuthTokenPermission,)
+    permission_classes = (OrganizationFlagWebHookSigningSecretPermission,)
     publish_status = {"DELETE": ApiPublishStatus.PRIVATE}
 
     def delete(

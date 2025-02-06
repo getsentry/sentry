@@ -130,7 +130,7 @@ describe('WidgetLegend functions util', () => {
         legendFunctions.encodeLegendQueryParam(widget, {
           [`Releases${SERIES_NAME_DELIMITER}${widget.id}`]: false,
         })
-      ).toEqual(`${widget.id}${WIDGET_ID_DELIMITER}Releases`);
+      ).toBe(`${widget.id}${WIDGET_ID_DELIMITER}Releases`);
     });
 
     it('formats to selected format from query param', () => {

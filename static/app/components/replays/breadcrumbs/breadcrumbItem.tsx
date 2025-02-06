@@ -190,26 +190,26 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    const layoutShifts: Array<{[x: string]: ReactNode[]}> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
         attr.nodeIds.forEach(nodeId => {
-          selectors.get(nodeId)
-            ? elements.push(
-                <span
-                  key={nodeId}
-                  onMouseEnter={() => onMouseEnter(frame, nodeId)}
-                  onMouseLeave={() => onMouseLeave(frame, nodeId)}
-                >
-                  <ValueObjectKey>{t('element')}</ValueObjectKey>
-                  <span>{': '}</span>
-                  <span>
-                    <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
-                  </span>
+          if (selectors.get(nodeId)) {
+            elements.push(
+              <span
+                key={nodeId}
+                onMouseEnter={() => onMouseEnter(frame, nodeId)}
+                onMouseLeave={() => onMouseLeave(frame, nodeId)}
+              >
+                <ValueObjectKey>{t('element')}</ValueObjectKey>
+                <span>{': '}</span>
+                <span>
+                  <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
                 </span>
-              )
-            : null;
+              </span>
+            );
+          }
         });
       }
       // if we can't find the elements associated with the layout shift, we still show the score with element: unknown
@@ -225,10 +225,12 @@ function WebVitalData({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}
@@ -269,16 +271,20 @@ function CrumbHydrationButton({
   frame: HydrationErrorFrame;
   replay: ReplayReader;
 }) {
-  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+  const {frameOrEvent, leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(
+    replay,
+    frame
+  );
 
   return (
     <div>
       <OpenReplayComparisonButton
+        frameOrEvent={frameOrEvent}
+        initialLeftOffsetMs={leftOffsetMs}
+        initialRightOffsetMs={rightOffsetMs}
         replay={replay}
-        leftOffsetMs={leftOffsetMs}
-        rightOffsetMs={rightOffsetMs}
-        surface="replay-breadcrumbs"
         size="xs"
+        surface="replay-breadcrumbs"
       >
         {t('Open Hydration Diff')}
       </OpenReplayComparisonButton>

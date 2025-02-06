@@ -23,7 +23,6 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
-  MetricsBadge,
   ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
@@ -54,7 +53,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -74,7 +72,7 @@ import {withScrollbarManager} from './scrollbarManager';
 import type {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import type {AggregateSpanType, GapSpanType, ProcessedSpanType} from './types';
+import type {AggregateSpanType, GapSpanType} from './types';
 import {GroupType} from './types';
 import type {SpanGeneratedBoundsType, SpanViewBoundsType, VerticalMark} from './utils';
 import {
@@ -331,7 +329,7 @@ export class NewTraceDetailsSpanBar extends Component<
     return (
       <Fragment>
         {Array.from(spanMeasurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -381,7 +379,7 @@ export class NewTraceDetailsSpanBar extends Component<
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: React.ReactNode[] = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {
@@ -575,7 +573,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
-      this.setState({isIntersecting: entry.isIntersecting}, () => {
+      this.setState({isIntersecting: entry!.isIntersecting}, () => {
         // Scrolls the next(invisible) bar from the virtualized list,
         // by its height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
@@ -694,15 +692,6 @@ export class NewTraceDetailsSpanBar extends Component<
     return errors?.length ? <ErrorBadge /> : null;
   }
 
-  renderMetricsBadge(span: NewTraceDetailsSpanBarProps['span']): React.ReactNode {
-    const hasMetrics =
-      '_metrics_summary' in span && Object.keys(span._metrics_summary ?? {}).length > 0;
-
-    return hasMetrics && hasMetricsExperimentalFeature(this.props.organization) ? (
-      <MetricsBadge />
-    ) : null;
-  }
-
   renderEmbeddedTransactionsBadge(
     transactions: QuickTraceEvent[] | null
   ): React.ReactNode {
@@ -810,7 +799,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const transactions = this.getChildTransactions(quickTrace);
 
     return {
-      span: span as ProcessedSpanType,
+      span,
       organization,
       event: event as EventTransaction,
       isRoot: !!isRoot,
@@ -868,7 +857,6 @@ export class NewTraceDetailsSpanBar extends Component<
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderMetricsBadge(this.props.span)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
           {this.renderMissingInstrumentationProfileBadge()}

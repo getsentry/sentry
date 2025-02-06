@@ -5,6 +5,19 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 
 describe('AutofixRootCause', function () {
+  let mockApi: jest.Mock<any, any, any>;
+
+  beforeEach(function () {
+    mockApi = MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/update/',
+      method: 'POST',
+    });
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
   const defaultProps = {
     causes: [AutofixRootCauseData()],
     groupId: '1',
@@ -13,21 +26,19 @@ describe('AutofixRootCause', function () {
     repos: [],
   };
 
-  it('can view a relevant code snippet', function () {
+  it('can view a relevant code snippet', async function () {
     render(<AutofixRootCause {...defaultProps} />);
 
-    // Displays all root cause and code context info
-    expect(screen.getByText('Potential Root Cause')).toBeInTheDocument();
-    expect(screen.getByText('This is the title of a root cause.')).toBeInTheDocument();
+    expect(screen.getByText('Root Cause')).toBeInTheDocument();
     expect(
-      screen.getByText('This is the description of a root cause.')
+      screen.getByText(defaultProps.causes[0]!.root_cause_reproduction![0]!.title)
     ).toBeInTheDocument();
 
+    await userEvent.click(screen.getByTestId('autofix-root-cause-timeline-item-0'));
     expect(
-      screen.getByText('Snippet #1: This is the title of a relevant code snippet.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('This is the description of a relevant code snippet.')
+      screen.getByText(
+        defaultProps.causes[0]!.root_cause_reproduction![0]!.code_snippet_and_analysis
+      )
     ).toBeInTheDocument();
   });
 
@@ -42,126 +53,76 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    // Displays all root cause and code context info
     expect(
       screen.getByText('No root cause found. The error comes from outside the codebase.')
     ).toBeInTheDocument();
   });
 
-  it('shows hyperlink when matching GitHub repo available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [
-            {
-              default_branch: 'main',
-              external_id: 'id',
-              name: 'owner/repo',
-              provider: 'integrations:github',
-              url: 'https://github.com/test_owner/test_repo',
-            },
-          ],
-        }}
-      />
-    );
+  it('can edit and submit custom root cause', async function () {
+    render(<AutofixRootCause {...defaultProps} />);
 
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toHaveAttribute(
-      'href',
-      'https://github.com/test_owner/test_repo/blob/main/src/file.py'
-    );
-  });
+    // Click edit button
+    await userEvent.click(screen.getByTestId('autofix-root-cause-edit-button'));
 
-  it('shows no hyperlink when no matching GitHub repo available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [],
-        }}
-      />
-    );
+    // Verify textarea appears
+    const textarea = screen.getByPlaceholderText('Propose your own root cause...');
+    expect(textarea).toBeInTheDocument();
 
-    expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
-  });
+    // Enter custom root cause
+    await userEvent.type(textarea, 'This is a custom root cause');
 
-  it('shows reproduction steps when applicable', async function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          causes: [AutofixRootCauseData()],
-        }}
-      />
-    );
+    // Click Save button
+    await userEvent.click(screen.getByTestId('autofix-root-cause-save-edit-button'));
 
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'How to reproduce',
+    // Verify API was called with correct payload
+    expect(mockApi).toHaveBeenCalledWith(
+      '/issues/1/autofix/update/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          run_id: '101',
+          payload: {
+            type: 'select_root_cause',
+            custom_root_cause: 'This is a custom root cause',
+          },
+        },
       })
     );
+  });
 
+  it('shows selected root cause when rootCauseSelection is provided', function () {
+    const selectedCause = AutofixRootCauseData();
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          rootCauseSelection: {
+            cause_id: selectedCause.id,
+          },
+        }}
+      />
+    );
+
+    // Verify selected root cause is displayed
+    expect(screen.getByText('Root Cause')).toBeInTheDocument();
     expect(
-      screen.getByText('This is the reproduction of a root cause.')
+      screen.getByText(selectedCause.root_cause_reproduction![0]!.title)
     ).toBeInTheDocument();
   });
 
-  it('does not show reproduction steps when not applicable', function () {
+  it('shows custom root cause when rootCauseSelection has custom_root_cause', function () {
     render(
       <AutofixRootCause
         {...{
           ...defaultProps,
-          causes: [AutofixRootCauseData({reproduction: undefined})],
+          rootCauseSelection: {
+            custom_root_cause: 'This is a custom root cause',
+          },
         }}
       />
     );
 
-    expect(
-      screen.queryByText('This is the reproduction of a root cause.')
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows unit test inside reproduction card when available', async function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          causes: [
-            AutofixRootCauseData({
-              unit_test: {
-                snippet: 'Test case for root cause',
-                description: 'This is the description of a unit test.',
-                file_path: 'src/file.py',
-              },
-            }),
-          ],
-        }}
-      />
-    );
-
-    expect(screen.getByText('How to reproduce')).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'How to reproduce',
-      })
-    );
-    expect(
-      screen.getByText('This is the description of a unit test.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Test case for root cause')).toBeInTheDocument();
-  });
-
-  it('does not show reproduction or unit test when not available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          causes: [AutofixRootCauseData({unit_test: undefined, reproduction: undefined})],
-        }}
-      />
-    );
-
-    expect(screen.queryByText('How to reproduce')).not.toBeInTheDocument();
+    expect(screen.getByText('Custom Root Cause')).toBeInTheDocument();
+    expect(screen.getByText('This is a custom root cause')).toBeInTheDocument();
   });
 });

@@ -54,6 +54,8 @@ export function getDefaultValueForValueType(valueType: FieldValueType | null): s
       return '-24h';
     case FieldValueType.DURATION:
       return '10ms';
+    case FieldValueType.SIZE:
+      return '10bytes';
     case FieldValueType.PERCENTAGE:
       return '0.5';
     case FieldValueType.STRING:
@@ -122,6 +124,7 @@ export function getInitialFilterText(
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
+    case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING:
@@ -130,7 +133,7 @@ export function getInitialFilterText(
   }
 }
 
-export function mergeSets<T>(...sets: Set<T>[]) {
+export function mergeSets<T>(...sets: Array<Set<T>>) {
   const combinedSet = new Set<T>();
   for (const set of sets) {
     for (const value of set) {

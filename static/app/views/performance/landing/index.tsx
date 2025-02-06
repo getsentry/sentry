@@ -296,7 +296,7 @@ export function PerformanceLanding(props: Props) {
                                           metricSettingState ?? undefined
                                         );
                                       }}
-                                      query={getFreeTextFromQuery(derivedQuery)}
+                                      query={getFreeTextFromQuery(derivedQuery)!}
                                     />
                                   )}
                                 </MEPConsumer>

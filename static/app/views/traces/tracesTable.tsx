@@ -125,7 +125,7 @@ export function TracesTable({
   );
 }
 
-function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult}) {
+function TraceRow({defaultExpanded, trace}: {defaultExpanded: any; trace: TraceResult}) {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
 
@@ -165,7 +165,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
     const trailingProjects: string[] = [];
 
     for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i].project;
+      const project = trace.breakdowns[i]!.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }

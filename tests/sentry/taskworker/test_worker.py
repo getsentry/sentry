@@ -1,15 +1,17 @@
+import queue
+import time
+from multiprocessing import Event
 from unittest import mock
 
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
-    FetchNextTask,
     TaskActivation,
 )
 
 import sentry.taskworker.tasks.examples as example_tasks
-from sentry.taskworker.worker import TaskWorker
+from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
 from sentry.testutils.cases import TestCase
 
 SIMPLE_TASK = TaskActivation(
@@ -60,7 +62,7 @@ class TestTaskWorker(TestCase):
         assert example_tasks.at_most_once_task
 
     def test_fetch_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
 
@@ -71,7 +73,7 @@ class TestTaskWorker(TestCase):
         assert task.id == SIMPLE_TASK.id
 
     def test_fetch_no_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
             task = taskworker.fetch_task()
@@ -79,129 +81,149 @@ class TestTaskWorker(TestCase):
             mock_get.assert_called_once()
         assert task is None
 
-    def test_process_task_complete(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "update_task") as mock_update:
-            mock_update.return_value = RETRY_TASK
-
-            result = taskworker.process_task(SIMPLE_TASK)
-
-            mock_update.assert_called_with(
-                task_id=SIMPLE_TASK.id,
-                status=TASK_ACTIVATION_STATUS_COMPLETE,
-                fetch_next_task=FetchNextTask(namespace=None),
-            )
-
-            assert result
-            assert result.id == RETRY_TASK.id
-
-    def test_process_task_retry(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "update_task") as mock_update:
-            mock_update.return_value = SIMPLE_TASK
-            result = taskworker.process_task(RETRY_TASK)
-
-            mock_update.assert_called_with(
-                task_id=RETRY_TASK.id,
-                status=TASK_ACTIVATION_STATUS_RETRY,
-                fetch_next_task=FetchNextTask(namespace=None),
-            )
-
-            assert result
-            assert result.id == SIMPLE_TASK.id
-
-    def test_process_task_failure(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "update_task") as mock_update:
-            mock_update.return_value = SIMPLE_TASK
-            result = taskworker.process_task(FAIL_TASK)
-
-            mock_update.assert_called_with(
-                task_id=FAIL_TASK.id,
-                status=TASK_ACTIVATION_STATUS_FAILURE,
-                fetch_next_task=FetchNextTask(namespace=None),
-            )
-            assert result
-            assert result.id == SIMPLE_TASK.id
-
-    def test_process_task_at_most_once(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "update_task") as mock_update:
-            mock_update.return_value = SIMPLE_TASK
-            result = taskworker.process_task(AT_MOST_ONCE_TASK)
-
-            mock_update.assert_called_with(
-                task_id=AT_MOST_ONCE_TASK.id,
-                status=TASK_ACTIVATION_STATUS_COMPLETE,
-                fetch_next_task=FetchNextTask(namespace=None),
-            )
-        assert taskworker.process_task(AT_MOST_ONCE_TASK) is None
-        assert result
-        assert result.id == SIMPLE_TASK.id
-
-        result = taskworker.process_task(AT_MOST_ONCE_TASK)
-        assert result is None
-
-    def test_start_max_task_count(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
+    def test_run_once_no_next_task(self) -> None:
+        max_runtime = 5
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
+            # No next_task returned
             mock_client.update_task.return_value = None
 
-            result = taskworker.start()
+            # Run once to add the task and then poll until the task is complete.
+            taskworker.run_once()
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.called:
+                    break
+                if time.time() - start > max_runtime:
+                    raise AssertionError("Timeout waiting for get_task to be called")
 
-            # start should exit after completing the one task
-            assert result == 0
             assert mock_client.get_task.called
             mock_client.update_task.assert_called_with(
-                task_id=SIMPLE_TASK.id,
-                status=TASK_ACTIVATION_STATUS_COMPLETE,
-                fetch_next_task=FetchNextTask(namespace=None),
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
             )
 
-    def test_start_loop(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
+    def test_run_once_with_next_task(self) -> None:
+        # Cover the scenario where update_task returns the next task which should
+        # be processed.
+        max_runtime = 5
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
+
+            def update_task_response(*args, **kwargs):
+                if mock_client.update_task.call_count >= 1:
+                    return None
+                return SIMPLE_TASK
+
+            mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.return_value = SIMPLE_TASK
-            mock_client.update_task.side_effect = [RETRY_TASK, None]
 
-            # Because complete_task is returning another task, we should get
-            # two executions. One successful and one retry
-            result = taskworker.start()
+            # Run until two tasks have been processed
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 2:
+                    break
+                if time.time() - start > max_runtime:
+                    raise AssertionError("Timeout waiting for get_task to be called")
 
-            # start should exit after completing the both task
-            assert result == 0
-            assert mock_client.get_task.call_count == 1
+            assert mock_client.get_task.called
             assert mock_client.update_task.call_count == 2
-
-            mock_client.update_task.assert_any_call(
-                task_id=SIMPLE_TASK.id,
-                status=TASK_ACTIVATION_STATUS_COMPLETE,
-                fetch_next_task=FetchNextTask(namespace=None),
-            )
-            mock_client.update_task.assert_any_call(
-                task_id=RETRY_TASK.id,
-                status=TASK_ACTIVATION_STATUS_RETRY,
-                fetch_next_task=FetchNextTask(namespace=None),
+            mock_client.update_task.assert_called_with(
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
             )
 
-    def test_start_keyboard_interrupt(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
-        with mock.patch.object(taskworker, "client") as mock_client:
-            mock_client.get_task.side_effect = KeyboardInterrupt()
 
-            result = taskworker.start()
-            assert result == 1, "Exit non-zero"
+def test_child_worker_complete() -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
 
-    def test_start_unknown_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
-        with mock.patch.object(taskworker, "client") as mock_client:
-            mock_client.get_task.return_value = UNDEFINED_TASK
+    todo.put(SIMPLE_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=1)
 
-            result = taskworker.start()
-            assert result == 0, "Exit zero, all tasks complete"
-            mock_client.update_task.assert_any_call(
-                task_id=UNDEFINED_TASK.id,
-                status=TASK_ACTIVATION_STATUS_FAILURE,
-                fetch_next_task=FetchNextTask(namespace=None),
-            )
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == SIMPLE_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+
+def test_child_worker_retry_task() -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(RETRY_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=1)
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == RETRY_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_RETRY
+
+
+def test_child_worker_failure_task() -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(FAIL_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=1)
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == FAIL_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_FAILURE
+
+
+def test_child_worker_shutdown() -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+    shutdown.set()
+
+    todo.put(SIMPLE_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=1)
+
+    # When shutdown has been set, the child should not process more tasks.
+    assert todo.qsize() == 1
+    assert processed.qsize() == 0
+
+
+def test_child_worker_unknown_task() -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(UNDEFINED_TASK)
+    todo.put(SIMPLE_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=1)
+
+    result = processed.get()
+    assert result.task_id == UNDEFINED_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_FAILURE
+
+    result = processed.get()
+    assert result.task_id == SIMPLE_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+
+def test_child_worker_at_most_once() -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(AT_MOST_ONCE_TASK)
+    todo.put(AT_MOST_ONCE_TASK)
+    todo.put(SIMPLE_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=2)
+
+    assert todo.empty()
+    result = processed.get(block=False)
+    assert result.task_id == AT_MOST_ONCE_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+    result = processed.get(block=False)
+    assert result.task_id == SIMPLE_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE

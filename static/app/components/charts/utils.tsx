@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
@@ -41,16 +41,34 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
-  truncate: number | boolean | undefined
+  truncate: number | boolean | undefined,
+  escaped: boolean = true
 ): string {
-  if (!truncate) {
-    return escape(value);
+  // Whitespace characters such as newlines and tabs can
+  // mess up the formatting in legends where it's part of
+  // the formatting as it's handled by ECharts.
+  //
+  // In places like tooltips, it's already ignored and
+  // rendered as a single space.
+  //
+  // So remove whitespace characters such as newlines,
+  // tabs in favor of a space.
+  value = value.replace(/\s+/g, ' ');
+
+  if (truncate) {
+    const truncationLength =
+      truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
+    value =
+      value.length > truncationLength
+        ? value.substring(0, truncationLength) + '…'
+        : value;
   }
-  const truncationLength =
-    truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
-  const truncated =
-    value.length > truncationLength ? value.substring(0, truncationLength) + '…' : value;
-  return escape(truncated);
+
+  if (escaped) {
+    value = escape(value);
+  }
+
+  return value;
 }
 
 /**
@@ -102,7 +120,7 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues' | 'spans';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -113,6 +131,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
     issues: issuesFidelityLadder,
+    spans: spansFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -160,6 +179,18 @@ const issuesFidelityLadder = new GranularityLadder([
   [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+const spansFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '30m'],
+  [TWENTY_FOUR_HOURS, '15m'],
+  [SIX_HOURS, '15m'],
+  [ONE_HOUR, '5m'],
   [0, '1m'],
 ]);
 
@@ -226,12 +257,18 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce((selection, series) => {
-    selection[series] = false;
-    return selection;
-  }, {});
+  return unselectedSeries.reduce(
+    (selection, series) => {
+      selection[series] = false;
+      return selection;
+    },
+    {} as Record<string, boolean>
+  );
 }
 
+/**
+ * @deprecated Prefer `isEventsStats`
+ */
 function isSingleSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
@@ -242,6 +279,9 @@ function isSingleSeriesStats(
   );
 }
 
+/**
+ * @deprecated Prefer `isMultiSeriesEventsStats`
+ */
 export function isMultiSeriesStats(
   data:
     | MultiSeriesEventsStats
@@ -273,7 +313,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 };
 
 const RGB_LIGHTEN_VALUE = 30;
-export const lightenHexToRgb = (colors: string[]) =>
+export const lightenHexToRgb = (colors: readonly string[]) =>
   colors.map(hex => {
     const rgb = [
       Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
@@ -292,7 +332,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const tableResult = tableResults[0];
+  const tableResult = tableResults[0]!;
 
   const {data} = tableResult;
 
@@ -300,7 +340,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const preAggregate = Object.keys(data[0]).find(column => {
+  const preAggregate = Object.keys(data[0]!).find(column => {
     return column !== 'geo.country_code';
   });
 
@@ -344,7 +384,7 @@ export function computeEchartsAriaLabels(
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
 
-  function formatDate(date) {
+  function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {
       local: !useUTC,
     });
@@ -374,19 +414,19 @@ export function computeEchartsAriaLabels(
         return '';
       }
 
-      let highestValue: NonNullable<LineSeriesOption['data']>[0] = [0, -Infinity];
-      let lowestValue: NonNullable<LineSeriesOption['data']>[0] = [0, Infinity];
+      let highestValue: [number, number] = [0, -Infinity];
+      let lowestValue: [number, number] = [0, Infinity];
 
-      s.data.forEach(datum => {
+      s.data.forEach((datum: any) => {
         if (!Array.isArray(datum)) {
           return;
         }
 
         if (datum[1] > highestValue[1]) {
-          highestValue = datum;
+          highestValue = datum as [number, number];
         }
         if (datum[1] < lowestValue[1]) {
-          lowestValue = datum;
+          lowestValue = datum as [number, number];
         }
       });
 

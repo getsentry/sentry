@@ -42,9 +42,13 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
 
 interface Props {
   onSelect: (platform: SupportedPlatform | null) => void;
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
 }
 
-export function PlatformPickerPanel({onSelect}: Props) {
+export function PlatformPickerPanel({onSelect, linkToAlerts}: Props) {
   return (
     <OnboardingPanel image={<img src={onboardingImg} />}>
       <OnboardingTitle>{t('Monitor Your Cron Jobs')}</OnboardingTitle>
@@ -70,10 +74,10 @@ export function PlatformPickerPanel({onSelect}: Props) {
       </Actions>
       <SectionTitle>{t('Generic')}</SectionTitle>
       <Actions>
-        <NewMonitorButton size="sm" priority="default">
+        <NewMonitorButton linkToAlerts={linkToAlerts} size="sm" priority="default">
           Sentry CLI
         </NewMonitorButton>
-        <NewMonitorButton size="sm" priority="default">
+        <NewMonitorButton linkToAlerts={linkToAlerts} size="sm" priority="default">
           HTTP (cURL)
         </NewMonitorButton>
       </Actions>

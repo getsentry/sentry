@@ -49,7 +49,9 @@ interface GroupEventAttachmentsQuery {
   screenshot?: '1';
   start?: DateString;
   statsPeriod?: string;
-  types?: `${GroupEventAttachmentsTypeFilter}` | `${GroupEventAttachmentsTypeFilter}`[];
+  types?:
+    | `${GroupEventAttachmentsTypeFilter}`
+    | Array<`${GroupEventAttachmentsTypeFilter}`>;
 }
 
 export const makeFetchGroupEventAttachmentsQueryKey = ({
@@ -106,7 +108,7 @@ export function useGroupEventAttachments({
   const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
-  const eventQuery = useEventQuery({group});
+  const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
 
   const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;

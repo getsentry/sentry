@@ -18,10 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import type {
-  ContinuousProfileGroup,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,7 +34,7 @@ import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphD
 function renderValue(
   key: string,
   value: number | string | undefined,
-  profileGroup?: ProfileGroup | ContinuousProfileGroup
+  profileGroup?: ProfileGroup
 ) {
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
@@ -53,7 +50,7 @@ function renderValue(
 }
 
 interface ProfileDetailsProps {
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   projectId: string;
   transaction: EventTransaction | null;
 }
@@ -188,7 +185,7 @@ function TransactionDeviceDetails({
   profileGroup,
   transaction,
 }: {
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   transaction: EventTransaction;
 }) {
   const deviceDetails = useMemo(() => {
@@ -196,11 +193,11 @@ function TransactionDeviceDetails({
     const deviceContext = transaction.contexts.device;
     const osContext = transaction.contexts.os;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'model',
         label: t('Model'),
@@ -257,7 +254,7 @@ function TransactionEventDetails({
   transaction,
 }: {
   organization: Organization;
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction;
 }) {
@@ -279,11 +276,11 @@ function TransactionEventDetails({
           })
         : null;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'transaction',
         label: t('Transaction'),
@@ -352,14 +349,11 @@ function TransactionEventDetails({
   );
 }
 
-function ProfileEnvironmentDetails({
-  profileGroup,
-}: {
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
-}) {
+function ProfileEnvironmentDetails({profileGroup}: {profileGroup: ProfileGroup}) {
   return (
     <DetailsContainer>
       {Object.entries(ENVIRONMENT_DETAILS_KEY).map(([label, key]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
         return (
           <DetailsRow key={key}>
@@ -379,7 +373,7 @@ function ProfileEventDetails({
   transaction,
 }: {
   organization: Organization;
-  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileGroup: ProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction | null;
 }) {
@@ -388,6 +382,7 @@ function ProfileEventDetails({
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
 
         if (key === 'organizationID') {

@@ -547,7 +547,7 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
-        if op == "confirm" and self.user.is_authenticated or is_account_verified:
+        if op == "confirm" and (self.request.user.id == self.user.id) or is_account_verified:
             auth_identity = self.handle_attach_identity()
         elif op == "newuser":
             auth_identity = self.handle_new_user()
@@ -594,7 +594,9 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self, is_new_account: bool) -> tuple[User | None, str]:
+    def _dispatch_to_confirmation(
+        self, is_new_account: bool
+    ) -> tuple[User | AnonymousUser | None, str]:
         if self._logged_in_user:
             return self._logged_in_user, "auth-confirm-link"
 

@@ -42,7 +42,7 @@ def logo_url() -> str:
     return absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
 
-def get_metric_count_from_incident(incident: Incident) -> str:
+def get_metric_count_from_incident(incident: Incident) -> float | None:
     """Returns the current or last count of an incident aggregate."""
     incident_trigger = (
         IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
@@ -222,16 +222,13 @@ def metric_alert_attachment_info(
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None
-    activation = None
     if selected_incident:
         date_started = selected_incident.date_started
-        activation = selected_incident.activation
 
     last_triggered_date = None
     if latest_incident:
         last_triggered_date = latest_incident.date_started
 
-    # TODO: determine whether activated alert data is useful for integration messages
     return {
         "title": title,
         "text": text,
@@ -240,9 +237,4 @@ def metric_alert_attachment_info(
         "date_started": date_started,
         "last_triggered_date": last_triggered_date,
         "title_link": title_link,
-        "monitor_type": alert_rule.monitor_type,  # 0 = continuous, 1 = activated
-        "activator": (activation.activator if activation else ""),
-        "condition_type": (
-            activation.condition_type if activation else None
-        ),  # 0 = release creation, 1 = deploy creation
     }

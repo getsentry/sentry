@@ -13,7 +13,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.workflow_engine.endpoints.validators import (
+from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     NumericComparisonConditionValidator,
@@ -89,7 +89,6 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
 
     supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
     supported_results = frozenset((DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM))
-    type = "metric_alert"
 
 
 class MetricAlertsDetectorValidator(BaseGroupTypeDetectorValidator):

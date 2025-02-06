@@ -133,7 +133,7 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         # TODO: define this, used to migrate repositories
         return False
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
         resp = self.get_client().search_projects(group, query)
@@ -336,10 +336,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
         ``oauth_config_information`` is available in the pipeline state. This
         method should be late bound into the pipeline vies.
         """
+        oauth_information = self.pipeline.fetch_state("oauth_config_information")
+        if oauth_information is None:
+            raise AssertionError("pipeline called out of order")
+
         identity_pipeline_config = dict(
             oauth_scopes=sorted(GitlabIdentityProvider.oauth_scopes),
             redirect_url=absolute_uri("/extensions/gitlab/setup/"),
-            **self.pipeline.fetch_state("oauth_config_information"),
+            **oauth_information,
         )
 
         return NestedPipelineView(

@@ -1,4 +1,7 @@
+from datetime import timedelta
 from uuid import uuid4
+
+from django.utils import timezone
 
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
@@ -8,6 +11,7 @@ from sentry.integrations.repository.issue_alert import (
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class BaseIssueAlertNotificationMessageRepositoryTest(TestCase):
@@ -109,6 +113,33 @@ class TestGetParentNotificationMessage(BaseIssueAlertNotificationMessageReposito
         assert instance == IssueAlertNotificationMessage.from_model(
             self.parent_notification_message
         )
+
+    def test_returns_parent_notification_message_with_open_period_start(self) -> None:
+        open_period_start = timezone.now()
+        notification_with_period = NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=self.action_uuid,
+            message_identifier="789xyz",
+            open_period_start=open_period_start,
+        )
+
+        notification_with_period = NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=self.action_uuid,
+            message_identifier="789xyz",
+            open_period_start=open_period_start + timedelta(seconds=1),
+        )
+
+        instance = self.repository.get_parent_notification_message(
+            rule_id=self.rule.id,
+            group_id=self.group.id,
+            rule_action_uuid=self.action_uuid,
+            open_period_start=open_period_start + timedelta(seconds=1),
+        )
+
+        assert instance is not None
+        assert instance == IssueAlertNotificationMessage.from_model(notification_with_period)
+        assert instance.open_period_start == open_period_start + timedelta(seconds=1)
 
 
 class TestCreateNotificationMessage(BaseIssueAlertNotificationMessageRepositoryTest):
@@ -230,3 +261,68 @@ class TestGetAllParentNotificationMessagesByFilters(
         assert len(result_ids) == 1
         assert result_ids[0] == self.parent_notification_message.id
         assert notification_message_that_should_not_be_returned.id not in result_ids
+
+    @freeze_time("2025-01-01 00:00:00")
+    def test_returns_correct_message_when_open_period_start_is_not_none(self) -> None:
+        NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=str(uuid4()),
+            message_identifier="period123",
+            open_period_start=timezone.now(),
+        )
+
+        n2 = NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=str(uuid4()),
+            message_identifier="period123",
+            open_period_start=timezone.now() + timedelta(seconds=1),
+        )
+
+        n3 = NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=str(uuid4()),
+            message_identifier="period123",
+            open_period_start=timezone.now() + timedelta(seconds=1),
+        )
+
+        result = list(
+            self.repository.get_all_parent_notification_messages_by_filters(
+                project_ids=[self.project.id],
+                group_ids=[self.group.id],
+                open_period_start=timezone.now() + timedelta(seconds=1),
+            )
+        )
+
+        result_ids = []
+        for parent_notification in result:
+            result_ids.append(parent_notification.id)
+
+        assert len(result_ids) == 2
+        assert n3.id in result_ids
+        assert n2.id in result_ids
+
+    @freeze_time("2025-01-01 00:00:00")
+    def test_returns_none_when_open_period_start_does_not_match(self) -> None:
+        # Create notifications with different open periods
+        NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=self.action_uuid,
+            message_identifier="period1",
+            open_period_start=timezone.now(),
+        )
+        NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=self.action_uuid,
+            message_identifier="period2",
+            open_period_start=timezone.now() + timedelta(days=1),
+        )
+
+        # Query with a different open period
+        instance = self.repository.get_parent_notification_message(
+            rule_id=self.rule.id,
+            group_id=self.group.id,
+            rule_action_uuid=self.action_uuid,
+            open_period_start=timezone.now() + timedelta(seconds=1),
+        )
+
+        assert instance is None

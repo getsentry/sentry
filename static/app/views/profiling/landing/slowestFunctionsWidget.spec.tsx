@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {getAllByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunctionsWidget';
@@ -244,11 +244,11 @@ describe('SlowestFunctionsWidget', function () {
     expect(await screen.findByTestId('function-chart')).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem', {});
-    expect(items.length).toEqual(2);
+    expect(items).toHaveLength(2);
 
-    const buttons = getAllByRole(items[0], 'button', {});
-    expect(buttons.length).toEqual(2);
-    await userEvent.click(buttons[1]);
+    const buttons = within(items[0]!).getAllByRole('button');
+    expect(buttons).toHaveLength(2);
+    await userEvent.click(buttons[1]!);
 
     expect(screen.getByText('1'.repeat(8))).toBeInTheDocument();
     expect(screen.getByText('2'.repeat(8))).toBeInTheDocument();

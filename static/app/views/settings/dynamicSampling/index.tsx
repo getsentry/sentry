@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {LinkButton} from 'sentry/components/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -46,11 +48,11 @@ export default function DynamicSamplingSettings() {
           )}
         </Alert>
       )}
-      <p>
+      <Paragraph>
         {t(
-          'Dynamic sampling adaptively reduces the number of spans stored in Sentry without changing SDK sample rates. It allows you to keep the most relevant samples and obtain accurate high-level insights while limiting redundancy and stored span volume. You can customize sample rates and priorities in these settings to control which data is stored.'
+          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
         )}
-      </p>
+      </Paragraph>
       {organization.samplingMode === 'organization' ? (
         <OrganizationSampling />
       ) : (
@@ -59,3 +61,7 @@ export default function DynamicSamplingSettings() {
     </Fragment>
   );
 }
+
+const Paragraph = styled('p')`
+  margin-bottom: ${space(1.5)};
+`;

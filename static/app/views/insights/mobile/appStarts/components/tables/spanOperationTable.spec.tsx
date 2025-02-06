@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 describe('SpanOpSelector', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  let mockEventsRequest;
+  let mockEventsRequest: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,

@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
@@ -51,13 +50,11 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
 
   const handleToggleDefaultQuery = useCallback(() => {
     if (isDefaultQuery) {
-      Sentry.metrics.increment('ddm.remove-default-query');
       trackAnalytics('ddm.remove-default-query', {
         organization,
       });
       setDefaultQuery(null);
     } else {
-      Sentry.metrics.increment('ddm.set-default-query');
       trackAnalytics('ddm.set-default-query', {
         organization,
       });
@@ -162,8 +159,8 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
               <Button
                 size="sm"
                 icon={<IconSiren />}
-                disabled={!alertItems[0].onAction || !hasFeature}
-                onClick={alertItems[0].onAction}
+                disabled={!alertItems[0]!.onAction || !hasFeature}
+                onClick={alertItems[0]!.onAction}
               >
                 {t('Create Alert')}
               </Button>

@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import GenericFooter from './genericFooter';
 
@@ -31,6 +32,8 @@ export default function FirstEventFooter({
   onClickSetupLater,
   isLast,
 }: FirstEventFooterProps) {
+  const {activateSidebar} = useOnboardingSidebar();
+
   const source = 'targeted_onboarding_first_event_footer';
 
   const getSecondaryCta = useCallback(() => {
@@ -83,18 +86,42 @@ export default function FirstEventFooter({
             organization,
             source,
           });
+          activateSidebar();
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
-      <StatusWrapper>
+      <StatusWrapper
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        variants={{
+          initial: {opacity: 0, y: -10},
+          animate: {
+            opacity: 1,
+            y: 0,
+            transition: testableTransition({
+              when: 'beforeChildren',
+              staggerChildren: 0.35,
+            }),
+          },
+          exit: {opacity: 0, y: 10},
+        }}
+      >
         {project?.firstError ? (
           <IconCheckmark isCircled color="green400" />
         ) : (
-          <WaitingIndicator />
+          <WaitingIndicator
+            variants={indicatorAnimation}
+            transition={testableTransition()}
+          />
         )}
-        <AnimatedText errorReceived={project?.firstError}>
+        <AnimatedText
+          errorReceived={project?.firstError}
+          variants={indicatorAnimation}
+          transition={testableTransition()}
+        >
           {project?.firstError ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
@@ -125,20 +152,10 @@ const indicatorAnimation: Variants = {
   exit: {opacity: 0, y: 10},
 };
 
-AnimatedText.defaultProps = {
-  variants: indicatorAnimation,
-  transition: testableTransition(),
-};
-
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
   background-color: ${p => p.theme.pink300};
 `;
-
-WaitingIndicator.defaultProps = {
-  variants: indicatorAnimation,
-  transition: testableTransition(),
-};
 
 const StatusWrapper = styled(motion.div)`
   display: flex;
@@ -150,21 +167,6 @@ const StatusWrapper = styled(motion.div)`
     display: none;
   }
 `;
-
-StatusWrapper.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {
-    initial: {opacity: 0, y: -10},
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: testableTransition({when: 'beforeChildren', staggerChildren: 0.35}),
-    },
-    exit: {opacity: 0, y: 10},
-  },
-};
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};

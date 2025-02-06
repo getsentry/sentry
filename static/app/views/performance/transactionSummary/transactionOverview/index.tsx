@@ -8,7 +8,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -27,6 +26,7 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
@@ -109,6 +109,8 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
 
+  const navigate = useNavigate();
+
   const mepContext = useMEPDataContext();
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();
@@ -171,7 +173,7 @@ function OverviewContentWrapper(props: ChildProps) {
       delete nextQuery.breakdown;
     }
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: nextQuery,
     });

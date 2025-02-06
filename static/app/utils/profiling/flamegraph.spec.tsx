@@ -142,8 +142,8 @@ describe('flamegraph', () => {
 
     const order = ['f0', 'f1', 'f2'].reverse();
     for (let i = 0; i < order.length; i++) {
-      expect(flamegraph.frames[i].frame.name).toBe(order[i]);
-      expect(flamegraph.frames[i].depth).toBe(order.length - i - 1);
+      expect(flamegraph.frames[i]!.frame.name).toBe(order[i]);
+      expect(flamegraph.frames[i]!.depth).toBe(order.length - i - 1);
     }
   });
 
@@ -174,7 +174,7 @@ describe('flamegraph', () => {
         sort: 'call order',
       }
     );
-    expect(flamegraph.frames.length).toBe(1);
+    expect(flamegraph.frames).toHaveLength(1);
     expect(flamegraph.frames.every(f => f.frame.name !== 'f1')).toBe(true);
   });
 
@@ -270,15 +270,15 @@ describe('flamegraph', () => {
       }
     );
 
-    expect(flamegraph.frames[1].frame.name).toBe('f0');
-    expect(flamegraph.frames[1].frame.totalWeight).toBe(1);
-    expect(flamegraph.frames[1].start).toBe(2);
-    expect(flamegraph.frames[1].end).toBe(3);
+    expect(flamegraph.frames[1]!.frame.name).toBe('f0');
+    expect(flamegraph.frames[1]!.frame.totalWeight).toBe(1);
+    expect(flamegraph.frames[1]!.start).toBe(2);
+    expect(flamegraph.frames[1]!.end).toBe(3);
 
-    expect(flamegraph.frames[0].frame.name).toBe('f1');
-    expect(flamegraph.frames[0].frame.totalWeight).toBe(2);
-    expect(flamegraph.frames[0].start).toBe(0);
-    expect(flamegraph.frames[0].end).toBe(2);
+    expect(flamegraph.frames[0]!.frame.name).toBe('f1');
+    expect(flamegraph.frames[0]!.frame.totalWeight).toBe(2);
+    expect(flamegraph.frames[0]!.start).toBe(0);
+    expect(flamegraph.frames[0]!.end).toBe(2);
   });
 
   it('updates startTime and endTime of left heavy children graph', () => {
@@ -311,7 +311,7 @@ describe('flamegraph', () => {
       }
     );
 
-    expect(flamegraph.frames[2].frame.name).toBe('f0');
+    expect(flamegraph.frames[2]!.frame.name).toBe('f0');
   });
 
   it('From', () => {

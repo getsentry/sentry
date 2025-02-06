@@ -23,6 +23,22 @@ describe('GroupSummary', function () {
     trace: 'Test trace',
     possibleCause: 'Test possible cause',
     headline: 'Test headline',
+    scores: {
+      possibleCauseConfidence: 0.9,
+      possibleCauseNovelty: 0.8,
+    },
+  };
+
+  const mockSummaryDataWithLowScores = {
+    groupId: '1',
+    whatsWrong: 'Test whats wrong',
+    trace: 'Test trace',
+    possibleCause: 'Test possible cause',
+    headline: 'Test headline',
+    scores: {
+      possibleCauseConfidence: 0.5,
+      possibleCauseNovelty: 0.0,
+    },
   };
 
   beforeEach(() => {
@@ -54,12 +70,33 @@ describe('GroupSummary', function () {
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
-      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-      expect(screen.getByText('In the trace')).toBeInTheDocument();
-      expect(screen.getByText('Test trace')).toBeInTheDocument();
-      expect(screen.getByText('Possible cause')).toBeInTheDocument();
-      expect(screen.getByText('Test possible cause')).toBeInTheDocument();
     });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('In the trace')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+  });
+
+  it('renders the summary without possible cause', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: mockSummaryDataWithLowScores,
+    });
+
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+    });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('In the trace')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.queryByText('Possible cause')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test possible cause')).not.toBeInTheDocument();
   });
 
   it('shows loading state', function () {
@@ -73,8 +110,8 @@ describe('GroupSummary', function () {
       organization,
     });
 
-    // Should show loading placeholders
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+    // Should show loading placeholders. Currently we load the whatsWrong section
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
   });
 
   it('shows error state', async function () {
@@ -110,11 +147,11 @@ describe('GroupSummary', function () {
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
-      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-      expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
-      expect(screen.getByText('Possible cause')).toBeInTheDocument();
-      expect(screen.getByText('Test possible cause')).toBeInTheDocument();
     });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
   it('renders in preview mode', async function () {
@@ -131,7 +168,7 @@ describe('GroupSummary', function () {
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
-      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
     });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
   });
 });

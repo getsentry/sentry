@@ -1,8 +1,8 @@
 import logging
-from typing import Any, ClassVar, Self
+from typing import ClassVar, Self
 
 from django.conf import settings
-from django.db import connections, models, router
+from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -14,35 +14,6 @@ from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCa
 logger = logging.getLogger(__name__)
 
 from collections.abc import Mapping
-
-
-@region_silo_model
-class MetricsKeyIndexer(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    string = models.CharField(max_length=200)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    objects: ClassVar[BaseManager[Self]] = BaseManager(
-        cache_fields=("pk", "string"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL
-    )
-
-    class Meta:
-        db_table = "sentry_metricskeyindexer"
-        app_label = "sentry"
-        constraints = [
-            models.UniqueConstraint(fields=["string"], name="unique_string"),
-        ]
-
-    @classmethod
-    def get_next_values(cls, num: int) -> Any:
-        using = router.db_for_write(cls)
-        connection = connections[using].cursor()
-
-        connection.execute(
-            "SELECT nextval('sentry_metricskeyindexer_id_seq') from generate_series(1,%s)", [num]
-        )
-        return connection.fetchall()
 
 
 class BaseIndexer(Model):

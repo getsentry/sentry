@@ -1,4 +1,6 @@
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -48,7 +50,7 @@ def parse_and_convert_issue_search_query(
     query: str,
     organization: Organization,
     projects: Sequence[Project],
-    environments: Sequence[Environment],
+    environments: Sequence[Environment] | None,
     user: User | AnonymousUser,
 ) -> Sequence[SearchFilter]:
     try:
@@ -64,11 +66,14 @@ def parse_and_convert_issue_search_query(
 
 def build_query_params_from_request(
     request: Request,
-    organization: "Organization",
-    projects: Sequence["Project"],
-    environments: Sequence["Environment"] | None,
-) -> MutableMapping[str, Any]:
-    query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment] | None,
+) -> dict[str, Any]:
+    query_kwargs: dict[str, Any] = {
+        "projects": projects,
+        "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
+    }
 
     limit = request.GET.get("limit")
     if limit:
@@ -80,7 +85,7 @@ def build_query_params_from_request(
     # TODO: proper pagination support
     if request.GET.get("cursor"):
         try:
-            query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
+            query_kwargs["cursor"] = Cursor.from_string(request.GET["cursor"])
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
 
@@ -152,9 +157,9 @@ def build_query_params_from_request(
 
 
 def validate_search_filter_permissions(
-    organization: "Organization",
+    organization: Organization,
     search_filters: Sequence[SearchFilter],
-    user: "User",
+    user: User | AnonymousUser,
 ) -> None:
     """
     Verifies that an organization is allowed to perform the query that they
@@ -256,18 +261,18 @@ def calculate_stats_period(
 def prep_search(
     cls: Any,
     request: Request,
-    project: "Project",
-    extra_query_kwargs: Mapping[str, Any] | None = None,
-) -> tuple[CursorResult[Group], Mapping[str, Any]]:
+    project: Project,
+    extra_query_kwargs: dict[str, Any] | None = None,
+) -> tuple[CursorResult[Group], dict[str, Any]]:
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
         result = CursorResult[Group](
             [], Cursor(0, 0, 0), Cursor(0, 0, 0), hits=0, max_hits=SEARCH_MAX_HITS
         )
-        query_kwargs: MutableMapping[str, Any] = {}
+        query_kwargs: dict[str, Any] = {}
     else:
-        environments = [environment] if environment is not None else environment
+        environments = [environment] if environment is not None else None
         query_kwargs = build_query_params_from_request(
             request, project.organization, [project], environments
         )
@@ -283,44 +288,27 @@ def prep_search(
 
 def get_first_last_release(
     request: Request,
-    group: "Group",
-) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
-    first_release = group.get_first_release()
-    if first_release is not None:
-        last_release = group.get_last_release()
+    group: Group,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    first_release_s = group.get_first_release()
+    if first_release_s is not None:
+        last_release_s = group.get_last_release()
     else:
-        last_release = None
+        last_release_s = None
 
-    if first_release is not None and last_release is not None:
-        first_release, last_release = get_first_last_release_info(
-            request, group, [first_release, last_release]
+    if first_release_s is not None and last_release_s is not None:
+        first_release, last_release = serialize_releases(
+            request, group, [first_release_s, last_release_s]
         )
-    elif first_release is not None:
-        first_release = get_release_info(request, group, first_release)
-    elif last_release is not None:
-        last_release = get_release_info(request, group, last_release)
-
-    return first_release, last_release
-
-
-def get_release_info(request: Request, group: "Group", version: str) -> Mapping[str, Any]:
-    try:
-        release = Release.objects.get(
-            projects=group.project,
-            organization_id=group.project.organization_id,
-            version=version,
-        )
-    except Release.DoesNotExist:
-        release = {"version": version}
-
-    return serialize(release, request.user)
+        return first_release, last_release
+    elif first_release_s is not None:
+        (first_release,) = serialize_releases(request, group, [first_release_s])
+        return (first_release, None)
+    else:
+        return None, None
 
 
-def get_first_last_release_info(
-    request: Request,
-    group: "Group",
-    versions: Sequence[str],
-) -> Sequence[Mapping[str, Any]]:
+def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
     releases = {
         release.version: release
         for release in Release.objects.filter(

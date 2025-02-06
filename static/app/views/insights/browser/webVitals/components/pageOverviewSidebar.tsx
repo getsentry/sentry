@@ -118,7 +118,7 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (
@@ -187,7 +187,9 @@ export function PageOverviewSidebar({
               top: 10,
               bottom: -10,
             }}
-            yAxis={{axisLabel: {formatter: number => formatAbbreviatedNumber(number)}}}
+            yAxis={{
+              axisLabel: {formatter: (number: any) => formatAbbreviatedNumber(number)},
+            }}
             tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
           />
         )}
@@ -230,7 +232,7 @@ export function PageOverviewSidebar({
               bottom: -10,
             }}
             yAxis={{
-              axisLabel: {formatter: number => formatAbbreviatedNumber(number)},
+              axisLabel: {formatter: (number: any) => formatAbbreviatedNumber(number)},
             }}
             tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
           />

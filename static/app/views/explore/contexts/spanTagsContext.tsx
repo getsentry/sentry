@@ -8,8 +8,10 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import usePrevious from 'sentry/utils/usePrevious';
 import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {SENTRY_SPAN_NUMBER_TAGS, SENTRY_SPAN_STRING_TAGS} from '../constants';
 
 type TypedSpanTags = {
   number: TagCollection;
@@ -32,21 +34,18 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
   const isEAP =
     dataset === DiscoverDatasets.SPANS_EAP || dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
-  const numberTags: TagCollection = useTypedSpanTags({
+  const numberTags = useTypedSpanTags({
     enabled: isEAP && enabled,
     type: 'number',
   });
 
-  const stringTags: TagCollection = useTypedSpanTags({
+  const stringTags = useTypedSpanTags({
     enabled: isEAP && enabled,
     type: 'string',
   });
 
   const allNumberTags = useMemo(() => {
-    const measurements = [
-      SpanIndexedField.SPAN_DURATION,
-      SpanIndexedField.SPAN_SELF_TIME,
-    ].map(measurement => [
+    const measurements = SENTRY_SPAN_NUMBER_TAGS.map(measurement => [
       measurement,
       {
         key: measurement,
@@ -68,40 +67,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
   }, [dataset, numberTags]);
 
   const allStringTags = useMemo(() => {
-    const tags = [
-      // NOTE: intentionally choose to not expose transaction id
-      // as we're moving toward span ids
-
-      'id', // SpanIndexedField.SPAN_OP is actually `span_id`
-      'profile.id', // SpanIndexedField.PROFILE_ID is actually `profile_id`
-      SpanIndexedField.BROWSER_NAME,
-      SpanIndexedField.ENVIRONMENT,
-      SpanIndexedField.ORIGIN_TRANSACTION,
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.RAW_DOMAIN,
-      SpanIndexedField.RELEASE,
-      SpanIndexedField.SDK_NAME,
-      SpanIndexedField.SDK_VERSION,
-      SpanIndexedField.SPAN_ACTION,
-      SpanIndexedField.SPAN_CATEGORY,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.SPAN_DOMAIN,
-      SpanIndexedField.SPAN_GROUP,
-      SpanIndexedField.SPAN_MODULE,
-      SpanIndexedField.SPAN_OP,
-      SpanIndexedField.SPAN_STATUS,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION,
-      SpanIndexedField.TRANSACTION_METHOD,
-      SpanIndexedField.TRANSACTION_OP,
-      SpanIndexedField.USER,
-      SpanIndexedField.USER_EMAIL,
-      SpanIndexedField.USER_GEO_SUBREGION,
-      SpanIndexedField.USER_ID,
-      SpanIndexedField.USER_IP,
-      SpanIndexedField.USER_USERNAME,
-    ].map(tag => [
+    const tags = SENTRY_SPAN_STRING_TAGS.map(tag => [
       tag,
       {
         key: tag,
@@ -210,7 +176,9 @@ function useTypedSpanTags({
     }
 
     return allTags;
-  }, [result, type]);
+  }, [result.data, type]);
 
-  return tags;
+  const previousTags = usePrevious(tags, result.isLoading);
+
+  return result.isLoading ? previousTags : tags;
 }

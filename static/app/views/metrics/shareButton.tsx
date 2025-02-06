@@ -1,12 +1,10 @@
-import * as Sentry from '@sentry/react';
-
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-function ShareModal({Header, Body}) {
+function ShareModal({Header, Body}: any) {
   const url = new URL(window.location.href);
 
   return (
@@ -29,7 +27,6 @@ function ShareButton() {
       size="sm"
       icon={<IconUpload size="sm" />}
       onClick={() => {
-        Sentry.metrics.increment('ddm.share');
         openModal(deps => <ShareModal {...deps} />);
       }}
     >

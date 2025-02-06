@@ -8,13 +8,9 @@ import {TabList, TabPanels, TabStateProvider} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
   defaultTab?: DiffType;
 }
 
@@ -25,12 +21,7 @@ export const enum DiffType {
   MUTATIONS = 'mutations',
 }
 
-export default function ReplayDiffChooser({
-  defaultTab = DiffType.SLIDER,
-  leftOffsetMs,
-  replay,
-  rightOffsetMs,
-}: Props) {
+export default function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
   const organization = useOrganization();
   const onTabChange = (tabKey: DiffType) => {
     trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});
@@ -48,32 +39,16 @@ export default function ReplayDiffChooser({
 
         <StyledTabPanels>
           <TabPanels.Item key={DiffType.VISUAL}>
-            <ReplaySideBySideImageDiff
-              leftOffsetMs={leftOffsetMs}
-              replay={replay}
-              rightOffsetMs={rightOffsetMs}
-            />
+            <ReplaySideBySideImageDiff />
           </TabPanels.Item>
           <TabPanels.Item key={DiffType.HTML}>
-            <ReplayTextDiff
-              leftOffsetMs={leftOffsetMs}
-              replay={replay}
-              rightOffsetMs={rightOffsetMs}
-            />
+            <ReplayTextDiff />
           </TabPanels.Item>
           <TabPanels.Item key={DiffType.SLIDER}>
-            <ReplaySliderDiff
-              leftOffsetMs={leftOffsetMs}
-              replay={replay}
-              rightOffsetMs={rightOffsetMs}
-            />
+            <ReplaySliderDiff />
           </TabPanels.Item>
           <TabPanels.Item key={DiffType.MUTATIONS}>
-            <ReplayMutationTree
-              leftOffsetMs={leftOffsetMs}
-              replay={replay}
-              rightOffsetMs={rightOffsetMs}
-            />
+            <ReplayMutationTree />
           </TabPanels.Item>
         </StyledTabPanels>
       </TabStateProvider>

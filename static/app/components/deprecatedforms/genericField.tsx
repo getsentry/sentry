@@ -74,6 +74,7 @@ function GenericField({
     placeholder: config.placeholder,
     required,
     name: config.name,
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     error: formErrors?.[config.name],
     defaultValue: config.default,
     disabled: config.readonly,
@@ -104,7 +105,7 @@ function GenericField({
     case 'textarea':
       return <TextareaField {...fieldProps} />;
     case 'choice':
-    case 'select':
+    case 'select': {
       // the chrome required tip winds up in weird places
       // for select elements, so just make it look like
       // it's required (with *) and rely on server validation
@@ -118,6 +119,7 @@ function GenericField({
         return <SelectAsyncField {...selectFieldProps} />;
       }
       return <SelectField {...selectProps} />;
+    }
     default:
       return null;
   }

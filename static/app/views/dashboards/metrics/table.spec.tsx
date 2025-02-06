@@ -115,7 +115,7 @@ const data = [
 
 describe('getTableSeries', () => {
   it('should return table series', () => {
-    // @ts-expect-error
+    // @ts-expect-error argument does not satisfy MetricsQueryApiResponse
     const result = getTableData({data, meta: []}, queries);
 
     expect(result.headers).toEqual([
@@ -137,14 +137,14 @@ describe('getTableSeries', () => {
       },
     ]);
 
-    expect(result.rows.length).toEqual(7);
-    const ingestRow = result.rows[2];
+    expect(result.rows).toHaveLength(7);
+    const ingestRow = result.rows[2]!;
 
-    expect(ingestRow.a.value).toBeDefined();
-    expect(ingestRow.b.value).toBeUndefined();
+    expect(ingestRow.a!.value).toBeDefined();
+    expect(ingestRow.b!.value).toBeUndefined();
 
-    const defaultRow = result.rows[5];
-    expect(defaultRow.a.value).toBeDefined();
-    expect(defaultRow.b.value).toBeDefined();
+    const defaultRow = result.rows[5]!;
+    expect(defaultRow.a!.value).toBeDefined();
+    expect(defaultRow.b!.value).toBeDefined();
   });
 });

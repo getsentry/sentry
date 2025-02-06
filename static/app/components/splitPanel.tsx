@@ -124,12 +124,10 @@ function SplitPanel(props: SplitPanelProps) {
     sizeStorageKey,
   });
 
-  const sizePct = `${
-    (Math.min(containerSize, max) / availableSize) * 100
-  }%` as `${number}%`;
+  const sizePct = `${(Math.min(containerSize, max) / availableSize) * 100}%` as const;
 
   const handleMouseDown = useCallback(
-    event => {
+    (event: any) => {
       onMouseDown?.(sizePct);
       onDragStart(event);
     },
@@ -206,7 +204,11 @@ const SplitPanelContainer = styled('div')<{
   overflow: auto;
   grid-template-${p => p.orientation}: ${p => p.size} auto 1fr;
 
-  &.disable-iframe-pointer iframe {
+  /*
+   * This is more specific, with <code>&&</code> than the foundational rule:
+   * <code>&[data-inspectable='true'] .replayer-wrapper > iframe</code>
+   */
+  &&.disable-iframe-pointer iframe {
     pointer-events: none !important;
   }
 `;

@@ -22,7 +22,7 @@ export function useIssueDetailsEventView({
   queryProps?: Partial<SavedQuery>;
 }) {
   const {selection: pageFilters} = usePageFilters();
-  const searchQuery = useEventQuery({group});
+  const searchQuery = useEventQuery({groupId: group.id});
   const periodQuery = getPeriod(pageFilters.datetime);
   const interval = getInterval(pageFilters.datetime, 'issues');
   const config = getConfigForIssueType(group, group.project);

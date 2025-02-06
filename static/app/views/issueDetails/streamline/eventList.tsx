@@ -1,22 +1,9 @@
 import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  GridBodyCell,
-  GridHead,
-  GridHeadCell,
-  GridResizer,
-  GridRow,
-} from 'sentry/components/gridEditable/styles';
-import Panel from 'sentry/components/panels/panel';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
 import {type Group, IssueType} from 'sentry/types/group';
-import {parseCursor} from 'sentry/utils/cursor';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,6 +11,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
+import {
+  EventListTable,
+  Header,
+  HeaderItem,
+  PaginationButton,
+  PaginationText,
+  Title,
+} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
@@ -33,7 +28,6 @@ interface EventListProps {
 
 export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
-  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const routes = useRoutes();
@@ -75,17 +69,12 @@ export function EventList({group}: EventListProps) {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
-  const grayText = css`
-    color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
-  `;
-
   const isRegressionIssue =
     group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
     group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   return (
-    <StreamlineEventsTable>
+    <EventListTable pagination={{enabled: false}}>
       <EventsTable
         eventView={eventView}
         location={location}
@@ -101,6 +90,7 @@ export function EventList({group}: EventListProps) {
         columnTitles={columnTitles}
         referrer={referrer}
         hidePagination
+        applyEnvironmentFilter
         renderTableHeader={({
           pageLinks,
           pageEventsCount,
@@ -110,31 +100,24 @@ export function EventList({group}: EventListProps) {
           const links = parseLinkHeader(pageLinks);
           const previousDisabled = links.previous?.results === false;
           const nextDisabled = links.next?.results === false;
-          const currentCursor = parseCursor(location.query?.cursor);
-          const start = Math.max(currentCursor?.offset ?? 1, 1);
 
           return (
-            <EventListHeader>
-              <EventListTitle>{t('All Events')}</EventListTitle>
-              <EventListHeaderItem>
-                {isPending || pageEventsCount === 0
-                  ? null
-                  : tct('Showing [start]-[end] of [count] matching events', {
-                      start: start.toLocaleString(),
-                      end: (
-                        (currentCursor?.offset ?? 0) + pageEventsCount
-                      ).toLocaleString(),
-                      count: (totalEventsCount ?? 0).toLocaleString(),
-                    })}
-              </EventListHeaderItem>
-              <EventListHeaderItem>
+            <Header>
+              <Title>{t('All Events')}</Title>
+              <HeaderItem>
+                <PaginationText
+                  pageCount={pageEventsCount}
+                  totalCount={totalEventsCount}
+                  tableUnits={t('events')}
+                />
+              </HeaderItem>
+              <HeaderItem>
                 <ButtonBar gap={0.25}>
-                  <LinkButton
+                  <PaginationButton
                     aria-label={t('Previous Page')}
                     borderless
                     size="xs"
                     icon={<IconChevron direction="left" />}
-                    css={grayText}
                     to={{
                       ...location,
                       query: {
@@ -144,12 +127,11 @@ export function EventList({group}: EventListProps) {
                     }}
                     disabled={isPending || previousDisabled}
                   />
-                  <LinkButton
+                  <PaginationButton
                     aria-label={t('Next Page')}
                     borderless
                     size="xs"
                     icon={<IconChevron direction="right" />}
-                    css={grayText}
                     to={{
                       ...location,
                       query: {
@@ -160,104 +142,11 @@ export function EventList({group}: EventListProps) {
                     disabled={isPending || nextDisabled}
                   />
                 </ButtonBar>
-              </EventListHeaderItem>
-            </EventListHeader>
+              </HeaderItem>
+            </Header>
           );
         }}
       />
-    </StreamlineEventsTable>
+    </EventListTable>
   );
 }
-
-const EventListHeader = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: ${space(1.5)};
-  align-items: center;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.background};
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
-  position: sticky;
-  top: 0;
-  z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadiusTop};
-`;
-
-const EventListTitle = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const EventListHeaderItem = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const StreamlineEventsTable = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-
-  ${Panel} {
-    border: 0;
-    margin-bottom: 0;
-  }
-
-  ${GridHead} {
-    min-height: unset;
-    font-size: ${p => p.theme.fontSizeMedium};
-    ${GridResizer} {
-      height: 36px;
-    }
-  }
-
-  ${GridHeadCell} {
-    height: 36px;
-    padding: 0 ${space(1.5)};
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    text-transform: none;
-    border-width: 0 1px 0 0;
-    border-style: solid;
-    border-image: linear-gradient(
-        to bottom,
-        transparent,
-        transparent 30%,
-        ${p => p.theme.border} 30%,
-        ${p => p.theme.border} 70%,
-        transparent 70%,
-        transparent
-      )
-      1;
-    &:last-child {
-      border: 0;
-    }
-    &:first-child {
-      padding-left: ${space(1.5)};
-    }
-  }
-
-  ${GridBodyCell} {
-    min-height: unset;
-    padding: ${space(1)} ${space(1.5)};
-    font-size: ${p => p.theme.fontSizeMedium};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  ${GridRow} {
-    td:nth-child(2) {
-      padding-left: ${space(1.5)};
-    }
-
-    td:not(:nth-child(2)) {
-      a {
-        color: ${p => p.theme.textColor};
-        text-decoration: underline;
-        text-decoration-color: ${p => p.theme.border};
-      }
-    }
-  }
-`;

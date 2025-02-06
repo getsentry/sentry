@@ -60,6 +60,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
       // Regenerate the full route with the :orgId parameter omitted.
       const newParams = {...params};
       Object.keys(params).forEach(param => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         newParams[param] = `:${param}`;
       });
       const fullRoute = recreateRoute('', {routes, params: newParams});

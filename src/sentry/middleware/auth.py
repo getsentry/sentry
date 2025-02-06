@@ -54,17 +54,17 @@ class AuthenticationMiddleware(MiddlewareMixin):
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
-            request.user = AnonymousUser()
+            request.user, request.auth = AnonymousUser(), None
             return
 
         auth = get_authorization_header(request).split()
 
         if auth:
-            for authenticator_class in [
+            for authenticator_class in (
                 UserAuthTokenAuthentication,
                 OrgAuthTokenAuthentication,
                 ApiKeyAuthentication,
-            ]:
+            ):
                 authenticator = authenticator_class()
                 if not authenticator.accepts_auth(auth):
                     continue
@@ -76,11 +76,11 @@ class AuthenticationMiddleware(MiddlewareMixin):
                     request.user, request.auth = result
                 else:
                     # default to anonymous user and use IP ratelimit
-                    request.user = SimpleLazyObject(lambda: get_user(request))
+                    request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
                 return
 
         # default to anonymous user and use IP ratelimit
-        request.user = SimpleLazyObject(lambda: get_user(request))
+        request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
 
     def process_exception(
         self, request: HttpRequest, exception: Exception

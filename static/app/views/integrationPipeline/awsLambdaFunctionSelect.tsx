@@ -49,6 +49,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   get initialData() {
     const {lambdaFunctions} = this.props;
     const initialData = lambdaFunctions.reduce((accum, func) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       accum[func.FunctionName] = true;
       return accum;
     }, {});

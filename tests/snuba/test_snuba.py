@@ -9,7 +9,7 @@ from django.utils import timezone
 from snuba_sdk.column import InvalidColumnError
 
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba
 
 
@@ -29,6 +29,7 @@ class SnubaTest(TestCase, SnubaTestCase):
                     "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {"received": time.mktime(ts.timetuple())},
                 },
+                {},
             )
         )
 
@@ -37,7 +38,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
         now = datetime.now()
 
-        events = [
+        self.snuba_insert(
             (
                 2,
                 "insert",
@@ -51,10 +52,9 @@ class SnubaTest(TestCase, SnubaTestCase):
                     "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {"received": time.mktime(now.timetuple())},
                 },
+                {},
             )
-        ]
-
-        self.snuba_insert(events)
+        )
         assert snuba.query(
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
@@ -114,7 +114,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
 class BulkRawQueryTest(TestCase, SnubaTestCase):
     def test_simple(self) -> None:
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).isoformat()
         event_1 = self.store_event(
             data={"fingerprint": ["group-1"], "message": "hello", "timestamp": one_min_ago},
             project_id=self.project.id,
@@ -149,7 +149,7 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
 
     @mock.patch("sentry.utils.snuba._bulk_snuba_query", side_effect=snuba._bulk_snuba_query)
     def test_cache(self, _bulk_snuba_query):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).isoformat()
         event_1 = self.store_event(
             data={"fingerprint": ["group-1"], "message": "hello", "timestamp": one_min_ago},
             project_id=self.project.id,

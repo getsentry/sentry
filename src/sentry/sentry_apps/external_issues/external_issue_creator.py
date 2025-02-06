@@ -7,6 +7,7 @@ from django.db import router, transaction
 from sentry.models.group import Group
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 
 logger = logging.getLogger("sentry.sentry_apps.external_issues")
 
@@ -37,12 +38,14 @@ class ExternalIssueCreator:
                 return self.external_issue[0]
         except Exception as e:
             logger.info(
-                "create-failed",
+                "platform-external-issue.create-failed",
+                exc_info=e,
                 extra={
-                    "error": str(e),
-                    "installtion_id": self.install.uuid,
+                    "installation_id": self.install.uuid,
                     "group_id": self.group.id,
                     "sentry_app_slug": self.install.sentry_app.slug,
                 },
             )
-            raise
+            raise SentryAppSentryError(
+                message="Failed to create external issue obj",
+            ) from e

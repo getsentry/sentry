@@ -72,3 +72,45 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         data = {v["key"]: v for v in response.data}
         assert len(data) == 0
         assert data == {}
+
+    def test_simple_flags(self):
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "abc", "result": True},
+                            {"flag": "def", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "abc", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:feature-flag-autocomplete": True}):
+            response = self.get_success_response(
+                self.project.organization.slug, self.project.slug, useFlagsBackend="1"
+            )
+
+        data = {v["key"]: v for v in response.data}
+        assert len(data) == 2
+
+        assert data["def"]["canDelete"] is False
+        assert data["def"]["uniqueValues"] == 1
+        assert data["abc"]["canDelete"] is False
+        assert data["abc"]["uniqueValues"] == 2

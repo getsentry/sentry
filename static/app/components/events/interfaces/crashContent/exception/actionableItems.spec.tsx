@@ -17,7 +17,6 @@ describe('Actionable Items', () => {
   const defaultProps = {
     project: ProjectFixture(),
     event: EventFixture(),
-    isShare: false,
   };
 
   beforeEach(() => {
@@ -143,6 +142,18 @@ describe('Actionable Items', () => {
         data: {
           source:
             'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source: 'org-dartlang-sdk:///dart-sdk/lib/async/future_impl.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source: 'org-dartlang-sdk:///dart-sdk/lib/async/zone.dart',
         },
       },
     ];

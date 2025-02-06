@@ -577,7 +577,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -614,7 +614,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -660,7 +660,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -697,7 +697,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -758,7 +758,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -822,7 +822,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -874,7 +874,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -940,7 +940,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -999,7 +999,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1043,7 +1043,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1099,7 +1099,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1131,7 +1131,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1166,7 +1166,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1217,7 +1217,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1270,7 +1270,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),
@@ -1312,7 +1312,7 @@ class UnfurlTest(TestCase):
         link_type, args = match_link(url)
 
         if not args or not link_type:
-            raise Exception("Missing link_type/args")
+            raise AssertionError("Missing link_type/args")
 
         links = [
             UnfurlableUrl(url=url, args=args),

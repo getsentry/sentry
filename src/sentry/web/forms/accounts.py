@@ -15,6 +15,7 @@ from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.utils.auth import logger
 from sentry.utils.dates import get_timezone_choices
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
@@ -49,7 +50,7 @@ class AuthenticationForm(forms.Form):
         "inactive": _("This account is inactive."),
     }
 
-    def __init__(self, request: HttpRequest | None = None, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
         """
         If request is passed in, the form will validate that cookies are
         enabled. Note that the request (a HttpRequest object) must have set a
@@ -57,7 +58,7 @@ class AuthenticationForm(forms.Form):
         running this validation.
         """
         self.request = request
-        self.user_cache = None
+        self.user_cache: User | None = None
         super().__init__(*args, **kwargs)
 
         # Set the label for the "username" field.
@@ -128,11 +129,10 @@ class AuthenticationForm(forms.Form):
         return self.cleaned_data
 
     def check_for_test_cookie(self):
-        if self.request:
-            if not self.request.session.test_cookie_worked():
-                raise forms.ValidationError(self.error_messages["no_cookies"])
-            else:
-                self.request.session.delete_test_cookie()
+        if not self.request.session.test_cookie_worked():
+            raise forms.ValidationError(self.error_messages["no_cookies"])
+        else:
+            self.request.session.delete_test_cookie()
 
     def get_user_id(self):
         if self.user_cache:
@@ -167,10 +167,11 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
         initial=False,
     )
+    timezone = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not newsletter.is_enabled():
+        if not newsletter.backend.is_enabled():
             del self.fields["subscribe"]
         else:
             # NOTE: the text here is duplicated within the ``NewsletterConsent`` component
@@ -206,8 +207,8 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         if commit:
             user.save()
             if self.cleaned_data.get("subscribe"):
-                newsletter.create_or_update_subscriptions(
-                    user, list_ids=newsletter.get_default_list_ids()
+                newsletter.backend.create_or_update_subscriptions(
+                    user, list_ids=newsletter.backend.get_default_list_ids()
                 )
         return user
 
@@ -219,9 +220,12 @@ class RegistrationForm(PasswordlessRegistrationForm):
 
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(
-            password, user=User(username=self.cleaned_data.get("username"))
+        user = (
+            User(username=self.cleaned_data["username"])
+            if "username" in self.cleaned_data
+            else None
         )
+        password_validation.validate_password(password, user=user)
         return password
 
     def save(self, commit=True):
@@ -230,8 +234,12 @@ class RegistrationForm(PasswordlessRegistrationForm):
         if commit:
             user.save()
             if self.cleaned_data.get("subscribe"):
-                newsletter.create_or_update_subscriptions(
-                    user, list_ids=newsletter.get_default_list_ids()
+                newsletter.backend.create_or_update_subscriptions(
+                    user, list_ids=newsletter.backend.get_default_list_ids()
+                )
+            if self.cleaned_data.get("timezone"):
+                UserOption.objects.create(
+                    user=user, key="timezone", value=self.cleaned_data.get("timezone")
                 )
         return user
 

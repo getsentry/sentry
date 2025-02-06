@@ -203,6 +203,12 @@ export enum SpanOpBreakdown {
   SPANS_UI = 'spans.ui',
 }
 
+export enum SpanHttpField {
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
+}
+
 export enum AggregationKey {
   COUNT = 'count',
   COUNT_UNIQUE = 'count_unique',
@@ -438,7 +444,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         name: 'value',
         kind: 'value',
         dataType: FieldValueType.STRING,
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         options: CONDITIONS_ARGUMENTS,
         required: true,
       },
@@ -476,7 +482,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         kind: 'value',
         options: WEB_VITALS_QUALITY,
         dataType: FieldValueType.STRING,
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -1155,6 +1161,7 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 };
 
 type TraceFields =
+  | SpanIndexedField.IS_TRANSACTION
   | SpanIndexedField.SPAN_ACTION
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.SPAN_DOMAIN
@@ -1224,6 +1231,11 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     desc: t('The HTTP response status code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.IS_TRANSACTION]: {
+    desc: t('The span is also a transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -1792,9 +1804,28 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
+const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
+  [SpanHttpField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
+    desc: t('Content length of the decoded response'),
+    kind: FieldKind.MEASUREMENT,
+    valueType: FieldValueType.SIZE,
+  },
+  [SpanHttpField.HTTP_RESPONSE_CONTENT_LENGTH]: {
+    desc: t('Content length of the response'),
+    kind: FieldKind.MEASUREMENT,
+    valueType: FieldValueType.SIZE,
+  },
+  [SpanHttpField.HTTP_RESPONSE_TRANSFER_SIZE]: {
+    desc: t('Transfer size of the response'),
+    kind: FieldKind.MEASUREMENT,
+    valueType: FieldValueType.SIZE,
+  },
+};
+
 const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
+  ...SPAN_HTTP_FIELD_DEFINITIONS,
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -2413,25 +2444,32 @@ export const getFieldDefinition = (
   switch (type) {
     case 'replay':
       if (key in REPLAY_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_FIELD_DEFINITIONS[key];
       }
       if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'feedback':
       if (key in FEEDBACK_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return FEEDBACK_FIELD_DEFINITIONS[key];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'span':
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (SPAN_FIELD_DEFINITIONS[key]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return SPAN_FIELD_DEFINITIONS[key];
       }
 
@@ -2455,6 +2493,7 @@ export const getFieldDefinition = (
       return null;
     case 'event':
     default:
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
@@ -2472,7 +2511,7 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   );
 }
 
-export function isDeviceClass(key): boolean {
+export function isDeviceClass(key: any): boolean {
   return key === FieldKey.DEVICE_CLASS;
 }
 

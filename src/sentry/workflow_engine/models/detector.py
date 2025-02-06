@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import builtins
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -28,9 +30,6 @@ logger = logging.getLogger(__name__)
 @region_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
-
-    # TODO - Finish removing this field
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, null=True)
 
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=200)
@@ -64,10 +63,15 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
             UniqueConstraint(
-                fields=["organization", "name"],
-                name="workflow_engine_detector_org_name",
+                fields=["project", "name"],
+                name="workflow_engine_detector_proj_name",
             )
         ]
+
+    error_detector_project_options = {
+        "fingerprinting_rules": "sentry:fingerprinting_rules",
+        "resolve_age": "sentry:resolve_age",
+    }
 
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
@@ -102,6 +106,14 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         # TODO: Create proper audit log data for the detector, group and conditions
         return {}
 
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        if not self.project:
+            raise ValueError("Detector must have a project to get options")
+
+        return self.project.get_option(key, default=default, validate=validate)
+
 
 @receiver(pre_save, sender=Detector)
 def enforce_config_schema(sender, instance: Detector, **kwargs):
@@ -110,9 +122,12 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     This needs to be a signal because the grouptype registry's entries are not available at import time.
     """
     group_type = instance.group_type
-
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
+    if not isinstance(instance.config, dict):
+        raise ValidationError("Detector config must be a dictionary")
+
     config_schema = group_type.detector_config_schema
-    instance.validate_config(config_schema)
+    if instance.config:
+        instance.validate_config(config_schema)

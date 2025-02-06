@@ -51,12 +51,9 @@ export function addMessage(
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
-    // @ts-expect-error
-    typeof msg?.message !== 'undefined' &&
-    // @ts-expect-error
-    typeof msg?.code !== 'undefined' &&
-    // @ts-expect-error
-    typeof msg?.extra !== 'undefined'
+    typeof (msg as any)?.message !== 'undefined' &&
+    typeof (msg as any)?.code !== 'undefined' &&
+    typeof (msg as any)?.extra !== 'undefined'
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
   }

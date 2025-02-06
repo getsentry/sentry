@@ -258,7 +258,7 @@ describe('GroupStore', function () {
           }),
         ];
         GroupStore.updateActivity('1', '1', {text: 'Updated Text'});
-        expect(GroupStore.items[0].activity[0].data).toEqual({text: 'Updated Text'});
+        expect(GroupStore.items[0]!.activity[0]!.data).toEqual({text: 'Updated Text'});
       });
     });
   });

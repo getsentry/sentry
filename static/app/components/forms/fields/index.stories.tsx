@@ -14,6 +14,7 @@ import NumberField from './numberField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
 import SecretField from './secretField';
+import SegmentedRadioField from './segmentedRadioField';
 import SelectField from './selectField';
 import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
@@ -21,7 +22,7 @@ import SeparatorField from './separatorField';
 import TextareaField from './textareaField';
 import TextField from './textField';
 
-export default storyBook(Form, story => {
+export default storyBook('Form', story => {
   story('Available fields', () => {
     const {projects} = useProjects();
 
@@ -39,6 +40,15 @@ export default storyBook(Form, story => {
           label="My Number Input"
           help="This is a number input"
           name="myNumberInput"
+        />
+        <NumberField
+          label="My Number Input with units"
+          help="This is a number input with units"
+          name="myNumberInputWithUnits"
+          placeholder={0}
+          min={0}
+          step={50}
+          suffix="ms"
         />
         <EmailField
           label="My Email Input"
@@ -78,6 +88,16 @@ export default storyBook(Form, story => {
           ]}
           help="This is a radio set field"
           name="myRadios"
+        />
+        <SegmentedRadioField
+          label="My Segmented Radio"
+          choices={[
+            ['thing_1', 'Thing 1', 'Thing 1 description'],
+            ['thing_2', 'Thing 2', 'Thing 2 description'],
+            ['thing_3', 'Thing 3', 'Thing 3 description'],
+          ]}
+          help="This is a segmented radio set field"
+          name="mySegmentedRadios"
         />
         <RangeField
           label="My Range Slider"

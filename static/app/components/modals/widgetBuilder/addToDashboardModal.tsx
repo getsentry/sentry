@@ -152,7 +152,14 @@ function AddToDashboardModal({
         ? `/organizations/${organization.slug}/dashboards/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
 
-    const pathname = page === 'builder' ? `${dashboardsPath}widget/new/` : dashboardsPath;
+    const builderSuffix = organization.features.includes(
+      'dashboards-widget-builder-redesign'
+    )
+      ? 'widget-builder/widget/new/'
+      : 'widget/new/';
+
+    const pathname =
+      page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
     router.push(
       normalizeUrl({
@@ -171,16 +178,16 @@ function AddToDashboardModal({
       return;
     }
 
-    let orderby = widget.queries[0].orderby;
-    if (!(DisplayType.AREA && widget.queries[0].columns.length)) {
+    let orderby = widget.queries[0]!.orderby;
+    if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
-    const query = widget.queries[0];
+    const query = widget.queries[0]!;
 
     const title =
       // Metric widgets have their default title derived from the query
       widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('All Events')
+        ? t('Custom Widget')
         : widget.title;
 
     const newWidget = {
@@ -233,7 +240,7 @@ function AddToDashboardModal({
           }),
         tooltipOptions: {position: 'right'},
       })),
-    ].filter(Boolean) as SelectValue<string>[];
+    ].filter(Boolean) as Array<SelectValue<string>>;
   }, [allowCreateNewDashboard, dashboards]);
 
   const widgetLegendState = new WidgetLegendSelectionState({
@@ -278,7 +285,7 @@ function AddToDashboardModal({
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
             organization={organization}
-            eventView={eventViewFromWidget(widget.title, widget.queries[0], selection)}
+            eventView={eventViewFromWidget(widget.title, widget.queries[0]!, selection)}
             location={location}
             hideLoadingIndicator
           >

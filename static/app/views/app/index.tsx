@@ -1,4 +1,5 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -30,6 +31,7 @@ import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
@@ -37,7 +39,7 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
-import SystemAlerts from './systemAlerts';
+import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
 
 type Props = {
   children: React.ReactNode;
@@ -141,6 +143,12 @@ function App({children, params}: Props) {
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
+    // Skip loading organization-related data before the user is logged in,
+    // because it triggers a 401 error in the UI.
+    if (!config.shouldPreloadData) {
+      return undefined;
+    }
+
     loadOrganizations();
     checkInternalHealth();
 
@@ -169,7 +177,13 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, user]);
+  }, [
+    loadOrganizations,
+    checkInternalHealth,
+    config.messages,
+    user,
+    config.shouldPreloadData,
+  ]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -237,6 +251,18 @@ function App({children, params}: Props) {
     return children;
   }
 
+  const renderOrganizationContextProvider = useCallback(
+    (content: React.ReactNode) => {
+      // Skip loading organization-related data before the user is logged in,
+      // because it triggers a 401 error in the UI.
+      if (!config.shouldPreloadData) {
+        return content;
+      }
+      return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
+    },
+    [config.shouldPreloadData]
+  );
+
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
@@ -245,23 +271,40 @@ function App({children, params}: Props) {
     <Profiler id="App" onRender={onRenderCallback}>
       <LastKnownRouteContextProvider>
         <RouteAnalyticsContextProvider>
-          <OrganizationContextProvider>
-            <AsyncSDKIntegrationContextProvider>
-              <GlobalFeedbackForm>
-                <GlobalDrawer>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                    <GlobalModal onClose={handleModalClose} />
-                    <SystemAlerts className="messages-container" />
-                    <Indicators className="indicators-container" />
-                    <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                  </MainContainer>
-                </GlobalDrawer>
-              </GlobalFeedbackForm>
-            </AsyncSDKIntegrationContextProvider>
-          </OrganizationContextProvider>
+          {renderOrganizationContextProvider(
+            <ChonkThemeProvider>
+              <AsyncSDKIntegrationContextProvider>
+                <GlobalFeedbackForm>
+                  <GlobalDrawer>
+                    <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                      <GlobalModal onClose={handleModalClose} />
+                      <Indicators className="indicators-container" />
+                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    </MainContainer>
+                  </GlobalDrawer>
+                </GlobalFeedbackForm>
+              </AsyncSDKIntegrationContextProvider>
+            </ChonkThemeProvider>
+          )}
         </RouteAnalyticsContextProvider>
       </LastKnownRouteContextProvider>
     </Profiler>
+  );
+}
+
+/**
+ * Temporary functionality for new UI2 theme rollout
+ */
+
+const chonkTheme = {isChonk: true};
+
+function ChonkThemeProvider({children}: {children: React.ReactNode}) {
+  const organization = useOrganization({allowNull: true});
+
+  return organization?.features.includes('chonk-ui') ? (
+    <ThemeProvider theme={chonkTheme}>{children}</ThemeProvider>
+  ) : (
+    children
   );
 }
 
@@ -272,5 +315,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  padding-top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
 `;

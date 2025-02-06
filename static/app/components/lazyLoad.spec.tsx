@@ -8,11 +8,11 @@ type TestProps = {
   testProp?: boolean;
 };
 
-function FooComponent({}: TestProps) {
+function FooComponent() {
   return <div>my foo component</div>;
 }
 
-function BarComponent({}: TestProps) {
+function BarComponent() {
   return <div>my bar component</div>;
 }
 
@@ -49,7 +49,6 @@ describe('LazyLoad', function () {
   });
 
   it('renders with error message when promise is rejected', async function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const getComponent = () => Promise.reject(new Error('Could not load component'));
 

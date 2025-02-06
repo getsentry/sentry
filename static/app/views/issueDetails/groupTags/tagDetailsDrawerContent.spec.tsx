@@ -63,7 +63,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {router});
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('Value')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();
@@ -72,9 +72,19 @@ describe('TagDetailsDrawerContent', () => {
 
     // Affected user column
     expect(screen.getByText('David Cramer')).toBeInTheDocument();
-    expect(screen.getByText('17%')).toBeInTheDocument();
+    expect(screen.getByText('16%')).toBeInTheDocument();
     // Count column
     expect(screen.getByText('3')).toBeInTheDocument();
+
+    // Displays dropdown menu
+    await userEvent.hover(screen.getByText('David Cramer'));
+    expect(
+      screen.getByRole('button', {name: 'Tag Value Actions Menu'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Tag Value Actions Menu'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Copy tag value to clipboard'})
+    ).toBeInTheDocument();
   });
 
   it('can page through tag values', async () => {
@@ -91,7 +101,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {router});
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();

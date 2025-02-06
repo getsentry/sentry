@@ -9,6 +9,8 @@ export type FeatureFlagEventParameters = {
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
     numFlags: number;
+    orgSlug: string;
+    projectSlug: string;
   };
   'flags.view-all-clicked': {};
   'flags.view-setup-sidebar': {};

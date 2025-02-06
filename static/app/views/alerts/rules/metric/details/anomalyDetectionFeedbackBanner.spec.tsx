@@ -12,7 +12,6 @@ describe('AnomalyDetectionFeedbackBanner', () => {
   const initialData = initializeOrg({
     organization: {
       features: [
-        'metric-alert-threshold-period',
         'change-alerts',
         'anomaly-detection-alerts',
         'anomaly-detection-rollout',

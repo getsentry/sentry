@@ -7,6 +7,8 @@ import {
   useReducer,
 } from 'react';
 
+import type {DetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
+
 export const enum SectionKey {
   /**
    * Trace timeline or linked error
@@ -15,10 +17,13 @@ export const enum SectionKey {
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
+  SOLUTIONS_HUB = 'solutions-hub',
 
   UPTIME = 'uptime', // Only Uptime issues
   DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
+  CORRELATED_ISSUES = 'correlated-issues', // Only Metric issues
+  CORRELATED_TRANSACTIONS = 'correlated-transactions', // Only Metric issues
 
   HIGHLIGHTS = 'highlights',
   RESOURCES = 'resources', // Position controlled by flag
@@ -86,46 +91,88 @@ export interface SectionConfig {
   initialCollapse?: boolean;
 }
 
-export interface EventDetailsContextType extends EventDetailsState {
-  dispatch: Dispatch<EventDetailsActions>;
+export interface IssueDetailsContextType extends IssueDetailsState {
+  dispatch: Dispatch<IssueDetailsActions>;
 }
 
-export const EventDetailsContext = createContext<EventDetailsContextType>({
+export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   sectionData: {},
+  detectorDetails: {},
+  isSidebarOpen: true,
+  navScrollMargin: 0,
+  eventCount: 0,
   dispatch: () => {},
 });
 
-export function useEventDetails() {
-  return useContext(EventDetailsContext);
+export function useIssueDetails() {
+  return useContext(IssueDetailsContext);
 }
 
-export interface EventDetailsState {
+export interface IssueDetailsState {
+  /**
+   * Detector details for the current issue
+   */
+  detectorDetails: DetectorDetails;
+  /**
+   * Allows updating the event count based on the date/time/environment filters.
+   */
+  eventCount: number;
+  /**
+   * Controls whether the sidebar is open.
+   */
+  isSidebarOpen: boolean;
+  /**
+   * The margin to add to the 'Jump To' nav (accounts for the main app sidebar on small screen sizes).
+   */
+  navScrollMargin: number;
+  /**
+   * Controls the state of each section.
+   */
   sectionData: {
     [key in SectionKey]?: SectionConfig;
   };
-  navScrollMargin?: number;
 }
 
-type UpdateSectionAction = {
+type UpdateEventSectionAction = {
   key: SectionKey;
-  type: 'UPDATE_SECTION';
+  type: 'UPDATE_EVENT_SECTION';
   config?: Partial<SectionConfig>;
 };
 
-type UpdateDetailsAction = {
-  type: 'UPDATE_DETAILS';
-  state?: Omit<EventDetailsState, 'sectionData'>;
+type UpdateNavScrollMarginAction = {
+  margin: number;
+  type: 'UPDATE_NAV_SCROLL_MARGIN';
 };
 
-export type EventDetailsActions = UpdateSectionAction | UpdateDetailsAction;
+type UpdateEventCountAction = {
+  count: number;
+  type: 'UPDATE_EVENT_COUNT';
+};
 
-function updateSection(
-  state: EventDetailsState,
+type UpdateSidebarAction = {
+  isOpen: boolean;
+  type: 'UPDATE_SIDEBAR_STATE';
+};
+
+type UpdateDetectorDetailsAction = {
+  detectorDetails: DetectorDetails;
+  type: 'UPDATE_DETECTOR_DETAILS';
+};
+
+export type IssueDetailsActions =
+  | UpdateEventSectionAction
+  | UpdateNavScrollMarginAction
+  | UpdateEventCountAction
+  | UpdateSidebarAction
+  | UpdateDetectorDetailsAction;
+
+function updateEventSection(
+  state: IssueDetailsState,
   sectionKey: SectionKey,
   updatedConfig: Partial<SectionConfig>
-): EventDetailsState {
+): IssueDetailsState {
   const existingConfig = state.sectionData[sectionKey] ?? {key: sectionKey};
-  const nextState: EventDetailsState = {
+  const nextState: IssueDetailsState = {
     ...state,
     sectionData: {
       ...state.sectionData,
@@ -136,21 +183,31 @@ function updateSection(
 }
 
 /**
- * If trying to use the current state of the event page, you likely want to use `useEventDetails`
- * instead. This hook is just meant to create state for the provider.
+ * If trying to use the current state of the issue/event page, you likely want to use
+ * `useIssueDetails` instead. This hook is just meant to create state for the provider.
  */
-export function useEventDetailsReducer() {
-  const initialState: EventDetailsState = {
+export function useIssueDetailsReducer() {
+  const initialState: IssueDetailsState = {
     sectionData: {},
+    detectorDetails: {},
+    isSidebarOpen: true,
+    eventCount: 0,
+    navScrollMargin: 0,
   };
 
-  const reducer: Reducer<EventDetailsState, EventDetailsActions> = useCallback(
-    (state, action): EventDetailsState => {
+  const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
+    (state, action): IssueDetailsState => {
       switch (action.type) {
-        case 'UPDATE_SECTION':
-          return updateSection(state, action.key, action.config ?? {});
-        case 'UPDATE_DETAILS':
-          return {...state, ...action.state};
+        case 'UPDATE_SIDEBAR_STATE':
+          return {...state, isSidebarOpen: action.isOpen};
+        case 'UPDATE_NAV_SCROLL_MARGIN':
+          return {...state, navScrollMargin: action.margin};
+        case 'UPDATE_EVENT_SECTION':
+          return updateEventSection(state, action.key, action.config ?? {});
+        case 'UPDATE_EVENT_COUNT':
+          return {...state, eventCount: action.count};
+        case 'UPDATE_DETECTOR_DETAILS':
+          return {...state, detectorDetails: action.detectorDetails};
         default:
           return state;
       }
@@ -158,10 +215,10 @@ export function useEventDetailsReducer() {
     []
   );
 
-  const [eventDetails, dispatch] = useReducer(reducer, initialState);
+  const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
   return {
-    eventDetails,
+    issueDetails,
     dispatch,
   };
 }

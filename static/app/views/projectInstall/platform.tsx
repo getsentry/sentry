@@ -10,8 +10,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
@@ -24,11 +27,13 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
@@ -55,6 +60,8 @@ export function ProjectInstallPlatform({
   const location = useLocation();
   const navigate = useNavigate();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
+  const onboardingContext = useContext(OnboardingContext);
+  const {activateSidebar} = useOnboardingSidebar();
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
@@ -85,6 +92,7 @@ export function ProjectInstallPlatform({
     }
 
     const platformKey = Object.keys(platforms).find(
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       key => platforms[key].id === project.platform
     );
 
@@ -99,7 +107,9 @@ export function ProjectInstallPlatform({
       teamSlug: project.team?.slug,
       alertRules: projectAlertRules,
       platform: {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         ...omit(platforms[platformKey], 'id'),
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         key: platforms[platformKey].id,
       } as OnboardingSelectedSDK,
     });
@@ -117,6 +127,25 @@ export function ProjectInstallPlatform({
     name: currentPlatform?.name,
     link: currentPlatform?.link,
   };
+
+  const openOnboardingSidebar = useCallback(() => {
+    if (isDemoModeEnabled()) {
+      return;
+    }
+
+    const tasks = getMergedTasks({
+      organization,
+      projects: project ? [project] : undefined,
+      onboardingContext,
+    });
+
+    const allDisplayedTasks = tasks.filter(task => task.display);
+    const doneTasks = allDisplayedTasks.filter(taskIsDone);
+
+    if (!(doneTasks.length >= allDisplayedTasks.length)) {
+      activateSidebar();
+    }
+  }, [onboardingContext, organization, project, activateSidebar]);
 
   const redirectWithProjectSelection = useCallback(
     (to: LocationDescriptorObject) => {
@@ -212,8 +241,8 @@ export function ProjectInstallPlatform({
               });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
-                hash: '#welcome',
               });
+              openOnboardingSidebar();
             }}
           >
             {t('Take me to Issues')}

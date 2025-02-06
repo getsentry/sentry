@@ -48,13 +48,13 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const items = token.value.items;
 
-      if (items.length === 1 && items[0].value) {
+      if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0].value)}
+            {formatFilterValue(items[0]!.value)}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -66,6 +66,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
+                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
                 {formatFilterValue(item.value)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -76,12 +77,14 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
         </FilterValueList>
       );
-    case Token.VALUE_ISO_8601_DATE:
+    }
+    case Token.VALUE_ISO_8601_DATE: {
       const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
 
       return (
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
+    }
     default:
       return (
         <FilterValueSingleTruncatedValue>
@@ -211,7 +214,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
+      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >

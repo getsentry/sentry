@@ -36,14 +36,8 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          kafka: true
-          snuba: true
-          symbolicator: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: ${{ matrix.pg-version }}
+          use-new-devservices: true
+          mode: backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }}) with --cov-context=test
         id: run_backend_tests
@@ -61,7 +55,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Upload coverage - special case to test Codecov ATS
         if: ${{ always() }}
-        uses: codecov/codecov-action@428cda1b1c731be3e8bfa389049c3f276d572ffb # v4-beta
+        uses: codecov/codecov-action@015f24e6818733317a2da2edd6290ab26238649a # v5.0.7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:

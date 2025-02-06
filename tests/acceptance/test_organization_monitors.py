@@ -131,7 +131,7 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible(xpath="//a//*[text()='My Monitor']")
-        self.browser.click_when_visible('a[aria-label="Edit"]')
+        self.browser.click_when_visible('a[aria-label="Edit Monitor"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         name_input = self.browser.find_element_by_name("name")

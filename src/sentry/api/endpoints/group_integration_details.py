@@ -21,7 +21,11 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    IntegrationError,
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -266,12 +270,29 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
         installation = integration.get_installation(organization_id=organization_id)
-        try:
-            data = installation.create_issue(request.data)
-        except IntegrationFormError as exc:
-            return Response(exc.field_errors, status=400)
-        except IntegrationError as e:
-            return Response({"non_field_errors": [str(e)]}, status=400)
+
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL,
+            integration=integration,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "provider": integration.provider,
+                    "integration_id": integration.id,
+                }
+            )
+
+            try:
+                data = installation.create_issue(request.data)
+            except IntegrationInstallationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
+            except IntegrationFormError as exc:
+                lifecycle.record_halt(exc)
+                return Response(exc.field_errors, status=400)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return Response({"non_field_errors": [str(e)]}, status=400)
 
         external_issue_key = installation.make_external_key(data)
         external_issue, created = ExternalIssue.objects.get_or_create(

@@ -1,5 +1,4 @@
-import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -11,27 +10,20 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
-import {DEFAULT_PER_PAGE, SPAN_PROPS_DOCS_URL} from 'sentry/constants';
+import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  useExploreDataset,
-  useExploreQuery,
-  useExploreTitle,
-  useExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
-import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {type TraceResult, useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -53,52 +45,13 @@ import {
 } from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface TracesTableProps {
-  confidence: Confidence;
-  setError: Dispatch<SetStateAction<string>>;
+  tracesTableResult: TracesTableResult;
 }
 
-export function TracesTable({confidence, setError}: TracesTableProps) {
-  const title = useExploreTitle();
-  const dataset = useExploreDataset();
+export function TracesTable({tracesTableResult}: TracesTableProps) {
   const query = useExploreQuery();
-  const visualizes = useExploreVisualizes();
-  const organization = useOrganization();
 
-  const location = useLocation();
-  const cursor = decodeScalar(location.query.cursor);
-
-  const result = useTraces({
-    dataset,
-    query,
-    limit: DEFAULT_PER_PAGE,
-    sort: '-timestamp',
-    cursor,
-  });
-
-  useEffect(() => {
-    setError(result.error?.message ?? '');
-  }, [setError, result.error?.message]);
-
-  useAnalytics({
-    dataset,
-    resultLength: result.data?.data?.length,
-    resultMode: 'trace samples',
-    resultStatus: result.status,
-    resultMissingRoot: result.data?.data?.filter(trace => !defined(trace.name))?.length,
-    visualizes,
-    organization,
-    columns: [
-      'trace id',
-      'trace root',
-      'total spans',
-      'timeline',
-      'root duration',
-      'timestamp',
-    ],
-    userQuery: query,
-    confidence,
-    title,
-  });
+  const {result} = tracesTableResult;
 
   const {data, isPending, isError, getResponseHeader} = result;
 
@@ -177,7 +130,7 @@ function TraceRow({
   trace,
   query,
 }: {
-  defaultExpanded;
+  defaultExpanded: any;
   query: string;
   trace: TraceResult;
 }) {
@@ -207,7 +160,7 @@ function TraceRow({
     const trailingProjects: string[] = [];
 
     for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i].project;
+      const project = trace.breakdowns[i]!.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }

@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './nuxt';
 
@@ -37,7 +37,7 @@ describe('javascript-nuxt onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry-example-page/))
+      screen.getByText(textWithMarkupMatcher(/sentry-example-page/))
     ).toBeInTheDocument();
   });
 });

@@ -9,6 +9,7 @@ import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
+from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -23,6 +24,7 @@ from sentry.lang.native.utils import (
     signal_from_data,
 )
 from sentry.models.eventerror import EventError
+from sentry.options.rollout import in_random_rollout
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
@@ -524,7 +526,7 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
     if old := apple_symbol_stats.get("old"):
         metrics.incr(
             "apple_symbol_availability_v2",
-            amount=old,
+            amount=len(old),
             tags={
                 "availability": "old",
                 "os_name": os_name,
@@ -533,6 +535,23 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
             },
             sample_rate=1.0,
         )
+
+        # This is done to temporally collect information about the events for which symx is not working correctly.
+        if in_random_rollout("symbolicate.symx-logging-rate") and os_name and os_version:
+            os_description = os_name + str(os_version)
+            if os_description in options.get("symbolicate.symx-os-description-list"):
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("os", os_description)
+                    scope.set_context(
+                        "Event Info",
+                        {
+                            "project": data.get("project"),
+                            "id": data.get("event_id"),
+                            "modules": old,
+                            "os": os_description,
+                        },
+                    )
+                    sentry_sdk.capture_message("Failed to find symbols using symx")
 
     if symx := apple_symbol_stats.get("symx"):
         metrics.incr(

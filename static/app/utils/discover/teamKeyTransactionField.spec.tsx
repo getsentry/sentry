@@ -68,9 +68,9 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
-        count: id === teams[0].id ? 1 : 0,
+        count: id === teams[0]!.id ? 1 : 0,
         keyed:
-          id === teams[0].id
+          id === teams[0]!.id
             ? [{project_id: String(project.id), transaction: 'transaction'}]
             : [],
       })),
@@ -160,7 +160,7 @@ describe('TeamKeyTransactionField', function () {
       body: [],
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
-        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+        MockApiClient.matchData({team: [teams[0]!.id], transaction: 'transaction'}),
       ],
     });
 
@@ -185,7 +185,7 @@ describe('TeamKeyTransactionField', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const teamOneOption = screen.getAllByRole('option')[0];
+    const teamOneOption = screen.getAllByRole('option')[0]!;
     expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
 
     await userEvent.click(teamOneOption);
@@ -214,7 +214,7 @@ describe('TeamKeyTransactionField', function () {
       body: [],
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
-        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+        MockApiClient.matchData({team: [teams[0]!.id], transaction: 'transaction'}),
       ],
     });
 
@@ -239,7 +239,7 @@ describe('TeamKeyTransactionField', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const teamOneOption = screen.getAllByRole('option')[0];
+    const teamOneOption = screen.getAllByRole('option')[0]!;
     expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
 
     await userEvent.click(teamOneOption);
@@ -269,7 +269,7 @@ describe('TeamKeyTransactionField', function () {
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
         MockApiClient.matchData({
-          team: [teams[0].id, teams[1].id],
+          team: [teams[0]!.id, teams[1]!.id],
           transaction: 'transaction',
         }),
       ],
@@ -326,7 +326,7 @@ describe('TeamKeyTransactionField', function () {
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
         MockApiClient.matchData({
-          team: [teams[0].id, teams[1].id],
+          team: [teams[0]!.id, teams[1]!.id],
           transaction: 'transaction',
         }),
       ],

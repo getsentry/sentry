@@ -10,7 +10,14 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
+  organization: {
+    features: [
+      'global-views',
+      'open-membership',
+      'dashboards-eap',
+      'dashboards-widget-builder-redesign',
+    ],
+  },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -100,6 +107,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router,
@@ -164,6 +173,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router: chartsRouter,
@@ -173,12 +184,12 @@ describe('NewWidgetBuiler', function () {
 
     // see if alias field and add button are there
     expect(screen.getByPlaceholderText('Legend Alias')).toBeInTheDocument();
-    expect(screen.getByText('Add Filter')).toBeInTheDocument();
+    expect(screen.getByText('+ Add Filter')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
     });
     // add a field and see if delete buttons are there
-    await userEvent.click(screen.getByText('Add Filter'));
+    await userEvent.click(screen.getByText('+ Add Filter'));
     expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
   });
 
@@ -190,6 +201,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router,
@@ -200,9 +213,9 @@ describe('NewWidgetBuiler', function () {
     // see if alias field and add button are not there
     await waitFor(() => {
       expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
-      expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
     });
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
   it('renders the group by field on chart widgets', async function () {
@@ -221,6 +234,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router: chartsRouter,
@@ -230,6 +245,25 @@ describe('NewWidgetBuiler', function () {
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
     expect(await screen.findByText('Select group')).toBeInTheDocument();
-    expect(await screen.findByText('Add Group')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
+  });
+
+  it('renders empty widget preview when no widget selected from templates', async function () {
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+        openWidgetTemplates
+        setOpenWidgetTemplates={jest.fn()}
+      />,
+      {router, organization}
+    );
+
+    expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+
+    expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });
 });

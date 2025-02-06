@@ -1,7 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
@@ -14,10 +13,10 @@ export interface PlatformOption<Value extends string = string> {
   /**
    * Array of items for the option. Each one representing a selectable value.
    */
-  items: {
+  items: Array<{
     label: string;
     value: Value;
-  }[];
+  }>;
   /**
    * The name of the option
    */
@@ -38,6 +37,13 @@ export type SelectedPlatformOptions<
 
 export enum DocsPageLocation {
   PROFILING_PAGE = 1,
+}
+
+export enum ProductSolution {
+  ERROR_MONITORING = 'error-monitoring',
+  PERFORMANCE_MONITORING = 'performance-monitoring',
+  SESSION_REPLAY = 'session-replay',
+  PROFILING = 'profiling',
 }
 
 export interface DocsParams<
@@ -94,7 +100,7 @@ export interface OnboardingConfig<
       install: StepProps[];
       verify: StepProps[];
       introduction?: React.ReactNode | React.ReactNode[];
-      nextSteps?: (NextStep | null)[];
+      nextSteps?: Array<NextStep | null>;
       onPageLoad?: () => void;
       onPlatformOptionsChange?: (
         platformOptions: SelectedPlatformOptions<PlatformOptions>

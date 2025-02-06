@@ -35,6 +35,7 @@ class Topic(Enum):
     INGEST_ATTACHMENTS_DLQ = "ingest-attachments-dlq"
     INGEST_TRANSACTIONS = "ingest-transactions"
     INGEST_TRANSACTIONS_DLQ = "ingest-transactions-dlq"
+    INGEST_TRANSACTIONS_BACKLOG = "ingest-transactions-backlog"
     INGEST_METRICS = "ingest-metrics"
     INGEST_METRICS_DLQ = "ingest-metrics-dlq"
     SNUBA_METRICS = "snuba-metrics"
@@ -50,12 +51,14 @@ class Topic(Enum):
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
     MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
+    SNUBA_UPTIME_RESULTS = "snuba-uptime-results"
     UPTIME_CONFIGS = "uptime-configs"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
+    SNUBA_OURLOGS = "snuba-ourlogs"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
     TASK_WORKER = "task-worker"
@@ -85,6 +88,8 @@ class ConsumerDefinition(TypedDict, total=False):
     dlq_topic: Topic
     dlq_max_invalid_ratio: float | None
     dlq_max_consecutive_count: int | None
+
+    stale_topic: Topic
 
 
 def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:

@@ -14,7 +14,6 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +28,6 @@ import {
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -314,7 +312,7 @@ export class Results extends Component<Props, State> {
 
   openConfirm = () => {};
 
-  setOpenFunction = ({open}) => {
+  setOpenFunction = ({open}: any) => {
     this.openConfirm = open;
     return null;
   };
@@ -723,22 +721,6 @@ export class Results extends Component<Props, State> {
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
 
-    if (organization.features.includes('search-query-builder-discover')) {
-      return (
-        <Wrapper>
-          <ResultsSearchQueryBuilder
-            projectIds={eventView.project}
-            query={eventView.query}
-            fields={fields}
-            onSearch={this.handleSearch}
-            customMeasurements={customMeasurements}
-            dataset={eventView.dataset}
-            includeTransactions
-          />
-        </Wrapper>
-      );
-    }
-
     let savedSearchType: SavedSearchType | undefined = SavedSearchType.EVENT;
     if (hasDatasetSelector(organization)) {
       savedSearchType =
@@ -748,19 +730,18 @@ export class Results extends Component<Props, State> {
     }
 
     return (
-      <StyledSearchBar
-        searchSource="eventsv2"
-        organization={organization}
-        projectIds={eventView.project}
-        query={eventView.query}
-        fields={fields}
-        onSearch={this.handleSearch}
-        maxQueryLength={MAX_QUERY_LENGTH}
-        customMeasurements={customMeasurements}
-        dataset={eventView.dataset}
-        includeTransactions
-        savedSearchType={savedSearchType}
-      />
+      <Wrapper>
+        <ResultsSearchQueryBuilder
+          projectIds={eventView.project}
+          query={eventView.query}
+          fields={fields}
+          onSearch={this.handleSearch}
+          customMeasurements={customMeasurements}
+          dataset={eventView.dataset}
+          includeTransactions
+          recentSearches={savedSearchType}
+        />
+      </Wrapper>
     );
   }
 
@@ -913,10 +894,6 @@ const Wrapper = styled('div')`
     display: grid;
     grid-auto-flow: row;
   }
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
 `;
 
 const Top = styled(Layout.Main)`

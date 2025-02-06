@@ -4,7 +4,6 @@ import type {CultureContext} from 'sentry/components/events/contexts/knownContex
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
-  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -86,11 +85,11 @@ interface ChecksumVariant extends BaseVariant {
 }
 
 interface HasComponentGrouping {
-  client_values?: Array<string>;
+  client_values?: string[];
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
   matched_rule?: string;
-  values?: Array<string>;
+  values?: string[];
 }
 
 interface ComponentVariant extends BaseVariant, HasComponentGrouping {
@@ -129,14 +128,14 @@ export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
  * SDK Update metadata
  */
 type EnableIntegrationSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   integrationName: string;
   type: 'enableIntegration';
   integrationUrl?: string | null;
 };
 
 export type UpdateSdkSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
   type: 'updateSdk';
@@ -144,7 +143,7 @@ export type UpdateSdkSuggestion = {
 };
 
 type ChangeSdkSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   newSdkName: string;
   type: 'changeSdk';
   sdkUrl?: string | null;
@@ -230,7 +229,7 @@ export type ExceptionValue = {
 export type ExceptionType = {
   excOmitted: any | null;
   hasSystemFrames: boolean;
-  values?: Array<ExceptionValue>;
+  values?: ExceptionValue[];
 };
 
 // This type is incomplete
@@ -292,14 +291,14 @@ export type EntryDebugMeta = {
 
 export type EntryBreadcrumbs = {
   data: {
-    values: Array<RawCrumb>;
+    values: RawCrumb[];
   };
   type: EntryType.BREADCRUMBS;
 };
 
 export type EntryThreads = {
   data: {
-    values?: Array<Thread>;
+    values?: Thread[];
   };
   type: EntryType.THREADS;
 };
@@ -337,7 +336,7 @@ export interface EntryRequestDataDefault {
   method: string;
   url: string;
   cookies?: Array<[key: string, value: string] | null>;
-  data?: string | null | Record<string, any> | [key: string, value: any][];
+  data?: string | null | Record<string, any> | Array<[key: string, value: any]>;
   env?: Record<string, string>;
   fragment?: string | null;
   headers?: Array<[key: string, value: string] | null>;
@@ -614,6 +613,10 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
+export type MetricAlertContextType = {
+  alert_rule_id?: string;
+};
+
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
   PROFILER_ID = 'profiler_id',
@@ -658,6 +661,7 @@ export type EventContexts = {
   feedback?: Record<string, any>;
   flags?: Flags;
   memory_info?: MemoryInfoContext;
+  metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
@@ -693,10 +697,7 @@ export type PerformanceDetectorData = {
   issueType?: IssueType;
 };
 
-type EventEvidenceDisplay = {
-  /**
-   * Used for alerting, probably not useful for the UI
-   */
+export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
   value: string;
@@ -791,7 +792,7 @@ interface EventBase {
     name: string;
     version: string;
   } | null;
-  sdkUpdates?: Array<SDKUpdatesSuggestion>;
+  sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;
 }
 
@@ -806,16 +807,11 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (
-    | EntrySpans
-    | EntryRequest
-    | EntryDebugMeta
-    | AggregateEntrySpans
-    | EntryBreadcrumbs
-  )[];
+  entries: Array<
+    EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans | EntryBreadcrumbs
+  >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 
@@ -848,13 +844,9 @@ export interface AggregateEventTransaction
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
-  entries: (
-    | EntryException
-    | EntryStacktrace
-    | EntryRequest
-    | EntryThreads
-    | EntryDebugMeta
-  )[];
+  entries: Array<
+    EntryException | EntryStacktrace | EntryRequest | EntryThreads | EntryDebugMeta
+  >;
   type: EventOrGroupType.ERROR;
 }
 

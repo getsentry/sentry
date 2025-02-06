@@ -1,16 +1,8 @@
 from collections.abc import Mapping, MutableSequence, Sequence
-from random import randint
-from typing import Any
 
-from celery.schedules import crontab
 from kombu import Queue
 
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-
-
-def crontab_with_minute_jitter(*args: Any, **kwargs: Any) -> crontab:
-    kwargs["minute"] = randint(0, 59)
-    return crontab(*args, **kwargs)
 
 
 def build_queue_names(base_name: str, quantity: int) -> Sequence[str]:

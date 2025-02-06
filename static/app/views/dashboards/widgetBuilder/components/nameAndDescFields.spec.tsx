@@ -14,8 +14,8 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('WidgetBuilder', () => {
-  let router;
-  let organization;
+  let router!: ReturnType<typeof RouterFixture>;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(function () {
     router = RouterFixture({
       location: {
@@ -46,7 +46,8 @@ describe('WidgetBuilder', () => {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({title: 'some name'}),
-      })
+      }),
+      {replace: true}
     );
 
     await userEvent.click(await screen.findByTestId('add-description'));
@@ -59,7 +60,23 @@ describe('WidgetBuilder', () => {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({description: 'some description'}),
-      })
+      }),
+      {replace: true}
     );
+  });
+
+  it('displays error', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderNameAndDescription
+          error={{title: 'Title is required during creation.'}}
+        />
+      </WidgetBuilderProvider>,
+      {router, organization}
+    );
+
+    expect(
+      await screen.findByText('Title is required during creation.')
+    ).toBeInTheDocument();
   });
 });

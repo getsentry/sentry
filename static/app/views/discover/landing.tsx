@@ -28,7 +28,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Queries'), value: 'myqueries'},
   {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('Query Name (A-Z)'), value: 'name'},
@@ -124,7 +124,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
-      sortBy: this.getActiveSort().value,
+      sortBy: this.getActiveSort()!.value,
     };
     if (!cursor) {
       delete queryParams.cursor;
@@ -208,7 +208,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
         </PrebuiltSwitch>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
-          value={activeSort.value}
+          value={activeSort!.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
           position="bottom-end"

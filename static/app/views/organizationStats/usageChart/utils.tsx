@@ -106,7 +106,7 @@ export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[])
 
   // Collect unique labels and their positions
   intervals.forEach((label, index) => {
-    if (index === 0 || label.slice(0, 6) !== intervals[index - 1].slice(0, 6)) {
+    if (index === 0 || label.slice(0, 6) !== intervals[index - 1]!.slice(0, 6)) {
       uniqueLabels.add(label);
       labelToPositionMap.set(label, index);
     }

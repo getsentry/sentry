@@ -212,7 +212,7 @@ const onboarding: OnboardingConfig = {
 const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
-      ...getInstallConfig()[0],
+      ...getInstallConfig()[0]!,
       additionalInfo:
         'Session Replay is enabled by default when you install the Astro SDK!',
     },

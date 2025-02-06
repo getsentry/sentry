@@ -9,11 +9,11 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
@@ -97,11 +97,12 @@ export function QueryTransactionsTable({
   span,
 }: Props) {
   const moduleURL = useModuleURL('db');
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });

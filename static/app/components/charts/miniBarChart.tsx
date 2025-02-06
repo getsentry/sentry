@@ -141,7 +141,7 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
   /**
    * Colors to use on the chart.
    */
-  colors?: string[];
+  colors?: readonly string[];
 
   /**
    * A list of colors to use on hover.
@@ -256,7 +256,7 @@ function MiniBarChart({
       : [theme.gray200, theme.purple300, theme.purple300];
 
     for (let i = 0; i < series.length; i++) {
-      const original = series[i];
+      const original = series[i]!;
       const updated: BarChartSeries = {
         ...original,
         cursor: 'normal',

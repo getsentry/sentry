@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable, Mapping
 from hashlib import md5
 from re import Match
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from django.utils.encoding import force_bytes
@@ -41,6 +41,29 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     for value in values:
         result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
+
+
+def get_fingerprint_type(
+    fingerprint: list[str] | None,
+) -> Literal["default", "hybrid", "custom"] | None:
+    """
+    Examine a fingerprint to determine if it's custom, hybrid, or the default fingerprint.
+
+    Accepts (and then returns) None for convenience, so the fingerprint's existence doesn't have to
+    be separately checked.
+    """
+    if not fingerprint:
+        return None
+
+    return (
+        "default"
+        if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
+        else (
+            "hybrid"
+            if any(is_default_fingerprint_var(entry) for entry in fingerprint)
+            else "custom"
+        )
+    )
 
 
 def bool_from_string(value: str) -> bool | None:
@@ -104,7 +127,7 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
         # Turn "tags.some_tag" into just "some_tag"
         tag = var[5:]
         for t, value in data.get("tags") or ():
-            if t == tag:
+            if t == tag and value is not None:
                 return value
         return "<no-value-for-tag-%s>" % tag
     else:

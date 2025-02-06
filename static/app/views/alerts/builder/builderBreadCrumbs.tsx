@@ -11,7 +11,7 @@ interface Props {
 }
 
 function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props) {
-  const crumbs: (Crumb | CrumbDropdown)[] = [
+  const crumbs: Array<Crumb | CrumbDropdown> = [
     {
       to: `/organizations/${organization.slug}/alerts/rules/`,
       label: t('Alerts'),

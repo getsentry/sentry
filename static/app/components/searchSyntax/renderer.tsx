@@ -224,7 +224,13 @@ function KeyToken({
   token,
   negated,
 }: {
-  token: TokenResult<Token.KEY_SIMPLE | Token.KEY_AGGREGATE | Token.KEY_EXPLICIT_TAG>;
+  token: TokenResult<
+    | Token.KEY_SIMPLE
+    | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_EXPLICIT_NUMBER_TAG
+    | Token.KEY_EXPLICIT_STRING_TAG
+  >;
   negated?: boolean;
 }) {
   let value: React.ReactNode = token.text;
@@ -413,7 +419,7 @@ const InList = styled('span')`
   }
 `;
 
-const LogicGroup = styled(({children, ...props}) => (
+const LogicGroup = styled(({children, ...props}: any) => (
   <span {...props}>
     <span>(</span>
     {children}

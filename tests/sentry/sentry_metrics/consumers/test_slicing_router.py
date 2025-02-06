@@ -169,10 +169,7 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
 
-    try:
-        _validate_slicing_consumer_config("generic_metrics")
-    except SlicingConfigurationException as e:
-        assert False, f"Should not raise exception: {e}"
+    _validate_slicing_consumer_config("generic_metrics")  # should not raise
 
 
 def test_validate_slicing_config(monkeypatch) -> None:

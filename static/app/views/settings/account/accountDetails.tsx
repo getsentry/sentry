@@ -92,7 +92,7 @@ function AccountDetails() {
     help: `The unique identifier for your account. It cannot be modified.`,
   };
 
-  formConfig[0].fields = [...formConfig[0].fields, userIdField];
+  formConfig[0]!.fields = [...formConfig[0]!.fields, userIdField];
 
   return (
     <Fragment>

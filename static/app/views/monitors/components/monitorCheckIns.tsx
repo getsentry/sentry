@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -17,7 +16,6 @@ import {
 } from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -34,7 +32,6 @@ import {statusToText} from 'sentry/views/monitors/utils';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgSlug: string;
 };
 
 export const checkStatusToIndicatorStatus: Record<
@@ -49,12 +46,12 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',
@@ -76,14 +73,8 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     return <LoadingError />;
   }
 
-  const generateDownloadUrl = (checkin: CheckIn) =>
-    `/api/0/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
-
   const emptyCell = <Text>{'\u2014'}</Text>;
 
-  // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
-  // the future. For now hide these if they're not being used.
-  const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
   const hasMultiEnv = monitorEnvs.length > 1;
 
   const headers = [
@@ -91,7 +82,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     t('Started'),
     t('Duration'),
     t('Issues'),
-    ...(hasAttachments ? [t('Attachment')] : []),
     ...(hasMultiEnv ? [t('Environment')] : []),
     t('Expected At'),
   ];
@@ -102,7 +92,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
-      <PanelTable headers={headers}>
+      <PanelTable
+        headers={headers}
+        isEmpty={!isPending && checkInList.length === 0}
+        emptyMessage={t('No check-ins have been recorded for this time period.')}
+      >
         {isPending
           ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
@@ -177,19 +171,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
-                {!hasAttachments ? null : checkIn.attachmentId ? (
-                  <div>
-                    <LinkButton
-                      size="xs"
-                      icon={<IconDownload />}
-                      href={generateDownloadUrl(checkIn)}
-                    >
-                      {t('Attachment')}
-                    </LinkButton>
-                  </div>
-                ) : (
-                  emptyCell
-                )}
                 {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
                 <div>
                   {checkIn.expectedTime ? (
@@ -217,8 +198,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     </Fragment>
   );
 }
-
-export default MonitorCheckIns;
 
 const Status = styled('div')`
   line-height: 1.1;

@@ -428,7 +428,7 @@ def test_reverse_bisect_left():
 
 class SequencePaginatorTestCase(SimpleTestCase):
     def test_empty_results(self):
-        paginator = SequencePaginator([])
+        paginator: SequencePaginator[None] = SequencePaginator([])
         result = paginator.get_result(5)
         assert list(result) == []
         assert result.prev == Cursor(0, 0, True, False)

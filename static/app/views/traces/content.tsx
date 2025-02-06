@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -32,7 +31,7 @@ const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/'
 const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 
-export default function Wrapper(props) {
+export default function Wrapper(props: any) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -79,19 +78,17 @@ function Content() {
   const handleClearSearch = useCallback(
     (searchIndex: number) => {
       const newQueries = [...queries];
-      if (typeof newQueries[searchIndex] !== undefined) {
-        delete newQueries[searchIndex];
-        browserHistory.push({
-          ...location,
-          query: {
-            ...location.query,
-            cursor: undefined,
-            query: newQueries,
-          },
-        });
-        return true;
-      }
-      return false;
+      // TODO: do we need to return false when `newQueries[searchIndex] === undefined`?
+      delete newQueries[searchIndex];
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: newQueries,
+        },
+      });
+      return true;
     },
     [location, queries]
   );
@@ -126,7 +123,6 @@ function Content() {
                       'Traces lets you search for individual spans that make up a trace, linked by a trace id.'
                     )}
                   />
-                  <FeatureBadge type="beta" />
                 </Layout.Title>
                 <FeedbackWidgetButton />
               </HeaderContentBar>

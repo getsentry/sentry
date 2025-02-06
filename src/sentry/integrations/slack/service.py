@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -24,13 +25,7 @@ from sentry.integrations.repository.issue_alert import (
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.message_builder.types import SlackBlock
-from sentry.integrations.slack.metrics import (
-    SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
-    SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
-    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
-)
+from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.threads.activity_notifications import (
@@ -39,6 +34,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -49,16 +45,19 @@ from sentry.notifications.notifications.activity.escalating import EscalatingAct
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_pull_request import (
+    ResolvedInPullRequestActivityNotification,
+)
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.utils import metrics
 
 _default_logger = getLogger(__name__)
 
@@ -72,7 +71,7 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedActivityNotification,
-    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedInPullRequestActivityNotification,
     ActivityType.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityNotification,
     ActivityType.UNASSIGNED: UnassignedActivityNotification,
     ActivityType.SET_ESCALATING: EscalatingActivityNotification,
@@ -134,7 +133,12 @@ class SlackService:
             )
             return None
 
-        if activity.user_id is None:
+        uptime_resolved_notification = (
+            activity.type == ActivityType.SET_RESOLVED.value
+            and activity.group.issue_category == GroupCategory.UPTIME
+        )
+
+        if activity.user_id is None and not uptime_resolved_notification:
             self._logger.info(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra={
@@ -199,31 +203,69 @@ class SlackService:
                     "project_id": activity.project.id,
                 }
             )
-            parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
-                group_ids=[activity.group.id],
-                project_ids=[activity.project.id],
-            )
+
+            use_open_period_start = False
+            if (
+                features.has(
+                    "organizations:issue-alerts-thread-open-period",
+                    activity.group.project.organization,
+                )
+                and activity.group.issue_category == GroupCategory.UPTIME
+            ):
+                use_open_period_start = True
+                open_period_start = open_period_start_for_group(activity.group)
+                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[activity.group.id],
+                    project_ids=[activity.project.id],
+                    open_period_start=open_period_start,
+                )
+            else:
+                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[activity.group.id],
+                    project_ids=[activity.project.id],
+                )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
+        parent_notification_count = 0
         for parent_notification in parent_notifications:
-            try:
-                self._handle_parent_notification(
-                    parent_notification=parent_notification,
-                    notification_to_send=notification_to_send,
-                    client=slack_client,
-                )
-            except Exception as err:
-                # TODO(iamrajjoshi): We can probably swallow this error once we audit the lifecycle
-                self._logger.info(
-                    "failed to send notification",
-                    exc_info=err,
-                    extra={
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                parent_notification_count += 1
+                lifecycle.add_extras(
+                    {
                         "activity_id": activity.id,
                         "parent_notification_id": parent_notification.id,
                         "notification_to_send": notification_to_send,
                         "integration_id": integration.id,
-                    },
+                        "group_id": activity.group.id,
+                        "project_id": activity.project.id,
+                    }
                 )
+                try:
+                    self._handle_parent_notification(
+                        parent_notification=parent_notification,
+                        notification_to_send=notification_to_send,
+                        client=slack_client,
+                    )
+                except Exception as err:
+                    if isinstance(err, SlackApiError):
+                        record_lifecycle_termination_level(lifecycle, err)
+                    else:
+                        lifecycle.record_failure(err)
+
+        if use_open_period_start and parent_notification_count != 1:
+            sentry_sdk.capture_message(
+                f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {activity.group.id}, Project: {activity.project.id}, Integration: {integration.id}, Parent Notification Count: {parent_notification_count}"
+            )
+            self._logger.error(
+                "multiple parent notifications found for single open period",
+                extra={
+                    "activity_id": activity.id,
+                    "parent_notification_count": parent_notification_count,
+                },
+            )
 
     def _handle_parent_notification(
         self,
@@ -266,39 +308,12 @@ class SlackService:
         json_blocks = orjson.dumps(payload.get("blocks")).decode()
         payload["blocks"] = json_blocks
 
-        extra = {
-            "channel": channel_id,
-            "thread_ts": parent_notification.message_identifier,
-            "rule_action_uuid": parent_notification.rule_action_uuid,
-        }
-
-        with MessagingInteractionEvent(
-            interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
-            spec=SlackMessagingSpec(),
-        ).capture() as lifecycle:
-            try:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=parent_notification.message_identifier,
-                    text=notification_to_send,
-                    blocks=json_blocks,
-                )
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                metrics.incr(SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
-            except SlackApiError as e:
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                self._logger.info(
-                    "failed to post message to slack",
-                    extra={"error": str(e), "blocks": json_blocks, **extra},
-                )
-                metrics.incr(
-                    SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-                )
-                lifecycle.add_extras({"rule_action_uuid": parent_notification.rule_action_uuid})
-                record_lifecycle_termination_level(lifecycle, e)
-                raise
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=parent_notification.message_identifier,
+            text=notification_to_send,
+            blocks=json_blocks,
+        )
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
         """
@@ -467,17 +482,7 @@ class SlackService:
                     unfurl_media=False,
                     callback_id=str(payload.get("callback_id", "")),
                 )
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                metrics.incr(SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
             except SlackApiError as e:
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                extra = {"error": str(e), **log_params}
-                self._logger.info(log_error_message, extra=extra)
-                metrics.incr(
-                    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-                )
                 lifecycle.add_extras(
                     {k: str(v) for k, v in log_params.items() if isinstance(v, (int, str))}
                 )

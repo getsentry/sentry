@@ -167,34 +167,6 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_repo_issues(self, mock_get_jwt):
-        responses.add(
-            responses.POST,
-            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
-            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
-        )
-
-        responses.add(
-            responses.GET,
-            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/issues",
-            json=[{"number": 321, "title": "hello", "body": "This is the description"}],
-        )
-        repo = "getsentry/sentry"
-        assert self.install.get_repo_issues(repo) == ((321, "#321 hello"),)
-
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
-
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
-
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
-
-    @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_link_issue(self, mock_get_jwt):
         issue_id = "321"
         responses.add(

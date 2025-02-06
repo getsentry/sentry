@@ -32,7 +32,11 @@ export function MobileView(props: BasePerformanceViewProps) {
   ];
 
   if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [...columnTitles.slice(0, 5), 'ttid', ...columnTitles.slice(5, 0)];
+    columnTitles = [
+      ...columnTitles.slice(0, 5),
+      {title: 'ttid'},
+      ...columnTitles.slice(5, 0),
+    ];
     allowedCharts.push(
       ...[
         PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,

@@ -4,31 +4,30 @@ import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
-  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    true
-  );
-  const direction = sidebarOpen ? 'right' : 'left';
+  const organization = useOrganization();
+  const {isSidebarOpen, dispatch} = useIssueDetails();
+  const direction = isSidebarOpen ? 'right' : 'left';
   return (
     <ToggleContainer
-      sidebarOpen={sidebarOpen}
+      sidebarOpen={isSidebarOpen ?? true}
       style={{paddingTop: size === 'lg' ? '4px' : '0px'}}
     >
       <ToggleButton
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label={sidebarOpen ? t('Close sidebar') : t('Open sidebar')}
+        onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}
+        aria-label={isSidebarOpen ? t('Close sidebar') : t('Open sidebar')}
         style={{height: size === 'lg' ? '30px' : '26px'}}
         analyticsEventKey="issue_details.sidebar_toggle"
         analyticsEventName="Issue Details: Sidebar Toggle"
         analyticsParams={{
-          sidebar_open: !sidebarOpen,
+          sidebar_open: !isSidebarOpen,
+          org_streamline_only: organization.streamlineOnly ?? undefined,
         }}
       >
-        <LeftChevron direction={direction} />
-        <RightChevron direction={direction} />
+        <Chevron direction={direction} isDouble size="xs" />
       </ToggleButton>
     </ToggleContainer>
   );
@@ -53,16 +52,10 @@ const ToggleButton = styled(Button)`
   width: calc(100% - ${space(0.5)} + 1px);
   outline: 0;
   min-height: unset;
-`;
-
-const LeftChevron = styled(IconChevron)`
-  position: absolute;
   color: ${p => p.theme.subText};
-  height: 10px;
-  width: 10px;
-  left: ${space(0.75)};
 `;
 
-const RightChevron = styled(LeftChevron)`
-  left: ${space(1.5)};
+const Chevron = styled(IconChevron)`
+  position: absolute;
+  left: ${space(0.75)};
 `;

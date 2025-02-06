@@ -2,7 +2,7 @@ import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 
 describe('stripURLOrigin', () => {
   it('should preserve the url path, query, and hash', () => {
-    expect(stripURLOrigin('https://example.com/path/name?query=params#hash')).toEqual(
+    expect(stripURLOrigin('https://example.com/path/name?query=params#hash')).toBe(
       '/path/name?query=params#hash'
     );
   });

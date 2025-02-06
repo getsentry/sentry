@@ -8,7 +8,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.projectownership import ProjectOwnership
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -43,26 +42,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 "project_id_or_slug": self.project.slug,
             },
         )
-
-    def python_event_data(self):
-        return {
-            "message": "Kaboom!",
-            "platform": "python",
-            "timestamp": before_now(seconds=10),
-            "stacktrace": {
-                "frames": [
-                    {
-                        "function": "handle_set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
-                        "module": "sentry.api",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "sentry/api/foo.py",
-                    }
-                ]
-            },
-            "tags": {"sentry:release": self.release.version},
-        }
 
     def test_empty_state(self):
         resp = self.client.get(self.path)

@@ -1,8 +1,8 @@
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type Meta = {
-  fields: Record<string, string>;
-  units?: Record<string, string | null>;
+  fields: Record<string, string | null>;
+  units: Record<string, string | null>;
 };
 
 type TableRow = Record<string, number | string | undefined>;
@@ -11,11 +11,13 @@ export type TableData = TableRow[];
 export type TimeSeriesItem = {
   timestamp: string;
   value: number;
+  delayed?: boolean;
 };
 
 export type TimeseriesData = {
   data: TimeSeriesItem[];
   field: string;
+  meta: Meta;
   color?: string;
 };
 
@@ -33,3 +35,7 @@ export type Release = {
   timestamp: string;
   version: string;
 };
+
+export type Aliases = Record<string, string>;
+
+export type TimeseriesSelection = {[key: string]: boolean};

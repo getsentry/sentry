@@ -91,7 +91,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
+  const frameSelectOptions: Array<SelectOption<'system' | 'application' | 'all'>> =
     useMemo(() => {
       return [
         {value: 'system', label: t('System Frames')},
@@ -706,12 +706,18 @@ const AggregateFlamegraphFunctionName = styled('button')`
   border: none;
   background: none;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: left;
 `;
 
 const AggregateFlamegraphFunctionBreakdownContainer = styled('div')`
   flex-direction: column;
   width: 360px;
   border-left: 1px solid ${p => p.theme.border};
+  overflow: scroll;
 `;
 const AggregateFlamegraphFunctionBreakdownHeaderRow = styled('div')<{
   fontSize?: string;

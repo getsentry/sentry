@@ -279,6 +279,7 @@ class BaseOrganizationEndpointTest(TestCase):
         if user is None:
             user = self.user
         request.user = user
+        request.auth = None
         request.access = from_request(request, self.org)
         return request
 
@@ -383,6 +384,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         request = RequestFactory().get("/")
         request.session = SessionBase()
         request.access = NoAccess()
+        request.auth = None
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 

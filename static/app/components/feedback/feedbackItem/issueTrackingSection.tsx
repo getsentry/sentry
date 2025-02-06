@@ -41,7 +41,7 @@ export default function IssueTrackingSection({group, event, project}: Props) {
     return <Placeholder height="42px" width="500px" />;
   }
 
-  const renderers: Record<ExternalIssueType, (props) => ReactNode> = {
+  const renderers: Record<ExternalIssueType, (props: any) => ReactNode> = {
     'sentry-app-issue': ({sentryApp, ...props}: SentryAppIssueComponent['props']) => (
       <ErrorBoundary key={sentryApp.slug} mini>
         <SentryAppExternalIssueActions {...props} />
@@ -51,8 +51,8 @@ export default function IssueTrackingSection({group, event, project}: Props) {
       <ExternalIssueActions {...props} />
     ),
     'plugin-action': ({plugin}: PluginActionComponent['props']) => (
-      <IssueSyncListElement externalIssueLink={plugin[1]}>
-        {plugin[0]}
+      <IssueSyncListElement externalIssueLink={(plugin as any)[1]}>
+        {(plugin as any)[0]}
       </IssueSyncListElement>
     ),
     'plugin-issue': (props: PluginIssueComponent['props']) => (

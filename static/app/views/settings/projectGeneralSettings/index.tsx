@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -22,6 +23,7 @@ import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilt
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -32,32 +34,25 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = DeprecatedAsyncView['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   RouteComponentProps<{projectId: string}, {}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   data: Project;
 };
 
-class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
+class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
   private _form: Record<string, FieldValue> = {};
 
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Project Settings'), projectId, false);
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -317,18 +312,19 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
 
     return (
       <div>
+        <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert project={project} />
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name, projectIdField, fields.platform]}
+            fields={[fields.name!, projectIdField, fields.platform!]}
           />
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}
-            fields={[fields.subjectPrefix]}
+            fields={[fields.subjectPrefix!]}
           />
         </Form>
         <Hook
@@ -339,18 +335,18 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Event Settings')}
-            fields={[fields.resolveAge]}
+            fields={[fields.resolveAge!]}
           />
 
           <JsonForm
             {...jsonFormProps}
             title={t('Client Security')}
             fields={[
-              fields.allowedDomains,
-              fields.scrapeJavaScript,
-              fields.securityToken,
-              fields.securityTokenHeader,
-              fields.verifySSL,
+              fields.allowedDomains!,
+              fields.scrapeJavaScript!,
+              fields.securityToken!,
+              fields.securityTokenHeader!,
+              fields.verifySSL!,
             ]}
             renderHeader={() => (
               <PanelAlert type="info">

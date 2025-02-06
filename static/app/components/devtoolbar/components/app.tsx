@@ -1,5 +1,5 @@
 import {Fragment, Suspense} from 'react';
-import {Global} from '@emotion/react';
+import {css, Global} from '@emotion/react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
@@ -31,7 +31,15 @@ export default function App() {
       <Global styles={globalCss} />
       <Global styles={loadingIndicatorCss} />
       <Global styles={avatarCss} />
-      <div css={[fixedContainerBaseCss, placement.fixedContainer.css, {visibility}]}>
+      <div
+        css={[
+          fixedContainerBaseCss,
+          placement.fixedContainer.css,
+          css`
+            visibility: ${visibility};
+          `,
+        ]}
+      >
         {isDisabled ? null : (
           <Fragment>
             <AnalyticsProvider nameVal="nav" keyVal="nav">

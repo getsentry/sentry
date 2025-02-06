@@ -79,19 +79,6 @@ SUCCESS_MESSAGE = (
     "{invite_type} request for {email} has been {verb}. <{url}|See Members and Requests>."
 )
 
-RESOLVE_SELECTOR = {
-    "label": "Resolve issue",
-    "type": "select",
-    "name": "resolve_type",
-    "placeholder": "Select the resolution target",
-    "value": "resolved",
-    "options": [
-        {"label": "Immediately", "value": "resolved"},
-        {"label": "In the next release", "value": "resolved:inNextRelease"},
-        {"label": "In the current release", "value": "resolved:inCurrentRelease"},
-    ],
-}
-
 RESOLVE_OPTIONS = {
     "Immediately": "resolved",
     "In the next release": "resolved:inNextRelease",
@@ -118,14 +105,7 @@ def update_group(
             status_code=403, body="The user does not have access to the organization."
         )
 
-    return update_groups(
-        request=request,
-        group_ids=[group.id],
-        projects=[group.project],
-        organization_id=group.organization.id,
-        user=user,
-        data=data,
-    )
+    return update_groups(request=request, groups=[group], user=user, data=data)
 
 
 def get_rule(slack_request: SlackActionRequest) -> Rule | None:
@@ -413,6 +393,7 @@ class SlackActionEndpoint(Endpoint):
                     )
 
                 view = View(**slack_request.data["view"])
+                assert view.private_metadata is not None
                 private_metadata = orjson.loads(view.private_metadata)
                 original_tags_from_request = set(private_metadata.get("tags", {}))
 

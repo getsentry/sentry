@@ -163,7 +163,7 @@ class Table extends Component<Props, State> {
       const transaction = String(dataRow.transaction) || '';
 
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction,
         query: summaryView.generateQueryStringObject(),
         projectID,
@@ -226,7 +226,7 @@ class Table extends Component<Props, State> {
       : undefined;
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
-        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
+        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key]!;
       });
     }
 

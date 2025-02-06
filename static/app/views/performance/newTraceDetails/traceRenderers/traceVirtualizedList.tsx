@@ -96,13 +96,13 @@ export const useVirtualizedList = (
       styleCache.current?.clear();
       renderCache.current?.clear();
 
-      scrollHeightRef.current = elements[0].contentRect.height;
+      scrollHeightRef.current = elements[0]!.contentRect.height;
       if (list.current) {
         list.current.scrollHeight = scrollHeightRef.current;
       }
 
       maybeToggleScrollbar(
-        elements[0].target as HTMLElement,
+        elements[0]!.target as HTMLElement,
         scrollHeightRef.current,
         itemsRef.current.length * 24,
         managerRef.current
@@ -158,7 +158,7 @@ export const useVirtualizedList = (
       props.manager
     );
 
-    const onScroll = event => {
+    const onScroll = (event: any) => {
       if (!list.current) {
         return;
       }
@@ -242,7 +242,7 @@ export const useVirtualizedList = (
       overscroll: 5,
       rowHeight: 24,
       scrollHeight: scrollHeightRef.current,
-      styleCache: styleCache.current!,
+      styleCache: styleCache.current,
       renderCache: renderCache.current,
       render: renderRef.current,
       manager: managerRef.current,
@@ -254,7 +254,7 @@ export const useVirtualizedList = (
   return {
     virtualized: items.virtualized,
     rendered: items.rendered,
-    list: list.current!,
+    list: list.current,
   };
 };
 
@@ -330,7 +330,7 @@ function findRenderedItems({
         key: indexPointer,
         style,
         index: indexPointer,
-        item: items[indexPointer],
+        item: items[indexPointer]!,
       };
 
       virtualized[visibleItemIndex] = virtualizedRow;

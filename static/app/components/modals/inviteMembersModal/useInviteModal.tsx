@@ -14,7 +14,7 @@ import useApi from 'sentry/utils/useApi';
 
 interface Props {
   organization: Organization;
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   source?: string;
 }
 
@@ -29,9 +29,7 @@ function defaultInvite(): InviteRow {
 function canInvite(organization: Organization) {
   return (
     organization.access?.includes('member:write') ||
-    (organization.features.includes('members-invite-teammates') &&
-      organization.allowMemberInvite &&
-      organization.access?.includes('member:invite'))
+    (organization.allowMemberInvite && organization.access?.includes('member:invite'))
   );
 }
 
@@ -165,15 +163,16 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
   const removeSentInvites = useCallback(() => {
     setState(prev => {
-      const emails = prev.pendingInvites[0].emails;
+      const emails = prev.pendingInvites[0]!.emails;
       const filteredEmails = Array.from(emails).filter(
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         email => !prev.inviteStatus[email]?.sent
       );
       return {
         ...prev,
         pendingInvites: [
           {
-            ...prev.pendingInvites[0],
+            ...prev.pendingInvites[0]!,
             emails: new Set(filteredEmails),
           },
         ],
@@ -182,7 +181,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   }, []);
 
   useEffect(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const statuses = Object.values<InviteStatus>(state.inviteStatus);
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
     // Don't track if no invites have been sent or invites are still sending
@@ -194,9 +193,6 @@ export default function useInviteModal({organization, initialData, source}: Prop
       {
         organization,
         modal_session: sessionId.current,
-        sent_invites: sentCount,
-        failed_invites: errorCount,
-        is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
   }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
@@ -204,11 +200,9 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
     await Promise.all(invites.map(sendInvite));
-    if (organization.features.includes('invite-members-new-modal')) {
-      removeSentInvites();
-    }
+    removeSentInvites();
     setState(prev => ({...prev, sendingInvites: false, complete: true}));
-  }, [organization, invites, sendInvite, removeSentInvites]);
+  }, [invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({
@@ -220,7 +214,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setEmails = useCallback((emails: string[], index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], emails: new Set(emails)};
+      pendingInvites[index] = {...pendingInvites[index]!, emails: new Set(emails)};
 
       return {...prev, pendingInvites};
     });
@@ -229,7 +223,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setTeams = useCallback((teams: string[], index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], teams: new Set(teams)};
+      pendingInvites[index] = {...pendingInvites[index]!, teams: new Set(teams)};
 
       return {...prev, pendingInvites};
     });
@@ -238,7 +232,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setRole = useCallback((role: string, index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], role};
+      pendingInvites[index] = {...pendingInvites[index]!, role};
 
       return {...prev, pendingInvites};
     });

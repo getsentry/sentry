@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -576,7 +576,9 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin:
-    def _get_environment_func(self, request: Request, organization_id):
+    def _get_environment_func(
+        self, request: Request, organization_id: int
+    ) -> Callable[[], Environment | None]:
         """\
         Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
@@ -591,11 +593,15 @@ class EnvironmentMixin:
         """
         return functools.partial(self._get_environment_from_request, request, organization_id)
 
-    def _get_environment_id_from_request(self, request: Request, organization_id):
+    def _get_environment_id_from_request(
+        self, request: Request, organization_id: int
+    ) -> int | None:
         environment = self._get_environment_from_request(request, organization_id)
-        return environment and environment.id
+        return environment.id if environment is not None else None
 
-    def _get_environment_from_request(self, request: Request, organization_id):
+    def _get_environment_from_request(
+        self, request: Request, organization_id: int
+    ) -> Environment | None:
         if not hasattr(request, "_cached_environment"):
             environment_param = request.GET.get("environment")
             if environment_param is None:
@@ -610,8 +616,17 @@ class EnvironmentMixin:
         return request._cached_environment
 
 
+class StatsArgsDict(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+    environment_ids: list[int]
+
+
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+    def _parse_args(
+        self, request: Request, environment_id=None, restrict_rollups=True
+    ) -> StatsArgsDict:
         """
         Parse common stats parameters from the query string. This includes
         `since`, `until`, and `resolution`.

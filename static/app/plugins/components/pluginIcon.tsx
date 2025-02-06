@@ -16,7 +16,6 @@ import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
-import phabricator from 'sentry-logos/logo-phabricator.svg';
 import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
 import pushover from 'sentry-logos/logo-pushover.svg';
 import redmine from 'sentry-logos/logo-redmine.svg';
@@ -57,7 +56,6 @@ export const ICON_PATHS = {
   msteams,
   opsgenie,
   pagerduty,
-  phabricator,
   pivotal,
   pushover,
   redmine,
@@ -72,28 +70,30 @@ export const ICON_PATHS = {
 };
 
 type Props = {
+  /**
+   * @default '_default'
+   */
   pluginId?: string;
+  /**
+   * @default 20
+   */
   size?: number;
 };
 
 const PluginIcon = styled('div')<Props>`
   position: relative;
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
-  min-width: ${p => p.size}px;
+  height: ${p => p.size ?? 20}px;
+  width: ${p => p.size ?? 20}px;
+  min-width: ${p => p.size ?? 20}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId}) =>
+  background-image: url(${({pluginId = '_default'}) =>
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
-
-PluginIcon.defaultProps = {
-  pluginId: '_default',
-  size: 20,
-};
 
 export default PluginIcon;
