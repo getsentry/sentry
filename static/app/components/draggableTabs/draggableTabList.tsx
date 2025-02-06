@@ -33,12 +33,13 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {IssueViewsContext} from 'sentry/views/issueList/issueViews/issueViews';
+import {
+  IssueViewsContext,
+  TEMPORARY_TAB_KEY,
+} from 'sentry/views/issueList/issueViews/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
-
-export const TEMPORARY_TAB_KEY = 'temporary-tab';
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
