@@ -253,4 +253,9 @@ describe('StreamlinedActivitySection', function () {
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  it('renders the number of comments', function () {
+    render(<StreamlinedActivitySection group={{...group, numComments: 2}} />);
+    expect(screen.getByLabelText('Number of comments: 2')).toBeInTheDocument();
+  });
 });
