@@ -94,6 +94,46 @@ class TestProcessWorkflows(BaseWorkflowTest):
                     extra={"event_id": self.event.event_id},
                 )
 
+    @mock.patch("sentry.workflow_engine.processors.workflow.logger")
+    def test_no_metrics_triggered(self, mock_logger):
+        self.job["event"].project_id = 0
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_workflows(self.job)
+            mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
+            mock_logger.exception.assert_called_once()
+
+    def test_metrics_with_workflows(self):
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_workflows(self.job)
+
+            mock_incr.assert_any_call(
+                "workflow_engine.process_workflows",
+                1,
+                tags={"detector_type": self.error_detector.type},
+            )
+
+    def test_metrics_triggered_workflows(self):
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_workflows(self.job)
+
+            mock_incr.assert_any_call(
+                "workflow_engine.process_workflows.triggered_workflows",
+                1,
+                tags={"detector_type": self.error_detector.type},
+            )
+
+    def test_metrics_triggered_actions(self):
+        # add actions to the workflow
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_workflows(self.job)
+            mock_incr.assert_any_call(
+                "workflow_engine.process_workflows.triggered_actions",
+                0,
+                tags={"detector_type": self.error_detector.type},
+            )
+
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     def setUp(self):
