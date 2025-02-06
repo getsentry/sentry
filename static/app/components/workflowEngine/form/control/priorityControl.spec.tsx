@@ -1,4 +1,4 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {PriorityLevel} from 'sentry/types/group';
@@ -13,15 +13,9 @@ describe('PriorityControl', function () {
   });
   it('allows configuring priority', async function () {
     const mock = jest.fn();
-    render(
-      <PriorityControl
-        priority={PriorityLevel.LOW}
-        onPriorityChange={mock}
-        name="priority"
-      />
-    );
+    render(<PriorityControl onPriorityChange={mock} name="priority" />);
     await userEvent.click(await screen.findByRole('button'));
-    await userEvent.click(screen.getByRole('option', {name: 'High'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'High'}));
     expect(mock).toHaveBeenCalledWith(PriorityLevel.HIGH);
   });
   it('allows configuring medium threshold', async function () {
