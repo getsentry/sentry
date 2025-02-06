@@ -13,13 +13,13 @@ describe('PriorityControl', function () {
   });
   it('allows configuring priority', async function () {
     const mock = jest.fn();
-      render(
-        <PriorityControl
-          priority={PriorityLevel.LOW}
-          onPriorityChange={mock}
-          name="priority"
-        />
-      );
+    render(
+      <PriorityControl
+        priority={PriorityLevel.LOW}
+        onPriorityChange={mock}
+        name="priority"
+      />
+    );
     await userEvent.click(await screen.findByRole('button'));
     await userEvent.click(screen.getByRole('option', {name: 'High'}));
     expect(mock).toHaveBeenCalledWith(PriorityLevel.HIGH);
