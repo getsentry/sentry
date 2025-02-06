@@ -49,7 +49,7 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
-import type {CHART_PALETTE} from '../../constants/chartPalette';
+import type {ChartColorPalette} from '../../constants/chartPalette';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -156,7 +156,7 @@ export interface BaseChartProps {
    * provided with the current theme
    */
   colors?:
-    | CHART_PALETTE[number]
+    | ChartColorPalette[number]
     | string[]
     | readonly string[]
     | ((theme: Theme) => string[]);

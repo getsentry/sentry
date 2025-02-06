@@ -178,7 +178,7 @@ export const CHART_PALETTE = [
   ],
 ] as const;
 
-export type ColorPalette = typeof CHART_PALETTE;
+export type ChartColorPalette = typeof CHART_PALETTE;
 type ValidLengthArgument =
   | 0
   | 1
@@ -247,7 +247,7 @@ type LengthPlusOne<T extends ValidLengthArgument> = T extends 0
  */
 export function getChartColorPalette<Length extends ValidLengthArgument>(
   length: Length | number
-): ColorPalette[LengthPlusOne<Length>] {
+): ChartColorPalette[LengthPlusOne<Length>] {
   const index = Math.min(CHART_PALETTE.length - 1, length + 1);
-  return CHART_PALETTE[index] as ColorPalette[LengthPlusOne<Length>];
+  return CHART_PALETTE[index] as ChartColorPalette[LengthPlusOne<Length>];
 }
