@@ -3095,27 +3095,26 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
 
-        with self.feature({"organizations:performance-vitals-handle-missing-webvitals": True}):
-            response = self.do_request(
-                {
-                    "field": [
-                        "transaction",
-                        "total_opportunity_score()",
-                    ],
-                    "query": 'event.type:transaction transaction.op:[pageload,""] (browser.name:Safari OR browser.name:Firefox) avg(measurements.score.total):>0',
-                    "orderby": "transaction",
-                    "dataset": "metrics",
-                    "per_page": 50,
-                }
-            )
-            assert response.status_code == 200, response.content
-            assert len(response.data["data"]) == 2
-            data = response.data["data"]
-            meta = response.data["meta"]
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "total_opportunity_score()",
+                ],
+                "query": 'event.type:transaction transaction.op:[pageload,""] (browser.name:Safari OR browser.name:Firefox) avg(measurements.score.total):>0',
+                "orderby": "transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
 
-            assert data[0]["total_opportunity_score()"] == 0.09999999999999999
-            assert data[1]["total_opportunity_score()"] == 0.6
-            assert meta["isMetricsData"]
+        assert data[0]["total_opportunity_score()"] == 0.09999999999999999
+        assert data[1]["total_opportunity_score()"] == 0.6
+        assert meta["isMetricsData"]
 
     def test_total_performance_score(self):
         self.store_transaction_metric(
@@ -3221,24 +3220,23 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
             timestamp=self.min_ago,
         )
-        with self.feature({"organizations:performance-vitals-handle-missing-webvitals": True}):
-            response = self.do_request(
-                {
-                    "field": [
-                        "transaction",
-                        "performance_score(measurements.score.total)",
-                    ],
-                    "query": "",
-                    "dataset": "metrics",
-                    "per_page": 50,
-                }
-            )
-            assert response.status_code == 200, response.content
-            assert len(response.data["data"]) == 1
-            data = response.data["data"]
-            meta = response.data["meta"]
-            assert data[0]["performance_score(measurements.score.total)"] == 0.4
-            assert meta["isMetricsData"]
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.total)",
+                ],
+                "query": "",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert data[0]["performance_score(measurements.score.total)"] == 0.4
+        assert meta["isMetricsData"]
 
     def test_count_scores(self):
         self.store_transaction_metric(
