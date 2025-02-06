@@ -21,7 +21,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
-ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
 CUTOVER_DATE = datetime(2024, 3, 22, tzinfo=timezone.utc)
 
 EventSpan = namedtuple(
