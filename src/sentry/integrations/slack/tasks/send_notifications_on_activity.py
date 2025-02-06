@@ -24,18 +24,18 @@ _TASK_QUEUED_METRIC = (
 )
 def send_activity_notifications_to_slack_threads(activity_id) -> None:
     log_params = {"activity_id": activity_id}
-    _default_logger.debug("async processing for activity", extra=log_params)
+    _default_logger.info("async processing for activity", extra=log_params)
 
     try:
         activity = Activity.objects.get(pk=activity_id)
     except Activity.DoesNotExist:
-        _default_logger.debug("activity does not exist", extra=log_params)
+        _default_logger.info("activity does not exist", extra=log_params)
         return
 
     organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
     log_params["organization_id"] = organization.id
 
-    _default_logger.debug("attempting to send notifications", extra=log_params)
+    _default_logger.info("attempting to send notifications", extra=log_params)
     slack_service = SlackService.default()
     try:
         slack_service.notify_all_threads_for_activity(activity=activity)
@@ -54,7 +54,7 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
             sample_rate=1.0,
         )
 
-    _default_logger.debug("task finished for sending notifications", extra=log_params)
+    _default_logger.info("task finished for sending notifications", extra=log_params)
 
 
 def activity_created_receiver(instance, created, **kwargs) -> None:
@@ -62,9 +62,9 @@ def activity_created_receiver(instance, created, **kwargs) -> None:
     If an activity is created for an issue, this will trigger, and we can kick off an async process
     """
     log_params = {"activity_id": instance.id, "activity_object_created": created}
-    _default_logger.debug("receiver for activity event", extra=log_params)
+    _default_logger.info("receiver for activity event", extra=log_params)
     if not created:
-        _default_logger.debug("instance is not created, skipping post processing", extra=log_params)
+        _default_logger.info("instance is not created, skipping post processing", extra=log_params)
         return
 
     transaction.on_commit(
