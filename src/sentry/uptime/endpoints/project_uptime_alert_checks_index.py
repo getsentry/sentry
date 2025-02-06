@@ -108,12 +108,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 Column(
                     label="scheduled_check_time",
                     key=AttributeKey(
-                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_FLOAT
+                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_DOUBLE
                     ),
                 ),
                 Column(
                     label="timestamp",
-                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_FLOAT),
+                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
                 ),
                 Column(
                     label="duration_ms",
@@ -191,8 +191,8 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             return self._handle_string_field(result.val_str, col_name, uptime_subscription)
         elif result.HasField("val_int"):
             return {col_name: int(result.val_int)}
-        elif result.HasField("val_float"):
-            return self._handle_float_field(result.val_float, col_name)
+        elif result.HasField("val_double"):
+            return self._handle_double_field(result.val_double, col_name)
         return {}
 
     def _handle_string_field(
@@ -206,7 +206,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             }
         return {col_name: value}
 
-    def _handle_float_field(self, value: float, col_name: str) -> Mapping[str, int | str | float]:
+    def _handle_double_field(self, value: float, col_name: str) -> Mapping[str, int | str | float]:
         if col_name in ("scheduled_check_time", "timestamp"):
             return {col_name: datetime.fromtimestamp(value).strftime("%Y-%m-%dT%H:%M:%SZ")}
         return {col_name: value}
