@@ -128,8 +128,6 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -202,8 +200,6 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -262,8 +258,6 @@ class OrganizationTracesStatsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user

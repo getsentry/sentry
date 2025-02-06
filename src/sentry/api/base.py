@@ -228,7 +228,6 @@ class Endpoint(APIView):
         | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
     ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-    snuba_methods: list[HTTP_METHOD_NAME] = []
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
         if request.GET.get("cursor") is None:

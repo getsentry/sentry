@@ -35,7 +35,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    snuba_methods = ["POST"]
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationMetricsPermission,)
 

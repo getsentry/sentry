@@ -65,7 +65,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
-    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(
