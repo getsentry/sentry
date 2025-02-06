@@ -96,6 +96,8 @@ enum Datatype {
 
 const DATATYPE_KEY = 'type';
 
+const NO_VALUE = ' \u2014 ';
+
 type Props = {
   transaction: string;
   limit?: number;
@@ -307,7 +309,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <AlignRight>
           {(row as any)[key] === undefined ? (
-            <NoValue>{' \u2014 '}</NoValue>
+            <NoValue>{NO_VALUE}</NoValue>
           ) : (
             getFormattedDuration(((row as any)[key] as number) / 1000)
           )}
@@ -318,7 +320,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <AlignRight>
           {(row as any)[key] === undefined ? (
-            <NoValue>{' \u2014 '}</NoValue>
+            <NoValue>{NO_VALUE}</NoValue>
           ) : (
             Math.round(((row as any)[key] as number) * 100) / 100
           )}
@@ -338,12 +340,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <NoOverflow>
           <AlignCenter>
-            {profileTarget && profileExists(profileId) && (
+            {profileTarget && profileExists(profileId) ? (
               <Tooltip title={t('View Profile')}>
                 <LinkButton to={profileTarget} size="xs">
                   <IconProfiling size="xs" />
                 </LinkButton>
               </Tooltip>
+            ) : (
+              <NoValue>{NO_VALUE}</NoValue>
             )}
           </AlignCenter>
         </NoOverflow>
@@ -375,14 +379,16 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         <NoOverflow>
           <AlignCenter>
             {replayTarget &&
-              Object.keys(replayTarget).length > 0 &&
-              replayExists(row[key]) && (
-                <Tooltip title={t('View Replay')}>
-                  <LinkButton to={replayTarget} size="xs">
-                    <IconPlay size="xs" />
-                  </LinkButton>
-                </Tooltip>
-              )}
+            Object.keys(replayTarget).length > 0 &&
+            replayExists(row[key]) ? (
+              <Tooltip title={t('View Replay')}>
+                <LinkButton to={replayTarget} size="xs">
+                  <IconPlay size="xs" />
+                </LinkButton>
+              </Tooltip>
+            ) : (
+              <NoValue>{NO_VALUE}</NoValue>
+            )}
           </AlignCenter>
         </NoOverflow>
       );
@@ -417,8 +423,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return <NoOverflow>{row[key]}</NoOverflow>;
+    return (
+      <NoOverflow>
+        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
+        {row[key] && row[key] !== '' ? row[key] : <NoValue>{NO_VALUE}</NoValue>}
+      </NoOverflow>
+    );
   }
 
   const handleSearch = useCallback(
