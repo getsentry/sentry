@@ -65,6 +65,7 @@ def retrieve_uptime_subscription(
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
+    trace_sampling: bool,
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -73,6 +74,7 @@ def retrieve_uptime_subscription(
                 interval_seconds=interval_seconds,
                 timeout_ms=timeout_ms,
                 method=method,
+                trace_sampling=trace_sampling,
             )
             .annotate(
                 headers_md5=MD5("headers", output_field=TextField()),
@@ -109,7 +111,7 @@ def get_or_create_uptime_subscription(
     result = extract_domain_parts(url)
 
     subscription = retrieve_uptime_subscription(
-        url, interval_seconds, timeout_ms, method, headers, body
+        url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
     )
     created = False
 
@@ -132,7 +134,7 @@ def get_or_create_uptime_subscription(
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
             subscription = retrieve_uptime_subscription(
-                url, interval_seconds, timeout_ms, method, headers, body
+                url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
             )
 
     if subscription is None:
