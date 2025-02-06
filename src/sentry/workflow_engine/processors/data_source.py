@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 
 import sentry_sdk
 from django.db.models import Prefetch
@@ -34,6 +35,14 @@ def process_data_sources(
         if detectors:
             data_packet_tuple = (packet, detectors)
             result.append(data_packet_tuple)
+
+            detector_metrics = Counter(detector.type for detector in detectors)
+            for detector_type, count in detector_metrics.items():
+                metrics.incr(
+                    "workflow_engine.process_data_sources.detectors",
+                    count,
+                    tags={"detector_type": detector_type},
+                )
 
             metrics.incr(
                 "workflow_engine.process_data_sources.detectors",

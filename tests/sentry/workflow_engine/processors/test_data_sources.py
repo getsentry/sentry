@@ -118,3 +118,16 @@ class TestProcessDataSources(BaseWorkflowTest):
                 "workflow_engine.process_data_sources.no_detectors",
                 tags={"query_type": "test3"},
             )
+
+    def test_metrics_for_many_detectors(self):
+        self.detector_three = self.create_detector(name="test_detector3")
+        self.ds1.detectors.add(self.detector_three)
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_data_sources(self.data_packets, "test")
+
+            mock_incr.assert_any_call(
+                "workflow_engine.process_data_sources.detectors",
+                2,
+                tags={"detector_type": self.detector_one.type},
+            )

@@ -13,7 +13,7 @@ def process_data_packets(
     the incoming data and create issue occurrences.
 
     This is the general entry point for the workflow engine. It will create
-    a metric pipline with the following metrics:
+    a metric pipeline with the following metrics:
     - workflow_engine.process_data_sources
         - workflow_engine.process_data_sources.detectors
         - workflow_engine.process_data_sources.no_detectors
