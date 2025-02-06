@@ -853,7 +853,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_trigger_action_legacy_fields(self):
         updated_fields = {
-            "integration_id": self.integration.id,  # TODO: set up the integration properly and stuff
+            "integration_id": self.integration.id,
             "target_display": "freddy frog",
             "target_identifier": "freddy_frog",
             "target_type": ActionTarget.USER,
