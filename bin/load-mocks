@@ -44,6 +44,18 @@ if __name__ == "__main__":
         action="store_true",
         help="sleep between each transaction to let clickhouse rest",
     )
+    parser.add_option(
+        "--load-metric-issues",
+        default=False,
+        action="store_true",
+        help="load metric issues",
+    )
+    parser.add_option(
+        "--metric_alert_id",
+        default=None,
+        type=int,
+        help="load metric issues with a specific alert id",
+    )
 
     (options, args) = parser.parse_args()
 
@@ -55,6 +67,7 @@ if __name__ == "__main__":
             load_trends=options.load_trends,
             load_performance_issues=options.load_performance_issues,
             slow=options.slow,
+            load_metric_issues=options.load_metric_issues,
         )
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
