@@ -177,3 +177,77 @@ export const CHART_PALETTE = [
     '#f2b712',
   ],
 ] as const;
+
+export type ColorPalette = typeof CHART_PALETTE;
+type ValidLengthArgument =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 11
+  | 12
+  | 13
+  | 14
+  | 15
+  | 16
+  | 17;
+
+// @TODO(jonasbadalic) I hate this, but iirc it is the only way to the type to the next index
+type LengthPlusOne<T extends ValidLengthArgument> = T extends 0
+  ? 1
+  : T extends 1
+    ? 2
+    : T extends 2
+      ? 3
+      : T extends 3
+        ? 4
+        : T extends 4
+          ? 5
+          : T extends 5
+            ? 6
+            : T extends 6
+              ? 7
+              : T extends 7
+                ? 8
+                : T extends 8
+                  ? 9
+                  : T extends 9
+                    ? 10
+                    : T extends 10
+                      ? 11
+                      : T extends 11
+                        ? 12
+                        : T extends 12
+                          ? 13
+                          : T extends 13
+                            ? 14
+                            : T extends 14
+                              ? 15
+                              : T extends 15
+                                ? 16
+                                : T extends 16
+                                  ? 17
+                                  : T extends 17
+                                    ? 18
+                                    : never;
+/**
+ * Returns the color palette for a given number of series.
+ * If length argument is statically analyzable, the return type will be narrowed
+ * to the specific color palette index.
+ * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
+ * return a single color, not two colors. It smells like either a bug or off by one error.
+ * @param length - The number of series to return a color palette for?
+ */
+export function getChartColorPalette<Length extends ValidLengthArgument>(
+  length: Length | number
+): ColorPalette[LengthPlusOne<Length>] {
+  const index = Math.min(CHART_PALETTE.length - 1, length + 1);
+  return CHART_PALETTE[index] as ColorPalette[LengthPlusOne<Length>];
+}
