@@ -7,6 +7,7 @@ import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from '../discover/types';
 
 export enum FieldKind {
   TAG = 'tag',
+  FEATURE_FLAG = 'feature_flag',
   MEASUREMENT = 'measurement',
   BREAKDOWN = 'breakdown',
   FIELD = 'field',
