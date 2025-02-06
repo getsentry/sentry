@@ -7,12 +7,12 @@ from sentry.rules.conditions.event_frequency import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(DataConditionHandler[WorkflowJob]):
+class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -24,15 +24,15 @@ class EventFrequencyCountHandler(DataConditionHandler[WorkflowJob]):
     }
 
     @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 1:
+    def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
+        if len(value) != 1:
             return False
-        return value["snuba_results"][0] > comparison["value"]
+        return value[0] > comparison["value"]
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(DataConditionHandler[WorkflowJob]):
+class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -45,13 +45,10 @@ class EventFrequencyPercentHandler(DataConditionHandler[WorkflowJob]):
     }
 
     @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 2:
+    def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
+        if len(value) != 2:
             return False
-        return (
-            percent_increase(value["snuba_results"][0], value["snuba_results"][1])
-            > comparison["value"]
-        )
+        return percent_increase(value[0], value[1]) > comparison["value"]
 
 
 # Percent sessions values must be between 0-100 (%)

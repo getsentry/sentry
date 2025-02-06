@@ -13,6 +13,10 @@ from sentry.rules.processing.delayed_processing import fetch_project
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
+from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+    EventFrequencyQueryHandler,
+    EventUniqueUserFrequencyQueryHandler,
+)
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
@@ -489,4 +493,140 @@ class TestGetSnubaResults(BaseWorkflowTest):
         assert results == {
             count_query: {group_id: 4},
             offset_percent_query: {group_id: 1},
+        }
+
+
+class TestGetGroupsToFire(TestDelayedWorkflowBase):
+    def setUp(self):
+        super().setUp()
+
+        self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs
+        self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
+        self.condition_group_results = {
+            UniqueConditionQuery(
+                handler=EventFrequencyQueryHandler,
+                interval="1h",
+                environment_id=self.environment.id,
+            ): {self.group1.id: 101, self.group2.id: 101},
+            UniqueConditionQuery(
+                handler=EventFrequencyQueryHandler,
+                interval="1h",
+                comparison_interval="1w",
+                environment_id=self.environment.id,
+            ): {self.group1.id: 50, self.group2.id: 50},
+            UniqueConditionQuery(
+                handler=EventFrequencyQueryHandler, interval="1h", environment_id=None
+            ): {self.group1.id: 101, self.group2.id: 101},
+            UniqueConditionQuery(
+                handler=EventFrequencyQueryHandler,
+                interval="1h",
+                comparison_interval="1w",
+                environment_id=None,
+            ): {self.group1.id: 202, self.group2.id: 202},
+            UniqueConditionQuery(
+                handler=EventUniqueUserFrequencyQueryHandler,
+                interval="1h",
+                environment_id=self.environment.id,
+            ): {self.group1.id: 101, self.group2.id: 101},
+            UniqueConditionQuery(
+                handler=EventUniqueUserFrequencyQueryHandler, interval="1h", environment_id=None
+            ): {self.group1.id: 50, self.group2.id: 50},
+        }
+
+        # add slow condition to workflow1 IF dcg (ALL), passes
+        self.create_data_condition(
+            condition_group=self.workflow1_dcgs[1],
+            type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        # add slow condition to workflow2 WHEN dcg (ANY), fails but the DCG itself passes
+        self.create_data_condition(
+            condition_group=self.workflow2_dcgs[0],
+            type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+
+    def test_simple(self):
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.dcg_to_workflow,
+            self.dcg_to_groups,
+            self.condition_group_results,
+        )
+
+        assert result == {
+            self.group1.id: set(self.workflow1_dcgs),  # WHEN dcg (ANY-short), IF dcg (ALL)
+            self.group2.id: {self.workflow2_dcgs[0]},  # WHEN dcg (ANY-short)
+        }
+
+    def test_dcg_all_fails(self):
+        self.condition_group_results.update(
+            {
+                UniqueConditionQuery(
+                    handler=EventUniqueUserFrequencyQueryHandler,
+                    interval="1h",
+                    environment_id=self.environment.id,
+                ): {self.group1.id: 99}
+            }
+        )
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.dcg_to_workflow,
+            self.dcg_to_groups,
+            self.condition_group_results,
+        )
+
+        assert result == {
+            self.group1.id: {self.workflow1_dcgs[0]},  # WHEN dcg (ANY-short)
+            self.group2.id: {self.workflow2_dcgs[0]},  # WHEN dcg (ANY-short)
+        }
+
+    def test_dcg_any_fails(self):
+        self.condition_group_results.update(
+            {
+                UniqueConditionQuery(
+                    handler=EventFrequencyQueryHandler, interval="1h", environment_id=None
+                ): {self.group2.id: 99}
+            }
+        )
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.dcg_to_workflow,
+            self.dcg_to_groups,
+            self.condition_group_results,
+        )
+
+        assert result == {
+            self.group1.id: set(self.workflow1_dcgs),  # WHEN dcg (ANY-short), IF dcg (ALL)
+        }
+
+    def test_multiple_dcgs_per_group(self):
+        for dcg in self.workflow1_dcgs:
+            self.dcg_to_groups[dcg.id].add(self.group2.id)
+        for dcg in self.workflow2_dcgs:
+            self.dcg_to_groups[dcg.id].add(self.group1.id)
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.dcg_to_workflow,
+            self.dcg_to_groups,
+            self.condition_group_results,
+        )
+
+        assert result == {
+            self.group1.id: set(
+                self.workflow1_dcgs + [self.workflow2_dcgs[0]]
+            ),  # all dcgs except workflow 2 IF, which never passes
+            self.group2.id: {
+                self.workflow2_dcgs[0],
+                self.workflow1_dcgs[0],
+            },  # WHEN dcgs (ANY-short)
         }
