@@ -195,7 +195,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               label={t('Interval')}
               defaultValue={60}
               flexibleControlStateSize
-              showHelpInTooltip
+              showHelpInTooltip={{isHoverable: true}}
               help={({model}) =>
                 tct(
                   'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
