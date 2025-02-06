@@ -49,6 +49,8 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
+import type {CHART_PALETTE} from '../../constants/chartPalette';
+
 import Grid from './components/grid';
 import Legend from './components/legend';
 import type {TooltipSubLabel} from './components/tooltip';
@@ -153,7 +155,11 @@ export interface BaseChartProps {
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
    */
-  colors?: string[] | readonly string[] | ((theme: Theme) => string[]);
+  colors?:
+    | CHART_PALETTE[number]
+    | string[]
+    | readonly string[]
+    | ((theme: Theme) => string[]);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
