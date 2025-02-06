@@ -1136,14 +1136,9 @@ const commonTheme = {
   dataCategory,
 
   charts: {
-    colors: CHART_PALETTE[CHART_PALETTE.length - 1],
-
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-
-    previousPeriod: lightColors.gray200,
-    symbolSize: 6,
   },
 
   diff: {
