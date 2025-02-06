@@ -113,7 +113,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
               {sort === 'count' && sortArrow}
               {t('Count')}
             </ColumnSort>
-            <ColumnTitle>{t('Share')}</ColumnTitle>
+            <ShareColumnTitle>{t('Share')}</ShareColumnTitle>
           </Header>
           <Body>
             {tagValues.map((tv, i) => (
@@ -294,16 +294,24 @@ function TagValueActionsMenu({
 
 const Table = styled('div')`
   display: grid;
-  grid-template-columns: 1fr repeat(3, auto) 45px min-content;
-  column-gap: ${space(2)};
+  grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
+  column-gap: ${space(1)};
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    column-gap: ${space(2)};
+  }
 `;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ShareColumnTitle = styled(ColumnTitle)`
+  text-align: center;
 `;
 
 const ColumnSort = styled(Link)`
@@ -369,6 +377,7 @@ const ValueLink = styled(Link)`
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.subText};
+  word-break: break-all;
 `;
 
 const IconLink = styled(Link)`
@@ -377,9 +386,7 @@ const IconLink = styled(Link)`
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const ExternalLinkbutton = styled(Button)`
