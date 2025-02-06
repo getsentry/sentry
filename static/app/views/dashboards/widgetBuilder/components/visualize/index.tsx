@@ -7,7 +7,6 @@ import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
@@ -40,16 +39,13 @@ import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
-import {
-  BufferedInput,
-  type ParameterDescription,
-  validateColumnTypes,
-} from 'sentry/views/discover/table/queryField';
+import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -908,89 +904,6 @@ function Visualize({error, setError}: VisualizeProps) {
 }
 
 export default Visualize;
-
-function AggregateParameterField({
-  parameter,
-  fieldValue,
-  onChange,
-  currentValue,
-}: {
-  currentValue: string;
-  fieldValue: QueryFieldValue;
-  onChange: (value: string) => void;
-  parameter: ParameterDescription;
-}) {
-  if (parameter.kind === 'value') {
-    const inputProps = {
-      required: parameter.required,
-      value:
-        currentValue ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
-      onUpdate: (value: any) => {
-        onChange(value);
-      },
-      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-          onChange(e.currentTarget.value);
-        }
-      },
-      placeholder: parameter.placeholder,
-    };
-    switch (parameter.dataType) {
-      case 'number':
-        return (
-          <BufferedInput
-            name="refinement"
-            key={`parameter:number-${currentValue}`}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*(\.[0-9]*)?"
-            aria-label={t('Numeric Input')}
-            {...inputProps}
-          />
-        );
-      case 'integer':
-        return (
-          <BufferedInput
-            name="refinement"
-            key="parameter:integer"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            aria-label={t('Integer Input')}
-            {...inputProps}
-          />
-        );
-      default:
-        return (
-          <BufferedInput
-            name="refinement"
-            key="parameter:text"
-            type="text"
-            aria-label={t('Text Input')}
-            {...inputProps}
-          />
-        );
-    }
-  }
-  if (parameter.kind === 'dropdown') {
-    return (
-      <SelectControl
-        key="dropdown"
-        name="dropdown"
-        menuPlacement="auto"
-        placeholder={t('Select value')}
-        options={parameter.options}
-        value={currentValue}
-        required={parameter.required}
-        onChange={({value}: any) => {
-          onChange(value);
-        }}
-        searchable
-      />
-    );
-  }
-  throw new Error(`Unknown parameter type encountered for ${fieldValue}`);
-}
 
 function renderTag(kind: FieldValueKind, label: string) {
   let text, tagType;
