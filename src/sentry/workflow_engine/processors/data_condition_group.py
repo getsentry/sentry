@@ -57,7 +57,6 @@ def evaluate_condition_group(
     """
     Evaluate the conditions for a given group and value.
     """
-    results: list[tuple[bool, DataConditionResult]] = []
     conditions = get_data_conditions_for_group(data_condition_group.id)
 
     if is_fast:
@@ -65,6 +64,13 @@ def evaluate_condition_group(
     else:
         _, conditions = split_conditions_by_speed(conditions)
         remaining_conditions = []
+
+    ###########
+    #
+    # TODO - @saponifi3d figure out how to decompose this.
+    #      - What if we want to take a list of values to evaluate?
+    ############
+    results: list[tuple[bool, DataConditionResult]] = []
 
     if len(conditions) == 0:
         # if we don't have any conditions, always return True
@@ -83,6 +89,7 @@ def evaluate_condition_group(
                 return False, [], []
 
         results.append((is_condition_triggered, evaluation_result))
+    ############
 
     logic_type = data_condition_group.logic_type
     logic_result, condition_results = process_condition_group_results(
