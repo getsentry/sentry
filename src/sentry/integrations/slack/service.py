@@ -124,7 +124,7 @@ class SlackService:
         If the group is not associated with an activity, return early as there's nothing to do.
         If the user is not associated with an activity, return early as we only care about user activities.
         """
-        log_params = {
+        log_params: dict[str, Any] = {
             "activity_id": activity.id,
             "project_id": activity.project.id,
         }
@@ -209,7 +209,9 @@ class SlackService:
             ):
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(activity.group)
-                log_params["open_period_start"] = str(open_period_start)
+                log_params["open_period_start"] = (
+                    open_period_start.isoformat() if open_period_start else None
+                )
                 _default_logger.info(
                     "open period start is enabled for this organization",
                     extra=log_params,
