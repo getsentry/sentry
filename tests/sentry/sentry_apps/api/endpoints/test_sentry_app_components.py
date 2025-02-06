@@ -325,7 +325,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_component_prep_general_error(self, run, capture_exception):
-        run.side_effect = [Exception(":dead:"), SentryAppSentryError("oh shit swip split snip")]
+        run.side_effect = [Exception(":dead:"), SentryAppSentryError("government secrets here")]
         capture_exception.return_value = 1
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
