@@ -165,7 +165,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
             />
             <StyledTimeSince
               tooltipBody={<EventCreatedTooltip event={event} />}
-              tooltipProps={{maxWidth: 300}}
+              tooltipProps={{maxWidth: 300, isHoverable: true}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
               aria-label={t('Event timestamp')}
