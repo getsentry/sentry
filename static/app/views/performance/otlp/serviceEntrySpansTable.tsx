@@ -40,7 +40,7 @@ type Row = Pick<
   | 'trace'
   | 'timestamp'
   | 'replay.id'
-  | 'profile_id'
+  | 'profile.id'
   | 'profiler.id'
   | 'thread.id'
   | 'precise.start_ts'
@@ -54,7 +54,7 @@ type Column = GridColumnHeader<
   | 'trace'
   | 'timestamp'
   | 'replay.id'
-  | 'profile_id'
+  | 'profile.id'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -89,7 +89,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'profile_id',
+    key: 'profile.id',
     name: t('Profile'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -135,7 +135,7 @@ export function ServiceEntrySpansTable({
         'trace',
         'timestamp',
         'replay.id',
-        'profile_id',
+        'profile.id',
         'profiler.id',
         'thread.id',
         'precise.start_ts',
@@ -209,20 +209,21 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'profile_id') {
+  if (column.key === 'profile.id') {
+    console.dir(row);
     return (
       <div>
         <LinkButton
           size="xs"
           icon={<IconProfiling size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row.profile_id}/flamegraph/`,
+            pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
             query: {
               referrer: 'performance',
             },
           }}
           aria-label={t('View Profile')}
-          disabled={!row.profile_id}
+          disabled={!row['profile.id']}
         ></LinkButton>
       </div>
     );
