@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -35,7 +35,7 @@ type State = {
   superuserReason: string;
 };
 
-class SuperuserStaffAccessForm extends Component<Props, State> {
+class SuperuserStaffAccessFormContent extends Component<Props, State> {
   constructor(props: any) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
@@ -195,7 +195,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
       return null;
     }
 
-    const FormContent = (
+    return (
       <ThemeAndStyleProvider>
         {this.props.hasStaff ? (
           isLoading ? (
@@ -245,16 +245,21 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
         )}
       </ThemeAndStyleProvider>
     );
+  }
+}
 
-    const router = createBrowserRouter([
+const FormWithApi = withApi(SuperuserStaffAccessFormContent);
+
+export default function SuperuserStaffAccessForm({api, hasStaff}: Props) {
+  const [router] = useState(() =>
+    createBrowserRouter([
       {
         path: '*',
-        element: FormContent,
+        element: <FormWithApi api={api} hasStaff={hasStaff} />,
       },
-    ]);
-
-    return <RouterProvider router={router} />;
-  }
+    ])
+  );
+  return <RouterProvider router={router} />;
 }
 
 const StyledAlert = styled(Alert)`
@@ -265,5 +270,3 @@ const BackWrapper = styled('div')`
   width: 100%;
   margin-left: ${space(4)};
 `;
-
-export default withApi(SuperuserStaffAccessForm);
