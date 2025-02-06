@@ -38,6 +38,7 @@ const ACTIONS: Action[] = [
     action: () =>
       openSudo({
         isSuperuser: true,
+        needsReload: true,
       }),
   },
 
