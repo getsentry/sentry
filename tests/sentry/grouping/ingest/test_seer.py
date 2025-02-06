@@ -17,6 +17,7 @@ from sentry.grouping.ingest.seer import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.seer.similarity.utils import (
@@ -273,6 +274,7 @@ class ShouldCallSeerTest(TestCase):
         assert event.data.get("stacktrace_string") is None
 
 
+@apply_feature_flag_on_cls("organizations:grouping-hybrid-fingerprint-seer-usage")
 @apply_feature_flag_on_cls("organizations:grouphash-metadata-creation")
 class GetSeerSimilarIssuesTest(TestCase):
     def create_new_event(
@@ -343,7 +345,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             }
         )
 
-    def test_parent_group_found(self) -> None:
+    def test_parent_group_found_simple(self) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
         existing_grouphash = GroupHash.objects.filter(
@@ -372,6 +374,181 @@ class GetSeerSimilarIssuesTest(TestCase):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
                 expected_metadata,
                 existing_grouphash,
+            )
+
+    def test_parent_group_found_hybrid_fingerprint_match(self) -> None:
+        existing_event = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
+            self.project,
+        )
+        existing_hash = existing_event.get_primary_hash()
+        existing_grouphash = GroupHash.objects.filter(
+            hash=existing_hash, project_id=self.project.id
+        ).first()
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = self.create_new_event(
+            fingerprint=["{{ default }}", "maisey"]
+        )
+
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=existing_hash,
+            parent_group_id=existing_event.group_id,
+            stacktrace_distance=0.01,
+            should_group=True,
+        )
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [asdict(seer_result_data)],
+            }
+
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                expected_metadata,
+                existing_grouphash,
+            )
+
+    def test_parent_group_found_hybrid_fingerprint_mismatch(self) -> None:
+        existing_event = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
+            self.project,
+        )
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = self.create_new_event(
+            fingerprint=["{{ default }}", "charlie"]
+        )
+
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
+            stacktrace_distance=0.01,
+            should_group=True,
+        )
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [],
+            }
+
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                expected_metadata,
+                None,
+            )
+
+    def test_parent_group_found_hybrid_fingerprint_on_new_event_only(self) -> None:
+        existing_event = save_new_event(
+            {"message": "Dogs are great!"},
+            self.project,
+        )
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = self.create_new_event(
+            fingerprint=["{{ default }}", "charlie"]
+        )
+
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
+            stacktrace_distance=0.01,
+            should_group=True,
+        )
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [],
+            }
+
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                expected_metadata,
+                None,
+            )
+
+    def test_parent_group_found_hybrid_fingerprint_on_existing_event_only(self) -> None:
+        existing_event = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
+            self.project,
+        )
+        assert existing_event.group_id
+
+        new_event, new_variants, new_grouphash, _ = self.create_new_event()
+
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
+            stacktrace_distance=0.01,
+            should_group=True,
+        )
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [],
+            }
+
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                expected_metadata,
+                None,
+            )
+
+    def test_parent_group_found_hybrid_fingerprint_no_metadata(self) -> None:
+        """
+        Test that even when there's a match, no result will be returned if the matched hash has
+        no metadata.
+        """
+        existing_event = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
+            self.project,
+        )
+        existing_hash = existing_event.get_primary_hash()
+        existing_grouphash = GroupHash.objects.filter(
+            hash=existing_hash, project_id=self.project.id
+        ).first()
+        assert existing_event.group_id
+        assert existing_grouphash
+
+        # Ensure the existing grouphash has no metadata
+        GroupHashMetadata.objects.filter(grouphash=existing_grouphash).delete()
+        assert existing_grouphash.metadata is None
+
+        new_event, new_variants, new_grouphash, _ = self.create_new_event(
+            fingerprint=["{{ default }}", "maisey"]
+        )
+
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=existing_hash,
+            parent_group_id=existing_event.group_id,
+            stacktrace_distance=0.01,
+            should_group=True,
+        )
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [],
+            }
+
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
+                expected_metadata,
+                None,
             )
 
     def test_no_parent_group_found(self) -> None:
