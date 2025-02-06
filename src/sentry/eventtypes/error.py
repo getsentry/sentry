@@ -77,7 +77,7 @@ class ErrorEvent(BaseEvent):
         if title is not None:
             value = metadata.get("value")
             if value:
-                title += f": {truncatechars(value.splitlines()[0], 100)}"
+                title += f": {truncatechars(value.splitlines()[0], 256)}"
 
         return title or metadata.get("function") or "<unknown>"
 

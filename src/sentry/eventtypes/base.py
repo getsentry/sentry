@@ -48,7 +48,7 @@ class DefaultEvent(BaseEvent):
         )
 
         if message:
-            title = truncatechars(message.splitlines()[0], 100)
+            title = truncatechars(message.splitlines()[0], 256)
         else:
             title = "<unlabeled event>"
 
