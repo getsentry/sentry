@@ -25,7 +25,7 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
 
     @staticmethod
     def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
-        if len(value) != 1:
+        if not isinstance(value, list) or len(value) != 1:
             return False
         return value[0] > comparison["value"]
 
@@ -46,7 +46,7 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
 
     @staticmethod
     def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
-        if len(value) != 2:
+        if not isinstance(value, list) or len(value) != 2:
             return False
         return percent_increase(value[0], value[1]) > comparison["value"]
 
