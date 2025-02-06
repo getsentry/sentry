@@ -175,6 +175,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               <LegendText>
                 {t('Check succeeded')}
                 <QuestionTooltip
+                  isHoverable
                   size="sm"
                   title={tct(
                     "A check status is successful when it meets uptime's check criteria. [link:Learn more].",
@@ -192,6 +193,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               <LegendText>
                 {t('Check failed')}
                 <QuestionTooltip
+                  isHoverable
                   size="sm"
                   title={tct(
                     "A check status is failed when it does't meet uptime's check criteria. A downtime issue is created after three consecutive failures. [link:Learn more].",
@@ -210,6 +212,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
                 <LegendText>
                   {t('Did not perform check')}
                   <QuestionTooltip
+                    isHoverable
                     size="sm"
                     title={tct(
                       'A check status is unknown when Sentry is unable to execute an uptime check at the scheduled time. [link:Learn more].',
