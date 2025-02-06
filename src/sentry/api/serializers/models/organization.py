@@ -73,6 +73,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember, QuickStartDisplayStatus
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -558,6 +559,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     requiresSso: bool
     rollbackEnabled: bool
     streamlineOnly: bool
+    quickStartDisplayStatus: QuickStartDisplayStatus | None
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -608,6 +610,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         elif has_dynamic_sampling(obj):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+
+        active_org_member = OrganizationMember.objects.get(organization=obj, user_id=user.id)
+        quickStartDisplayStatus = getattr(active_org_member, "quick_start_display_status", None)
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
@@ -727,6 +732,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "quickStartDisplayStatus": quickStartDisplayStatus,
         }
 
         if features.has("organizations:uptime-settings", obj):

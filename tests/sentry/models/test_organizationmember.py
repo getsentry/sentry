@@ -553,3 +553,18 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
             member.role = "manager"
             member.save()
+
+    def test_set_quick_start_display_status(self):
+        member = self.create_member(
+            organization=self.organization,
+            role="owner",
+            user=self.create_user(),
+            quick_start_display_status=1,
+        )
+        assert OrganizationMember.objects.filter(
+            id=member.id, quick_start_display_status=1
+        ).exists()
+
+        with pytest.raises(AssertionError):
+            member.quick_start_display_status = 5
+            member.save()

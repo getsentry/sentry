@@ -73,6 +73,23 @@ logger = logging.getLogger("sentry.org_roles")
 INVITE_DAYS_VALID = 30
 
 
+class QuickStartDisplayStatus(Enum):
+    INITIAL_HIDDEN = 0  # Hidden on the first visit
+    SHOWN_ONCE = 1  # Shown once (on the second visit)
+    AUTO_HIDDEN_AFTER_SECOND = 2  # Automatically hidden after the second visit
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (QuickStartDisplayStatus.INITIAL_HIDDEN.value, _("Hidden on First Visit")),
+            (QuickStartDisplayStatus.SHOWN_ONCE.value, _("Shown on Second Visit")),
+            (
+                QuickStartDisplayStatus.AUTO_HIDDEN_AFTER_SECOND.value,
+                _("Auto Hidden After Second Visit"),
+            ),
+        )
+
+
 class InviteStatus(Enum):
     APPROVED = 0
     REQUESTED_TO_BE_INVITED = 1
@@ -241,6 +258,13 @@ class OrganizationMember(ReplicatedRegionModel):
     # invite the user.
     user_email = models.CharField(max_length=75, null=True, blank=True)
 
+    # This field tracks whether the quick start guide was automatically shown to the user during their second visit.
+    quick_start_display_status = models.PositiveSmallIntegerField(
+        choices=QuickStartDisplayStatus.as_choices(),
+        default=QuickStartDisplayStatus.INITIAL_HIDDEN.value,
+        null=True,
+    )
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmember"
@@ -252,6 +276,12 @@ class OrganizationMember(ReplicatedRegionModel):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
         ), "Must set either user or email"
+
+        if self.quick_start_display_status is not None:
+            valid_status_values = [status.value for status in QuickStartDisplayStatus]
+            assert (
+                self.quick_start_display_status in valid_status_values
+            ), f"Invalid quick_start_display_status value: {self.quick_start_display_status}. Must be 0, 1 or 2."
 
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:
