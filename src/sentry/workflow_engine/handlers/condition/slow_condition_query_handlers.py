@@ -141,7 +141,6 @@ class BaseEventFrequencyQueryHandler(ABC):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        interval: str,
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
