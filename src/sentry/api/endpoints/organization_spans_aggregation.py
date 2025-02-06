@@ -40,11 +40,6 @@ EventSpan = namedtuple(
 )
 
 
-class EventSpans(TypedDict):
-    transaction_id: str
-    spans: list[EventSpan]
-
-
 class SpanSample(TypedDict):
     transaction: str | None
     trace: str | None
