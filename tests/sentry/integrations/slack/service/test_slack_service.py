@@ -252,7 +252,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=self.project,
-            type=ActivityType.SET_IGNORED.value,
+            type=ActivityType.SET_RESOLVED.value,
             user_id=None,
             data={"ignoreUntilEscalating": True},
         )

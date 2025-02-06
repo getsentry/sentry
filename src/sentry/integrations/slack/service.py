@@ -133,7 +133,12 @@ class SlackService:
             )
             return None
 
-        if activity.user_id is None and activity.group.issue_category != GroupCategory.UPTIME:
+        uptime_resolved_notification = (
+            activity.type == ActivityType.SET_RESOLVED.value
+            and activity.group.issue_category == GroupCategory.UPTIME
+        )
+
+        if activity.user_id is None and not uptime_resolved_notification:
             self._logger.info(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra={
