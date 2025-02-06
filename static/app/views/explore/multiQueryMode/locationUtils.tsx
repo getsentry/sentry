@@ -171,6 +171,17 @@ export function useUpdateQueryAtIndex() {
   );
 }
 
+export function useAddQuery() {
+  const location = useLocation();
+  const queries = useReadQueriesFromLocation();
+  const navigate = useNavigate();
+
+  return useCallback(() => {
+    const target = getUpdatedLocationWithQueries(location, [...queries, DEFAULT_QUERY]);
+    navigate(target);
+  }, [location, navigate, queries]);
+}
+
 // Write utils end
 
 // General utils
