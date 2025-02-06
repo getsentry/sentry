@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
+from sentry import options
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
@@ -76,8 +77,12 @@ class ErrorEvent(BaseEvent):
         title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")
+            if options.get("sentry.save-event.title-char-limit-256.enabled"):
+                truncate_to = 256
+            else:
+                truncate_to = 100
             if value:
-                title += f": {truncatechars(value.splitlines()[0], 100)}"
+                title += f": {truncatechars(value.splitlines()[0], truncate_to)}"
 
         return title or metadata.get("function") or "<unknown>"
 

@@ -35,6 +35,7 @@ from tests.sentry.grouping import (
 dummy_project = Mock(id=11211231)
 
 
+@django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
@@ -187,6 +188,7 @@ def _assert_and_snapshot_results(
     )
 
 
+@django_db_all
 class GroupHashMetadataTest(TestCase):
     def test_check_grouphashes_for_positive_fingerprint_match(self):
         grouphash1 = GroupHash.objects.create(hash="dogs", project_id=self.project.id)

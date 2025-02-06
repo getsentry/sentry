@@ -4,6 +4,7 @@ from typing import Any
 from unittest import TestCase
 
 from sentry.eventtypes.error import ErrorEvent
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class GetMetadataTest(TestCase):
@@ -89,6 +90,7 @@ class GetMetadataTest(TestCase):
         }
 
 
+@django_db_all
 class GetTitleTest(TestCase):
     def test_none_value(self):
         inst = ErrorEvent()
