@@ -322,14 +322,14 @@ describe('NetworkDetailsContent', () => {
       );
 
       it.each([
-        {isSetup: true, isCaptureSetupBody: true, itemName: 'fetchNoDataObj'},
-        {isSetup: true, isCaptureSetupBody: true, itemName: 'fetchUrlSkipped'},
-        {isSetup: true, isCaptureSetupBody: true, itemName: 'fetchEmptyBody'},
-        {isSetup: true, isCaptureSetupBody: true, itemName: 'fetchWithHeaders'},
-        {isSetup: true, isCaptureSetupBody: false, itemName: 'fetchNoDataObj'},
-        {isSetup: true, isCaptureSetupBody: false, itemName: 'fetchUrlSkipped'},
-        {isSetup: true, isCaptureSetupBody: false, itemName: 'fetchEmptyBody'},
-        {isSetup: true, isCaptureSetupBody: false, itemName: 'fetchWithHeaders'},
+        {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchNoDataObj'},
+        {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchUrlSkipped'},
+        {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchEmptyBody'},
+        {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchWithHeaders'},
+        {isSetup: true, isCaptureBodySetup: false, itemName: 'fetchNoDataObj'},
+        {isSetup: true, isCaptureBodySetup: false, itemName: 'fetchUrlSkipped'},
+        {isSetup: true, isCaptureBodySetup: false, itemName: 'fetchEmptyBody'},
+        {isSetup: true, isCaptureBodySetup: false, itemName: 'fetchWithHeaders'},
       ])(
         'should render the `query params` & `setup` sections when the item has no data. [$itemName]',
         ({isSetup, isCaptureBodySetup, itemName}) => {
