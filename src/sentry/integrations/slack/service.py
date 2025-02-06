@@ -126,7 +126,6 @@ class SlackService:
         """
         log_params = {
             "activity_id": activity.id,
-            "activity_type": activity.type,
             "project_id": activity.project.id,
         }
 
