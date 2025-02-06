@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -194,7 +195,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
       return null;
     }
 
-    return (
+    const FormContent = (
       <ThemeAndStyleProvider>
         {this.props.hasStaff ? (
           isLoading ? (
@@ -244,6 +245,15 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
         )}
       </ThemeAndStyleProvider>
     );
+
+    const router = createBrowserRouter([
+      {
+        path: '*',
+        element: FormContent,
+      },
+    ]);
+
+    return <RouterProvider router={router} />;
   }
 }
 
