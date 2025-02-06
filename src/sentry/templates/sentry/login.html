@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block title %}{% trans "Sign In" %} | {{ block.super }}{% endblock %}
 
@@ -142,4 +143,19 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block scripts_bottom_2 %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const timezoneInput = document.querySelector('input[name=timezone]');
+      if (timezoneInput) {
+        timezoneInput.value = timezone
+      }
+    });
+  </script>
+  {% endscript %}
 {% endblock %}

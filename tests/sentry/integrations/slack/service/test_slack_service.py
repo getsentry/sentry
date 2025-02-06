@@ -101,7 +101,10 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_logger.info.assert_called_with(
                 "no group associated on the activity, nothing to do",
-                extra={"activity_id": self.activity.id},
+                extra={
+                    "activity_id": self.activity.id,
+                    "project_id": self.activity.project.id,
+                },
             )
 
     def test_none_user_id(self):
@@ -111,7 +114,12 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_logger.info.assert_called_with(
                 "machine/system updates are ignored at this time, nothing to do",
-                extra={"activity_id": self.activity.id},
+                extra={
+                    "activity_id": self.activity.id,
+                    "project_id": self.activity.project.id,
+                    "group_id": self.activity.group.id,
+                    "organization_id": self.organization.id,
+                },
             )
 
     def test_disabled_option(self):
@@ -125,8 +133,9 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 "feature is turned off for this organization",
                 extra={
                     "activity_id": self.activity.id,
-                    "organization_id": self.organization.id,
                     "project_id": self.activity.project.id,
+                    "group_id": self.activity.group.id,
+                    "organization_id": self.organization.id,
                 },
             )
 
@@ -137,7 +146,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
         with mock.patch.object(self.service, "_logger") as mock_logger:
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_logger.info.assert_called_with(
-                "notification to send is invalid", extra={"activity_id": self.activity.id}
+                "notification to send is invalid",
+                extra={
+                    "activity_id": self.activity.id,
+                    "project_id": self.activity.project.id,
+                    "group_id": self.activity.group.id,
+                    "organization_id": self.organization.id,
+                },
             )
 
     def test_no_integration(self):
@@ -150,8 +165,9 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 "no integration found for activity",
                 extra={
                     "activity_id": self.activity.id,
-                    "organization_id": self.organization.id,
                     "project_id": self.activity.project.id,
+                    "group_id": self.activity.group.id,
+                    "organization_id": self.organization.id,
                 },
             )
 
@@ -193,6 +209,67 @@ class TestNotifyAllThreadsForActivity(TestCase):
             project=self.project,
             type=ActivityType.SET_IGNORED.value,
             user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+
+        rule_fire_history = RuleFireHistory.objects.create(
+            project=self.project,
+            rule=self.rule,
+            group=group,
+            event_id=456,
+            notification_uuid=str(uuid4()),
+        )
+
+        # "older" parent notification
+        parent_notification_1_message = NotificationMessage.objects.create(
+            id=123,
+            date_added=timezone.now(),
+            message_identifier="1a2s3d",
+            rule_action_uuid=self.rule_action_uuid,
+            rule_fire_history=rule_fire_history,
+            open_period_start=timezone.now() - timedelta(minutes=1),
+        )
+        parent_notification_1 = IssueAlertNotificationMessage.from_model(
+            parent_notification_1_message
+        )
+
+        self.service.notify_all_threads_for_activity(activity=activity)
+
+        mock_handle.assert_called()
+        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification_1
+
+        # "newer" parent notification
+        parent_notification_2_message = NotificationMessage.objects.create(
+            id=124,
+            date_added=timezone.now(),
+            message_identifier="1a2s3d",
+            rule_action_uuid=self.rule_action_uuid,
+            rule_fire_history=rule_fire_history,
+            open_period_start=timezone.now(),
+        )
+        parent_notification_2 = IssueAlertNotificationMessage.from_model(
+            parent_notification_2_message
+        )
+
+        self.service.notify_all_threads_for_activity(activity=activity)
+
+        # Should only return the "newer" parent notification
+        mock_handle.assert_called()
+        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification_2
+
+    @with_feature("organizations:slack-threads-refactor-uptime")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
+    def test_handle_parent_notification_with_open_period_uptime_resolved(
+        self, mock_handle, mock_record
+    ) -> None:
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=None,
             data={"ignoreUntilEscalating": True},
         )
 

@@ -232,9 +232,11 @@ class TaskWorker:
     def __init__(
         self,
         rpc_host: str,
+        num_brokers: int | None,
         max_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
+        prefetch_multiplier: int = 3,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -243,12 +245,14 @@ class TaskWorker:
         self._max_task_count = max_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host)
+        self.client = TaskworkerClient(rpc_host, num_brokers)
+
+        queue_size = concurrency * prefetch_multiplier
         self._child_tasks: multiprocessing.Queue[TaskActivation] = multiprocessing.Queue(
-            maxsize=(concurrency * 10)
+            maxsize=queue_size
         )
         self._processed_tasks: multiprocessing.Queue[ProcessingResult] = multiprocessing.Queue(
-            maxsize=(concurrency * 10)
+            maxsize=queue_size
         )
         self._children: list[multiprocessing.Process] = []
         self._shutdown_event = multiprocessing.Event()

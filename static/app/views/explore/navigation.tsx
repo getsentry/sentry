@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,7 +23,7 @@ export default function ExploreNavigation({children}: Props) {
   // TODO(malwilley): Move other products under the /explore/ route
   return (
     <Fragment>
-      <SecondaryNav>
+      <SecondaryNav group={PrimaryNavGroup.EXPLORE}>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <Feature features="performance-trace-explorer">

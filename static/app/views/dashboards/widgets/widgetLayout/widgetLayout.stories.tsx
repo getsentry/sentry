@@ -6,15 +6,15 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
+import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
-import sampleDurationTimeSeries from '../lineChartWidget/sampleDurationTimeSeries.json';
 
 import {WidgetButton} from './widgetButton';
 import {WidgetDescription} from './widgetDescription';
 import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
-export default storyBook(WidgetLayout, story => {
+export default storyBook('WidgetLayout', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -50,7 +50,7 @@ export default storyBook(WidgetLayout, story => {
 
         <CodeSnippet language="jsx">
           {`import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
-import sampleDurationTimeSeries from '../lineChartWidget/sampleDurationTimeSeries.json';
+import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 
 import {WidgetButton} from './widgetButton';
 import {WidgetDescription} from './widgetDescription';
@@ -72,7 +72,7 @@ import {WidgetTitle} from './widgetTitle';
   Visualization={
     <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
   }
-  Footer={<p>This data is incomplete!</p>}
+  Footer={<span>This data is incomplete!</span>}
 />
 
         `}
@@ -94,7 +94,7 @@ import {WidgetTitle} from './widgetTitle';
             Visualization={
               <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
             }
-            Footer={<p>This data is incomplete!</p>}
+            Footer={<span>This data is incomplete!</span>}
           />
         </SmallSizingWindow>
       </Fragment>

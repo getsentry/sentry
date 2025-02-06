@@ -18,18 +18,16 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconArrow, IconDocs} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -132,8 +130,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
     autofix_status: autofixData?.status ?? 'none',
   });
 
-  const config = getConfigForIssueType(group, project);
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
@@ -189,7 +185,20 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         />
       </SolutionsDrawerHeader>
       <SolutionsDrawerNavigator>
-        <Header>{t('Solutions Hub')}</Header>
+        <Header>
+          <SeerIcon size="lg" />
+          {t('Sentry AI')}
+          <StyledFeatureBadge
+            type="beta"
+            title={tct(
+              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+              {email: <a href="mailto:autofix@sentry.io" />}
+            )}
+            tooltipProps={{
+              isHoverable: true,
+            }}
+          />
+        </Header>
         {autofixData && (
           <ButtonBarWrapper>
             <ButtonBar gap={1}>
@@ -210,36 +219,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         )}
       </SolutionsDrawerNavigator>
       <SolutionsDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
-        {config.resources && (
-          <ResourcesContainer>
-            <ResourcesHeader>
-              <IconDocs size="md" />
-              {t('Resources')}
-            </ResourcesHeader>
-            <ResourcesBody>
-              <Resources
-                eventPlatform={event?.platform}
-                group={group}
-                configResources={config.resources}
-              />
-            </ResourcesBody>
-          </ResourcesContainer>
-        )}
-        <HeaderText>
-          <HeaderContainer>
-            <SeerIcon size="lg" />
-            {t('Sentry AI')}
-            <StyledFeatureBadge
-              type="beta"
-              title={tct(
-                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-                {
-                  email: <a href="mailto:autofix@sentry.io" />,
-                }
-              )}
-            />
-          </HeaderContainer>
-        </HeaderText>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
@@ -276,13 +255,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   );
 }
 
-const ResourcesContainer = styled('div')``;
-const ResourcesBody = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(2)};
-`;
-
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
@@ -307,6 +279,7 @@ const Container = styled('div')`
     linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   overflow: hidden;
   padding: ${space(0.5)};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const AutofixStartText = styled('div')`
@@ -355,33 +328,14 @@ const StyledButton = styled(Button)`
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: hidden;
-  border: 2px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)};
-`;
-
-const HeaderText = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  padding-bottom: ${space(2)};
-  justify-content: space-between;
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: ${space(0.25)};
   padding-bottom: 3px;
-`;
-
-const ResourcesHeader = styled('div')`
-  gap: ${space(1)};
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
-  display: flex;
-  align-items: center;
-  padding-bottom: ${space(2)};
 `;
 
 const SolutionsDrawerContainer = styled('div')`
@@ -401,7 +355,7 @@ const SolutionsDrawerHeader = styled(DrawerHeader)`
 const SolutionsDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} 24px;
+  padding: ${space(0.75)} ${space(3)};
   background: ${p => p.theme.background};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
@@ -421,10 +375,12 @@ const SolutionsDrawerBody = styled(DrawerBody)`
 `;
 
 const Header = styled('h3')`
-  display: block;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
@@ -442,12 +398,6 @@ const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const ButtonBarWrapper = styled('div')`

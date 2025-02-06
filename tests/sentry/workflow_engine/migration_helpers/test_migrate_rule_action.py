@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
@@ -164,8 +166,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -183,8 +185,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -276,13 +278,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        # Only 2 actions should be created, the first one is malformed
-        assert len(actions) == 2
-
-        self.assert_actions_migrated_correctly(
-            actions, action_data[1:], "workspace", "channel_id", "channel"
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -293,8 +290,6 @@ class TestNotificationActionMigrationUtils(TestCase):
                 "missing_fields": ["channel_id", "channel"],
             },
         )
-
-        self.assert_actions_migrated_correctly(actions, action_data[1:])
 
     def test_discord_action_migration(self):
         action_data = [
@@ -336,12 +331,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(
-            actions, action_data[1:], "server", "channel_id", None
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -397,12 +388,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(
-            actions, action_data[1:], "team", "channel_id", "channel"
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -465,10 +452,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "service", None)
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_opsgenie_action_migration(self):
         action_data = [
@@ -521,10 +506,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-
-        self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "team", None)
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_github_action_migration(self):
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
@@ -763,8 +746,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_azure_devops_migration(self):
         action_data = [
@@ -920,8 +903,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_email_migration(self):
         action_data: list[dict[str, Any]] = [
@@ -1000,11 +983,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 1
-        self.assert_actions_migrated_correctly(
-            actions, [action_data[2]], None, "targetIdentifier", None, "targetType"
-        )
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_plugin_action_migration(self):
         action_data = [
@@ -1086,8 +1066,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             },
         ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == 0
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
@@ -1262,3 +1242,162 @@ class TestNotificationActionMigrationUtils(TestCase):
                 f"Action {action_data['id']} has incorrect type after migration. "
                 f"Expected {expected_type}, got {actions[0].type}"
             )
+
+    def test_sentry_app_action_migration(self):
+        app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+        )
+
+        install = self.create_sentry_app_installation(
+            slug="test-application", organization=self.organization
+        )
+
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {
+                        "name": "opsgenieResponders",
+                        "value": '[{ "id": "8132bcc6-e697-44b2-8b61-c044803f9e6e", "type": "team" }]',
+                    },
+                    {
+                        "name": "tagsToInclude",
+                        "value": "environment",
+                    },
+                    {"name": "opsgeniePriority", "value": "P2"},
+                ],
+                "hasSchemaFormConfig": True,
+                "formFields": {
+                    "type": "alert-rule-settings",
+                    "uri": "/sentry/alert-rule-integration",
+                    "required_fields": [
+                        {
+                            "name": "opsgenieResponders",
+                            "label": "Opsgenie Responders",
+                            "type": "textarea",
+                        }
+                    ],
+                    "optional_fields": [
+                        {"name": "tagsToInclude", "label": "Tags to include", "type": "text"},
+                        {
+                            "name": "opsgeniePriority",
+                            "label": "Opsgenie Alert Priority",
+                            "type": "select",
+                            "options": [
+                                ["P1", "P1"],
+                                ["P2", "P2"],
+                                ["P3", "P3"],
+                                ["P4", "P4"],
+                                ["P5", "P5"],
+                            ],
+                            "choices": [
+                                ["P1", "P1"],
+                                ["P2", "P2"],
+                                ["P3", "P3"],
+                                ["P4", "P4"],
+                                ["P5", "P5"],
+                            ],
+                        },
+                    ],
+                },
+                "uuid": "55429e64-ce1a-46d5-bdff-e3f2fdf415b1",
+                "_sentry_app": [
+                    ["id", 1],
+                    ["scope_list", ["event:read"]],
+                    ["application_id", 1],
+                    [
+                        "application",
+                        [
+                            ["id", 1],
+                        ],
+                    ],
+                ],
+            },
+            # Simple webhook sentry app
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
+            # Custom webhook sentry app with team selection
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {"name": "team", "value": "team-a"},
+                    {"name": "severity", "value": "sev2"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "5b6d5bba-b3ba-40d5-b3e0-9b5f567ad277",
+                "formFields": {
+                    "type": "alert-rule-settings",
+                    "uri": "/v1/ticket",
+                    "required_fields": [
+                        {
+                            "type": "select",
+                            "label": "Team",
+                            "name": "team",
+                            "options": [
+                                ["unknown", "Automatic"],
+                                ["team-a", "Team A"],
+                                ["team-b", "Team B"],
+                            ],
+                            "choices": [
+                                ["unknown", "Automatic"],
+                                ["team-a", "Team A"],
+                                ["team-b", "Team B"],
+                            ],
+                        },
+                        {
+                            "type": "select",
+                            "label": "Severity",
+                            "name": "severity",
+                            "options": [
+                                ["sev1", "Severity 1"],
+                                ["sev2", "Severity 2"],
+                                ["sev3", "Severity 3"],
+                            ],
+                            "choices": [
+                                ["sev1", "Severity 1"],
+                                ["sev2", "Severity 2"],
+                                ["sev3", "Severity 3"],
+                            ],
+                        },
+                    ],
+                },
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == len(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
+
+        # Verify that action type is set correctly
+        for action in actions:
+            assert action.type == Action.Type.SENTRY_APP
+            assert action.target_identifier == str(app.id)
+
+    def test_sentry_app_migration_with_form_config(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "fake-uuid",
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
+        ]
+
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)

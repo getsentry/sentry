@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 
 import {ScrollCarousel} from './scrollCarousel';
 
-export default storyBook(ScrollCarousel, story => {
+export default storyBook('ScrollCarousel', story => {
   story('Default', () => (
     <Fragment>
       <p>

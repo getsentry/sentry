@@ -124,21 +124,30 @@ class SlackService:
         If the group is not associated with an activity, return early as there's nothing to do.
         If the user is not associated with an activity, return early as we only care about user activities.
         """
+        log_params = {
+            "activity_id": activity.id,
+            "project_id": activity.project.id,
+        }
+
         if activity.group is None:
             self._logger.info(
                 "no group associated on the activity, nothing to do",
-                extra={
-                    "activity_id": activity.id,
-                },
+                extra=log_params,
             )
             return None
 
-        if activity.user_id is None:
+        log_params["group_id"] = activity.group.id
+        log_params["organization_id"] = activity.group.organization.id
+
+        uptime_resolved_notification = (
+            activity.type == ActivityType.SET_RESOLVED.value
+            and activity.group.issue_category == GroupCategory.UPTIME
+        )
+
+        if activity.user_id is None and not uptime_resolved_notification:
             self._logger.info(
                 "machine/system updates are ignored at this time, nothing to do",
-                extra={
-                    "activity_id": activity.id,
-                },
+                extra=log_params,
             )
             return None
 
@@ -151,11 +160,7 @@ class SlackService:
         ):
             self._logger.info(
                 "feature is turned off for this organization",
-                extra={
-                    "activity_id": activity.id,
-                    "organization_id": organization_id,
-                    "project_id": activity.project.id,
-                },
+                extra=log_params,
             )
             return None
         # The same message is sent to all the threads, so this needs to only happen once
@@ -163,9 +168,7 @@ class SlackService:
         if not notification_to_send:
             self._logger.info(
                 "notification to send is invalid",
-                extra={
-                    "activity_id": activity.id,
-                },
+                extra=log_params,
             )
             return None
 
@@ -176,11 +179,7 @@ class SlackService:
         if integration is None:
             self._logger.info(
                 "no integration found for activity",
-                extra={
-                    "activity_id": activity.id,
-                    "organization_id": organization_id,
-                    "project_id": activity.project.id,
-                },
+                extra=log_params,
             )
             return None
 
@@ -196,6 +195,7 @@ class SlackService:
                     "activity_id": activity.id,
                     "group_id": activity.group.id,
                     "project_id": activity.project.id,
+                    "organization_id": activity.group.organization.id,
                 }
             )
 
