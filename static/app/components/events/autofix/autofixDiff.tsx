@@ -640,6 +640,8 @@ const FileName = styled('div')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  direction: rtl;
+  text-align: left;
 `;
 
 const DiffContainer = styled('div')`
