@@ -143,6 +143,39 @@ describe('Nav', function () {
         ).toBeInTheDocument();
         expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
       });
+
+      it('expands on hover', async function () {
+        localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        renderNav();
+
+        expect(
+          await screen.findByTestId('collapsed-secondary-sidebar')
+        ).toBeInTheDocument();
+
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'false'
+        );
+
+        // Moving pointer over the primary navigation should expand the sidebar
+        await userEvent.hover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'true'
+        );
+
+        // Moving pointer away should hide the sidebar
+        await userEvent.unhover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+          'data-visible',
+          'false'
+        );
+      });
     });
   });
 
