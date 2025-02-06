@@ -372,7 +372,6 @@ type SpecialFields = {
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
-  span_id: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
@@ -382,6 +381,7 @@ type SpecialFields = {
   replayId: SpecialField;
   'span.description': SpecialField;
   'span.status_code': SpecialField;
+  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;

@@ -39,6 +39,7 @@ import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -70,7 +71,6 @@ import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
-import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 
 type Props = {
   error: QueryError | null;
