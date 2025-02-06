@@ -85,18 +85,19 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
 
 def build_action_data_blob(
     alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
-) -> dict:
+) -> dict[str, Any]:
     # if the action is a Sentry app, we need to get the Sentry app installation ID
     if action_type == Action.Type.SENTRY_APP:
-        return (
-            dataclasses.asdict(
-                SentryAppDataBlob(
-                    settings=alert_rule_trigger_action.sentry_app_config,
-                )
-            )
-            if alert_rule_trigger_action.sentry_app_config
-            else {}
+        if not alert_rule_trigger_action.sentry_app_config:
+            return {}
+        # Convert config to proper type for SentryAppDataBlob
+        settings = (
+            [alert_rule_trigger_action.sentry_app_config]
+            if isinstance(alert_rule_trigger_action.sentry_app_config, dict)
+            else alert_rule_trigger_action.sentry_app_config
         )
+        return SentryAppDataBlob.from_list(settings).to_dict()
+
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
         default_priority = (
             OPSGENIE_DEFAULT_PRIORITY
@@ -107,7 +108,12 @@ def build_action_data_blob(
         if not alert_rule_trigger_action.sentry_app_config:
             return {"priority": default_priority}
 
-        priority = alert_rule_trigger_action.sentry_app_config.get("priority", default_priority)
+        # Ensure sentry_app_config is a dict before accessing
+        config = alert_rule_trigger_action.sentry_app_config
+        if not isinstance(config, dict):
+            return {"priority": default_priority}
+
+        priority = config.get("priority", default_priority)
         return dataclasses.asdict(OnCallDataBlob(priority=priority))
     else:
         return {
@@ -120,11 +126,13 @@ def build_action_data_blob(
 def get_target_identifier(
     alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
 ) -> str:
-    return (
-        str(alert_rule_trigger_action.sentry_app_id)
-        if action_type == Action.Type.SENTRY_APP
-        else alert_rule_trigger_action.target_identifier
-    )
+    if action_type == Action.Type.SENTRY_APP:
+        # Ensure we have a valid sentry_app_id
+        if not alert_rule_trigger_action.sentry_app_id:
+            return ""
+        return str(alert_rule_trigger_action.sentry_app_id)
+    # Ensure we have a valid target_identifier
+    return alert_rule_trigger_action.target_identifier or ""
 
 
 def get_detector_trigger(
@@ -195,11 +203,13 @@ def migrate_metric_action(
         )
         return None
 
-    data = build_action_data_blob(alert_rule_trigger_action, action_type)
-    target_identifier = get_target_identifier(alert_rule_trigger_action, action_type)
+    # Ensure action_type is Action.Type before passing to functions
+    action_type_enum = Action.Type(action_type)
+    data = build_action_data_blob(alert_rule_trigger_action, action_type_enum)
+    target_identifier = get_target_identifier(alert_rule_trigger_action, action_type_enum)
 
     action = Action.objects.create(
-        type=action_type,
+        type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
