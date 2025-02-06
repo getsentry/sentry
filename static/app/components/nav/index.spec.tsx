@@ -11,6 +11,7 @@ jest.mock('sentry/utils/analytics', () => ({
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
+import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
 import {NavContextProvider} from 'sentry/components/nav/context';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
@@ -32,6 +33,10 @@ const ALL_AVAILABLE_FEATURES = [
 ];
 
 describe('Nav', function () {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   function renderNav({
     initialPathname = '/organizations/org-slug/issues/',
   }: {
@@ -119,15 +124,24 @@ describe('Nav', function () {
 
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
 
-        expect(
-          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
-        ).not.toBeInTheDocument();
+        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
         expect(
-          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      it('remembers collapsed state', async function () {
+        localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        renderNav();
+
+        expect(
+          await screen.findByTestId('collapsed-secondary-sidebar')
         ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
       });
     });
   });

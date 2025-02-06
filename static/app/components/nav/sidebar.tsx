@@ -35,6 +35,8 @@ export function Sidebar({isHovered}: SidebarProps) {
             hidden: {x: -SECONDARY_SIDEBAR_WIDTH - 10},
           }}
           transition={{duration: 0.3}}
+          data-test-id="collapsed-secondary-sidebar"
+          data-visible={isHovered}
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
