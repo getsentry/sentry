@@ -45,7 +45,6 @@ MAX_SNUBA_RESULTS = 10_000
 
 CANDIDATE_SPAN_OPS = {"pageload", "navigation"}
 MATCHING_COUNT_ALIAS = "matching_count"
-MATCHING_SPAN_LABEL = "matching_label"
 
 
 def is_trace_name_candidate(span):
