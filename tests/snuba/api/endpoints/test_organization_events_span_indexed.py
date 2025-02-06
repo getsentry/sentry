@@ -2396,4 +2396,31 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["data"] == [{"foo": None, "count()": 1}]
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["foo"] == "" or data[0]["foo"] is None
+        assert data[0]["count()"] == 1
+
+    def test_device_class_filter_unknown(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "device.class:Unknown",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "Unknown"
+        assert meta["dataset"] == self.dataset

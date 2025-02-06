@@ -422,7 +422,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
-        if raw_value == "":
+        if raw_value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
                 exists_filter=ExistsFilter(
                     key=resolved_column.proto_definition,
