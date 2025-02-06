@@ -379,13 +379,12 @@ const RightAlignedValue = styled('div')`
 const UserSubtitle = styled('div')`
   color: ${p => p.theme.subText};
   display: inline-block; /* Prevent inheriting text decoration */
- `;
+`;
 
 const ValueLink = styled(Link)`
   color: ${p => p.theme.textColor};
   word-break: break-all;
 `;
-
 
 const OverflowTimeSince = styled(TimeSince)`
   ${p => p.theme.overflowEllipsis};
