@@ -36,8 +36,6 @@ FILTERED_EMAILS = {
     "action@github.com",
 }
 
-FILTERED_CHARACTERS = {"+"}
-
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):

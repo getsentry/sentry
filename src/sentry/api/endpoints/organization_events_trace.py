@@ -953,7 +953,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get_projects(
         self,
@@ -1706,7 +1705,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get_projects(
         self,

@@ -79,8 +79,6 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -191,8 +189,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user

@@ -42,7 +42,6 @@ from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments
 
-ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."

@@ -29,8 +29,6 @@ ERR_ALWAYS_ENABLED = "This plugin is always enabled."
 ERR_FIELD_REQUIRED = "This field is required."
 ERR_FEATURE_REQUIRED = "Feature '%s' is not enabled for the organization."
 
-OK_UPDATED = "Successfully updated configuration."
-
 
 @region_silo_endpoint
 class ProjectPluginDetailsEndpoint(ProjectEndpoint):

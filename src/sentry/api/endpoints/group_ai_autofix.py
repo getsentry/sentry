@@ -261,16 +261,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         return execution_tree
 
-    def _make_error_metadata(self, autofix: dict, reason: str):
-        return {
-            **autofix,
-            "completed_at": datetime.now().isoformat(),
-            "status": "ERROR",
-            "fix": None,
-            "error_message": reason,
-            "steps": [],
-        }
-
     def _respond_with_error(self, reason: str, status: int):
         return Response(
             {

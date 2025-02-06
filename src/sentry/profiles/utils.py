@@ -9,12 +9,9 @@ import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
-from parsimonious.exceptions import ParseError
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
-from sentry.api.event_search import SearchFilter, parse_search_query
-from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
@@ -154,28 +151,6 @@ PROFILE_FILTERS = {
     "transaction_name",
     "version",
 }
-
-
-def parse_profile_filters(query: str) -> dict[str, str]:
-    try:
-        parsed_terms = parse_search_query(query)
-    except ParseError as e:
-        raise InvalidSearchQuery(f"Parse error: {e}")
-
-    profile_filters: dict[str, str] = {}
-
-    for term in parsed_terms:
-        if not isinstance(term, SearchFilter):
-            raise InvalidSearchQuery("Invalid query: Unknown filter")
-        if term.operator != "=":  # only support equality filters
-            raise InvalidSearchQuery("Invalid query: Illegal operator")
-        if term.key.name not in PROFILE_FILTERS:
-            raise InvalidSearchQuery(f"Invalid query: {term.key.name} is not supported")
-        if term.key.name in profile_filters and term.value.value != profile_filters[term.key.name]:
-            raise InvalidSearchQuery(f"Invalid query: Multiple filters for {term.key.name}")
-        profile_filters[term.key.name] = term.value.value
-
-    return profile_filters
 
 
 # This support applying a subset of stack trace rules to the profile (matchers and actions).
