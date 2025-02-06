@@ -292,7 +292,10 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, variants: dict[str, BaseVariant], all_grouphashes: list[GroupHash]
+    event: Event,
+    event_grouphash: GroupHash,
+    variants: dict[str, BaseVariant],
+    all_grouphashes: list[GroupHash],
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
