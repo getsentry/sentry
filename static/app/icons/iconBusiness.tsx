@@ -1,4 +1,4 @@
-import {forwardRef, useMemo} from 'react';
+import {useMemo} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,10 +10,9 @@ import {SvgIcon} from './svgIcon';
 // @TODO(jonasbadalic) does this need dark mode?
 const businessIconColors = ['#EA5BC2', '#6148CE'] as const;
 
-function IconBusinessComponent({
+function IconBusiness({
   gradient = false,
   withShine = false,
-  forwardedRef,
   ...props
 }: BusinessIconProps) {
   const uid = useMemo(() => uniqueId(), []);
@@ -22,7 +21,7 @@ function IconBusinessComponent({
   const shineId = `icon-business-shine-${uid}`;
 
   return (
-    <SvgIcon {...props} ref={forwardedRef}>
+    <SvgIcon {...props}>
       <mask id={maskId}>
         <path
           fill="white"
@@ -56,11 +55,6 @@ function IconBusinessComponent({
 
 interface BusinessIconProps extends SVGIconProps {
   /**
-   * Ref to the SVG element
-   */
-  forwardedRef: React.Ref<SVGSVGElement>;
-
-  /**
    * Renders a pink purple gradient on the icon
    */
   gradient?: boolean;
@@ -70,12 +64,6 @@ interface BusinessIconProps extends SVGIconProps {
    */
   withShine?: boolean;
 }
-
-const IconBusiness = forwardRef<SVGSVGElement, BusinessIconProps>((props, ref) => (
-  <IconBusinessComponent {...props} forwardedRef={ref} />
-));
-
-IconBusiness.displayName = 'IconBusiness';
 
 const shine = keyframes`
   0% {
