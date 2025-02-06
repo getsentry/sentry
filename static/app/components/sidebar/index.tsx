@@ -53,6 +53,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
+  FRONTEND_LANDING_SUB_PATH,
+  FRONTEND_SIDEBAR_LABEL,
+} from 'sentry/views/insights/frontend/settings';
+import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/ai/settings';
@@ -60,10 +64,6 @@ import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/backend/settings';
-import {
-  FRONTEND_LANDING_SUB_PATH,
-  FRONTEND_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/frontend/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_SIDEBAR_LABEL,

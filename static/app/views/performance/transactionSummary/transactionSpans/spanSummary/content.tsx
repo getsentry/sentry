@@ -12,9 +12,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {FrontendHeader} from 'sentry/views/insights/frontend/frontendPageHeader';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {

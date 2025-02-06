@@ -9,7 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import FrontendOverviewPage from 'sentry/views/insights/pages/frontend/frontendOverviewPage';
+import FrontendOverviewPage from 'sentry/views/insights/frontend/frontendOverviewPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');

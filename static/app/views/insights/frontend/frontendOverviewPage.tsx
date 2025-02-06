@@ -32,13 +32,13 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FrontendHeader} from 'sentry/views/insights/frontend/frontendPageHeader';
 import {
   FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/frontend/settings';
+} from 'sentry/views/insights/frontend/settings';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {
   generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,

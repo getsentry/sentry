@@ -1,6 +1,6 @@
+import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/frontend/settings';
 import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_TITLE} from 'sentry/views/insights/pages/mobile/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 

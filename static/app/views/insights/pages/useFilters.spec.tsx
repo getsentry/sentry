@@ -3,8 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/frontend/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 

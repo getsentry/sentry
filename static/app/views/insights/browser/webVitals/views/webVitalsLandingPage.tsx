@@ -25,7 +25,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FrontendHeader} from 'sentry/views/insights/frontend/frontendPageHeader';
 import {
   ModuleName,
   SpanMetricsField,
