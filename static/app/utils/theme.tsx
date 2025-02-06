@@ -1072,6 +1072,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+
   codeFontSize: '13px',
   headerFontSize: '22px',
 
@@ -1101,7 +1102,6 @@ const commonTheme = {
 
     cardTitle: {
       fontSize: '1rem',
-      lineHeight: 1.2,
     },
   },
 

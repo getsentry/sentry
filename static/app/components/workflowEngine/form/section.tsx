@@ -30,9 +30,7 @@ const Container = styled('section')`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.text.cardTitle.fontSize};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: ${p => p.theme.text.cardTitle.lineHeight};
+  font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
   margin: 0;
 `;
