@@ -285,7 +285,9 @@ const StyledTag = styled(Tag)`
   }
 
   & > div {
+    position: relative;
     height: 24px;
+    overflow: hidden;
   }
 `;
 
