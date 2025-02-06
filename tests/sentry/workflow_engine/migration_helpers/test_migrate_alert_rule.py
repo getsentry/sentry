@@ -725,8 +725,8 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         with assume_test_silo_mode_of(Integration, OrganizationIntegration):
             self.integration.update(provider="hellboy")
             self.integration.save()
-        migrated = migrate_metric_action(self.alert_rule_trigger_action_integration)
-        assert migrated is None
+        with pytest.raises(InvalidActionType):
+            migrate_metric_action(self.alert_rule_trigger_action_integration)
         mock_logger.warning.assert_called_with(
             "Could not find a matching Action.Type for the trigger action",
             extra={

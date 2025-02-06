@@ -421,12 +421,14 @@ def migrate_alert_rule(
     workflow = create_workflow(alert_rule.name, organization_id, user)
 
     open_incident = (
-        Incident.objects.exclude(status=IncidentStatus.CLOSED).filter(alert_rule=alert_rule).first()
+        Incident.objects.exclude(status=IncidentStatus.CLOSED.value)
+        .filter(alert_rule=alert_rule)
+        .first()
     )
     if open_incident:
         state = (
             DetectorPriorityLevel.MEDIUM
-            if open_incident.status == IncidentStatus.WARNING
+            if open_incident.status == IncidentStatus.WARNING.value
             else DetectorPriorityLevel.HIGH
         )
     else:
