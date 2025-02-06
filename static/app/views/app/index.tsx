@@ -41,8 +41,6 @@ import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextPro
 
 import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
 
-import SystemAlerts from './systemAlerts';
-
 type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
@@ -280,7 +278,6 @@ function App({children, params}: Props) {
                   <GlobalDrawer>
                     <MainContainer tabIndex={-1} ref={mainContainerRef}>
                       <GlobalModal onClose={handleModalClose} />
-                      <SystemAlerts className="messages-container" />
                       <Indicators className="indicators-container" />
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </MainContainer>
