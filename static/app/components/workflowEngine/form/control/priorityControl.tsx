@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
@@ -15,54 +15,59 @@ import {PriorityLevel} from 'sentry/types/group';
 
 export interface PriorityControlGridProps {
   name: string;
-  onChange?: (value: PriorityThresholds) => void;
-  value?: PriorityThresholds;
+  onPriorityChange?: (value: PriorityLevel) => void;
+  onThresholdChange?: (level: PriorityLevel, threshold: number) => void;
+  priority?: PriorityLevel;
+  thresholds?: PriorityThresholds;
 }
 
 export interface PriorityThresholds {
-  created: PriorityLevel;
   high?: number;
   medium?: number;
 }
 
 export default function PriorityControl({
   name,
-  value,
-  onChange,
+  priority: initialPriority,
+  onPriorityChange,
+  thresholds: initialThresholds,
+  onThresholdChange,
 }: PriorityControlGridProps) {
+  const [priority, setPriority] = useState<PriorityLevel>(
+    initialPriority ?? PriorityLevel.LOW
+  );
   const [thresholds, setThresholds] = useState<PriorityThresholds>(
-    value ?? {
-      created: PriorityLevel.LOW,
-      [PriorityLevel.MEDIUM]: 0,
-      [PriorityLevel.HIGH]: 0,
-    }
+    initialThresholds ?? {}
   );
   const setCreatedPriority = useCallback(
-    (priority: PriorityLevel) => setThresholds(v => ({...v, created: priority})),
-    [setThresholds]
+    (level: PriorityLevel) => {
+      setPriority(level);
+      onPriorityChange?.(level);
+    },
+    [setPriority, onPriorityChange]
   );
   const setMediumThreshold = useCallback(
-    (threshold: number) =>
-      setThresholds(v => ({...v, [PriorityLevel.MEDIUM]: threshold})),
-    [setThresholds]
+    (threshold: number) => {
+      setThresholds(v => ({...v, [PriorityLevel.MEDIUM]: threshold}));
+      onThresholdChange?.(PriorityLevel.MEDIUM, threshold);
+    },
+    [setThresholds, onThresholdChange]
   );
   const setHighThreshold = useCallback(
-    (threshold: number) => setThresholds(v => ({...v, [PriorityLevel.HIGH]: threshold})),
-    [setThresholds]
+    (threshold: number) => {
+      setThresholds(v => ({...v, [PriorityLevel.HIGH]: threshold}));
+      onThresholdChange?.(PriorityLevel.HIGH, threshold);
+    },
+    [setThresholds, onThresholdChange]
   );
-  useEffect(() => {
-    onChange?.(thresholds);
-  }, [thresholds, onChange]);
 
   return (
     <Grid>
       <PrioritizeRow
         left={<span style={{textAlign: 'right'}}>{t('Issue created')}</span>}
-        right={
-          <PrioritySelect value={thresholds.created} onChange={setCreatedPriority} />
-        }
+        right={<PrioritySelect value={priority} onChange={setCreatedPriority} />}
       />
-      {priorityIsConfigurable(thresholds.created, PriorityLevel.MEDIUM) && (
+      {priorityIsConfigurable(priority, PriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
             <NumberField
@@ -73,7 +78,7 @@ export default function PriorityControl({
               size="sm"
               suffix="s"
               value={thresholds[PriorityLevel.MEDIUM]}
-              onChange={threshold => setMediumThreshold(threshold)}
+              onChange={threshold => setMediumThreshold(Number(threshold))}
               name={`${name}-medium`}
               data-test-id="priority-control-medium"
             />
@@ -87,7 +92,7 @@ export default function PriorityControl({
           }
         />
       )}
-      {priorityIsConfigurable(thresholds.created, PriorityLevel.HIGH) && (
+      {priorityIsConfigurable(priority, PriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
             <NumberField
@@ -98,7 +103,7 @@ export default function PriorityControl({
               size="sm"
               suffix="s"
               value={thresholds[PriorityLevel.HIGH]}
-              onChange={threshold => setHighThreshold(threshold)}
+              onChange={threshold => setHighThreshold(Number(threshold))}
               name={`${name}-high`}
               data-test-id="priority-control-high"
             />
