@@ -20,6 +20,7 @@ import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 function Content() {
   const queries = useReadQueriesFromLocation();
   const addQuery = useAddQuery();
+  const disableDelete = queries.length === 1;
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -29,7 +30,12 @@ function Content() {
           <DatePageFilter />
         </StyledPageFilterBar>
         {queries.map((query, index) => (
-          <QueryRow key={index} query={query} index={index} />
+          <QueryRow
+            key={index}
+            query={query}
+            index={index}
+            disableDelete={disableDelete}
+          />
         ))}
         <Button aria-label={t('Add Query')} onClick={addQuery} icon={<IconAdd />}>
           {t('Add Query')}

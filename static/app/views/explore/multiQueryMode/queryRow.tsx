@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import {IconDelete} from 'sentry/icons/iconDelete';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {GroupBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/groupBy';
@@ -8,11 +11,12 @@ import {SortBySection} from 'sentry/views/explore/multiQueryMode/queryConstructo
 import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/visualize';
 
 type Props = {
+  disableDelete: boolean;
   index: number;
   query: ReadableExploreQueryParts;
 };
 
-export function QueryRow({query, index}: Props) {
+export function QueryRow({query, index, disableDelete}: Props) {
   return (
     <QueryConstructionSection>
       <SearchBarSection query={query} index={index} />
@@ -20,6 +24,14 @@ export function QueryRow({query, index}: Props) {
         <VisualizeSection query={query} index={index} />
         <GroupBySection query={query} index={index} />
         <SortBySection query={query} index={index} />
+        <Button
+          borderless
+          icon={<IconDelete />}
+          size="zero"
+          disabled={disableDelete}
+          onClick={() => {}}
+          aria-label={t('Delete Query')}
+        />
       </DropDownGrid>
     </QueryConstructionSection>
   );
