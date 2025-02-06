@@ -1,15 +1,20 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
 )
 
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
+
 
 @region_silo_test
+@freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpoint(
     OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase
 ):
@@ -114,6 +119,18 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             self.project.slug,
             self.project_uptime_subscription.id,
             qs_params={"cursor": Cursor(0, 20), "per_page": 2},
+        )
+        assert response.data is not None
+        assert len(response.data) == 0
+
+    @override_options(
+        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
+    )
+    def test_get_with_date_cutoff(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
         )
         assert response.data is not None
         assert len(response.data) == 0

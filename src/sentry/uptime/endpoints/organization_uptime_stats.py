@@ -74,7 +74,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         try:
             eap_response = self._make_eap_request(
-                organization, projects, subscription_ids, timerange_args
+                organization, projects, subscription_ids, timerange_args, epoch_cutoff
             )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
@@ -139,10 +139,15 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
+        epoch_cutoff: datetime.datetime | None,
     ) -> TimeSeriesResponse:
 
+        eap_query_start = timerange_args["start"]
+        if epoch_cutoff and epoch_cutoff > timerange_args["start"]:
+            eap_query_start = epoch_cutoff
+
         start_timestamp = Timestamp()
-        start_timestamp.FromDatetime(timerange_args["start"])
+        start_timestamp.FromDatetime(eap_query_start)
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(timerange_args["end"])
         request = TimeSeriesRequest(
