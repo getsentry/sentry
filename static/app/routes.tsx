@@ -1810,9 +1810,9 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/crons/views/overview'))}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.ERRORS]}/`}>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`}>
         <IndexRoute
-          component={make(() => import('sentry/views/insights/errors/views/overview'))}
+          component={make(() => import('sentry/views/insights/sessions/views/overview'))}
         />
       </Route>
     </Fragment>

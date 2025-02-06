@@ -36,13 +36,6 @@ import {
   MODULE_TITLE as DB_MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {
-  DATA_TYPE as ERRORS_DATA_TYPE,
-  DATA_TYPE_PLURAL as ERRORS_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as ERRORS_MODULE_DOC_LINK,
-  MODULE_TITLE as ERRORS_MODULE_TITLE,
-  MODULE_VISIBLE_FEATURES as ERRORS_MODULE_VISIBLE_FEATURES,
-} from 'sentry/views/insights/errors/settings';
-import {
   DATA_TYPE as HTTP_DATA_TYPE,
   DATA_TYPE_PLURAL as HTTP_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as HTTP_MODULE_DOC_LINK,
@@ -97,6 +90,13 @@ import {
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
 import {
+  DATA_TYPE as SESSIONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as SESSIONS_MODULE_DOC_LINK,
+  MODULE_TITLE as SESSIONS_MODULE_TITLE,
+  MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
+} from 'sentry/views/insights/sessions/settings';
+import {
   DATA_TYPE as UPTIME_DATA_TYPE,
   DATA_TYPE_PLURAL as UPTIME_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as UPTIME_MODULE_DOC_LINK,
@@ -129,7 +129,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
   [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
   [ModuleName.CRONS]: CRONS_MODULE_TITLE,
-  [ModuleName.ERRORS]: ERRORS_MODULE_TITLE,
+  [ModuleName.SESSIONS]: SESSIONS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 
@@ -148,7 +148,7 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
   [ModuleName.UPTIME]: UPTIME_DATA_TYPE,
   [ModuleName.CRONS]: CRONS_DATA_TYPE,
-  [ModuleName.ERRORS]: ERRORS_DATA_TYPE,
+  [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE,
   [ModuleName.OTHER]: '',
 };
 
@@ -167,7 +167,7 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
   [ModuleName.UPTIME]: UPTIME_DATA_TYPE_PLURAL,
   [ModuleName.CRONS]: CRONS_DATA_TYPE_PLURAL,
-  [ModuleName.ERRORS]: ERRORS_DATA_TYPE_PLURAL,
+  [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
 };
 
@@ -186,7 +186,7 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
   [ModuleName.UPTIME]: UPTIME_MODULE_DOC_LINK,
   [ModuleName.CRONS]: CRONS_MODULE_DOC_LINK,
-  [ModuleName.ERRORS]: ERRORS_MODULE_DOC_LINK,
+  [ModuleName.SESSIONS]: SESSIONS_MODULE_DOC_LINK,
   [ModuleName.OTHER]: '',
 };
 
@@ -208,7 +208,7 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
   [ModuleName.UPTIME]: UPTIME_MODULE_FEATURES,
   [ModuleName.CRONS]: CRONS_MODULE_FEATURES,
-  [ModuleName.ERRORS]: [],
+  [ModuleName.SESSIONS]: [],
   [ModuleName.OTHER]: [],
 };
 
@@ -230,6 +230,6 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
   [ModuleName.UPTIME]: ['insights-entry-points', ...UPTIME_MODULE_VISIBLE_FEATURES],
   [ModuleName.CRONS]: ['insights-entry-points', ...CRONS_MODULE_VISIBLE_FEATURES],
-  [ModuleName.ERRORS]: ['insights-entry-points', ...ERRORS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.SESSIONS]: ['insights-entry-points', ...SESSIONS_MODULE_VISIBLE_FEATURES],
   [ModuleName.OTHER]: ['insights-entry-points'],
 };

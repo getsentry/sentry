@@ -16,5 +16,5 @@ export const MODULES = [
   ModuleName.VITAL,
   ModuleName.HTTP,
   ModuleName.RESOURCE,
-  ModuleName.ERRORS,
+  ModuleName.SESSIONS,
 ];

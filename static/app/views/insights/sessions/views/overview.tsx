@@ -12,9 +12,9 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function ErrorsOverview() {
+export function SessionsOverview() {
   const headerProps = {
-    module: ModuleName.ERRORS,
+    module: ModuleName.SESSIONS,
   };
 
   const {view} = useDomainViewFilters();
@@ -28,13 +28,13 @@ export function ErrorsOverview() {
             <ModuleLayout.Full>
               <ToolRibbon>
                 <ModulePageFilterBar
-                  moduleName={ModuleName.ERRORS}
+                  moduleName={ModuleName.SESSIONS}
                   extraFilters={<SubregionSelector />}
                 />
               </ToolRibbon>
             </ModuleLayout.Full>
 
-            <ModulesOnboarding moduleName={ModuleName.ERRORS}>
+            <ModulesOnboarding moduleName={ModuleName.SESSIONS}>
               {
                 // TODO: charts go here
                 null
@@ -49,8 +49,11 @@ export function ErrorsOverview() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="http" analyticEventName="insight.page_loads.errors">
-      <ErrorsOverview />
+    <ModulePageProviders
+      moduleName="http"
+      analyticEventName="insight.page_loads.sessions"
+    >
+      <SessionsOverview />
     </ModulePageProviders>
   );
 }
