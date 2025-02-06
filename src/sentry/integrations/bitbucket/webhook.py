@@ -114,33 +114,10 @@ class PushEventWebhook(BitbucketWebhook):
     def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         authors = {}
 
-        if not (request := kwargs.get("request")):
-            raise ValueError("Missing request")
+        if not (repo := kwargs.get("repo")):
+            raise ValueError("Missing repo")
         if not (organization := kwargs.get("organization")):
             raise ValueError("Missing organization")
-
-        try:
-            repo = Repository.objects.get(
-                organization_id=organization.id,
-                provider=PROVIDER_NAME,
-                external_id=str(event["repository"]["uuid"]),
-            )
-        except Repository.DoesNotExist:
-            raise Http404()
-
-        integration = integration_service.get_integration(integration_id=repo.integration_id)
-        if integration and "webhook_secret" in integration.metadata:
-            secret = integration.metadata["webhook_secret"]
-            try:
-                method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
-            except (IndexError, KeyError, ValueError):
-                raise WebhookMissingSignatureException()
-
-            if method != "sha256":
-                raise WebhookUnsupportedSignatureMethodException()
-
-            if not is_valid_signature(request.body, secret, signature):
-                raise WebhookInvalidSignatureException()
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -255,6 +232,29 @@ class BitbucketWebhookEndpoint(Endpoint):
             )
             return HttpResponse(status=400)
 
+        try:
+            repo = Repository.objects.get(
+                organization_id=organization.id,
+                provider=PROVIDER_NAME,
+                external_id=str(event["repository"]["uuid"]),
+            )
+        except Repository.DoesNotExist:
+            raise Http404()
+
+        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        if integration and "webhook_secret" in integration.metadata:
+            secret = integration.metadata["webhook_secret"]
+            try:
+                method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
+            except (IndexError, KeyError, ValueError):
+                raise WebhookMissingSignatureException()
+
+            if method != "sha256":
+                raise WebhookUnsupportedSignatureMethodException()
+
+            if not is_valid_signature(request.body, secret, signature):
+                raise WebhookInvalidSignatureException()
+
         event_handler = handler()
 
         with IntegrationWebhookEvent(
@@ -262,6 +262,6 @@ class BitbucketWebhookEndpoint(Endpoint):
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key=event_handler.provider,
         ).capture():
-            event_handler(event, request=request, organization=organization)
+            event_handler(event, repo=repo, organization=organization)
 
         return HttpResponse(status=204)
