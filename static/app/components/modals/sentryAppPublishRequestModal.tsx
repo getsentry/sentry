@@ -14,6 +14,18 @@ import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
 
+const INTEGRATION_CATEGORIES: Array<[string, string]> = [
+  ['notifications', 'Notifications & Incidents'],
+  ['scm', 'Source Code Managemnet'],
+  ['issue-tracking', 'Issue Tracking'],
+  ['deployment', 'Deployment'],
+  ['data-vis', 'Data & Visualization'],
+  ['replay', 'Session Replay'],
+  ['debugging', 'Debugging'],
+  ['feature-flags', 'Feature Flags'],
+  ['compliance', 'Compliance'],
+  ['cloud-monitoring', 'Cloud Monitoring'],
+];
 /**
  * Given an array of scopes, return the choices the user has picked for each option
  * @param scopes {Array}
@@ -91,7 +103,8 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
-        label: 'What does your integration do? Please be as detailed as possible.',
+        label:
+          'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
         autosize: true,
         rows: 1,
         inline: false,
@@ -100,20 +113,51 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
-        label: 'What value does it offer customers?',
+        label: (
+          <Fragment>
+            Provide a one-liner describing your integration. Subject to approval, we’ll
+            use this to describe your integration on
+            <a href="google.com"> Sentry Integrations</a>.
+          </Fragment>
+        ),
         autosize: true,
         rows: 1,
         inline: false,
         name: 'question1',
       },
       {
-        type: 'textarea',
+        type: 'select',
         required: true,
-        label: 'Do you operate the web service your integration communicates with?',
+        label: (
+          <Fragment>
+            Select what category best describes your integration.
+            <a href="google.com"> Documentation for reference.</a>
+          </Fragment>
+        ),
         autosize: true,
+        choices: INTEGRATION_CATEGORIES,
         rows: 1,
         inline: false,
         name: 'question2',
+      },
+      {
+        type: 'string',
+        required: true,
+        label: 'Link to your documentation page.',
+        autosize: true,
+        rows: 1,
+        inline: false,
+        name: 'question3',
+      },
+      {
+        type: 'string',
+        required: true,
+        label:
+          'Link to a video showing installation, setup and user flow for your submission.',
+        autosize: true,
+        rows: 1,
+        inline: false,
+        name: 'question4',
       },
     ];
 
@@ -156,6 +200,10 @@ export default function SentryAppPublishRequestModal(props: Props) {
       fields: formFields(),
     },
   ];
+
+  const footer = () => {
+    return <Footer>THE FOOTER GOES HERE</Footer>;
+  };
   return (
     <Fragment>
       <Header>{t('Publish Request Questionnaire')}</Header>
@@ -176,7 +224,8 @@ export default function SentryAppPublishRequestModal(props: Props) {
           submitLabel={t('Request Publication')}
           onCancel={closeModal}
         >
-          <JsonForm forms={forms} />
+          <JsonForm forms={forms} renderFooter={footer} />
+          {/* <p>THE FOOTER GOES HERE</p> */}
         </Form>
       </Body>
     </Fragment>
@@ -194,4 +243,8 @@ const PermissionLabel = styled('span')`
 
 const Permission = styled('code')`
   line-height: 24px;
+`;
+
+const Footer = styled('div')`
+  padding: 3px;
 `;
