@@ -33,7 +33,6 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     @sentry_sdk.tracing.trace
     def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SnubaTrace]:
