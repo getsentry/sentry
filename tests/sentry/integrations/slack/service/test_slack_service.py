@@ -299,7 +299,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         # Verify only one notification was handled
         assert mock_handle.call_count == 1
-        # Verify it was the older notification for resolved activities
+        # Verify it was the newer notification for resolved activities
         mock_handle.assert_called_once()
         assert (
             mock_handle.call_args.kwargs["parent_notification"].id
