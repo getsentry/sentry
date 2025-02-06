@@ -8,7 +8,7 @@ import {useInstantRef} from 'sentry/utils/metrics';
 
 type Breakpoint = keyof Theme['breakpoints'];
 export function checkBreakpoints(
-  breakpoints: Theme['breakpoints'],
+  breakpoints: Record<Breakpoint, string>,
   width: number
 ): Record<Breakpoint, boolean> {
   return Object.entries(breakpoints).reduce(
