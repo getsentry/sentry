@@ -1176,6 +1176,7 @@ class DashboardDetail extends Component<Props, State> {
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           disablePersistence
+          skipLoadLastUsed
           defaultSelection={{
             datetime: {
               start: null,

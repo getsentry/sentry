@@ -96,16 +96,6 @@ function getTestsForGroup(
   // We sort files by path so that we try and improve the transformer cache hit rate.
   // Colocated domain specific files are likely to require other domain specific files.
   const testsSortedByPath = Array.from(tests.entries()).sort((a, b) => {
-    // WidgetBuilder tests are a special case as they can sometimes take a long time to run (3-5 minutes)
-    // As such, we want to ensure that they are ran in the same group as other widget builder tests.
-    // We do this by sorting them by the path of the widget builder test which ensures they are started by the first job
-    // in the CI group and that all of the tests actually run in the same group.
-    if (a[0].includes('widgetBuilder')) {
-      return -1;
-    }
-    if (b[0].includes('widgetBuilder')) {
-      return 1;
-    }
     return a[0].localeCompare(b[0]);
   });
 

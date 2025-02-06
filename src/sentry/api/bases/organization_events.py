@@ -91,9 +91,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
 
-    def get_team_ids(self, request: Request, organization: Organization) -> list[int]:
-        return [team.id for team in self.get_teams(request, organization)]
-
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
             return []
@@ -353,6 +350,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if not data:
                 return {"data": [], "meta": meta}
             if "confidence" in results:
+                meta["accuracy"] = {
+                    "confidence": results["confidence"],
+                    # TODO: add sampleCount and rampleRate here
+                }
+                # Confidence being a top level key is going to be deprecated in favour of confidence being in the meta
                 return {"data": data, "meta": meta, "confidence": results["confidence"]}
             return {"data": data, "meta": meta}
 
@@ -611,6 +613,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
+            # TODO: confidence is being split up in the serializer right now, need to move that here once its deprecated
+            if "confidence" in result[columns[index]]:
+                meta["accuracy"] = {"confidence": result[columns[index]]["confidence"]}
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:

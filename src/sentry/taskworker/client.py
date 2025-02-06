@@ -22,8 +22,8 @@ class TaskworkerClient:
     Taskworker RPC client wrapper
     """
 
-    def __init__(self, host: str, num_brokers: int) -> None:
-        self._host = self.loadbalance(host, num_brokers)
+    def __init__(self, host: str, num_brokers: int | None) -> None:
+        self._host = host if not num_brokers else self.loadbalance(host, num_brokers)
 
         # TODO(taskworker) Need to support xds bootstrap file
         grpc_config = options.get("taskworker.grpc_service_config")

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -10,11 +11,11 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
+import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -22,10 +23,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {
-  type UptimeCheckIn,
-  useUptimeCheckIns,
-} from 'sentry/views/issueDetails/queries/useUptimeCheckIns';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -35,6 +35,7 @@ export default function GroupUptimeChecks() {
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
   const user = useUser();
+  const {detectorDetails} = useIssueDetails();
 
   const {
     data: group,
@@ -45,7 +46,6 @@ export default function GroupUptimeChecks() {
 
   const {
     data: event,
-    isPending: isEventPending,
     isError: isEventError,
     refetch: refetchEvent,
   } = useGroupEvent({
@@ -53,11 +53,15 @@ export default function GroupUptimeChecks() {
     eventId: user.options.defaultIssueEvent,
   });
 
-  const uptimeAlertId = event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
-  const isUptimeAlert =
+  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
+  const uptimeAlertId =
+    detectorDetails.detectorId ??
+    event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
+
+  const canFetchUptimeChecks =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
 
-  const {data: uptimeData, getResponseHeader} = useUptimeCheckIns(
+  const {data: uptimeData, getResponseHeader} = useUptimeChecks(
     {
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
@@ -65,24 +69,25 @@ export default function GroupUptimeChecks() {
       cursor: decodeScalar(location.query.cursor),
       limit: 50,
     },
-    {enabled: isUptimeAlert}
+    {enabled: canFetchUptimeChecks}
   );
 
   if (isGroupError) {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  if (isEventError) {
+  // If the event query failed, only show an error if we don't already have the detector details
+  if (!canFetchUptimeChecks && isEventError) {
     return <LoadingError onRetry={refetchEvent} />;
   }
 
-  if (isEventPending || isGroupPending || !uptimeData) {
+  if (isGroupPending || !uptimeData) {
     return <LoadingIndicator />;
   }
 
   const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
-  const previousDisabled = isEventPending || links?.previous?.results === false;
-  const nextDisabled = isEventPending || links?.next?.results === false;
+  const previousDisabled = links?.previous?.results === false;
+  const nextDisabled = links?.next?.results === false;
   const pageCount = uptimeData.length;
 
   return (
@@ -97,7 +102,7 @@ export default function GroupUptimeChecks() {
       }}
     >
       <GridEditable
-        isLoading={isEventPending}
+        isLoading={isGroupPending}
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
@@ -130,11 +135,11 @@ function CheckInBodyCell({
   userOptions,
 }: {
   column: GridColumnOrder<string>;
-  dataRow: UptimeCheckIn;
+  dataRow: UptimeCheck;
   userOptions: User['options'];
 }) {
   const theme = useTheme();
-  const columnKey = column.key as keyof UptimeCheckIn;
+  const columnKey = column.key as keyof UptimeCheck;
   const cellData = dataRow[columnKey];
 
   if (!cellData) {
@@ -147,26 +152,30 @@ function CheckInBodyCell({
         ? 'MMM D, YYYY HH:mm:ss z'
         : 'MMM D, YYYY h:mm:ss A z';
       return (
-        <Cell>
-          <TimeSince
-            tooltipShowSeconds
-            unitStyle="short"
-            date={cellData}
-            tooltipProps={{maxWidth: 300}}
-            tooltipBody={
+        <TimeCell>
+          <Tooltip
+            maxWidth={300}
+            isHoverable
+            title={
               <LabelledTooltip>
-                <dt>{t('Scheduled for')}</dt>
-                <dd>
-                  {moment
-                    .tz(dataRow.scheduledCheckTime, userOptions?.timezone ?? '')
-                    .format(format)}
-                </dd>
+                {dataRow.scheduledCheckTime && (
+                  <Fragment>
+                    <dt>{t('Scheduled for')}</dt>
+                    <dd>
+                      {moment
+                        .tz(dataRow.scheduledCheckTime, userOptions?.timezone ?? '')
+                        .format(format)}
+                    </dd>
+                  </Fragment>
+                )}
                 <dt>{t('Checked at')}</dt>
                 <dd>{moment.tz(cellData, userOptions?.timezone ?? '').format(format)}</dd>
               </LabelledTooltip>
             }
-          />
-        </Cell>
+          >
+            {FIELD_FORMATTERS.date.renderFunc('timestamp', dataRow)}
+          </Tooltip>
+        </TimeCell>
       );
     }
     case 'durationMs':
@@ -241,6 +250,12 @@ const Cell = styled('div')`
   align-items: center;
   text-align: left;
   gap: ${space(1)};
+`;
+
+const TimeCell = styled(Cell)`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+  text-decoration-style: dotted;
 `;
 
 const LinkCell = styled(Link)`

@@ -8,6 +8,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -137,8 +138,8 @@ function OrganizationCreate() {
                 label={tct(
                   'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
                   {
-                    termsLink: <a href={termsUrl} />,
-                    privacyLink: <a href={privacyUrl} />,
+                    termsLink: <ExternalLink href={termsUrl} />,
+                    privacyLink: <ExternalLink href={privacyUrl} />,
                   }
                 )}
                 inline={false}
