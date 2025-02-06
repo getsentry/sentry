@@ -340,11 +340,13 @@ class OutboxBase(Model):
                     .order_by("id")
                 )
 
+                new_scheduled_for = timezone.now() + datetime.timedelta(hours=1)
+
                 # Reserve the messages for processing. By updating scheduled_for to a point
                 # in the future (now + 1 hour), we effectively signal that these messages are
                 # being processed, thereby preventing any other drain process from picking them up.
                 self.objects.filter(id__in=all_ids + [coalesced_id]).update(
-                    scheduled_for=timezone.now() + datetime.timedelta(hours=1)
+                    scheduled_for=new_scheduled_for
                 )
 
             # End of the selection/reservation phase. The transaction is now committed, and all locks
@@ -353,12 +355,32 @@ class OutboxBase(Model):
             try:
                 yield coalesced
             except Exception:
-                # An exception occurred during processing (e.g. send_signal() raised an exception).
-                # Revert the scheduled_for values back to their original value (scheduled_from)
-                # so that the messages are eligible for reprocessing.
-                self.objects.filter(id__in=all_ids + [coalesced_id]).update(
-                    scheduled_for=scheduled_from
-                )
+                # If an an exception occurs during processing (e.g. send_signal() raised an exception),
+                # we want to revert the reservation update so that these messages are eligible for reprocessing.
+                #
+                # We do this by:
+                # 1. We wrap the revert update in an atomic transaction to ensure that the checks and update are atomic.
+                # 2. We only update messages that still have our temporary scheduled_for value (new_scheduled_for)
+                #    to avoid modifying messages that may have been picked up by other processes
+                with transaction.atomic(using=using):
+                    # Attempt to revert the scheduled_for timestamps for all affected messages
+                    # to avoid modifying messages that may have been picked up by other processes
+                    affected = self.objects.filter(
+                        id__in=all_ids + [coalesced_id],
+                        scheduled_for=new_scheduled_for,
+                    ).update(scheduled_for=scheduled_from)
+
+                    # Verify that all messages were reverted. i.e. all_ids plus the coalesced message (representative)
+                    # If the count doesn't match, it could indicate that some messages were
+                    # processed by another worker.
+                    expected_count = len(all_ids) + 1
+                    if affected != expected_count:
+                        logger.info(
+                            "Revert update did not affect all messages",
+                            extra={**tags, "affected": affected, "expected": expected_count},
+                        )
+                        metrics.incr("outbox.coalesced_revert_count_mismatch", tags=tags)
+
                 metrics.incr("outbox.coalesced_yield_error", tags=tags)
                 raise
 
