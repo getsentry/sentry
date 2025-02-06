@@ -21,8 +21,6 @@ from sentry.workflow_engine.endpoints.validators.base import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
-UNSUPPORTED_QUERIES = {"release:latest"}
-
 
 class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=True)
@@ -36,15 +34,6 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
     )
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
-
-    def validate_query(self, query: str):
-        query_terms = query.split()
-        for query_term in query_terms:
-            if query_term in UNSUPPORTED_QUERIES:
-                raise serializers.ValidationError(
-                    f"Unsupported Query: We do not currently support the {query_term} query"
-                )
-        return query
 
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
         try:
