@@ -103,11 +103,13 @@ export function useSpanSamplesWebVitalsQuery({
             'measurements.cls':
               row[SpanIndexedField.CLS_SCORE] > 0 ? row[SpanIndexedField.CLS] : undefined,
             'user.display':
-              row[SpanIndexedField.USER_EMAIL] ??
-              row[SpanIndexedField.USER_USERNAME] ??
-              row[SpanIndexedField.USER_ID] ??
-              row[SpanIndexedField.USER_IP] ??
-              row[SpanIndexedField.USER],
+              [
+                row[SpanIndexedField.USER_EMAIL],
+                row[SpanIndexedField.USER_USERNAME],
+                row[SpanIndexedField.USER_ID],
+                row[SpanIndexedField.USER_IP],
+                row[SpanIndexedField.USER],
+              ].find(field => field && field !== '') ?? undefined,
             replayId: row[SpanIndexedField.REPLAY_ID],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),

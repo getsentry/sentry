@@ -48,7 +48,7 @@ export type SpanSampleRow = {
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.TRACE]: string;
-  'user.display': string;
+  'user.display'?: string;
   [SpanIndexedField.INP]?: number;
   [SpanIndexedField.CLS]?: number;
   [SpanIndexedField.LCP]?: number;
