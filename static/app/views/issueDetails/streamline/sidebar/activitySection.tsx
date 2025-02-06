@@ -237,7 +237,10 @@ export default function StreamlinedActivitySection({
           <SidebarSectionTitle style={{gap: space(0.75)}}>
             {t('Activity')}
             {group.numComments > 0 ? (
-              <CommentsLink to={activityLink}>
+              <CommentsLink
+                to={activityLink}
+                aria-label={t('Number of comments: %s', group.numComments)}
+              >
                 <IconChat
                   size="xs"
                   color={
