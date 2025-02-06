@@ -1,22 +1,21 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {Fragment} from 'react';
+
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
-
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -25,7 +24,6 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -39,7 +37,7 @@ type Row = Pick<
   | 'span.duration'
   | 'trace'
   | 'timestamp'
-  | 'replay.id'
+  | 'replayId'
   | 'profile.id'
   | 'profiler.id'
   | 'thread.id'
@@ -53,7 +51,7 @@ type Column = GridColumnHeader<
   | 'span.duration'
   | 'trace'
   | 'timestamp'
-  | 'replay.id'
+  | 'replayId'
   | 'profile.id'
 >;
 
@@ -84,7 +82,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'replay.id',
+    key: 'replayId',
     name: t('Replay'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -99,9 +97,9 @@ const LIMIT = 5;
 
 type Props = {
   eventView: EventView;
+  handleDropdownChange: (k: string) => void;
   options: DropdownOption[];
   selected: DropdownOption;
-  handleDropdownChange: (k: string) => void;
 };
 
 export function ServiceEntrySpansTable({
@@ -134,7 +132,7 @@ export function ServiceEntrySpansTable({
         'span.duration',
         'trace',
         'timestamp',
-        'replay.id',
+        'replayId',
         'profile.id',
         'profiler.id',
         'thread.id',
@@ -224,26 +222,26 @@ function renderBodyCell(
           }}
           aria-label={t('View Profile')}
           disabled={!row['profile.id']}
-        ></LinkButton>
+        />
       </div>
     );
   }
 
-  if (column.key === 'replay.id') {
+  if (column.key === 'replayId') {
     return (
       <div>
         <LinkButton
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${row['replay.id']}/`,
+            pathname: `/organizations/${organization.slug}/replays/${row['replayId']}/`,
             query: {
               referrer: 'performance',
             },
           }}
-          disabled={!row['replay.id']}
+          disabled={!row['replayId']}
           aria-label={t('View Replay')}
-        ></LinkButton>
+        />
       </div>
     );
   }

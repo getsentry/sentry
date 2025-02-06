@@ -105,7 +105,7 @@ export type SpanStringFields =
   | 'user.email'
   | 'user.username'
   | 'user.ip'
-  | 'replay.id'
+  | 'replayId'
   | 'profile.id'
   | 'profiler.id'
   | 'thread.id';
