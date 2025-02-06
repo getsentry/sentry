@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
@@ -15,17 +16,45 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {type CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Member} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import type {CommonSidebarProps} from './types';
-import {SidebarPanelKey} from './types';
+function useMutateMemberQuickStartDisplay() {
+  const organization = useOrganization();
+  const api = useApi({
+    persistInFlight: false,
+  });
+  return useMutation<Member, RequestError, {quickStartDisplayStatus: number}>({
+    mutationFn: ({quickStartDisplayStatus}) => {
+      return api.requestPromise(
+        `/organizations/${organization.slug}/members/me/quick-start-display/`,
+        {
+          method: 'PUT',
+          data: {quickStartDisplayStatus},
+        }
+      );
+    },
+    onError: error => {
+      addErrorMessage(
+        (error?.responseJSON?.detail as string) ??
+          t('Failed to update members quick start display status')
+      );
+    },
+  });
+}
 
 type OnboardingStatusProps = CommonSidebarProps;
 
@@ -39,14 +68,18 @@ export function OnboardingStatus({
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
+  const {activateSidebar} = useOnboardingSidebar();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
     false
   );
 
+  const quickStartDisplayStatus = organization.quickStartDisplayStatus;
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const demoMode = isDemoModeEnabled();
+
+  const {mutate: updateQuickStartDisplayStatus} = useMutateMemberQuickStartDisplay();
 
   const supportedTasks = getMergedTasks({
     organization,
@@ -109,6 +142,27 @@ export function OnboardingStatus({
     quickStartCompleted,
     setQuickStartCompleted,
     allTasksCompleted,
+  ]);
+
+  useEffect(() => {
+    if (
+      skipQuickStart ||
+      !defined(quickStartDisplayStatus) ||
+      quickStartDisplayStatus > 1
+    ) {
+      return;
+    }
+
+    updateQuickStartDisplayStatus({quickStartDisplayStatus: quickStartDisplayStatus + 1});
+
+    if (quickStartDisplayStatus === 1) {
+      activateSidebar();
+    }
+  }, [
+    skipQuickStart,
+    quickStartDisplayStatus,
+    activateSidebar,
+    updateQuickStartDisplayStatus,
   ]);
 
   if (skipQuickStart) {

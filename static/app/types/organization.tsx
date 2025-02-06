@@ -105,6 +105,7 @@ export interface Organization extends OrganizationSummary {
   };
   orgRole?: string;
   planSampleRate?: number | null;
+  quickStartDisplayStatus?: number | null;
 }
 
 export interface Team {
@@ -198,6 +199,7 @@ export interface Member {
    * User may be null when the member represents an invited member
    */
   user: User | null;
+  quickStartDisplayStatus?: number | null;
 }
 
 /**
