@@ -457,61 +457,13 @@ function Visualize({error, setError}: VisualizeProps) {
                   ) : (
                     <Fragment>
                       <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
-                        {hasColumnParameter && (
-                          <ColumnCompactSelect
-                            searchable
-                            options={
-                              state.dataset === WidgetType.SPANS &&
-                              field.kind !== FieldValueKind.FUNCTION
-                                ? spanColumnOptions
-                                : columnOptions
-                            }
-                            value={
-                              field.kind === FieldValueKind.FUNCTION
-                                ? parseFunction(stringFields?.[index] ?? '')
-                                    ?.arguments[0] ?? ''
-                                : field.field
-                            }
-                            onChange={newField => {
-                              const newFields = cloneDeep(fields);
-                              const currentField = newFields[index]!;
-                              // Update the current field's aggregate with the new aggregate
-                              if (currentField.kind === FieldValueKind.FUNCTION) {
-                                currentField.function[1] = newField.value as string;
-                              }
-                              if (currentField.kind === FieldValueKind.FIELD) {
-                                currentField.field = newField.value as string;
-                              }
-                              dispatch({
-                                type: updateAction,
-                                payload: newFields,
-                              });
-                              setError?.({...error, queries: []});
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field: 'visualize.updateColumn',
-                                from: source,
-                                new_widget: !isEditing,
-                                value:
-                                  currentField.kind === FieldValueKind.FIELD
-                                    ? 'column'
-                                    : 'aggregate',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }}
-                            triggerProps={{
-                              'aria-label': t('Column Selection'),
-                            }}
-                          />
-                        )}
                         <AggregateCompactSelect
                           searchable
                           hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
                           value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
-                          position="bottom-end"
+                          position="bottom-start"
                           onChange={aggregateSelection => {
                             const isNone = aggregateSelection.value === NONE;
                             const newFields = cloneDeep(fields);
@@ -705,6 +657,55 @@ function Visualize({error, setError}: VisualizeProps) {
                             'aria-label': t('Aggregate Selection'),
                           }}
                         />
+                        {hasColumnParameter && (
+                          <ColumnCompactSelect
+                            searchable
+                            position="bottom-start"
+                            options={
+                              state.dataset === WidgetType.SPANS &&
+                              field.kind !== FieldValueKind.FUNCTION
+                                ? spanColumnOptions
+                                : columnOptions
+                            }
+                            value={
+                              field.kind === FieldValueKind.FUNCTION
+                                ? parseFunction(stringFields?.[index] ?? '')
+                                    ?.arguments[0] ?? ''
+                                : field.field
+                            }
+                            onChange={newField => {
+                              const newFields = cloneDeep(fields);
+                              const currentField = newFields[index]!;
+                              // Update the current field's aggregate with the new aggregate
+                              if (currentField.kind === FieldValueKind.FUNCTION) {
+                                currentField.function[1] = newField.value as string;
+                              }
+                              if (currentField.kind === FieldValueKind.FIELD) {
+                                currentField.field = newField.value as string;
+                              }
+                              dispatch({
+                                type: updateAction,
+                                payload: newFields,
+                              });
+                              setError?.({...error, queries: []});
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateColumn',
+                                from: source,
+                                new_widget: !isEditing,
+                                value:
+                                  currentField.kind === FieldValueKind.FIELD
+                                    ? 'column'
+                                    : 'aggregate',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
+                            }}
+                            triggerProps={{
+                              'aria-label': t('Column Selection'),
+                            }}
+                          />
+                        )}
                       </PrimarySelectRow>
                       {field.kind === FieldValueKind.FUNCTION &&
                         parameterRefinements.length > 0 && (
@@ -993,7 +994,7 @@ const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolea
       ? `
     width: fit-content;
     max-width: 150px;
-    left: -1px;
+    left: 1px;
   `
       : `
     width: 100%;
@@ -1029,16 +1030,16 @@ const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   flex: 3;
 
   & > ${ColumnCompactSelect} > button {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 
   & > ${AggregateCompactSelect} > button {
     ${p =>
       p.hasColumnParameter &&
       `
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
     `}
   }
 `;
