@@ -77,7 +77,8 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
-              value={thresholds[PriorityLevel.MEDIUM]}
+              // empty string required to keep this as a controlled input
+              value={thresholds[PriorityLevel.MEDIUM] ?? ''}
               onChange={threshold => setMediumThreshold(Number(threshold))}
               name={`${name}-medium`}
               data-test-id="priority-control-medium"
@@ -102,7 +103,8 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
-              value={thresholds[PriorityLevel.HIGH]}
+              // empty string required to keep this as a controlled input
+              value={thresholds[PriorityLevel.HIGH] ?? ''}
               onChange={threshold => setHighThreshold(Number(threshold))}
               name={`${name}-high`}
               data-test-id="priority-control-high"
