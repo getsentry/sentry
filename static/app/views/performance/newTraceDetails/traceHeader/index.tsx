@@ -270,6 +270,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         </HeaderRow>
         <HeaderRow>
           <Title
+            tree={props.tree}
             traceSlug={props.traceSlug}
             representativeTransaction={representativeTransaction}
           />
