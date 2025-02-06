@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options
+from sentry import features, options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
@@ -46,8 +46,16 @@ def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]
     if not (content_is_eligible and seer_enabled_for_project):
         return False
 
+    has_blocked_fingerprint = (
+        _has_custom_fingerprint(event, variants)
+        if features.has(
+            "organizations:grouping-hybrid-fingerprint-seer-usage", project.organization
+        )
+        else _has_customized_fingerprint(event, variants)
+    )
+
     if (
-        _has_customized_fingerprint(event, variants)
+        has_blocked_fingerprint
         or _has_too_many_contributing_frames(event, variants)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -141,6 +149,17 @@ def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) 
             return True
 
     # Fully customized fingerprint (from either us or the user)
+    fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
+
+    if fingerprint_variant:
+        record_did_call_seer_metric(event, call_made=False, blocker=fingerprint_variant.type)
+        return True
+
+    return False
+
+
+# TODO: Make this the only fingerprint check once the hybrid fingerprint + Seer change is fully enabled
+def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
     fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
 
     if fingerprint_variant:
