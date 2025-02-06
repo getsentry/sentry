@@ -216,9 +216,9 @@ def get_condition_query_groups(
     for dcg in data_condition_groups:
         slow_conditions = get_slow_conditions(dcg)
         for condition in slow_conditions:
-            for condition_query in generate_unique_queries(
-                condition, workflows_to_envs[dcg_to_workflow[dcg.id]]
-            ):
+            workflow_id = dcg_to_workflow.get(dcg.id)
+            workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
+            for condition_query in generate_unique_queries(condition, workflow_env):
                 condition_groups[condition_query].update(dcg_to_groups[dcg.id])
     return condition_groups
 

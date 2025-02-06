@@ -59,8 +59,10 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
 
         self.workflow_group_dcg_mapping = {
-            f"{self.workflow1.id}:{self.group1.id}:{','.join(map(str, [dcg.id for dcg in self.workflow1_dcgs]))}",
-            f"{self.workflow2.id}:{self.group2.id}:{','.join(map(str, [dcg.id for dcg in self.workflow2_dcgs]))}",
+            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[0].id}:{DataConditionHandlerType.WORKFLOW_TRIGGER}",
+            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}",
+            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[0].id}:{DataConditionHandlerType.WORKFLOW_TRIGGER}",
+            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}",
         }
 
         self.event3, self.group3 = self.setup_event(self.project2, self.environment2, "group-3")
@@ -73,8 +75,10 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self._make_sessions(60, project=self.project2)
 
         self.workflow_group_dcg_mapping2 = {
-            f"{self.workflow3.id}:{self.group3.id}:{','.join(map(str, [dcg.id for dcg in self.workflow3_dcgs]))}",
-            f"{self.workflow4.id}:{self.group4.id}:{','.join(map(str, [dcg.id for dcg in self.workflow4_dcgs]))}",
+            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[0].id}:{DataConditionHandlerType.WORKFLOW_TRIGGER}",
+            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}",
+            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[0].id}:{DataConditionHandlerType.WORKFLOW_TRIGGER}",
+            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}",
         }
 
         self.dcg_to_groups = {dcg.id: {self.group1.id} for dcg in self.workflow1_dcgs} | {
@@ -83,6 +87,11 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.dcg_to_workflow = {dcg.id: self.workflow1.id for dcg in self.workflow1_dcgs} | {
             dcg.id: self.workflow2.id for dcg in self.workflow2_dcgs
         }
+
+        self.detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
+        self.detector_dcg = self.create_data_condition_group()
+        self.detector.update(workflow_condition_group=self.detector_dcg)
+        self.dcg_to_detector = {self.detector_dcg.id: self.detector.id}
 
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -201,15 +210,26 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
 
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        assert len(buffer_data) == 2
+        assert len(buffer_data) == 4
         assert set(buffer_data.keys()) == self.workflow_group_dcg_mapping
 
         buffer_data = fetch_group_to_event_data(self.project2.id, Workflow)
-        assert len(buffer_data) == 2
+        assert len(buffer_data) == 4
         assert set(buffer_data.keys()) == self.workflow_group_dcg_mapping2
 
     def test_get_dcg_group_workflow_detector_data(self):
         self._push_base_events()
+
+        self.push_to_hash(
+            self.project.id,
+            self.detector.id,
+            self.group1.id,
+            [self.detector_dcg.id],
+            self.event1.event_id,
+            dcg_type=DataConditionHandlerType.DETECTOR_TRIGGER,
+        )
+        self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
+
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
         dcg_to_groups, dcg_to_workflow, dcg_to_detector, all_event_data = (
             get_dcg_group_workflow_detector_data(buffer_data)
@@ -217,13 +237,15 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
 
         assert dcg_to_groups == self.dcg_to_groups
         assert dcg_to_workflow == self.dcg_to_workflow
-        assert dcg_to_detector == {}
-        assert all_event_data.count({"event_id": self.event1.event_id, "occurrence_id": None}) == 2
+        assert dcg_to_detector == self.dcg_to_detector
+        assert all_event_data.count({"event_id": self.event1.event_id, "occurrence_id": None}) == 3
         assert all_event_data.count({"event_id": self.event2.event_id, "occurrence_id": None}) == 2
 
     def test_fetch_workflows_detectors_envs(self):
         workflow_ids_to_workflows, detector_ids_to_detectors, workflows_to_envs = (
-            fetch_workflows_detectors_envs(list(self.dcg_to_workflow.values()), [])
+            fetch_workflows_detectors_envs(
+                list(self.dcg_to_workflow.values()), list(self.dcg_to_detector.values())
+            )
         )
         assert workflows_to_envs == {
             self.workflow1.id: self.environment.id,
@@ -233,20 +255,30 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             self.workflow1.id: self.workflow1,
             self.workflow2.id: self.workflow2,
         }
-        assert detector_ids_to_detectors == {}
+        assert detector_ids_to_detectors == {
+            self.detector.id: self.detector,
+        }
 
     def test_fetch_active_data_condition_groups(self):
         workflow_ids_to_workflows = {
             self.workflow1.id: self.workflow1,
             self.workflow2.id: self.workflow2,
         }
+        self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
 
         active_dcgs = fetch_active_data_condition_groups(
-            list(self.dcg_to_groups.keys()), self.dcg_to_workflow, {}, workflow_ids_to_workflows, {}
+            list(self.dcg_to_groups.keys()),
+            self.dcg_to_workflow,
+            self.dcg_to_detector,
+            workflow_ids_to_workflows,
+            {self.detector.id: self.detector},
         )
-        assert set(active_dcgs) == set(self.workflow1_dcgs + self.workflow2_dcgs)
+        assert set(active_dcgs) == set(
+            self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
+        )
 
         self.workflow1.update(enabled=False)
+        self.detector.update(enabled=False)
         active_dcgs = fetch_active_data_condition_groups(
             list(self.dcg_to_groups.keys()), self.dcg_to_workflow, {}, workflow_ids_to_workflows, {}
         )
@@ -326,6 +358,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
     def test_get_condition_query_groups(self):
         group2 = self.create_group()
         group3 = self.create_group()
+        group4 = self.create_group()
 
         other_workflow_filters = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ALL
@@ -339,12 +372,21 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
         self.create_workflow_data_condition_group(
             workflow=self.workflow, condition_group=other_workflow_filters
         )
+        detector_dcg = self.create_data_condition_group()
+        _ = self.create_data_condition(
+            condition_group=detector_dcg,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "15m", "value": 100},
+            condition_result=True,
+        )  # same as other_condition
+        self.detector.update(workflow_condition_group=detector_dcg)
 
-        dcgs = [self.workflow_triggers, self.workflow_filters, other_workflow_filters]
+        dcgs = [self.workflow_triggers, self.workflow_filters, other_workflow_filters, detector_dcg]
         dcg_to_groups = {
             self.workflow_triggers.id: {self.group.id},
             self.workflow_filters.id: {group2.id},
             other_workflow_filters.id: {group3.id},
+            detector_dcg.id: {group4.id},
         }
         dcg_to_workflow = {
             self.workflow_triggers.id: self.workflow.id,
@@ -361,7 +403,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
 
         assert result[count_query] == {self.group.id, group2.id}  # count and percent condition
         assert result[percent_only_query] == {self.group.id}
-        assert result[different_query] == {group3.id}
+        assert result[different_query] == {group3.id, group4.id}
 
 
 @freeze_time(FROZEN_TIME)
