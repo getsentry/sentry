@@ -262,7 +262,27 @@ function formatSolutionText(solution: AutofixSolutionTimelineEvent[]) {
     return '';
   }
 
-  return solution.map(event => `- ${event.title}`).join('\n');
+  const parts = ['# Proposed Changes'];
+
+  parts.push(
+    solution
+      .map(event => {
+        const eventParts = [`### ${event.title}`];
+
+        if (event.code_snippet_and_analysis) {
+          eventParts.push(event.code_snippet_and_analysis);
+        }
+
+        if (event.relevant_code_file) {
+          eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+        }
+
+        return eventParts.join('\n');
+      })
+      .join('\n\n')
+  );
+
+  return parts.join('\n\n');
 }
 
 function CopySolutionButton({solution}: {solution: AutofixSolutionTimelineEvent[]}) {
