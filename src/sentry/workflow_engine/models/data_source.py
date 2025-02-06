@@ -23,6 +23,7 @@ T = TypeVar("T")
 
 @dataclasses.dataclass
 class DataPacket(Generic[T]):
+    # TODO - @saponifi3d - update this to source_id to match, when implementing
     query_id: str
     packet: T
 
@@ -33,8 +34,12 @@ class DataSource(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
 
-    # Should this be a string so we can support UUID / ints?
-    query_id = BoundedBigIntegerField()
+    # TODO - @saponifi3d - complete removal of this field
+    # QUERY_ID is DEPRECATED and should not be used, instead use source_id
+    query_id = BoundedBigIntegerField(null=True)
+
+    # TODO - @saponifi3d remove the db_default once the field exists
+    source_id = models.TextField(db_default="")
 
     # This is a dynamic field, depending on the type in the data_source_type_registry
     type = models.TextField()
@@ -42,8 +47,8 @@ class DataSource(DefaultFieldsModel):
     detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
 
     indexes = [
-        models.Index(fields=("type", "query_id")),
-        models.Index(fields=("organization", "type", "query_id")),
+        models.Index(fields=("type", "source_id")),
+        models.Index(fields=("organization", "type", "source_id")),
     ]
 
     @property
