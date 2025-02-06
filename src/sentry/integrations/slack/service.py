@@ -209,6 +209,11 @@ class SlackService:
             ):
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(activity.group)
+                log_params["open_period_start"] = str(open_period_start)
+                _default_logger.info(
+                    "open period start is enabled for this organization",
+                    extra=log_params,
+                )
                 parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
                     group_ids=[activity.group.id],
                     project_ids=[activity.project.id],
