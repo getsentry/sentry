@@ -186,22 +186,18 @@ function IssueViewsIssueListHeaderTabsContent({
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
-  const queryParams = router.location.query;
-  const {
-    query,
-    sort,
-    viewId,
-    project,
-    environment: env,
-    start,
-    end,
-    statsPeriod,
-    period,
-    utc,
-  } = queryParams;
+  const {query, sort, viewId} = router.location.query;
 
   // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
+    const {
+      project,
+      environment: env,
+      start,
+      end,
+      statsPeriod,
+      utc,
+    } = router.location.query;
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
       const {
@@ -217,7 +213,7 @@ function IssueViewsIssueListHeaderTabsContent({
         normalizeUrl({
           ...location,
           query: {
-            ...queryParams,
+            ...router.location.query,
             query: viewQuery,
             sort: querySort,
             viewId: id,
@@ -297,7 +293,7 @@ function IssueViewsIssueListHeaderTabsContent({
             normalizeUrl({
               ...location,
               query: {
-                ...queryParams,
+                ...router.location.query,
                 viewId: selectedView.id,
                 query: newUnsavedChanges.query ?? selectedView.query,
                 sort: newUnsavedChanges.querySort ?? selectedView.querySort,
@@ -319,7 +315,7 @@ function IssueViewsIssueListHeaderTabsContent({
           normalizeUrl({
             ...location,
             query: {
-              ...queryParams,
+              ...router.location.query,
               viewId: undefined,
               project: project ?? defaultProject,
               environment: env ?? DEFAULT_ENVIRONMENTS,
@@ -342,7 +338,7 @@ function IssueViewsIssueListHeaderTabsContent({
           normalizeUrl({
             ...location,
             query: {
-              ...queryParams,
+              ...router.location.query,
               viewId: undefined,
             },
           }),
@@ -355,20 +351,13 @@ function IssueViewsIssueListHeaderTabsContent({
   }, [
     defaultProject,
     dispatch,
-    end,
-    env,
     location,
     navigate,
     organization,
-    period,
-    project,
     query,
-    queryParams,
+    router.location.query,
     sort,
-    start,
-    statsPeriod,
     tabListState,
-    utc,
     viewId,
     views,
   ]);
@@ -426,7 +415,7 @@ function IssueViewsIssueListHeaderTabsContent({
     navigate({
       ...location,
       query: {
-        ...queryParams,
+        ...router.location.query,
         query: '',
         viewId: tempId,
         project: defaultProject,
@@ -466,7 +455,7 @@ function IssueViewsIssueListHeaderTabsContent({
           key={view.key}
           to={normalizeUrl({
             query: {
-              ...queryParams,
+              ...router.location.query,
               query: view.unsavedChanges?.query ?? view.query,
               sort: view.unsavedChanges?.querySort ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
