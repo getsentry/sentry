@@ -358,10 +358,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (key === 'profile.id') {
       const profileId = String(row[key]);
       const profileTarget =
-        defined(row.projectSlug) && defined(row[key])
+        defined(row[key]) && project
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
-              projectSlug: row.projectSlug,
+              projectSlug: project.slug,
               profileId,
             })
           : null;
@@ -388,6 +388,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         (row['transaction.duration'] !== undefined ||
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
+        row[key] &&
         replayLinkGenerator(
           organization,
           {
@@ -408,6 +409,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           <AlignCenter>
             {replayTarget &&
             Object.keys(replayTarget).length > 0 &&
+            row[key] &&
             replayExists(row[key]) ? (
               <Tooltip title={t('View Replay')}>
                 <LinkButton to={replayTarget} size="xs">
@@ -422,9 +424,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    if (key === 'id' && 'id' in row) {
+    if (key === 'id' && 'id' in row && project) {
       const eventTarget = generateLinkToEventInTraceView({
-        projectSlug: row.projectSlug,
+        projectSlug: project?.slug,
         traceSlug: row.trace,
         eventId: row.id,
         timestamp: row.timestamp,
@@ -444,23 +446,26 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     }
 
     if (key === SpanIndexedField.SPAN_DESCRIPTION) {
-      const traceViewLink = generateLinkToEventInTraceView({
-        projectSlug: row.projectSlug,
-        traceSlug: row.trace,
-        eventId: 'id' in row ? row.id : undefined,
-        timestamp: row.timestamp,
-        organization,
-        location,
-        view: domainViewFilters.view,
-        source: TraceViewSources.WEB_VITALS_MODULE,
-      });
+      const traceViewLink = project
+        ? generateLinkToEventInTraceView({
+            projectSlug: project.slug,
+            traceSlug: row.trace,
+            eventId: 'id' in row ? row.id : undefined,
+            timestamp: row.timestamp,
+            organization,
+            location,
+            view: domainViewFilters.view,
+            source: TraceViewSources.WEB_VITALS_MODULE,
+          })
+        : undefined;
 
       return (
         <Tooltip title={(row as any)[key]}>
           <NoOverflow>
             {organization.features.includes('performance-vitals-standalone-cls-lcp') &&
             'span.op' in row &&
-            row['span.op'] === 'pageload' ? (
+            row['span.op'] === 'pageload' &&
+            traceViewLink ? (
               <Link to={traceViewLink}>{(row as any)[key]}</Link>
             ) : (
               (row as any)[key]

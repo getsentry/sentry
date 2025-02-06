@@ -246,6 +246,7 @@ export enum SpanIndexedField {
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
   REPLAY_ID = 'replay.id',
+  REPLAYID = 'replayId',
   BROWSER_NAME = 'browser.name',
   USER = 'user',
   USER_ID = 'user.id',
@@ -323,6 +324,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
   [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.REPLAYID]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
   [SpanIndexedField.USER_ID]: string;
