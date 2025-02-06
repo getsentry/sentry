@@ -103,11 +103,11 @@ const HovercardRow = styled(Link)`
   padding: ${space(2)};
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadiusTop};
+    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
 
   &:last-child {
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
 
   &:hover {
