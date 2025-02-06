@@ -839,18 +839,16 @@ const buttonPaddingSizes: ButtonPaddingSizes = {
 };
 
 type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
-type Breakpoints = {
-  [key in Breakpoint]: string;
-};
+type Breakpoints = Record<Breakpoint, string>;
 
-const breakpoints: Breakpoints = {
+const breakpoints = {
   xsmall: '500px',
   small: '800px',
   medium: '992px',
   large: '1200px',
   xlarge: '1440px',
   xxlarge: '2560px',
-} as const;
+} as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 type Sizes = {
