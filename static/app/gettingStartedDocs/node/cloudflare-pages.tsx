@@ -19,6 +19,7 @@ type Params = DocsParams;
 const getSdkConfigureSnippetToml = () => `
 compatibility_flags = ["nodejs_compat"]
 # compatibility_flags = ["nodejs_als"]
+compatibility_date = "2024-09-23"
 `;
 
 const getSdkConfigureSnippetJson = () => `
