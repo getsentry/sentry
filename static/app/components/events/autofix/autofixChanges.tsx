@@ -9,13 +9,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixChangesStep,
   type AutofixCodebaseChange,
   AutofixStatus,
-  AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -417,22 +415,6 @@ export function AutofixChanges({
   const data = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
 
-  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
-
-  const handleAddTests = () => {
-    const planStep = data?.steps?.[data.steps.length - 2];
-    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
-      return;
-    }
-
-    sendFeedbackOnChanges({
-      step_index: planStep.index,
-      retain_insight_card_index: planStep.insights.length - 1,
-      message:
-        'Please write a unit test that reproduces the issue to make sure it is fixed. Put it in the appropriate test file in the codebase. If there is none, create one.',
-    });
-  };
-
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
       <Content>
@@ -482,18 +464,6 @@ export function AutofixChanges({
               </HeaderText>
               {!prsMade && (
                 <ButtonBar gap={1}>
-                  {!branchesMade && (
-                    <Button
-                      size="sm"
-                      onClick={handleAddTests}
-                      disabled={isBusy}
-                      analyticsEventName="Autofix: Add Tests Clicked"
-                      analyticsEventKey="autofix.add_tests_clicked"
-                      analyticsParams={{group_id: groupId}}
-                    >
-                      {t('Add Tests')}
-                    </Button>
-                  )}
                   {!branchesMade ? (
                     <SetupAndCreateBranchButton
                       changes={step.changes}

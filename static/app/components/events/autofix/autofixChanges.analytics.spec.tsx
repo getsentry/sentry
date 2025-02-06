@@ -152,32 +152,4 @@ describe('AutofixChanges', () => {
       })
     );
   });
-
-  it('passes correct analytics props for Add Tests button', () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
-      method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
-        },
-      },
-    });
-
-    render(<AutofixChanges {...defaultProps} />);
-    screen.getByText('Add Tests').click();
-
-    const addTestsButtonCall = mockButton.mock.calls.find(
-      call => call[0]?.analyticsEventKey === 'autofix.add_tests_clicked'
-    );
-    expect(addTestsButtonCall?.[0]).toEqual(
-      expect.objectContaining({
-        analyticsEventKey: 'autofix.add_tests_clicked',
-        analyticsEventName: 'Autofix: Add Tests Clicked',
-        analyticsParams: {group_id: '123'},
-      })
-    );
-  });
 });
