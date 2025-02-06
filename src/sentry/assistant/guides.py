@@ -30,4 +30,5 @@ GUIDES = {
     "explain_archive_button_issue_stream": 33,
     "ddm_view": 34,
     "metrics_onboarding": 37,
+    "crons_backend_insights": 38,
 }
