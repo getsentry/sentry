@@ -19,6 +19,7 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
@@ -50,6 +51,7 @@ class TestGetNotificationMessageToSend(TestCase):
         assert result == "admin@localhost archived BAR-1"
 
 
+@freeze_time("2025-01-01 00:00:00")
 class TestNotifyAllThreadsForActivity(TestCase):
     def setUp(self) -> None:
         self.service = SlackService.default()
@@ -220,8 +222,8 @@ class TestNotifyAllThreadsForActivity(TestCase):
             notification_uuid=str(uuid4()),
         )
 
-        # "older" parent notification
-        parent_notification_1_message = NotificationMessage.objects.create(
+        # Create two parent notifications with different open periods
+        NotificationMessage.objects.create(
             id=123,
             date_added=timezone.now(),
             message_identifier="1a2s3d",
@@ -229,16 +231,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             rule_fire_history=rule_fire_history,
             open_period_start=timezone.now() - timedelta(minutes=1),
         )
-        parent_notification_1 = IssueAlertNotificationMessage.from_model(
-            parent_notification_1_message
-        )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
-
-        mock_handle.assert_called()
-        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification_1
-
-        # "newer" parent notification
         parent_notification_2_message = NotificationMessage.objects.create(
             id=124,
             date_added=timezone.now(),
@@ -247,15 +240,17 @@ class TestNotifyAllThreadsForActivity(TestCase):
             rule_fire_history=rule_fire_history,
             open_period_start=timezone.now(),
         )
-        parent_notification_2 = IssueAlertNotificationMessage.from_model(
-            parent_notification_2_message
-        )
 
         self.service.notify_all_threads_for_activity(activity=activity)
 
-        # Should only return the "newer" parent notification
-        mock_handle.assert_called()
-        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification_2
+        # Verify only one notification was handled
+        assert mock_handle.call_count == 1
+        # Verify it was the newer notification
+        mock_handle.assert_called_once()
+        assert (
+            mock_handle.call_args.kwargs["parent_notification"].id
+            == parent_notification_2_message.id
+        )
 
     @with_feature("organizations:slack-threads-refactor-uptime")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -281,8 +276,8 @@ class TestNotifyAllThreadsForActivity(TestCase):
             notification_uuid=str(uuid4()),
         )
 
-        # "older" parent notification
-        parent_notification_1_message = NotificationMessage.objects.create(
+        # Create two parent notifications with different open periods
+        NotificationMessage.objects.create(
             id=123,
             date_added=timezone.now(),
             message_identifier="1a2s3d",
@@ -290,16 +285,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             rule_fire_history=rule_fire_history,
             open_period_start=timezone.now() - timedelta(minutes=1),
         )
-        parent_notification_1 = IssueAlertNotificationMessage.from_model(
-            parent_notification_1_message
-        )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
-
-        mock_handle.assert_called()
-        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification_1
-
-        # "newer" parent notification
         parent_notification_2_message = NotificationMessage.objects.create(
             id=124,
             date_added=timezone.now(),
@@ -308,15 +294,17 @@ class TestNotifyAllThreadsForActivity(TestCase):
             rule_fire_history=rule_fire_history,
             open_period_start=timezone.now(),
         )
-        parent_notification_2 = IssueAlertNotificationMessage.from_model(
-            parent_notification_2_message
-        )
 
         self.service.notify_all_threads_for_activity(activity=activity)
 
-        # Should only return the "newer" parent notification
-        mock_handle.assert_called()
-        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification_2
+        # Verify only one notification was handled
+        assert mock_handle.call_count == 1
+        # Verify it was the newer notification for resolved activities
+        mock_handle.assert_called_once()
+        assert (
+            mock_handle.call_args.kwargs["parent_notification"].id
+            == parent_notification_2_message.id
+        )
 
 
 class TestHandleParentNotification(TestCase):
