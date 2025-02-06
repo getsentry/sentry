@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -9,7 +9,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 // Read utils begin
@@ -26,8 +29,8 @@ export type ReadableExploreQueryParts = {
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
   chartType: ChartType.LINE,
   yAxes: [DEFAULT_VISUALIZATION],
-  sortBys: [{kind: 'desc', field: 'timestamp'}],
-  fields: ['id', 'timestamp'],
+  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD!}],
+  fields: ['id', DEFAULT_VISUALIZATION_FIELD!],
   groupBys: [],
   query: '',
 };
@@ -38,8 +41,7 @@ function validateSortBys(
   fields?: string[],
   yAxes?: string[]
 ): Sort[] {
-  const mode =
-    !defined(groupBys) || groupBys?.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
+  const mode = getQueryMode(groupBys);
 
   if (parsedSortBys.length > 0) {
     if (
@@ -67,8 +69,9 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       return DEFAULT_QUERY;
     }
 
-    const yAxes = parsed.yAxes.filter(parseFunction);
-    if (yAxes.length <= 0) {
+    const yAxes = parsed.yAxes;
+    const parsedFunctions = yAxes.map(parseFunction).filter(defined);
+    if (parsedFunctions.length <= 0) {
       return DEFAULT_QUERY;
     }
 
@@ -77,8 +80,8 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       chartType = ChartType.LINE;
     }
 
-    const fields: string[] = parsed.fields ?? [];
     const groupBys: string[] = parsed.groupBys ?? [];
+    const fields: string[] = getFieldsForConstructedQuery(yAxes);
 
     const parsedSortBys = decodeSorts(parsed.sortBys);
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
@@ -96,19 +99,18 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
   }
 }
 
-function readQueriesFromLocation(location: Location): ReadableExploreQueryParts[] {
-  const rawQueries = decodeList(location.query.queries);
-  if (!defined(rawQueries) || rawQueries.length === 0) {
-    return [DEFAULT_QUERY];
-  }
-
-  const parsedQueries = rawQueries.map(parseQuery);
-  return parsedQueries;
-}
-
-export function useReadQueriesFromLocation() {
+export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
   const location = useLocation();
-  return readQueriesFromLocation(location);
+  const rawQueries = decodeList(location.query.queries);
+
+  const parsedQueries = useMemo(() => {
+    if (!defined(rawQueries) || rawQueries.length === 0) {
+      return [DEFAULT_QUERY];
+    }
+    return rawQueries.map(parseQuery);
+  }, [rawQueries]);
+
+  return parsedQueries;
 }
 
 // Read utils end
@@ -148,25 +150,48 @@ function getUpdatedLocationWithQueries(
 
 export function useUpdateQueryAtIndex() {
   const location = useLocation();
+  const queries = useReadQueriesFromLocation();
   const navigate = useNavigate();
 
   return useCallback(
     (index: number, updates: Partial<WritableExploreQueryParts>) => {
-      const queries = readQueriesFromLocation(location);
-
       const queryToUpdate = queries[index];
       if (!queryToUpdate) {
         return;
       }
 
       const newQuery = {...queryToUpdate, ...updates};
+      newQuery.fields = getFieldsForConstructedQuery(newQuery.yAxes);
       queries[index] = newQuery;
 
       const target = getUpdatedLocationWithQueries(location, queries);
       navigate(target);
     },
-    [location, navigate]
+    [location, navigate, queries]
   );
 }
 
 // Write utils end
+
+// General utils
+
+export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
+  const fields: string[] = ['id'];
+
+  for (const yAxis of yAxes) {
+    const arg = parseFunction(yAxis)?.arguments[0];
+    if (!arg) {
+      continue;
+    }
+    if (fields.includes(arg)) {
+      continue;
+    }
+    fields.push(arg);
+  }
+
+  return fields;
+}
+
+export function getQueryMode(groupBys?: string[]): Mode {
+  return groupBys?.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
+}
