@@ -25,7 +25,6 @@ class SentryInstrumentation {
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
-      defaultIntegrations: [],
     });
 
     this.withCITags();
