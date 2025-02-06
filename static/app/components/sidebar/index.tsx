@@ -278,6 +278,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
+        active={hasPerfLandingRemovalFlag ? false : undefined}
         to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
         id="performance"
       />
@@ -437,6 +438,11 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
+        active={
+          hasPerfLandingRemovalFlag
+            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
+            : undefined
+        }
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
