@@ -16,7 +16,6 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-  clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -636,7 +635,11 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-        } else {
+        } else if (
+          !organization.features.includes('dashboards-widget-builder-redesign')
+        ) {
+          // If we're not using the new widget builder, we need to replace the URL to
+          // ensure we're navigating back to the dashboard
           browserHistory.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
@@ -795,13 +798,7 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleSaveWidget = async ({
-    index,
-    widget,
-  }: {
-    index: number | undefined;
-    widget: Widget;
-  }) => {
+  handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
     if (
       !this.props.organization.features.includes('dashboards-widget-builder-redesign')
     ) {
@@ -826,8 +823,7 @@ class DashboardDetail extends Component<Props, State> {
       if (!this.isEditingDashboard) {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
-        await this.handleUpdateWidgetList(newWidgets);
-        clearIndicators();
+        this.handleUpdateWidgetList(newWidgets);
       } else {
         // If we're in edit mode, update the edit state
         this.onUpdateWidget(newWidgets);
@@ -1180,6 +1176,7 @@ class DashboardDetail extends Component<Props, State> {
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           disablePersistence
+          skipLoadLastUsed
           defaultSelection={{
             datetime: {
               start: null,

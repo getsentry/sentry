@@ -145,7 +145,7 @@ export function WebVitalsLandingPage() {
   );
 }
 
-function WebVitalMetersPlaceholder() {
+export function WebVitalMetersPlaceholder() {
   return (
     <LoadingBoxContainer>
       {[...Array(WEB_VITALS_COUNT)].map((_, index) => (

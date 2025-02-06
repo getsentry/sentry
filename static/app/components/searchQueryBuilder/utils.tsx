@@ -28,6 +28,7 @@ function getSearchConfigFromKeys(
     dateKeys: new Set<string>(),
     durationKeys: new Set<string>(),
     percentageKeys: new Set<string>(),
+    sizeKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
@@ -54,6 +55,9 @@ function getSearchConfigFromKeys(
         break;
       case FieldValueType.DURATION:
         config.durationKeys.add(key);
+        break;
+      case FieldValueType.SIZE:
+        config.sizeKeys.add(key);
         break;
       default:
         break;

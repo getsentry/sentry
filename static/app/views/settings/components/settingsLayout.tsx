@@ -132,13 +132,15 @@ const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
 
 const MaxWidthContainer = styled('div')`
   display: flex;
-  max-width: ${p => p.theme.settings.containerWidth};
+  /* @TODO(jonasbadalic) 1440px used to be defined as theme.settings.containerWidth and only used here */
+  max-width: 1440px;
   flex: 1;
 `;
 
 const SidebarWrapper = styled('nav')<{isVisible: boolean; offsetTop: number}>`
   flex-shrink: 0;
-  width: ${p => p.theme.settings.sidebarWidth};
+  /* @TODO(jonasbadalic) 220px used to be defined as theme.settings.sidebarWidth and only used here */
+  width: 220px;
   background: ${p => p.theme.background};
   border-right: 1px solid ${p => p.theme.border};
 
