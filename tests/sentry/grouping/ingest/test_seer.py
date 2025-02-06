@@ -26,7 +26,7 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 
 
@@ -140,7 +140,51 @@ class ShouldCallSeerTest(TestCase):
             ):
                 assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_customized_fingerprint_check(self) -> None:
+    @with_feature({"organizations:grouping-hybrid-fingerprint-seer-usage": True})
+    def test_obeys_custom_fingerprint_check_flag_on(self) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        default_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="11212012123120120415201309082013",
+            data={**self.event_data, "fingerprint": ["{{ default }}"]},
+        )
+        custom_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="04152013090820131121201212312012",
+            data={**self.event_data, "fingerprint": ["charlie"]},
+        )
+        built_in_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="09082013112120121231201204152013",
+            data={
+                **self.event_data,
+                "fingerprint": ["failedtofetcherror"],
+                "_fingerprint_info": {
+                    "matched_rule": {
+                        "is_builtin": True,
+                        "matchers": [["type", "FailedToFetchError"]],
+                        "fingerprint": ["failedtofetcherror"],
+                        "text": 'type:"FailedToFetchError" -> "failedtofetcherror"',
+                    }
+                },
+            },
+        )
+
+        for event, expected_result in [
+            (default_fingerprint_event, True),
+            (custom_fingerprint_event, False),
+            (built_in_fingerprint_event, False),
+        ]:
+
+            assert (
+                should_call_seer_for_grouping(event, event.get_grouping_variants())
+                is expected_result
+            ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
+
+    # TODO: Delete this once the hybrid fingerprint + seer change is fully rolled out
+    @with_feature({"organizations:grouping-hybrid-fingerprint-seer-usage": False})
+    def test_obeys_customized_fingerprint_check_flag_off(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         default_fingerprint_event = Event(
@@ -236,7 +280,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         num_frames: int = 1,
         stacktrace_string: str | None = None,
         fingerprint: list[str] | None = None,
-    ) -> tuple[Event, dict[str, BaseVariant], str]:
+    ) -> tuple[Event, dict[str, BaseVariant], GroupHash, str]:
         error_type = "FailedToFetchError"
         error_value = "Charlie didn't bring the ball back"
         event = Event(
@@ -278,13 +322,13 @@ class GetSeerSimilarIssuesTest(TestCase):
             stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
         event.data["stacktrace_string"] = stacktrace_string
 
-        return (event, variants, stacktrace_string)
+        return (event, variants, grouphash, stacktrace_string)
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
-        new_event, new_variants, new_stacktrace_string = self.create_new_event()
+        new_event, new_variants, new_grouphash, new_stacktrace_string = self.create_new_event()
 
-        get_seer_similar_issues(new_event, new_variants)
+        get_seer_similar_issues(new_event, new_grouphash, new_variants)
 
         mock_get_similarity_data.assert_called_with(
             {
@@ -307,7 +351,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         ).first()
         assert existing_event.group_id
 
-        new_event, new_variants, _ = self.create_new_event()
+        new_event, new_variants, new_grouphash, _ = self.create_new_event()
 
         seer_result_data = SeerSimilarIssueData(
             parent_hash=existing_hash,
@@ -325,13 +369,13 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "results": [asdict(seer_result_data)],
             }
 
-            assert get_seer_similar_issues(new_event, new_variants) == (
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
                 expected_metadata,
                 existing_grouphash,
             )
 
     def test_no_parent_group_found(self) -> None:
-        new_event, new_variants, _ = self.create_new_event()
+        new_event, new_variants, new_grouphash, _ = self.create_new_event()
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
@@ -342,7 +386,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "results": [],
             }
 
-            assert get_seer_similar_issues(new_event, new_variants) == (
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
                 expected_metadata,
                 None,
             )
@@ -382,12 +426,12 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
                 "platform": "python",
             },
         )
-        GroupHash.objects.create(
+        new_grouphash = GroupHash.objects.create(
             project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
         )
         group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
         maybe_check_seer_for_matching_grouphash(
-            new_event, new_event.get_grouping_variants(), group_hashes
+            new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
         )
 
         mock_get_similarity_data.assert_called_with(
@@ -444,12 +488,12 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             },
         )
 
-        GroupHash.objects.create(
+        new_grouphash = GroupHash.objects.create(
             project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
         )
         group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
         maybe_check_seer_for_matching_grouphash(
-            new_event, new_event.get_grouping_variants(), group_hashes
+            new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
         )
 
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
@@ -503,12 +547,12 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             },
         )
 
-        GroupHash.objects.create(
+        new_grouphash = GroupHash.objects.create(
             project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
         )
         group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
         maybe_check_seer_for_matching_grouphash(
-            new_event, new_event.get_grouping_variants(), group_hashes
+            new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
         )
 
         mock_get_similarity_data.assert_called_with(
