@@ -63,7 +63,9 @@ class OrganizationUptimeCheckIndexEndpointTest(
             "missed_window": 0,
         }
 
-    @override_options({"uptime.date_cutoff_epoch_seconds": 1736881457})
+    @override_options(
+        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
+    )
     def test_simple_with_date_cutoff(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
@@ -79,7 +81,9 @@ class OrganizationUptimeCheckIndexEndpointTest(
         data = json.loads(json.dumps(response.data))
         assert len(data[str(self.project_uptime_subscription.id)]) == 90
 
-    @override_options({"uptime.date_cutoff_epoch_seconds": 1736881457})
+    @override_options(
+        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
+    )
     def test_simple_with_date_cutoff_rounded_resolution(self):
         """Test that the endpoint returns data for a simple uptime check."""
 
@@ -94,6 +98,61 @@ class OrganizationUptimeCheckIndexEndpointTest(
         assert response.data is not None
         data = json.loads(json.dumps(response.data))
         assert len(data[str(self.project_uptime_subscription.id)]) == 89
+
+    @override_options(
+        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
+    )
+    def test_simple_with_date_cutoff_rounded_resolution_past_cutoff(self):
+        """Test that the endpoint returns data for a simple uptime check."""
+        subscription_id = uuid.uuid4().hex
+        subscription = self.create_uptime_subscription(
+            url="https://santry.io/test", subscription_id=subscription_id
+        )
+        project_uptime_subscription = self.create_project_uptime_subscription(
+            uptime_subscription=subscription
+        )
+
+        self.store_snuba_uptime_check(
+            subscription_id=subscription_id,
+            check_status="success",
+            scheduled_check_time=(MOCK_DATETIME - timedelta(days=5)),
+        )
+        self.store_snuba_uptime_check(
+            subscription_id=subscription_id,
+            check_status="failure",
+            scheduled_check_time=MOCK_DATETIME - timedelta(days=5),
+        )
+        self.store_snuba_uptime_check(
+            subscription_id=subscription_id,
+            check_status="failure",
+            scheduled_check_time=MOCK_DATETIME - timedelta(hours=2),
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            projectUptimeSubscriptionId=[str(project_uptime_subscription.id)],
+            since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
+            until=datetime.now(timezone.utc).timestamp(),
+            resolution="1d",
+        )
+        assert response.data is not None
+        data = json.loads(json.dumps(response.data))
+        # check that we return all the intervals,
+        # but the last one is the failure
+        assert len(data[str(project_uptime_subscription.id)]) == 89
+        assert data[str(project_uptime_subscription.id)][-1][1] == {
+            "failure": 1,
+            "success": 0,
+            "missed_window": 0,
+        }
+        # make sure the rest of the intervals are empty
+        for i in range(88):
+            assert data[str(project_uptime_subscription.id)][i][1] == {
+                "failure": 0,
+                "success": 0,
+                "missed_window": 0,
+            }
 
     def test_invalid_uptime_subscription_id(self):
         """Test that the endpoint returns data for a simple uptime check."""

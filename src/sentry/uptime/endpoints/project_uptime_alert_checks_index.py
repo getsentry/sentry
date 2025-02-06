@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -14,6 +14,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, Tr
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -65,6 +66,13 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         start: datetime,
         end: datetime,
     ) -> TraceItemTableResponse:
+        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
+        epoch_cutoff = (
+            datetime.fromtimestamp(maybe_cutoff, tz=timezone.utc) if maybe_cutoff else None
+        )
+        if epoch_cutoff and epoch_cutoff > start:
+            start = epoch_cutoff
+
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
@@ -210,3 +218,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         if col_name in ("scheduled_check_time", "timestamp"):
             return {col_name: datetime.fromtimestamp(value).strftime("%Y-%m-%dT%H:%M:%SZ")}
         return {col_name: value}
+
+    def _get_date_cutoff_epoch_seconds(self) -> float | None:
+        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
+        return None if value == 0 else value
