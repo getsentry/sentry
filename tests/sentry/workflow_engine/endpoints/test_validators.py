@@ -7,10 +7,6 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.incidents.endpoints.validators import (
-    MetricAlertComparisonConditionValidator,
-    MetricAlertsDetectorValidator,
-)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
@@ -29,6 +25,10 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseGroupTypeDetectorValidator,
     DataSourceCreator,
     NumericComparisonConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.base.metric_alerts import (
+    MetricAlertComparisonConditionValidator,
+    MetricAlertsDetectorValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
