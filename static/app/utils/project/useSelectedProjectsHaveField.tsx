@@ -6,7 +6,7 @@ import type {Project} from 'sentry/types/project';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-function getSelectedProjectList(
+export function getSelectedProjectList(
   selectedProjects: PageFilters['projects'],
   projects: Project[]
 ) {
