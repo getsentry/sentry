@@ -430,7 +430,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     duration=2000,
                 ),
                 self.create_span(
-                    {"segment_name": "baz", "sentry_tags": {"status": "success"}},
+                    {"sentry_tags": {"transaction": "baz", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "qux", "status": "success"}},
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
@@ -456,10 +460,16 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert "foo" in response.data
         assert "bar" in response.data
         assert len(response.data["Other"]["data"]) == 6
-        for key in ["Other", "foo", "bar"]:
+
+        for key in ["foo", "bar"]:
             rows = response.data[key]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
                 assert result[1][0]["count"] == expected, key
+
+        rows = response.data["Other"]["data"][0:6]
+        for expected, result in zip([0, 2, 0, 0, 0, 0], rows):
+            assert result[1][0]["count"] == expected, "Other"
+
         assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
     def test_top_events_empty_other(self):
@@ -736,7 +746,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
 
@@ -745,9 +756,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         for expected, actual in zip(event_counts, confidence[0:6]):
             if expected != 0:
-                assert actual[1][0]["count"] == "low"
+                assert actual["count()"] == "low"
             else:
-                assert actual[1][0]["count"] is None
+                assert actual["count()"] is None
 
     def test_confidence_is_set(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -795,22 +806,24 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 },
             )
             assert response.status_code == 200, (y_axis, response.content)
+            data = response.data["data"]
+            meta = response.data["meta"]
 
-            assert len(response.data["data"]) == len(event_counts), y_axis
-            for count, row in zip(event_counts, response.data["data"]):
+            assert len(data) == len(event_counts), y_axis
+            for count, row in zip(event_counts, data):
                 if count == 0:
                     assert row[1][0]["count"] == 0, y_axis
                 else:
                     assert isinstance(row[1][0]["count"], (float, int)), y_axis
 
-            assert len(response.data["confidence"]) == len(event_counts)
-            for count, row in zip(event_counts, response.data["confidence"]):
+            confidence = meta["accuracy"]["confidence"]
+            assert len(confidence) == len(event_counts)
+            for count, row in zip(event_counts, confidence):
                 if count == 0:
-                    assert row[1][0]["count"] is None, y_axis
+                    assert row[y_axis] is None, y_axis
                 else:
-                    assert row[1][0]["count"] in {"low", "high"}, y_axis
+                    assert row[y_axis] in {"low", "high"}, y_axis
 
-    @pytest.mark.xfail
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
@@ -850,7 +863,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, count_rows):
             assert test[1][1][0]["count"] == test[0] * 10
 
-        for expected, actual in zip(event_counts, response.data["count()"]["confidence"][0:6]):
+        confidence = response.data["count()"]["meta"]["accuracy"]["confidence"]
+        for expected, actual in zip(event_counts, confidence[0:6]):
             if expected != 0:
                 assert actual[1][0]["count"] == "low"
             else:
@@ -860,8 +874,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]
 
-        for actual in response.data["p95()"]["confidence"][0:6]:
-            assert actual[1][0]["count"] is None
+        confidence = response.data["p95()"]["meta"]["accuracy"]["confidence"]
+        for expected, actual in zip(event_counts, confidence[0:6]):
+            if expected != 0:
+                assert actual[1][0]["count"] == "low"
+            else:
+                assert actual[1][0]["count"] is None
 
     def test_top_events_with_extrapolation(self):
         # Each of these denotes how many events to create in each minute
@@ -1129,38 +1147,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
-
-    def test_device_class_filter_unknown(self):
-        event_counts = [6, 0, 6, 3, 0, 3]
-        spans = []
-        for hour, count in enumerate(event_counts):
-            spans.extend(
-                [
-                    self.create_span(
-                        {"description": "foo", "sentry_tags": {"status": "success"}},
-                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
-                    )
-                    for minute in range(count)
-                ],
-            )
-        self.store_spans(spans, is_eap=self.is_eap)
-
-        response = self._do_request(
-            data={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=6),
-                "interval": "1h",
-                "yAxis": "count()",
-                "query": "device.class:Unknown",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
-
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0]

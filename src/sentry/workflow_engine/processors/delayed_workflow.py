@@ -1,17 +1,23 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
+
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.db import models
 from sentry.models.project import Project
+from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
-    BaseEventFrequencyConditionHandler,
+from sentry.utils.safe import safe_execute
+from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+    BaseEventFrequencyQueryHandler,
+    slow_condition_query_handler_registry,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import (
@@ -20,20 +26,21 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
-from sentry.workflow_engine.registry import condition_handler_registry
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
+
+COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
 
 @dataclass(frozen=True)
 class UniqueConditionQuery:
     """
-    Represents all the data that uniquely identifies a condition class and its
+    Represents all the data that uniquely identifies a condition and its
     single respective Snuba query that must be made. Multiple instances of the
-    same condition class can share the single query.
+    same condition can share a single query.
     """
 
-    handler: BaseEventFrequencyConditionHandler
+    handler: type[BaseEventFrequencyQueryHandler]
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
@@ -147,7 +154,7 @@ def generate_unique_queries(
         return []
 
     try:
-        handler = condition_handler_registry.get(condition_type)
+        handler = slow_condition_query_handler_registry.get(condition_type)
     except NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
@@ -155,14 +162,9 @@ def generate_unique_queries(
         )
         return []
 
-    if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
-        return []
-
-    base_handler = handler.base_handler  # type: ignore[attr-defined]
-
     unique_queries = [
         UniqueConditionQuery(
-            handler=base_handler,
+            handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
         )
@@ -170,7 +172,7 @@ def generate_unique_queries(
     if condition_type in PERCENT_CONDITIONS:
         unique_queries.append(
             UniqueConditionQuery(
-                handler=base_handler,
+                handler=handler,
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
@@ -197,6 +199,36 @@ def get_condition_query_groups(
             ):
                 condition_groups[condition_query].update(dcg_to_groups[dcg.id])
     return condition_groups
+
+
+def get_condition_group_results(
+    queries_to_groups: dict[UniqueConditionQuery, set[int]]
+) -> dict[UniqueConditionQuery, dict[int, int]]:
+    condition_group_results = {}
+    current_time = timezone.now()
+
+    for unique_condition, group_ids in queries_to_groups.items():
+        handler = unique_condition.handler()
+
+        _, duration = handler.intervals[unique_condition.interval]
+
+        comparison_interval: timedelta | None = None
+        if unique_condition.comparison_interval is not None:
+            comparison_interval = COMPARISON_INTERVALS_VALUES.get(
+                unique_condition.comparison_interval
+            )
+
+        result = safe_execute(
+            handler.get_rate_bulk,
+            duration=duration,
+            group_ids=group_ids,
+            environment_id=unique_condition.environment_id,
+            current_time=current_time,
+            comparison_interval=comparison_interval,
+        )
+        condition_group_results[unique_condition] = result or {}
+
+    return condition_group_results
 
 
 @instrumented_task(

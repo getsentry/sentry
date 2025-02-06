@@ -262,7 +262,7 @@ export function normalizeDateTimeParams(
     end: coercedPeriod ? null : dateTimeEnd ?? null,
     // coerce utc into a string (it can be both: a string representation from
     // router, or a boolean from time range picker)
-    utc: getUtcValue(pageUtc ?? utc),
+    utc: coercedPeriod ? null : getUtcValue(pageUtc ?? utc),
     ...otherParams,
   };
 

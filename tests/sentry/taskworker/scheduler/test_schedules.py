@@ -112,9 +112,15 @@ def test_crontabschedule_remaining_seconds() -> None:
         five_min_ago = timezone.now()
         assert schedule.remaining_seconds(five_min_ago) == 300
 
+    # Later in the minute. crontabs only have minute precision.
     with freeze_time("2025-01-24 14:25:59"):
         five_min_ago = timezone.now()
         assert schedule.remaining_seconds(five_min_ago) == 300
+
+    # It isn't time yet, as we're mid interval
+    with freeze_time("2025-01-24 14:23:10"):
+        three_min_ago = timezone.now() - timedelta(minutes=3)
+        assert schedule.remaining_seconds(three_min_ago) == 120
 
     # 14:19 was 1 min late, we missed a beat but we're currently on time.
     with freeze_time("2025-01-24 14:25:10"):
