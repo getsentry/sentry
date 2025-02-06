@@ -108,7 +108,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   );
   const updatedDeleteCap = {
     ...deleteCap,
-    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
+    enabled: hasIssuePlatformDeletionUI && deleteCap.enabled,
     disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
   };
 
