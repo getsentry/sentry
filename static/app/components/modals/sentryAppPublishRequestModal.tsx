@@ -16,10 +16,10 @@ import type {SentryApp} from 'sentry/types/integrations';
 
 const INTEGRATION_CATEGORIES: Array<[string, string]> = [
   ['notifications', 'Notifications & Incidents'],
-  ['scm', 'Source Code Managemnet'],
+  ['scm', 'Source Code Management'],
   ['issue-tracking', 'Issue Tracking'],
   ['deployment', 'Deployment'],
-  ['data-vis', 'Data & Visualization'],
+  ['data-viz', 'Data & Visualization'],
   ['replay', 'Session Replay'],
   ['debugging', 'Debugging'],
   ['feature-flags', 'Feature Flags'],
@@ -153,7 +153,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
         type: 'string',
         required: true,
         label:
-          'Link to a video showing installation, setup and user flow for your submission.',
+          'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
         autosize: true,
         rows: 1,
         inline: false,
@@ -202,7 +202,12 @@ export default function SentryAppPublishRequestModal(props: Props) {
   ];
 
   const footer = () => {
-    return <Footer>THE FOOTER GOES HERE</Footer>;
+    return (
+      <Footer>
+        By submitting your integration, you acknowledge and agree that Sentry reserves the
+        right to remove it at any time in its sole discretion.
+      </Footer>
+    );
   };
   return (
     <Fragment>
@@ -246,5 +251,5 @@ const Permission = styled('code')`
 `;
 
 const Footer = styled('div')`
-  padding: 3px;
+  padding: 16px;
 `;
