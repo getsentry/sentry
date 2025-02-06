@@ -40,7 +40,8 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
+    default_max_batch_size: int | None = None,
+    default_max_batch_time_ms: int | None = 1000,
 ) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -215,7 +216,9 @@ _METRICS_INDEXER_OPTIONS = [
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
     click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
     click.Option(
-        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"],
+        type=int,
+        default=10000,
     ),
     click.Option(
         ["--processes"],
@@ -263,6 +266,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
         "topic": Topic.PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     "ingest-replay-recordings": {
         "topic": Topic.INGEST_REPLAYS_RECORDINGS,
@@ -507,7 +511,9 @@ def get_stream_processor(
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
     strategy_factory = cmd_context.invoke(
-        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+        strategy_factory_cls,
+        **cmd_context.params,
+        **consumer_definition.get("static_args") or {},
     )
 
     def build_consumer_config(group_id: str):
