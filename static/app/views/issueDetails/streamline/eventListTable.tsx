@@ -141,7 +141,7 @@ export const Header = styled('div')`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadiusTop};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 export const Title = styled('div')`

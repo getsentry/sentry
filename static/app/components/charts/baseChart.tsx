@@ -731,7 +731,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};

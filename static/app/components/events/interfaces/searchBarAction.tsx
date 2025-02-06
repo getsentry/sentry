@@ -88,12 +88,12 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     p.blendWithFilter &&
     `
       input {
-        border-radius: ${p.theme.borderRadiusRight};
+        border-radius: 0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0;
         border-left-width: 0;
       }
     `}
 `;
 
 const StyledTrigger = styled(DropdownButton)`
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;

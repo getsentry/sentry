@@ -272,7 +272,7 @@ const CenteredContentContainer = styled(ContentContainer)`
 
 const StyledButton = styled(LinkButton)`
   width: 100%;
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   padding: ${space(3)};
   border-bottom: none;
   border-left: none;

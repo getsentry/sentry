@@ -77,7 +77,7 @@ const FloatingEventNavigation = styled(EventTitle)`
   }
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadiusTop};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 
   &[data-stuck='true'] {
     border-radius: 0;
