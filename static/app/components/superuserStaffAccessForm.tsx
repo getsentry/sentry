@@ -250,12 +250,12 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
 
 const FormWithApi = withApi(SuperuserStaffAccessFormContent);
 
-export default function SuperuserStaffAccessForm({api, hasStaff}: Props) {
+export default function SuperuserStaffAccessForm({hasStaff}: Props) {
   const [router] = useState(() =>
     createBrowserRouter([
       {
         path: '*',
-        element: <FormWithApi api={api} hasStaff={hasStaff} />,
+        element: <FormWithApi hasStaff={hasStaff} />,
       },
     ])
   );
