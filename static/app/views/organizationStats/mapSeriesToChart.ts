@@ -6,6 +6,7 @@ import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip'
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 
+import type {UserTimezone} from './usageChart/utils';
 import {getDateFromMoment} from './usageChart/utils';
 import {getReasonGroupName} from './getReasonGroupName';
 import type {UsageSeries, UsageStat} from './types';
@@ -15,6 +16,7 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 export function mapSeriesToChart({
   orgStats,
+  userTimezone,
   dataCategory,
   chartDateUtc,
   endpointQuery,
@@ -24,6 +26,7 @@ export function mapSeriesToChart({
   chartDateUtc: boolean;
   dataCategory: DataCategoryInfo['plural'];
   endpointQuery: Record<string, unknown>;
+  userTimezone: UserTimezone;
   orgStats?: UsageSeries;
 }): {
   cardStats: {
@@ -66,7 +69,7 @@ export function mapSeriesToChart({
       const dateTime = moment(interval);
 
       return {
-        date: getDateFromMoment(dateTime, chartDateInterval, chartDateUtc),
+        date: getDateFromMoment(dateTime, userTimezone, chartDateInterval, chartDateUtc),
         total: 0,
         accepted: 0,
         accepted_stored: 0,

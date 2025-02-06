@@ -2,9 +2,12 @@ import moment from 'moment-timezone';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {User} from 'sentry/types/user';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {formatUsageWithUnits} from '../utils';
+
+export type UserTimezone = User['options']['timezone'];
 
 /**
  * Avoid changing "MMM D" format as X-axis labels on UsageChart are naively
@@ -23,6 +26,7 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
  */
 export function getDateFromMoment(
   m: moment.Moment,
+  userTimezone: UserTimezone,
   interval: IntervalPeriod = '1d',
   useUtc: boolean = false
 ) {
@@ -30,11 +34,11 @@ export function getDateFromMoment(
   if (days >= 1) {
     return useUtc
       ? moment.utc(m).format(FORMAT_DATETIME_DAILY)
-      : m.format(FORMAT_DATETIME_DAILY);
+      : moment(m).tz(userTimezone).format(FORMAT_DATETIME_DAILY);
   }
 
   const parsedInterval = parseStatsPeriod(interval);
-  const datetime = useUtc ? moment(m).utc() : moment(m).local();
+  const datetime = useUtc ? moment(m).utc() : moment(m).tz(userTimezone);
 
   return parsedInterval
     ? `${datetime.format(FORMAT_DATETIME_HOURLY)} - ${datetime
@@ -43,14 +47,15 @@ export function getDateFromMoment(
     : datetime.format(FORMAT_DATETIME_HOURLY);
 }
 
-export function getDateFromUnixTimestamp(timestamp: number) {
+export function getDateFromUnixTimestamp(timestamp: number, userTimezone: UserTimezone) {
   const date = moment.unix(timestamp);
-  return getDateFromMoment(date);
+  return getDateFromMoment(date, userTimezone);
 }
 
 export function getXAxisDates(
   dateStart: moment.MomentInput,
   dateEnd: moment.MomentInput,
+  userTimezone: UserTimezone,
   dateUtc: boolean = false,
   interval: IntervalPeriod = '1d'
 ): string[] {
@@ -72,7 +77,7 @@ export function getXAxisDates(
   };
 
   while (!start.isAfter(end)) {
-    range.push(getDateFromMoment(start, interval, dateUtc));
+    range.push(getDateFromMoment(start, userTimezone, interval, dateUtc));
     start.add(period as any, periodLength as any); // FIXME(ts): Something odd with momentjs types
   }
 
