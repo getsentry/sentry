@@ -54,7 +54,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=next_step,
         )
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self._pool.close()
 
 

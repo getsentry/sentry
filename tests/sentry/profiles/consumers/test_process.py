@@ -18,7 +18,13 @@ from sentry.utils import json
 class TestProcessProfileConsumerStrategy(TestCase):
     @staticmethod
     def processing_factory():
-        return ProcessProfileStrategyFactory()
+        return ProcessProfileStrategyFactory(
+            max_batch_size=1,
+            max_batch_time=1000,
+            num_processes=1,
+            input_block_size=10000,
+            output_block_size=10000,
+        )
 
     @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
     def test_basic_profile_to_celery(self, process_profile_task):
@@ -78,8 +84,14 @@ def test_adjust_instruction_addr_sample_format():
     for i in range(3):
         assert frames[i] == original_frames[i]
 
-    assert frames[3] == {"instruction_addr": "0xbeefdead", "adjust_instruction_addr": False}
-    assert frames[4] == {"instruction_addr": "0xdeadbeef", "adjust_instruction_addr": False}
+    assert frames[3] == {
+        "instruction_addr": "0xbeefdead",
+        "adjust_instruction_addr": False,
+    }
+    assert frames[4] == {
+        "instruction_addr": "0xdeadbeef",
+        "adjust_instruction_addr": False,
+    }
 
 
 def test_adjust_instruction_addr_original_format():
