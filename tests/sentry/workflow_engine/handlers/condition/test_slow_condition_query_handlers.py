@@ -25,7 +25,6 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            interval="1m",
         )
         assert batch_query == {
             self.event.group_id: 1,
@@ -38,7 +37,6 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
-            interval="1m",
         )
         assert batch_query == {self.event3.group_id: 1}
 
@@ -62,7 +60,6 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            interval="1m",
         )
         assert batch_query == {
             self.event.group_id: 1,
@@ -75,7 +72,6 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
-            interval="1m",
         )
         assert batch_query == {self.event3.group_id: 1}
 

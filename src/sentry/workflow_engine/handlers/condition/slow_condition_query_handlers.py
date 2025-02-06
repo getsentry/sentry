@@ -156,7 +156,6 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
-        interval: str,
     ) -> dict[int, int]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
@@ -177,7 +176,6 @@ class BaseEventFrequencyQueryHandler(ABC):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                interval=interval,
             )
         return result
 
@@ -196,7 +194,6 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -236,7 +233,6 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        interval: str,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
