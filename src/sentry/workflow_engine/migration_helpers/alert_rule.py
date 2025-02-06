@@ -139,7 +139,7 @@ def get_action_filter(
 
 def migrate_metric_action(
     alert_rule_trigger_action: AlertRuleTriggerAction,
-) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction] | None:
+) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction]:
     alert_rule_trigger = alert_rule_trigger_action.alert_rule_trigger
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     action_filter = get_action_filter(alert_rule_trigger, priority)
@@ -178,7 +178,7 @@ def migrate_metric_action(
 
 def migrate_metric_data_conditions(
     alert_rule_trigger: AlertRuleTrigger,
-) -> tuple[DataCondition, DataCondition] | None:
+) -> tuple[DataCondition, DataCondition]:
     alert_rule = alert_rule_trigger.alert_rule
     # create a data condition for the Detector's data condition group with the
     # threshold and associated priority level
@@ -257,7 +257,7 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
 
 def migrate_resolve_threshold_data_conditions(
     alert_rule: AlertRule,
-) -> tuple[DataCondition, DataCondition] | None:
+) -> tuple[DataCondition, DataCondition]:
     """
     Create data conditions for the old world's "resolve" threshold. If a resolve threshold
     has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
@@ -395,19 +395,16 @@ def create_detector(
 def migrate_alert_rule(
     alert_rule: AlertRule,
     user: RpcUser | None = None,
-) -> (
-    tuple[
-        DataSource,
-        DataConditionGroup,
-        Workflow,
-        Detector,
-        DetectorState,
-        AlertRuleDetector,
-        AlertRuleWorkflow,
-        DetectorWorkflow,
-    ]
-    | None
-):
+) -> tuple[
+    DataSource,
+    DataConditionGroup,
+    Workflow,
+    Detector,
+    DetectorState,
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    DetectorWorkflow,
+]:
     organization_id = alert_rule.organization_id
     project = alert_rule.projects.get()
 

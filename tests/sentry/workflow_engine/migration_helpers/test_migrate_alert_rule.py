@@ -11,6 +11,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -359,6 +360,15 @@ class DualWriteAlertRuleTest(APITestCase):
         """
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         assert_alert_rule_migrated(self.metric_alert, self.project.id)
+
+    def test_dual_write_metric_alert_open_incident(self):
+        """
+        Test that the detector_state object is correctly created when the alert has an active incident
+        """
+        self.create_incident(alert_rule=self.metric_alert, status=IncidentStatus.CRITICAL.value)
+        aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
+        detector_state = aci_objects[4]
+        assert detector_state.state == DetectorPriorityLevel.HIGH
 
 
 class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
