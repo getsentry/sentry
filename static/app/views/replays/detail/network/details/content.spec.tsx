@@ -324,7 +324,6 @@ describe('NetworkDetailsContent', () => {
       it.each([
         {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchNoDataObj'},
         {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchUrlSkipped'},
-        {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchEmptyBody'},
         {isSetup: true, isCaptureBodySetup: true, itemName: 'fetchWithHeaders'},
         {isSetup: true, isCaptureBodySetup: false, itemName: 'fetchNoDataObj'},
         {isSetup: true, isCaptureBodySetup: false, itemName: 'fetchUrlSkipped'},
@@ -347,6 +346,27 @@ describe('NetworkDetailsContent', () => {
             dataSectionHeaders: ['Query String Parameters'],
             isShowingSetup: true,
             isShowingUnsupported: false,
+          });
+        }
+      );
+
+      it.each([{isSetup: true, isCaptureBodySetup: true, itemName: 'fetchEmptyBody'}])(
+        'should render an empty `request body` when SDK option to capture network body is setup and the request body is empty.',
+        ({isSetup, isCaptureBodySetup, itemName}) => {
+          render(
+            <NetworkDetailsContent
+              {...basicSectionProps()}
+              isCaptureBodySetup={isCaptureBodySetup}
+              isSetup={isSetup}
+              item={mockItems[itemName as keyof typeof mockItems]}
+              visibleTab={visibleTab}
+            />
+          );
+
+          expect(queryScreenState()).toStrictEqual({
+            dataSectionHeaders: ['Query String Parameters', 'Request BodySize: 0 B'],
+            isShowingUnsupported: false,
+            isShowingSetup: false,
           });
         }
       );
