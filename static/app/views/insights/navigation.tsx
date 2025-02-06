@@ -5,6 +5,10 @@ import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  FRONTEND_LANDING_SUB_PATH,
+  FRONTEND_SIDEBAR_LABEL,
+} from 'sentry/views/insights/frontend/settings';
+import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/ai/settings';
@@ -12,10 +16,6 @@ import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/backend/settings';
-import {
-  FRONTEND_LANDING_SUB_PATH,
-  FRONTEND_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/frontend/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_SIDEBAR_LABEL,

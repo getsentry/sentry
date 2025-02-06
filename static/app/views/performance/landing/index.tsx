@@ -36,9 +36,9 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
+import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/frontend/settings';
 import {AI_SIDEBAR_LABEL} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
 
 import Onboarding from '../onboarding';

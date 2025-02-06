@@ -19,7 +19,7 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FrontendHeader} from 'sentry/views/insights/frontend/components/frontendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;

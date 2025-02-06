@@ -1,14 +1,14 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  DomainViewHeader,
-  type Props as HeaderProps,
-} from 'sentry/views/insights/pages/domainViewHeader';
-import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,
   MODULES,
-} from 'sentry/views/insights/pages/frontend/settings';
+} from 'sentry/views/insights/frontend/settings';
+import {
+  DomainViewHeader,
+  type Props as HeaderProps,
+} from 'sentry/views/insights/pages/domainViewHeader';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 type Props = {

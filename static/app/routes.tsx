@@ -17,10 +17,10 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/frontend/settings';
 import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
@@ -1828,7 +1828,7 @@ function buildRoutes() {
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
+            () => import('sentry/views/insights/frontend/components/frontendOverviewPage')
           )}
         />
         {transactionSummaryRoutes}

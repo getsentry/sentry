@@ -24,12 +24,12 @@ import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCou
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {FrontendHeader} from 'sentry/views/insights/frontend/components/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/frontend/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';

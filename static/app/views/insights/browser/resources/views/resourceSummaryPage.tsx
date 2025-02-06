@@ -25,7 +25,7 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FrontendHeader} from 'sentry/views/insights/frontend/components/frontendPageHeader';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 

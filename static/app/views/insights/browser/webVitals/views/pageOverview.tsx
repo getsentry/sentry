@@ -34,7 +34,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FrontendHeader} from 'sentry/views/insights/frontend/components/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
