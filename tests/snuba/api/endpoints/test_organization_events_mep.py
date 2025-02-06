@@ -4098,10 +4098,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
         super().test_opportunity_score()
 
     @pytest.mark.xfail(reason="Not implemented")
-    def test_opportunity_score_with_fixed_weights(self):
-        super().test_opportunity_score_with_fixed_weights()
-
-    @pytest.mark.xfail(reason="Not implemented")
     def test_opportunity_score_with_fixed_weights_and_missing_vitals(self):
         super().test_opportunity_score_with_fixed_weights_and_missing_vitals()
 
