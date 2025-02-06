@@ -416,14 +416,13 @@ export function IssueViewsStateProvider({
     () => allProjects.filter(project => project.isMember),
     [allProjects]
   );
-  const defaultProject = useMemo(
-    () =>
-      // Should not be possibel for member projects to be empty
-      allowMultipleProjects && memberProjects.length > 0
-        ? []
-        : [parseInt(memberProjects[0]!.id, 10)],
-    [memberProjects, allowMultipleProjects]
-  );
+  const defaultProject = useMemo(() => {
+    // Should not be possible for member projects to be empty
+    if (allowMultipleProjects) {
+      return [];
+    }
+    return [parseInt(memberProjects[0]!.id, 10)];
+  }, [memberProjects, allowMultipleProjects]);
 
   const {query, sort, viewId} = router.location.query;
 
