@@ -28,6 +28,10 @@ import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {
+  type ChartColorPalette,
+  getChartColorPalette,
+} from 'sentry/constants/chartPalette';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
@@ -48,8 +52,6 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-
-import type {ChartColorPalette} from '../../constants/chartPalette';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -156,10 +158,9 @@ export interface BaseChartProps {
    * provided with the current theme
    */
   colors?:
-    | ChartColorPalette[number]
     | string[]
     | readonly string[]
-    | ((theme: Theme) => string[]);
+    | ((theme: Theme) => string[] | ChartColorPalette[number]);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
@@ -402,7 +403,7 @@ function BaseChartUnwrapped({
   const color =
     resolveColors ||
     (series.length
-      ? theme.charts.getColorPalette(series.length)
+      ? getChartColorPalette(series.length)
       : CHART_PALETTE[CHART_PALETTE.length - 1]);
 
   const resolvedSeries = useMemo(() => {
