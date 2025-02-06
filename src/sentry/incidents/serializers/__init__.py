@@ -1,5 +1,4 @@
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 
 __all__ = (
     "AlertRuleSerializer",
@@ -16,13 +15,6 @@ ACTION_TARGET_TYPE_TO_STRING = {
     AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
 }
 STRING_TO_ACTION_TARGET_TYPE = {v: k for (k, v) in ACTION_TARGET_TYPE_TO_STRING.items()}
-QUERY_TYPE_VALID_EVENT_TYPES = {
-    SnubaQuery.Type.ERROR: {
-        SnubaQueryEventType.EventType.ERROR,
-        SnubaQueryEventType.EventType.DEFAULT,
-    },
-    SnubaQuery.Type.PERFORMANCE: {SnubaQueryEventType.EventType.TRANSACTION},
-}
 
 
 from .alert_rule import AlertRuleSerializer

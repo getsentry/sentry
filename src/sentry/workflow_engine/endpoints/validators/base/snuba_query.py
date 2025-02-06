@@ -38,6 +38,7 @@ from sentry.workflow_engine.endpoints.validators.base import BaseDataSourceValid
 from sentry.workflow_engine.endpoints.validators.base.constants import (
     CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
     QUERY_TYPE_VALID_DATASETS,
+    QUERY_TYPE_VALID_EVENT_TYPES,
     UNSUPPORTED_QUERIES,
 )
 
@@ -118,10 +119,24 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate(self, data):
         data = super().validate(data)
+
         self._validate_query(data)
         dataset = data.setdefault("dataset", Dataset.Events)
         dataset = Dataset(data["dataset"].value)
         data["time_window"] = self._validate_time_window(data.get("time_window"), dataset)
+
+        query_type = data["query_type"]
+        if query_type == SnubaQuery.Type.CRASH_RATE:
+            data["event_types"] = []
+        event_types = data.get("event_types")
+
+        valid_event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(query_type, set())
+        if event_types and set(event_types) - valid_event_types:
+            raise serializers.ValidationError(
+                "Invalid event types for this dataset. Valid event types are %s"
+                % sorted(et.name.lower() for et in valid_event_types)
+            )
+
         return data
 
     def _validate_query(self, data):
