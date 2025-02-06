@@ -45,14 +45,17 @@ export const onRequest = [
 ];`;
 
 const getVerifySnippet = () => `
-setTimeout(() => {
+export function onRequest(context) {
   throw new Error();
-});`;
+}`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    t(
-      'In this quick guide you’ll set up and configure the Sentry Cloudflare SDK for the use in your Cloudflare Pages application.'
+    tct(
+      'In this quick guide you’ll set up and configure the Sentry Cloudflare SDK for the use in your Cloudflare Pages application. This will set up Sentry for the backend part of the application: the functions. You might also want to instrument the frontend part of your application. You can follow the guide on how to instrument your frontend [platformLink:in the framework of your choice].',
+      {
+        platformLink: <ExternalLink href="https://docs.sentry.io/platforms/" />,
+      }
     ),
   install: params => [
     {
@@ -125,12 +128,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      description: tct(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. To trigger it, you need to access the [code:/customerror] path on your worker.",
+        {
+          code: <code />,
+        }
       ),
       configurations: [
         {
+          label: 'JavaScript',
+          value: 'javascript',
           language: 'javascript',
+          filename: 'functions/customerror.js',
           code: getVerifySnippet(),
         },
       ],
