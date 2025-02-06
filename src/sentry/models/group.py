@@ -1090,9 +1090,12 @@ def get_open_periods_for_group(
         query_end = timezone.now()
 
     query_limit = limit * 2 if limit else None
+    # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
+    # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
+    # but we don't create an entry for that .
     activities = Activity.objects.filter(
         group=group,
-        type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_RESOLVED.value],
+        type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
         datetime__gte=query_start,
         datetime__lte=query_end,
     ).order_by("-datetime")[:query_limit]
@@ -1118,7 +1121,7 @@ def get_open_periods_for_group(
     for activity in activities:
         if activity.type == ActivityType.SET_RESOLVED.value:
             end = activity.datetime
-        elif activity.type == ActivityType.SET_UNRESOLVED.value:
+        elif activity.type == ActivityType.SET_REGRESSION.value:
             start = activity.datetime
             if end is not None:
                 open_periods.append(
