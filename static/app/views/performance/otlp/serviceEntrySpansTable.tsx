@@ -9,6 +9,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +17,9 @@ import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
@@ -94,6 +97,8 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const LIMIT = 5;
+const PAGINATION_CURSOR_SIZE = 'xs';
+const CURSOR_NAME = 'serviceEntrySpansCursor';
 
 type Props = {
   eventView: EventView;
@@ -111,6 +116,7 @@ export function ServiceEntrySpansTable({
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
@@ -141,6 +147,7 @@ export function ServiceEntrySpansTable({
       ],
       sorts: [selected.sort],
       limit: LIMIT,
+      cursor: decodeScalar(location.query?.[CURSOR_NAME]),
     },
     'api.performance.service-entry-spans-table',
     true
@@ -155,16 +162,29 @@ export function ServiceEntrySpansTable({
     };
   });
 
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    navigate({
+      pathname,
+      query: {...query, [CURSOR_NAME]: cursor},
+    });
+  };
+
   return (
     <Fragment>
-      <CompactSelectWrapper>
+      <Header>
         <CompactSelect
           triggerProps={{prefix: t('Filter'), size: 'xs'}}
           value={selected.value}
           options={options}
           onChange={opt => handleDropdownChange(opt.value)}
         />
-      </CompactSelectWrapper>
+        <CustomPagination
+          pageLinks={pageLinks}
+          onCursor={handleCursor}
+          isLoading={isLoading}
+        />
+      </Header>
+
       <GridEditable
         isLoading={isLoading}
         error={error}
@@ -208,7 +228,6 @@ function renderBodyCell(
   }
 
   if (column.key === 'profile.id') {
-    console.dir(row);
     return (
       <div>
         <LinkButton
@@ -234,12 +253,12 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${row['replayId']}/`,
+            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
             query: {
               referrer: 'performance',
             },
           }}
-          disabled={!row['replayId']}
+          disabled={!row.replayId}
           aria-label={t('View Replay')}
         />
       </div>
@@ -261,6 +280,43 @@ function renderBodyCell(
   return rendered;
 }
 
-const CompactSelectWrapper = styled('div')`
+// A wrapper component that handles the isLoading state. This will allow the component to not disappear when the data is loading.
+function CustomPagination({
+  pageLinks,
+  onCursor,
+  isLoading,
+}: {
+  isLoading: boolean;
+  onCursor: CursorHandler;
+  pageLinks: string | undefined;
+}) {
+  if (isLoading) {
+    return (
+      <StyledPagination
+        pageLinks={'n/a'}
+        disabled
+        onCursor={() => {}}
+        size={PAGINATION_CURSOR_SIZE}
+      />
+    );
+  }
+
+  return (
+    <StyledPagination
+      pageLinks={pageLinks}
+      onCursor={onCursor}
+      size={PAGINATION_CURSOR_SIZE}
+    />
+  );
+}
+
+const Header = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0 0 0 ${space(1)};
 `;
