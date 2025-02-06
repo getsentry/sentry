@@ -1,12 +1,16 @@
 import {css} from '@emotion/react';
 
+import Feature from 'sentry/components/acl/feature';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -47,84 +51,107 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
   };
 
   return (
-    <div>
-      <SettingsPageHeader title={t('Rate Limits')} />
+    <Feature
+      organization={organization}
+      features={['legacy-rate-limits']}
+      renderDisabled={_ => (
+        <EmptyMessage
+          icon={<IconInfo size="xl" />}
+          title={t(`Legacy rate limits are not available in this organization.`)}
+        >
+          {tct(
+            `See our [link:Billing Quota Management] docs for more information about managing your organization's quota.`,
+            {
+              link: (
+                <Link
+                  to="https://docs.sentry.io/pricing/quotas/"
+                  aria-label={t('Billing Quota Management')}
+                />
+              ),
+            }
+          )}
+        </EmptyMessage>
+      )}
+    >
+      <div>
+        <SettingsPageHeader title={t('Rate Limits')} />
 
-      <Panel>
-        <PanelHeader>{t('Adjust Limits')}</PanelHeader>
-        <PanelBody>
-          <PanelAlert type="info">
-            {t(`Rate limits allow you to control how much data is stored for this
+        <Panel>
+          <PanelHeader>{t('Adjust Limits')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert type="info">
+              {t(`Rate limits allow you to control how much data is stored for this
                 organization. When a rate is exceeded the system will begin discarding
                 data until the next interval.`)}
-          </PanelAlert>
+            </PanelAlert>
 
-          <Form
-            data-test-id="rate-limit-editor"
-            saveOnBlur
-            allowUndo
-            apiMethod="PUT"
-            apiEndpoint={`/organizations/${organization.slug}/`}
-            initialData={initialData}
-          >
-            {!maxRate ? (
+            <Form
+              data-test-id="rate-limit-editor"
+              saveOnBlur
+              allowUndo
+              apiMethod="PUT"
+              apiEndpoint={`/organizations/${organization.slug}/`}
+              initialData={initialData}
+            >
+              {!maxRate ? (
+                <RangeField
+                  name="accountRateLimit"
+                  label={t('Account Limit')}
+                  min={0}
+                  max={1000000}
+                  allowedValues={ACCOUNT_RATE_LIMIT_VALUES}
+                  help={t(
+                    'The maximum number of events to accept across this entire organization.'
+                  )}
+                  placeholder="e.g. 500"
+                  formatLabel={value =>
+                    !value
+                      ? t('No Limit')
+                      : tct('[number] per hour', {
+                          number: value.toLocaleString(),
+                        })
+                  }
+                />
+              ) : (
+                <FieldGroup
+                  label={t('Account Limit')}
+                  help={t(
+                    'The maximum number of events to accept across this entire organization.'
+                  )}
+                >
+                  <TextBlock
+                    css={css`
+                      margin-bottom: 0;
+                    `}
+                  >
+                    {tct(
+                      'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
+                      {
+                        maxRate,
+                        maxRateInterval,
+                      }
+                    )}
+                  </TextBlock>
+                </FieldGroup>
+              )}
               <RangeField
-                name="accountRateLimit"
-                label={t('Account Limit')}
-                min={0}
-                max={1000000}
-                allowedValues={ACCOUNT_RATE_LIMIT_VALUES}
+                name="projectRateLimit"
+                label={t('Per-Project Limit')}
                 help={t(
-                  'The maximum number of events to accept across this entire organization.'
+                  'The maximum percentage of the account limit (set above) that an individual project can consume.'
                 )}
-                placeholder="e.g. 500"
+                step={5}
+                min={50}
+                max={100}
                 formatLabel={value =>
-                  !value
-                    ? t('No Limit')
-                    : tct('[number] per hour', {
-                        number: value.toLocaleString(),
-                      })
+                  value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
                 }
               />
-            ) : (
-              <FieldGroup
-                label={t('Account Limit')}
-                help={t(
-                  'The maximum number of events to accept across this entire organization.'
-                )}
-              >
-                <TextBlock
-                  css={css`
-                    margin-bottom: 0;
-                  `}
-                >
-                  {tct(
-                    'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
-                    {
-                      maxRate,
-                      maxRateInterval,
-                    }
-                  )}
-                </TextBlock>
-              </FieldGroup>
-            )}
-            <RangeField
-              name="projectRateLimit"
-              label={t('Per-Project Limit')}
-              help={t(
-                'The maximum percentage of the account limit (set above) that an individual project can consume.'
-              )}
-              step={5}
-              min={50}
-              max={100}
-              formatLabel={value =>
-                value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
-              }
-            />
-          </Form>
-        </PanelBody>
-      </Panel>
-    </div>
+            </Form>
+          </PanelBody>
+        </Panel>
+      </div>
+    </Feature>
   );
 }
 
