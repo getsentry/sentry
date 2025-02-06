@@ -96,6 +96,8 @@ enum Datatype {
 
 const DATATYPE_KEY = 'type';
 
+const NO_VALUE = ' \u2014 ';
+
 type Props = {
   transaction: string;
   limit?: number;
@@ -307,7 +309,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <AlignRight>
           {(row as any)[key] === undefined ? (
-            <NoValue>{' \u2014 '}</NoValue>
+            <NoValue>{NO_VALUE}</NoValue>
           ) : (
             getFormattedDuration(((row as any)[key] as number) / 1000)
           )}
@@ -318,7 +320,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <AlignRight>
           {(row as any)[key] === undefined ? (
-            <NoValue>{' \u2014 '}</NoValue>
+            <NoValue>{NO_VALUE}</NoValue>
           ) : (
             Math.round(((row as any)[key] as number) * 100) / 100
           )}
@@ -345,7 +347,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                 </LinkButton>
               </Tooltip>
             ) : (
-              <NoValue>{' \u2014 '}</NoValue>
+              <NoValue>{NO_VALUE}</NoValue>
             )}
           </AlignCenter>
         </NoOverflow>
@@ -385,7 +387,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                 </LinkButton>
               </Tooltip>
             ) : (
-              <NoValue>{' \u2014 '}</NoValue>
+              <NoValue>{NO_VALUE}</NoValue>
             )}
           </AlignCenter>
         </NoOverflow>
@@ -424,7 +426,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     return (
       <NoOverflow>
         {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
-        {row[key] && row[key] !== '' ? row[key] : <NoValue>{' \u2014 '}</NoValue>}
+        {row[key] && row[key] !== '' ? row[key] : <NoValue>{NO_VALUE}</NoValue>}
       </NoOverflow>
     );
   }
