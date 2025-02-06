@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import AlertStore from 'sentry/stores/alertStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -112,5 +113,26 @@ describe('OrganizationLayout', function () {
 
     expect(inProgress).toBeInTheDocument();
     expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
+  });
+
+  it('displays system alerts', async function () {
+    OrganizationStore.onUpdate(OrganizationFixture());
+
+    AlertStore.addAlert({
+      id: 'abc123',
+      message: 'Celery workers have not checked in',
+      type: 'error',
+      url: '/internal/health/',
+    });
+
+    render(
+      <OrganizationLayout>
+        <div />
+      </OrganizationLayout>
+    );
+
+    expect(
+      await screen.findByText(/Celery workers have not checked in/)
+    ).toBeInTheDocument();
   });
 });
