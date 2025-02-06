@@ -62,7 +62,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
-type InteractionsColumn = GridColumnHeader<keyof SpanSampleRowWithScore>;
+type SpansColumn = GridColumnHeader<keyof SpanSampleRowWithScore>;
 
 const PAGELOADS_COLUMN_ORDER: Array<
   GridColumnOrder<keyof TransactionSampleRowWithScore>
@@ -206,7 +206,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
-  function renderHeadCell(col: Column | InteractionsColumn) {
+  function renderHeadCell(col: Column | SpansColumn) {
     function generateSortLink() {
       const key = ['totalScore', 'inpScore'].includes(col.key)
         ? 'measurements.score.total'
@@ -294,7 +294,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   }
 
   function renderBodyCell(
-    col: Column | InteractionsColumn,
+    col: Column | SpansColumn,
     row: TransactionSampleRowWithScore | SpanSampleRowWithScore
   ) {
     const {key} = col;
@@ -444,9 +444,28 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     }
 
     if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      const traceViewLink = generateLinkToEventInTraceView({
+        projectSlug: row.projectSlug,
+        traceSlug: row.trace,
+        eventId: 'id' in row ? row.id : undefined,
+        timestamp: row.timestamp,
+        organization,
+        location,
+        view: domainViewFilters.view,
+        source: TraceViewSources.WEB_VITALS_MODULE,
+      });
+
       return (
         <Tooltip title={(row as any)[key]}>
-          <NoOverflow>{(row as any)[key]}</NoOverflow>
+          <NoOverflow>
+            {organization.features.includes('performance-vitals-standalone-cls-lcp') &&
+            'span.op' in row &&
+            row['span.op'] === 'pageload' ? (
+              <Link to={traceViewLink}>{(row as any)[key]}</Link>
+            ) : (
+              (row as any)[key]
+            )}
+          </NoOverflow>
         </Tooltip>
       );
     }

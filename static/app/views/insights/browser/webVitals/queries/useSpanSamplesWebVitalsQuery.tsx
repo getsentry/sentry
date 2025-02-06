@@ -84,7 +84,7 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_SELF_TIME,
-        SpanIndexedField.TRANSACTION,
+        SpanIndexedField.SPAN_OP,
       ],
       enabled,
       limit,
