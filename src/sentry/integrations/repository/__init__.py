@@ -12,9 +12,13 @@ only thing that need to change after we make the migration.
 
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessageRepository
 from sentry.integrations.repository.metric_alert import MetricAlertNotificationMessageRepository
+from sentry.integrations.repository.notification_action import (
+    NotificationActionNotificationMessageRepository,
+)
 
 _default_metric_alert_repository = None
 _default_issue_alert_repository = None
+_default_notification_action_repository = None
 
 
 def get_default_metric_alert_repository() -> MetricAlertNotificationMessageRepository:
@@ -31,3 +35,13 @@ def get_default_issue_alert_repository() -> IssueAlertNotificationMessageReposit
         _default_issue_alert_repository = IssueAlertNotificationMessageRepository.default()
 
     return _default_issue_alert_repository
+
+
+def get_default_notification_action_repository() -> NotificationActionNotificationMessageRepository:
+    global _default_notification_action_repository
+    if _default_notification_action_repository is None:
+        _default_notification_action_repository = (
+            NotificationActionNotificationMessageRepository.default()
+        )
+
+    return _default_notification_action_repository
