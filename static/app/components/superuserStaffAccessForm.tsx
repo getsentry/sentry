@@ -1,4 +1,5 @@
-import React, {Component} from 'react';
+import React, {Component, useState} from 'react';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -34,7 +35,7 @@ type State = {
   superuserReason: string;
 };
 
-class SuperuserStaffAccessForm extends Component<Props, State> {
+class SuperuserStaffAccessFormContent extends Component<Props, State> {
   constructor(props: any) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
@@ -247,6 +248,20 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   }
 }
 
+const FormWithApi = withApi(SuperuserStaffAccessFormContent);
+
+export default function SuperuserStaffAccessForm({hasStaff}: Props) {
+  const [router] = useState(() =>
+    createBrowserRouter([
+      {
+        path: '*',
+        element: <FormWithApi hasStaff={hasStaff} />,
+      },
+    ])
+  );
+  return <RouterProvider router={router} />;
+}
+
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
@@ -255,5 +270,3 @@ const BackWrapper = styled('div')`
   width: 100%;
   margin-left: ${space(4)};
 `;
-
-export default withApi(SuperuserStaffAccessForm);

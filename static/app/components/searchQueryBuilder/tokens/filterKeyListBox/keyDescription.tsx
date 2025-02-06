@@ -13,16 +13,24 @@ type KeyDescriptionProps = {
   size?: 'sm' | 'md';
 };
 
-function ValueType({fieldDefinition}: {fieldDefinition: FieldDefinition | null}) {
+function ValueType({
+  fieldDefinition,
+  fieldKind,
+}: {
+  fieldDefinition: FieldDefinition | null;
+  fieldKind?: FieldKind;
+}) {
+  const defaultType =
+    fieldKind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
   if (!fieldDefinition) {
-    return toTitleCase(FieldValueType.STRING);
+    return toTitleCase(defaultType);
   }
 
   if (fieldDefinition.parameterDependentValueType) {
     return t('Dynamic');
   }
 
-  return toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING);
+  return toTitleCase(fieldDefinition?.valueType ?? defaultType);
 }
 
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
@@ -32,7 +40,11 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
   const description =
     fieldDefinition?.desc ??
-    (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
+    (tag.kind === FieldKind.TAG
+      ? t('A tag sent with one or more events')
+      : tag.kind === FieldKind.FEATURE_FLAG
+        ? t('A feature flag evaluated before an error event')
+        : null);
 
   return (
     <DescriptionWrapper size={size}>
@@ -44,7 +56,7 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
       <DescriptionList>
         <Term>{t('Type')}</Term>
         <Details>
-          <ValueType fieldDefinition={fieldDefinition} />
+          <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
         </Details>
       </DescriptionList>
     </DescriptionWrapper>
