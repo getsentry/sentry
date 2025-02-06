@@ -22,13 +22,14 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     UniqueConditionQuery,
     fetch_active_data_condition_groups,
     fetch_group_to_event_data,
-    fetch_workflows_and_environments,
+    fetch_workflows_detectors_envs,
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
-    get_dcg_group_workflow_data,
+    get_dcg_group_workflow_detector_data,
 )
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.types import DataConditionHandlerType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -154,9 +155,10 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         dcg_ids: list[int],
         event_id: str | None = None,
         occurrence_id: str | None = None,
+        dcg_type: DataConditionHandlerType = DataConditionHandlerType.WORKFLOW_TRIGGER,
     ) -> None:
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        field = f"{workflow_id}:{group_id}:{','.join(map(str, dcg_ids))}"
+        field = f"{workflow_id}:{group_id}:{','.join(map(str, dcg_ids))}:{dcg_type}"
         buffer.backend.push_to_hash(
             model=Workflow,
             filters={"project_id": project_id},
@@ -165,34 +167,27 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         )
 
     def _push_base_events(self) -> None:
-        self.push_to_hash(
-            self.project.id,
-            self.workflow1.id,
-            self.group1.id,
-            [dcg.id for dcg in self.workflow1_dcgs],
-            self.event1.event_id,
-        )
-        self.push_to_hash(
-            self.project.id,
-            self.workflow2.id,
-            self.group2.id,
-            [dcg.id for dcg in self.workflow2_dcgs],
-            self.event2.event_id,
-        )
-        self.push_to_hash(
-            self.project2.id,
-            self.workflow3.id,
-            self.group3.id,
-            [dcg.id for dcg in self.workflow3_dcgs],
-            self.event3.event_id,
-        )
-        self.push_to_hash(
-            self.project2.id,
-            self.workflow4.id,
-            self.group4.id,
-            [dcg.id for dcg in self.workflow4_dcgs],
-            self.event4.event_id,
-        )
+        workflow_to_data = {
+            self.workflow1: (self.project, self.workflow1_dcgs, self.event1, self.group1),
+            self.workflow2: (self.project, self.workflow2_dcgs, self.event2, self.group2),
+            self.workflow3: (self.project2, self.workflow3_dcgs, self.event3, self.group3),
+            self.workflow4: (self.project2, self.workflow4_dcgs, self.event4, self.group4),
+        }
+        dcg_type = [
+            DataConditionHandlerType.WORKFLOW_TRIGGER,
+            DataConditionHandlerType.ACTION_FILTER,
+        ]
+
+        for workflow, (project, dcgs, event, group) in workflow_to_data.items():
+            for i, dcg in enumerate(dcgs):
+                self.push_to_hash(
+                    project_id=project.id,
+                    workflow_id=workflow.id,
+                    group_id=group.id,
+                    dcg_ids=[dcg.id],
+                    event_id=event.event_id,
+                    dcg_type=dcg_type[i],
+                )
 
 
 class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
@@ -213,19 +208,22 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         assert len(buffer_data) == 2
         assert set(buffer_data.keys()) == self.workflow_group_dcg_mapping2
 
-    def test_get_dcg_group_workflow_data(self):
+    def test_get_dcg_group_workflow_detector_data(self):
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_to_groups, dcg_to_workflow, all_event_data = get_dcg_group_workflow_data(buffer_data)
+        dcg_to_groups, dcg_to_workflow, dcg_to_detector, all_event_data = (
+            get_dcg_group_workflow_detector_data(buffer_data)
+        )
 
         assert dcg_to_groups == self.dcg_to_groups
         assert dcg_to_workflow == self.dcg_to_workflow
+        assert dcg_to_detector == {}
         assert all_event_data.count({"event_id": self.event1.event_id, "occurrence_id": None}) == 2
         assert all_event_data.count({"event_id": self.event2.event_id, "occurrence_id": None}) == 2
 
-    def test_fetch_workflows_and_environments(self):
-        workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_and_environments(
-            list(self.dcg_to_workflow.values())
+    def test_fetch_workflows_detectors_envs(self):
+        workflow_ids_to_workflows, detector_ids_to_detectors, workflows_to_envs = (
+            fetch_workflows_detectors_envs(list(self.dcg_to_workflow.values()), [])
         )
         assert workflows_to_envs == {
             self.workflow1.id: self.environment.id,
@@ -235,6 +233,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             self.workflow1.id: self.workflow1,
             self.workflow2.id: self.workflow2,
         }
+        assert detector_ids_to_detectors == {}
 
     def test_fetch_active_data_condition_groups(self):
         workflow_ids_to_workflows = {
@@ -243,13 +242,13 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         }
 
         active_dcgs = fetch_active_data_condition_groups(
-            list(self.dcg_to_groups.keys()), self.dcg_to_workflow, workflow_ids_to_workflows
+            list(self.dcg_to_groups.keys()), self.dcg_to_workflow, {}, workflow_ids_to_workflows, {}
         )
         assert set(active_dcgs) == set(self.workflow1_dcgs + self.workflow2_dcgs)
 
         self.workflow1.update(enabled=False)
         active_dcgs = fetch_active_data_condition_groups(
-            list(self.dcg_to_groups.keys()), self.dcg_to_workflow, workflow_ids_to_workflows
+            list(self.dcg_to_groups.keys()), self.dcg_to_workflow, {}, workflow_ids_to_workflows, {}
         )
         assert set(active_dcgs) == set(self.workflow2_dcgs)
 

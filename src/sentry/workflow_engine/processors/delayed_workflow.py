@@ -19,13 +19,14 @@ from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers imp
     BaseEventFrequencyQueryHandler,
     slow_condition_query_handler_registry,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
+from sentry.workflow_engine.types import DataConditionHandlerType
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 
@@ -71,61 +72,82 @@ def fetch_group_to_event_data(
     return buffer.backend.get_hash(model=model, field=field)
 
 
-def get_dcg_group_workflow_data(
-    worklow_event_dcg_data: dict[str, str]
-) -> tuple[dict[int, set[int]], dict[int, int], list[Any]]:
+def get_dcg_group_workflow_detector_data(
+    workflow_event_dcg_data: dict[str, str]
+) -> tuple[dict[int, set[int]], dict[int, int], dict[int, int], list[Any]]:
     """
-    Parse the data in the buffer hash, which is in the form of {workflow_id}:{event_id}:{dcg_id, ..., dcg_id}:{dcg_type}
+    Parse the data in the buffer hash, which is in the form of {workflow/detector_id}:{event_id}:{dcg_id, ..., dcg_id}:{dcg_type}
     """
 
     dcg_to_groups: dict[int, set[int]] = defaultdict(set)
     dcg_to_workflow: dict[int, int] = {}
+    dcg_to_detector: dict[int, int] = {}
     all_event_data = []
 
-    for workflow_event_dcg, instance_data in worklow_event_dcg_data.items():
+    for workflow_event_dcg, instance_data in workflow_event_dcg_data.items():
         data = workflow_event_dcg.split(":")
-        workflow_id = int(data[0])
+        dcg_type = data[3]  # TODO: use dcg_type to split WHEN and IF DCGs
+
+        dcg_has_detector = dcg_type == DataConditionHandlerType.DETECTOR_TRIGGER
+        workflow_or_detector_id = int(data[0])
         event_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
-        # TODO: use dcg_type = data[3] to split WHEN and IF DCGs
         event_data = json.loads(instance_data)
 
         for dcg_id in dcg_ids:
             dcg_to_groups[dcg_id].add(event_id)
-            dcg_to_workflow[dcg_id] = workflow_id
+            if dcg_has_detector:
+                dcg_to_detector[dcg_id] = workflow_or_detector_id
+            else:
+                dcg_to_workflow[dcg_id] = workflow_or_detector_id
             all_event_data.append(event_data)  # used in bulk fetching events from Snuba
 
-    return dcg_to_groups, dcg_to_workflow, all_event_data
+    return dcg_to_groups, dcg_to_workflow, dcg_to_detector, all_event_data
 
 
-def fetch_workflows_and_environments(
+def fetch_workflows_detectors_envs(
     workflow_ids: list[int],
-) -> tuple[dict[int, Workflow], dict[int, int | None]]:
+    detector_ids: list[int],
+) -> tuple[dict[int, Workflow], dict[int, Detector], dict[int, int | None]]:
     workflows_to_envs: dict[int, int | None] = {}
     workflow_ids_to_workflows: dict[int, Workflow] = {}
+    detector_ids_to_detectors: dict[int, Detector] = {}
+
     workflows = list(Workflow.objects.filter(id__in=workflow_ids))
+    detectors = list(Detector.objects.filter(id__in=detector_ids))
 
     for workflow in workflows:
         workflows_to_envs[workflow.id] = workflow.environment.id if workflow.environment else None
         workflow_ids_to_workflows[workflow.id] = workflow
 
-    return workflow_ids_to_workflows, workflows_to_envs
+    for detector in detectors:
+        detector_ids_to_detectors[detector.id] = detector
+
+    return workflow_ids_to_workflows, detector_ids_to_detectors, workflows_to_envs
 
 
 def fetch_active_data_condition_groups(
     dcg_ids: list[int],
     dcg_to_workflow: dict[int, int],
+    dcg_to_detector: dict[int, int],
     workflow_ids_to_workflows: dict[int, Workflow],
+    detector_ids_to_detectors: dict[int, Detector],
 ) -> list[DataConditionGroup]:
     """
-    Fetch DataConditionGroups with enabled workflows
+    Fetch DataConditionGroups with enabled detectors/workflows
     """
 
     data_condition_groups = DataConditionGroup.objects.filter(id__in=dcg_ids)
     active_dcgs: list[DataConditionGroup] = []
 
     for dcg in data_condition_groups:
-        if workflow_ids_to_workflows[dcg_to_workflow[dcg.id]].enabled:
+        if (workflow_id := dcg_to_workflow.get(dcg.id)) and workflow_ids_to_workflows[
+            workflow_id
+        ].enabled:
+            active_dcgs.append(dcg)
+        elif (detector_id := dcg_to_detector.get(dcg.id)) and detector_ids_to_detectors[
+            detector_id
+        ].enabled:
             active_dcgs.append(dcg)
 
     return active_dcgs
@@ -253,12 +275,20 @@ def process_delayed_workflows(
     workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
     # Get mappings from DataConditionGroups to other info
-    dcg_to_groups, dcg_to_workflow, _ = get_dcg_group_workflow_data(workflow_event_dcg_data)
-    workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_and_environments(
-        list(dcg_to_workflow.values())
+    dcg_to_groups, dcg_to_workflow, dcg_to_detector, _ = get_dcg_group_workflow_detector_data(
+        workflow_event_dcg_data
+    )
+    workflow_ids_to_workflows, detector_ids_to_detectors, workflows_to_envs = (
+        fetch_workflows_detectors_envs(
+            list(dcg_to_workflow.values()), list(dcg_to_detector.values())
+        )
     )
     data_condition_groups = fetch_active_data_condition_groups(
-        list(dcg_to_groups.keys()), dcg_to_workflow, workflow_ids_to_workflows
+        list(dcg_to_groups.keys()),
+        dcg_to_workflow,
+        dcg_to_detector,
+        workflow_ids_to_workflows,
+        detector_ids_to_detectors,
     )
 
     _ = get_condition_query_groups(
