@@ -1,5 +1,5 @@
 ---
-description: Rules and guidlines for running *.spec.tsx tests and writing React tests
+description: Rules and guidelines for running *.spec.tsx tests and writing React tests
 globs: *.spec.tsx
 ---
 
