@@ -31,7 +31,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
-    QUERY_TYPE_VALID_DATASETS,
     STRING_TO_ACTION_TARGET_TYPE,
     AlertRuleSerializer,
     AlertRuleTriggerActionSerializer,
@@ -53,6 +52,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
+from sentry.workflow_engine.endpoints.validators.base.constants import QUERY_TYPE_VALID_DATASETS
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
