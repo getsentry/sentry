@@ -1101,7 +1101,6 @@ const commonTheme = {
 
     cardTitle: {
       fontSize: '1rem',
-      fontWeight: 600,
       lineHeight: 1.2,
     },
   },
