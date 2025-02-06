@@ -1055,10 +1055,6 @@ const commonTheme = {
   grid: 8,
 
   borderRadius: '6px',
-  borderRadiusBottom: '0 0 6px 6px',
-  borderRadiusTop: '6px 6px 0 0',
-  borderRadiusLeft: '6px 0 0 6px',
-  borderRadiusRight: '0 6px 6px 0',
 
   // @TODO(jonasbadalic) This should exist their respective components
   headerSelectorRowHeight: 44,
