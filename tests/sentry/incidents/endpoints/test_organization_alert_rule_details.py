@@ -892,8 +892,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
         self.login_as(self.user)
-        alert_rule_dict = deepcopy(self.alert_rule_dict)
-        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+        alert_rule = self.alert_rule
 
         serialized_alert_rule = self.get_serialized_alert_rule()
         resolve_threshold = alert_rule.resolve_threshold
@@ -919,8 +918,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
         self.login_as(self.user)
-        alert_rule_dict = deepcopy(self.alert_rule_dict)
-        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+        alert_rule = self.alert_rule
 
         serialized_alert_rule = self.get_serialized_alert_rule()
         resolve_threshold = alert_rule.resolve_threshold
