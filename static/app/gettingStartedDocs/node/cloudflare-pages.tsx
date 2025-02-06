@@ -129,7 +129,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. To trigger it, you need to access the [code:/customerror] path on your worker.",
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. To trigger it, you need to access the [code:/customerror] path on your deployment.",
         {
           code: <code />,
         }
