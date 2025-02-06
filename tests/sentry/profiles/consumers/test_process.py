@@ -22,8 +22,8 @@ class TestProcessProfileConsumerStrategy(TestCase):
             max_batch_size=1,
             max_batch_time=1000,
             num_processes=1,
-            input_block_size=10000,
-            output_block_size=10000,
+            input_block_size=None,
+            output_block_size=None,
         )
 
     @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
