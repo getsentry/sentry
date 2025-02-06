@@ -116,11 +116,6 @@ export function ServiceEntrySpansTable({
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
-  const sortOrder = decodeScalar(
-    location.query.showTransactions,
-    TransactionFilterOptions.SLOW
-  ) as TransactionFilterOptions;
-
   const {
     data: tableData,
     isLoading,
@@ -146,6 +141,7 @@ export function ServiceEntrySpansTable({
         'precise.start_ts',
         'precise.finish_ts',
       ],
+      sorts: [selected.sort],
       limit: LIMIT,
     },
     'api.performance.service-entry-spans-table',
