@@ -1,5 +1,4 @@
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 
 __all__ = (
@@ -23,15 +22,6 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.DEFAULT,
     },
     SnubaQuery.Type.PERFORMANCE: {SnubaQueryEventType.EventType.TRANSACTION},
-}
-QUERY_TYPE_VALID_DATASETS = {
-    SnubaQuery.Type.ERROR: {Dataset.Events},
-    SnubaQuery.Type.PERFORMANCE: {
-        Dataset.Transactions,
-        Dataset.PerformanceMetrics,
-        Dataset.EventsAnalyticsPlatform,
-    },
-    SnubaQuery.Type.CRASH_RATE: {Dataset.Metrics},
 }
 
 
