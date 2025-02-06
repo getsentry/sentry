@@ -1287,7 +1287,7 @@ def assign_event_to_group(
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
-                event, primary.variants, all_grouphashes
+                event, primary.grouphashes[0], primary.variants, all_grouphashes
             )
 
             if seer_matched_grouphash:
