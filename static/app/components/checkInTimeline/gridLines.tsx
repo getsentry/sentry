@@ -87,16 +87,25 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig) {
 
 interface GridLineLabelsProps {
   timeWindowConfig: TimeWindowConfig;
+  centered?: boolean;
   className?: string;
 }
 
-export function GridLineLabels({timeWindowConfig, className}: GridLineLabelsProps) {
+export function GridLineLabels({
+  timeWindowConfig,
+  className,
+  centered = false,
+}: GridLineLabelsProps) {
   const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   return (
     <LabelsContainer aria-hidden className={className}>
-      {markers.map(({date, position, dateTimeProps}) => (
-        <TimeLabelContainer key={date.getTime()} left={position}>
+      {markers.map(({date, position, dateTimeProps}, i) => (
+        <TimeLabelContainer
+          key={date.getTime()}
+          left={position}
+          isCentered={i !== 0 && centered}
+        >
           <TimeLabel date={date} {...dateTimeProps} />
         </TimeLabelContainer>
       ))}
@@ -126,6 +135,10 @@ interface GridLineOverlayProps {
   allowZoom?: boolean;
   className?: string;
   /**
+   * Custom styles for the grid lines
+   */
+  gridLineStyles?: React.CSSProperties;
+  /**
    * Enable the timeline cursor
    */
   showCursor?: boolean;
@@ -133,6 +146,10 @@ interface GridLineOverlayProps {
    * Enabling causes the cursor tooltip to stick to the top of the viewport.
    */
   stickyCursor?: boolean;
+  /**
+   * Custom styles for the underscan
+   */
+  underscanStyles?: React.CSSProperties;
 }
 
 export function GridLineOverlay({
@@ -140,6 +157,8 @@ export function GridLineOverlay({
   showCursor,
   additionalUi,
   stickyCursor,
+  gridLineStyles,
+  underscanStyles,
   allowZoom,
   className,
 }: GridLineOverlayProps) {
@@ -202,10 +221,15 @@ export function GridLineOverlay({
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
-      <Underscan style={{width: rollupConfig.timelineUnderscanWidth - 1}} />
+      <Underscan
+        style={{
+          width: rollupConfig.timelineUnderscanWidth - 1,
+          ...underscanStyles,
+        }}
+      />
       <GridLineContainer>
         {markers.map(({date, position}) => (
-          <Gridline key={date.getTime()} left={position} />
+          <Gridline key={date.getTime()} left={position} style={gridLineStyles} />
         ))}
       </GridLineContainer>
     </Overlay>
@@ -241,12 +265,13 @@ const Gridline = styled('div')<{left: number}>`
   height: 100%;
 `;
 
-const TimeLabelContainer = styled(Gridline)`
+const TimeLabelContainer = styled(Gridline)<{isCentered?: boolean}>`
   display: flex;
   height: 100%;
   align-items: center;
   border-left: none;
-  padding-left: ${space(1)};
+  padding-left: ${p => (p.isCentered ? space(1) : 0)};
+  transform: ${p => (p.isCentered ? 'translateX(-50%)' : 'none')};
 `;
 
 const TimeLabel = styled(DateTime)`
