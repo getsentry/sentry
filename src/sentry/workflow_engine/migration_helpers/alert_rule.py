@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 from typing import Any
 
@@ -10,6 +11,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
@@ -30,6 +33,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +81,50 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
             return None
     else:
         return Action.Type.EMAIL
+
+
+def build_action_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> dict:
+    # if the action is a Sentry app, we need to get the Sentry app installation ID
+    if action_type == Action.Type.SENTRY_APP:
+        return (
+            dataclasses.asdict(
+                SentryAppDataBlob(
+                    settings=alert_rule_trigger_action.sentry_app_config,
+                )
+            )
+            if alert_rule_trigger_action.sentry_app_config
+            else {}
+        )
+    elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
+        default_priority = (
+            OPSGENIE_DEFAULT_PRIORITY
+            if action_type == Action.Type.OPSGENIE
+            else PAGERDUTY_DEFAULT_SEVERITY
+        )
+
+        if not alert_rule_trigger_action.sentry_app_config:
+            return {"priority": default_priority}
+
+        priority = alert_rule_trigger_action.sentry_app_config.get("priority", default_priority)
+        return dataclasses.asdict(OnCallDataBlob(priority=priority))
+    else:
+        return {
+            "type": alert_rule_trigger_action.type,
+            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
+            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
+        }
+
+
+def get_target_identifier(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> str:
+    return (
+        str(alert_rule_trigger_action.sentry_app_id)
+        if action_type == Action.Type.SENTRY_APP
+        else alert_rule_trigger_action.target_identifier
+    )
 
 
 def get_detector_trigger(
@@ -147,17 +195,15 @@ def migrate_metric_action(
         )
         return None
 
-    data = {
-        "type": alert_rule_trigger_action.type,
-        "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-        "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-    }
+    data = build_action_data_blob(alert_rule_trigger_action, action_type)
+    target_identifier = get_target_identifier(alert_rule_trigger_action, action_type)
+
     action = Action.objects.create(
         type=action_type,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
-        target_identifier=alert_rule_trigger_action.target_identifier,
+        target_identifier=target_identifier,
         target_type=alert_rule_trigger_action.target_type,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
