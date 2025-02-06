@@ -126,7 +126,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
   ai: 'Action',
-  errors: t('Action'),
+  sessions: t('Action'),
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
