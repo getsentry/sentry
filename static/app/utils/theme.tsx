@@ -1084,17 +1084,6 @@ const commonTheme = {
   fontWeightNormal: 400,
   fontWeightBold: 600,
 
-  // @TODO(jonasbadalic) This should exist on settings component
-  settings: {
-    // Max-width for settings breadcrumbs
-    // i.e. organization, project, or team
-    maxCrumbWidth: '240px',
-
-    containerWidth: '1440px',
-    headerHeight: '61px',
-    sidebarWidth: '220px',
-  },
-
   // @TOOD(jonasbadalic) This should exist on sidebar component
   sidebar: {
     boxShadow: '0 3px 3px #2f2936',
