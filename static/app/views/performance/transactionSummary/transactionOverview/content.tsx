@@ -336,7 +336,14 @@ function OTelSummaryContentInner({
             withoutZerofill={hasPerformanceChartInterpolation}
             project={project}
           />
-          <ServiceEntrySpansTable eventView={transactionsListEventView} />
+          <ServiceEntrySpansTable
+            eventView={transactionsListEventView}
+            handleDropdownChange={handleTransactionsListSortChange}
+            {...getOTelTransactionsListSort(location, {
+              p95: totalValues?.['p95()'] ?? 0,
+              spanOperationBreakdownFilter,
+            })}
+          />
           <TransactionsList
             location={location}
             organization={organization}

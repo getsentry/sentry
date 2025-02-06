@@ -1,16 +1,22 @@
+import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {Fragment} from 'react';
 import {LinkButton} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -19,6 +25,7 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -92,14 +99,27 @@ const LIMIT = 5;
 
 type Props = {
   eventView: EventView;
+  options: DropdownOption[];
+  selected: DropdownOption;
+  handleDropdownChange: (k: string) => void;
 };
 
-export function ServiceEntrySpansTable({eventView}: Props) {
+export function ServiceEntrySpansTable({
+  eventView,
+  options,
+  selected,
+  handleDropdownChange,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
+
+  const sortOrder = decodeScalar(
+    location.query.showTransactions,
+    TransactionFilterOptions.SLOW
+  ) as TransactionFilterOptions;
 
   const {
     data: tableData,
@@ -142,21 +162,31 @@ export function ServiceEntrySpansTable({eventView}: Props) {
   });
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      error={error}
-      data={consolidatedData}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell: column =>
-          renderHeadCell({
-            column,
-          }),
-        renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, meta, projectSlug, location, organization),
-      }}
-    />
+    <Fragment>
+      <CompactSelectWrapper>
+        <CompactSelect
+          triggerProps={{prefix: t('Filter'), size: 'xs'}}
+          value={selected.value}
+          options={options}
+          onChange={opt => handleDropdownChange(opt.value)}
+        />
+      </CompactSelectWrapper>
+      <GridEditable
+        isLoading={isLoading}
+        error={error}
+        data={consolidatedData}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell: column =>
+            renderHeadCell({
+              column,
+            }),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, meta, projectSlug, location, organization),
+        }}
+      />
+    </Fragment>
   );
 }
 
@@ -235,3 +265,7 @@ function renderBodyCell(
 
   return rendered;
 }
+
+const CompactSelectWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+`;
