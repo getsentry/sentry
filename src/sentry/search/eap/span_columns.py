@@ -379,6 +379,13 @@ for key in constants.PROJECT_FIELDS:
     )
 
 
+def count_processor(count_value: int | None) -> int:
+    if count_value is None:
+        return 0
+    else:
+        return count_value
+
+
 SPAN_FUNCTION_DEFINITIONS = {
     "sum": FunctionDefinition(
         internal_function=Function.FUNCTION_SUM,
@@ -432,6 +439,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         default_search_type="integer",
+        processor=count_processor,
         arguments=[
             ArgumentDefinition(
                 argument_types={
@@ -448,6 +456,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         default_search_type="integer",
+        processor=count_processor,
         arguments=[
             ArgumentDefinition(
                 argument_types={
@@ -603,6 +612,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         internal_function=Function.FUNCTION_UNIQ,
         default_search_type="integer",
         infer_search_type_from_arguments=False,
+        processor=count_processor,
         arguments=[
             ArgumentDefinition(
                 argument_types={"string"},
