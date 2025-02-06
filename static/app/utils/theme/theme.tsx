@@ -1091,9 +1091,16 @@ const commonTheme = {
   dataCategory,
 
   charts: {
+<<<<<<< HEAD:static/app/utils/theme/theme.tsx
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
+=======
+    colors: CHART_PALETTE[CHART_PALETTE.length - 1],
+
+    previousPeriod: lightColors.gray200,
+    symbolSize: 6,
+>>>>>>> 583e3b721d6 (theme: remove chart helper):static/app/utils/theme.tsx
   },
 };
 
