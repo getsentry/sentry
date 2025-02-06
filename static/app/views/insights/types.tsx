@@ -255,7 +255,6 @@ export enum SpanIndexedField {
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
-  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   LCP = 'measurements.lcp',
   LCP_SCORE = 'measurements.score.lcp',
   CLS = 'measurements.cls',
@@ -333,7 +332,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
-  [SpanIndexedField.INP_SCORE_RATIO]: number;
   [SpanIndexedField.LCP]: number;
   [SpanIndexedField.LCP_SCORE]: number;
   [SpanIndexedField.CLS]: number;
