@@ -18,6 +18,7 @@ from sentry.search.events.types import SelectType, WhereType
 class DatasetConfig(abc.ABC):
     custom_threshold_columns: set[str] = set()
     non_nullable_keys: set[str] = set()
+    nullable_context_keys: set[str] = set()
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
     optimize_wildcard_searches = False
     subscriptables_with_index: set[str] = set()
