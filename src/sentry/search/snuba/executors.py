@@ -64,13 +64,19 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SnubaParams, WhereType
 from sentry.snuba.dataset import Dataset
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query_with_override
+from sentry.utils.snuba import (
+    SnubaQueryParams,
+    aliased_query_params,
+    bulk_raw_query_with_override,
+    has_tags_filter,
+    substitute_tags_filter,
+)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -1192,7 +1198,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         search_filter: SearchFilter,
         joined_entity: Entity,
         snuba_params: SnubaParams,
-    ) -> Condition:
+    ) -> WhereType | None:
         """
         Returns the basic lookup for a search filter.
         """
@@ -1798,7 +1804,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     else:
                         raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
-                    condition = self.get_basic_event_snuba_condition(
+                    condition: WhereType | None = self.get_basic_event_snuba_condition(
                         search_filter,
                         joined_entity,
                         SnubaParams(
@@ -1811,17 +1817,13 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                             teams=[],  # may need to change, tbd
                         ),
                     )
-                    if condition is not None:
-                        if features.has(
-                            "organizations:feature-flag-autocomplete", organization
-                        ) and has_tags_filter(condition.lhs):
-                            feature_condition = Condition(
-                                lhs=substitute_tags_filter(condition.lhs),
-                                op=condition.op,
-                                rhs=condition.rhs,
-                            )
-                            condition = Or(conditions=[condition, feature_condition])
-
+                    if (
+                        condition is not None
+                        and features.has("organizations:feature-flag-autocomplete", organization)
+                        and has_tags_filter(condition)
+                    ):
+                        feature_condition = substitute_tags_filter(condition)
+                        condition = Or(conditions=[condition, feature_condition])
                         where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
@@ -1952,33 +1954,3 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
-
-
-def has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if (
-            condition.entity
-            and condition.entity.name == "events"
-            and condition.name.startswith("tags[")
-            and condition.name.endswith("]")
-        ):
-            return True
-    elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return has_tags_filter(parameter)
-    return False
-
-
-def substitute_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if condition.name.startswith("tags[") and condition.name.endswith("]"):
-            return Column(
-                name=f"flags[{condition.name[5:-1]}]",
-                entity=condition.entity,
-            )
-    elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return substitute_tags_filter(parameter)
-    return condition

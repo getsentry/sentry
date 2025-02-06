@@ -24,7 +24,7 @@ from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
 from snuba_sdk import Column, Condition, DeleteQuery, Function, MetricsQuery, Query, Request
-from snuba_sdk.conditions import Or
+from snuba_sdk.conditions import BooleanCondition, Or
 from snuba_sdk.legacy import json_to_snql
 
 from sentry import features
@@ -2058,12 +2058,8 @@ def bulk_raw_query_with_override(
             for condition in old_query.where:
                 if features.has(
                     "organizations:feature-flag-autocomplete", organization
-                ) and _has_tags_filter(condition.lhs):
-                    feature_condition = Condition(
-                        lhs=_substitute_tags_filter(condition.lhs),
-                        op=condition.op,
-                        rhs=condition.rhs,
-                    )
+                ) and has_tags_filter(condition):
+                    feature_condition = substitute_tags_filter(condition)
                     condition = Or(conditions=[condition, feature_condition])
                 new_conditions.append(condition)
 
@@ -2087,29 +2083,48 @@ def bulk_raw_query_with_override(
     return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
 
 
-def _has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column) and condition.name.startswith("tags["):
-        return True
+def has_tags_filter(condition: Column | Function | Condition | BooleanCondition) -> bool:
+    if isinstance(condition, Column):
+        if (
+            condition.entity
+            and condition.entity.name == "events"
+            and condition.name.startswith("tags[")
+            and condition.name.endswith("]")
+        ):
+            return True
     elif isinstance(condition, Function):
-        for param in condition.parameters:
-            if isinstance(param, (Column, Function)):
-                return _has_tags_filter(param)
-        return False
-    else:
-        return False
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return has_tags_filter(parameter)
+    elif isinstance(condition, Condition):
+        return has_tags_filter(condition.lhs)
+    elif isinstance(condition, BooleanCondition):
+        return has_tags_filter(condition.conditions[0])
+    return False
 
 
-def _substitute_tags_filter(condition: Any) -> Any:
-    if isinstance(condition, Column) and condition.name.startswith("tags["):
-        return Column(
-            name=condition.name.replace("tags[", "flags["),
-            entity=condition.entity,
-        )
+def substitute_tags_filter(
+    condition: Column | Function | Condition | BooleanCondition,
+) -> Column | Function | Condition | BooleanCondition:
+    if isinstance(condition, Column):
+        if condition.name.startswith("tags[") and condition.name.endswith("]"):
+            return Column(
+                name=f"flags[{condition.name[5:-1]}]",
+                entity=condition.entity,
+            )
+
     elif isinstance(condition, Function):
-        return Function(
-            condition.function,
-            [_substitute_tags_filter(param) for param in condition.parameters],
-            condition.alias,
-        )
-    else:
-        return condition
+        parameters = condition.parameters
+        parameters[0] = substitute_tags_filter(parameters[0])
+        return Function(condition.function, parameters=parameters, alias=condition.alias)
+
+    elif isinstance(condition, Condition):
+        new_lhs = substitute_tags_filter(condition.lhs)
+        return Condition(lhs=new_lhs, op=condition.op, rhs=condition.rhs)
+
+    elif isinstance(condition, BooleanCondition):
+        new_conditions = condition.conditions
+        new_conditions[0] = substitute_tags_filter(condition.conditions[0])
+        return BooleanCondition(op=condition.op, conditions=new_conditions)
+
+    return condition
