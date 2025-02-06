@@ -133,7 +133,7 @@ class SlackService:
             )
             return None
 
-        if activity.user_id is None:
+        if activity.user_id is None and activity.group.issue_category != GroupCategory.UPTIME:
             self._logger.info(
                 "machine/system updates are ignored at this time, nothing to do",
                 extra={
