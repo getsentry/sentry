@@ -117,8 +117,11 @@ def run_table_query(
             final_confidence.append({})
 
         for index, result in enumerate(column_value.results):
-            result_value: str | int | float
-            result_value = getattr(result, str(result.WhichOneof("value")))
+            result_value: str | int | float | None
+            if result.is_null:
+                result_value = None
+            else:
+                result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:

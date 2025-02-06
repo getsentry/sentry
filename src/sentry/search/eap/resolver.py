@@ -25,6 +25,8 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
     OrFilter,
     TraceItemFilter,
 )
@@ -419,6 +421,19 @@ class SearchResolver:
             operator = constants.OPERATOR_MAP[term.operator]
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
+
+        if raw_value == "" and context_definition is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                return (
+                    TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                ), context_definition
+            else:
+                return exists_filter, context_definition
 
         return (
             TraceItemFilter(
