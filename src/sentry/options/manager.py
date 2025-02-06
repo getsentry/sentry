@@ -1,8 +1,10 @@
+import functools
 import logging
 import sys
 from collections.abc import Sequence
 from enum import Enum
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry.utils.hashlib import md5_text
@@ -152,6 +154,17 @@ def _make_cache_key(key):
     return "o:%s" % md5_text(key).hexdigest()
 
 
+def capture(fn):
+    @functools.wraps(fn)
+    def wrapper(self, key: str, silent=False) -> bool:
+        result = fn(self, key, silent=silent)
+        if isinstance(result, bool):
+            sentry_sdk.feature_flags.add_feature_flag(key, result)
+        return result
+
+    return wrapper
+
+
 class OptionsManager:
     """
     A backend for storing generic configuration within Sentry.
@@ -270,6 +283,7 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
+    @capture
     def get(self, key: str, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
