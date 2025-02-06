@@ -216,7 +216,8 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.MOBILE_UI]: ['insights-entry-points'],
   [ModuleName.MOBILE_VITALS]: ['insights-entry-points'],
   [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
-  [ModuleName.UPTIME]: ['insights-entry-points', ...UPTIME_MODULE_VISIBLE_FEATURES],
-  [ModuleName.CRONS]: ['insights-entry-points', ...CRONS_MODULE_VISIBLE_FEATURES],
+  // XXX(epurkhiser): Uptime and Crons are NOT gated by the entry-points flag
+  [ModuleName.UPTIME]: [...UPTIME_MODULE_VISIBLE_FEATURES],
+  [ModuleName.CRONS]: [...CRONS_MODULE_VISIBLE_FEATURES],
   [ModuleName.OTHER]: ['insights-entry-points'],
 };
