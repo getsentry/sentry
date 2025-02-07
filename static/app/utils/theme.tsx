@@ -1140,9 +1140,6 @@ const commonTheme = {
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
 
-  // used as a gradient,
-  businessIconColors: ['#EA5BC2', '#6148CE'],
-
   barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'] as const,
   barBreakdownFontColors: [
     '#564277',
