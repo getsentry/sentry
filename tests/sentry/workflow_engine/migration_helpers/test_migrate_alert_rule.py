@@ -757,12 +757,16 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=self.sentry_app,
             alert_rule_trigger=self.critical_trigger,
-            sentry_app_config={
-                "settings": {
+            sentry_app_config=[
+                {
                     "name": "foo",
                     "value": "bar",
                 },
-            },
+                {
+                    "name": "bufo",
+                    "value": "bot",
+                },
+            ],
         )
 
         aarta_opsgenie_with_config = self.create_alert_rule_trigger_action(
@@ -783,6 +787,13 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             aarta_sentry_app_with_config, Action.Type.SENTRY_APP
         )
         assert_alert_rule_trigger_action_migrated(aarta_opsgenie_with_config, Action.Type.OPSGENIE)
+
+        # broken config, should raise an error
+        aarta_sentry_app_with_config.sentry_app_config = {
+            "priority": "p2",
+        }
+        with pytest.raises(ValueError):
+            migrate_metric_action(aarta_sentry_app_with_config)
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
     def test_dual_write_metric_alert_trigger_action_no_type(self, mock_logger):

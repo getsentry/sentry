@@ -83,38 +83,49 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
         return Action.Type.EMAIL
 
 
+def build_sentry_app_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction,
+) -> dict[str, Any]:
+    if not alert_rule_trigger_action.sentry_app_config:
+        return {}
+    # Convert config to proper type for SentryAppDataBlob
+    settings = (
+        [alert_rule_trigger_action.sentry_app_config]
+        if isinstance(alert_rule_trigger_action.sentry_app_config, dict)
+        else alert_rule_trigger_action.sentry_app_config
+    )
+    return dataclasses.asdict(SentryAppDataBlob.from_list(settings))
+
+
+def build_on_call_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> dict[str, Any]:
+    default_priority = (
+        OPSGENIE_DEFAULT_PRIORITY
+        if action_type == Action.Type.OPSGENIE
+        else PAGERDUTY_DEFAULT_SEVERITY
+    )
+
+    if not alert_rule_trigger_action.sentry_app_config:
+        return {"priority": default_priority}
+
+    # Ensure sentry_app_config is a dict before accessing
+    config = alert_rule_trigger_action.sentry_app_config
+    if not isinstance(config, dict):
+        return {"priority": default_priority}
+
+    priority = config.get("priority", default_priority)
+    return dataclasses.asdict(OnCallDataBlob(priority=priority))
+
+
 def build_action_data_blob(
     alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
 ) -> dict[str, Any]:
     # if the action is a Sentry app, we need to get the Sentry app installation ID
     if action_type == Action.Type.SENTRY_APP:
-        if not alert_rule_trigger_action.sentry_app_config:
-            return {}
-        # Convert config to proper type for SentryAppDataBlob
-        settings = (
-            [alert_rule_trigger_action.sentry_app_config]
-            if isinstance(alert_rule_trigger_action.sentry_app_config, dict)
-            else alert_rule_trigger_action.sentry_app_config
-        )
-        return SentryAppDataBlob.from_list(settings).to_dict()
-
+        return build_sentry_app_data_blob(alert_rule_trigger_action)
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
-        default_priority = (
-            OPSGENIE_DEFAULT_PRIORITY
-            if action_type == Action.Type.OPSGENIE
-            else PAGERDUTY_DEFAULT_SEVERITY
-        )
-
-        if not alert_rule_trigger_action.sentry_app_config:
-            return {"priority": default_priority}
-
-        # Ensure sentry_app_config is a dict before accessing
-        config = alert_rule_trigger_action.sentry_app_config
-        if not isinstance(config, dict):
-            return {"priority": default_priority}
-
-        priority = config.get("priority", default_priority)
-        return dataclasses.asdict(OnCallDataBlob(priority=priority))
+        return build_on_call_data_blob(alert_rule_trigger_action, action_type)
     else:
         return {
             "type": alert_rule_trigger_action.type,
