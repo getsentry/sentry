@@ -12,6 +12,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
@@ -31,6 +32,7 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {ModuleName} from 'sentry/views/insights/types';
 import {OwnerFilter} from 'sentry/views/monitors/components/ownerFilter';
 
+import {MODULE_DESCRIPTION, MODULE_DOC_LINK, MODULE_TITLE} from '../../uptime/settings';
 import {OverviewTimeline} from '../components/overviewTimeline';
 
 export default function UptimeOverview() {
@@ -84,6 +86,15 @@ export default function UptimeOverview() {
     <ModulePageProviders moduleName="uptime" pageTitle={t('Overview')}>
       <BackendHeader
         module={ModuleName.UPTIME}
+        headerTitle={
+          <Fragment>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Fragment>
+        }
         headerActions={
           <ButtonBar gap={1}>
             <LinkButton
