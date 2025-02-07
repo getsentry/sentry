@@ -1099,10 +1099,6 @@ const commonTheme = {
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
-
-    cardTitle: {
-      fontSize: '1rem',
-    },
   },
 
   /**
