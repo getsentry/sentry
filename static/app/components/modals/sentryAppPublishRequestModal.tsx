@@ -165,7 +165,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
       },
     ];
 
-    if (!organization.features.includes(`organizations:streamlined-publishing-flow`)) {
+    if (!organization.features.includes(`streamlined-publishing-flow`)) {
       baseFields = [
         {
           type: 'textarea',
