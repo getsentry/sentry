@@ -1052,17 +1052,12 @@ const commonTheme = {
     },
   },
 
-  grid: 8,
-
   borderRadius: '6px',
 
   // @TODO(jonasbadalic) This should exist their respective components
   panelBorderRadius: '6px',
   modalBorderRadius: '8px',
   linkBorderRadius: '2px',
-
-  headerSelectorRowHeight: 44,
-  headerSelectorLabelHeight: 28,
 
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
@@ -1072,6 +1067,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+
   codeFontSize: '13px',
   headerFontSize: '22px',
 
@@ -1098,12 +1094,6 @@ const commonTheme = {
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
-
-    cardTitle: {
-      fontSize: '1rem',
-      fontWeight: 600,
-      lineHeight: 1.2,
-    },
   },
 
   /**
@@ -1150,8 +1140,6 @@ const commonTheme = {
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
 
-  // used as a gradient,
-  businessIconColors: ['#EA5BC2', '#6148CE'],
 };
 
 // Light and dark theme definitions

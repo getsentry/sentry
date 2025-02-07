@@ -1320,7 +1320,13 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
+            if is_context and name in self.config.nullable_context_keys:
+                return Condition(
+                    Function("has", [Column("contexts.key"), lhs.key]),
+                    Op(search_filter.operator),
+                    0,
+                )
+            elif is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             elif is_measurement(name):
                 # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check
