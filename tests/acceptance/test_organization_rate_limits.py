@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 from django.utils import timezone
 
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -17,6 +18,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         self.path = f"/organizations/{self.org.slug}/rate-limits/"
+        OrganizationOption.objects.set_value(self.org, "sentry:project-rate-limit", 80)
 
     @patch("sentry.quotas.get_maximum_quota", Mock(return_value=(100, 60)))
     def test_with_rate_limits(self):
