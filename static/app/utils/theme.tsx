@@ -839,18 +839,16 @@ const buttonPaddingSizes: ButtonPaddingSizes = {
 };
 
 type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
-type Breakpoints = {
-  [key in Breakpoint]: string;
-};
+type Breakpoints = Record<Breakpoint, string>;
 
-const breakpoints: Breakpoints = {
+const breakpoints = {
   xsmall: '500px',
   small: '800px',
   medium: '992px',
   large: '1200px',
   xlarge: '1440px',
   xxlarge: '2560px',
-} as const;
+} as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 type Sizes = {
@@ -1057,10 +1055,6 @@ const commonTheme = {
   grid: 8,
 
   borderRadius: '6px',
-  borderRadiusBottom: '0 0 6px 6px',
-  borderRadiusTop: '6px 6px 0 0',
-  borderRadiusLeft: '6px 0 0 6px',
-  borderRadiusRight: '0 6px 6px 0',
 
   // @TODO(jonasbadalic) This should exist their respective components
   panelBorderRadius: '6px',
@@ -1105,13 +1099,6 @@ const commonTheme = {
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
 
-    // @TODO(jonasbadalic) This should exist on pageTitle component
-    pageTitle: {
-      fontSize: '1.625rem',
-      fontWeight: 600,
-      letterSpacing: '-0.01em',
-      lineHeight: 1.2,
-    },
     cardTitle: {
       fontSize: '1rem',
       fontWeight: 600,
@@ -1145,14 +1132,9 @@ const commonTheme = {
   dataCategory,
 
   charts: {
-    colors: CHART_PALETTE[CHART_PALETTE.length - 1],
-
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-
-    previousPeriod: lightColors.gray200,
-    symbolSize: 6,
   },
 
   diff: {

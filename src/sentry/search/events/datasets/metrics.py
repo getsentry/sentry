@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping, MutableMapping
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -1894,36 +1893,31 @@ class MetricsDatasetConfig(DatasetConfig):
             for vital in vitals
         }
 
-        if features.has(
-            "organizations:performance-vitals-handle-missing-webvitals",
-            self.builder.params.organization,
-        ):
-            return Function(
-                "plus",
-                [
-                    Function(
-                        "plus",
-                        [
-                            Function(
-                                "plus",
-                                [
-                                    Function(
-                                        "plus",
-                                        [
-                                            weights["lcp"],
-                                            weights["fcp"],
-                                        ],
-                                    ),
-                                    weights["cls"],
-                                ],
-                            ),
-                            weights["ttfb"],
-                        ],
-                    ),
-                    weights["inp"],
-                ],
-            )
-        return 1
+        return Function(
+            "plus",
+            [
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                Function(
+                                    "plus",
+                                    [
+                                        weights["lcp"],
+                                        weights["fcp"],
+                                    ],
+                                ),
+                                weights["cls"],
+                            ],
+                        ),
+                        weights["ttfb"],
+                    ],
+                ),
+                weights["inp"],
+            ],
+        )
 
     def _resolve_total_performance_score_function(
         self,
