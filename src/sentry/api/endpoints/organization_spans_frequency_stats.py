@@ -9,6 +9,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 )
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_spans_fields import OrganizationSpansFieldsEndpointSerializer
@@ -23,6 +25,10 @@ from sentry.utils import snuba_rpc
 @region_silo_endpoint
 class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
     snuba_methods = ["GET"]
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.PERFORMANCE
 
     def get(self, request: Request, organization: Organization) -> Response:
 
