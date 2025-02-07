@@ -405,7 +405,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             data=data,
         )
         assert not serializer.is_valid(), serializer.errors
-        assert serializer.errors["nonfielderrors"][0] == "Trigger must have an alertThreshold"
+        assert serializer.errors["nonFieldErrors"][0] == "Trigger must have an alertThreshold"
 
     @responses.activate
     def test_with_sentryapp_success(self):
@@ -697,13 +697,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp = self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
-            assert resp.data == {"nonfielderrors": ['Trigger 1 must be labeled "critical"']}
+            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
             serialized_alert_rule["triggers"][0]["label"] = "critical"
             serialized_alert_rule["triggers"][1]["label"] = "goodbye"
             resp = self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
-            assert resp.data == {"nonfielderrors": ['Trigger 2 must be labeled "warning"']}
+            assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
 
     def test_update_trigger_alert_threshold(self):
         self.create_member(
@@ -1089,7 +1089,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
         assert resp.data == {
-            "nonfielderrors": [
+            "nonFieldErrors": [
                 "Each trigger must have an associated action for this alert to fire."
             ]
         }
