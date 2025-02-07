@@ -11,7 +11,7 @@ describe('BarChartWidget', () => {
         <BarChartWidget
           title="eps()"
           description="Number of events per second"
-          timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
+          timeSeries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
         />
       );
     });
