@@ -1,24 +1,23 @@
 from __future__ import annotations
 
 import abc
+import uuid
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import msgpack
 import pytest
-from arroyo import Topic as ArroyoTopic
 from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
 from redis import StrictRedis
 from rediscluster import RedisCluster
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
-from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC, get_partition_keys
+from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_active_region_configs, get_region_config
 from sentry.uptime.subscriptions.tasks import (
@@ -31,7 +30,6 @@ from sentry.uptime.subscriptions.tasks import (
     uptime_subscription_to_check_config,
 )
 from sentry.utils import redis
-from sentry.utils.kafka_config import get_topic_definition
 
 pytestmark = [requires_kafka]
 
@@ -39,74 +37,38 @@ pytestmark = [requires_kafka]
 class ConfigPusherTestMixin(UptimeTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
-    @pytest.fixture(autouse=True)
-    def _setup_producer(self):
-        with patch("sentry.uptime.config_producer._configs_producer") as producer:
-            self.producer = producer
-            yield
-
-    def assert_config_calls(self, *args: tuple[UptimeSubscription | str, Topic], check_redis=True):
-        # Verify the number of calls matches what we expect
-        assert len(self.producer.produce.call_args_list) == len(args)
-
-        for (sub, expected_topic), producer_call in zip(args, self.producer.produce.call_args_list):
-            self.assert_kafka_producer_call(sub, expected_topic, producer_call)
-            if check_redis:
-                self.assert_redis_config("default", sub)
-
-    def assert_kafka_producer_call(
-        self, sub: UptimeSubscription | str, expected_topic: Topic, producer_call
+    def assert_redis_config(
+        self,
+        region: str,
+        sub: UptimeSubscription,
+        action: str | None,
     ):
-        # Check topic
-        assert producer_call[0][0] == ArroyoTopic(
-            get_topic_definition(expected_topic)["real_topic_name"]
-        )
-
-        # Check message ID
-        expected_message_id = UUID(
-            sub.subscription_id if isinstance(sub, UptimeSubscription) else sub
-        ).bytes
-        assert producer_call[0][1].key == expected_message_id
-
-        # Check payload
-        expected_payload = (
-            UPTIME_CONFIGS_CODEC.encode(
-                uptime_subscription_to_check_config(sub, str(sub.subscription_id))
-            )
-            if isinstance(sub, UptimeSubscription)
-            else None
-        )
-        assert producer_call[0][1].value == expected_payload
-
-    def assert_redis_config(self, region: str, sub: UptimeSubscription | str):
         region_config = get_region_config(region)
         assert region_config is not None
         cluster: RedisCluster | StrictRedis = redis.redis_clusters.get_binary(
             region_config.config_redis_cluster
         )
-        if isinstance(sub, UptimeSubscription):
-            action = "upsert"
-            subscription_id = sub.subscription_id
-        else:
-            action = "delete"
-            subscription_id = sub
-        assert subscription_id is not None
-        config_key, update_key = get_partition_keys(UUID(subscription_id))
-        if isinstance(sub, UptimeSubscription):
-            config_bytes = cluster.hget(config_key, subscription_id)
+
+        assert sub.subscription_id is not None
+        config_key, update_key = get_partition_keys(UUID(sub.subscription_id), region_config)
+        if action == "upsert":
+            config_bytes = cluster.hget(config_key, sub.subscription_id)
             assert config_bytes is not None
             assert msgpack.unpackb(config_bytes) == uptime_subscription_to_check_config(
-                sub, subscription_id
+                sub, sub.subscription_id
             )
         else:
-            assert not cluster.hexists(config_key, subscription_id)
+            assert not cluster.hexists(config_key, sub.subscription_id)
 
-        update_bytes = cluster.hget(update_key, subscription_id)
-        assert update_bytes is not None
-        assert msgpack.unpackb(update_bytes) == {
-            "action": action,
-            "subscription_id": subscription_id,
-        }
+        if action is None:
+            assert not cluster.hexists(update_key, sub.subscription_id)
+        else:
+            update_bytes = cluster.hget(update_key, sub.subscription_id)
+            assert update_bytes is not None
+            assert msgpack.unpackb(update_bytes) == {
+                "action": action,
+                "subscription_id": sub.subscription_id,
+            }
 
 
 class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
@@ -151,10 +113,11 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
             ),
             sample_rate=1.0,
         )
-        self.assert_config_calls()
 
     def test_invalid_status(self):
-        sub = self.create_subscription(UptimeSubscription.Status.ACTIVE)
+        sub = self.create_subscription(
+            UptimeSubscription.Status.ACTIVE, subscription_id=uuid.uuid4().hex
+        )
         self.task(sub.id)
         self.metrics.incr.assert_called_once_with(
             "uptime.subscriptions.{}.incorrect_status".format(
@@ -162,7 +125,7 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
             ),
             sample_rate=1.0,
         )
-        self.assert_config_calls()
+        self.assert_redis_config("default", sub, None)
 
 
 class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
@@ -175,7 +138,7 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         sub.refresh_from_db()
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
-        self.assert_config_calls((sub, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "upsert")
 
     def test_with_regions(self):
         sub = self.create_uptime_subscription(
@@ -185,7 +148,7 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         sub.refresh_from_db()
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
-        self.assert_config_calls((sub, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "upsert")
 
     def test_without_regions_uses_default(self):
         sub = self.create_uptime_subscription(status=UptimeSubscription.Status.CREATING)
@@ -193,29 +156,29 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         sub.refresh_from_db()
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
-        self.assert_config_calls((sub, get_active_region_configs()[0].config_topic))
+        self.assert_redis_config("default", sub, "upsert")
 
     def test_multi_overlapping_regions(self):
         regions = [
             UptimeRegionConfig(
                 slug="region1",
                 name="Region 1",
-                config_topic=Topic.UPTIME_CONFIGS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
-                config_topic=Topic.UPTIME_RESULTS,  # Using a different topic
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region3",
                 name="Region 3",
-                config_topic=Topic.MONITORS_CLOCK_TASKS,  # Another different topic
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r3",
                 enabled=True,
             ),
         ]
@@ -233,14 +196,10 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             )
             create_remote_uptime_subscription(sub2.id)
             sub2.refresh_from_db()
-
-            # Verify that each subscription was sent to the correct topics for its regions
-            self.assert_config_calls(
-                (sub1, Topic.UPTIME_CONFIGS),
-                (sub1, Topic.UPTIME_RESULTS),
-                (sub2, Topic.UPTIME_RESULTS),
-                (sub2, Topic.MONITORS_CLOCK_TASKS),
-            )
+            self.assert_redis_config("region1", sub1, "upsert")
+            self.assert_redis_config("region2", sub1, "upsert")
+            self.assert_redis_config("region2", sub2, "upsert")
+            self.assert_redis_config("region3", sub2, "upsert")
 
 
 class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
@@ -254,14 +213,13 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         )
         delete_remote_uptime_subscription(sub.id)
         assert not UptimeSubscription.objects.filter(id=sub.id).exists()
-        self.assert_config_calls((subscription_id, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "delete")
 
     def test_no_subscription_id(self):
         sub = self.create_subscription(UptimeSubscription.Status.DELETING)
         assert sub.subscription_id is None
         delete_remote_uptime_subscription(sub.id)
         assert not UptimeSubscription.objects.filter(id=sub.id).exists()
-        self.assert_config_calls()
 
     def test_delete_with_regions(self):
         sub = self.create_uptime_subscription(
@@ -271,7 +229,7 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         )
         delete_remote_uptime_subscription(sub.id)
         assert sub.subscription_id is not None
-        self.assert_config_calls((sub.subscription_id, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "delete")
         with pytest.raises(UptimeSubscription.DoesNotExist):
             sub.refresh_from_db()
 
@@ -281,7 +239,7 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         )
         delete_remote_uptime_subscription(sub.id)
         assert sub.subscription_id is not None
-        self.assert_config_calls((sub.subscription_id, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "delete")
         with pytest.raises(UptimeSubscription.DoesNotExist):
             sub.refresh_from_db()
 
@@ -369,7 +327,9 @@ class SendUptimeConfigDeletionTest(ConfigPusherTestMixin):
         subscription_id = uuid4().hex
         region_slug = "default"
         send_uptime_config_deletion(region_slug, subscription_id)
-        self.assert_config_calls((subscription_id, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config(
+            region_slug, UptimeSubscription(subscription_id=subscription_id), "delete"
+        )
 
 
 class SubscriptionCheckerTest(UptimeTestCase):
@@ -418,7 +378,7 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
         # Verify config was sent to the region
-        self.assert_config_calls((sub, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "upsert")
 
     def test_without_regions_uses_default(self):
         sub = self.create_uptime_subscription(
@@ -432,4 +392,4 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
         # Verify config was sent to default region
-        self.assert_config_calls((sub, Topic.UPTIME_CONFIGS))
+        self.assert_redis_config("default", sub, "upsert")
