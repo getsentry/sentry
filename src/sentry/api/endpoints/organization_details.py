@@ -65,6 +65,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
+    ObjectStatus,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -90,6 +91,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -1050,7 +1052,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         rebalanced_projects = calculate_sample_rates_of_projects(
             org_id, projects_with_tx_count_and_rates
         )
-        project_ids = [project.id for project in self.get_projects(request, organization)]
+
+        project_ids = Project.objects.filter(
+            organization_id=org_id, status=ObjectStatus.ACTIVE
+        ).values_list("id", flat=True)
 
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:

@@ -570,6 +570,15 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         project_1 = self.create_project(organization=self.organization)
         project_2 = self.create_project(organization=self.organization)
 
+        # Create a team member for project_1 only
+        team_1 = self.create_team(organization=self.organization)
+        project_1.add_team(team_1)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="owner", teams=[team_1]
+        )
+        self.login_as(user=member_user)
+
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo_transaction", "decision": "keep"},
@@ -595,6 +604,13 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
                 method="put",
                 samplingMode=DynamicSamplingMode.PROJECT.value,
             )
+
+        assert ProjectOption.objects.filter(
+            project_id=project_1.id, key="sentry:target_sample_rate"
+        )
+        assert not ProjectOption.objects.filter(
+            project_id=project_2.id, key="sentry:target_sample_rate"
+        )
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
