@@ -2,6 +2,8 @@ __all__ = [
     "EventCreatedByDetectorConditionHandler",
     "EventFrequencyCountHandler",
     "EventFrequencyPercentHandler",
+    "PercentSessionsCountHandler",
+    "PercentSessionsPercentHandler",
     "EventSeenCountConditionHandler",
     "ReappearedEventConditionHandler",
     "RegressionEventConditionHandler",
