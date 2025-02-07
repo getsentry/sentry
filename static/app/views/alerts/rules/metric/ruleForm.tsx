@@ -112,7 +112,6 @@ type Props = {
   userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
-  isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
