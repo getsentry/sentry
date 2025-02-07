@@ -30,7 +30,6 @@ export function SortableVisualizeFields({
     transition,
     zIndex: 'auto',
     display: 'flex',
-    // alignItems: 'center',
     gap: space(1),
     width: '100%',
   } as React.CSSProperties;
@@ -55,6 +54,7 @@ export function SortableVisualizeFields({
           icon={<IconGrabbable size="xs" />}
           size="zero"
           borderless
+          isDragging={isDragging}
         />
       )}
       {children}
@@ -62,6 +62,8 @@ export function SortableVisualizeFields({
   );
 }
 
-const DragAndReorderButton = styled(Button)`
+const DragAndReorderButton = styled(Button)<{isDragging: boolean}>`
   height: ${p => p.theme.form.md.height}px;
+
+  ${p => p.isDragging && p.theme.visuallyHidden}
 `;

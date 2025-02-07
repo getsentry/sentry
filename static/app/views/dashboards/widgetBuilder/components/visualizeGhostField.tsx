@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {IconDelete} from 'sentry/icons';
+import {Button} from 'sentry/components/button';
+import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -91,6 +92,12 @@ function VisualizeGhostField({
   return (
     <Ghost>
       <FieldRow>
+        <DragAndReorderButton
+          aria-label={t('Drag to reorder')}
+          icon={<IconGrabbable size="xs" />}
+          size="zero"
+          borderless
+        />
         <FieldBar>
           {draggingField?.kind === FieldValueKind.EQUATION ? (
             <StyledArithmeticInput
@@ -230,4 +237,8 @@ const Ghost = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 710px;
   }
+`;
+
+const DragAndReorderButton = styled(Button)`
+  height: ${p => p.theme.form.md.height}px;
 `;
