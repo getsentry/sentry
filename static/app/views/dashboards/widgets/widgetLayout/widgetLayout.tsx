@@ -70,22 +70,23 @@ const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'
 
   background: ${p => p.theme.background};
 
-  :hover {
-    background-color: ${p => p.theme.surface200};
-    transition:
-      background-color 100ms linear,
-      box-shadow 100ms linear;
-    box-shadow: ${p => p.theme.dropShadowLight};
-  }
-
   ${p =>
     p.revealActions === 'hover' &&
-    `&:not(:hover):not(:focus-within) {
-    ${TitleHoverItems} {
-      opacity: 0;
-      ${p.theme.visuallyHidden}
-    }
-  }`}
+    ` :hover {
+        background-color: ${p.theme.surface200};
+        transition:
+          background-color 100ms linear,
+          box-shadow 100ms linear;
+        box-shadow: ${p.theme.dropShadowLight};
+      }
+
+      &:not(:hover):not(:focus-within) {
+          ${TitleHoverItems} {
+            opacity: 0;
+            ${p.theme.visuallyHidden}
+          }
+      }
+    `}
 `;
 
 const Header = styled('div')<{noPadding?: boolean}>`
