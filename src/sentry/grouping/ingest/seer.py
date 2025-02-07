@@ -5,11 +5,15 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options
+from sentry import features, options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.ingest.grouphash_metadata import (
+    check_grouphashes_for_positive_fingerprint_match,
+)
+from sentry.grouping.utils import get_fingerprint_type
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -46,8 +50,16 @@ def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]
     if not (content_is_eligible and seer_enabled_for_project):
         return False
 
+    has_blocked_fingerprint = (
+        _has_custom_fingerprint(event, variants)
+        if features.has(
+            "organizations:grouping-hybrid-fingerprint-seer-usage", project.organization
+        )
+        else _has_customized_fingerprint(event, variants)
+    )
+
     if (
-        _has_customized_fingerprint(event, variants)
+        has_blocked_fingerprint
         or _has_too_many_contributing_frames(event, variants)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -150,6 +162,17 @@ def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) 
     return False
 
 
+# TODO: Make this the only fingerprint check once the hybrid fingerprint + Seer change is fully enabled
+def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
+
+    if fingerprint_variant:
+        record_did_call_seer_metric(event, call_made=False, blocker=fingerprint_variant.type)
+        return True
+
+    return False
+
+
 def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     """
     Check both the global and project-based Seer similarity ratelimits.
@@ -215,6 +238,7 @@ def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant])
 
 def get_seer_similar_issues(
     event: Event,
+    event_grouphash: GroupHash,
     variants: dict[str, BaseVariant],
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
@@ -225,6 +249,8 @@ def get_seer_similar_issues(
     """
     event_hash = event.get_primary_hash()
     exception_type = get_path(event.data, "exception", "values", -1, "type")
+    event_fingerprint = event.data.get("fingerprint")
+    event_has_hybrid_fingerprint = get_fingerprint_type(event_fingerprint) == "hybrid"
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
@@ -243,13 +269,11 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
+    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+
     # Similar issues are returned with the closest match first
-    seer_results = get_similarity_data_from_seer(request_data)
+    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
     seer_results_json = [asdict(result) for result in seer_results]
-    similar_issues_metadata = {
-        "results": seer_results_json,
-        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-    }
     parent_grouphash = (
         GroupHash.objects.filter(
             hash=seer_results[0].parent_hash, project_id=event.project.id
@@ -257,6 +281,58 @@ def get_seer_similar_issues(
         if seer_results
         else None
     )
+
+    if (
+        parent_grouphash
+        and
+        # No events with hybrid fingerprints will make it this far if this feature is off, so no
+        # need to spend time doing the checks below
+        features.has("organizations:grouping-hybrid-fingerprint-seer-usage", event.organization)
+    ):
+        # In order for a grouphash returned by Seer to count as a match to an event with a hybrid
+        # fingerprint,
+        #   a) the Seer grouphash must also have come from a hybrid fingerprint, and
+        #   b) the two fingerprints much match.
+        #
+        # The same is true in reverse: If a Seer grouphash is from a hybrid fingerprint, so must the
+        # new event be, and again the values must match.
+        parent_fingerprint = parent_grouphash.get_associated_fingerprint()
+        parent_has_hybrid_fingerprint = get_fingerprint_type(parent_fingerprint) == "hybrid"
+        parent_has_metadata = bool(
+            parent_grouphash.metadata and parent_grouphash.metadata.hashing_metadata
+        )
+
+        if event_has_hybrid_fingerprint or parent_has_hybrid_fingerprint:
+            # This check will catch both fingerprint type match and fingerprint value match
+            fingerprints_match = check_grouphashes_for_positive_fingerprint_match(
+                event_grouphash, parent_grouphash
+            )
+
+            if not fingerprints_match:
+                parent_grouphash = None
+                seer_results_json = []
+
+            if not parent_has_metadata:
+                result = "no_parent_metadata"
+            elif event_has_hybrid_fingerprint and not parent_has_hybrid_fingerprint:
+                result = "only_event_hybrid"
+            elif parent_has_hybrid_fingerprint and not event_has_hybrid_fingerprint:
+                result = "only_parent_hybrid"
+            elif not fingerprints_match:
+                result = "no_fingerprint_match"
+            else:
+                result = "fingerprint_match"
+
+            metrics.incr(
+                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": event.platform, "result": result},
+            )
+
+    similar_issues_metadata = {
+        "results": seer_results_json,
+        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+    }
 
     logger.info(
         "get_seer_similar_issues.results",
@@ -273,7 +349,10 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, variants: dict[str, BaseVariant], all_grouphashes: list[GroupHash]
+    event: Event,
+    event_grouphash: GroupHash,
+    variants: dict[str, BaseVariant],
+    all_grouphashes: list[GroupHash],
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
@@ -283,7 +362,9 @@ def maybe_check_seer_for_matching_grouphash(
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
-            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event, variants)
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(
+                event, event_grouphash, variants
+            )
         except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
