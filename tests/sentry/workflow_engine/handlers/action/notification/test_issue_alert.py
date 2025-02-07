@@ -96,6 +96,10 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
             target_identifier="channel456",
             data={"tags": "environment,user,my_tag"},
         )
+        # self.project = self.create_project()
+        # self.detector = self.create_detector(project=self.project)
+        # self.group, self.event, self.group_event = self.create_group_event()
+        # self.job = WorkflowJob(event=self.group_event)
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Discord action data"""

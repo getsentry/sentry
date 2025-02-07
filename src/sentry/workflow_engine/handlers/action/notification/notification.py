@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
@@ -13,12 +14,13 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 logger = logging.getLogger(__name__)
 
 
-class LegacyRegistryInvoker:
+class LegacyRegistryInvoker(ABC):
     """
     Abstract base class that defines the interface for notification handlers.
     """
 
     @staticmethod
+    @abstractmethod
     def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         """
         Implement this method to handle the specific notification logic for your handler.

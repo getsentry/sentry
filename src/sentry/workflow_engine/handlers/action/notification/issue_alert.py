@@ -1,5 +1,6 @@
 import logging
 import uuid
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from typing import Any
 
@@ -19,12 +20,13 @@ from sentry.workflow_engine.typings.notification_action import DiscordDataBlob
 logger = logging.getLogger(__name__)
 
 
-class BaseIssueAlertHandler:
+class BaseIssueAlertHandler(ABC):
     """
     Base class for invoking the legacy issue alert registry.
     """
 
     @staticmethod
+    @abstractmethod
     def build_rule_action_blob(
         action: Action,
     ) -> dict[str, Any]:
@@ -47,7 +49,7 @@ class BaseIssueAlertHandler:
         """
 
         rule = Rule(
-            id=detector.id,
+            id=action.id,
             project=detector.project,
             label=detector.name,
             data={"actions": [cls.build_rule_action_blob(action)]},
