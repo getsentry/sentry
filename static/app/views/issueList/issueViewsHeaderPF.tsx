@@ -5,10 +5,8 @@ import type {Node} from '@react-types/shared';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  DraggableTabList,
-  TEMPORARY_TAB_KEY,
-} from 'sentry/components/draggableTabs/draggableTabList';
+import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
+import {DraggableTabListPF} from 'sentry/components/draggableTabs/draggableTabListPF';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -395,7 +393,7 @@ function IssueViewsPFIssueListHeaderTabsContent({
         : views[0]!.key;
 
   return (
-    <DraggableTabList
+    <DraggableTabListPF
       onReorder={(newOrder: Array<Node<DraggableTabListItemProps>>) =>
         dispatch({
           type: 'REORDER_TABS',
@@ -410,7 +408,7 @@ function IssueViewsPFIssueListHeaderTabsContent({
       hideBorder
     >
       {allTabs.map(view => (
-        <DraggableTabList.Item
+        <DraggableTabListPF.Item
           textValue={view.label}
           key={view.key}
           to={normalizeUrl({
@@ -434,9 +432,9 @@ function IssueViewsPFIssueListHeaderTabsContent({
             editingTabKey={editingTabKey}
             setEditingTabKey={setEditingTabKey}
           />
-        </DraggableTabList.Item>
+        </DraggableTabListPF.Item>
       ))}
-    </DraggableTabList>
+    </DraggableTabListPF>
   );
 }
 
