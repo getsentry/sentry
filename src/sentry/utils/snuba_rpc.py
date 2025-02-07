@@ -152,7 +152,7 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
     return response
 
 
-def attribute_frequency_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
+def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
     resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
     response = TraceItemStatsResponse()
     response.ParseFromString(resp.data)

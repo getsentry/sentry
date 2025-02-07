@@ -1444,7 +1444,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-spans-fields-values",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/spans/frequency-stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/stats/$",
         OrganizationSpansFrequencyStatsEndpoint.as_view(),
         name="sentry-api-0-organization-spans-frequency-stats",
     ),
