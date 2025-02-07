@@ -13,6 +13,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
 from sentry.api.fields.actor import ActorField
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
@@ -134,6 +135,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         > or < the value depends on threshold type).
         """
         data = super().validate(data)
+
         triggers = data.get("triggers", [])
         if not triggers:
             raise serializers.ValidationError("Must include at least one trigger")
