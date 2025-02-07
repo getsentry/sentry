@@ -6,13 +6,13 @@ import cloneDeep from 'lodash/cloneDeep';
 import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {TriggerLabel} from 'sentry/components/compactSelect/control';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
@@ -40,16 +40,13 @@ import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
-import {
-  BufferedInput,
-  type ParameterDescription,
-  validateColumnTypes,
-} from 'sentry/views/discover/table/queryField';
+import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -65,7 +62,10 @@ const MAX_FUNCTION_PARAMETERS = 4;
 const NONE = 'none';
 
 const NONE_AGGREGATE = {
-  label: t('None'),
+  textValue: t('field (no aggregate)'),
+  label: tct('[emphasis:field (no aggregate)]', {
+    emphasis: <em />,
+  }),
   value: NONE,
   trailingItems: null,
 };
@@ -362,9 +362,10 @@ function Visualize({error, setError}: VisualizeProps) {
             );
 
             let aggregateOptions: Array<{
-              label: string;
+              label: string | React.ReactNode;
               trailingItems: React.ReactNode | null;
               value: string;
+              textValue?: string;
             }> = aggregates.map(option => ({
               value: option.value.meta.name,
               label: option.value.meta.name,
@@ -475,7 +476,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
-                          value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
+                          value={parseFunction(stringFields?.[index] ?? '')?.name ?? NONE}
                           position="bottom-start"
                           onChange={aggregateSelection => {
                             const isNone = aggregateSelection.value === NONE;
@@ -615,10 +616,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                 organization,
                               });
                             } else {
-                              // Handle selecting None so we can select just a field, e.g. for samples
-                              // If none is selected, set the field to a field value
+                              // Handle selecting NONE so we can select just a field, e.g. for samples
+                              // If NONE is selected, set the field to a field value
 
-                              // When selecting None, the next possible columns may be different from the
+                              // When selecting NONE, the next possible columns may be different from the
                               // possible columns for the previous aggregate. Calculate the valid columns,
                               // see if the current field's function argument is in the valid columns, and if so,
                               // set the field to a field value. Otherwise, set the field to the first valid column.
@@ -909,89 +910,6 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function AggregateParameterField({
-  parameter,
-  fieldValue,
-  onChange,
-  currentValue,
-}: {
-  currentValue: string;
-  fieldValue: QueryFieldValue;
-  onChange: (value: string) => void;
-  parameter: ParameterDescription;
-}) {
-  if (parameter.kind === 'value') {
-    const inputProps = {
-      required: parameter.required,
-      value:
-        currentValue ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
-      onUpdate: (value: any) => {
-        onChange(value);
-      },
-      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-          onChange(e.currentTarget.value);
-        }
-      },
-      placeholder: parameter.placeholder,
-    };
-    switch (parameter.dataType) {
-      case 'number':
-        return (
-          <BufferedInput
-            name="refinement"
-            key={`parameter:number-${currentValue}`}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*(\.[0-9]*)?"
-            aria-label={t('Numeric Input')}
-            {...inputProps}
-          />
-        );
-      case 'integer':
-        return (
-          <BufferedInput
-            name="refinement"
-            key="parameter:integer"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            aria-label={t('Integer Input')}
-            {...inputProps}
-          />
-        );
-      default:
-        return (
-          <BufferedInput
-            name="refinement"
-            key="parameter:text"
-            type="text"
-            aria-label={t('Text Input')}
-            {...inputProps}
-          />
-        );
-    }
-  }
-  if (parameter.kind === 'dropdown') {
-    return (
-      <SelectControl
-        key="dropdown"
-        name="dropdown"
-        menuPlacement="auto"
-        placeholder={t('Select value')}
-        options={parameter.options}
-        value={currentValue}
-        required={parameter.required}
-        onChange={({value}: any) => {
-          onChange(value);
-        }}
-        searchable
-      />
-    );
-  }
-  throw new Error(`Unknown parameter type encountered for ${fieldValue}`);
-}
-
 function renderTag(kind: FieldValueKind, label: string) {
   let text, tagType;
   switch (kind) {
@@ -1041,8 +959,11 @@ const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolea
     p.hasColumnParameter
       ? `
     width: fit-content;
-    max-width: 150px;
     left: 1px;
+
+    ${TriggerLabel} {
+      overflow: visible;
+    }
   `
       : `
     width: 100%;

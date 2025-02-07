@@ -53,12 +53,12 @@ import {
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count_unique(user)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count_unique(user)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count_unique(user)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
