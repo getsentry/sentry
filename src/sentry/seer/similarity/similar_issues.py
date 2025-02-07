@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -34,6 +35,7 @@ seer_grouping_connection_pool = connection_from_url(
 
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
+    metric_tags: Mapping[str, str | int | bool] | None = None,
 ) -> list[SeerSimilarIssueData]:
     """
     Request similar issues data from seer and normalize the results. Returns similar groups
@@ -43,7 +45,7 @@ def get_similarity_data_from_seer(
     project_id = similar_issues_request["project_id"]
     request_hash = similar_issues_request["hash"]
     referrer = similar_issues_request.get("referrer")
-    metric_tags: dict[str, str | int] = {"referrer": referrer} if referrer else {}
+    metric_tags = {**(metric_tags or {}), **({"referrer": referrer} if referrer else {})}
 
     logger_extra = apply_key_filter(
         similar_issues_request,
