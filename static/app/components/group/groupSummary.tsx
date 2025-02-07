@@ -1,4 +1,4 @@
-import {Fragment, isValidElement, useEffect, useState} from 'react';
+import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
