@@ -16,7 +16,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -158,7 +157,6 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
         <Layout.Main>
           <StyledPageFilterBar condensed>
             <DatePageFilter />
-            <EnvironmentPageFilter />
           </StyledPageFilterBar>
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
