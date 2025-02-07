@@ -4,7 +4,7 @@ import logging
 import math
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -771,10 +771,14 @@ class ChainPaginator:
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
+class Callback(Protocol):
+    def __call__(self, limit: int, offset: int) -> list[Any]: ...
+
+
 class CallbackPaginator:
     def __init__(
         self,
-        callback: Callable[[int, int], Sequence[Any]],
+        callback: Callback,
         on_results: Callable[[Sequence[Any]], Any] | None = None,
     ):
         self.offset = 0
