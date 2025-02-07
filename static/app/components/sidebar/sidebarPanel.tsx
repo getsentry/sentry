@@ -64,7 +64,7 @@ const getSidebarPortal = () => {
   return portal as HTMLDivElement;
 };
 
-function SidebarPanel({
+export default function SidebarPanel({
   orientation,
   collapsed,
   hidePanel,
@@ -122,8 +122,6 @@ function SidebarPanel({
     portalEl.current
   );
 }
-
-export default SidebarPanel;
 
 const SidebarPanelHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
