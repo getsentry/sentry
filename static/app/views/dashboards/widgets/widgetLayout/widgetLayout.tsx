@@ -74,7 +74,7 @@ const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'
 
   ${p =>
     p.revealActions === 'hover' &&
-    ` :hover {
+    css` :hover {
         background-color: ${p.theme.surface200};
         transition:
           background-color 100ms linear,
