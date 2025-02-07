@@ -167,5 +167,9 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
         qs_lookup = {
             str(qs.id): qs for qs in QuerySubscription.objects.filter(id__in=query_subscription_ids)
         }
-
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    def related_model(instance):
+        from sentry.deletions.base import ModelRelation
+
+        return [ModelRelation(QuerySubscription, {"id": instance.query_id})]
