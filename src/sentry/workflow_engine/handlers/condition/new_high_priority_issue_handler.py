@@ -10,6 +10,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 @condition_handler_registry.register(Condition.NEW_HIGH_PRIORITY_ISSUE)
 class NewHighPriorityIssueConditionHandler(DataConditionHandler[WorkflowJob]):
     type = DataConditionHandlerType.WORKFLOW_TRIGGER
+    comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:

@@ -310,17 +310,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
-    def test_open_periods_non_metric(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        # open periods are not supported for non-metric issue groups
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == []
-
-    def test_open_periods_new_group(self) -> None:
+    @with_feature("organizations:issue-open-periods")
+    def test_open_periods(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -329,96 +320,23 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group.type = MetricIssuePOC.type_id
         group.save()
 
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == [
-            {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
-        ]
-
-    def test_open_periods_resolved_group(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
-        group.save()
-
-        group.status = GroupStatus.RESOLVED
-        group.save()
-        resolved_time = timezone.now()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=resolved_time,
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
         )
+        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == [
-            {
-                "start": group.first_seen,
-                "end": resolved_time,
-                "duration": resolved_time - group.first_seen,
-                "isOpen": False,
-            }
-        ]
-
-    def test_open_periods_unresolved_group(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        group.type = MetricIssuePOC.type_id
-        group.save()
-
-        group.status = GroupStatus.RESOLVED
-        group.save()
-        resolved_time = timezone.now()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=resolved_time,
-        )
-
-        # test that another open period is created
-        unresolved_time = timezone.now()
-        group.status = GroupStatus.UNRESOLVED
-        group.save()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
-            datetime=unresolved_time,
-        )
-
-        second_resolved_time = timezone.now()
-        group.status = GroupStatus.RESOLVED
-        group.save()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=second_resolved_time,
-        )
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == [
-            {
-                "start": unresolved_time,
-                "end": second_resolved_time,
-                "duration": second_resolved_time - unresolved_time,
-                "isOpen": False,
-            },
-            {
-                "start": group.first_seen,
-                "end": resolved_time,
-                "duration": resolved_time - group.first_seen,
-                "isOpen": False,
-            },
-        ]
+        open_periods = response.data["openPeriods"]
+        assert len(open_periods) == 1
+        open_period = open_periods[0]
+        assert open_period["start"] == group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+        assert open_period["lastChecked"] > time
 
 
 class GroupUpdateTest(APITestCase):

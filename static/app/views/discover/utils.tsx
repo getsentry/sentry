@@ -1,4 +1,3 @@
-import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
@@ -15,7 +14,7 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined, urlEncode} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -53,7 +52,7 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 import {
-  DashboardWidgetSource,
+  type DashboardWidgetSource,
   DisplayType,
   type Widget,
   type WidgetQuery,
@@ -84,7 +83,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
+export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<string>> {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
@@ -107,7 +106,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
       if (outputType !== null) {
         column.type = outputType;
       }
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const aggregate = AGGREGATIONS[col.function[0]];
       column.isSortable = aggregate?.isSortable;
     } else if (col.kind === 'field') {
@@ -238,14 +237,14 @@ function drilldownAggregate(
   func: Extract<Column, {kind: 'function'}>
 ): Extract<Column, {kind: 'field'}> | null {
   const key = func.function[0];
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregation = AGGREGATIONS[key];
   let column = func.function[1];
 
   if (ALIASED_AGGREGATES_COLUMN.hasOwnProperty(key)) {
     // Some aggregates are just shortcuts to other aggregates with
     // predefined arguments so we can directly map them to the result.
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     column = ALIASED_AGGREGATES_COLUMN[key];
   } else if (aggregation?.parameters?.[0]) {
     const parameter = aggregation.parameters[0];
@@ -280,7 +279,7 @@ export function getExpandedResults(
   const fieldSet = new Set();
   // Expand any functions in the resulting column, and dedupe the result.
   // Mark any column as null to remove it.
-  const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
+  const expandedColumns: Array<Column | null> = eventView.fields.map((field: Field) => {
     const exploded = explodeFieldString(field.field, field.alias);
     const column = exploded.kind === 'function' ? drilldownAggregate(exploded) : exploded;
 
@@ -349,7 +348,7 @@ function generateAdditionalConditions(
     // more challenging to get at as their location in the structure does not
     // match their name.
     if (dataRow.hasOwnProperty(dataKey)) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       let value = dataRow[dataKey];
 
       if (Array.isArray(value)) {
@@ -490,7 +489,7 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
-  customMeasurements?: {functions: string[]; key: string}[] | null;
+  customMeasurements?: Array<{functions: string[]; key: string}> | null;
   fieldKeys?: string[];
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
@@ -699,11 +698,13 @@ export function handleAddQueryToDashboard({
   router,
   yAxis,
   widgetType,
+  source,
 }: {
   eventView: EventView;
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
   query?: NewQuery;
   yAxis?: string | string[];
@@ -722,6 +723,7 @@ export function handleAddQueryToDashboard({
     yAxis,
     location,
     widgetType,
+    source,
   });
 
   openAddToDashboardModal({
@@ -734,7 +736,7 @@ export function handleAddQueryToDashboard({
         end: eventView.end!,
         period: eventView.statsPeriod!,
         // Previously undetected because the type used to rely on an implicit any value.
-        // @ts-ignore TS(2322): Type 'string | boolean | undefined' is not assigna... Remove this comment to see the full error message
+        // @ts-expect-error TS(2322): Type 'string | boolean | undefined' is not assigna... Remove this comment to see the full error message
         utc: eventView.utc,
       },
     },
@@ -762,7 +764,7 @@ export function handleAddQueryToDashboard({
     },
     router,
     // Previously undetected because the type relied on implicit any.
-    // @ts-ignore TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
+    // @ts-expect-error TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
     widgetAsQueryParams,
     location,
   });
@@ -791,7 +793,7 @@ export function getTargetForTransactionSummaryLink(
   }
 
   const target = transactionSummaryRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: String(dataRow.transaction),
     projectID,
     query: nextView?.getPageFiltersQuery() || {},
@@ -813,9 +815,11 @@ export function constructAddQueryToDashboardLink({
   yAxis,
   location,
   widgetType,
+  source,
 }: {
   eventView: EventView;
   organization: Organization;
+  source: DashboardWidgetSource;
   location?: Location;
   query?: NewQuery;
   widgetType?: WidgetType;
@@ -870,6 +874,7 @@ export function constructAddQueryToDashboardLink({
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
         ...convertWidgetToBuilderStateParams(widget),
+        source,
       },
     };
   }
@@ -878,7 +883,6 @@ export function constructAddQueryToDashboardLink({
     pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
     query: {
       ...location?.query,
-      source: DashboardWidgetSource.DISCOVERV2,
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
@@ -889,6 +893,7 @@ export function constructAddQueryToDashboardLink({
       dataset: widgetType,
       field: eventView.getFields(),
       limit,
+      source,
     },
   };
 }

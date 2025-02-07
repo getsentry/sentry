@@ -38,7 +38,7 @@ export function CheckInTooltip<Status extends string>({
   const {startTs, endTs, stats} = jobTick;
   const {dateLabelFormat} = timeWindowConfig;
   const representsSingleJob =
-    (Object.values(stats) as number[]).reduce((sum, count) => sum + count, 0) === 1;
+    Object.values<number>(stats).reduce((sum, count) => sum + count, 0) === 1;
 
   const tooltipTitle = (
     <Fragment>

@@ -60,7 +60,7 @@ export function ToolbarVisualize() {
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const unknownOptions = parsedVisualizeGroups
       .flatMap(group =>
         group.flatMap(entry => {
@@ -101,7 +101,7 @@ export function ToolbarVisualize() {
     return options;
   }, [numberTags, parsedVisualizeGroups]);
 
-  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
@@ -202,18 +202,18 @@ export function ToolbarVisualize() {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
-                  <ColumnCompactSelect
-                    searchable
-                    options={fieldOptions}
-                    value={parsedVisualize.func.arguments[0]}
-                    onChange={newField => setChartField(group, index, newField)}
-                  />
                   <AggregateCompactSelect
                     options={aggregateOptions}
                     value={parsedVisualize.func.name}
                     onChange={newAggregate =>
                       setChartAggregate(group, index, newAggregate)
                     }
+                  />
+                  <ColumnCompactSelect
+                    searchable
+                    options={fieldOptions}
+                    value={parsedVisualize.func.arguments[0]}
+                    onChange={newField => setChartField(group, index, newField)}
                   />
                   <Button
                     borderless

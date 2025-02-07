@@ -175,6 +175,7 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
+    GroupOpenPeriodsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -330,6 +331,10 @@ from sentry.tempest.endpoints.tempest_credentials_details import TempestCredenti
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
 )
+from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
+from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
+    ProjectUptimeAlertCheckIndexEndpoint,
+)
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -393,6 +398,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.email_capture import EmailCaptureEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -596,7 +602,6 @@ from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
-from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
@@ -695,6 +700,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/events/$",
             GroupEventsEndpoint.as_view(),
             name=f"{name_prefix}-group-events",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/open-periods/$",
+            GroupOpenPeriodsEndpoint.as_view(),
+            name=f"{name_prefix}-group-open-periods",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2172,6 +2182,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
+        OrganizationUptimeStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-stats",
+    ),
+    *workflow_urls.organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2224,11 +2240,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/environments/(?P<environment>[^/]+)/$",
         ProjectEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-environment-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/platforms/$",
-        ProjectPlatformsEndpoint.as_view(),
-        name="sentry-api-0-project-platform-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
@@ -2748,14 +2759,19 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     # Uptime
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
+        ProjectUptimeAlertIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-index",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/$",
         ProjectUptimeAlertDetailsEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
-        ProjectUptimeAlertIndexEndpoint.as_view(),
-        name="sentry-api-0-project-uptime-alert-index",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/checks/$",
+        ProjectUptimeAlertCheckIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-checks",
     ),
     # Tempest
     re_path(
@@ -2768,7 +2784,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         TempestCredentialsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-tempest-credentials-details",
     ),
-    *workflow_urls.urlpatterns,
+    *workflow_urls.project_urlpatterns,
 ]
 
 TEAM_URLS = [
@@ -3023,6 +3039,11 @@ INTERNAL_URLS = [
         r"^feature-flags/ea-feature-flags$",
         InternalEAFeaturesEndpoint.as_view(),
         name="sentry-api-0-internal-ea-features",
+    ),
+    re_path(
+        r"^demo/email-capture/$",
+        EmailCaptureEndpoint.as_view(),
+        name="sentry-demo-mode-email-capture",
     ),
 ]
 

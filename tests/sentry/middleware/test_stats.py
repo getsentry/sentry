@@ -5,7 +5,7 @@ from django.test import RequestFactory, override_settings
 
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
-from sentry.middleware.stats import RequestTimingMiddleware, add_request_metric_tags
+from sentry.middleware.stats import RequestTimingMiddleware
 from sentry.testutils.cases import TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -77,6 +77,7 @@ class RequestTimingMiddlewareTest(TestCase):
         request._view_path = "/"
         response = Mock(status_code=200)
         request.COOKIES = {"foo": "bar"}
+        request.auth = None
 
         self.middleware.process_response(request, response)
 
@@ -84,52 +85,5 @@ class RequestTimingMiddlewareTest(TestCase):
             "view.response",
             instance=request._view_path,
             tags={"method": "GET", "status_code": 200, "ui_request": True, "rate_limit_type": None},
-            skip_internal=False,
-        )
-
-    @patch("sentry.utils.metrics.incr")
-    def test_records_endpoint_specific_metrics(self, incr):
-        request = self.factory.get("/")
-        request._view_path = "/"
-        request._metric_tags = {"a": "b"}
-
-        response = Mock(status_code=200)
-
-        self.middleware.process_response(request, response)
-
-        incr.assert_called_with(
-            "view.response",
-            instance=request._view_path,
-            tags={
-                "method": "GET",
-                "status_code": 200,
-                "ui_request": False,
-                "a": "b",
-                "rate_limit_type": None,
-            },
-            skip_internal=False,
-        )
-
-    @patch("sentry.utils.metrics.incr")
-    def test_add_request_metric_tags(self, incr):
-        request = self.factory.get("/")
-        request._view_path = "/"
-
-        add_request_metric_tags(request, foo="bar")
-
-        response = Mock(status_code=200)
-
-        self.middleware.process_response(request, response)
-
-        incr.assert_called_with(
-            "view.response",
-            instance=request._view_path,
-            tags={
-                "method": "GET",
-                "status_code": 200,
-                "ui_request": False,
-                "foo": "bar",
-                "rate_limit_type": None,
-            },
             skip_internal=False,
         )

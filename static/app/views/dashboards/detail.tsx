@@ -12,7 +12,12 @@ import {
   updateDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -309,7 +314,7 @@ class DashboardDetail extends Component<Props, State> {
           // we check for both cases at runtime as I am not sure which is the correct type.
           return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
         }) ??
-          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
@@ -559,7 +564,7 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       Object.keys(activeFilters).every(
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         key => !newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
       )
     ) {
@@ -568,7 +573,7 @@ class DashboardDetail extends Component<Props, State> {
 
     const filterParams: DashboardFilters = {};
     Object.keys(activeFilters).forEach(key => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
@@ -807,7 +812,7 @@ class DashboardDetail extends Component<Props, State> {
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
-    const mergedWidget = {...baseWidget, ...widget};
+    const mergedWidget = assignTempId({...baseWidget, ...widget});
 
     const newWidgets = defined(index)
       ? [
@@ -820,7 +825,9 @@ class DashboardDetail extends Component<Props, State> {
     try {
       if (!this.isEditingDashboard) {
         // If we're not in edit mode, send a request to update the dashboard
+        addLoadingMessage(t('Saving widget'));
         await this.handleUpdateWidgetList(newWidgets);
+        clearIndicators();
       } else {
         // If we're in edit mode, update the edit state
         this.onUpdateWidget(newWidgets);

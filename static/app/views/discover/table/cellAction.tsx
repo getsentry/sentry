@@ -129,7 +129,7 @@ export function excludeFromFilter(
   // existing conditions have already been set an verified by the user
   oldFilter.addFilterValues(
     negation,
-    currentNegations.filter(filterValue => !(value as string[]).includes(filterValue)),
+    currentNegations.filter(filterValue => !value.includes(filterValue)),
     false
   );
 
@@ -228,7 +228,7 @@ function makeCellActions({
     addMenuItem(
       Actions.EDIT_THRESHOLD,
       tct('Edit threshold ([threshold]ms)', {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         threshold: dataRow.project_threshold_config[1],
       }),
       t('Edit threshold')

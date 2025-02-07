@@ -195,12 +195,14 @@ class MonitorType:
     # monitors. But for now we just have CRON_JOB style monitors.
     UNKNOWN = 0
     CRON_JOB = 3
+    UPTIME = 4
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNKNOWN, "unknown"),
             (cls.CRON_JOB, "cron_job"),
+            (cls.UPTIME, "uptime"),
         )
 
     @classmethod
@@ -473,7 +475,7 @@ class MonitorCheckIn(Model):
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     """
     XXX(epurkhiser): Currently unused

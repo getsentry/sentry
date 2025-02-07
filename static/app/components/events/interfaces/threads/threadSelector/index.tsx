@@ -24,7 +24,7 @@ type Props = {
   /**
    * Expects threads to be sorted by crashed first
    */
-  threads: Readonly<Thread[]>;
+  threads: readonly Thread[];
 };
 
 const enum SortAttribute {
@@ -62,7 +62,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
   }, [threads, event, exception]);
 
   const orderedThreads = useMemo(() => {
-    const sortedThreads: Readonly<Thread[]> = threads.toSorted((threadA, threadB) => {
+    const sortedThreads: readonly Thread[] = threads.toSorted((threadA, threadB) => {
       const threadInfoA = threadInfoMap[threadA.id] ?? {};
       const threadInfoB = threadInfoMap[threadB.id] ?? {};
 

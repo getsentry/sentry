@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
@@ -714,6 +715,7 @@ class Fixtures:
         project: Project | None = None,
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
+        status: int = ObjectStatus.ACTIVE,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
@@ -730,6 +732,7 @@ class Fixtures:
             project,
             env,
             uptime_subscription,
+            status,
             mode,
             name,
             Actor.from_object(owner) if owner else None,

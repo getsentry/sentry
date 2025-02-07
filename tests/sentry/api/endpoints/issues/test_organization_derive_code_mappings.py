@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from django.db import router
@@ -14,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationDeriveCodeMappingsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.organization = self.create_organization("federal-bureau-of-control")
@@ -36,7 +37,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         )
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_single_match(self, mock_get_trees_for_org):
+    def test_get_single_match(self, mock_get_trees_for_org: Any) -> None:
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
         }
@@ -59,7 +60,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             assert response.data == expected_matches
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_start_with_backslash(self, mock_get_trees_for_org):
+    def test_get_start_with_backslash(self, mock_get_trees_for_org: Any) -> None:
         file = "stack/root/file.py"
         config_data = {"stacktraceFilename": f"/{file}"}
         expected_matches = [
@@ -81,7 +82,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             assert response.data == expected_matches
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
-    def test_get_multiple_matches(self, mock_get_trees_for_org):
+    def test_get_multiple_matches(self, mock_get_trees_for_org: Any) -> None:
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
         }
@@ -110,7 +111,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data == expected_matches
 
-    def test_get_no_installation(self):
+    def test_get_no_installation(self) -> None:
         config_data = {
             "projectId": self.project.id,
             "stacktraceFilename": "stack/root/file.py",
@@ -123,7 +124,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
-    def test_non_project_member_permissions(self):
+    def test_non_project_member_permissions(self) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -143,7 +144,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_post_simple(self):
+    def test_post_simple(self) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -176,7 +177,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
         }
 
-    def test_post_no_installation(self):
+    def test_post_no_installation(self) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -192,7 +193,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
-    def test_post_existing_code_mapping(self):
+    def test_post_existing_code_mapping(self) -> None:
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
             stack_root="/stack/root",

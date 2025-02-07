@@ -39,6 +39,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
+import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 import RouteError from 'sentry/views/routeError';
 
@@ -57,7 +58,7 @@ import {
 } from './settings';
 import TemplateCard from './templateCard';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Dashboards'), value: 'mydashboards'},
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
   {label: t('Dashboard Name (Z-A)'), value: '-title'},
@@ -72,8 +73,6 @@ export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
 const TABLE = 'table';
-
-export type DashboardsLayout = 'grid' | 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
@@ -264,7 +263,13 @@ function ManageDashboards() {
         />
         <Feature features={'organizations:dashboards-table-view'}>
           <SegmentedControl<DashboardsLayout>
-            onChange={setDashboardsLayout}
+            onChange={newValue => {
+              setDashboardsLayout(newValue);
+              trackAnalytics('dashboards_manage.change_view_type', {
+                organization,
+                view_type: newValue,
+              });
+            }}
             size="md"
             value={dashboardsLayout}
             aria-label={t('Layout Control')}

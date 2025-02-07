@@ -23,8 +23,8 @@ interface Release {
 
 interface ReleaseQuery {
   end: DateString;
-  environment: Readonly<string[]>;
-  project: Readonly<number[]>;
+  environment: readonly string[];
+  project: readonly number[];
   start: DateString;
   cursor?: string;
   query?: string;
@@ -39,7 +39,7 @@ function getQuery(conditions: any) {
       value = getUtcDateString(value);
     }
     if (value) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       query[key] = value;
     }
   });

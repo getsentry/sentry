@@ -115,7 +115,7 @@ function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
 
 export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
   const filterOptions = useMemo(() => {
-    const options: SelectSection<string>[] = [];
+    const options: Array<SelectSection<string>> = [];
     const typeOptions = getBreadcrumbTypeOptions(crumbs);
     if (typeOptions.length) {
       options.push({
@@ -137,7 +137,7 @@ export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
   }, [crumbs]);
 
   const applyFilters = useCallback(
-    (crumbsToFilter: EnhancedCrumb[], options: SelectOption<string>['value'][]) => {
+    (crumbsToFilter: EnhancedCrumb[], options: Array<SelectOption<string>['value']>) => {
       const typeFilterSet = new Set<string>();
       const levelFilterSet = new Set<string>();
       options.forEach(optionValue => {
@@ -244,9 +244,10 @@ export function getBreadcrumbTitle(crumb: RawCrumb) {
     case null:
     case undefined:
       return BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
-    default:
+    default: {
       const titleCategory = crumb?.category.split('.').join(' ');
       return toTitleCase(titleCategory, {allowInnerUpperCase: true});
+    }
   }
 }
 

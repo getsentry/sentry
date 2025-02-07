@@ -263,7 +263,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
    */
   disableDate?: string;
   disableReason?: 'noisy';
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   lastTriggered?: string;
   /**
    * Set to true to opt out of the rule being automatically disabled

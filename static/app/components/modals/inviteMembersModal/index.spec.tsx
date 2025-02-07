@@ -95,10 +95,10 @@ describe('InviteMembersModal', function () {
     const emailInputs = screen.getByRole('textbox', {name: 'Email Addresses'});
     const roleInputs = screen.getByRole('textbox', {name: 'Role'});
 
-    await userEvent.type(emailInputs!, 'test1@test.com');
+    await userEvent.type(emailInputs, 'test1@test.com');
     await userEvent.tab();
 
-    await selectEvent.select(roleInputs!, 'Admin');
+    await selectEvent.select(roleInputs, 'Admin');
   };
 
   it('renders', async function () {

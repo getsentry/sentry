@@ -5,6 +5,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.userip import UserIPSerializer
@@ -17,6 +18,8 @@ class UserIPsEndpoint(UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    permission_classes = (SentryIsAuthenticated,)
 
     @sudo_required
     def get(self, request: Request, user: User) -> Response:

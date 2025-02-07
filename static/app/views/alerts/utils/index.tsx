@@ -115,10 +115,10 @@ export function getQueryDatasource(
   }
 
   match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (match && Datasource[match[2]!.toUpperCase()]) {
     return {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       source: Datasource[match[2]!.toUpperCase()],
       query: query.replace(match[0], '').trim(),
     };
@@ -143,7 +143,7 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
 
   if (isCustomMetricAlert(aggregate)) {
     const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
+    const {unit} = parseMRI(mri);
     return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
@@ -167,7 +167,7 @@ export function alertTooltipValueFormatter(
 
   if (isCustomMetricAlert(aggregate)) {
     const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
+    const {unit} = parseMRI(mri);
     return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
@@ -217,4 +217,21 @@ export function getTeamParams(team?: string | string[]): string[] {
   }
 
   return toArray(team);
+}
+
+/**
+ * Normalize an alert type string
+ */
+export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
+  if (alertType === undefined) {
+    return [];
+  }
+
+  if (alertType === '') {
+    return [];
+  }
+
+  const validTypes = new Set(Object.values(CombinedAlertType));
+
+  return [...validTypes.intersection(new Set(toArray(alertType)))];
 }

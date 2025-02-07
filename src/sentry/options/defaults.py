@@ -513,6 +513,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
+#
+# NOTE: Any value below 1.0 will break the product. Do not override in production.
+register(
+    "relay.ourlogs-breadcrumb-extraction.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -527,6 +536,14 @@ register(
 register(
     "relay.span-normalization.allowed_hosts",
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Drop attachments in transaction envelopes in Relay.
+register(
+    "relay.drop-transaction-attachments",
+    type=Bool,
+    default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -552,6 +569,11 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.get-trees-refactored-code",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Github Enterprise Integration
 register(
@@ -758,10 +780,6 @@ register(
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-register(
-    "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 
 # Enable calling the severity modeling API on group creation
 register(
@@ -1184,6 +1202,11 @@ register("symbolicate.symx-os-description-list", default=[], flags=FLAG_AUTOMATO
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# The poll limit for the tempest service.
+#
+# 348 every 5 min ~ 100k per day
+register("tempest.poll-limit", default=348, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -2807,6 +2830,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_processing.emit_logs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2823,12 +2852,6 @@ register(
     "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# Controls the rate of using the sentry api shared secret for communicating to sentry.
-register(
-    "seer.api.use-nonce-signature",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription

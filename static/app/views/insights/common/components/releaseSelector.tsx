@@ -51,7 +51,7 @@ export function ReleaseSelector({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const options: (SelectOption<string> & {count?: number})[] = [];
+  const options: Array<SelectOption<string> & {count?: number}> = [];
   if (defined(selectorValue)) {
     const index = data?.findIndex(({version}) => version === selectorValue);
     const selectedRelease = defined(index) ? data?.[index] : undefined;

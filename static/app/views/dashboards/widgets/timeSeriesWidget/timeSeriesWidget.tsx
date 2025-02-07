@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {defined} from 'sentry/utils';
 import {
   WidgetFrame,
@@ -14,11 +12,14 @@ import {
 
 import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {StateProps} from '../common/types';
+import {LoadingPanel} from '../widgetLayout/loadingPanel';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    Partial<TimeSeriesWidgetVisualizationProps> {}
+    Partial<TimeSeriesWidgetVisualizationProps> {
+  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
+}
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   const {timeseries} = props;
@@ -26,10 +27,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   if (props.isLoading) {
     return (
       <WidgetFrame title={props.title} description={props.description}>
-        <LoadingPlaceholder>
-          <LoadingMask visible />
-          <LoadingIndicator mini />
-        </LoadingPlaceholder>
+        <LoadingPanel />
       </WidgetFrame>
     );
   }
@@ -55,14 +53,14 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       error={error}
       onRetry={props.onRetry}
     >
-      {defined(timeseries) && defined(props.SeriesConstructor) && (
+      {defined(timeseries) && (
         <TimeSeriesWrapper>
           <TimeSeriesWidgetVisualization
+            visualizationType={props.visualizationType}
             timeseries={timeseries}
             releases={props.releases}
             aliases={props.aliases}
             dataCompletenessDelay={props.dataCompletenessDelay}
-            SeriesConstructor={props.SeriesConstructor}
             timeseriesSelection={props.timeseriesSelection}
             onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
           />
@@ -75,17 +73,4 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 const TimeSeriesWrapper = styled('div')`
   flex-grow: 1;
   padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
-`;
-
-const LoadingPlaceholder = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
 `;

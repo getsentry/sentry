@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 
 from sentry import features
@@ -162,9 +162,6 @@ class SentryPermission(ScopedPermission):
 
         # TODO(iamrajjoshi): Remove this check once we have fully migrated to the new data secrecy logic
         organization = org_context.organization
-
-        if demo_mode.is_readonly_user(request.user):
-            org_context.member.scopes = demo_mode.get_readonly_scopes()
 
         if (
             request.user
@@ -330,3 +327,17 @@ class SuperuserOrStaffFeatureFlaggedPermission(ReadOnlyPermission):
             return StaffPermission().has_permission(request, view)
 
         return SuperuserPermission().has_permission(request, view)
+
+
+class SentryIsAuthenticated(IsAuthenticated, ReadOnlyPermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        if demo_mode.is_readonly_user(request.user):
+            return False
+
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+        if demo_mode.is_readonly_user(request.user):
+            return False
+
+        return super().has_object_permission(request, view, obj)

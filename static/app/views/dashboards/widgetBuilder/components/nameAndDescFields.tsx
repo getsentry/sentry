@@ -6,8 +6,13 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 interface WidgetBuilderNameAndDescriptionProps {
@@ -19,8 +24,11 @@ function WidgetBuilderNameAndDescription({
   error,
   setError,
 }: WidgetBuilderNameAndDescriptionProps) {
+  const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
+  const isEditing = useIsEditingWidget();
+  const source = useDashboardWidgetSource();
 
   return (
     <Fragment>
@@ -36,6 +44,17 @@ function WidgetBuilderNameAndDescription({
           // clear error once user starts typing
           setError?.({...error, title: undefined});
           dispatch({type: BuilderStateAction.SET_TITLE, payload: newTitle});
+        }}
+        onBlur={() => {
+          trackAnalytics('dashboards_views.widget_builder.change', {
+            from: source,
+            widget_type: state.dataset ?? '',
+            builder_version: WidgetBuilderVersion.SLIDEOUT,
+            field: 'title',
+            value: '',
+            new_widget: !isEditing,
+            organization,
+          });
         }}
         required
         error={error?.title}
@@ -62,6 +81,17 @@ function WidgetBuilderNameAndDescription({
           value={state.description}
           onChange={e => {
             dispatch({type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value});
+          }}
+          onBlur={() => {
+            trackAnalytics('dashboards_views.widget_builder.change', {
+              from: source,
+              widget_type: state.dataset ?? '',
+              builder_version: WidgetBuilderVersion.SLIDEOUT,
+              field: 'description',
+              value: '',
+              new_widget: !isEditing,
+              organization,
+            });
           }}
         />
       )}

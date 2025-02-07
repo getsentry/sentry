@@ -68,6 +68,8 @@ EXPOSABLE_FEATURES = [
     "organizations:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
     "organizations:ourlogs-ingestion",
+    "organizations:view-hierarchy-scrubbing",
+    "projects:ourlogs-breadcrumb-extraction",
 ]
 
 EXTRACT_METRICS_VERSION = 1

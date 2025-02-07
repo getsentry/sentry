@@ -144,10 +144,15 @@ export const getAlertWizardCategories = (org: Organization) => {
       ],
     });
 
-    result.push({
-      categoryHeading: t('Uptime Monitoring'),
-      options: ['uptime_monitor'],
-    });
+    if (
+      org.features.includes('uptime') &&
+      !org.features.includes('uptime-create-disabled')
+    ) {
+      result.push({
+        categoryHeading: t('Uptime Monitoring'),
+        options: ['uptime_monitor'],
+      });
+    }
 
     if (org.features.includes('insights-crons')) {
       result.push({
@@ -314,7 +319,7 @@ export function datasetSupportedTags(
   dataset: Dataset,
   org: Organization
 ): TagCollection | undefined {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return mapValues(
     {
       [Dataset.ERRORS]: ERROR_SUPPORTED_TAGS,
@@ -356,7 +361,7 @@ export function datasetOmittedTags(
       | ReplayClickFieldKey
     >
   | undefined {
-  // @ts-ignore TS(2339): Property 'events_analytics_platform' does not exis... Remove this comment to see the full error message
+  // @ts-expect-error TS(2339): Property 'events_analytics_platform' does not exis... Remove this comment to see the full error message
   return {
     [Dataset.ERRORS]: [
       FieldKey.EVENT_TYPE,
@@ -405,9 +410,9 @@ export function getSupportedAndOmittedTags(
     omitTags?: string[];
     supportedTags?: TagCollection;
   }>((acc, key) => {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (result[key] !== undefined) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = result[key];
     }
 

@@ -15,7 +15,7 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   MOBILE_UI = 'mobile-ui',
-  MOBILE_SCREENS = 'mobile-screens',
+  MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
   CRONS = 'crons',
   UPTIME = 'uptime',
@@ -415,3 +415,9 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type OurlogsFields = {
+  'sentry.body': string;
+  'sentry.severity_text': string;
+  'sentry.timestamp': string;
+};

@@ -28,7 +28,6 @@ class Condition(models.TextChoices):
     EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
-    EVERY_EVENT = "every_event"
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
@@ -65,6 +64,18 @@ CONDITION_OPS = {
     Condition.LESS: operator.lt,
     Condition.NOT_EQUAL: operator.ne,
 }
+
+SLOW_CONDITIONS = [
+    Condition.EVENT_FREQUENCY_COUNT,
+    Condition.EVENT_FREQUENCY_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    Condition.PERCENT_SESSIONS_COUNT,
+    Condition.PERCENT_SESSIONS_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
+]
+
 
 T = TypeVar("T")
 
@@ -138,18 +149,6 @@ class DataCondition(DefaultFieldsModel):
 
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
-
-
-SLOW_CONDITIONS = [
-    Condition.EVENT_FREQUENCY_COUNT,
-    Condition.EVENT_FREQUENCY_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
-    Condition.PERCENT_SESSIONS_COUNT,
-    Condition.PERCENT_SESSIONS_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
-]
 
 
 def is_slow_condition(cond: DataCondition) -> bool:

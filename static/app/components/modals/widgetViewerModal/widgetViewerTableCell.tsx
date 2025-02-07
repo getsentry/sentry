@@ -205,12 +205,16 @@ export const renderGridBodyCell = ({
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
       case WidgetType.ERRORS:
-      default:
+      default: {
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];
-        cell = getCustomEventsFieldRenderer(columnKey, tableData.meta)(dataRow, {
+        cell = getCustomEventsFieldRenderer(
+          columnKey,
+          tableData.meta,
+          widget
+        )(dataRow, {
           organization,
           location,
           eventView,
@@ -231,6 +235,7 @@ export const renderGridBodyCell = ({
           );
         }
         break;
+      }
     }
 
     if (columnKey === 'transaction' && dataRow.transaction) {
