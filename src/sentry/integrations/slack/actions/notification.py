@@ -53,7 +53,6 @@ _default_logger: Logger = getLogger(__name__)
 
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
-    form_cls = SlackNotifyServiceForm
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -335,8 +334,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(
+    def get_form_instance(self) -> SlackNotifyServiceForm:
+        return SlackNotifyServiceForm(
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 

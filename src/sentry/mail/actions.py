@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 class NotifyEmailAction(EventAction):
     id = "sentry.mail.actions.NotifyEmailAction"
-    form_cls = NotifyEmailForm
     label = "Send a notification to {targetType} and if none can be found then send a notification to {fallthroughType}"
     prompt = "Send a notification"
     metrics_slug = "EmailAction"
@@ -73,5 +72,5 @@ class NotifyEmailAction(EventAction):
             )
         )
 
-    def get_form_instance(self):
-        return self.form_cls(self.project, self.data)
+    def get_form_instance(self) -> NotifyEmailForm:
+        return NotifyEmailForm(self.project, self.data)

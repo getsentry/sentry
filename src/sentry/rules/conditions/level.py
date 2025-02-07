@@ -26,7 +26,6 @@ class LevelEventForm(forms.Form):
 
 class LevelCondition(EventCondition):
     id = "sentry.rules.conditions.level.LevelCondition"
-    form_cls = LevelEventForm
     label = "The event's level is {match} {level}"
     form_fields = {
         "level": {"type": "choice", "choices": list(LEVEL_CHOICES.items())},
@@ -81,3 +80,6 @@ class LevelCondition(EventCondition):
             return self._passes(level)
         except (TypeError, KeyError):
             return False
+
+    def get_form_instance(self) -> LevelEventForm:
+        return LevelEventForm(self.data)

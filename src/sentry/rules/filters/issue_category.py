@@ -19,7 +19,6 @@ class IssueCategoryForm(forms.Form):
 
 class IssueCategoryFilter(EventFilter):
     id = "sentry.rules.filters.issue_category.IssueCategoryFilter"
-    form_cls = IssueCategoryForm
     form_fields = {"value": {"type": "choice", "choices": list(CATEGORY_CHOICES.items())}}
     rule_type = "filter/event"
     label = "The issue's category is equal to {value}"
@@ -54,3 +53,6 @@ class IssueCategoryFilter(EventFilter):
         title = CATEGORY_CHOICES.get(value)
         group_category_name = title.title() if title else ""
         return self.label.format(value=group_category_name)
+
+    def get_form_instance(self) -> IssueCategoryForm:
+        return IssueCategoryForm(self.data)

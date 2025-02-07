@@ -19,7 +19,6 @@ from sentry.utils import metrics
 
 class MsTeamsNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
-    form_cls = MsTeamsNotifyServiceForm
     label = "Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"
     provider = "msteams"
@@ -78,8 +77,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             team=self.get_integration_name(), channel=self.get_option("channel")
         )
 
-    def get_form_instance(self):
-        return self.form_cls(
+    def get_form_instance(self) -> MsTeamsNotifyServiceForm:
+        return MsTeamsNotifyServiceForm(
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 
