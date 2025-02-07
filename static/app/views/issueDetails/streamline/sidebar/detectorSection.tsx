@@ -69,10 +69,7 @@ export function getDetectorDetails({
       ),
     };
   }
-  return {
-    detectorPath: undefined,
-    description: undefined,
-  };
+  return {};
 }
 
 export function DetectorSection({group, project}: {group: Group; project: Project}) {
