@@ -9,7 +9,6 @@ from sentry.testutils.helpers.datetime import before_now
 class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = True
     view = "sentry-api-0-organization-spans-frequency-stats"
-    EMPTY_RESPONSE = {"attributeDistributions": []}
 
     def setUp(self):
         super().setUp()
@@ -56,7 +55,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
     def test_no_project(self):
         response = self.do_request()
         assert response.status_code == 200, response.data
-        assert response.data == self.EMPTY_RESPONSE
+        assert response.data == {"attributeDistributions": []}
 
     def test_no_feature(self):
         response = self.do_request(features=[])
