@@ -42,13 +42,27 @@
   {{ block.super }}
   {% script %}
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    function insertTimezone() {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const timezoneInput = document.querySelector('input[name=timezone]');
+      if (timezoneInput) {
+        timezoneInput.value = timezone
+      }
+
+    }
+
+    function signOutListener() {
       const el = document.querySelector('#sign-out');
       if (el) {
         el.addEventListener('click', function() {
           document.modalLogoutForm.submit();
         });
       }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      insertTimezone();
+      signOutListener();
     });
   </script>
   {% endscript %}

@@ -176,18 +176,3 @@
   {% endif %}
 </div>
 {% endblock %}
-
-{% block scripts_bottom %}
-  {{ block.super }}
-  {% script %}
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const timezoneInput = document.querySelector('input[name=timezone]');
-      if (timezoneInput) {
-        timezoneInput.value = timezone
-      }
-    });
-  </script>
-  {% endscript %}
-{% endblock %}
