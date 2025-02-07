@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';

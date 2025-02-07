@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import type {EventErrorData} from 'sentry/components/events/errorItem';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';

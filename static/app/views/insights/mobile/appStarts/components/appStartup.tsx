@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

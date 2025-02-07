@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

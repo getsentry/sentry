@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
