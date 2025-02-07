@@ -21,8 +21,9 @@ from sentry.workflow_engine.models.data_condition import (
 from sentry.workflow_engine.processors.delayed_workflow import (
     UniqueConditionQuery,
     fetch_active_data_condition_groups,
+    fetch_detectors,
     fetch_group_to_event_data,
-    fetch_workflows_detectors_envs,
+    fetch_workflows_envs,
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
@@ -231,21 +232,17 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
 
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_to_groups, dcg_to_workflow, dcg_to_detector, all_event_data = (
-            get_dcg_group_workflow_detector_data(buffer_data)
+        dcg_to_groups, dcg_to_workflow, dcg_to_detector = get_dcg_group_workflow_detector_data(
+            buffer_data
         )
 
         assert dcg_to_groups == self.dcg_to_groups
         assert dcg_to_workflow == self.dcg_to_workflow
         assert dcg_to_detector == self.dcg_to_detector
-        assert all_event_data.count({"event_id": self.event1.event_id, "occurrence_id": None}) == 3
-        assert all_event_data.count({"event_id": self.event2.event_id, "occurrence_id": None}) == 2
 
-    def test_fetch_workflows_detectors_envs(self):
-        workflow_ids_to_workflows, detector_ids_to_detectors, workflows_to_envs = (
-            fetch_workflows_detectors_envs(
-                list(self.dcg_to_workflow.values()), list(self.dcg_to_detector.values())
-            )
+    def test_fetch_workflows_envs(self):
+        workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_envs(
+            list(self.dcg_to_workflow.values())
         )
         assert workflows_to_envs == {
             self.workflow1.id: self.environment.id,
@@ -255,6 +252,9 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             self.workflow1.id: self.workflow1,
             self.workflow2.id: self.workflow2,
         }
+
+    def test_fetch_detectors(self):
+        detector_ids_to_detectors = fetch_detectors(list(self.dcg_to_detector.values()))
         assert detector_ids_to_detectors == {
             self.detector.id: self.detector,
         }
