@@ -6,7 +6,7 @@ Join your team by visiting the following url:
 
     {{ url }}
 
-Do <strong>not</strong> share this invite email or link. This invite is unique to you.
+Do not share this invite email or link. This invite is unique to you.
 Sharing may result in unauthorized access.
 
 Check out the Sentry website (https://sentry.io) if you'd like to learn more before diving in.
