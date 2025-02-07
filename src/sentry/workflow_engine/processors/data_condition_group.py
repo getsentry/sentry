@@ -21,7 +21,7 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
-def process_condition_group_results(
+def evaluate_condition_group_results(
     results: list[tuple[bool, DataConditionResult]],
     logic_type: str,
 ) -> ProcessedDataConditionResult:
@@ -78,7 +78,7 @@ def evaluate_data_conditions(
 
         results.append((is_condition_triggered, evaluation_result))
 
-    return process_condition_group_results(
+    return evaluate_condition_group_results(
         results,
         logic_type,
     )
@@ -114,8 +114,8 @@ def process_data_condition_group(
         logic_result and logic_type == DataConditionGroup.Type.ANY
     ):
         # if we have a logic type of all and a False result,
-        # or if we have a logic type of any and a True result
-        # then we can short-circuit any remaining conditions since we have a completd logic result
+        # or if we have a logic type of any and a True result, then
+        #  we can short-circuit any remaining conditions since we have a completed logic result
         remaining_conditions = []
 
     return (logic_result, condition_results), remaining_conditions
