@@ -282,6 +282,8 @@ const Body = styled(Layout.Body)<{withToolbar: boolean}>`
       p.withToolbar
         ? `grid-template-columns: 300px minmax(100px, auto);`
         : `grid-template-columns: 0px minmax(100px, auto);`}
+    grid-template-rows: auto 1fr;
+    align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
     transition: 700ms;
   }
@@ -300,7 +302,9 @@ const TopSection = styled('div')`
 `;
 
 const SideSection = styled('aside')`
-  overflow: hidden;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    overflow: hidden;
+  }
 `;
 
 const MainContent = styled('div')`

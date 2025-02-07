@@ -8,15 +8,18 @@ import pytest
 from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
+    check_grouphashes_for_positive_fingerprint_match,
     get_hash_basis_and_metadata,
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import ComponentVariant
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
@@ -32,6 +35,7 @@ from tests.sentry.grouping import (
 dummy_project = Mock(id=11211231)
 
 
+@django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
@@ -182,3 +186,35 @@ def _assert_and_snapshot_results(
             __file__, input_file, "test_metadata_from_variants", config_name
         ),
     )
+
+
+@django_db_all
+class GroupHashMetadataTest(TestCase):
+    def test_check_grouphashes_for_positive_fingerprint_match(self):
+        grouphash1 = GroupHash.objects.create(hash="dogs", project_id=self.project.id)
+        grouphash2 = GroupHash.objects.create(hash="are great", project_id=self.project.id)
+
+        for fingerprint1, fingerprint2, expected_result in [
+            # All combos of default, hybrid (matching or not), custom (matching or not), and missing
+            # fingerprints
+            (["{{ default }}"], ["{{ default }}"], True),
+            (["{{ default }}"], ["{{ default }}", "maisey"], False),
+            (["{{ default }}"], ["charlie"], False),
+            (["{{ default }}"], None, False),
+            (["{{ default }}", "maisey"], ["{{ default }}", "maisey"], True),
+            (["{{ default }}", "maisey"], ["{{ default }}", "charlie"], False),
+            (["{{ default }}", "maisey"], ["charlie"], False),
+            (["{{ default }}", "maisey"], None, False),
+            (["charlie"], ["charlie"], True),
+            (["charlie"], ["maisey"], False),
+            (["charlie"], None, False),
+            (None, None, False),
+        ]:
+            with (
+                patch.object(grouphash1, "get_associated_fingerprint", return_value=fingerprint1),
+                patch.object(grouphash2, "get_associated_fingerprint", return_value=fingerprint2),
+            ):
+                assert (
+                    check_grouphashes_for_positive_fingerprint_match(grouphash1, grouphash2)
+                    == expected_result
+                ), f"Case {fingerprint1}, {fingerprint2} failed"

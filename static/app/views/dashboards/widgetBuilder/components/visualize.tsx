@@ -1,7 +1,9 @@
 import {Fragment, useMemo, useState} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import BaseTag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
@@ -21,6 +23,7 @@ import {
   type AggregationKeyWithAlias,
   type AggregationRefinement,
   classifyTagKey,
+  DEPRECATED_FIELDS,
   generateFieldAsString,
   parseFunction,
   prettifyTagKey,
@@ -64,6 +67,7 @@ const NONE = 'none';
 const NONE_AGGREGATE = {
   label: t('None'),
   value: NONE,
+  trailingItems: null,
 };
 
 function formatColumnOptions(
@@ -93,7 +97,11 @@ function formatColumnOptions(
       // For the spans dataset, all of the options are measurements,
       // so we force the number badge to show
       trailingItems:
-        dataset === WidgetType.SPANS ? <TypeBadge kind={FieldKind.MEASUREMENT} /> : null,
+        dataset === WidgetType.SPANS ? (
+          <TypeBadge kind={FieldKind.MEASUREMENT} />
+        ) : (
+          renderTag(option.value.kind, option.value.meta.name)
+        ),
     }));
 }
 
@@ -353,9 +361,14 @@ function Visualize({error, setError}: VisualizeProps) {
               columnFilterMethod ?? (() => true)
             );
 
-            let aggregateOptions = aggregates.map(option => ({
+            let aggregateOptions: Array<{
+              label: string;
+              trailingItems: React.ReactNode | null;
+              value: string;
+            }> = aggregates.map(option => ({
               value: option.value.meta.name,
               label: option.value.meta.name,
+              trailingItems: renderTag(option.value.kind, option.value.meta.name) ?? null,
             }));
             aggregateOptions =
               isChartWidget ||
@@ -457,60 +470,13 @@ function Visualize({error, setError}: VisualizeProps) {
                   ) : (
                     <Fragment>
                       <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
-                        {hasColumnParameter && (
-                          <ColumnCompactSelect
-                            searchable
-                            options={
-                              state.dataset === WidgetType.SPANS &&
-                              field.kind !== FieldValueKind.FUNCTION
-                                ? spanColumnOptions
-                                : columnOptions
-                            }
-                            value={
-                              field.kind === FieldValueKind.FUNCTION
-                                ? parseFunction(stringFields?.[index] ?? '')
-                                    ?.arguments[0] ?? ''
-                                : field.field
-                            }
-                            onChange={newField => {
-                              const newFields = cloneDeep(fields);
-                              const currentField = newFields[index]!;
-                              // Update the current field's aggregate with the new aggregate
-                              if (currentField.kind === FieldValueKind.FUNCTION) {
-                                currentField.function[1] = newField.value as string;
-                              }
-                              if (currentField.kind === FieldValueKind.FIELD) {
-                                currentField.field = newField.value as string;
-                              }
-                              dispatch({
-                                type: updateAction,
-                                payload: newFields,
-                              });
-                              setError?.({...error, queries: []});
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field: 'visualize.updateColumn',
-                                from: source,
-                                new_widget: !isEditing,
-                                value:
-                                  currentField.kind === FieldValueKind.FIELD
-                                    ? 'column'
-                                    : 'aggregate',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }}
-                            triggerProps={{
-                              'aria-label': t('Column Selection'),
-                            }}
-                          />
-                        )}
                         <AggregateCompactSelect
                           searchable
                           hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
                           value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
+                          position="bottom-start"
                           onChange={aggregateSelection => {
                             const isNone = aggregateSelection.value === NONE;
                             const newFields = cloneDeep(fields);
@@ -704,6 +670,55 @@ function Visualize({error, setError}: VisualizeProps) {
                             'aria-label': t('Aggregate Selection'),
                           }}
                         />
+                        {hasColumnParameter && (
+                          <ColumnCompactSelect
+                            searchable
+                            position="bottom-start"
+                            options={
+                              state.dataset === WidgetType.SPANS &&
+                              field.kind !== FieldValueKind.FUNCTION
+                                ? spanColumnOptions
+                                : columnOptions
+                            }
+                            value={
+                              field.kind === FieldValueKind.FUNCTION
+                                ? parseFunction(stringFields?.[index] ?? '')
+                                    ?.arguments[0] ?? ''
+                                : field.field
+                            }
+                            onChange={newField => {
+                              const newFields = cloneDeep(fields);
+                              const currentField = newFields[index]!;
+                              // Update the current field's aggregate with the new aggregate
+                              if (currentField.kind === FieldValueKind.FUNCTION) {
+                                currentField.function[1] = newField.value as string;
+                              }
+                              if (currentField.kind === FieldValueKind.FIELD) {
+                                currentField.field = newField.value as string;
+                              }
+                              dispatch({
+                                type: updateAction,
+                                payload: newFields,
+                              });
+                              setError?.({...error, queries: []});
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateColumn',
+                                from: source,
+                                new_widget: !isEditing,
+                                value:
+                                  currentField.kind === FieldValueKind.FIELD
+                                    ? 'column'
+                                    : 'aggregate',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
+                            }}
+                            triggerProps={{
+                              'aria-label': t('Column Selection'),
+                            }}
+                          />
+                        )}
                       </PrimarySelectRow>
                       {field.kind === FieldValueKind.FUNCTION &&
                         parameterRefinements.length > 0 && (
@@ -977,6 +992,41 @@ function AggregateParameterField({
   throw new Error(`Unknown parameter type encountered for ${fieldValue}`);
 }
 
+function renderTag(kind: FieldValueKind, label: string) {
+  let text, tagType;
+  switch (kind) {
+    case FieldValueKind.FUNCTION:
+      text = 'f(x)';
+      tagType = 'success' as keyof Theme['tag'];
+      break;
+    case FieldValueKind.CUSTOM_MEASUREMENT:
+    case FieldValueKind.MEASUREMENT:
+      text = 'field';
+      tagType = 'highlight' as keyof Theme['tag'];
+      break;
+    case FieldValueKind.BREAKDOWN:
+      text = 'field';
+      tagType = 'highlight' as keyof Theme['tag'];
+      break;
+    case FieldValueKind.TAG:
+      text = kind;
+      tagType = 'warning' as keyof Theme['tag'];
+      break;
+    case FieldValueKind.NUMERIC_METRICS:
+      text = 'f(x)';
+      tagType = 'success' as keyof Theme['tag'];
+      break;
+    case FieldValueKind.FIELD:
+      text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
+      tagType = 'highlight' as keyof Theme['tag'];
+      break;
+    default:
+      text = kind;
+  }
+
+  return <BaseTag type={tagType}>{text}</BaseTag>;
+}
+
 const ColumnCompactSelect = styled(CompactSelect)`
   flex: 1 1 auto;
   min-width: 0;
@@ -992,7 +1042,7 @@ const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolea
       ? `
     width: fit-content;
     max-width: 150px;
-    left: -1px;
+    left: 1px;
   `
       : `
     width: 100%;
@@ -1028,16 +1078,16 @@ const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   flex: 3;
 
   & > ${ColumnCompactSelect} > button {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 
   & > ${AggregateCompactSelect} > button {
     ${p =>
       p.hasColumnParameter &&
       `
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
     `}
   }
 `;

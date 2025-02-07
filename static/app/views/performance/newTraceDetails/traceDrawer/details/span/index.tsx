@@ -164,7 +164,7 @@ function SpanSections({
           <TraceDrawerComponents.SectionCardGroup>
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-            {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+            {hasSpanTags(node.value) ? <Tags node={node} /> : null}
             {hasSpanMeasurements(node.value) ? (
               <Measurements node={node} location={location} organization={organization} />
             ) : null}
@@ -195,7 +195,7 @@ function LegacySpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-      {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+      {hasSpanTags(node.value) ? <Tags node={node} /> : null}
       {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
     </TraceDrawerComponents.SectionCardGroup>
   );

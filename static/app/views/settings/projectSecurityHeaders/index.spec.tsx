@@ -26,7 +26,7 @@ describe('ProjectSecurityHeaders', function () {
 
     // Heading
     expect(
-      await screen.findByText('Security Header Reports', {selector: 'h4'})
+      await screen.findByText('Security Header Reports', {selector: 'h1'})
     ).toBeInTheDocument();
   });
 

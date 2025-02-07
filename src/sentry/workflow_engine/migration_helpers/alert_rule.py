@@ -45,8 +45,19 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
+LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_identifier", "target_type"]
+ACTION_DATA_FIELDS = ["type", "sentry_app_id", "sentry_app_config"]
+
 
 class MissingDataConditionGroup(Exception):
+    pass
+
+
+class UnresolvableResolveThreshold(Exception):
+    pass
+
+
+class InvalidActionType(Exception):
     pass
 
 
@@ -217,29 +228,23 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
     the legacy AlertRule.
     """
     detector_triggers = DataCondition.objects.filter(condition_group=detector_data_condition_group)
-    if detector_triggers.count() > 1:
-        # there is a warning threshold for this detector, so we should resolve based on it
-        warning_data_condition = detector_triggers.filter(
-            condition_result=DetectorPriorityLevel.MEDIUM
-        ).first()
-        if warning_data_condition is None:
-            logger.error(
-                "more than one detector trigger in detector data condition group, but no warning condition exists",
-                extra={"detector_data_condition_group": detector_triggers},
-            )
-            return -1
+    warning_data_condition = detector_triggers.filter(
+        condition_result=DetectorPriorityLevel.MEDIUM
+    ).first()
+    if warning_data_condition is not None:
         resolve_threshold = warning_data_condition.comparison
     else:
-        # critical threshold value
-        critical_data_condition = detector_triggers.first()
+        critical_data_condition = detector_triggers.filter(
+            condition_result=DetectorPriorityLevel.HIGH
+        ).first()
         if critical_data_condition is None:
             logger.error(
-                "no data conditions exist for detector data condition group",
+                "no critical or warning data conditions exist for detector data condition group",
                 extra={"detector_data_condition_group": detector_triggers},
             )
             return -1
-        resolve_threshold = critical_data_condition.comparison
-
+        else:
+            resolve_threshold = critical_data_condition.comparison
     return resolve_threshold
 
 
@@ -275,7 +280,7 @@ def migrate_resolve_threshold_data_conditions(
         resolve_threshold = get_resolve_threshold(detector_data_condition_group)
         if resolve_threshold == -1:
             # something went wrong
-            return None
+            raise UnresolvableResolveThreshold
 
     detector_trigger = DataCondition.objects.create(
         comparison=resolve_threshold,
@@ -441,10 +446,11 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        logger.exception(
-            "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": alert_rule.id},
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule},
         )
+        # This alert rule was not dual written
         return None
 
     detector: Detector = alert_rule_detector.detector
@@ -500,8 +506,16 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[
                     dc.update(type=threshold_type)
 
         if "resolve_threshold" in updated_fields:
-            resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
-            resolve_condition.update(comparison=updated_fields["resolve_threshold"])
+            resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+            if updated_fields["resolve_threshold"] is None:
+                # we need to figure out the resolve threshold ourselves
+                resolve_threshold = get_resolve_threshold(data_condition_group)
+                if resolve_threshold != -1:
+                    resolve_condition.update(comparison=resolve_threshold)
+                else:
+                    raise UnresolvableResolveThreshold
+            else:
+                resolve_condition.update(comparison=updated_fields["resolve_threshold"])
 
     detector.update(**updated_detector_fields)
 
@@ -509,6 +523,119 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[
     detector_state.update(active=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
+
+
+def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None:
+    """
+    Helper method to update the detector trigger for a legacy resolution "trigger" if
+    no explicit resolution threshold is set on the alert rule.
+    """
+    # if the alert rule has a resolve threshold or if it hasn't been dual written, return early
+    if alert_rule.resolve_threshold is not None:
+        return None
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        # We attempted to dual delete a trigger that was not dual migrated
+        return None
+
+    detector = alert_rule_detector.detector
+    detector_data_condition_group = detector.workflow_condition_group
+    if detector_data_condition_group is None:
+        logger.error(
+            "detector_data_condition_group does not exist",
+            extra={"alert_rule_id": alert_rule.id},
+        )
+        raise MissingDataConditionGroup
+
+    resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+    if resolve_threshold == -1:
+        raise UnresolvableResolveThreshold
+
+    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
+    try:
+        resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+    except DataCondition.DoesNotExist:
+        # In the serializer, we call handle triggers before migrating the resolve data condition,
+        # so the resolve condition may not exist yet. Return early.
+        return None
+    resolve_condition.update(comparison=resolve_threshold)
+
+    return resolve_condition
+
+
+def dual_update_migrated_alert_rule_trigger(
+    alert_rule_trigger: AlertRuleTrigger, updated_fields: dict[str, Any]
+) -> tuple[DataCondition, DataCondition] | None:
+    # NOTE: update the trigger *AFTER* calling this helper so that we can get the right data conditions
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
+        )
+        return None
+    action_filter = get_action_filter(alert_rule_trigger, priority)
+
+    # Fields have already been validated in logic.py, so we can update without validating here
+    updated_detector_trigger_fields: dict[str, Any] = {}
+    updated_action_filter_fields: dict[str, Any] = {}
+    if "label" in updated_fields:
+        label = updated_fields["label"]
+        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+        updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+    if "alert_threshold" in updated_fields:
+        updated_detector_trigger_fields["comparison"] = updated_fields["alert_threshold"]
+
+    detector_trigger.update(**updated_detector_trigger_fields)
+    if updated_action_filter_fields:
+        action_filter.update(**updated_action_filter_fields)
+
+    return detector_trigger, action_filter
+
+
+def dual_update_migrated_alert_rule_trigger_action(
+    trigger_action: AlertRuleTriggerAction, updated_fields: dict[str, Any]
+) -> Action | None:
+    # NOTE: update the action *BEFORE* calling this method so that we can reuse the get_action_type method
+    alert_rule_trigger = trigger_action.alert_rule_trigger
+    # Check that we dual wrote this action
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
+        )
+        return None
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    action = aarta.action
+
+    updated_action_fields: dict[str, Any] = {}
+    action_type = get_action_type(trigger_action)
+    if not action_type:
+        logger.error(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        )
+        raise InvalidActionType
+    updated_action_fields["type"] = action_type
+    data = action.data.copy()
+    for field in LEGACY_ACTION_FIELDS:
+        if field in updated_fields:
+            updated_action_fields[field] = updated_fields[field]
+    for field in ACTION_DATA_FIELDS:
+        if field in updated_fields:
+            data[field] = updated_fields[field]
+    updated_action_fields["data"] = data
+
+    action.update(**updated_action_fields)
+    return action
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:

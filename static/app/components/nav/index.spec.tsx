@@ -13,6 +13,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import Nav from 'sentry/components/nav';
 import {NavContextProvider} from 'sentry/components/nav/context';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
@@ -39,11 +40,12 @@ describe('Nav', function () {
     render(
       <NavContextProvider>
         <Nav />
-        <SecondaryNav>
+        <SecondaryNav group={PrimaryNavGroup.ISSUES}>
           <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
             Foo
           </SecondaryNav.Item>
         </SecondaryNav>
+        <div id="main" />
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
@@ -105,6 +107,78 @@ describe('Nav', function () {
       const link = screen.getByRole('link', {name: 'Foo'});
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
+    });
+
+    describe('collapse behavior', function () {
+      it('can collpase and expand secondary sidebar', async function () {
+        renderNav();
+
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+        expect(
+          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('mobile navigation', function () {
+    beforeEach(() => {
+      // Need useMedia() to return true for isMobile query
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+    });
+
+    it('renders mobile navigation on small screen sizes', async function () {
+      renderNav();
+
+      // Should have a top-level header element with a home link and menu button
+      expect(screen.getByRole('link', {name: 'Sentry Home'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open main menu'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+
+      // Should first render the active secondary navigation
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Foo'})).toBeInTheDocument();
+
+      // Clicking back should render the primary navigation
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Back to primary navigation'})
+      );
+      expect(
+        screen.getByRole('navigation', {name: 'Primary Navigation'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Explore'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Boards'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Insights'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Stats'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Settings'})).toBeInTheDocument();
+
+      // Tapping one of the primary navigation items should close the menu
+      await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     });
   });
 });

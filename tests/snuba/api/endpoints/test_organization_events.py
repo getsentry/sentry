@@ -5972,6 +5972,56 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # count() is 1 because it falls back to transactions
         assert response.data["data"][0]["count()"] == 1
 
+    def test_profiled_transaction_condition(self):
+        no_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        self.store_event(no_profile, project_id=self.project.id)
+
+        profile_id = uuid.uuid4().hex
+        transaction_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})[
+            "profile_id"
+        ] = profile_id
+        transaction_profile["event_id"] = uuid.uuid4().hex
+        self.store_event(transaction_profile, project_id=self.project.id)
+
+        profiler_id = uuid.uuid4().hex
+        continuous_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})[
+            "profiler_id"
+        ] = profiler_id
+        continuous_profile.setdefault("contexts", {}).setdefault("trace", {}).setdefault(
+            "data", {}
+        )["thread.id"] = "12345"
+        continuous_profile["event_id"] = uuid.uuid4().hex
+        self.store_event(continuous_profile, project_id=self.project.id)
+        query = {
+            "field": ["id", "profile.id", "profiler.id"],
+            "query": "has:profile.id OR (has:profiler.id has:thread.id)",
+            "dataset": "discover",
+            "orderby": "id",
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["data"] == sorted(
+            [
+                {
+                    "id": transaction_profile["event_id"],
+                    "profile.id": profile_id,
+                    "profiler.id": None,
+                    "project.name": self.project.slug,
+                },
+                {
+                    "id": continuous_profile["event_id"],
+                    "profile.id": None,
+                    "profiler.id": profiler_id,
+                    "project.name": self.project.slug,
+                },
+            ],
+            key=lambda row: row["id"],
+        )
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")

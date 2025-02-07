@@ -518,7 +518,7 @@ function FileDiff({
           <FileAdded>+{file.added}</FileAdded>
           <FileRemoved>-{file.removed}</FileRemoved>
         </FileAddedRemoved>
-        <FileName>{file.path}</FileName>
+        <FileName title={file.path}>{file.path}</FileName>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
           aria-label={t('Toggle file diff')}
@@ -636,7 +636,13 @@ const FileRemoved = styled('div')`
   color: ${p => p.theme.errorText};
 `;
 
-const FileName = styled('div')``;
+const FileName = styled('div')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+`;
 
 const DiffContainer = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};

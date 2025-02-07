@@ -30,6 +30,7 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: BadgeProps | BadgeProps[];
   borderless?: boolean;
   children?: React.ReactNode;
+  noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   title?: string;
   warnings?: string[];
@@ -155,6 +156,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           </ErrorBoundary>
         )
       }
+      noVisualizationPadding={props.noVisualizationPadding}
     />
   );
 }

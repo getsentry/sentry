@@ -267,6 +267,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(schedule_data)
 
+        runner.log_startup()
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
@@ -274,11 +275,19 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
 @run.command()
 @click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
+@click.option(
+    "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
+)
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
 )
 @click.option("--concurrency", help="Number of child worker processes to create.", default=1)
+@click.option(
+    "--prefetch-multiplier",
+    help="How many tasks to keep in the child worker Queue. Multiplied by --concurrency",
+    default=3,
+)
 @click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
 )
@@ -295,7 +304,13 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str, max_task_count: int, namespace: str | None, concurrency: int, **options: Any
+    rpc_host: str,
+    num_brokers: int | None,
+    max_task_count: int,
+    namespace: str | None,
+    concurrency: int,
+    prefetch_multiplier: int,
+    **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
@@ -305,9 +320,11 @@ def run_taskworker(
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
             rpc_host=rpc_host,
+            num_brokers=num_brokers,
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,
+            prefetch_multiplier=prefetch_multiplier,
             **options,
         )
         exitcode = worker.start()

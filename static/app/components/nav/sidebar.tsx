@@ -1,12 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {useNavContext} from 'sentry/components/nav/context';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 
 export function Sidebar() {
+  const {isCollapsed} = useNavContext();
+
   return (
     <Fragment>
       <SidebarWrapper role="navigation" aria-label="Primary Navigation">
@@ -15,7 +18,7 @@ export function Sidebar() {
         </SidebarHeader>
         <PrimaryNavigationItems />
       </SidebarWrapper>
-      <SecondarySidebar />
+      {isCollapsed ? null : <SecondarySidebar />}
     </Fragment>
   );
 }
