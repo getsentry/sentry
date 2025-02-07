@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
