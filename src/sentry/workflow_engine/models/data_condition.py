@@ -1,5 +1,6 @@
 import logging
 import operator
+from enum import StrEnum
 from typing import Any, TypeVar, cast
 
 from django.db import models
@@ -16,7 +17,7 @@ from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLe
 logger = logging.getLogger(__name__)
 
 
-class Condition(models.TextChoices):
+class Condition(StrEnum):
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
@@ -99,7 +100,9 @@ class DataCondition(DefaultFieldsModel):
     condition_result = models.JSONField()
 
     # The type of condition, this is used to initialize the condition classes
-    type = models.CharField(max_length=200, choices=Condition.choices, default=Condition.EQUAL)
+    type = models.CharField(
+        max_length=200, choices=[(t.value, t.value) for t in Condition], default=Condition.EQUAL
+    )
 
     condition_group = models.ForeignKey(
         "workflow_engine.DataConditionGroup",
