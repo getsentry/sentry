@@ -25,6 +25,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
     snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
+
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
         ):
@@ -60,6 +61,9 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
             max_attributes = int(max_attributes)
         except ValueError:
             raise ParseError(detail="maxBuckets and maxAttributes must be integers")
+
+        if max_buckets > 100:
+            raise ParseError(detail="maxBuckets max value is 100")
 
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
