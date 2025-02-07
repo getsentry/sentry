@@ -141,7 +141,7 @@ def fetch_data_condition_groups(
     Fetch DataConditionGroups with enabled detectors/workflows
     """
 
-    return DataConditionGroup.objects.filter(id__in=dcg_ids)
+    return list(DataConditionGroup.objects.filter(id__in=dcg_ids))
 
 
 def generate_unique_queries(
