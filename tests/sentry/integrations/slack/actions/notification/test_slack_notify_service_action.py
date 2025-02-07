@@ -326,7 +326,7 @@ class TestInit(RuleTestCase):
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id=1&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -356,13 +356,13 @@ class TestInit(RuleTestCase):
         results = list(rule.after(event=self.event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=self.rule, kwargs={})])
+        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.action.id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 1
