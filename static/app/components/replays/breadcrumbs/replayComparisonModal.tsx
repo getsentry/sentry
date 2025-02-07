@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';

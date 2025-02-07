@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import storyBook from 'sentry/stories/storyBook';
 
-import Alert from '../alert';
 import JSXNode from '../stories/jsxNode';
 
 export default storyBook('GlobalDrawer', story => {

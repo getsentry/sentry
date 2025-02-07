@@ -4,7 +4,7 @@ import type {SeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
