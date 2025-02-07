@@ -58,6 +58,8 @@ class OutboxCategory(IntEnum):
     RELOCATION_EXPORT_REQUEST = 36
     RELOCATION_EXPORT_REPLY = 37
 
+    SEND_VERCEL_INVOICE = 38
+
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
@@ -263,6 +265,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
+            OutboxCategory.SEND_VERCEL_INVOICE,
         },
     )
     USER_SCOPE = scope_categories(
