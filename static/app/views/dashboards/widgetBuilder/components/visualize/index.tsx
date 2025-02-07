@@ -42,9 +42,9 @@ import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {SortableVisualizeFields} from 'sentry/views/dashboards/widgetBuilder/components/common/sortableVisualizeFields';
+import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
-import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualizeGhostField';
+import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -445,7 +445,7 @@ function Visualize({error, setError}: VisualizeProps) {
                   fields[index]!.kind === FieldValueKind.FIELD;
 
                 return (
-                  <SortableVisualizeFields
+                  <SortableVisualizeFieldWrapper
                     dragId={draggableFieldIds[index] ?? ''}
                     canDrag={!!canDrag}
                     key={draggableFieldIds[index]}
@@ -933,7 +933,7 @@ function Visualize({error, setError}: VisualizeProps) {
                         </FieldExtras>
                       </FieldRow>
                     )}
-                  </SortableVisualizeFields>
+                  </SortableVisualizeFieldWrapper>
                 );
               })}
             </Fields>

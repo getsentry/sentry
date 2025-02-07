@@ -35,7 +35,7 @@ import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveBut
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
-import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';

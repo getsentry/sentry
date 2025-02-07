@@ -11,9 +11,9 @@ import {
   parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
   AggregateCompactSelect,
-  AggregateParameterField,
   ColumnCompactSelect,
   FieldBar,
   FieldExtras,
@@ -23,7 +23,7 @@ import {
   PrimarySelectRow,
   StyledArithmeticInput,
   StyledDeleteButton,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
 type VisualizeGhostFieldProps = {
