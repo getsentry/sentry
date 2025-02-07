@@ -27,7 +27,9 @@ export default storyBook('WidgetFrame', story => {
         <p>
           <JSXNode name="WidgetFrame" /> supports a few basic props that control its
           content. This includes a title, a description, and the <code>children</code>.
-          The title is automatically wrapped in a tooltip if it does not fit.
+          The title is automatically wrapped in a tooltip if it does not fit. The
+          description and the actions are usually hidden and shown on hover. You can
+          control this behaviour with the <code>hideActions</code> prop.
         </p>
 
         <p>
@@ -46,12 +48,6 @@ export default storyBook('WidgetFrame', story => {
           </NormalWidget>
           <NormalWidget>
             <WidgetFrame
-              title="p95(measurements.lcp) / p95(measurements.inp)"
-              description="This is a tough formula to reason about"
-            />
-          </NormalWidget>
-          <NormalWidget>
-            <WidgetFrame
               title="p95(span.duration)"
               description={tct('Learn more about this on our [documentation] website.', {
                 documentation: (
@@ -60,6 +56,24 @@ export default storyBook('WidgetFrame', story => {
                   </ExternalLink>
                 ),
               })}
+            />
+          </NormalWidget>
+        </SideBySide>
+
+        <br />
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame
+              title="p95(measurements.lcp) / p95(measurements.inp)"
+              description="This is a tough formula to reason about"
+              hideActions
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <WidgetFrame
+              title="p95(measurements.lcp) / p95(measurements.inp)"
+              description="This is a tough formula to reason about"
             />
           </NormalWidget>
         </SideBySide>
