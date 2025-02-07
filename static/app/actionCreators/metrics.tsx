@@ -2,7 +2,7 @@ import type {Client, ResponseMeta} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 export type DoReleaseHealthRequestOptions = {
@@ -46,7 +46,7 @@ export const doReleaseHealthRequest = (
     statsPeriodEnd,
     ...dateTime
   }: DoReleaseHealthRequestOptions
-): Promise<any | [any, string, ResponseMeta]> => {
+): Promise<SessionApiResponse | [SessionApiResponse, string, ResponseMeta]> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });
