@@ -37,7 +37,12 @@ function Content() {
             disableDelete={disableDelete}
           />
         ))}
-        <Button aria-label={t('Add Query')} onClick={addQuery} icon={<IconAdd />}>
+        <Button
+          aria-label={t('Add Query')}
+          onClick={addQuery}
+          icon={<IconAdd />}
+          disabled={queries.length >= 5}
+        >
           {t('Add Query')}
         </Button>
       </Layout.Main>

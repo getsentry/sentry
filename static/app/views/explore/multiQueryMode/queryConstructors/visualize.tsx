@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -55,7 +56,7 @@ export function VisualizeSection({query, index}: Props) {
         </Tooltip>
       </SectionHeader>
       <Fragment>
-        <PageFilterBar>
+        <StyledPageFilterBar>
           <CompactSelect
             options={aggregateOptions}
             value={parsedFunction?.name}
@@ -73,8 +74,27 @@ export function VisualizeSection({query, index}: Props) {
               updateYAxis(index, {yAxes: [newYAxis]});
             }}
           />
-        </PageFilterBar>
+        </StyledPageFilterBar>
       </Fragment>
     </Section>
   );
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  & > * {
+    min-width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: max-content;
+
+    /* Prevent agg function selector from shrinking */
+    &:first-child {
+      flex-shrink: 0;
+    }
+
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:last-child {
+      min-width: 4rem;
+    }
+  }
+`;

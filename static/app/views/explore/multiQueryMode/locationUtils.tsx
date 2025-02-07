@@ -162,9 +162,10 @@ export function useUpdateQueryAtIndex() {
 
       const newQuery = {...queryToUpdate, ...updates};
       newQuery.fields = getFieldsForConstructedQuery(newQuery.yAxes);
-      queries[index] = newQuery;
+      const newQueries = [...queries];
+      newQueries[index] = newQuery;
 
-      const target = getUpdatedLocationWithQueries(location, queries);
+      const target = getUpdatedLocationWithQueries(location, newQueries);
       navigate(target);
     },
     [location, navigate, queries]
@@ -180,6 +181,21 @@ export function useAddQuery() {
     const target = getUpdatedLocationWithQueries(location, [...queries, DEFAULT_QUERY]);
     navigate(target);
   }, [location, navigate, queries]);
+}
+
+export function useDeleteQueryAtIndex() {
+  const location = useLocation();
+  const queries = useReadQueriesFromLocation();
+  const navigate = useNavigate();
+
+  return useCallback(
+    (index: number) => {
+      const newQueries = queries.toSpliced(index, 1);
+      const target = getUpdatedLocationWithQueries(location, newQueries);
+      navigate(target);
+    },
+    [location, navigate, queries]
+  );
 }
 
 // Write utils end

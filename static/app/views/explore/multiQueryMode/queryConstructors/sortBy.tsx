@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -57,7 +58,7 @@ export function SortBySection({query, index}: Props) {
         </Tooltip>
       </SectionHeader>
       <Fragment>
-        <PageFilterBar>
+        <StyledPageFilterBar>
           <CompactSelect
             options={fieldOptions}
             value={query.sortBys?.[0]?.field}
@@ -78,8 +79,28 @@ export function SortBySection({query, index}: Props) {
               updateSort(index, {sortBys: newSorts});
             }}
           />
-        </PageFilterBar>
+        </StyledPageFilterBar>
       </Fragment>
     </Section>
   );
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  & > * {
+    min-width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: max-content;
+
+    /* Prevent project filter from shrinking (it has in-built max character count)
+    except in mobile */
+    &:first-child {
+      flex-shrink: 1;
+    }
+
+    /* Prevent sort kind filter from shrinking */
+    &:last-child {
+      flex-shrink: 0;
+    }
+  }
+`;
