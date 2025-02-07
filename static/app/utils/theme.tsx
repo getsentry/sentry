@@ -1059,9 +1059,6 @@ const commonTheme = {
   modalBorderRadius: '8px',
   linkBorderRadius: '2px',
 
-  headerSelectorRowHeight: 44,
-  headerSelectorLabelHeight: 28,
-
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
   fontSizeRelativeSmall: '0.9em',
