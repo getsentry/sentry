@@ -46,7 +46,9 @@ export const DEFAULT_ENVIRONMENTS: string[] = [];
 export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
 /**
- * Savable properties of an IssueView (except position)
+ * Savable properties of an IssueView, besides lable and position.
+ * Changes to these properties are not automatically saved and can
+ * trigger the unsaved changes indicator.
  */
 export interface IssueViewParams {
   environments: string[];

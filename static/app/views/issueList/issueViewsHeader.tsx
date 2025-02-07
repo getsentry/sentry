@@ -459,13 +459,13 @@ function IssueViewsIssueListHeaderTabsContent({
               query: view.unsavedChanges?.query ?? view.query,
               sort: view.unsavedChanges?.querySort ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
-              cursor: undefined,
-              page: undefined,
               project: view.unsavedChanges?.projects ?? view.projects,
               environment: view.unsavedChanges?.environments ?? view.environments,
               ...normalizeDateTimeParams(
                 view.unsavedChanges?.timeFilters ?? view.timeFilters
               ),
+              cursor: undefined,
+              page: undefined,
             },
             pathname: `/organizations/${organization.slug}/issues/`,
           })}
