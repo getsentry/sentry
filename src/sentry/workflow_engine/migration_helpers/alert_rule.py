@@ -136,14 +136,16 @@ def build_action_data_blob(
 
 def get_target_identifier(
     alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
-) -> str:
+) -> str | None:
     if action_type == Action.Type.SENTRY_APP:
         # Ensure we have a valid sentry_app_id
         if not alert_rule_trigger_action.sentry_app_id:
-            return ""
+            raise InvalidActionType(
+                f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
+            )
         return str(alert_rule_trigger_action.sentry_app_id)
     # Ensure we have a valid target_identifier
-    return alert_rule_trigger_action.target_identifier or ""
+    return alert_rule_trigger_action.target_identifier
 
 
 def get_detector_trigger(
