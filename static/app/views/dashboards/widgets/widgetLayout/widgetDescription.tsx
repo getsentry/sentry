@@ -25,7 +25,7 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
       }
       containerDisplayMode="grid"
       isHoverable
-      forceVisible={props.revealTooltip === 'always'}
+      forceVisible={props.revealTooltip === 'always' ? true : undefined}
     >
       <WidgetTooltipButton
         aria-label={t('Widget description')}

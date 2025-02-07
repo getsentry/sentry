@@ -91,7 +91,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             <WidgetDescription
               title={props.title}
               description={props.description}
-              revealTooltip={props.revealTooltip}
+              revealTooltip={props.revealTooltip ?? 'hover'}
             />
           )}
 
