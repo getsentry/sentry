@@ -35,6 +35,14 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
 
+    def __repr__(self) -> str:  # type: ignore[override]
+        return (
+            f"RepositoryProjectPathConfig(repo={self.repository.name}, "
+            + f"branch={self.default_branch}, "
+            + f"stack_root={self.stack_root}, "
+            + f"source_root={self.source_root})"
+        )
+
 
 def process_resource_change(instance, **kwargs):
     from sentry.models.group import Group
