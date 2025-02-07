@@ -418,7 +418,7 @@ class JiraActionTranslatorBase(TicketActionTranslator):
         return ["integration"]
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return JiraDataBlob
 
     def get_sanitized_data(self) -> dict[str, Any]:
@@ -442,6 +442,10 @@ class JiraActionTranslatorBase(TicketActionTranslator):
             }
             data["additional_fields"] = additional_fields
         return data
+
+    @staticmethod
+    def standard_fields() -> list[str]:
+        return [f.name for f in dataclasses.fields(JiraDataBlob) if f.name != "additional_fields"]
 
 
 @issue_alert_action_translator_registry.register(

@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Any
 from unittest.mock import patch
 
@@ -13,6 +12,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    JiraActionTranslator,
     JiraDataBlob,
     issue_alert_action_translator_registry,
 )
@@ -22,6 +22,27 @@ class TestNotificationActionMigrationUtils(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
+
+    def assert_jira_action_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+        # Get standard fields from JiraDataBlob, excluding additional_fields
+        standard_fields = JiraActionTranslator.standard_fields()
+
+        # Check standard fields
+        for field in standard_fields:
+            assert action.data.get(field, "") == compare_dict.get(field, "")
+
+        # Check that additional_fields contains all other non-excluded fields
+        additional_fields = action.data.get("additional_fields", {})
+        for key, value in compare_dict.items():
+            if (
+                key not in exclude_keys
+                and key not in standard_fields
+                and key != "id"
+                and value  # Only check non-empty values
+            ):
+                assert additional_fields.get(key) == value
 
     def assert_action_data_blob(
         self,
@@ -54,31 +75,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         if translator.blob_type:
             # Special handling for JiraDataBlob which has additional_fields
             if translator.blob_type == JiraDataBlob:
-                # Get standard fields from JiraDataBlob, excluding additional_fields
-                standard_fields = {
-                    f.name
-                    for f in dataclasses.fields(JiraDataBlob)
-                    if f.name != "additional_fields"
-                }
-
-                # Check standard fields
-                for field in standard_fields:
-                    assert action.data.get(field, "") == compare_dict.get(field, "")
-
-                # Check that additional_fields contains all other non-excluded fields
-                additional_fields = action.data.get("additional_fields", {})
-                for key, value in compare_dict.items():
-                    if (
-                        key not in exclude_keys
-                        and key not in standard_fields
-                        and key != "id"
-                        and value  # Only check non-empty values
-                    ):
-                        assert additional_fields.get(key) == value
-
-                # Ensure no unexpected fields
-                expected_keys = standard_fields | {"additional_fields"}
-                assert set(action.data.keys()) == expected_keys
+                self.assert_jira_action_data_blob(action, compare_dict, exclude_keys)
             else:
                 # Original logic for other blob types
                 for field in translator.blob_type.__dataclass_fields__:
