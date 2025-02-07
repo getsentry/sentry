@@ -1062,6 +1062,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+
   codeFontSize: '13px',
   headerFontSize: '22px',
 
@@ -1088,12 +1089,6 @@ const commonTheme = {
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
-
-    cardTitle: {
-      fontSize: '1rem',
-      fontWeight: 600,
-      lineHeight: 1.2,
-    },
   },
 
   /**
@@ -1139,9 +1134,6 @@ const commonTheme = {
     empty: '#e2dee6',
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
-
-  // used as a gradient,
-  businessIconColors: ['#EA5BC2', '#6148CE'],
 
   barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'] as const,
   barBreakdownFontColors: [
