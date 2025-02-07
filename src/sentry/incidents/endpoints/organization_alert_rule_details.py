@@ -36,6 +36,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 
@@ -83,7 +84,11 @@ def update_alert_rule(request: Request, organization, alert_rule):
         partial=True,
     )
     if serializer.is_valid():
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        try:
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        except SentryAppBaseError as e:
+            return e.response_from_exception()
+
         if get_slack_actions_with_async_lookups(organization, request.user, data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
