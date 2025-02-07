@@ -132,5 +132,5 @@ export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
 
 export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
   kind: 'desc',
-  field: 'timestamp',
+  field: 'replay.id',
 };
