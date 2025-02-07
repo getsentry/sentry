@@ -2034,6 +2034,52 @@ def process_value(value: None | str | int | float | list[str] | list[int] | list
 # search syntax for searching flags. Everything is done through the tags syntax.
 
 
+def error_stats_query_with_override(
+    start,
+    end,
+    groupby,
+    conditions,
+    filter_keys,
+    aggregations,
+    referrer: str,
+    tenant_ids: dict[str, Any],
+    organization: Organization,
+):
+    with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
+        params = aliased_query_params(
+            dataset=Dataset.Events,
+            start=start,
+            end=end,
+            groupby=groupby,
+            conditions=conditions,
+            filter_keys=filter_keys,
+            aggregations=aggregations,
+            referrer=referrer,
+            tenant_ids=tenant_ids,
+        )
+
+        kwargs = {}
+        kwargs["tenant_ids"] = tenant_ids
+        kwargs["tenant_ids"]["referrer"] = referrer
+
+        snuba_params = SnubaQueryParams(
+            dataset=Dataset.Events,
+            start=params["start"],
+            end=params["end"],
+            groupby=params["groupby"],
+            conditions=params["conditions"],
+            filter_keys=params["filter_keys"],
+            aggregations=params["aggregations"],
+            rollup=None,
+            is_grouprelease=False,
+            **kwargs,
+        )
+
+        return bulk_raw_query_with_override(
+            [snuba_params], organization, referrer=referrer, use_cache=False
+        )[0]
+
+
 def bulk_raw_query_with_override(
     snuba_param_list: Sequence[SnubaQueryParams],
     organization: Organization,
