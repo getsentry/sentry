@@ -113,6 +113,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
+        meta: 'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
         label: (
           <Fragment>
             Provide a one-liner describing your integration. Subject to approval, we’ll
@@ -128,6 +129,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'select',
         required: true,
+        meta: 'Select what category best describes your integration.',
         label: (
           <Fragment>
             Select what category best describes your integration.
@@ -172,7 +174,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         meta: permissionQuestionPlainText,
-        name: 'question3',
+        name: 'question5',
       });
     }
 
