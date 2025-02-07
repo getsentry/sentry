@@ -959,6 +959,30 @@ describe('Visualize', () => {
     expect(removeButtons[1]).toBeDisabled();
   });
 
+  it('shows draggable button when there is more than one field on non big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['transaction.duration', 'transaction.id'],
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(
+      2
+    );
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
