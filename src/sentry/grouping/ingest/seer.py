@@ -269,8 +269,10 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
+    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+
     # Similar issues are returned with the closest match first
-    seer_results = get_similarity_data_from_seer(request_data)
+    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
     seer_results_json = [asdict(result) for result in seer_results]
     parent_grouphash = (
         GroupHash.objects.filter(
