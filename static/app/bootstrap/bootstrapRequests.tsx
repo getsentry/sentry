@@ -10,7 +10,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getPreloadedDataSimple} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {queryOptions, useQuery} from 'sentry/utils/queryClient';
 
@@ -72,7 +71,7 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
       const uncancelableApi = new Client();
       // Get the preloaded data promise
       try {
-        const preloadResponse = await getPreloadedDataSimple('organization', orgSlug!);
+        const preloadResponse = await getPreloadedData('organization', orgSlug!);
         // If the preload request was for a different org or the promise was rejected
         if (Array.isArray(preloadResponse) && preloadResponse[0] !== null) {
           return preloadResponse[0];
@@ -121,7 +120,7 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
       const uncancelableApi = new Client();
       // Get the preloaded data promise
       try {
-        const preloadResponse = await getPreloadedDataSimple('teams', orgSlug!);
+        const preloadResponse = await getPreloadedData('teams', orgSlug!);
         // If the preload request was successful, find the matching team
         if (preloadResponse !== null && preloadResponse[0] !== null) {
           return createTeamsObject(preloadResponse);
@@ -152,7 +151,7 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
       const uncancelableApi = new Client();
       // Get the preloaded data promise
       try {
-        const preloadResponse = await getPreloadedDataSimple('projects', orgSlug!);
+        const preloadResponse = await getPreloadedData('projects', orgSlug!);
         // If the preload request was successful
         if (preloadResponse !== null && preloadResponse[0] !== null) {
           return preloadResponse[0];
@@ -178,4 +177,24 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
     gcTime: BOOTSTRAP_QUERY_GC_TIME,
     retry: false,
   });
+}
+
+/**
+ * Small helper to access the preload requests in window.__sentry_preload
+ */
+function getPreloadedData(
+  name: 'organization' | 'projects' | 'teams',
+  slug: string
+): Promise<ApiResult | null> {
+  const data = window.__sentry_preload;
+  if (
+    !data ||
+    !data[name] ||
+    !data.orgSlug ||
+    data.orgSlug.toLowerCase() !== slug.toLowerCase()
+  ) {
+    return Promise.reject(new Error('Prefetch query not found or slug mismatch'));
+  }
+
+  return data[name];
 }
