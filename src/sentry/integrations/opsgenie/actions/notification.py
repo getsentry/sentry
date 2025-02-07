@@ -17,7 +17,6 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 
 class OpsgenieNotifyTeamAction(IntegrationEventAction):
     id = "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction"
-    form_cls = OpsgenieNotifyTeamForm
     label = (
         "Send a notification to Opsgenie account {account} and team {team} with {priority} priority"
     )
@@ -127,8 +126,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             account=self.get_integration_name(), team=team_name, priority=priority
         )
 
-    def get_form_instance(self):
-        return self.form_cls(
+    def get_form_instance(self) -> OpsgenieNotifyTeamForm:
+        return OpsgenieNotifyTeamForm(
             self.data,
             org_id=self.project.organization_id,
             integrations=self.get_integrations(),
