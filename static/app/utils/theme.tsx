@@ -1139,7 +1139,6 @@ const commonTheme = {
     empty: '#e2dee6',
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
-
 };
 
 // Light and dark theme definitions
