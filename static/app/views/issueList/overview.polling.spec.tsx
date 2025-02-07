@@ -67,7 +67,6 @@ describe('IssueList -> Polling', function () {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',
-          query: {query: 'is:unresolved'},
         },
       },
     });
