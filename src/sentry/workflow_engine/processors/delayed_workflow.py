@@ -134,31 +134,14 @@ def fetch_detectors(detector_ids: list[int]) -> DetectorMapping:
     return detector_ids_to_detectors
 
 
-def fetch_active_data_condition_groups(
+def fetch_data_condition_groups(
     dcg_ids: list[int],
-    dcg_to_workflow: DataConditionGroupWorkflow,
-    dcg_to_detector: DataConditionGroupDetector,
-    workflow_ids_to_workflows: WorkflowMapping,
-    detector_ids_to_detectors: DetectorMapping,
 ) -> list[DataConditionGroup]:
     """
     Fetch DataConditionGroups with enabled detectors/workflows
     """
 
-    data_condition_groups = DataConditionGroup.objects.filter(id__in=dcg_ids)
-    active_dcgs: list[DataConditionGroup] = []
-
-    for dcg in data_condition_groups:
-        if (workflow_id := dcg_to_workflow.get(dcg.id)) and workflow_ids_to_workflows[
-            workflow_id
-        ].enabled:
-            active_dcgs.append(dcg)
-        elif (detector_id := dcg_to_detector.get(dcg.id)) and detector_ids_to_detectors[
-            detector_id
-        ].enabled:
-            active_dcgs.append(dcg)
-
-    return active_dcgs
+    return DataConditionGroup.objects.filter(id__in=dcg_ids)
 
 
 def generate_unique_queries(
@@ -286,17 +269,9 @@ def process_delayed_workflows(
     dcg_to_groups, dcg_to_workflow, dcg_to_detector = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
-    workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_envs(
-        list(dcg_to_workflow.values())
-    )
-    detector_ids_to_detectors = fetch_detectors(list(dcg_to_detector.values()))
-    data_condition_groups = fetch_active_data_condition_groups(
-        list(dcg_to_groups.keys()),
-        dcg_to_workflow,
-        dcg_to_detector,
-        workflow_ids_to_workflows,
-        detector_ids_to_detectors,
-    )
+    _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
+    _ = fetch_detectors(list(dcg_to_detector.values()))
+    data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
     _ = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs

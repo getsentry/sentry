@@ -23,7 +23,6 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     DataConditionGroupGroups,
     DataConditionGroupWorkflow,
     UniqueConditionQuery,
-    fetch_active_data_condition_groups,
     fetch_detectors,
     fetch_group_to_event_data,
     fetch_workflows_envs,
@@ -261,31 +260,6 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         assert detector_ids_to_detectors == {
             self.detector.id: self.detector,
         }
-
-    def test_fetch_active_data_condition_groups(self):
-        workflow_ids_to_workflows = {
-            self.workflow1.id: self.workflow1,
-            self.workflow2.id: self.workflow2,
-        }
-        self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
-
-        active_dcgs = fetch_active_data_condition_groups(
-            list(self.dcg_to_groups.keys()),
-            self.dcg_to_workflow,
-            self.dcg_to_detector,
-            workflow_ids_to_workflows,
-            {self.detector.id: self.detector},
-        )
-        assert set(active_dcgs) == set(
-            self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
-        )
-
-        self.workflow1.update(enabled=False)
-        self.detector.update(enabled=False)
-        active_dcgs = fetch_active_data_condition_groups(
-            list(self.dcg_to_groups.keys()), self.dcg_to_workflow, {}, workflow_ids_to_workflows, {}
-        )
-        assert set(active_dcgs) == set(self.workflow2_dcgs)
 
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
