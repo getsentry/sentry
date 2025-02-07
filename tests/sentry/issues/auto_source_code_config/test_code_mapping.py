@@ -412,12 +412,51 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
     def test_convert_stacktrace_frame_path_to_source_path_java(self) -> None:
         assert (
             convert_stacktrace_frame_path_to_source_path(
-                frame=EventFrame(filename="File.java", module="sentry.module.File"),
+                frame=EventFrame(
+                    filename="File.java",
+                    module="sentry.module.File",
+                ),
                 code_mapping=self.code_mapping_file,
                 platform="java",
                 sdk_name="sentry.java",
             )
             == "src/sentry/module/File.java"
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_java_no_source_context(self) -> None:
+        code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            # XXX: Discuss support for dot notation
+            # XXX: Discuss support for forgetting a last back slash
+            stack_root="com/example/",
+            source_root="src/com/example/",
+            automatically_generated=False,
+        )
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(
+                    filename="MainActivity.java",
+                    module="com.example.vu.android.MainActivity",
+                ),
+                code_mapping=code_mapping,
+                platform="java",
+                sdk_name="sentry.java.android",
+            )
+            == "src/com/example/vu/android/MainActivity.java"
+        )
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(
+                    filename="D8$$SyntheticClass",
+                    module="com.example.vu.android.MainActivity$$ExternalSyntheticLambda4",
+                ),
+                code_mapping=code_mapping,
+                platform="java",
+                sdk_name="sentry.java.android",
+            )
+            == "src/com/example/vu/android/MainActivity.java"
         )
 
     def test_convert_stacktrace_frame_path_to_source_path_backslashes(self) -> None:

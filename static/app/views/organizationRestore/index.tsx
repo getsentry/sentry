@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';

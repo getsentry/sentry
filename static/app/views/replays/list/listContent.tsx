@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -98,7 +98,7 @@ export default function ListContent() {
         </SearchWrapper>
       </FiltersContainer>
       {allMobileProj && mobileBetaOrg ? (
-        <StyledAlert icon={<IconInfo />} showIcon>
+        <StyledAlert type="info" icon={<IconInfo />} showIcon>
           {tct(
             `[strong:Mobile Replay is now generally available.] Since your org participated in the beta, you'll have a two month grace period of unlimited usage until March 6. After that, we will only accept replay events that are included in your plan. If you'd like to increase your reserved replay quota, go to your [link:Subscription Settings] or speak to your organization owner.`,
             {
