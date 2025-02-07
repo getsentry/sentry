@@ -17,7 +17,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember, QuickStartDisplayStatus
 
 
-@extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberQuickStartDisplayEndpoint(OrganizationMemberEndpoint):
     publish_status = {
@@ -37,8 +36,8 @@ class OrganizationMemberQuickStartDisplayEndpoint(OrganizationMemberEndpoint):
             fields={
                 "quickStartDisplayStatus": serializers.ChoiceField(
                     choices=QuickStartDisplayStatus.as_choices(),
-                    default=None,
-                    required=False,
+                    required=True,
+                    allow_null=False,
                     help_text="Tracks whether the quick start guide was already shown to the user during their first and second visits.",
                 ),
             },
@@ -55,6 +54,12 @@ class OrganizationMemberQuickStartDisplayEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
+        """
+        Update the quick start display status for the current active member of an organization.
+
+        This status controls whether the quick start guide has been shown to the member
+        and is included in the response when fetching the organization's details.
+        """
 
         # Ensure the user is trying to update their own status
         if member.user_id != request.user.id:

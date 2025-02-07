@@ -114,7 +114,9 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
 
     quick_start_display_status = serializers.ChoiceField(
         choices=QuickStartDisplayStatus.as_choices(),
+        default=QuickStartDisplayStatus.INITIAL_HIDDEN.value,
         required=False,
+        allow_null=True,
         help_text="Tracks whether the quick start guide was already shown to the user during their first and second visits.",
     )
 
