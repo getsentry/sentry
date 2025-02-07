@@ -74,7 +74,8 @@ const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'
 
   ${p =>
     p.revealActions === 'hover' &&
-    css` :hover {
+    css`
+      :hover {
         background-color: ${p.theme.surface200};
         transition:
           background-color 100ms linear,
@@ -83,10 +84,10 @@ const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'
       }
 
       &:not(:hover):not(:focus-within) {
-          ${TitleHoverItems} {
-            opacity: 0;
-            ${p.theme.visuallyHidden}
-          }
+        ${TitleHoverItems} {
+          opacity: 0;
+          ${p.theme.visuallyHidden}
+        }
       }
     `}
 `;
