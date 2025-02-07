@@ -1002,7 +1002,7 @@ export function getSpanGroupBounds(
 
 export function getCumulativeAlertLevelFromErrors(
   errors?: Array<Pick<TraceError, 'level' | 'type'>>
-): keyof Theme['alert'] | undefined {
+): keyof Theme['alert'] {
   const highestErrorLevel = maxBy(
     errors || [],
     error => ERROR_LEVEL_WEIGHTS[error.level]
@@ -1013,7 +1013,7 @@ export function getCumulativeAlertLevelFromErrors(
   }
 
   if (!highestErrorLevel) {
-    return undefined;
+    return 'info';
   }
 
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
