@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
-  DEFAULT_INDEXED_INTERACTION_SORT,
+  DEFAULT_INDEXED_SPANS_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
   type SpanSampleRowWithScore,
@@ -39,7 +39,7 @@ export function useSpanSamplesWebVitalsQuery({
   ];
   const sort = useWebVitalsSort({
     sortName,
-    defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
+    defaultSort: DEFAULT_INDEXED_SPANS_SORT,
     sortableFields: filteredSortableFields as unknown as string[],
   });
 
@@ -75,12 +75,12 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.TRACE,
         SpanIndexedField.PROFILE_ID,
         SpanIndexedField.REPLAY_ID,
+        SpanIndexedField.REPLAYID,
         SpanIndexedField.USER,
         SpanIndexedField.USER_EMAIL,
         SpanIndexedField.USER_USERNAME,
         SpanIndexedField.USER_ID,
         SpanIndexedField.USER_IP,
-        SpanIndexedField.PROJECT,
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_SELF_TIME,
@@ -110,10 +110,12 @@ export function useSpanSamplesWebVitalsQuery({
                 row[SpanIndexedField.USER_IP],
                 row[SpanIndexedField.USER],
               ].find(field => field && field !== '') ?? undefined,
-            replayId: row[SpanIndexedField.REPLAY_ID],
+            replayId: [
+              row[SpanIndexedField.REPLAYID],
+              row[SpanIndexedField.REPLAY_ID],
+            ].find(id => id && id !== ''),
             'profile.id': row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
-            projectSlug: row[SpanIndexedField.PROJECT],
           };
         })
       : [];

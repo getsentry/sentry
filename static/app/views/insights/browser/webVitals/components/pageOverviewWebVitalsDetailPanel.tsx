@@ -305,21 +305,23 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignRight>{formattedValue}</AlignRight>;
     }
     if (key === 'replayId') {
-      const replayTarget = replayLinkGenerator(
-        organization,
-        {
-          replayId: row.replayId,
-          id: '', // id doesn't actually matter here. Just to satisfy type.
-          'transaction.duration': isInp
-            ? row[SpanIndexedField.SPAN_SELF_TIME]
-            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              row['transaction.duration'],
-          timestamp: row.timestamp,
-        },
-        undefined
-      );
+      const replayTarget = row.replayId
+        ? replayLinkGenerator(
+            organization,
+            {
+              replayId: row.replayId,
+              id: '', // id doesn't actually matter here. Just to satisfy type.
+              'transaction.duration': isInp
+                ? row[SpanIndexedField.SPAN_SELF_TIME]
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  row['transaction.duration'],
+              timestamp: row.timestamp,
+            },
+            undefined
+          )
+        : undefined;
 
-      return row.replayId && replayTarget && replayExists(row[key]) ? (
+      return row.replayId && replayTarget && replayExists(row.replayId) ? (
         <AlignCenter>
           <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
         </AlignCenter>

@@ -42,12 +42,11 @@ type Score = {
 
 export type SpanSampleRow = {
   'profile.id': string;
-  projectSlug: string;
-  replayId: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.TRACE]: string;
+  replayId?: string;
   'user.display'?: string;
   [SpanIndexedField.INP]?: number;
   [SpanIndexedField.CLS]?: number;
@@ -131,7 +130,7 @@ export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
   SpanIndexedField.SPAN_DESCRIPTION,
 ] as const;
 
-export const DEFAULT_INDEXED_INTERACTION_SORT: Sort = {
+export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
   kind: 'desc',
-  field: 'replay.id',
+  field: 'timestamp',
 };
