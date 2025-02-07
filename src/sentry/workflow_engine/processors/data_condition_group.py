@@ -49,9 +49,10 @@ def process_condition_group_results(
     return logic_result, condition_results
 
 
+# TODO - @saponifi3d - refactor the DataConditionGroup.Type (logic_type) so we can use it as a mypy type as well.
 def evaluate_data_conditions(
     conditions_to_evaluate: list[tuple[DataCondition, T]],
-    logic_type: DataConditionGroup.Type,
+    logic_type: str,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
@@ -95,7 +96,7 @@ def process_data_condition_group(
             "DataConditionGroup does not exist",
             extra={"id": data_condition_group_id},
         )
-        return False, [], []
+        return (False, []), []
 
     conditions = get_data_conditions_for_group(data_condition_group_id)
 
