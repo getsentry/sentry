@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -93,12 +94,20 @@ export default function Stories() {
               {story.data.map((s, _i, arr) => {
                 // We render extra information if this is the only story that is being rendered
                 if (arr.length === 1) {
-                  <Fragment key={s.filename}>
-                    <TextOverflow>{s.filename}</TextOverflow>
-                    <CopyToClipboardButton size="xs" iconSize="xs" text={s.filename} />
-                    <StorySourceLinks story={s} />
-                    <StoryExports story={s} />
-                  </Fragment>;
+                  return (
+                    <Fragment key={s.filename}>
+                      <Flex gap={space(1)} align="center" style={{paddingTop: space(2)}}>
+                        <TextOverflow>{s.filename}</TextOverflow>
+                        <CopyToClipboardButton
+                          size="xs"
+                          iconSize="xs"
+                          text={s.filename}
+                        />
+                        <StorySourceLinks story={s} />
+                      </Flex>
+                      <StoryExports story={s} />
+                    </Fragment>
+                  );
                 }
 
                 // Render just the story exports in case of multiple stories being rendered
