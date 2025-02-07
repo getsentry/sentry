@@ -4,10 +4,10 @@ __all__ = [
     "BaseGroupTypeDetectorValidator",
     "DataSourceCreator",
     "NumericComparisonConditionValidator",
-    "SnubaQueryDataSourceValidator",
+    "SnubaQueryValidator",
 ]
 
 from .data_condition import BaseDataConditionValidator, NumericComparisonConditionValidator
 from .data_source import BaseDataSourceValidator, DataSourceCreator
 from .detector import BaseGroupTypeDetectorValidator
-from .snuba_query import SnubaQueryDataSourceValidator
+from .snuba_query import SnubaQueryValidator

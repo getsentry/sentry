@@ -118,6 +118,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate_aggregate(self, value: str):
         allow_mri = features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) or features.has(
             "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
@@ -172,6 +176,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         dataset = data.setdefault("dataset", Dataset.Events)
 
         if features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) or features.has(
             "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
