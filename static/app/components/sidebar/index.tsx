@@ -91,6 +91,7 @@ import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
 
 export const SIDEBAR_COLLAPSED_WIDTH = '70px';
+export const SIDEBAR_SEMI_COLLAPSED_WIDTH = '100px';
 export const SIDEBAR_EXPANDED_WIDTH = '220px';
 export const SIDEBAR_MOBILE_HEIGHT = '54px';
 
@@ -684,7 +685,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p =>
     p.hasNewNav
-      ? SIDEBAR_COLLAPSED_WIDTH
+      ? SIDEBAR_SEMI_COLLAPSED_WIDTH
       : p.collapsed
         ? SIDEBAR_COLLAPSED_WIDTH
         : SIDEBAR_EXPANDED_WIDTH};
