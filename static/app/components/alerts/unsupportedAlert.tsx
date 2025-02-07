@@ -9,7 +9,7 @@ interface Props {
 
 export default function UnsupportedAlert({featureName, projectSlug}: Props) {
   return (
-    <Alert data-test-id="unsupported-alert" icon={<IconInfo />}>
+    <Alert data-test-id="unsupported-alert" type="info" icon={<IconInfo />}>
       {projectSlug ? (
         <strong>{t(`%s isn't available for %s.`, featureName, projectSlug)}</strong>
       ) : (

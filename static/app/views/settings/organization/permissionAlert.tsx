@@ -1,14 +1,14 @@
 import type {ReactNode} from 'react';
 
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
+import {Alert, type AlertProps} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 
-type Props = React.ComponentPropsWithoutRef<typeof Alert> & {
+interface PermissionAlertProps extends Omit<AlertProps, 'type'> {
   access?: Scope[];
   message?: ReactNode;
-};
+}
 
 function PermissionAlert({
   access = ['org:write'],
@@ -16,7 +16,7 @@ function PermissionAlert({
     'These settings can only be edited by users with the organization owner or manager role.'
   ),
   ...props
-}: Props) {
+}: PermissionAlertProps) {
   return (
     <Access access={access}>
       {({hasAccess}) =>

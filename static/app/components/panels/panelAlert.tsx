@@ -4,6 +4,7 @@ import type {AlertProps} from 'sentry/components/alert';
 import {Alert} from 'sentry/components/alert';
 
 // Margin bottom should probably be a different prop
+// @TODO(jonasbadalic): What is a panel alert, how does it differ from an alert and why do we need it?
 const PanelAlert = styled(({...props}: AlertProps) => (
   <Alert {...props} showIcon system />
 ))`

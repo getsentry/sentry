@@ -23,12 +23,12 @@ export default storyBook('Alert', story => {
         <p>
           The default <JSXNode name="Alert" /> looks like this:
         </p>
-        <Alert>Sentry is cool!!</Alert>
+        <Alert type="info">Sentry is cool!!</Alert>
         <p>
           You can even add in links, which will be nicely formatted for you inside the
           alert:
         </p>
-        <Alert>
+        <Alert type="info">
           Sentry is cool!{' '}
           <ExternalLink href="https://sentry.io/welcome/">Learn more here.</ExternalLink>
         </Alert>
