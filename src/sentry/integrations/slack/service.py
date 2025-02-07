@@ -264,8 +264,21 @@ class SlackService:
                     }
                 )
                 try:
-                    self._handle_parent_notification(
-                        parent_notification=parent_notification,
+                    if not parent_notification.message_identifier:
+                        self._logger.info(
+                            "parent notification does not have a message identifier, skipping",
+                            extra={
+                                "parent_notification_id": parent_notification.id,
+                            },
+                        )
+                        lifecycle.record_failure(
+                            "parent notification does not have a message identifier, skipping"
+                        )
+                        continue
+                    channel_id = self._get_channel_id_from_parent_notification(parent_notification)
+                    self._send_notification_to_slack_channel(
+                        channel_id=channel_id,
+                        message_identifier=parent_notification.message_identifier,
                         notification_to_send=notification_to_send,
                         client=client,
                     )
@@ -287,14 +300,11 @@ class SlackService:
                 },
             )
 
-    def _handle_parent_notification(
+    def _get_channel_id_from_parent_notification(
         self,
         parent_notification: IssueAlertNotificationMessage,
-        notification_to_send: str,
-        client: SlackSdkClient,
-    ) -> None:
-        # For each parent notification, we need to get the channel that the notification is replied to
-        # Get the channel by using the action uuid
+    ) -> str:
+        """Get the channel ID from a parent notification by looking up the rule action details."""
         if not parent_notification.rule_fire_history:
             raise RuleDataError(
                 f"parent notification {parent_notification.id} does not have a rule_fire_history"
@@ -318,17 +328,7 @@ class SlackService:
                 f"failed to get channel_id for rule {rule.id} and rule action {parent_notification.rule_action_uuid}"
             )
 
-        if not parent_notification.message_identifier:
-            raise RuleDataError(
-                f"parent notification {parent_notification.id} does not have a message_identifier"
-            )
-
-        self._send_notification_to_slack_channel(
-            channel_id=channel_id,
-            message_identifier=parent_notification.message_identifier,
-            notification_to_send=notification_to_send,
-            client=client,
-        )
+        return channel_id
 
     def _send_notification_to_slack_channel(
         self,
