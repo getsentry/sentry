@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -198,7 +198,10 @@ export function GroupSummary({
           {
             id: 'resources',
             title: t('Resources'),
-            insight: `${config.resources?.description ?? ''}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insight: `${isValidElement(config.resources?.description) ? '' : config.resources?.description ?? ''}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insightElement: isValidElement(config.resources?.description)
+              ? config.resources?.description
+              : null,
             icon: <IconDocs size="sm" />,
             showWhenLoading: true,
           },
@@ -248,17 +251,18 @@ export function GroupSummary({
                       <Placeholder height="1.5rem" />
                     </CardContent>
                   ) : (
-                    card.insight && (
-                      <CardContent
-                        dangerouslySetInnerHTML={{
-                          __html: marked(
-                            preview
-                              ? card.insight.replace(/\*\*/g, '') ?? ''
-                              : card.insight ?? ''
-                          ),
-                        }}
-                      />
-                    )
+                    <CardContent>
+                      {card.insightElement}
+                      {card.insight && (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                            ),
+                          }}
+                        />
+                      )}
+                    </CardContent>
                   )}
                 </CardContentContainer>
               </InsightCard>

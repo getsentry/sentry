@@ -166,7 +166,7 @@ const VerticalScroll = styled('main')`
  */
 const StoryMainContainer = styled(VerticalScroll)`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.panelBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
 
   grid-area: body;
