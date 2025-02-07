@@ -62,9 +62,10 @@ const MAX_FUNCTION_PARAMETERS = 4;
 const NONE = 'none';
 
 const NONE_AGGREGATE = {
+  textValue: t('field (no aggregate)'),
   label: tct('[emphasis:field (no aggregate)]', {
     emphasis: <em />,
-  }) as unknown as string,
+  }),
   value: NONE,
   trailingItems: null,
 };
@@ -361,9 +362,10 @@ function Visualize({error, setError}: VisualizeProps) {
             );
 
             let aggregateOptions: Array<{
-              label: string;
+              label: string | React.ReactNode;
               trailingItems: React.ReactNode | null;
               value: string;
+              textValue?: string;
             }> = aggregates.map(option => ({
               value: option.value.meta.name,
               label: option.value.meta.name,
