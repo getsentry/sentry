@@ -149,3 +149,21 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
             {"label": "desktop", "value": 3.0},
             {"label": "mobile", "value": 2.0},
         ]
+
+    def test_filter_query(self):
+        tags = [
+            {"broswer": "chrome", "device": "desktop"},
+            {"broswer": "chrome", "device": "mobile"},
+        ]
+
+        for tag in tags:
+            self._generate_one_span(tag)
+
+        response = self.do_request(query={"query": "device:desktop"})
+        assert response.status_code == 200, response.data
+        distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
+        assert distributions[0]["attributeName"] == "broswer"
+        # the second span has a different device value, so it should not be included in the results
+        assert distributions[0]["buckets"] == [
+            {"label": "chrome", "value": 1.0},
+        ]
