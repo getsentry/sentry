@@ -15,6 +15,10 @@ class QuerySubscriptionDeletionTask(ModelDeletionTask[QuerySubscription]):
         from sentry.snuba.models import SnubaQuery
 
         if not AlertRule.objects.filter(snuba_query_id=instance.snuba_query_id).exists():
-            return [ModelRelation(SnubaQuery, {"id": instance.snuba_query_id})]
+            if (
+                QuerySubscription.objects.filter(snuba_query_id=instance.snuba_query_id).count()
+                == 1
+            ):
+                return [ModelRelation(SnubaQuery, {"id": instance.snuba_query_id})]
 
         return []
