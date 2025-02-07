@@ -22,14 +22,14 @@ interface BusinessIconProps extends SVGIconProps {
 }
 
 const IconBusiness = forwardRef<SVGSVGElement, BusinessIconProps>(
-  ({gradient = false, withShine = false, ...props}: BusinessIconProps) => {
+  ({gradient = false, withShine = false, ...props}, ref) => {
     const uid = useMemo(() => uniqueId(), []);
     const maskId = `icon-business-mask-${uid}`;
     const gradientId = `icon-business-gradient-${uid}`;
     const shineId = `icon-business-shine-${uid}`;
 
     return (
-      <SvgIcon {...props}>
+      <SvgIcon {...props} ref={ref}>
         <mask id={maskId}>
           <path
             fill="white"
