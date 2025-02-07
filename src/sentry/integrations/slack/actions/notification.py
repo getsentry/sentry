@@ -27,6 +27,7 @@ from sentry.integrations.repository.issue_alert import (
     NewIssueAlertNotificationMessage,
 )
 from sentry.integrations.repository.notification_action import (
+    NewNotificationActionNotificationMessage,
     NotificationActionNotificationMessageRepository,
 )
 from sentry.integrations.services.integration import RpcIntegration
@@ -53,6 +54,7 @@ from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
+from sentry.workflow_engine.models.action import Action
 
 _default_logger: Logger = getLogger(__name__)
 
@@ -266,10 +268,178 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             self.record_notification_sent(event, channel, rule, notification_uuid)
 
+        def send_notification_noa(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
+            rules = [f.rule for f in futures]
+            additional_attachment = get_additional_attachment(
+                integration, self.project.organization
+            )
+            blocks = SlackIssuesMessageBuilder(
+                group=event.group,
+                event=event,
+                tags=tags,
+                rules=rules,
+                notes=self.get_option("notes", ""),
+            ).build(notification_uuid=notification_uuid)
+
+            if additional_attachment:
+                for block in additional_attachment:
+                    blocks["blocks"].append(block)
+
+            if payload_blocks := blocks.get("blocks"):
+                json_blocks = orjson.dumps(payload_blocks).decode()
+
+            rule = rules[0] if rules else None
+            rule_to_use = self.rule if self.rule else rule
+            # In the NOA, we will store the action id in the rule id field
+            action_id = rule_to_use.id if rule_to_use else None
+
+            if not action_id:
+                # We are logging because this should never happen, all actions should have an uuid
+                # We can monitor for this, and create an alert if this ever appears
+                _default_logger.info(
+                    "No action id found in the rule future",
+                )
+                return
+
+            try:
+                action = Action.objects.get(id=action_id)
+            except Action.DoesNotExist:
+                _default_logger.info(
+                    "Action not found",
+                    extra={
+                        "action_id": action_id,
+                    },
+                )
+                return
+
+            new_notification_message_object = NewNotificationActionNotificationMessage(
+                action_id=action_id,
+                group_id=event.group.id,
+            )
+
+            open_period_start: datetime | None = None
+            if (
+                event.group.issue_category == GroupCategory.UPTIME
+                or event.group.issue_category == GroupCategory.METRIC_ALERT
+            ):
+                open_period_start = open_period_start_for_group(event.group)
+                new_notification_message_object.open_period_start = open_period_start
+
+            def get_thread_ts(lifecycle: EventLifecycle) -> str | None:
+                """Find the thread in which to post this notification as a reply.
+
+                Return None to post the notification as a top-level message.
+                """
+
+                if not (
+                    OrganizationOption.objects.get_value(
+                        organization=self.project.organization,
+                        key="sentry:issue_alerts_thread_flag",
+                        default=ISSUE_ALERTS_THREAD_DEFAULT,
+                    )
+                ):
+                    return None
+
+                try:
+                    parent_notification_message = (
+                        self._action_repository.get_parent_notification_message(
+                            action=action,
+                            group=event.group,
+                            open_period_start=open_period_start,
+                        )
+                    )
+                except Exception as e:
+                    lifecycle.record_halt(e)
+                    return None
+
+                if parent_notification_message is None:
+                    return None
+
+                new_notification_message_object.parent_notification_message_id = (
+                    parent_notification_message.id
+                )
+                return parent_notification_message.message_identifier
+
+            with MessagingInteractionEvent(
+                MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
+            ).capture() as lifecycle:
+                thread_ts = get_thread_ts(lifecycle)
+
+            # If this flow is triggered again for the same issue, we want it to be seen in the main channel
+            reply_broadcast = thread_ts is not None
+
+            client = SlackSdkClient(integration_id=integration.id)
+            text = str(blocks.get("text"))
+            # Wrap the Slack API call with lifecycle tracking
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                try:
+                    response = client.chat_postMessage(
+                        blocks=json_blocks,
+                        text=text,
+                        channel=channel,
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        thread_ts=thread_ts,
+                        reply_broadcast=reply_broadcast,
+                    )
+                except SlackApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.response.status_code
+                    new_notification_message_object.error_details = {
+                        "msg": str(e),
+                        "data": e.response.data,
+                        "url": e.response.api_url,
+                    }
+
+                    log_params: dict[str, str | int] = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "payload": json_blocks,
+                    }
+                    if self.get_option("channel"):
+                        log_params["channel_name"] = self.get_option("channel")
+
+                    lifecycle.add_extras(log_params)
+                    record_lifecycle_termination_level(lifecycle, e)
+                else:
+                    ts = response.get("ts")
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
+
+                try:
+                    self._action_repository.create_notification_message(
+                        data=new_notification_message_object
+                    )
+                except NotificationMessageValidationError as err:
+                    extra = (
+                        new_notification_message_object.__dict__
+                        if new_notification_message_object
+                        else None
+                    )
+                    _default_logger.info(
+                        "Validation error for new notification message", exc_info=err, extra=extra
+                    )
+                except Exception:
+                    # if there's an error trying to save a notification message, don't let that error block this flow
+                    # we already log at the repository layer, no need to log again here
+                    pass
+
+            self.record_notification_sent(event, channel, rule, notification_uuid)
+
         key = f"slack:{integration.id}:{channel}"
 
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
-        yield self.future(send_notification, key=key)
+        if features.has(
+            "organizations:workflow-engine-notification-action", self.project.organization
+        ):
+            yield self.future(send_notification_noa, key=key)
+        else:
+            yield self.future(send_notification, key=key)
 
     def send_confirmation_notification(
         self, rule: Rule, new: bool, changed: dict[str, Any] | None = None
