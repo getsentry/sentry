@@ -1052,8 +1052,6 @@ const commonTheme = {
     },
   },
 
-  grid: 8,
-
   borderRadius: '6px',
 
   // @TODO(jonasbadalic) This should exist their respective components
