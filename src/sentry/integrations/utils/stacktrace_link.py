@@ -75,6 +75,7 @@ class StacktraceLinkConfig(TypedDict):
 class StacktraceLinkOutcome(TypedDict):
     source_url: str | None
     error: str | None
+    src_path: str | None
     current_config: StacktraceLinkConfig | None
     iteration_count: int
 
@@ -86,6 +87,7 @@ def get_stacktrace_config(
     result: StacktraceLinkOutcome = {
         "source_url": None,
         "error": None,
+        "src_path": None,
         "current_config": None,
         "iteration_count": 0,
     }
@@ -96,7 +98,7 @@ def get_stacktrace_config(
             sdk_name=ctx["sdk_name"],
             code_mapping=config,
         )
-
+        result["src_path"] = src_path
         if not src_path:
             result["error"] = "stack_root_mismatch"
             continue
