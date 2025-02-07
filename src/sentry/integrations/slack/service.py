@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from copy import copy
 from logging import Logger, getLogger
 from typing import Any
@@ -227,6 +227,9 @@ class SlackService:
             )
 
             use_open_period_start = False
+            parent_notifications: Generator[
+                NotificationActionNotificationMessage | IssueAlertNotificationMessage
+            ]
             if (
                 features.has(
                     "organizations:slack-threads-refactor-uptime",
