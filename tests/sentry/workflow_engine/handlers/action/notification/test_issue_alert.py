@@ -43,7 +43,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector)
 
         assert isinstance(rule, Rule)
-        assert rule.id == self.detector.id
+        assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.label == self.detector.name
         assert rule.data == {
