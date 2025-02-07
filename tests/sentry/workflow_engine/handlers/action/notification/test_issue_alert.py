@@ -8,6 +8,10 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     BaseIssueAlertHandler,
     DiscordIssueAlertHandler,
+    MSTeamsIssueAlertHandler,
+    OpsgenieIssueAlertHandler,
+    PagerDutyIssueAlertHandler,
+    SlackIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
@@ -74,6 +78,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
+
+    def test_create_rule_instance_from_action_missing_action_properties_raises_value_error(self):
+        action = self.create_action(type=Action.Type.DISCORD)
+        with pytest.raises(ValueError):
+            self.handler.create_rule_instance_from_action(action, self.detector, self.job)
 
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
@@ -162,4 +171,137 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
             "server": "1234567890",
             "channel_id": "channel456",
             "tags": "",
+        }
+
+
+class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = MSTeamsIssueAlertHandler()
+        self.action = self.create_action(
+            type=Action.Type.MSTEAMS,
+            integration_id="1234567890",
+            target_identifier="channel789",
+            target_display="General Channel",
+        )
+
+    def test_build_rule_action_blob(self):
+        """Test that build_rule_action_blob creates correct MSTeams action data"""
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+            "team": "1234567890",
+            "channel_id": "channel789",
+            "channel": "General Channel",
+        }
+
+
+class TestSlackIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = SlackIssueAlertHandler()
+        self.action = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id="1234567890",
+            target_identifier="channel789",
+            target_display="#general",
+            data={"tags": "environment,user", "notes": "Important alert"},
+        )
+
+    def test_build_rule_action_blob(self):
+        """Test that build_rule_action_blob creates correct Slack action data"""
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+            "workspace": "1234567890",
+            "channel_id": "channel789",
+            "channel": "#general",
+            "tags": "environment,user",
+            "notes": "Important alert",
+        }
+
+    def test_build_rule_action_blob_no_data(self):
+        """Test that build_rule_action_blob handles missing data"""
+        self.action.data = {}
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+            "workspace": "1234567890",
+            "channel_id": "channel789",
+            "channel": "#general",
+            "tags": "",
+            "notes": "",
+        }
+
+
+class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = PagerDutyIssueAlertHandler()
+        self.action = self.create_action(
+            type=Action.Type.PAGERDUTY,
+            integration_id="1234567890",
+            target_identifier="service789",
+            data={"priority": "P1"},
+        )
+
+    def test_build_rule_action_blob(self):
+        """Test that build_rule_action_blob creates correct PagerDuty action data"""
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+            "account": "1234567890",
+            "service": "service789",
+            "severity": "P1",
+        }
+
+    def test_build_rule_action_blob_no_priority(self):
+        """Test that build_rule_action_blob handles missing priority"""
+        self.action.data = {}
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+            "account": "1234567890",
+            "service": "service789",
+            "severity": "",
+        }
+
+
+class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = OpsgenieIssueAlertHandler()
+        self.action = self.create_action(
+            type=Action.Type.OPSGENIE,
+            integration_id="1234567890",
+            target_identifier="team789",
+            data={"priority": "P1"},
+        )
+
+    def test_build_rule_action_blob(self):
+        """Test that build_rule_action_blob creates correct Opsgenie action data"""
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+            "account": "1234567890",
+            "team": "team789",
+            "priority": "P1",
+        }
+
+    def test_build_rule_action_blob_no_priority(self):
+        """Test that build_rule_action_blob handles missing priority"""
+        self.action.data = {}
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+            "account": "1234567890",
+            "team": "team789",
+            "priority": "",
         }
