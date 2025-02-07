@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 from typing import Any
 
@@ -10,6 +11,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
@@ -30,6 +33,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +81,71 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
             return None
     else:
         return Action.Type.EMAIL
+
+
+def build_sentry_app_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction,
+) -> dict[str, Any]:
+    if not alert_rule_trigger_action.sentry_app_config:
+        return {}
+    # Convert config to proper type for SentryAppDataBlob
+    settings = (
+        [alert_rule_trigger_action.sentry_app_config]
+        if isinstance(alert_rule_trigger_action.sentry_app_config, dict)
+        else alert_rule_trigger_action.sentry_app_config
+    )
+    return dataclasses.asdict(SentryAppDataBlob.from_list(settings))
+
+
+def build_on_call_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> dict[str, Any]:
+    default_priority = (
+        OPSGENIE_DEFAULT_PRIORITY
+        if action_type == Action.Type.OPSGENIE
+        else PAGERDUTY_DEFAULT_SEVERITY
+    )
+
+    if not alert_rule_trigger_action.sentry_app_config:
+        return {"priority": default_priority}
+
+    # Ensure sentry_app_config is a dict before accessing
+    config = alert_rule_trigger_action.sentry_app_config
+    if not isinstance(config, dict):
+        return {"priority": default_priority}
+
+    priority = config.get("priority", default_priority)
+    return dataclasses.asdict(OnCallDataBlob(priority=priority))
+
+
+def build_action_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> dict[str, Any]:
+    # if the action is a Sentry app, we need to get the Sentry app installation ID
+    if action_type == Action.Type.SENTRY_APP:
+        return build_sentry_app_data_blob(alert_rule_trigger_action)
+    elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
+        return build_on_call_data_blob(alert_rule_trigger_action, action_type)
+    else:
+        return {
+            "type": alert_rule_trigger_action.type,
+            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
+            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
+        }
+
+
+def get_target_identifier(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> str | None:
+    if action_type == Action.Type.SENTRY_APP:
+        # Ensure we have a valid sentry_app_id
+        if not alert_rule_trigger_action.sentry_app_id:
+            raise InvalidActionType(
+                f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
+            )
+        return str(alert_rule_trigger_action.sentry_app_id)
+    # Ensure we have a valid target_identifier
+    return alert_rule_trigger_action.target_identifier
 
 
 def get_detector_trigger(
@@ -147,17 +216,17 @@ def migrate_metric_action(
         )
         return None
 
-    data = {
-        "type": alert_rule_trigger_action.type,
-        "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-        "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-    }
+    # Ensure action_type is Action.Type before passing to functions
+    action_type_enum = Action.Type(action_type)
+    data = build_action_data_blob(alert_rule_trigger_action, action_type_enum)
+    target_identifier = get_target_identifier(alert_rule_trigger_action, action_type_enum)
+
     action = Action.objects.create(
-        type=action_type,
+        type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
-        target_identifier=alert_rule_trigger_action.target_identifier,
+        target_identifier=target_identifier,
         target_type=alert_rule_trigger_action.target_type,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
