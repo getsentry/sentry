@@ -1764,8 +1764,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
 
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
-    """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
-
     is_eap = True
     use_rpc = True
 
