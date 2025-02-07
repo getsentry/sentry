@@ -143,7 +143,6 @@ module = [
     "sentry.api.serializers.models.event",
     "sentry.auth.helper",
     "sentry.auth.provider",
-    "sentry.auth.system",
     "sentry.db.mixin",
     "sentry.db.postgres.base",
     "sentry.discover.endpoints.discover_key_transactions",

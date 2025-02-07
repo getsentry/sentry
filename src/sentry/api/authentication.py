@@ -416,7 +416,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if token.is_expired():
             raise AuthenticationFailed("Token expired")
 
-        if user and hasattr(user, "is_active") and not user.is_active:
+        if not isinstance(token, SystemToken) and user and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
         if application_is_inactive:
