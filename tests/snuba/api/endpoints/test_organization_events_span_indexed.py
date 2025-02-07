@@ -1166,6 +1166,28 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             },
         ]
 
+    def test_query_with_asterisk(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "select * from database"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"select \\* from database"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["span.description"] == "select * from database"
+
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
