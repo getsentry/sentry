@@ -143,7 +143,17 @@ export function transformToSeriesMap(
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
     const processedResults: Array<[number, TimeseriesData]> = Object.keys(result).map(
-      seriesName => convertEventsStatsToTimeSeriesData(seriesName, result[seriesName]!)
+      seriesOrGroupName => {
+        // If this is a single-axis top N result, the keys in the response are
+        // group names. The field name is the first (and only) Y axis. If it's a
+        // multi-axis non-top-N result, the keys are the axis names. Figure out
+        // the field name and the group name (if different) and format accordingly
+        return convertEventsStatsToTimeSeriesData(
+          hasMultipleYAxes ? seriesOrGroupName : yAxis[0]!,
+          result[seriesOrGroupName]!,
+          hasMultipleYAxes ? undefined : seriesOrGroupName
+        );
+      }
     );
 
     if (!hasMultipleYAxes) {
@@ -177,17 +187,18 @@ export function transformToSeriesMap(
 
   return processedResults
     .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .reduce((acc, [seriesName, , groupData]) => {
-      Object.keys(groupData).forEach(aggFunctionAlias => {
+    .reduce((acc, [groupName, , groupData]) => {
+      Object.keys(groupData).forEach(seriesName => {
         const [, series] = convertEventsStatsToTimeSeriesData(
           seriesName,
-          groupData[aggFunctionAlias]!
+          groupData[seriesName]!,
+          groupName
         );
 
-        if (!acc[aggFunctionAlias]) {
-          acc[aggFunctionAlias] = [series];
+        if (!acc[seriesName]) {
+          acc[seriesName] = [series];
         } else {
-          acc[aggFunctionAlias].push(series);
+          acc[seriesName].push(series);
         }
       });
       return acc;
@@ -196,17 +207,24 @@ export function transformToSeriesMap(
 
 function convertEventsStatsToTimeSeriesData(
   seriesName: string,
-  seriesData: EventsStats
+  seriesData: EventsStats,
+  alias?: string
 ): [number, TimeseriesData] {
+  const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
+
   const serie: TimeseriesData = {
-    field: seriesName || FALLBACK_SERIES_NAME,
+    field: label,
     data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
       timestamp: new Date(timestamp * 1000).toISOString(),
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      fields: seriesData.meta?.fields ?? {},
-      units: seriesData.meta?.units ?? {},
+      fields: {
+        [label]: seriesData.meta?.fields?.[seriesName]!,
+      },
+      units: {
+        [label]: seriesData.meta?.units?.[seriesName]!,
+      },
     },
     confidence: determineSeriesConfidence(seriesData),
   };
