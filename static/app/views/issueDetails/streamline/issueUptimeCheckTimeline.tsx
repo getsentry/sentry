@@ -1,5 +1,4 @@
-import {useRef} from 'react';
-import {useTheme} from '@emotion/react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
@@ -14,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -23,7 +23,6 @@ import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptim
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function IssueUptimeCheckTimeline() {
-  const theme = useTheme();
   const {detectorDetails} = useIssueDetails();
   const {detectorId, detectorType} = detectorDetails;
   const elementRef = useRef<HTMLDivElement>(null);
@@ -36,34 +35,35 @@ export function IssueUptimeCheckTimeline() {
     timeWindowConfig,
   });
 
+  const legendStatuses = useMemo(() => {
+    const hasUnknownStatus =
+      detectorId &&
+      uptimeStats?.[detectorId]?.some(
+        ([_, stats]) => stats[CheckStatus.MISSED_WINDOW] > 0
+      );
+    return [CheckStatus.SUCCESS, CheckStatus.MISSED_WINDOW, CheckStatus.FAILURE].filter(
+      status => (hasUnknownStatus ? true : status !== CheckStatus.MISSED_WINDOW)
+    );
+  }, [detectorId, uptimeStats]);
+
   return (
     <ChartContainer>
-      <GridLineOverlay
-        stickyCursor
-        allowZoom
-        showCursor
-        timeWindowConfig={timeWindowConfig}
-        gridLineStyles={{
-          border: 'none',
-          height: space(0.5),
-          width: 1,
-          borderRadius: 1,
-          background: theme.translucentBorder,
-          top: 68,
-        }}
-        underscanStyles={{
-          margin: 0,
-          height: '100%',
-        }}
-      />
       <TimelineLegend ref={elementRef}>
-        {checkStatusPrecedent.map(status => (
+        {legendStatuses.map(status => (
           <Flex align="center" gap={space(0.5)} key={status}>
             <CheckIndicator status={status} width={8} />
             <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
           </Flex>
         ))}
       </TimelineLegend>
+      <GridLineOverlay
+        stickyCursor
+        allowZoom
+        showCursor
+        timeWindowConfig={timeWindowConfig}
+        labelPosition="center-bottom"
+      />
+      <GridLineLabels timeWindowConfig={timeWindowConfig} labelPosition="center-bottom" />
       <TimelineContainer>
         {isPending ? (
           <CheckInPlaceholder />
@@ -77,7 +77,6 @@ export function IssueUptimeCheckTimeline() {
           />
         )}
       </TimelineContainer>
-      <TimelineLabels timeWindowConfig={timeWindowConfig} centered />
     </ChartContainer>
   );
 }
@@ -89,12 +88,12 @@ const ChartContainer = styled('div')`
 `;
 
 const TimelineLegend = styled('div')`
-  display: flex;
-  gap: ${space(1)};
   position: absolute;
   width: 100%;
-  margin-top: ${space(1.5)};
   user-select: none;
+  display: flex;
+  gap: ${space(1)};
+  margin-top: ${space(1.5)};
 `;
 
 const TimelineLegendText = styled('div')`
@@ -105,21 +104,4 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
-`;
-
-const TimelineLabels = styled(GridLineLabels)`
-  border-top: 1px solid ${p => p.theme.translucentBorder};
-  height: 24px;
-  box-shadow: none;
-  top: 68px;
-  &:before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: 0;
-    height: ${space(0.5)};
-    width: 1px;
-    border-radius: 1px;
-    background: ${p => p.theme.translucentBorder};
-  }
 `;
