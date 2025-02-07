@@ -994,16 +994,14 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.issues.auto_source_code_config.constants import SUPPORTED_LANGUAGES
-    from sentry.tasks.auto_source_code_config import auto_source_code_config
+    from sentry.tasks.auto_source_code_config import auto_source_code_config, event_can_be_processed
 
     try:
         event = job["event"]
         project = event.project
         group_id = event.group_id
 
-        # Supported platforms
-        if event.data.get("platform") not in SUPPORTED_LANGUAGES:
+        if not event_can_be_processed(event):
             return
 
         # To limit the overall number of tasks, only process one issue per project per hour. In
