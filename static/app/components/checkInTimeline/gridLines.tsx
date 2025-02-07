@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
@@ -270,8 +271,12 @@ const TimeLabelContainer = styled(Gridline)<{isCentered?: boolean}>`
   height: 100%;
   align-items: center;
   border-left: none;
-  padding-left: ${p => (p.isCentered ? space(1) : 0)};
-  transform: ${p => (p.isCentered ? 'translateX(-50%)' : 'none')};
+  ${p =>
+    p.isCentered &&
+    css`
+      padding-left: ${space(1)};
+      transform: translateX(-50%);
+    `}
 `;
 
 const TimeLabel = styled(DateTime)`

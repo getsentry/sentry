@@ -9,11 +9,11 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {getTickStyle} from 'sentry/components/checkInTimeline/utils/getTickStyle';
 import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -38,7 +38,7 @@ export function IssueUptimeCheckTimeline() {
 
   return (
     <ChartContainer>
-      <TimelineGridLineOverlay
+      <GridLineOverlay
         stickyCursor
         allowZoom
         showCursor
@@ -59,7 +59,7 @@ export function IssueUptimeCheckTimeline() {
       <TimelineLegend ref={elementRef}>
         {checkStatusPrecedent.map(status => (
           <Flex align="center" gap={space(0.5)} key={status}>
-            <Circle css={getTickStyle(tickStyle, status, theme)} />
+            <CheckIndicator status={status} width={8} />
             <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
           </Flex>
         ))}
@@ -83,15 +83,10 @@ export function IssueUptimeCheckTimeline() {
 }
 
 const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
+  position: relative;
   min-height: 104px;
   width: 100%;
-  position: relative;
 `;
-
-const TimelineGridLineOverlay = styled(GridLineOverlay)``;
 
 const TimelineLegend = styled('div')`
   display: flex;
@@ -127,10 +122,4 @@ const TimelineLabels = styled(GridLineLabels)`
     border-radius: 1px;
     background: ${p => p.theme.translucentBorder};
   }
-`;
-
-const Circle = styled('div')`
-  height: ${space(1)};
-  width: ${space(1)};
-  border-radius: 50%;
 `;
