@@ -1,19 +1,26 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   DEFAULT_INDEXED_INTERACTION_SORT,
-  type InteractionSpanSampleRowWithScore,
+  SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
+  type SpanSampleRowWithScore,
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
-export function useInpSpanSamplesWebVitalsQuery({
+export const INTERACTION_SPANS_FILTER =
+  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]';
+
+export const SPANS_FILTER =
+  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvitals.lcp,ui.webvitals.cls,pageload] (!measurements.score.weight.inp:0 OR !measurements.score.weight.lcp:0 OR !measurements.score.weight.cls:0)';
+
+export function useSpanSamplesWebVitalsQuery({
   transaction,
   limit,
   enabled,
-  filters = {},
+  filter = SPANS_FILTER,
   sortName,
   browserTypes,
   subregions,
@@ -21,12 +28,15 @@ export function useInpSpanSamplesWebVitalsQuery({
   limit: number;
   browserTypes?: BrowserType[];
   enabled?: boolean;
-  filters?: {[key: string]: string[] | string | number | undefined};
+  filter?: string;
   sortName?: string;
   subregions?: SubregionCode[];
   transaction?: string;
 }) {
-  const filteredSortableFields = SORTABLE_INDEXED_INTERACTION_FIELDS;
+  const filteredSortableFields = [
+    ...SORTABLE_INDEXED_FIELDS,
+    ...SORTABLE_INDEXED_INTERACTION_FIELDS,
+  ];
   const sort = useWebVitalsSort({
     sortName,
     defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
@@ -36,12 +46,9 @@ export function useInpSpanSamplesWebVitalsQuery({
   const mutableSearch = MutableSearch.fromQueryObject({
     has: 'message',
     [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
-    'span.op': 'ui.interaction.click',
-    'measurements.score.weight.inp': '>0',
-    ...filters,
   });
   if (transaction !== undefined) {
-    mutableSearch.addFilterValue(SpanIndexedField.ORIGIN_TRANSACTION, transaction);
+    mutableSearch.addFilterValue(SpanIndexedField.TRANSACTION, transaction);
   }
   if (browserTypes) {
     mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
@@ -55,44 +62,57 @@ export function useInpSpanSamplesWebVitalsQuery({
 
   const {data, isPending, ...rest} = useSpansIndexed(
     {
-      search: mutableSearch,
+      search: `${mutableSearch.formatString()} ${filter}`,
       sorts: [sort],
       fields: [
         SpanIndexedField.INP,
+        SpanIndexedField.LCP,
+        SpanIndexedField.CLS,
         SpanIndexedField.INP_SCORE,
-        SpanIndexedField.INP_SCORE_WEIGHT,
+        SpanIndexedField.LCP_SCORE,
+        SpanIndexedField.CLS_SCORE,
         SpanIndexedField.TOTAL_SCORE,
-        SpanIndexedField.ID,
-        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.TRACE,
         SpanIndexedField.PROFILE_ID,
         SpanIndexedField.REPLAY_ID,
         SpanIndexedField.USER,
-        SpanIndexedField.ORIGIN_TRANSACTION,
+        SpanIndexedField.USER_EMAIL,
+        SpanIndexedField.USER_USERNAME,
+        SpanIndexedField.USER_ID,
+        SpanIndexedField.USER_IP,
         SpanIndexedField.PROJECT,
-        SpanIndexedField.BROWSER_NAME,
-        SpanIndexedField.SPAN_SELF_TIME,
         SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_SELF_TIME,
+        SpanIndexedField.TRANSACTION,
       ],
       enabled,
       limit,
     },
     'api.performance.browser.web-vitals.spans'
   );
-  const tableData: InteractionSpanSampleRowWithScore[] =
+  const tableData: SpanSampleRowWithScore[] =
     !isPending && data?.length
       ? data.map(row => {
           return {
             ...row,
-            'measurements.inp': row[SpanIndexedField.INP],
-            'user.display': row[SpanIndexedField.USER],
+            'measurements.inp':
+              row[SpanIndexedField.INP_SCORE] > 0 ? row[SpanIndexedField.INP] : undefined,
+            'measurements.lcp':
+              row[SpanIndexedField.LCP_SCORE] > 0 ? row[SpanIndexedField.LCP] : undefined,
+            'measurements.cls':
+              row[SpanIndexedField.CLS_SCORE] > 0 ? row[SpanIndexedField.CLS] : undefined,
+            'user.display':
+              [
+                row[SpanIndexedField.USER_EMAIL],
+                row[SpanIndexedField.USER_USERNAME],
+                row[SpanIndexedField.USER_ID],
+                row[SpanIndexedField.USER_IP],
+                row[SpanIndexedField.USER],
+              ].find(field => field && field !== '') ?? undefined,
             replayId: row[SpanIndexedField.REPLAY_ID],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
-            inpScore: Math.round(
-              ((row[`measurements.score.inp`] ?? 0) /
-                (row[`measurements.score.weight.inp`] ?? 0)) *
-                100
-            ),
-            totalScore: Math.round(row[`measurements.score.total`] ?? 0),
+            totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
             projectSlug: row[SpanIndexedField.PROJECT],
           };
         })

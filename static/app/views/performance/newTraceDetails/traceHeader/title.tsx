@@ -8,14 +8,15 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {TraceTree} from '../traceModels/traceTree';
+import {TraceShape, type TraceTree} from '../traceModels/traceTree';
 
 interface TitleProps {
   representativeTransaction: TraceTree.Transaction | null;
   traceSlug: string;
+  tree: TraceTree;
 }
 
-export function Title({traceSlug, representativeTransaction}: TitleProps) {
+export function Title({tree, traceSlug, representativeTransaction}: TitleProps) {
   const traceTitle = representativeTransaction
     ? {
         op: representativeTransaction['transaction.op'],
@@ -64,7 +65,11 @@ export function Title({traceSlug, representativeTransaction}: TitleProps) {
           position="right"
           isHoverable
         >
-          <strong>{t('Missing Trace Root')}</strong>
+          <strong>
+            {tree.shape === TraceShape.ONLY_ERRORS
+              ? t('Missing Trace Spans')
+              : t('Missing Trace Root')}
+          </strong>
         </Tooltip>
       )}
       <SubtitleText>
