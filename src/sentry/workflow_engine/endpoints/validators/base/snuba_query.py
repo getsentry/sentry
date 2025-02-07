@@ -53,8 +53,20 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
     time_window = serializers.IntegerField(required=True)
     environment = EnvironmentField(required=True, allow_null=True)
     event_types = serializers.ListField(
-        child=serializers.IntegerField(),
+        child=serializers.CharField(),
     )
+
+    class Meta:
+        model = QuerySubscription
+        fields = [
+            "query_type",
+            "dataset",
+            "query",
+            "aggregate",
+            "time_window",
+            "environment",
+            "event_types",
+        ]
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
 
@@ -65,12 +77,6 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
             raise serializers.ValidationError(f"Invalid query type {value}")
 
     def validate_dataset(self, value: str) -> Dataset:
-        # try:
-        #     return Dataset(value)
-        # except ValueError:
-        #     raise serializers.ValidationError(
-        #         f"Invalid dataset {value}. Must be one of: {', '.join(Dataset.__members__)}"
-        #     )
         try:
             value = Dataset(value)
             if value in [Dataset.PerformanceMetrics, Dataset.Transactions]:
@@ -121,11 +127,6 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
         return translate_aggregate_field(value, allow_mri=allow_mri)
 
     def validate_event_types(self, value: Sequence[int]) -> list[SnubaQueryEventType.EventType]:
-        # try:
-        #     return [SnubaQueryEventType.EventType(t) for t in value]
-        # except ValueError:
-        #     raise serializers.ValidationError(f"Invalid event type: {value}")
-
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
         except KeyError:
@@ -135,12 +136,8 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def validate(self, data):
-        # data = super().validate(data)
-
+        data = super().validate(data)
         self._validate_query(data)
-        dataset = data.setdefault("dataset", Dataset.Events)
-        dataset = Dataset(data["dataset"].value)
-        self._validate_time_window(data.get("time_window"), dataset)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -273,7 +270,7 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
-        return timedelta(minutes=value)
+        return value
 
     def _validate_performance_dataset(self, dataset):
         if dataset != Dataset.Transactions:
@@ -305,7 +302,7 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
             dataset=validated_data["dataset"],
             query=validated_data["query"],
             aggregate=validated_data["aggregate"],
-            time_window=validated_data["time_window"],
+            time_window=timedelta(minutes=validated_data["time_window"]),
             resolution=timedelta(minutes=1),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],

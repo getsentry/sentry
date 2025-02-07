@@ -281,7 +281,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
                 "aggregate": "count()",
                 "time_window": 60,
                 "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.value],
+                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "data_conditions": [
                 {
@@ -415,6 +415,13 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
     field1 = serializers.CharField()
     field2 = serializers.IntegerField()
     data_source_type_handler = QuerySubscriptionDataSourceHandler
+
+    class Meta:
+        model = MockModel
+        fields = [
+            "field1",
+            "field2",
+        ]
 
     def create_source(self, validated_data) -> MockModel:
         return MockModel.objects.create()
