@@ -158,10 +158,14 @@ def _assert_and_snapshot_results(
         assert metric_names == expected_metric_names
 
     # Convert any fingerprint value from json to a string before jsonifying the entire metadata dict
-    # to avoid a bunch of escaping which would be caused by double jsonification
+    # below to avoid a bunch of escaping which would be caused by double jsonification
+    _hashing_metadata: Any = hashing_metadata  # Alias for typing purposes
     if "fingerprint" in hashing_metadata:
-        _hashing_metadata: Any = hashing_metadata  # Alias for typing purposes
         _hashing_metadata["fingerprint"] = str(json.loads(_hashing_metadata["fingerprint"]))
+    if "client_fingerprint" in hashing_metadata:
+        _hashing_metadata["client_fingerprint"] = str(
+            json.loads(_hashing_metadata["client_fingerprint"])
+        )
 
     lines.append("hash_basis: %s" % hash_basis)
     lines.append("hashing_metadata: %s" % to_json(hashing_metadata, pretty_print=True))

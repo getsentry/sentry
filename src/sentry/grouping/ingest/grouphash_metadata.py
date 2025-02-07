@@ -335,7 +335,7 @@ def _get_fingerprint_hashing_metadata(
     if matched_rule:
         metadata["matched_fingerprinting_rule"] = matched_rule["text"]
     if client_fingerprint:
-        metadata["client_fingerprint"] = str(client_fingerprint)
+        metadata["client_fingerprint"] = json.dumps(client_fingerprint)
 
     return metadata
 
