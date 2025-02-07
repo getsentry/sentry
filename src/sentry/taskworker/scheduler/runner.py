@@ -157,6 +157,9 @@ class ScheduleRunner:
         """
         self._update_heap()
 
+        if not self._heap:
+            return 60
+
         while True:
             # Peek at the top, and if it is due, pop, spawn and update last run time
             _, entry = self._heap[0]
