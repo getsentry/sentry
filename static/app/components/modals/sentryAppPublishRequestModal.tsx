@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const INTEGRATION_CATEGORIES: Array<[string, string]> = [
   ['notifications', 'Notifications & Incidents'],
@@ -75,6 +76,7 @@ type Props = ModalRenderProps & {
 export default function SentryAppPublishRequestModal(props: Props) {
   const [form] = useState<FormModel>(() => new FormModel({transformData}));
   const {app, closeModal, Header, Body} = props;
+  const organization = useOrganization();
 
   const formFields = () => {
     const permissions = getPermissionSelectionsFromScopes(app.scopes);
@@ -99,7 +101,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
     );
 
     // No translations since we need to be able to read this email :)
-    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
+    let baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -163,19 +165,50 @@ export default function SentryAppPublishRequestModal(props: Props) {
       },
     ];
 
-    // Only add the permissions question if there are perms to add
-    if (permissions.length > 0) {
-      baseFields.push({
-        type: 'textarea',
-        required: true,
-        label: permissionLabel,
-        labelText: permissionQuestionPlainText,
-        autosize: true,
-        rows: 1,
-        inline: false,
-        meta: permissionQuestionPlainText,
-        name: 'question5',
-      });
+    if (!organization.features.includes(`organizations:streamlined-publishing-flow`)) {
+      baseFields = [
+        {
+          type: 'textarea',
+          required: true,
+          label: 'What does your integration do? Please be as detailed as possible.',
+          autosize: true,
+          rows: 1,
+          inline: false,
+          name: 'question0',
+        },
+        {
+          type: 'textarea',
+          required: true,
+          label: 'What value does it offer customers?',
+          autosize: true,
+          rows: 1,
+          inline: false,
+          name: 'question1',
+        },
+        {
+          type: 'textarea',
+          required: true,
+          label: 'Do you operate the web service your integration communicates with?',
+          autosize: true,
+          rows: 1,
+          inline: false,
+          name: 'question2',
+        },
+      ];
+      // Only add the permissions question if there are perms to add
+      if (permissions.length > 0) {
+        baseFields.push({
+          type: 'textarea',
+          required: true,
+          label: permissionLabel,
+          labelText: permissionQuestionPlainText,
+          autosize: true,
+          rows: 1,
+          inline: false,
+          meta: permissionQuestionPlainText,
+          name: 'question5',
+        });
+      }
     }
 
     return baseFields;
