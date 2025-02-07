@@ -188,6 +188,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   'screen-rendering': t('Domain'),
   'mobile-ui': t('Domain'),
   'mobile-vitals': t('Domain'),
+  sessions: t('Domain'),
 };
 
 function getEventView(

@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/insights/pages/useFilters';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
+import {BASE_URL as SESSIONS_BASE_URL} from 'sentry/views/insights/sessions/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {BASE_URL as UPTIME_BASE_URL} from 'sentry/views/insights/uptime/settings';
 
@@ -37,6 +38,7 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_BASE_URL,
   [ModuleName.CRONS]: CRONS_BASE_URL,
   [ModuleName.UPTIME]: UPTIME_BASE_URL,
+  [ModuleName.SESSIONS]: SESSIONS_BASE_URL,
   [ModuleName.OTHER]: '',
 };
 
