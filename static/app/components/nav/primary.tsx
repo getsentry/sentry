@@ -1,14 +1,17 @@
 import {Fragment, type MouseEventHandler, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import type {ButtonProps} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {NavLayout} from 'sentry/components/nav/types';
+import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
 import {
   IconChevron,
@@ -33,12 +36,14 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
+  linkProps?: Partial<Omit<LinkProps, 'ref'>>;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
 interface SidebarItemDropdownProps {
   analyticsKey: string;
   items: MenuItemProps[];
+  buttonProps?: Partial<ButtonProps>;
   children?: React.ReactNode;
 }
 
@@ -54,7 +59,12 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   );
 }
 
-function SidebarMenu({items, children, analyticsKey}: SidebarItemDropdownProps) {
+function SidebarMenu({
+  items,
+  children,
+  analyticsKey,
+  buttonProps = {},
+}: SidebarItemDropdownProps) {
   const organization = useOrganization();
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
@@ -68,7 +78,7 @@ function SidebarMenu({items, children, analyticsKey}: SidebarItemDropdownProps) 
         trigger={(props, isOpen) => {
           return (
             <NavButton
-              {...props}
+              {...mergeProps(buttonProps, props)}
               onClick={event => {
                 recordAnalytics();
                 props.onClick?.(event);
@@ -85,7 +95,13 @@ function SidebarMenu({items, children, analyticsKey}: SidebarItemDropdownProps) 
   );
 }
 
-function SidebarLink({children, to, activeTo = to, analyticsKey}: SidebarItemLinkProps) {
+function SidebarLink({
+  children,
+  to,
+  activeTo = to,
+  analyticsKey,
+  linkProps: incomingLinkProps = {},
+}: SidebarItemLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
@@ -99,7 +115,7 @@ function SidebarLink({children, to, activeTo = to, analyticsKey}: SidebarItemLin
   return (
     <SidebarItemWrapper>
       <NavLink
-        {...linkProps}
+        {...mergeProps(linkProps, incomingLinkProps)}
         onClick={recordAnalytics}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
@@ -120,10 +136,12 @@ function CollapseButton() {
 
   return (
     <SidebarItemWrapper>
-      <NavButton onClick={() => setIsCollapsed(!isCollapsed)}>
+      <NavButton
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      >
         <InteractionStateLayer />
         <IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />
-        {isCollapsed ? t('Expand') : t('Collapse')}
       </NavButton>
     </SidebarItemWrapper>
   );
@@ -132,18 +150,21 @@ function CollapseButton() {
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
+  const {layout} = useNavContext();
+
+  const includeFooterLabels = layout !== NavLayout.SIDEBAR;
 
   return (
     <Fragment>
       <SidebarBody>
         <SidebarLink to={`/${prefix}/issues/`} analyticsKey="issues">
           <IconIssues />
-          <span>{t('Issues')}</span>
+          <span>{NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}</span>
         </SidebarLink>
 
         <SidebarLink to={`/${prefix}/explore/traces/`} analyticsKey="explore">
           <IconSearch />
-          <span>{t('Explore')}</span>
+          <span>{NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}</span>
         </SidebarLink>
 
         <Feature
@@ -156,7 +177,7 @@ export function PrimaryNavigationItems() {
             analyticsKey="customizable-dashboards"
           >
             <IconDashboard />
-            <span>{t('Boards')}</span>
+            <span>{NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}</span>
           </SidebarLink>
         </Feature>
 
@@ -166,7 +187,7 @@ export function PrimaryNavigationItems() {
             analyticsKey="insights-domains"
           >
             <IconGraph />
-            <span>{t('Insights')}</span>
+            <span>{NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}</span>
           </SidebarLink>
         </Feature>
       </SidebarBody>
@@ -198,23 +219,29 @@ export function PrimaryNavigationItems() {
             },
           ]}
           analyticsKey="help"
+          buttonProps={!includeFooterLabels ? {'aria-label': t('Help')} : undefined}
         >
           <IconQuestion />
-          <span>{t('Help')}</span>
+          {includeFooterLabels && <span>{t('Help')}</span>}
         </SidebarMenu>
 
-        <SidebarLink to={`/${prefix}/stats/`} analyticsKey="stats">
+        <SidebarLink
+          to={`/${prefix}/stats/`}
+          analyticsKey="stats"
+          linkProps={!includeFooterLabels ? {'aria-label': t('Stats')} : undefined}
+        >
           <IconStats />
-          <span>{t('Stats')}</span>
+          {includeFooterLabels && <span>{t('Stats')}</span>}
         </SidebarLink>
 
         <SidebarLink
           to={`/${prefix}/settings/`}
           activeTo={`/${prefix}/settings/`}
           analyticsKey="settings"
+          linkProps={!includeFooterLabels ? {'aria-label': t('Settings')} : undefined}
         >
           <IconSettings />
-          <span>{t('Settings')}</span>
+          {includeFooterLabels && <span>{t('Settings')}</span>}
         </SidebarLink>
 
         <CollapseButton />
@@ -253,10 +280,9 @@ const SidebarItemWrapper = styled('li')`
   button {
     display: flex;
     flex-direction: row;
-    height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: 0 ${space(1.5)};
+    padding: ${space(1.5)} ${space(3)};
     color: var(--color, currentColor);
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
@@ -269,12 +295,12 @@ const SidebarItemWrapper = styled('li')`
     @media (min-width: ${p => p.theme.breakpoints.medium}) {
       flex-direction: column;
       justify-content: center;
-      height: 52px;
-      padding: ${space(0.5)} ${space(0.75)};
       border-radius: ${p => p.theme.borderRadius};
       font-size: ${p => p.theme.fontSizeExtraSmall};
       margin-inline: ${space(1)};
       gap: ${space(0.75)};
+      padding: 10px 0;
+      min-height: 40px;
     }
   }
 `;
