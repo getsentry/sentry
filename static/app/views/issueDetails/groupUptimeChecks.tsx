@@ -216,10 +216,9 @@ function CheckInBodyCell({
       let checkResult = <Cell>{cellData}</Cell>;
       const status = cellData as CheckStatus;
       if (Object.values(CheckStatus).includes(status)) {
+        const colorKey = tickStyle[status].labelColor ?? 'gray200';
         checkResult = (
-          <Cell style={{color: tickStyle[status].labelColor}}>
-            {statusToText[status]}
-          </Cell>
+          <Cell style={{color: theme[colorKey] as string}}>{statusToText[status]}</Cell>
         );
       }
       return dataRow.checkStatusReason ? (
