@@ -1054,11 +1054,6 @@ const commonTheme = {
 
   borderRadius: '6px',
 
-  // @TODO(jonasbadalic) This should exist their respective components
-  panelBorderRadius: '6px',
-  modalBorderRadius: '8px',
-  linkBorderRadius: '2px',
-
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
   fontSizeRelativeSmall: '0.9em',

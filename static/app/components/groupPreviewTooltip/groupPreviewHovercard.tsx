@@ -55,7 +55,7 @@ const StyledHovercardWithBodyClass = styled(HovercardWithBodyClass)`
   max-height: 300px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-radius: ${p => p.theme.modalBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`

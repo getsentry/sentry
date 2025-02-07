@@ -1129,8 +1129,8 @@ const StyledJsonForm = styled(JsonForm)`
 const StyledPanelFooter = styled(PanelFooter)`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 calc(${p => p.theme.panelBorderRadius} - 1px)
-    calc(${p => p.theme.panelBorderRadius} - 1px);
+  border-radius: 0 0 calc(${p => p.theme.borderRadius} - 1px)
+    calc(${p => p.theme.borderRadius} - 1px);
 
   ${Actions} {
     padding: ${space(1.5)};
