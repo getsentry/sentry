@@ -143,7 +143,6 @@ const TraceContextContainer = styled('div')`
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-top: ${space(1)};
   --panel-height: ${DEFAULT_HEIGHT}px;
   height: var(--panel-height);
 
