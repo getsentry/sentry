@@ -112,6 +112,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
     )
     regenerate = serializers.BooleanField(required=False)
 
+    # This field is meant to be updated only through the OrganizationMemberQuickStartDisplayEndpoint
     quick_start_display_status = serializers.ChoiceField(
         choices=QuickStartDisplayStatus.as_choices(),
         default=QuickStartDisplayStatus.INITIAL_HIDDEN.value,
