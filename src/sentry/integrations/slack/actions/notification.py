@@ -16,11 +16,17 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.repository import get_default_issue_alert_repository
+from sentry.integrations.repository import (
+    get_default_issue_alert_repository,
+    get_default_notification_action_repository,
+)
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
     NewIssueAlertNotificationMessage,
+)
+from sentry.integrations.repository.notification_action import (
+    NotificationActionNotificationMessageRepository,
 )
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
@@ -70,8 +76,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
-        self._repository: IssueAlertNotificationMessageRepository = (
+        self._issue_repository: IssueAlertNotificationMessageRepository = (
             get_default_issue_alert_repository()
+        )
+        self._action_repository: NotificationActionNotificationMessageRepository = (
+            get_default_notification_action_repository()
         )
 
     def after(
@@ -152,11 +161,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     return None
 
                 try:
-                    parent_notification_message = self._repository.get_parent_notification_message(
-                        rule_id=rule_id,
-                        group_id=event.group.id,
-                        rule_action_uuid=rule_action_uuid,
-                        open_period_start=open_period_start,
+                    parent_notification_message = (
+                        self._issue_repository.get_parent_notification_message(
+                            rule_id=rule_id,
+                            group_id=event.group.id,
+                            rule_action_uuid=rule_action_uuid,
+                            open_period_start=open_period_start,
+                        )
                     )
                 except Exception as e:
                     lifecycle.record_halt(e)
@@ -230,7 +241,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             if rule_action_uuid and rule_id:
                 try:
-                    self._repository.create_notification_message(
+                    self._issue_repository.create_notification_message(
                         data=new_notification_message_object
                     )
                 except NotificationMessageValidationError as err:
