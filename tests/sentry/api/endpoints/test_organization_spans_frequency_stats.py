@@ -69,22 +69,22 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
 
     def test_invalid_params(self):
         self._generate_one_span()
-        response = self.do_request(query={"maxBuckets": "invalid", "maxAttributes": "invalid"})
+        response = self.do_request(query={"max_buckets": "invalid", "max_attributes": "invalid"})
         assert response.status_code == 400, response.data
-        assert "maxBuckets and maxAttributes must be integers" in str(response.data)
+        assert "A valid integer is required" in str(response.data)
 
     def test_valid_max_params(self):
         self._generate_one_span()
-        response = self.do_request(query={"maxBuckets": "50", "maxAttributes": "100"})
+        response = self.do_request(query={"max_buckets": "50", "max_attributes": "100"})
         assert response.status_code == 200, response.data
         assert "attributeDistributions" in str(response.data)
 
     def test_invalid_max_buckets(self):
         self._generate_one_span()
-        # maxBuckets is more than 100
-        response = self.do_request(query={"maxBuckets": "200", "maxAttributes": "100"})
+        # max_buckets is more than 100
+        response = self.do_request(query={"max_buckets": "200", "max_attributes": "100"})
         assert response.status_code == 400, response.data
-        assert "maxBuckets max value is 100" in str(response.data)
+        assert "Ensure this value is less than or equal to 100" in str(response.data)
 
     def test_invalid_date_params(self):
         self._generate_one_span()
@@ -102,8 +102,8 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         for tag in tags:
             self._generate_one_span(tag)
 
-        # set maxAttributes smaller than the number of attributes, so we can test if maxAttributes is respected
-        response = self.do_request(query={"maxAttributes": max_attributes - 1})
+        # set max_attributes smaller than the number of attributes, so we can test if max_attributes is respected
+        response = self.do_request(query={"max_attributes": max_attributes - 1})
         assert response.status_code == 200, response.data
 
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
@@ -115,8 +115,8 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         for tag in tags:
             self._generate_one_span(tag)
 
-        # set maxBuckets smaller than the number of values, so we can test if maxBuckets is respected
-        response = self.do_request(query={"maxBuckets": max_buckets - 1})
+        # set max_buckets smaller than the number of values, so we can test if max_buckets is respected
+        response = self.do_request(query={"max_buckets": max_buckets - 1})
         assert response.status_code == 200, response.data
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"][0][
             "buckets"

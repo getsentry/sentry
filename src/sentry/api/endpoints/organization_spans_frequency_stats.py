@@ -1,4 +1,5 @@
 from google.protobuf.json_format import MessageToDict
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,13 +14,26 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_spans_fields import OrganizationSpansFieldsEndpointSerializer
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
+
+
+class OrganizationSpansFrequencyStatsEndpointSerializer(serializers.Serializer):
+    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
+    # if values are not provided, we will use zeros and then snuba RPC will set the defaults
+    # Top number of frequencies to return for each attribute, defaults in snuba to 10 and can't be more than 100
+    max_buckets = serializers.IntegerField(required=False, min_value=0, max_value=100, default=0)
+    # Total number of attributes to return, defaults in snuba to 10_000
+    max_attributes = serializers.IntegerField(required=False, min_value=0, default=0)
+
+    def validate(self, attrs):
+        if attrs["dataset"] != "spans":
+            raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
+        return attrs
 
 
 @region_silo_endpoint
@@ -44,33 +58,13 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
                 {"attributeDistributions": []}  # Empty response matching the expected structure
             )
 
-        serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
+        serializer = OrganizationSpansFrequencyStatsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
-
-        # this endpoint is only supported for spans for this project
-        if serialized["dataset"] != "spans":
-            raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
-
         # keep start and end as is
         snuba_params.start = snuba_params.start_date
         snuba_params.end = snuba_params.end_date
-
-        # if values are not provided, we will use zeros and then snuba RPC will set the defaults
-        # Top number of frequencies to return for each attribute, defaults in snuba to 10 and can't be more than 100
-        max_buckets = request.GET.get("maxBuckets", 0)
-        # Total number of attributes to return, defaults in snuba to 10_000
-        max_attributes = request.GET.get("maxAttributes", 0)
-        try:
-            max_buckets = int(max_buckets)
-            max_attributes = int(max_attributes)
-        except ValueError:
-            raise ParseError(detail="maxBuckets and maxAttributes must be integers")
-
-        # max_buckets is limited to 100 by snuba
-        if max_buckets > 100:
-            raise ParseError(detail="maxBuckets max value is 100")
 
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
@@ -82,7 +76,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
-                max_buckets=max_buckets, max_attributes=max_attributes
+                max_buckets=serialized["max_buckets"], max_attributes=serialized["max_attributes"]
             )
         )
 
@@ -92,7 +86,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
             stats_types=[stats_type],
         )
 
-        rpc_response = snuba_rpc.attribute_frequency_stats_rpc(rpc_request)
+        rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
 
         response_data = MessageToDict(rpc_response)
 
