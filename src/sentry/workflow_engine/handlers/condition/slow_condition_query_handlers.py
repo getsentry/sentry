@@ -3,23 +3,20 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, Self, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict
 
 from django.db.models import QuerySet
 
+from sentry import tsdb
+from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import (
-    COMPARISON_INTERVALS,
-    PERCENT_INTERVALS,
-    SNUBA_LIMIT,
-    STANDARD_INTERVALS,
-    percent_increase,
-)
+from sentry.rules.conditions.event_frequency import SNUBA_LIMIT, STANDARD_INTERVALS
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.iterators import chunked
+from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
-from sentry.workflow_engine.types import DataConditionResult, WorkflowJob
+from sentry.workflow_engine.models.data_condition import Condition
 
 
 class _QSTypedDict(TypedDict):
@@ -29,16 +26,8 @@ class _QSTypedDict(TypedDict):
     project__organization_id: int
 
 
-class BaseEventFrequencyConditionHandler(ABC):
-    @property
-    @abstractmethod
-    def base_handler(self) -> Self:
-        # frequency and percent conditions can share the same base handler to query Snuba
-        raise NotImplementedError
-
-    @property
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
-        return STANDARD_INTERVALS
+class BaseEventFrequencyQueryHandler(ABC):
+    intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
@@ -51,7 +40,7 @@ class BaseEventFrequencyConditionHandler(ABC):
     def disable_consistent_snuba_mode(
         self, duration: timedelta
     ) -> contextlib.AbstractContextManager[object]:
-        """For conditions with interval >= 1 hour we don't need to worry about read your writes
+        """For conditions with interval >= 1 hour we don't need to worry about read or writes
         consistency. Disable it so that we can scale to more nodes.
         """
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
@@ -68,7 +57,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         model: TSDBModel,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: int | None,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -92,7 +81,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         organization_id: int,
         start: datetime,
         end: datetime,
-        environment_id: int,
+        environment_id: int | None,
         referrer_suffix: str,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -141,7 +130,7 @@ class BaseEventFrequencyConditionHandler(ABC):
 
     @abstractmethod
     def batch_query(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -153,7 +142,7 @@ class BaseEventFrequencyConditionHandler(ABC):
         self,
         duration: timedelta,
         group_ids: set[int],
-        environment_id: int,
+        environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
     ) -> dict[int, int]:
@@ -180,45 +169,76 @@ class BaseEventFrequencyConditionHandler(ABC):
         return result
 
 
-class BaseEventFrequencyCountHandler:
-    comparison_json_schema = {
-        "type": "object",
-        "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
-            "value": {"type": "integer", "minimum": 0},
-        },
-        "required": ["interval", "value"],
-        "additionalProperties": False,
-    }
-
-    @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 1:
-            return False
-        return value["snuba_results"][0] > comparison["value"]
+slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHandler]](
+    enable_reverse_lookup=False
+)
 
 
-class BaseEventFrequencyPercentHandler:
-    comparison_json_schema = {
-        "type": "object",
-        "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
-            "value": {"type": "integer", "minimum": 0},
-            "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
-        },
-        "required": ["interval", "value", "comparison_interval"],
-        "additionalProperties": False,
-    }
-
-    @property
-    def intervals(self) -> dict[str, tuple[str, timedelta]]:
-        return PERCENT_INTERVALS
-
-    @staticmethod
-    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
-        if len(value.get("snuba_results", [])) != 2:
-            return False
-        return (
-            percent_increase(value["snuba_results"][0], value["snuba_results"][1])
-            > comparison["value"]
+@slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
+@slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
+class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    def batch_query(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
         )
+        category_group_ids = self.get_group_ids_by_category(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if not organization_id:
+            return batch_sums
+
+        def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
+            return self.get_chunked_result(
+                tsdb_function=tsdb.backend.get_sums,
+                model=model,
+                group_ids=group_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_frequency",
+            )
+
+        for category, issue_ids in category_group_ids.items():
+            model = get_issue_tsdb_group_model(category)
+            batch_sums.update(get_result(model, issue_ids))
+
+        return batch_sums
+
+
+@slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
+@slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
+class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
+    def batch_query(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int | None
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        category_group_ids = self.get_group_ids_by_category(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if not organization_id:
+            return batch_sums
+
+        def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
+            return self.get_chunked_result(
+                tsdb_function=tsdb.backend.get_distinct_counts_totals,
+                model=model,
+                group_ids=group_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+            )
+
+        for category, issue_ids in category_group_ids.items():
+            model = get_issue_tsdb_user_group_model(category)
+            batch_sums.update(get_result(model, issue_ids))
+
+        return batch_sums

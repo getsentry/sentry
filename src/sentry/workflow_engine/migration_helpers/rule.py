@@ -1,11 +1,10 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import split_conditions_and_filters
-from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition,
 )
@@ -49,6 +48,7 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
         when_condition_group=when_dcg,
         user_id=user_id,
         environment_id=rule.environment_id,
+        frequency=data.get("frequency"),
     )
     AlertRuleWorkflow.objects.create(rule=rule, workflow=workflow)
 
@@ -125,18 +125,9 @@ def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, 
     DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
 
-class UpdatedIssueAlertData(TypedDict):
-    name: str
-    conditions: list[dict[str, Any]]
-    action_match: str
-    filter_match: str | None
-    actions: list[dict[str, Any]]
-    environment: int | None
-    owner: Actor | None
-    frequency: int | None
+def update_migrated_issue_alert(rule: Rule):
+    data = rule.data
 
-
-def update_migrated_issue_alert(rule: Rule, data: UpdatedIssueAlertData):
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
@@ -175,21 +166,17 @@ def update_migrated_issue_alert(rule: Rule, data: UpdatedIssueAlertData):
     delete_workflow_actions(if_dcg=if_dcg)
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
-    updated_data: dict[str, Any] = {
-        "name": data["name"],
-        "environment_id": data["environment"],
-        "enabled": True,
-        "owner_team_id": None,
-        "owner_user_id": None,
-        "config": {"frequency": data["frequency"] or Workflow.DEFAULT_FREQUENCY},
-    }
-    owner = data["owner"]
-    if owner:
-        if owner and owner.is_user:
-            updated_data["owner_user_id"] = owner.id
-        if owner and owner.is_team:
-            updated_data["owner_team_id"] = owner.id
-    workflow.update(**updated_data)
+    workflow.environment_id = rule.environment_id
+    if frequency := data["frequency"]:
+        workflow.config["frequency"] = frequency
+
+    workflow.owner_user_id = rule.owner_user_id
+    workflow.owner_team_id = rule.owner_team_id
+
+    workflow.name = rule.label
+
+    workflow.enabled = True
+    workflow.save()
 
 
 def update_dcg(

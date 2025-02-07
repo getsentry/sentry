@@ -125,7 +125,7 @@ const Layout = styled('div')`
   display: grid;
   grid-template:
     'head head head' max-content
-    'aside body index' auto/ ${p => p.theme.settings.sidebarWidth} 1fr;
+    'aside body index' auto / 200px 1fr;
   gap: var(--stories-grid-space);
   place-items: stretch;
 

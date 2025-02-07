@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -7,6 +9,7 @@ from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.sentry_apps.services.app import app_service
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 
@@ -64,7 +67,7 @@ class BaseActionTranslator(ABC):
         return None
 
     @property
-    def blob_type(self) -> type["DataBlob"] | None:
+    def blob_type(self) -> type[DataBlob] | None:
         """Return the blob type for this action, if any"""
         return None
 
@@ -134,7 +137,7 @@ class SlackActionTranslator(BaseActionTranslator):
         return self.action.get("channel")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return SlackDataBlob
 
 
@@ -161,7 +164,7 @@ class DiscordActionTranslator(BaseActionTranslator):
         return self.action.get("channel_id")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return DiscordDataBlob
 
 
@@ -220,7 +223,7 @@ class PagerDutyActionTranslator(BaseActionTranslator):
         return self.action.get("service")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
@@ -252,7 +255,7 @@ class OpsgenieActionTranslator(BaseActionTranslator):
         return self.action.get("team")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
@@ -273,7 +276,7 @@ class TicketActionTranslator(BaseActionTranslator, ABC):
 class GitHubActionTranslatorBase(TicketActionTranslator):
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return GitHubDataBlob
 
 
@@ -298,7 +301,7 @@ class AzureDevOpsActionTranslator(TicketActionTranslator):
     action_type = Action.Type.AZURE_DEVOPS
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return AzureDevOpsDataBlob
 
 
@@ -335,7 +338,7 @@ class EmailActionTranslator(BaseActionTranslator):
         return None
 
     @property
-    def blob_type(self) -> type["DataBlob"] | None:
+    def blob_type(self) -> type[DataBlob] | None:
         target_type = self.action.get("targetType")
         if target_type == ActionTargetType.ISSUE_OWNERS.value:
             return EmailDataBlob
@@ -409,6 +412,101 @@ class WebhookActionTranslator(BaseActionTranslator):
         return self.action.get("service")
 
 
+class JiraActionTranslatorBase(TicketActionTranslator):
+    @property
+    def required_fields(self) -> list[str]:
+        return ["integration"]
+
+    @property
+    def blob_type(self) -> type[DataBlob]:
+        return JiraDataBlob
+
+    def get_sanitized_data(self) -> dict[str, Any]:
+        """
+        Override to handle custom fields and additional fields that aren't part of the standard fields.
+        """
+        data = super().get_sanitized_data()
+        if self.blob_type:
+            # Get all fields that aren't part of the standard JiraDataBlob fields
+            standard_fields = {
+                f.name for f in dataclasses.fields(JiraDataBlob) if f.name != "additional_fields"
+            }
+            additional_fields = {
+                k: v
+                for k, v in self.action.items()
+                if k not in standard_fields
+                and k not in EXCLUDED_ACTION_DATA_KEYS
+                and k not in self.required_fields
+                and k != "dynamic_form_fields"
+                and v  # Only include non-empty values
+            }
+            data["additional_fields"] = additional_fields
+        return data
+
+    @staticmethod
+    def standard_fields() -> list[str]:
+        return [f.name for f in dataclasses.fields(JiraDataBlob) if f.name != "additional_fields"]
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+)
+class JiraActionTranslator(JiraActionTranslatorBase):
+    action_type = Action.Type.JIRA
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
+)
+class JiraServerActionTranslator(JiraActionTranslatorBase):
+    action_type = Action.Type.JIRA_SERVER
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
+)
+class SentryAppActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.SENTRY_APP
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["sentryAppInstallationUuid"]
+
+    @property
+    def target_type(self) -> ActionTarget | None:
+        return ActionTarget.SENTRY_APP
+
+    @property
+    def integration_id(self) -> int | None:
+        return None
+
+    @property
+    def target_identifier(self) -> str | None:
+        # Fetch the sentry app id using app_service
+        # Based on sentry/rules/actions/sentry_apps/notify_event.py
+        sentry_app_installation = app_service.get_many(
+            filter=dict(uuids=[self.action.get("sentryAppInstallationUuid")])
+        )
+
+        if sentry_app_installation:
+            assert len(sentry_app_installation) == 1, "Expected exactly one sentry app installation"
+            return str(sentry_app_installation[0].sentry_app.id)
+
+        raise ValueError("Sentry app installation not found")
+
+    def get_sanitized_data(self) -> dict[str, Any]:
+        data = SentryAppDataBlob()
+        if settings := self.action.get("settings"):
+            for setting in settings:
+                data.settings.append(SentryAppFormConfigDataBlob(**setting))
+
+        return dataclasses.asdict(data)
+
+    @property
+    def blob_type(self) -> type[DataBlob]:
+        return SentryAppDataBlob
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -418,7 +516,9 @@ class DataBlob:
 
 @dataclass
 class SlackDataBlob(DataBlob):
-    """SlackDataBlob is a specific type that represents the data blob for a Slack notification action."""
+    """
+    SlackDataBlob is a specific type that represents the data blob for a Slack notification action.
+    """
 
     tags: str = ""
     notes: str = ""
@@ -435,14 +535,18 @@ class DiscordDataBlob(DataBlob):
 
 @dataclass
 class OnCallDataBlob(DataBlob):
-    """OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action."""
+    """
+    OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action.
+    """
 
     priority: str = ""
 
 
 @dataclass
 class TicketDataBlob(DataBlob):
-    """TicketDataBlob is a specific type that represents the data blob for a ticket creation action."""
+    """
+    TicketDataBlob is a specific type that represents the data blob for a ticket creation action.
+    """
 
     # This is dynamic and can whatever customer config the customer setup on GitHub
     dynamic_form_fields: list[dict] = field(default_factory=list)
@@ -470,7 +574,45 @@ class AzureDevOpsDataBlob(TicketDataBlob):
 
 
 @dataclass
+class SentryAppFormConfigDataBlob(DataBlob):
+    """
+    SentryAppFormConfigDataBlob represents a single form config field for a Sentry App.
+    name is the name of the form field, and value is the value of the form field.
+    """
+
+    name: str = ""
+    value: str = ""
+
+
+@dataclass
+class SentryAppDataBlob(DataBlob):
+    """
+    Represents a Sentry App notification action.
+    """
+
+    settings: list[SentryAppFormConfigDataBlob] = field(default_factory=list)
+
+
+@dataclass
 class EmailDataBlob(DataBlob):
-    """EmailDataBlob represents the data blob for an email notification action."""
+    """
+    EmailDataBlob represents the data blob for an email notification action.
+    """
 
     fallthroughType: str = ""
+
+
+@dataclass
+class JiraDataBlob(TicketDataBlob):
+    """
+    JiraDataBlob represents the data blob for a Jira ticket creation action.
+    Includes required fields and supports dynamic custom fields.
+    """
+
+    project: str = ""
+    issuetype: str = ""
+    priority: str = ""
+    labels: str = ""
+    reporter: str = ""
+    # Store any custom fields (customfield_*) or additional fields
+    additional_fields: dict[str, Any] = field(default_factory=dict)

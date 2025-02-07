@@ -5,6 +5,7 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import {NavContextProvider} from 'sentry/components/nav/context';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
@@ -16,7 +17,7 @@ export default storyBook('SecondaryNav', story => {
       <Container>
         <NavContextProvider>
           <SecondarySidebar />
-          <SecondaryNav>
+          <SecondaryNav group={PrimaryNavGroup.ISSUES}>
             <SecondaryNav.Body>
               <SecondaryNav.Section>
                 <SecondaryNav.Item
