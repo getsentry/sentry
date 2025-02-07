@@ -41,7 +41,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(
-                {"attributeDistributions": []}  # Empty ıresponse matching the expected structure
+                {"attributeDistributions": []}  # Empty response matching the expected structure
             )
 
         serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
@@ -68,6 +68,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         except ValueError:
             raise ParseError(detail="maxBuckets and maxAttributes must be integers")
 
+        # max_buckets is limited to 100 by snuba
         if max_buckets > 100:
             raise ParseError(detail="maxBuckets max value is 100")
 
