@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from collections.abc import Sequence
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -37,11 +38,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
-from sentry.replays.lib.new_query.fields import ColumnField
+from sentry.replays.lib.new_query.fields import FieldProtocol
 from sentry.replays.lib.query import attempt_compressed_condition
 from sentry.replays.usecases.query import search_filter_to_condition
 from sentry.replays.usecases.query.configs.scalar import click_search_config
-from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
@@ -128,7 +128,7 @@ def query_replay_clicks(
     end: datetime.datetime,
     limit: int,
     offset: int,
-    search_filters: SearchFilter,
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     organization_id: int,
 ):
     """Query replay clicks.
@@ -195,8 +195,8 @@ def query_replay_clicks(
 # Identitical to the original handle_search_filters function except `And` operations are
 # transformed into `Or` operations.
 def handle_search_filters(
-    search_config: dict[str, ColumnField | ComputedField | TagField],
-    search_filters: list[SearchFilter | str | ParenExpression],
+    search_config: dict[str, FieldProtocol],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
