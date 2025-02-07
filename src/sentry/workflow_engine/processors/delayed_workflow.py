@@ -101,7 +101,7 @@ def get_dcg_group_workflow_detector_data(
         )
 
         for dcg_id in dcg_ids:
-            dcg_to_groups[dcg_id].add(data[1])
+            dcg_to_groups[dcg_id].add(int(data[1]))
             target_dict[dcg_id] = int(data[0])
 
     return dcg_to_groups, dcg_to_workflow, dcg_to_detector
