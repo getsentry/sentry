@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -180,7 +180,9 @@ const AlertContainer = styled('div')<
           ${p.alertColors.backgroundLight}),
           linear-gradient(${p.theme.background}, ${p.theme.background}
         )`
-      : `${p.alertColors.backgroundLight}`};
+      : `
+          ${p.alertColors.backgroundLight}
+        `};
 
   a:not([role='button']) {
     color: ${p => p.alertColors.color};
@@ -200,19 +202,24 @@ const AlertContainer = styled('div')<
     margin: ${space(0.5)} 0 0;
   }
 
-  ${p => p.hovered && `border-color: ${p.alertColors.borderHover};`}
+  ${p =>
+    p.hovered &&
+    css`
+      border-color: ${p.alertColors.borderHover};
+    `}
 
   ${p =>
     p.expand &&
-    `cursor: pointer;
+    css`
+      cursor: pointer;
       ${TrailingItems} {
-       cursor: auto;
+        cursor: auto;
       }
     `}
 
   ${p =>
     p.system &&
-    `
+    css`
       border-width: 0 0 1px 0;
       border-radius: 0;
     `}
