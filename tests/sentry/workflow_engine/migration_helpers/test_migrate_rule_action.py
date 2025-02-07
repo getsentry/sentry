@@ -1088,6 +1088,27 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
 
+    def test_webhook_action_migration_to_sentry_app(self):
+        app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+        )
+
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": app.slug,
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        assert actions[0].type == Action.Type.SENTRY_APP
+        assert actions[0].target_identifier == str(app.id)
+        assert actions[0].target_type == ActionTarget.SENTRY_APP
+        assert actions[0].data == {}
+
     def test_webhook_action_migration_malformed(self):
         action_data = [
             {
@@ -1150,9 +1171,11 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         for registry_id, expected_type in test_cases:
             translator_class = issue_alert_action_translator_registry.get(registry_id)
-            assert translator_class.action_type == expected_type, (
+            # Create an instance with empty action data
+            translator = translator_class({"id": registry_id})
+            assert translator.action_type == expected_type, (
                 f"Action translator {registry_id} has incorrect action type. "
-                f"Expected {expected_type}, got {translator_class.action_type}"
+                f"Expected {expected_type}, got {translator.action_type}"
             )
 
     def test_action_type_in_migration(self):
