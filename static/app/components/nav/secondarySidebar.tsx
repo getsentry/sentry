@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {SECONDARY_SIDEBAR_WIDTH} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 
 export function SecondarySidebar() {
@@ -22,7 +23,7 @@ const SecondarySidebarWrapper = styled('div')`
   align-items: stretch;
   justify-content: space-between;
   flex-direction: column;
-  width: 190px;
+  width: ${SECONDARY_SIDEBAR_WIDTH}px;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   height: 100%;
 `;
