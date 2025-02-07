@@ -14,12 +14,18 @@ export enum Output {
 }
 
 type Args = {
+  isCaptureBodySetup: boolean;
   isSetup: boolean;
   item: SectionProps['item'];
   visibleTab: TabKey;
 };
 
-export default function getOutputType({isSetup, item, visibleTab}: Args): Output {
+export default function getOutputType({
+  isCaptureBodySetup,
+  isSetup,
+  item,
+  visibleTab,
+}: Args): Output {
   if (!isRequestFrame(item)) {
     return Output.UNSUPPORTED;
   }
@@ -65,14 +71,9 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
     return Output.URL_SKIPPED;
   }
 
-  if (['request', 'response'].includes(visibleTab)) {
-    // @ts-expect-error TS(2345): Argument of type '"BODY_SKIPPED"' is not assignabl... Remove this comment to see the full error message
-    const isReqBodySkipped = reqWarnings.includes('BODY_SKIPPED');
-    // @ts-expect-error TS(2345): Argument of type '"BODY_SKIPPED"' is not assignabl... Remove this comment to see the full error message
-    const isRespBodySkipped = respWarnings.includes('BODY_SKIPPED');
-    if (isReqBodySkipped || isRespBodySkipped) {
-      return Output.BODY_SKIPPED;
-    }
+  // Capture body is not setup (this should also imply there is no body)
+  if (['request', 'response'].includes(visibleTab) && !hasBody && !isCaptureBodySetup) {
+    return Output.BODY_SKIPPED;
   }
 
   return Output.DATA;
