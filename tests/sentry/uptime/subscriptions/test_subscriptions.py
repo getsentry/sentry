@@ -5,7 +5,6 @@ from django.conf import settings
 from django.test import override_settings
 from pytest import raises
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
@@ -274,22 +273,22 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             UptimeRegionConfig(
                 slug="region1",
                 name="Region 1",
-                config_topic=Topic.UPTIME_CONFIGS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
-                config_topic=Topic.UPTIME_RESULTS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region3",
                 name="Region 3",
-                config_topic=Topic.MONITORS_CLOCK_TASKS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r3",
                 enabled=False,  # This one shouldn't be associated
             ),
         ]
