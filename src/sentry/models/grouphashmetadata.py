@@ -51,6 +51,10 @@ class GroupHashMetadata(Model):
         "sentry.GroupHash", related_name="_metadata", on_delete=models.CASCADE
     )
     date_added = models.DateTimeField(default=timezone.now)
+    # The platform of the event when generated the metadata. Likely different than the project
+    # platform, as event platforms are normalized to a handful of known values, whereas project
+    # platforms are all over the place.
+    platform = models.CharField(null=True)
 
     # HASHING
 

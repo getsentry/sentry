@@ -241,7 +241,7 @@ def get_or_create_grouphashes(
                 sentry_sdk.capture_exception(exc)
 
         if grouphash.metadata:
-            record_grouphash_metadata_metrics(grouphash.metadata)
+            record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
         else:
             # Collect a temporary metric to get a sense of how often we would be adding metadata to an
             # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given
