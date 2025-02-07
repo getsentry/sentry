@@ -16,7 +16,7 @@ import {
   AlertRuleSensitivity,
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
-import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
+import {permissionAlertText} from 'sentry/views/settings/project/projectPermissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({

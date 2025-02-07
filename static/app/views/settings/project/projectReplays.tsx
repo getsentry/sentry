@@ -12,7 +12,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 type RouteParams = {
   projectId: string;

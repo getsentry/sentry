@@ -12,7 +12,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {DataScrubbing} from '../components/dataScrubbing';
 

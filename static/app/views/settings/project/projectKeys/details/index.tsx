@@ -10,9 +10,9 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import RouteError from 'sentry/views/routeError';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   organization: Organization;

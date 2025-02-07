@@ -79,7 +79,7 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getProjectOptions} from '../utils';
 

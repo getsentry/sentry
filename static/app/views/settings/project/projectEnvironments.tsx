@@ -24,7 +24,7 @@ import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   api: Client;

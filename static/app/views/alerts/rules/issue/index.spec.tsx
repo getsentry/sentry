@@ -28,7 +28,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
+import {permissionAlertText} from 'sentry/views/settings/project/projectPermissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');

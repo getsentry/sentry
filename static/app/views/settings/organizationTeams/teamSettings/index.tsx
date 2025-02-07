@@ -23,7 +23,7 @@ import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
   team: Team;

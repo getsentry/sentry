@@ -42,7 +42,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
   GRID_TEMPLATE,
 } from 'sentry/views/settings/organizationTeams/teamMembersRow';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getButtonHelpText} from './utils';
 
