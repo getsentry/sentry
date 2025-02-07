@@ -85,8 +85,8 @@ class TestDetectorSerializer(TestCase):
             "dateUpdated": detector.date_updated,
             "dataSources": [
                 {
-                    "id": data_source.id,
-                    "organizationId": self.organization.id,
+                    "id": str(data_source.id),
+                    "organizationId": str(self.organization.id),
                     "type": type_name,
                     "sourceId": str(subscription.id),
                     "queryObj": {
@@ -168,8 +168,8 @@ class TestDataSourceSerializer(TestCase):
         result = serialize(data_source)
 
         assert result == {
-            "id": data_source.id,
-            "organizationId": self.organization.id,
+            "id": str(data_source.id),
+            "organizationId": str(self.organization.id),
             "type": type_name,
             "sourceId": str(subscription.id),
             "queryObj": {
