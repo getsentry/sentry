@@ -157,7 +157,10 @@ export function ScreensBarChart({
 }
 
 const ChartLabel = styled('p')`
-  ${p => p.theme.text.cardTitle}
+  /* @TODO(jonasbadalic) This should be a title component and not a p */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const HeaderContainer = styled('div')`
