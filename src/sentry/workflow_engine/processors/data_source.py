@@ -10,6 +10,7 @@ from sentry.workflow_engine.models import DataPacket, DataSource, Detector
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
 
+# TODO - @saponifi3d - change the text choices to an enum
 def process_data_sources(
     data_packets: list[DataPacket], query_type: str
 ) -> list[tuple[DataPacket, list[Detector]]]:
