@@ -65,11 +65,21 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
             raise serializers.ValidationError(f"Invalid query type {value}")
 
     def validate_dataset(self, value: str) -> Dataset:
+        # try:
+        #     return Dataset(value)
+        # except ValueError:
+        #     raise serializers.ValidationError(
+        #         f"Invalid dataset {value}. Must be one of: {', '.join(Dataset.__members__)}"
+        #     )
         try:
-            return Dataset(value)
+            value = Dataset(value)
+            if value in [Dataset.PerformanceMetrics, Dataset.Transactions]:
+                return self._validate_performance_dataset(value)
+
+            return value
         except ValueError:
             raise serializers.ValidationError(
-                f"Invalid dataset {value}. Must be one of: {', '.join(Dataset.__members__)}"
+                "Invalid dataset, valid values are %s" % [item.value for item in Dataset]
             )
 
     def validate_query(self, query: str):
@@ -96,7 +106,6 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         )
-
         try:
             if not check_aggregate_column_support(
                 value,
@@ -112,18 +121,26 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
         return translate_aggregate_field(value, allow_mri=allow_mri)
 
     def validate_event_types(self, value: Sequence[int]) -> list[SnubaQueryEventType.EventType]:
+        # try:
+        #     return [SnubaQueryEventType.EventType(t) for t in value]
+        # except ValueError:
+        #     raise serializers.ValidationError(f"Invalid event type: {value}")
+
         try:
-            return [SnubaQueryEventType.EventType(t) for t in value]
-        except ValueError:
-            raise serializers.ValidationError(f"Invalid event type: {value}")
+            return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
+        except KeyError:
+            raise serializers.ValidationError(
+                "Invalid event_type, valid values are %s"
+                % [item.name.lower() for item in SnubaQueryEventType.EventType]
+            )
 
     def validate(self, data):
-        data = super().validate(data)
+        # data = super().validate(data)
 
         self._validate_query(data)
         dataset = data.setdefault("dataset", Dataset.Events)
         dataset = Dataset(data["dataset"].value)
-        data["time_window"] = self._validate_time_window(data.get("time_window"), dataset)
+        self._validate_time_window(data.get("time_window"), dataset)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -257,6 +274,30 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
         return timedelta(minutes=value)
+
+    def _validate_performance_dataset(self, dataset):
+        if dataset != Dataset.Transactions:
+            return dataset
+
+        has_dynamic_sampling = features.has(
+            "organizations:dynamic-sampling", self.context["organization"]
+        )
+        has_performance_metrics_flag = features.has(
+            "organizations:mep-rollout-flag", self.context["organization"]
+        )
+        has_performance_metrics = has_dynamic_sampling and has_performance_metrics_flag
+
+        has_on_demand_metrics = features.has(
+            "organizations:on-demand-metrics-extraction",
+            self.context["organization"],
+        )
+
+        if has_performance_metrics or has_on_demand_metrics:
+            raise serializers.ValidationError(
+                "Performance alerts must use the `generic_metrics` dataset"
+            )
+
+        return dataset
 
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
