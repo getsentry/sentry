@@ -479,7 +479,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           value={parseFunction(stringFields?.[index] ?? '')?.name ?? NONE}
                           position="bottom-start"
                           onChange={aggregateSelection => {
-                            const isGrouping = aggregateSelection.value === NONE;
+                            const isNone = aggregateSelection.value === NONE;
                             const newFields = cloneDeep(fields);
                             const currentField = newFields[index]!;
                             const newAggregate = aggregates.find(
@@ -487,7 +487,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                 option.value.meta.name === aggregateSelection.value
                             );
                             // Update the current field's aggregate with the new aggregate
-                            if (!isGrouping) {
+                            if (!isNone) {
                               if (currentField.kind === FieldValueKind.FUNCTION) {
                                 // Handle setting an aggregate from an aggregate
                                 currentField.function[0] =
@@ -619,7 +619,7 @@ function Visualize({error, setError}: VisualizeProps) {
                               // Handle selecting NONE so we can select just a field, e.g. for samples
                               // If NONE is selected, set the field to a field value
 
-                              // When selecting GROUPING, the next possible columns may be different from the
+                              // When selecting NONE, the next possible columns may be different from the
                               // possible columns for the previous aggregate. Calculate the valid columns,
                               // see if the current field's function argument is in the valid columns, and if so,
                               // set the field to a field value. Otherwise, set the field to the first valid column.
