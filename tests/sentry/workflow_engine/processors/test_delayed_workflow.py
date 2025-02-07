@@ -19,6 +19,9 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
+    DataConditionGroupDetector,
+    DataConditionGroupGroups,
+    DataConditionGroupWorkflow,
     UniqueConditionQuery,
     fetch_active_data_condition_groups,
     fetch_detectors,
@@ -82,17 +85,17 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
             f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[1].id}:{DataConditionHandlerType.ACTION_FILTER}",
         }
 
-        self.dcg_to_groups = {dcg.id: {self.group1.id} for dcg in self.workflow1_dcgs} | {
-            dcg.id: {self.group2.id} for dcg in self.workflow2_dcgs
-        }
-        self.dcg_to_workflow = {dcg.id: self.workflow1.id for dcg in self.workflow1_dcgs} | {
-            dcg.id: self.workflow2.id for dcg in self.workflow2_dcgs
-        }
+        self.dcg_to_groups: DataConditionGroupGroups = {
+            dcg.id: {self.group1.id} for dcg in self.workflow1_dcgs
+        } | {dcg.id: {self.group2.id} for dcg in self.workflow2_dcgs}
+        self.dcg_to_workflow: DataConditionGroupWorkflow = {
+            dcg.id: self.workflow1.id for dcg in self.workflow1_dcgs
+        } | {dcg.id: self.workflow2.id for dcg in self.workflow2_dcgs}
 
         self.detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
         self.detector_dcg = self.create_data_condition_group()
         self.detector.update(workflow_condition_group=self.detector_dcg)
-        self.dcg_to_detector = {self.detector_dcg.id: self.detector.id}
+        self.dcg_to_detector: DataConditionGroupDetector = {self.detector_dcg.id: self.detector.id}
 
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()

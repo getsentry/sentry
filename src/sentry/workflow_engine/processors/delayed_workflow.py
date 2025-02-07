@@ -34,6 +34,9 @@ COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 DataConditionGroupGroups = dict[int, set[int]]
 DataConditionGroupWorkflow = dict[int, int]
 DataConditionGroupDetector = dict[int, int]
+WorkflowMapping = dict[int, Workflow]
+WorkflowEnvMapping = dict[int, int | None]
+DetectorMapping = dict[int, Detector]
 
 
 @dataclass(frozen=True)
@@ -108,9 +111,9 @@ def get_dcg_group_workflow_detector_data(
 
 def fetch_workflows_envs(
     workflow_ids: list[int],
-) -> tuple[dict[int, Workflow], dict[int, int | None]]:
-    workflows_to_envs: dict[int, int | None] = {}
-    workflow_ids_to_workflows: dict[int, Workflow] = {}
+) -> tuple[WorkflowMapping, WorkflowEnvMapping]:
+    workflows_to_envs: WorkflowEnvMapping = {}
+    workflow_ids_to_workflows: WorkflowMapping = {}
 
     workflows = list(Workflow.objects.filter(id__in=workflow_ids))
 
@@ -121,8 +124,8 @@ def fetch_workflows_envs(
     return workflow_ids_to_workflows, workflows_to_envs
 
 
-def fetch_detectors(detector_ids: list[int]) -> dict[int, Detector]:
-    detector_ids_to_detectors: dict[int, Detector] = {}
+def fetch_detectors(detector_ids: list[int]) -> DetectorMapping:
+    detector_ids_to_detectors: DetectorMapping = {}
     detectors = list(Detector.objects.filter(id__in=detector_ids))
 
     for detector in detectors:
@@ -133,10 +136,10 @@ def fetch_detectors(detector_ids: list[int]) -> dict[int, Detector]:
 
 def fetch_active_data_condition_groups(
     dcg_ids: list[int],
-    dcg_to_workflow: dict[int, int],
-    dcg_to_detector: dict[int, int],
-    workflow_ids_to_workflows: dict[int, Workflow],
-    detector_ids_to_detectors: dict[int, Detector],
+    dcg_to_workflow: DataConditionGroupWorkflow,
+    dcg_to_detector: DataConditionGroupDetector,
+    workflow_ids_to_workflows: WorkflowMapping,
+    detector_ids_to_detectors: DetectorMapping,
 ) -> list[DataConditionGroup]:
     """
     Fetch DataConditionGroups with enabled detectors/workflows
@@ -210,9 +213,9 @@ def generate_unique_queries(
 
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
-    dcg_to_groups: dict[int, set[int]],
-    dcg_to_workflow: dict[int, int],
-    workflows_to_envs: dict[int, int | None],
+    dcg_to_groups: DataConditionGroupGroups,
+    dcg_to_workflow: DataConditionGroupWorkflow,
+    workflows_to_envs: WorkflowEnvMapping,
 ) -> dict[UniqueConditionQuery, set[int]]:
     """
     Map unique condition queries to the group IDs that need to checked for that query.
