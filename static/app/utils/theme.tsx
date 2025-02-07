@@ -742,10 +742,6 @@ const darkShadows = {
  * The colors below are an approximation of the colors used in the sidebar (sidebarGradient).
  * Unfortunately the exact colors cannot be used, as the theme-color tag does not support linear-gradient()
  */
-const sidebarBackground = {
-  light: '#2f1937',
-  dark: '#181622',
-};
 
 type Badge =
   | 'default'
@@ -1073,21 +1069,6 @@ const commonTheme = {
   fontWeightNormal: 400,
   fontWeightBold: 600,
 
-  // @TOOD(jonasbadalic) This should exist on sidebar component
-  sidebar: {
-    boxShadow: '0 3px 3px #2f2936',
-    color: '#9586a5',
-    divider: '#493e54',
-    badgeSize: '22px',
-    smallBadgeSize: '11px',
-    collapsedWidth: '70px',
-    semiCollapsedWidth: '100px',
-    expandedWidth: '220px',
-    mobileHeightNumber: 54,
-    mobileHeight: '54px',
-    menuSpacing: '15px',
-  },
-
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
@@ -1182,13 +1163,12 @@ export const lightTheme = {
   prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
   prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
   sidebar: {
-    ...commonTheme.sidebar,
-    background: sidebarBackground.light,
-    scrollbarWidth: 'thin',
+    // @TODO(jonasbadalic) What are these colors and where do they come from?
+    background: '#2f1937',
     scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
   },
-  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
+  sidebarGradient: `linear-gradient(294.17deg, #2f1937 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
   superuserSidebar: '#880808',
 };
@@ -1213,13 +1193,12 @@ export const darkTheme = {
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
   sidebar: {
-    ...commonTheme.sidebar,
-    background: sidebarBackground.dark,
-    scrollbarWidth: 'thin',
+    // @TODO(jonasbadalic) What are these colors and where do they come from?
+    background: '#181622',
     scrollbarThumbColor: '#808080',
     scrollbarColorTrack: '#1B1825', // end of the gradient which is used for background
   },
-  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
+  sidebarGradient: `linear-gradient(180deg, #181622 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
   superuserSidebar: '#620808',
 } satisfies SentryTheme;

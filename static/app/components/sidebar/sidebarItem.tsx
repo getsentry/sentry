@@ -540,11 +540,11 @@ const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
     right: 0;
     top: 1px;
     background: ${theme.red300};
-    width: ${theme.sidebar.smallBadgeSize};
-    height: ${theme.sidebar.smallBadgeSize};
-    border-radius: ${theme.sidebar.smallBadgeSize};
-    line-height: ${theme.sidebar.smallBadgeSize};
-    box-shadow: ${theme.sidebar.boxShadow};
+    width: 11px;
+    height: 11px;
+    border-radius: 11px;
+    line-height: 11px;
+    box-shadow: 0 3px 3px #2f2936;
   `;
 };
 
@@ -555,10 +555,10 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   color: ${p => p.theme.white};
   font-size: 12px;
   background: ${p => p.theme.red300};
-  width: ${p => p.theme.sidebar.badgeSize};
-  height: ${p => p.theme.sidebar.badgeSize};
-  border-radius: ${p => p.theme.sidebar.badgeSize};
-  line-height: ${p => p.theme.sidebar.badgeSize};
+  width: 22px;
+  height: 22px;
+  border-radius: 22px;
+  line-height: 22px;
 
   ${getCollapsedBadgeStyle};
 `;

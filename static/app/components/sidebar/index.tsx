@@ -90,6 +90,10 @@ import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
 
+export const SIDEBAR_COLLAPSED_WIDTH = '70px';
+export const SIDEBAR_EXPANDED_WIDTH = '220px';
+export const SIDEBAR_MOBILE_HEIGHT = '54px';
+
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
@@ -674,17 +678,16 @@ const responsiveFlex = css`
 
 export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
   background: ${p => p.theme.sidebarGradient};
-  color: ${p => p.theme.sidebar.color};
+  /* @TODO(jonasbadalic): This was a one off color defined in the theme */
+  color: #9586a5;
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p =>
-    p.theme.sidebar[
-      p.hasNewNav
-        ? 'semiCollapsedWidth'
-        : p.collapsed
-          ? 'collapsedWidth'
-          : 'expandedWidth'
-    ]};
+    p.hasNewNav
+      ? SIDEBAR_COLLAPSED_WIDTH
+      : p.collapsed
+        ? SIDEBAR_COLLAPSED_WIDTH
+        : SIDEBAR_EXPANDED_WIDTH};
   position: fixed;
   top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   left: 0;
@@ -698,7 +701,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
     top: 0;
     left: 0;
     right: 0;
-    height: ${p => p.theme.sidebar.mobileHeight};
+    height: ${SIDEBAR_MOBILE_HEIGHT};
     bottom: auto;
     width: auto;
     padding: 0 ${space(1)};
@@ -739,7 +742,7 @@ const PrimaryItems = styled('div')`
 
   scrollbar-color: ${p =>
     `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
-  scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
+  scrollbar-width: thin;
 
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebarBorder};
