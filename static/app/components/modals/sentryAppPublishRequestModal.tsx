@@ -7,6 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
+import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppUtils';
 import type {PermissionChoice} from 'sentry/constants';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -15,18 +16,6 @@ import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const INTEGRATION_CATEGORIES: Array<[string, string]> = [
-  ['notifications', 'Notifications & Incidents'],
-  ['scm', 'Source Code Management'],
-  ['issue-tracking', 'Issue Tracking'],
-  ['deployment', 'Deployment'],
-  ['data-viz', 'Data & Visualization'],
-  ['replay', 'Session Replay'],
-  ['debugging', 'Debugging'],
-  ['feature-flags', 'Feature Flags'],
-  ['compliance', 'Compliance'],
-  ['cloud-monitoring', 'Cloud Monitoring'],
-];
 /**
  * Given an array of scopes, return the choices the user has picked for each option
  * @param scopes {Array}
@@ -107,8 +96,10 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
-        label:
-          'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+        label: t(
+          'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.'
+        ),
+        meta: 'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
         autosize: true,
         rows: 1,
         inline: false,
@@ -121,9 +112,10 @@ export default function SentryAppPublishRequestModal(props: Props) {
         meta: 'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
         label: (
           <Fragment>
-            Provide a one-liner describing your integration. Subject to approval, we’ll
-            use this to describe your integration on
-            <a href="https://sentry.io/integrations/"> Sentry Integrations</a>.
+            {t(
+              'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on'
+            )}
+            <a href="https://sentry.io/integrations/"> {t('Sentry Integrations')}</a>.
           </Fragment>
         ),
         autosize: true,
@@ -138,8 +130,11 @@ export default function SentryAppPublishRequestModal(props: Props) {
         meta: 'Select what category best describes your integration.',
         label: (
           <Fragment>
-            Select what category best describes your integration.
-            <a href="https://sentry.io/integrations/"> Documentation for reference.</a>
+            {t('Select what category best describes your integration.')}
+            <a href="https://sentry.io/integrations/">
+              {' '}
+              {t('Documentation for reference.')}
+            </a>
           </Fragment>
         ),
         autosize: true,
@@ -152,7 +147,8 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'string',
         required: true,
-        label: 'Link to your documentation page.',
+        label: t('Link to your documentation page.'),
+        meta: 'Link to your documentation page.',
         autosize: true,
         rows: 1,
         inline: false,
@@ -162,8 +158,10 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'string',
         required: true,
-        label:
-          'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
+        label: t(
+          'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube'
+        ),
+        meta: 'Link to a video showing installation, setup and user flow for your submission. Examples include: Google Drive & Youtube',
         autosize: true,
         rows: 1,
         inline: false,
@@ -173,7 +171,8 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
-        label: 'What does your integration do? Please be as detailed as possible.',
+        label: t('What does your integration do? Please be as detailed as possible.'),
+        meta: 'What does your integration do? Please be as detailed as possible.',
         autosize: true,
         rows: 1,
         inline: false,
@@ -183,7 +182,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
-        label: 'What value does it offer customers?',
+        label: t('What value does it offer customers?'),
         autosize: true,
         rows: 1,
         inline: false,
@@ -193,7 +192,8 @@ export default function SentryAppPublishRequestModal(props: Props) {
       {
         type: 'textarea',
         required: true,
-        label: 'Do you operate the web service your integration communicates with?',
+        label: t('Do you operate the web service your integration communicates with?'),
+        meta: 'What does your integration do? Please be as detailed as possible.',
         autosize: true,
         rows: 1,
         inline: false,
