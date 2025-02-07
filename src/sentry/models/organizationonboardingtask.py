@@ -57,13 +57,13 @@ class OnboardingTaskStatus:
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
-    def record(self, organization_id, task, user_id, project_id, **kwargs):
+    def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         with sentry_sdk.configure_scope() as scope:
-            scope.set_extra("user_id", user_id)
-            scope.set_extra("project_id", project_id)
-            scope.set_extra("organization_id", organization_id)
+            scope.set_extra("user_id", kwargs["user_id"])
+            scope.set_extra("project_id", kwargs["project_id"])
+            scope.set_extra("organization_id", kwargs["organization_id"])
 
             if cache.get(cache_key) is None:
                 try:
@@ -71,8 +71,6 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                         self.create(
                             organization_id=organization_id,
                             task=task,
-                            user_id=user_id,
-                            project_id=project_id,
                             **kwargs,
                         )
                         return True
