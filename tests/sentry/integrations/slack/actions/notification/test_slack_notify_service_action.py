@@ -408,7 +408,7 @@ class TestInit(RuleTestCase):
         results = list(rule.after(event=event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=self.rule, kwargs={})])
+        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
