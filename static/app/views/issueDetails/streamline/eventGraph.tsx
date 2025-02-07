@@ -442,7 +442,7 @@ const SummaryContainer = styled('div')`
   gap: ${space(0.5)};
   flex-direction: column;
   margin: ${space(1)} ${space(1)} ${space(1)} 0;
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;
 
 const Callout = styled(Button)<{isActive: boolean}>`

@@ -202,12 +202,14 @@ export default SnoozeAlert;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusRight};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   border-left: none;
 `;
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
   border-radius: ${p =>
-    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
+    p.hasDropdown
+      ? `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`
+      : p.theme.borderRadius};
 `;

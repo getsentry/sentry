@@ -28,6 +28,7 @@ import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
@@ -394,7 +395,9 @@ function BaseChartUnwrapped({
 
   const color =
     resolveColors ||
-    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+    (series.length
+      ? theme.charts.getColorPalette(series.length)
+      : CHART_PALETTE[CHART_PALETTE.length - 1]);
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -728,7 +731,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};

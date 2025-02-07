@@ -20,6 +20,8 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -1508,10 +1510,118 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filters": [],
         }
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_with_public_context(self, result):
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=SentryAppErrorType.CLIENT,
+            public_context={"bruh": "bruhhhh"},
+            status_code=409,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=409, **payload
+        )
+        assert error_message in response.json().get("actions")[0]
+        assert response.json().get("context") == {"bruh": "bruhhhh"}
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_sentry_error(self, result):
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=SentryAppErrorType.SENTRY,
+            public_context={"bruh": "bro!"},
+            webhook_context={"swig": "swoog"},
+            status_code=510,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=510, **payload
+        )
+        assert error_message not in response.json().get("actions")[0]
+        assert (
+            response.json().get("actions")[0]
+            == "Something went wrong during the custom integration process!"
+        )
+        assert response.json().get("context") == {"bruh": "bro!"}
+        assert list(response.json().keys()) == ["context", "actions"]
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_missing_error_type(self, result):
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=None,
+            status_code=500,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
+        )
+        assert error_message not in response.json().get("actions")[0]
+        assert (
+            response.json().get("actions")[0]
+            == "Something went wrong during the custom integration process!"
+        )
+        assert list(response.json().keys()) == ["actions"]
 
     def test_edit_condition_metric(self):
         payload = {

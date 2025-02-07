@@ -21,7 +21,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
-ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
 CUTOVER_DATE = datetime(2024, 3, 22, tzinfo=timezone.utc)
 
 EventSpan = namedtuple(
@@ -39,11 +38,6 @@ EventSpan = namedtuple(
         "exclusive_time",
     ],
 )
-
-
-class EventSpans(TypedDict):
-    transaction_id: str
-    spans: list[EventSpan]
 
 
 class SpanSample(TypedDict):
@@ -335,7 +329,6 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
