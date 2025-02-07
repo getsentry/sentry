@@ -89,21 +89,19 @@ def get_dcg_group_workflow_detector_data(
     dcg_to_workflow: DataConditionGroupWorkflow = {}
     dcg_to_detector: DataConditionGroupDetector = {}
 
-    for workflow_event_dcg, instance_data in workflow_event_dcg_data.items():
+    for workflow_event_dcg, _ in workflow_event_dcg_data.items():
         data = workflow_event_dcg.split(":")
         dcg_type = data[3]  # TODO: use dcg_type to split WHEN and IF DCGs
 
-        event_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
+        target_dict = (
+            dcg_to_detector
+            if dcg_type == DataConditionHandlerType.DETECTOR_TRIGGER
+            else dcg_to_workflow
+        )
 
         for dcg_id in dcg_ids:
-            dcg_to_groups[dcg_id].add(event_id)
-
-            target_dict = (
-                dcg_to_detector
-                if dcg_type == DataConditionHandlerType.DETECTOR_TRIGGER
-                else dcg_to_workflow
-            )
+            dcg_to_groups[dcg_id].add(data[1])
             target_dict[dcg_id] = int(data[0])
 
     return dcg_to_groups, dcg_to_workflow, dcg_to_detector
