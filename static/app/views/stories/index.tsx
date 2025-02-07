@@ -1,7 +1,8 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons/iconSearch';

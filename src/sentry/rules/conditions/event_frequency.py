@@ -131,7 +131,6 @@ class _QSTypedDict(TypedDict):
 
 class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = STANDARD_INTERVALS
-    form_cls = EventFrequencyForm
 
     def __init__(
         self,
@@ -408,6 +407,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             group = groups[0]
             result = group.get(value)
         return result
+
+    def get_form_instance(self) -> EventFrequencyForm:
+        return EventFrequencyForm(self.data)
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
@@ -820,7 +822,6 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.intervals = PERCENT_INTERVALS
-        self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
 
         # Override form fields interval to hide 1 min option from ui, but leave
@@ -947,6 +948,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
+
+    def get_form_instance(self) -> EventFrequencyPercentForm:
+        return EventFrequencyPercentForm(self.data)
 
 
 def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
