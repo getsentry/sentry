@@ -248,7 +248,7 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('transaction.duration');
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'None'
+      'field (no aggregate)'
     );
   });
 
@@ -272,7 +272,7 @@ describe('Visualize', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'None'}));
+    await userEvent.click(screen.getByRole('option', {name: 'field (no aggregate)'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
@@ -281,7 +281,7 @@ describe('Visualize', () => {
       'transaction.duration'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'None'
+      'field (no aggregate)'
     );
   });
 
@@ -600,9 +600,11 @@ describe('Visualize', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
 
-    // Being unable to choose "None" in the aggregate selection means that the
+    // Being unable to choose "field (no aggregate)" in the aggregate selection means that the
     // individual field is not allowed, i.e. only aggregates appear.
-    expect(screen.queryByRole('option', {name: 'None'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'field (no aggregate)'})
+    ).not.toBeInTheDocument();
   });
 
   it('updates only the selected field', async () => {

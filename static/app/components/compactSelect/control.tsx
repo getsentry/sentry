@@ -587,7 +587,7 @@ const ControlWrap = styled('div')`
   width: max-content;
 `;
 
-const TriggerLabel = styled('span')`
+export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
   line-height: normal;

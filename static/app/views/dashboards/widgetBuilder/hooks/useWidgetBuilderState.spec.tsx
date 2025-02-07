@@ -358,7 +358,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -374,7 +374,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -468,7 +468,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -484,7 +484,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -1024,7 +1024,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.fields).toEqual([
         {
-          function: ['count', '', undefined, undefined],
+          function: ['count_unique', 'user', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
