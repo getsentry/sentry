@@ -611,8 +611,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
-        active_org_member = OrganizationMember.objects.get(organization=obj, user_id=user.id)
-        quickStartDisplayStatus = getattr(active_org_member, "quick_start_display_status", None)
+        quickStartDisplayStatus = None
+        try:
+            active_org_member = OrganizationMember.objects.get(organization=obj, user_id=user.id)
+            quickStartDisplayStatus = getattr(active_org_member, "quick_start_display_status", None)
+        except OrganizationMember.DoesNotExist:
+            pass
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
