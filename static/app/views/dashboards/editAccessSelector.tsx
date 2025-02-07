@@ -9,7 +9,6 @@ import Avatar from 'sentry/components/avatar';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -347,11 +346,6 @@ function EditAccessSelector({
         listOnly
           ? [triggerAvatars]
           : [
-              <StyledFeatureBadge
-                key="new-badge"
-                type="new"
-                tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
-              />,
               <LabelContainer key="selector-label">{t('Edit Access:')}</LabelContainer>,
               triggerAvatars,
             ]
@@ -412,11 +406,6 @@ const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
 
 const LabelContainer = styled('div')`
   margin-right: ${space(1)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: 0px;
-  margin-right: 6px;
 `;
 
 const StyledBadge = styled(Badge)<{size: number}>`

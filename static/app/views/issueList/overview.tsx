@@ -50,6 +50,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
+import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -1067,14 +1068,25 @@ function IssueListOverview({router}: Props) {
     <NewTabContextProvider>
       <Layout.Page>
         {organization.features.includes('issue-stream-custom-views') ? (
-          <ErrorBoundary message={'Failed to load custom tabs'} mini>
-            <IssueViewsIssueListHeader
-              router={router}
-              selectedProjectIds={selection.projects}
-              realtimeActive={realtimeActive}
-              onRealtimeChange={onRealtimeChange}
-            />
-          </ErrorBoundary>
+          organization.features.includes('issue-views-page-filter') ? (
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <IssueViewsPFIssueListHeader
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={onRealtimeChange}
+              />
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <IssueViewsIssueListHeader
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={onRealtimeChange}
+              />
+            </ErrorBoundary>
+          )
         ) : (
           <IssueListHeader
             organization={organization}

@@ -129,6 +129,10 @@ describe('EventDetailsHeader', () => {
   });
 
   it('renders occurrence summary if enabled', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: {data: event},
+    });
     render(
       <EventDetailsHeader
         {...defaultProps}

@@ -65,14 +65,11 @@ export function getDetectorDetails({
       detectorPath: `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
       // TODO(issues): Update this to mention detectors when that language is user-facing
       description: t(
-        'This issue was created by an uptime alert rule. After 2 consecutive failed check-ins, an open period will be created.'
+        'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
       ),
     };
   }
-  return {
-    detectorPath: undefined,
-    description: undefined,
-  };
+  return {};
 }
 
 export function DetectorSection({group, project}: {group: Group; project: Project}) {
