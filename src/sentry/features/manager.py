@@ -5,7 +5,6 @@ import logging
 __all__ = ["FeatureManager"]
 
 import abc
-import functools
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
@@ -139,18 +138,6 @@ class RegisteredFeatureManager:
 FLAGPOLE_OPTION_PREFIX = "feature"
 
 
-def capture(fn):
-    @functools.wraps(fn)
-    def wrapper(
-        self, name: str, *args: Any, skip_entity: bool | None = False, **kwargs: Any
-    ) -> bool:
-        result = fn(self, name, *args, skip_entity=skip_entity, **kwargs)
-        sentry_sdk.feature_flags.add_feature_flag(name, result)
-        return result
-
-    return wrapper
-
-
 # TODO: Change RegisteredFeatureManager back to object once it can be removed
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
@@ -252,7 +239,6 @@ class FeatureManager(RegisteredFeatureManager):
         """
         self._entity_handler = handler
 
-    @capture
     def has(self, name: str, *args: Any, skip_entity: bool | None = False, **kwargs: Any) -> bool:
         """
         Determine if a feature is enabled. If a handler returns None, then the next
@@ -298,6 +284,7 @@ class FeatureManager(RegisteredFeatureManager):
                         tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
+                    sentry_sdk.feature_flags.add_feature_flag(name, rv)
                     return rv
 
                 if self._entity_handler and not skip_entity:
@@ -308,6 +295,7 @@ class FeatureManager(RegisteredFeatureManager):
                             tags={"feature": name, "result": rv},
                             sample_rate=sample_rate,
                         )
+                        sentry_sdk.feature_flags.add_feature_flag(name, rv)
                         return rv
 
                 rv = settings.SENTRY_FEATURES.get(feature.name, False)
@@ -317,6 +305,7 @@ class FeatureManager(RegisteredFeatureManager):
                         tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
+                    sentry_sdk.feature_flags.add_feature_flag(name, rv)
                     return rv
 
                 # Features are by default disabled if no plugin or default enables them
@@ -325,10 +314,12 @@ class FeatureManager(RegisteredFeatureManager):
                     tags={"feature": name, "result": False},
                     sample_rate=sample_rate,
                 )
+                sentry_sdk.feature_flags.add_feature_flag(name, False)
                 return False
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
+            sentry_sdk.feature_flags.add_feature_flag(name, False)
             return False
 
     def batch_has(
