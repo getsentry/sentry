@@ -1,7 +1,6 @@
+from datetime import timedelta
 from typing import Any
 from uuid import uuid4
-
-from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
@@ -47,8 +46,8 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
     def setUp(self):
         super().setUp()
 
-        self.start = before_now(minutes=1)
-        self.end = timezone.now()
+        self.start = before_now(minutes=5)
+        self.end = self.start + timedelta(minutes=5)
 
         self.event = self.store_event(
             data={
