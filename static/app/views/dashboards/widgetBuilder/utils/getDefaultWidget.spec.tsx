@@ -12,11 +12,11 @@ describe('getDefaultWidget', () => {
       widgetType: WidgetType.ERRORS,
       queries: [
         {
-          fields: ['count()'],
+          fields: ['count_unique(user)'],
           conditions: '',
-          aggregates: ['count()'],
+          aggregates: ['count_unique(user)'],
           columns: [],
-          orderby: '-count()',
+          orderby: '-count_unique(user)',
           fieldAliases: [],
           name: '',
         },

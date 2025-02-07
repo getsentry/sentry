@@ -839,18 +839,16 @@ const buttonPaddingSizes: ButtonPaddingSizes = {
 };
 
 type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
-type Breakpoints = {
-  [key in Breakpoint]: string;
-};
+type Breakpoints = Record<Breakpoint, string>;
 
-const breakpoints: Breakpoints = {
+const breakpoints = {
   xsmall: '500px',
   small: '800px',
   medium: '992px',
   large: '1200px',
   xlarge: '1440px',
   xxlarge: '2560px',
-} as const;
+} as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 type Sizes = {
@@ -1054,21 +1052,7 @@ const commonTheme = {
     },
   },
 
-  grid: 8,
-
   borderRadius: '6px',
-  borderRadiusBottom: '0 0 6px 6px',
-  borderRadiusTop: '6px 6px 0 0',
-  borderRadiusLeft: '6px 0 0 6px',
-  borderRadiusRight: '0 6px 6px 0',
-
-  // @TODO(jonasbadalic) This should exist their respective components
-  panelBorderRadius: '6px',
-  modalBorderRadius: '8px',
-  linkBorderRadius: '2px',
-
-  headerSelectorRowHeight: 44,
-  headerSelectorLabelHeight: 28,
 
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
@@ -1078,6 +1062,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+
   codeFontSize: '13px',
   headerFontSize: '22px',
 
@@ -1104,19 +1089,6 @@ const commonTheme = {
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
-
-    // @TODO(jonasbadalic) This should exist on pageTitle component
-    pageTitle: {
-      fontSize: '1.625rem',
-      fontWeight: 600,
-      letterSpacing: '-0.01em',
-      lineHeight: 1.2,
-    },
-    cardTitle: {
-      fontSize: '1rem',
-      fontWeight: 600,
-      lineHeight: 1.2,
-    },
   },
 
   /**
@@ -1145,14 +1117,9 @@ const commonTheme = {
   dataCategory,
 
   charts: {
-    colors: CHART_PALETTE[CHART_PALETTE.length - 1],
-
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-
-    previousPeriod: lightColors.gray200,
-    symbolSize: 6,
   },
 
   diff: {
@@ -1167,18 +1134,6 @@ const commonTheme = {
     empty: '#e2dee6',
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
-
-  // used as a gradient,
-  businessIconColors: ['#EA5BC2', '#6148CE'],
-
-  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'] as const,
-  barBreakdownFontColors: [
-    '#564277',
-    '#E8E2F1',
-    '#E8E2F1',
-    '#E8E2F1',
-    '#E8E2F1',
-  ] as const,
 };
 
 // Light and dark theme definitions

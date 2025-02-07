@@ -26,7 +26,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
         feature_names = [
@@ -170,7 +169,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         is_frontend = is_frontend_request(request)

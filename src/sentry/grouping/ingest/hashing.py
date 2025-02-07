@@ -216,7 +216,7 @@ def get_or_create_grouphashes(
     hashes: Sequence[str],
     grouping_config: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    is_secondary = grouping_config == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
     # The only utility of secondary hashes is to link new primary hashes to an existing group.

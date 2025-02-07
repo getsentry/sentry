@@ -125,7 +125,7 @@ const Layout = styled('div')`
   display: grid;
   grid-template:
     'head head head' max-content
-    'aside body index' auto/200 1fr;
+    'aside body index' auto / 200px 1fr;
   gap: var(--stories-grid-space);
   place-items: stretch;
 
@@ -166,7 +166,7 @@ const VerticalScroll = styled('main')`
  */
 const StoryMainContainer = styled(VerticalScroll)`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.panelBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
 
   grid-area: body;
