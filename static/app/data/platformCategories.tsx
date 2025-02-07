@@ -469,6 +469,10 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'apple-ios',
   'react-native',
   'flutter',
+  // Old platforms
+  'java-android',
+  'cocoa-objc',
+  'cocoa-swift',
 ];
 
 // These are all the platforms that can set up replay.
