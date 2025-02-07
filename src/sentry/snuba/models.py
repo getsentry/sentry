@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Self
@@ -20,6 +21,8 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_source import DataSource
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -149,10 +152,20 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
     def bulk_get_query_object(
         data_sources: list[DataSource],
     ) -> dict[int, QuerySubscription | None]:
+        query_subscription_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                subscription_id = int(ds.source_id)
+                query_subscription_ids.append(subscription_id)
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching subscriptions",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
         qs_lookup = {
-            str(qs.id): qs
-            for qs in QuerySubscription.objects.filter(
-                id__in=[int(ds.source_id) for ds in data_sources]
-            )
+            str(qs.id): qs for qs in QuerySubscription.objects.filter(id__in=query_subscription_ids)
         }
+
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
