@@ -20,7 +20,8 @@ function withConfig<P extends InjectedConfigProps>(
     const config = useLegacyStore(ConfigStore);
     const allProps = {config, ...props} as P;
 
-    return <WrappedComponent {...allProps} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent {...(allProps as any)} />;
   }
 
   Wrapper.displayName = `withConfig(${getDisplayName(WrappedComponent)})`;

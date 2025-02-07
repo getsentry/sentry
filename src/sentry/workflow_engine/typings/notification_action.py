@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -6,6 +8,8 @@ from typing import Any, ClassVar
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.sentry_apps.services.app import app_service
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 
@@ -63,7 +67,7 @@ class BaseActionTranslator(ABC):
         return None
 
     @property
-    def blob_type(self) -> type["DataBlob"] | None:
+    def blob_type(self) -> type[DataBlob] | None:
         """Return the blob type for this action, if any"""
         return None
 
@@ -133,7 +137,7 @@ class SlackActionTranslator(BaseActionTranslator):
         return self.action.get("channel")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return SlackDataBlob
 
 
@@ -160,7 +164,7 @@ class DiscordActionTranslator(BaseActionTranslator):
         return self.action.get("channel_id")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return DiscordDataBlob
 
 
@@ -219,7 +223,7 @@ class PagerDutyActionTranslator(BaseActionTranslator):
         return self.action.get("service")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
@@ -251,7 +255,7 @@ class OpsgenieActionTranslator(BaseActionTranslator):
         return self.action.get("team")
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
@@ -272,7 +276,7 @@ class TicketActionTranslator(BaseActionTranslator, ABC):
 class GitHubActionTranslatorBase(TicketActionTranslator):
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return GitHubDataBlob
 
 
@@ -297,8 +301,62 @@ class AzureDevOpsActionTranslator(TicketActionTranslator):
     action_type = Action.Type.AZURE_DEVOPS
 
     @property
-    def blob_type(self) -> type["DataBlob"]:
+    def blob_type(self) -> type[DataBlob]:
         return AzureDevOpsDataBlob
+
+
+@issue_alert_action_translator_registry.register("sentry.mail.actions.NotifyEmailAction")
+class EmailActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.EMAIL
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["targetType"]
+
+    @property
+    def target_type(self) -> ActionTarget:
+        # If the targetType is Member, then set the target_type to User,
+        # if the targetType is Team, then set the target_type to Team,
+        # otherwise return None (this would be for IssueOwners (suggested assignees))
+
+        target_type = self.action.get("targetType")
+        if target_type == ActionTargetType.MEMBER.value:
+            return ActionTarget.USER
+        elif target_type == ActionTargetType.TEAM.value:
+            return ActionTarget.TEAM
+        return ActionTarget.ISSUE_OWNERS
+
+    @property
+    def integration_id(self) -> None:
+        return None
+
+    @property
+    def target_identifier(self) -> str | None:
+        target_type = self.action.get("targetType")
+        if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
+            return self.action.get("targetIdentifier")
+        return None
+
+    @property
+    def blob_type(self) -> type[DataBlob] | None:
+        target_type = self.action.get("targetType")
+        if target_type == ActionTargetType.ISSUE_OWNERS.value:
+            return EmailDataBlob
+        return None
+
+    def get_sanitized_data(self) -> dict[str, Any]:
+        """
+        Override to handle the special case of IssueOwners target type
+        """
+        if self.action.get("targetType") == ActionTargetType.ISSUE_OWNERS.value:
+            return dataclasses.asdict(
+                EmailDataBlob(
+                    fallthroughType=self.action.get(
+                        "fallthroughType", FallthroughChoiceType.ACTIVE_MEMBERS.value
+                    )
+                )
+            )
+        return {}
 
 
 @issue_alert_action_translator_registry.register(
@@ -354,6 +412,51 @@ class WebhookActionTranslator(BaseActionTranslator):
         return self.action.get("service")
 
 
+@issue_alert_action_translator_registry.register(
+    "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
+)
+class SentryAppActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.SENTRY_APP
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["sentryAppInstallationUuid"]
+
+    @property
+    def target_type(self) -> ActionTarget | None:
+        return ActionTarget.SENTRY_APP
+
+    @property
+    def integration_id(self) -> int | None:
+        return None
+
+    @property
+    def target_identifier(self) -> str | None:
+        # Fetch the sentry app id using app_service
+        # Based on sentry/rules/actions/sentry_apps/notify_event.py
+        sentry_app_installation = app_service.get_many(
+            filter=dict(uuids=[self.action.get("sentryAppInstallationUuid")])
+        )
+
+        if sentry_app_installation:
+            assert len(sentry_app_installation) == 1, "Expected exactly one sentry app installation"
+            return str(sentry_app_installation[0].sentry_app.id)
+
+        raise ValueError("Sentry app installation not found")
+
+    def get_sanitized_data(self) -> dict[str, Any]:
+        data = SentryAppDataBlob()
+        if settings := self.action.get("settings"):
+            for setting in settings:
+                data.settings.append(SentryAppFormConfigDataBlob(**setting))
+
+        return dataclasses.asdict(data)
+
+    @property
+    def blob_type(self) -> type[DataBlob]:
+        return SentryAppDataBlob
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -363,7 +466,9 @@ class DataBlob:
 
 @dataclass
 class SlackDataBlob(DataBlob):
-    """SlackDataBlob is a specific type that represents the data blob for a Slack notification action."""
+    """
+    SlackDataBlob is a specific type that represents the data blob for a Slack notification action.
+    """
 
     tags: str = ""
     notes: str = ""
@@ -380,14 +485,18 @@ class DiscordDataBlob(DataBlob):
 
 @dataclass
 class OnCallDataBlob(DataBlob):
-    """OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action."""
+    """
+    OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action.
+    """
 
     priority: str = ""
 
 
 @dataclass
 class TicketDataBlob(DataBlob):
-    """TicketDataBlob is a specific type that represents the data blob for a ticket creation action."""
+    """
+    TicketDataBlob is a specific type that represents the data blob for a ticket creation action.
+    """
 
     # This is dynamic and can whatever customer config the customer setup on GitHub
     dynamic_form_fields: list[dict] = field(default_factory=list)
@@ -412,3 +521,32 @@ class AzureDevOpsDataBlob(TicketDataBlob):
 
     project: str = ""
     work_item_type: str = ""
+
+
+@dataclass
+class SentryAppFormConfigDataBlob(DataBlob):
+    """
+    SentryAppFormConfigDataBlob represents a single form config field for a Sentry App.
+    name is the name of the form field, and value is the value of the form field.
+    """
+
+    name: str = ""
+    value: str = ""
+
+
+@dataclass
+class SentryAppDataBlob(DataBlob):
+    """
+    Represents a Sentry App notification action.
+    """
+
+    settings: list[SentryAppFormConfigDataBlob] = field(default_factory=list)
+
+
+@dataclass
+class EmailDataBlob(DataBlob):
+    """
+    EmailDataBlob represents the data blob for an email notification action.
+    """
+
+    fallthroughType: str = ""

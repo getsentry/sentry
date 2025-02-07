@@ -6,7 +6,7 @@ import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(FeatureBadge, story => {
+export default storyBook('FeatureBadge', story => {
   story('Types', () => (
     <SideBySide>
       <FeatureBadge type="alpha" />

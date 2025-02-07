@@ -22,7 +22,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
-from sentry.features.rollout import in_random_rollout
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.flag import FlagPoleIntegration

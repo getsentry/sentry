@@ -78,6 +78,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -136,6 +137,7 @@ function WidgetCard(props: Props) {
     widgetLegendState,
     disableFullscreen,
     showConfidenceWarning,
+    minTableColumnWidth,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -310,6 +312,7 @@ function WidgetCard(props: Props) {
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             forceDescriptionTooltip={props.forceDescriptionTooltip}
+            noVisualizationPadding
           >
             <WidgetCardChartContainer
               location={location}
@@ -330,6 +333,7 @@ function WidgetCard(props: Props) {
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
+              minTableColumnWidth={minTableColumnWidth}
             />
           </WidgetFrame>
         )}

@@ -13,6 +13,8 @@ import toPercent from 'sentry/utils/number/toPercent';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../../../demo/demoHeader';
+
 import * as DividerHandlerManager from './dividerHandlerManager';
 
 type PropType = {
@@ -124,7 +126,7 @@ function TraceViewHeader(props: PropType) {
 const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   left: 0;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

@@ -190,5 +190,23 @@ export default function getGuidesContent(
         },
       ],
     },
+    {
+      guide: 'crons_backend_insights',
+      requiredTargets: ['crons_backend_insights'],
+      steps: [
+        {
+          title: t('Crons are now Alerts'),
+          target: 'crons_backend_insights',
+          description: tct(
+            'Crons are now a type of Sentry Alert and can be managed there. The detailed timeline is now here under Insights → Backend. [link:Learn more].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/crons/alerts-backend-insights-migration/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
   ];
 }

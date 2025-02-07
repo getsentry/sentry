@@ -4,7 +4,7 @@ import {checkBreakpoints} from 'sentry/utils/useBreakpoints';
 
 describe('checkBreakpoints', () => {
   it('returns true for active breakpoints', () => {
-    const breakpoints: Theme['breakpoints'] = {
+    const breakpoints: Record<keyof Theme['breakpoints'], string> = {
       xsmall: '0px',
       small: '0px',
       medium: '1px',

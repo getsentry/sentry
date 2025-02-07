@@ -12,7 +12,7 @@ export function useInstantRef<T>(value: T) {
 
 type Breakpoint = keyof Theme['breakpoints'];
 export function checkBreakpoints(
-  breakpoints: Theme['breakpoints'],
+  breakpoints: Record<Breakpoint, string>,
   width: number
 ): Record<Breakpoint, boolean> {
   return Object.entries(breakpoints).reduce(

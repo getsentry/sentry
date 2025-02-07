@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 from unittest import mock
 from uuid import uuid4
 
 import pytest
-from dateutil.parser import parse as parse_date
 from django.urls import reverse
 from snuba_sdk import Entity
 from snuba_sdk.column import Column
@@ -1033,8 +1032,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 1}],
             [{"count": 2}],
         ]
-        assert response.data["start"] == parse_date(start).timestamp()
-        assert response.data["end"] == parse_date(end).timestamp()
+        assert response.data["start"] == datetime.fromisoformat(start).timestamp()
+        assert response.data["end"] == datetime.fromisoformat(end).timestamp()
 
     def test_comparison_error_dataset(self):
         self.store_event(

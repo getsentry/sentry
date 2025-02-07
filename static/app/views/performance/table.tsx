@@ -27,6 +27,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -284,11 +285,27 @@ class _Table extends Component<Props, State> {
       const project = getProject(dataRow, projects);
       const projectID = project?.id;
       const summaryView = eventView.clone();
+      const existingQuery = new MutableSearch(summaryView.query);
       if (dataRow['http.method']) {
         summaryView.additionalConditions.setFilterValues('http.method', [
           dataRow['http.method'] as string,
         ]);
       }
+      if (dataRow.hasOwnProperty('transaction.op')) {
+        existingQuery.removeFilter('!transaction.op');
+        existingQuery.removeFilter('transaction.op');
+        if (dataRow['transaction.op']) {
+          summaryView.additionalConditions.setFilterValues('transaction.op', [
+            dataRow['transaction.op'] as string,
+          ]);
+        }
+      }
+
+      // This is carried forward from the insight overview pages
+      existingQuery.removeFilter('project.id');
+      existingQuery.removeFilter('!project.id');
+
+      summaryView.query = existingQuery.formatString();
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
       if (isUnparameterizedRow && !this.unparameterizedMetricSet) {
         this.sendUnparameterizedAnalytic(project);

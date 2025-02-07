@@ -17,7 +17,6 @@ describe('Actionable Items', () => {
   const defaultProps = {
     project: ProjectFixture(),
     event: EventFixture(),
-    isShare: false,
   };
 
   beforeEach(() => {
