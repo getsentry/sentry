@@ -252,31 +252,15 @@ export function GroupSummary({
                     </CardContent>
                   ) : (
                     <CardContent>
-                      {card.insightElement ? (
-                        <Fragment>
-                          {card.insightElement}
-                          {card.insight && (
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: marked(
-                                  preview
-                                    ? card.insight.replace(/\*\*/g, '')
-                                    : card.insight
-                                ),
-                              }}
-                            />
-                          )}
-                        </Fragment>
-                      ) : (
-                        card.insight && (
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: marked(
-                                preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                              ),
-                            }}
-                          />
-                        )
+                      {card.insightElement}
+                      {card.insight && (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                            ),
+                          }}
+                        />
                       )}
                     </CardContent>
                   )}
