@@ -11,7 +11,6 @@ import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
-  type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
@@ -19,6 +18,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
+  type?: 'muted' | 'info' | 'warning' | 'success' | 'error';
 }
 
 export function Alert({
@@ -270,7 +270,7 @@ function unreachable(x: never) {
   return x;
 }
 
-function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
+function AlertIcon({type}: {type: NonNullable<AlertProps['type']>}): React.ReactNode {
   switch (type) {
     case 'warning':
       return <IconWarning />;
@@ -284,4 +284,6 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
     default:
       unreachable(type);
   }
+
+  return null;
 }
