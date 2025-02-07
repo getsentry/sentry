@@ -29,7 +29,11 @@ export default storyBook('WidgetFrame', story => {
           content. This includes a title, a description, and the <code>children</code>.
           The title is automatically wrapped in a tooltip if it does not fit. The
           description and the actions are usually hidden and shown on hover. You can
-          control this behaviour with the <code>hideActions</code> prop.
+          control this behaviour with the <code>revealActions</code> prop.
+          <code>revealActions</code> is set to <code>"hover"</code> by default, but you
+          can set it to <code>"always"</code> to forcibly show the actions.
+          <code>revealActions</code> is automatically set to <code>"always"</code> if the{' '}
+          <code>revealTooltip</code> prop is set to <code>"always"</code>.
         </p>
 
         <p>

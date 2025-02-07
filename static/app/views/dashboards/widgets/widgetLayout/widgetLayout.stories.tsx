@@ -39,10 +39,10 @@ export default storyBook('WidgetLayout', story => {
           the top left, and are always visible. The title is truncated to fit. The
           contents of the <code>Actions</code> prop are shown in the top right, and only
           shown on hover. You can set the <code>revealActions</code> prop to{' '}
-          <code>&lt;always&gt;</code> to always show the actions. Actions are not
-          truncated. The contents of <code>Visualization</code> are always visible, shown
-          below the title and actions. The layout expands both horizontally and vertically
-          to fit the parent.
+          <code>"always"</code> to always show the actions. Actions are not truncated. The
+          contents of <code>Visualization</code> are always visible, shown below the title
+          and actions. The layout expands both horizontally and vertically to fit the
+          parent.
         </p>
 
         <p>
