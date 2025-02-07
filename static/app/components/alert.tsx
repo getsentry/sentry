@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
@@ -18,11 +19,9 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
-  type?: 'muted' | 'info' | 'warning' | 'success' | 'error';
 }
 
 export function Alert({
-  type = 'info',
   showIcon,
   icon,
   opaque,
@@ -32,6 +31,7 @@ export function Alert({
   trailingItems,
   className,
   children,
+  type,
   ...props
 }: AlertProps) {
   const theme = useTheme();
@@ -64,7 +64,6 @@ export function Alert({
 
   return (
     <AlertContainer
-      type={type}
       system={system}
       opaque={opaque}
       expand={expand}
@@ -74,6 +73,7 @@ export function Alert({
       hovered={isHovered && !expandIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
       alertColors={getAlertColors(theme, type)}
+      type={type}
       {...hoverProps}
       {...props}
     >
@@ -270,7 +270,7 @@ function unreachable(x: never) {
   return x;
 }
 
-function AlertIcon({type}: {type: NonNullable<AlertProps['type']>}): React.ReactNode {
+function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {
     case 'warning':
       return <IconWarning />;
