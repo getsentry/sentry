@@ -647,11 +647,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         self,
         data: Any,
         column: str,
-        extra_columns: list[str] | None = None,
         null_zero: bool = False,
     ):
-        if extra_columns is None:
-            extra_columns = []
         serialized_values = []
         for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
             for row in group:
