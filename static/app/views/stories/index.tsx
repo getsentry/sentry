@@ -96,7 +96,12 @@ export default function Stories() {
                 if (arr.length === 1) {
                   return (
                     <Fragment key={s.filename}>
-                      <Flex gap={space(1)} align="center" style={{paddingTop: space(2)}}>
+                      <Flex
+                        gap={space(1)}
+                        align="center"
+                        style={{paddingTop: space(2)}}
+                        justify="right"
+                      >
                         <TextOverflow>{s.filename}</TextOverflow>
                         <CopyToClipboardButton
                           size="xs"
