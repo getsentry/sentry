@@ -269,8 +269,10 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
+    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+
     # Similar issues are returned with the closest match first
-    seer_results = get_similarity_data_from_seer(request_data)
+    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
     seer_results_json = [asdict(result) for result in seer_results]
     parent_grouphash = (
         GroupHash.objects.filter(
@@ -296,6 +298,9 @@ def get_seer_similar_issues(
         # new event be, and again the values must match.
         parent_fingerprint = parent_grouphash.get_associated_fingerprint()
         parent_has_hybrid_fingerprint = get_fingerprint_type(parent_fingerprint) == "hybrid"
+        parent_has_metadata = bool(
+            parent_grouphash.metadata and parent_grouphash.metadata.hashing_metadata
+        )
 
         if event_has_hybrid_fingerprint or parent_has_hybrid_fingerprint:
             # This check will catch both fingerprint type match and fingerprint value match
@@ -306,6 +311,23 @@ def get_seer_similar_issues(
             if not fingerprints_match:
                 parent_grouphash = None
                 seer_results_json = []
+
+            if not parent_has_metadata:
+                result = "no_parent_metadata"
+            elif event_has_hybrid_fingerprint and not parent_has_hybrid_fingerprint:
+                result = "only_event_hybrid"
+            elif parent_has_hybrid_fingerprint and not event_has_hybrid_fingerprint:
+                result = "only_parent_hybrid"
+            elif not fingerprints_match:
+                result = "no_fingerprint_match"
+            else:
+                result = "fingerprint_match"
+
+            metrics.incr(
+                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": event.platform, "result": result},
+            )
 
     similar_issues_metadata = {
         "results": seer_results_json,
