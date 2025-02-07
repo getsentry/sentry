@@ -16,7 +16,7 @@ export const RESERVED_EVENT_IDS = new Set(['recommended', 'latest', 'oldest']);
 interface UseGroupEventOptions {
   eventId: string | undefined;
   groupId: string;
-  options?: {enabled?: boolean; period?: ReturnType<typeof getPeriod>};
+  options?: {enabled?: boolean};
 }
 
 export function useGroupEvent({
@@ -41,8 +41,7 @@ export function useGroupEvent({
       : undefined;
 
   const {selection: pageFilters} = usePageFilters();
-  const periodQuery =
-    options?.period ?? (hasStreamlinedUI ? getPeriod(pageFilters.datetime) : {});
+  const periodQuery = hasStreamlinedUI ? getPeriod(pageFilters.datetime) : {};
 
   const queryKey = getGroupEventQueryKey({
     orgSlug: organization.slug,

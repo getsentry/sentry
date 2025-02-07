@@ -9,9 +9,12 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   checkStatusPrecedent,
@@ -20,7 +23,7 @@ import {
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 
 export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | undefined {
   /**
@@ -29,19 +32,25 @@ export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | un
    * are not available (e.g. time range has changed and page refreshed)
    */
   const user = useUser();
+  const organization = useOrganization();
   const {detectorDetails} = useIssueDetails();
   const {detectorId, detectorType} = detectorDetails;
 
   const hasUptimeDetector = detectorId && detectorType === 'uptime_monitor';
 
-  const {data: event} = useGroupEvent({
-    groupId,
-    eventId: user.options.defaultIssueEvent,
-    options: {
+  const {data: event} = useApiQuery<Event>(
+    getGroupEventQueryKey({
+      orgSlug: organization.slug,
+      groupId,
+      eventId: user.options.defaultIssueEvent,
+      environments: [],
+    }),
+    {
+      staleTime: Infinity,
       enabled: !hasUptimeDetector,
-      period: {statsPeriod: '90d'},
-    },
-  });
+      retry: false,
+    }
+  );
 
   // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasUptimeDetector
