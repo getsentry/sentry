@@ -155,7 +155,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         set_top_tags(scope, project, ctx, len(configs) > 0)
         result = get_stacktrace_config(configs, ctx)
         error = result["error"]
-
+        src_path = result["src_path"]
         # Post-processing before exiting scope context
         if result["current_config"]:
             # Use the provider key to split up stacktrace-link metrics by integration type
@@ -189,6 +189,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 {
                     "error": error,
                     "config": serialized_config,
+                    "sourcePath": src_path,
                     "sourceUrl": result["source_url"],
                     "attemptedUrl": attempted_url,
                     "integrations": serialized_integrations,
@@ -199,6 +200,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             {
                 "error": error,
                 "config": serialized_config,
+                "sourcePath": src_path,
                 "sourceUrl": None,
                 "attemptedUrl": attempted_url,
                 "integrations": serialized_integrations,
