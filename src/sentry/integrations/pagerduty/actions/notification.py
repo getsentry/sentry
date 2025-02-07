@@ -16,7 +16,6 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
-    form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
     provider = "pagerduty"
@@ -141,8 +140,8 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             account=self.get_integration_name(), service=service_name, severity=severity
         )
 
-    def get_form_instance(self):
-        return self.form_cls(
+    def get_form_instance(self) -> PagerDutyNotifyServiceForm:
+        return PagerDutyNotifyServiceForm(
             self.data,
             integrations=self.get_integrations(),
             services=self.get_services(),

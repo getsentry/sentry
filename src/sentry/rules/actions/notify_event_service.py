@@ -119,7 +119,6 @@ class NotifyEventServiceAction(EventAction):
     """Used for notifying a *specific* plugin/sentry app with a generic webhook payload."""
 
     id = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
-    form_cls = NotifyEventServiceForm
     label = "Send a notification via {service}"
     prompt = "Send a notification via an integration"
 
@@ -197,5 +196,5 @@ class NotifyEventServiceAction(EventAction):
     def get_services(self) -> Sequence[Any]:
         return [*self.get_plugins(), *self.get_sentry_app_services()]
 
-    def get_form_instance(self) -> forms.Form:
-        return self.form_cls(self.data, services=self.get_services())
+    def get_form_instance(self) -> NotifyEventServiceForm:
+        return NotifyEventServiceForm(self.data, services=self.get_services())

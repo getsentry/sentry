@@ -20,7 +20,6 @@ from sentry.utils import metrics
 
 class DiscordNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
-    form_cls = DiscordNotifyServiceForm
     label = "Send a notification to the {server} Discord server in the channel with ID or URL: {channel_id} and show tags {tags} in the notification."
     prompt = "Send a Discord notification"
     provider = "discord"
@@ -95,5 +94,5 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self) -> Any:
-        return self.form_cls(self.data, integrations=self.get_integrations())
+    def get_form_instance(self) -> DiscordNotifyServiceForm:
+        return DiscordNotifyServiceForm(self.data, integrations=self.get_integrations())
