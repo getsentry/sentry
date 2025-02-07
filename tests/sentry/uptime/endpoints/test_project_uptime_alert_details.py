@@ -242,7 +242,9 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         # Monitor was not enabled
         uptime_monitor.refresh_from_db()
         assert uptime_monitor.status == ObjectStatus.DISABLED
-        assert resp.data == [ErrorDetail(string="Assignment failed in test", code="invalid")]
+        assert resp.data == {
+            "status": ErrorDetail(string="Assignment failed in test", code="invalid")
+        }
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):

@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
@@ -19,7 +20,14 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconClose, IconEdit, IconEllipsis, IconFix} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconChevron,
+  IconClose,
+  IconEdit,
+  IconEllipsis,
+  IconFix,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -37,9 +45,12 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
   return useMutation({
     mutationFn: (
       params:
-        | {}
+        | {
+            mode: 'all' | 'fix' | 'test';
+          }
         | {
             customSolution: string;
+            mode: 'all' | 'fix' | 'test';
           }
     ) => {
       return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
@@ -51,12 +62,14 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
                 payload: {
                   type: 'select_solution',
                   custom_solution: params.customSolution,
+                  mode: params.mode,
                 },
               }
             : {
                 run_id: runId,
                 payload: {
                   type: 'select_solution',
+                  mode: params.mode,
                 },
               },
       });
@@ -257,16 +270,58 @@ function SolutionDescription({
   );
 }
 
-function formatSolutionText(solution: AutofixSolutionTimelineEvent[]) {
+function formatSolutionText(
+  solution: AutofixSolutionTimelineEvent[],
+  customSolution?: string
+) {
+  if (!solution && !customSolution) {
+    return '';
+  }
+
+  if (customSolution) {
+    return `# Proposed Changes\n\n${customSolution}`;
+  }
+
   if (!solution || solution.length === 0) {
     return '';
   }
 
-  return solution.map(event => `- ${event.title}`).join('\n');
+  const parts = ['# Proposed Changes'];
+
+  parts.push(
+    solution
+      .map(event => {
+        const eventParts = [`### ${event.title}`];
+
+        if (event.code_snippet_and_analysis) {
+          eventParts.push(event.code_snippet_and_analysis);
+        }
+
+        if (event.relevant_code_file) {
+          eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+        }
+
+        return eventParts.join('\n');
+      })
+      .join('\n\n')
+  );
+
+  return parts.join('\n\n');
 }
 
-function CopySolutionButton({solution}: {solution: AutofixSolutionTimelineEvent[]}) {
-  const text = formatSolutionText(solution);
+function CopySolutionButton({
+  solution,
+  customSolution,
+  isEditing,
+}: {
+  solution: AutofixSolutionTimelineEvent[];
+  customSolution?: string;
+  isEditing?: boolean;
+}) {
+  if (isEditing) {
+    return null;
+  }
+  const text = formatSolutionText(solution, customSolution);
   return <CopyToClipboardButton size="sm" text={text} borderless />;
 }
 
@@ -296,7 +351,7 @@ function AutofixSolutionDisplay({
               <IconFix size="sm" />
               {t('Custom Solution')}
             </HeaderText>
-            <CopySolutionButton solution={solution} />
+            <CopySolutionButton solution={solution} customSolution={customSolution} />
           </HeaderWrapper>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
@@ -305,8 +360,6 @@ function AutofixSolutionDisplay({
       </SolutionContainer>
     );
   }
-
-  const showCodeButton = isEditing || !solutionSelected;
 
   return (
     <SolutionContainer>
@@ -318,7 +371,9 @@ function AutofixSolutionDisplay({
           </HeaderText>
           <ButtonBar gap={1}>
             <ButtonBar>
-              {!isEditing && <CopySolutionButton solution={solution} />}
+              {!isEditing && (
+                <CopySolutionButton solution={solution} isEditing={isEditing} />
+              )}
               <EditButton
                 size="sm"
                 borderless
@@ -335,24 +390,66 @@ function AutofixSolutionDisplay({
                 {isEditing ? <IconClose size="sm" /> : <IconEdit size="sm" />}
               </EditButton>
             </ButtonBar>
-            {showCodeButton && (
+            <ButtonBar merged>
               <Button
                 size="sm"
-                priority="primary"
+                priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
                 onClick={() => {
                   if (isEditing) {
                     if (userCustomSolution.trim()) {
-                      handleContinue({customSolution: userCustomSolution.trim()});
+                      handleContinue({
+                        customSolution: userCustomSolution.trim(),
+                        mode: 'fix',
+                      });
                     }
                   } else {
-                    handleContinue({});
+                    handleContinue({
+                      mode: 'fix',
+                    });
                   }
                 }}
               >
                 {t('Code It Up')}
               </Button>
-            )}
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'fix',
+                    label: 'Write the fix',
+                    details: 'Autofix will implement this solution.',
+                    onAction: () => handleContinue({mode: 'fix'}),
+                    leadingItems: <IconCheckmark size="sm" color="purple300" />,
+                  },
+                  {
+                    key: 'test',
+                    label: 'Write a reproduction test',
+                    details:
+                      'Autofix will write a unit test to reproduce the issue and validate future fixes.',
+                    onAction: () => handleContinue({mode: 'test'}),
+                    leadingItems: <div style={{width: 16}} />,
+                  },
+                  {
+                    key: 'all',
+                    label: 'Write both',
+                    details:
+                      'Autofix will implement this solution and a test to validate the issue is fixed.',
+                    onAction: () => handleContinue({mode: 'all'}),
+                    leadingItems: <div style={{width: 16}} />,
+                  },
+                ]}
+                position="bottom-end"
+                trigger={triggerProps => (
+                  <DropdownButton
+                    size="sm"
+                    priority={solutionSelected ? 'default' : 'primary'}
+                    {...triggerProps}
+                  >
+                    <IconChevron direction="down" size="xs" />
+                  </DropdownButton>
+                )}
+              />
+            </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
         <Content>
@@ -469,4 +566,15 @@ const EditButton = styled(Button)`
 
 const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
+`;
+
+const DropdownButton = styled(Button)`
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+  position: relative;
+
+  &:hover {
+    z-index: 1;
+  }
 `;

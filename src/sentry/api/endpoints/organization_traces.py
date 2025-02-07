@@ -1,5 +1,4 @@
 import dataclasses
-import math
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
@@ -38,16 +37,14 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereTyp
 from sentry.snuba import discover, spans_indexed
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils.iterators import chunked
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, bulk_snuba_queries_with_referrers
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries_with_referrers
 
 MAX_SNUBA_RESULTS = 10_000
 
 CANDIDATE_SPAN_OPS = {"pageload", "navigation"}
 MATCHING_COUNT_ALIAS = "matching_count"
-MATCHING_SPAN_LABEL = "matching_label"
 
 
 def is_trace_name_candidate(span):
@@ -130,8 +127,6 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -204,8 +199,6 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -264,8 +257,6 @@ class OrganizationTracesStatsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
-    snuba_methods = ["GET"]
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -501,62 +492,6 @@ class TracesExecutor:
             # early escape once we have enough results
             if len(matching_trace_ids) >= self.limit:
                 return min_timestamp, max_timestamp, matching_trace_ids
-
-        return min_timestamp, max_timestamp, matching_trace_ids
-
-    def get_traces_matching_span_conditions_in_traces(
-        self,
-        snuba_params: SnubaParams,
-        trace_ids: list[str],
-    ) -> tuple[datetime, datetime, list[str]]:
-        all_queries: list[BaseQueryBuilder] = []
-        timestamp_column: str | None = None
-
-        # Putting all the trace ids into a single query will likely encounter the
-        # max query size limit in ClickHouse. This tries to spread the trace ids
-        # out evenly across N queries up to some limit per query.
-        max_trace_ids_per_chunk = options.get(
-            "performance.traces.trace-explorer-max-trace-ids-per-chunk"
-        )
-        num_chunks = math.ceil(len(trace_ids) / max_trace_ids_per_chunk)
-        chunk_size = math.ceil(len(trace_ids) / num_chunks)
-
-        for chunk in chunked(trace_ids, chunk_size):
-            query, timestamp_column = self.get_traces_matching_span_conditions_query(
-                snuba_params,
-            )
-
-            # restrict the query to just this subset of trace ids
-            query.add_conditions([Condition(Column("trace_id"), Op.IN, chunk)])
-
-            all_queries.append(query)
-
-        assert timestamp_column is not None
-
-        all_raw_results = bulk_snuba_queries(
-            [query.get_snql_query() for query in all_queries],
-            Referrer.API_TRACE_EXPLORER_SPANS_LIST.value,
-        )
-        all_results = [
-            query.process_results(result) for query, result in zip(all_queries, all_raw_results)
-        ]
-
-        matching_trace_ids: list[str] = []
-        min_timestamp = self.snuba_params.end
-        max_timestamp = self.snuba_params.start
-        assert min_timestamp is not None
-        assert max_timestamp is not None
-
-        for trace_results in all_results:
-            for row in trace_results["data"]:
-                matching_trace_ids.append(row["trace"])
-                timestamp = datetime.fromisoformat(row[timestamp_column])
-                min_timestamp = min(min_timestamp, timestamp)
-                max_timestamp = max(max_timestamp, timestamp)
-
-                # early escape once we have enough results
-                if len(matching_trace_ids) >= self.limit:
-                    return min_timestamp, max_timestamp, matching_trace_ids
 
         return min_timestamp, max_timestamp, matching_trace_ids
 

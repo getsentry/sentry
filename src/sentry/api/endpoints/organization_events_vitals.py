@@ -24,8 +24,6 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
         "measurements.fcp": {"thresholds": [0, 1000, 3000]},
         "measurements.fp": {"thresholds": [0, 1000, 3000]},
     }
-    # Threshold labels
-    LABELS = ["good", "meh", "poor"]
 
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
