@@ -508,15 +508,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                                 results, key, query_columns
                             )
                     else:
+                        column = resolve_axis_column(
+                            query_columns[0], 0, transform_alias_to_input_format
+                        )
                         results[key] = serializer.serialize(
                             event_result,
-                            column=resolve_axis_column(
-                                query_columns[0], 0, transform_alias_to_input_format
-                            ),
+                            column=column,
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
-                        results[key]["meta"] = self.handle_results_with_meta(
+                        meta = self.handle_results_with_meta(
                             request,
                             organization,
                             snuba_params.project_ids,
@@ -524,6 +525,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             True,
                             dataset=dataset,
                         )["meta"]
+                        self.update_meta_with_accuracy(meta, event_result, column)
+                        results[key]["meta"] = meta
 
                 serialized_result = results
             elif is_multiple_axis:

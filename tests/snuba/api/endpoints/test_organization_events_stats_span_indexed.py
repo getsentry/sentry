@@ -919,26 +919,36 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert test[1][1][0]["count"] == test[0]
 
     def test_top_events_with_extrapolation(self):
-        # Each of these denotes how many events to create in each minute
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    {
+                        "sentry_tags": {"transaction": "foo", "status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
                     start_ts=self.day_ago + timedelta(minutes=1),
                     duration=2000,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"transaction": "bar", "status": "success"}},
+                    {
+                        "sentry_tags": {"transaction": "bar", "status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
                     start_ts=self.day_ago + timedelta(minutes=1),
                     duration=2000,
                 ),
                 self.create_span(
-                    {"segment_name": "baz", "sentry_tags": {"status": "success"}},
+                    {
+                        "segment_name": "baz",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
             is_eap=self.is_eap,
         )
+        event_counts = [0, 1, 0, 0, 0, 0]
 
         response = self._do_request(
             data={
@@ -961,9 +971,29 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["Other"]["data"]) == 6
         for key in ["Other", "foo", "bar"]:
             rows = response.data[key]["data"][0:6]
-            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
-                assert result[1][0]["count"] == expected, key
-        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+            for expected, result in zip(event_counts, rows):
+                assert result[1][0]["count"] == expected * 10, key
+
+            meta = response.data[key]["meta"]
+            accuracy = meta["accuracy"]
+            confidence = accuracy["confidence"]
+            sample_count = accuracy["sampleCount"]
+            sample_rate = accuracy["samplingRate"]
+            for expected, actual in zip(event_counts, confidence[0:6]):
+                if expected != 0:
+                    assert actual["value"] == "low"
+                else:
+                    assert actual["value"] is None
+
+            for expected, actual in zip(event_counts, sample_count[0:6]):
+                assert actual["value"] == expected
+
+            for expected, actual in zip(event_counts, sample_rate[0:6]):
+                if expected != 0:
+                    assert actual["value"] == pytest.approx(0.1)
+                else:
+                    assert actual["value"] is None
+            assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
     def test_comparison_delta(self):
         event_counts = [6, 0, 6, 4, 0, 4]

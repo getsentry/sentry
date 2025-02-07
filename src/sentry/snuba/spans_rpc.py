@@ -338,7 +338,7 @@ def run_top_events_timeseries_query(
         final_result[result_key] = SnubaTSResult(
             {
                 "data": result.timeseries,
-                "confidence": result.confidence,
+                "processed_timeseries": result,
                 "order": index,
                 "meta": final_meta,
             },
@@ -355,7 +355,7 @@ def run_top_events_timeseries_query(
         final_result[OTHER_KEY] = SnubaTSResult(
             {
                 "data": result.timeseries,
-                "confidence": result.confidence,
+                "processed_timeseries": result,
                 "order": limit,
                 "meta": final_meta,
             },
