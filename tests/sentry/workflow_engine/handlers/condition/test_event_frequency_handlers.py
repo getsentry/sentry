@@ -1,7 +1,12 @@
 import pytest
 from jsonschema import ValidationError
 
-from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
+from sentry.rules.conditions.event_frequency import (
+    ComparisonType,
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -12,7 +17,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 1000,
+        "value": 50,
         "comparisonType": ComparisonType.COUNT,
     }
 
@@ -23,14 +28,14 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
     def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
-            comparison={"interval": "1h", "value": 1000},
+            comparison={"interval": self.payload["interval"], "value": self.payload["value"]},
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [1001]
+        self.job["snuba_results"] = [self.payload["value"] + 1]
         self.assert_passes(dc, self.job)
 
-        self.job["snuba_results"] = [999]
+        self.job["snuba_results"] = [self.payload["value"] - 1]
         self.assert_does_not_pass(dc, self.job)
 
     def test_dual_write_count(self):
@@ -39,8 +44,8 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "interval": "1h",
-            "value": 1000,
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -72,7 +77,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
     payload = {
         "interval": "1h",
         "id": EventFrequencyCondition.id,
-        "value": 1000,
+        "value": 50,
         "comparisonType": ComparisonType.PERCENT,
         "comparisonInterval": "1d",
     }
@@ -85,17 +90,17 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "interval": "1h",
-                "value": 100,
-                "comparison_interval": "1d",
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "comparison_interval": self.payload["comparisonInterval"],
             },
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [21, 10]
+        self.job["snuba_results"] = [16, 10]
         self.assert_passes(dc, self.job)
 
-        self.job["snuba_results"] = [20, 10]
+        self.job["snuba_results"] = [10, 10]
         self.assert_does_not_pass(dc, self.job)
 
     def test_dual_write_percent(self):
@@ -104,9 +109,9 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "interval": "1h",
-            "value": 1000,
-            "comparison_interval": "1d",
+            "interval": self.payload["interval"],
+            "value": self.payload["value"],
+            "comparison_interval": self.payload["comparisonInterval"],
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -144,3 +149,45 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 },
                 condition_result=True,
             )
+
+
+class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountCondition):
+    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+    payload = {
+        "interval": "1h",
+        "id": EventUniqueUserFrequencyCondition.id,
+        "value": 50,
+        "comparisonType": ComparisonType.COUNT,
+    }
+
+
+class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCondition):
+    condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
+    payload = {
+        "interval": "1h",
+        "id": EventUniqueUserFrequencyCondition.id,
+        "value": 50,
+        "comparisonType": ComparisonType.PERCENT,
+        "comparisonInterval": "1d",
+    }
+
+
+class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
+    condition = Condition.PERCENT_SESSIONS_COUNT
+    payload = {
+        "interval": "1h",
+        "id": EventFrequencyPercentCondition.id,
+        "value": 17.2,
+        "comparisonType": ComparisonType.COUNT,
+    }
+
+
+class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
+    condition = Condition.PERCENT_SESSIONS_PERCENT
+    payload = {
+        "interval": "1h",
+        "id": EventFrequencyPercentCondition.id,
+        "value": 17.2,
+        "comparisonType": ComparisonType.PERCENT,
+        "comparisonInterval": "1d",
+    }

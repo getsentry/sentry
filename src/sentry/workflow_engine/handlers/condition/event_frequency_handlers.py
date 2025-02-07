@@ -52,3 +52,31 @@ class EventFrequencyPercentHandler(DataConditionHandler[WorkflowJob]):
             percent_increase(value["snuba_results"][0], value["snuba_results"][1])
             > comparison["value"]
         )
+
+
+# Percent sessions values must be between 0-100 (%)
+@condition_handler_registry.register(Condition.PERCENT_SESSIONS_COUNT)
+class PercentSessionsCountHandler(EventFrequencyCountHandler):
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "value": {"type": "number", "minimum": 0, "maximum": 100},
+        },
+        "required": ["interval", "value"],
+        "additionalProperties": False,
+    }
+
+
+@condition_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
+class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "value": {"type": "number", "minimum": 0, "maximum": 100},
+            "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+        },
+        "required": ["interval", "value", "comparison_interval"],
+        "additionalProperties": False,
+    }

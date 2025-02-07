@@ -5,6 +5,7 @@ from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.conditions.event_frequency import (
     ComparisonType,
     EventFrequencyCondition,
+    EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
@@ -290,4 +291,16 @@ def create_event_unique_user_frequency_data_condition(
         dcg=dcg,
         count_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
         percent_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    )
+
+
+@data_condition_translator_registry.register(EventFrequencyPercentCondition.id)
+def create_percent_sessions_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.PERCENT_SESSIONS_COUNT,
+        percent_type=Condition.PERCENT_SESSIONS_PERCENT,
     )
