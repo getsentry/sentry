@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
@@ -56,20 +57,36 @@ class OnboardingTaskStatus:
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
-    def record(self, organization_id, task, **kwargs):
+    def record(self, organization_id, task, user_id, project_id, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
-        if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(organization_id=organization_id, task=task, **kwargs)
-                    return True
-            except IntegrityError:
-                pass
 
-            # Store marker to prevent running all the time
-            cache.set(cache_key, 1, 3600)
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_extra("user_id", user_id)
+            scope.set_extra("project_id", project_id)
+            scope.set_extra("organization_id", organization_id)
 
-        return False
+            if cache.get(cache_key) is None:
+                try:
+                    with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
+                        self.create(
+                            organization_id=organization_id,
+                            task=task,
+                            user_id=user_id,
+                            project_id=project_id,
+                            **kwargs,
+                        )
+                        return True
+                except IntegrityError:
+                    sentry_sdk.capture_message(
+                        f"Integrity error while creating task {task} for organization {organization_id}",
+                        level="warning",
+                    )
+                    pass
+
+                # Store marker to prevent running all the time
+                cache.set(cache_key, 1, 3600)
+
+            return False
 
 
 class AbstractOnboardingTask(Model):
