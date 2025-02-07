@@ -44,7 +44,7 @@ export function VisualizeSection({query, index}: Props) {
   }, []);
 
   return (
-    <Section data-test-id="section-visualize">
+    <Section data-test-id={`section-visualize-${index}`}>
       <SectionHeader>
         <Tooltip
           position="right"

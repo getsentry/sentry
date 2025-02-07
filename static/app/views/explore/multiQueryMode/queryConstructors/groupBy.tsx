@@ -36,7 +36,7 @@ export function GroupBySection({query, index}: Props) {
   }, [tags]);
 
   return (
-    <Section data-test-id="section-group-by">
+    <Section data-test-id={`section-group-by-${index}`}>
       <SectionHeader>
         <SectionLabel underlined={false}>{t('Group By')}</SectionLabel>
       </SectionHeader>

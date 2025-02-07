@@ -25,7 +25,7 @@ export function SearchBarSection({query, index}: Props) {
   const updateQuerySearch = useUpdateQueryAtIndex();
 
   return (
-    <Section data-test-id="section-filter">
+    <Section data-test-id={`section-filter-${index}`}>
       <SectionHeader>
         <SectionLabel underlined={false}>{t('Filter')}</SectionLabel>
       </SectionHeader>

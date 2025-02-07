@@ -46,7 +46,7 @@ const QueryConstructionSection = styled('div')`
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(400px, 1fr) 1.5fr;
+    grid-template-columns: minmax(400px, 1fr) 1fr;
     margin-bottom: 0;
     gap: ${space(2)};
   }
@@ -54,10 +54,9 @@ const QueryConstructionSection = styled('div')`
 
 const DropDownGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto)) auto;
-  margin-bottom: 0;
-  gap: ${space(2)};
+  grid-template-columns: repeat(3, minmax(0, auto)) ${space(2)};
   align-items: start;
+  gap: ${space(2)};
 `;
 
 const DeleteButton = styled(Button)`

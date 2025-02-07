@@ -48,7 +48,7 @@ export function SortBySection({query, index}: Props) {
   }, []);
 
   return (
-    <Section data-test-id="section-sort-by">
+    <Section data-test-id={`section-sort-by-${index}`}>
       <SectionHeader>
         <Tooltip
           position="right"
