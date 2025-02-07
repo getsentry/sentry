@@ -1053,9 +1053,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             org_id, projects_with_tx_count_and_rates
         )
 
-        project_ids = Project.objects.filter(
-            organization_id=org_id, status=ObjectStatus.ACTIVE
-        ).values_list("id", flat=True)
+        project_ids = set(
+            Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).values_list(
+                "id", flat=True
+            )
+        )
 
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
