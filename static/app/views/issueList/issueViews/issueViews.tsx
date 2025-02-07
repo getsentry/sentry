@@ -12,8 +12,8 @@ import styled from '@emotion/styled';
 import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {TabContext, TabsProps} from 'sentry/components/tabs';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {t} from 'sentry/locale';
@@ -24,7 +24,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import type {
   GroupSearchView,
@@ -33,29 +33,13 @@ import type {
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
-export const TEMPORARY_TAB_KEY = 'temporary-tab';
-
-export const DEFAULT_TIME_FILTERS: PageFilters['datetime'] = {
-  start: null,
-  end: null,
-  period: '14d',
-  utc: null,
-};
-export const DEFAULT_ENVIRONMENTS: string[] = [];
+const TEMPORARY_TAB_KEY = 'temporary-tab';
 
 export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
-/**
- * Savable properties of an IssueView, besides lable and position.
- * Changes to these properties are not automatically saved and can
- * trigger the unsaved changes indicator.
- */
 export interface IssueViewParams {
-  environments: string[];
-  projects: number[];
   query: string;
   querySort: IssueSortOptions;
-  timeFilters: PageFilters['datetime'];
 }
 
 export interface IssueView extends IssueViewParams {
@@ -69,7 +53,7 @@ export interface IssueView extends IssueViewParams {
   key: string;
   label: string;
   content?: React.ReactNode;
-  unsavedChanges?: Partial<IssueViewParams>;
+  unsavedChanges?: IssueViewParams;
 }
 
 type BaseIssueViewsAction = {
@@ -126,7 +110,7 @@ type SaveTempViewAction = {
 type UpdateUnsavedChangesAction = {
   type: 'UPDATE_UNSAVED_CHANGES';
   // Explicitly typed as | undefined instead of optional to make it clear that `undefined` = no unsaved changes
-  unsavedChanges: Partial<IssueViewParams> | undefined;
+  unsavedChanges: IssueViewParams | undefined;
   isCommitted?: boolean;
 } & BaseIssueViewsAction;
 
@@ -179,7 +163,6 @@ export interface IssueViewsState {
 }
 
 export interface IssueViewsContextType extends TabContext {
-  defaultProject: number[];
   dispatch: Dispatch<IssueViewsActions>;
   state: IssueViewsState;
 }
@@ -190,7 +173,6 @@ export const IssueViewsContext = createContext<IssueViewsContextType>({
   // Issue Views specific state
   dispatch: () => {},
   state: {views: []},
-  defaultProject: [],
 });
 
 function reorderTabs(state: IssueViewsState, action: ReorderTabsAction) {
@@ -210,11 +192,8 @@ function saveChanges(state: IssueViewsState, tabListState: TabListState<any>) {
       return tab.key === tabListState?.selectedKey && tab.unsavedChanges
         ? {
             ...tab,
-            query: tab.unsavedChanges.query ?? tab.query,
-            querySort: tab.unsavedChanges.querySort ?? tab.querySort,
-            projects: tab.unsavedChanges.projects ?? tab.projects,
-            environments: tab.unsavedChanges.environments ?? tab.environments,
-            timeFilters: tab.unsavedChanges.timeFilters ?? tab.timeFilters,
+            query: tab.unsavedChanges.query,
+            querySort: tab.unsavedChanges.querySort,
             unsavedChanges: undefined,
           }
         : tab;
@@ -283,11 +262,7 @@ function deleteView(state: IssueViewsState, tabListState: TabListState<any>) {
   return {...state, views: newViews};
 }
 
-function createNewView(
-  state: IssueViewsState,
-  action: CreateNewViewAction,
-  defaultProject: number[]
-) {
+function createNewView(state: IssueViewsState, action: CreateNewViewAction) {
   const newTabs: IssueView[] = [
     ...state.views,
     {
@@ -297,19 +272,12 @@ function createNewView(
       query: '',
       querySort: IssueSortOptions.DATE,
       isCommitted: false,
-      environments: DEFAULT_ENVIRONMENTS,
-      projects: defaultProject,
-      timeFilters: DEFAULT_TIME_FILTERS,
     },
   ];
   return {...state, views: newTabs};
 }
 
-function setTempView(
-  state: IssueViewsState,
-  action: SetTempViewAction,
-  defaultProject: number[]
-) {
+function setTempView(state: IssueViewsState, action: SetTempViewAction) {
   const tempView: IssueView = {
     id: TEMPORARY_TAB_KEY,
     key: TEMPORARY_TAB_KEY,
@@ -317,9 +285,6 @@ function setTempView(
     query: action.query,
     querySort: action.sort ?? IssueSortOptions.DATE,
     isCommitted: true,
-    environments: DEFAULT_ENVIRONMENTS,
-    projects: defaultProject,
-    timeFilters: DEFAULT_TIME_FILTERS,
   };
   return {...state, tempView};
 }
@@ -339,9 +304,6 @@ function saveTempView(state: IssueViewsState, tabListState: TabListState<any>) {
       query: state.tempView?.query,
       querySort: state.tempView?.querySort,
       isCommitted: true,
-      environments: state.tempView?.environments,
-      projects: state.tempView?.projects,
-      timeFilters: state.tempView?.timeFilters,
     };
     tabListState?.setSelectedKey(tempId);
     return {...state, views: [...state.views, newTab], tempView: undefined};
@@ -408,26 +370,30 @@ export function IssueViewsStateProvider({
   ...props
 }: IssueViewsStateProviderProps) {
   const navigate = useNavigate();
+  const pageFilters = usePageFilters();
   const organization = useOrganization();
   const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
   const [tabListState, setTabListState] = useState<TabListState<any>>();
   const {className: _className, ...restProps} = props;
 
-  const allowMultipleProjects = organization.features.includes('global-views');
-  const {projects: allProjects} = useProjects();
-  const memberProjects = useMemo(
-    () => allProjects.filter(project => project.isMember),
-    [allProjects]
-  );
-  const defaultProject = useMemo(() => {
-    // Should not be possible for member projects to be empty
-    if (allowMultipleProjects) {
-      return [];
-    }
-    return [parseInt(memberProjects[0]!.id, 10)];
-  }, [memberProjects, allowMultipleProjects]);
+  const {cursor: _cursor, page: _page, ...queryParams} = router.location.query;
+  const {query, sort, viewId, project, environment} = queryParams;
 
-  const {query, sort, viewId} = router.location.query;
+  const queryParamsWithPageFilters = useMemo(() => {
+    return {
+      ...queryParams,
+      project: project ?? pageFilters.selection.projects,
+      environment: environment ?? pageFilters.selection.environments,
+      ...normalizeDateTimeParams(pageFilters.selection.datetime),
+    };
+  }, [
+    environment,
+    pageFilters.selection.datetime,
+    pageFilters.selection.environments,
+    pageFilters.selection.projects,
+    project,
+    queryParams,
+  ]);
 
   // This function is fired upon receiving new views from the backend - it replaces any previously
   // generated temporary view ids with the permanent view ids from the backend
@@ -451,7 +417,7 @@ export function IssueViewsStateProvider({
             normalizeUrl({
               ...location,
               query: {
-                ...router.location.query,
+                ...queryParamsWithPageFilters,
                 viewId: matchingView.id,
               },
             }),
@@ -469,7 +435,13 @@ export function IssueViewsStateProvider({
 
   const debounceUpdateViews = useMemo(
     () =>
-      debounce((newTabs: IssueView[]) => {
+      debounce((newTabs: IssueView[], pageFiltersSelection: PageFilters) => {
+        const isAllProjects =
+          pageFiltersSelection.projects.length === 1 &&
+          pageFiltersSelection.projects[0] === -1;
+
+        const projects = isAllProjects ? [] : pageFiltersSelection.projects;
+
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
@@ -484,10 +456,10 @@ export function IssueViewsStateProvider({
                 name: tab.label,
                 query: tab.query,
                 querySort: tab.querySort,
-                projects: isEqual(tab.projects, [-1]) ? [] : tab.projects,
-                isAllProjects: isEqual(tab.projects, [-1]),
-                environments: tab.environments,
-                timeFilters: tab.timeFilters,
+                projects,
+                isAllProjects,
+                environments: pageFiltersSelection.environments,
+                timeFilters: pageFiltersSelection.datetime,
               })),
           });
         }
@@ -514,9 +486,9 @@ export function IssueViewsStateProvider({
         case 'DELETE_VIEW':
           return deleteView(state, tabListState);
         case 'CREATE_NEW_VIEW':
-          return createNewView(state, action, defaultProject);
+          return createNewView(state, action);
         case 'SET_TEMP_VIEW':
-          return setTempView(state, action, defaultProject);
+          return setTempView(state, action);
         case 'DISCARD_TEMP_VIEW':
           return discardTempView(state, tabListState);
         case 'SAVE_TEMP_VIEW':
@@ -533,7 +505,7 @@ export function IssueViewsStateProvider({
           return state;
       }
     },
-    [tabListState, defaultProject]
+    [tabListState]
   );
 
   const sortOption =
@@ -550,9 +522,6 @@ export function IssueViewsStateProvider({
           query: query.toString(),
           querySort: sortOption,
           isCommitted: true,
-          environments: DEFAULT_ENVIRONMENTS,
-          projects: defaultProject,
-          timeFilters: DEFAULT_TIME_FILTERS,
         }
       : undefined;
 
@@ -566,7 +535,7 @@ export function IssueViewsStateProvider({
     dispatch(action);
 
     if (action.type === 'SYNC_VIEWS_TO_BACKEND' || action.syncViews) {
-      debounceUpdateViews(newState.views);
+      debounceUpdateViews(newState.views, pageFilters.selection);
     }
 
     const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];
@@ -596,16 +565,7 @@ export function IssueViewsStateProvider({
           querySort: IssueSortOptions.DATE,
           unsavedChanges: view.saveQueryToView
             ? undefined
-            : {
-                query: view.query,
-                querySort: IssueSortOptions.DATE,
-                environments: DEFAULT_ENVIRONMENTS,
-                projects: defaultProject,
-                timeFilters: DEFAULT_TIME_FILTERS,
-              },
-          environments: DEFAULT_ENVIRONMENTS,
-          projects: defaultProject,
-          timeFilters: DEFAULT_TIME_FILTERS,
+            : {query: view.query, querySort: IssueSortOptions.DATE},
           isCommitted: true,
         };
         return viewToTab;
@@ -619,17 +579,8 @@ export function IssueViewsStateProvider({
             querySort: IssueSortOptions.DATE,
             unsavedChanges: saveQueryToView
               ? undefined
-              : {
-                  query,
-                  querySort: IssueSortOptions.DATE,
-                  environments: DEFAULT_ENVIRONMENTS,
-                  projects: defaultProject,
-                  timeFilters: DEFAULT_TIME_FILTERS,
-                },
+              : {query, querySort: IssueSortOptions.DATE},
             isCommitted: true,
-            environments: DEFAULT_ENVIRONMENTS,
-            projects: defaultProject,
-            timeFilters: DEFAULT_TIME_FILTERS,
           };
         }
         return tab;
@@ -644,7 +595,7 @@ export function IssueViewsStateProvider({
         {
           ...location,
           query: {
-            ...router.location.query,
+            ...queryParams,
             query: newQuery,
             sort: IssueSortOptions.DATE,
           },
@@ -667,7 +618,6 @@ export function IssueViewsStateProvider({
         rootProps: {...restProps, orientation: 'horizontal'},
         tabListState,
         setTabListState,
-        defaultProject,
         dispatch: dispatchWrapper,
         state,
       }}

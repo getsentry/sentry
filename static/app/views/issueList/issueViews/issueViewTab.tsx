@@ -2,8 +2,8 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,7 +14,6 @@ import {
   generateTempViewId,
   type IssueView,
   IssueViewsContext,
-  TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
 
 interface IssueViewTabProps {
@@ -52,9 +51,6 @@ export function IssueViewTab({
         query: duplicatedTab.query,
         sort: duplicatedTab.querySort,
         viewId: newViewId,
-        project: duplicatedTab.projects,
-        environment: duplicatedTab.environments,
-        ...normalizeDateTimeParams(duplicatedTab.timeFilters),
       },
     });
     tabListState?.setSelectedKey(newViewId);
@@ -71,9 +67,6 @@ export function IssueViewTab({
           query: originalTab.query,
           sort: originalTab.querySort,
           viewId: originalTab.id,
-          project: originalTab.projects,
-          environment: originalTab.environments,
-          ...normalizeDateTimeParams(originalTab.timeFilters),
         },
       });
     }
