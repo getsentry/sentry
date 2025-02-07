@@ -546,16 +546,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
+                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
                 serialized_result = serializer.serialize(
                     result,
-                    column=resolve_axis_column(
-                        query_columns[0], 0, transform_alias_to_input_format
-                    ),
+                    column=column,
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
                 )
-                serialized_result["meta"] = self.handle_results_with_meta(
+                meta = self.handle_results_with_meta(
                     request,
                     organization,
                     snuba_params.project_ids,
@@ -563,6 +562,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     True,
                     dataset=dataset,
                 )["meta"]
+                self.update_meta_with_accuracy(meta, result, column)
+                serialized_result["meta"] = meta
 
             return serialized_result
 
@@ -616,20 +617,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
-            # TODO: confidence is being split up in the serializer right now, need to move that here once its deprecated
-            if "processed_timeseries" in event_result.data:
-                processed_timeseries = event_result.data["processed_timeseries"]
-                meta["accuracy"] = {
-                    "confidence": self.serialize_accuracy_data(
-                        processed_timeseries.confidence, query_column
-                    ),
-                    "sampleCount": self.serialize_accuracy_data(
-                        processed_timeseries.sample_count, query_column
-                    ),
-                    "samplingRate": self.serialize_accuracy_data(
-                        processed_timeseries.sampling_rate, query_column
-                    ),
-                }
+            self.update_meta_with_accuracy(meta, event_result, query_column)
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
@@ -637,22 +625,37 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return result
 
+    def update_meta_with_accuracy(self, meta, event_result, query_column) -> None:
+        if "processed_timeseries" in event_result.data:
+            processed_timeseries = event_result.data["processed_timeseries"]
+            meta["accuracy"] = {
+                "confidence": self.serialize_accuracy_data(
+                    processed_timeseries.confidence, query_column
+                ),
+                "sampleCount": self.serialize_accuracy_data(
+                    processed_timeseries.sample_count, query_column
+                ),
+                "samplingRate": self.serialize_accuracy_data(
+                    processed_timeseries.sampling_rate, query_column, null_zero=True
+                ),
+            }
+
     def serialize_accuracy_data(
-        self, data: Any, column: str, extra_columns: list[str] | None = None
+        self,
+        data: Any,
+        column: str,
+        extra_columns: list[str] | None = None,
+        null_zero: bool = False,
     ):
         if extra_columns is None:
             extra_columns = []
         serialized_values = []
-        for key, group in itertools.groupby(data, key=lambda r: r["time"]):
-            result_row = []
-            for confidence_row in group:
-                item = {"count": confidence_row.get(column, None)}
-                if extra_columns is not None:
-                    for extra_column in extra_columns:
-                        item[extra_column] = confidence_row.get(extra_column, 0)
-                result_row.append(item)
-            serialized_values.append((key, result_row))
-        # confidence only comes from the RPC which already helps us zerofill by returning all buckets
+        for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
+            for row in group:
+                row_value = row.get(column, None)
+                if row_value == 0 and null_zero:
+                    row_value = None
+                serialized_values.append({"timestamp": timestamp, "value": row_value})
         return serialized_values
 
 

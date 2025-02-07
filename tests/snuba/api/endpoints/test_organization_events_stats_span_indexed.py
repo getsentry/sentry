@@ -747,18 +747,38 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
 
         for expected, actual in zip(event_counts, data[0:6]):
             assert actual[1][0]["count"] == expected * 10
 
+        accuracy = meta["accuracy"]
+        confidence = accuracy["confidence"]
+        sample_count = accuracy["sampleCount"]
+        sample_rate = accuracy["samplingRate"]
         for expected, actual in zip(event_counts, confidence[0:6]):
             if expected != 0:
-                assert actual["count()"] == "low"
+                assert actual["value"] == "low"
             else:
-                assert actual["count()"] is None
+                assert actual["value"] is None
+
+        # Check old confidence format, TODO: remove this once frontend is updated
+        confidence = response.data["confidence"]
+        for expected, actual in zip(event_counts, confidence[0:6]):
+            if expected != 0:
+                assert actual[1][0]["count"] == "low"
+            else:
+                assert actual[1][0]["count"] is None
+
+        for expected, actual in zip(event_counts, sample_count[0:6]):
+            assert actual["value"] == expected
+
+        for expected, actual in zip(event_counts, sample_rate[0:6]):
+            if expected != 0:
+                assert actual["value"] == pytest.approx(0.1)
+            else:
+                assert actual["value"] is None
 
     def test_confidence_is_set(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -816,13 +836,24 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 else:
                     assert isinstance(row[1][0]["count"], (float, int)), y_axis
 
-            confidence = meta["accuracy"]["confidence"]
-            assert len(confidence) == len(event_counts)
-            for count, row in zip(event_counts, confidence):
-                if count == 0:
-                    assert row[y_axis] is None, y_axis
+            accuracy = meta["accuracy"]
+            confidence = accuracy["confidence"]
+            sample_count = accuracy["sampleCount"]
+            sample_rate = accuracy["samplingRate"]
+            for expected, actual in zip(event_counts, confidence[0:6]):
+                if expected != 0:
+                    assert actual["value"] == "low"
                 else:
-                    assert row[y_axis] in {"low", "high"}, y_axis
+                    assert actual["value"] is None
+
+            for expected, actual in zip(event_counts, sample_count[0:6]):
+                assert actual["value"] == expected
+
+            for expected, actual in zip(event_counts, sample_rate[0:6]):
+                if expected != 0:
+                    assert actual["value"] == pytest.approx(0.1)
+                else:
+                    assert actual["value"] is None
 
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -863,31 +894,29 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, count_rows):
             assert test[1][1][0]["count"] == test[0] * 10
 
-        confidence = response.data["count()"]["meta"]["accuracy"]["confidence"]
-        for expected, actual in zip(event_counts, confidence[0:6]):
-            if expected != 0:
-                assert actual[1][0]["count"] == "low"
-            else:
-                assert actual[1][0]["count"] is None
+        for column in ["count()", "p95()"]:
+            accuracy = response.data[column]["meta"]["accuracy"]
+            confidence = accuracy["confidence"]
+            sample_count = accuracy["sampleCount"]
+            sample_rate = accuracy["samplingRate"]
+            for expected, actual in zip(event_counts, confidence[0:6]):
+                if expected != 0:
+                    assert actual["value"] == "low"
+                else:
+                    assert actual["value"] is None
 
-        sample_count = response.data["count()"]["meta"]["accuracy"]["sampleCount"]
-        for expected, actual in zip(event_counts, sample_count[0:6]):
-            assert actual[1][0]["count"] == expected
+            for expected, actual in zip(event_counts, sample_count[0:6]):
+                assert actual["value"] == expected
 
-        sample_rate = response.data["count()"]["meta"]["accuracy"]["samplingRate"]
-        for expected, actual in zip(event_counts, sample_rate[0:6]):
-            assert actual[1][0]["count"] == 0.1
+            for expected, actual in zip(event_counts, sample_rate[0:6]):
+                if expected != 0:
+                    assert actual["value"] == pytest.approx(0.1)
+                else:
+                    assert actual["value"] is None
 
         p95_rows = p95_data[0:6]
         for test in zip(event_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]
-
-        confidence = response.data["p95()"]["meta"]["accuracy"]["confidence"]
-        for expected, actual in zip(event_counts, confidence[0:6]):
-            if expected != 0:
-                assert actual[1][0]["count"] == "low"
-            else:
-                assert actual[1][0]["count"] is None
 
     def test_top_events_with_extrapolation(self):
         # Each of these denotes how many events to create in each minute
