@@ -323,6 +323,7 @@ class OrganizationExamples:
                 "aggregatedDataConsent": False,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
+                "quickStartDisplayStatus": None,
                 "trustedRelays": [],
                 "role": "owner",
                 "orgRole": "owner",

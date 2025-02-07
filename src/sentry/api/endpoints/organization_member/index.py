@@ -23,11 +23,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.models.organizationmember import (
-    InviteStatus,
-    OrganizationMember,
-    QuickStartDisplayStatus,
-)
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
@@ -73,7 +69,8 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 
 @extend_schema_serializer(
-    deprecate_fields=["role", "teams"], exclude_fields=["regenerate", "role", "teams"]
+    deprecate_fields=["role", "teams"],
+    exclude_fields=["regenerate", "role", "teams"],
 )
 class OrganizationMemberRequestSerializer(serializers.Serializer):
     email = AllowedEmailField(
@@ -111,15 +108,6 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
     )
     regenerate = serializers.BooleanField(required=False)
-
-    # This field is meant to be updated only through the OrganizationMemberQuickStartDisplayEndpoint
-    quick_start_display_status = serializers.ChoiceField(
-        choices=QuickStartDisplayStatus.as_choices(),
-        default=QuickStartDisplayStatus.INITIAL_HIDDEN.value,
-        required=False,
-        allow_null=True,
-        help_text="Tracks whether the quick start guide was already shown to the user during their first and second visits.",
-    )
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
