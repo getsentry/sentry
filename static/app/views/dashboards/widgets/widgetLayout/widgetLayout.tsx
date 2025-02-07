@@ -19,11 +19,13 @@ export interface WidgetLayoutProps {
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
+  const {revealActions = 'hover'} = props;
+
   return (
     <Frame
       aria-label={props.ariaLabel}
       height={props.height}
-      revealActions={props.revealActions}
+      revealActions={revealActions}
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
