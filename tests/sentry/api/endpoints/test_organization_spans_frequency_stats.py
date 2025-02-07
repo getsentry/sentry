@@ -1,11 +1,15 @@
+from uuid import uuid4
+
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = True
     view = "sentry-api-0-organization-spans-frequency-stats"
+    EMPTY_RESPONSE = {"attributeDistributions": []}
 
     def setUp(self):
         super().setUp()
@@ -15,25 +19,134 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
 
-        if query is None:
-            query = {}
-        query["dataset"] = "spans"
-        if "type" not in query:
+        if query and "dataset" not in query.keys():
+            query["dataset"] = "spans"
+        if query and "type" not in query.keys():
             query["type"] = "string"
 
         with self.feature(features):
-            return self.client.get(
+            response = self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
                 query,
                 format="json",
                 **kwargs,
             )
 
+            return response
+
+    def _generate_one_span(self, tags=None):
+        if tags is None:
+            tags = {"foo": "bar"}
+
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags=tags,
+            is_eap=self.is_eap,
+        )
+
     def test_no_project(self):
         response = self.do_request()
         assert response.status_code == 200, response.data
-        assert response.data == {"attributeDistributions": []}
+        assert response.data == self.EMPTY_RESPONSE
 
     def test_no_feature(self):
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
+
+    def test_invalid_dataset(self):
+        self._generate_one_span()
+        response = self.do_request(query={"dataset": "transactions"})
+        assert response.status_code == 400
+        assert str(response.data["dataset"][0]) == '"transactions" is not a valid choice.'
+
+    def test_invalid_params(self):
+        self._generate_one_span()
+        response = self.do_request(query={"maxBuckets": "invalid", "maxAttributes": "invalid"})
+        assert response.status_code == 400, response.data
+        assert "maxBuckets and maxAttributes must be integers" in str(response.data)
+
+    def test_valid_max_params(self):
+        self._generate_one_span()
+        response = self.do_request(query={"maxBuckets": "50", "maxAttributes": "100"})
+        assert response.status_code == 200, response.data
+        assert "attributeDistributions" in str(response.data)
+
+    def test_invalid_max_buckets(self):
+        self._generate_one_span()
+        # maxBuckets is more than 100
+        response = self.do_request(query={"maxBuckets": "200", "maxAttributes": "100"})
+        assert response.status_code == 400, response.data
+        assert "maxBuckets max value is 100" in str(response.data)
+
+    def test_invalid_date_params(self):
+        self._generate_one_span()
+        response = self.do_request(
+            query={
+                "start": "invalid-date",
+                "end": "invalid-date",
+            }
+        )
+        assert response.status_code == 400, response.data
+
+    def test_max_attributes(self, max_attributes=3):
+        tags = [{f"test_tag_{i}": f"value_{i}"} for i in range(max_attributes)]
+
+        for tag in tags:
+            self._generate_one_span(tag)
+
+        # set maxAttributes smaller than the number of attributes, so we can test if maxAttributes is respected
+        response = self.do_request(query={"maxAttributes": max_attributes - 1})
+        assert response.status_code == 200, response.data
+
+        distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
+        assert len(distributions) == max_attributes - 1
+
+    def test_max_buckets(self, max_buckets=3):
+        tags = [{"test_tag": f"value_{i}"} for i in range(max_buckets)]
+
+        for tag in tags:
+            self._generate_one_span(tag)
+
+        # set maxBuckets smaller than the number of values, so we can test if maxBuckets is respected
+        response = self.do_request(query={"maxBuckets": max_buckets - 1})
+        assert response.status_code == 200, response.data
+        distributions = response.data["results"][0]["attributeDistributions"]["attributes"][0][
+            "buckets"
+        ]
+
+        assert len(distributions) == max_buckets - 1
+
+    def test_distribution_values(self):
+        tags = [
+            {"broswer": "chrome", "device": "desktop"},
+            {"broswer": "chrome", "device": "mobile"},
+            {"broswer": "chrome", "device": "desktop"},
+            {"broswer": "safari", "device": "mobile"},
+            {"broswer": "chrome", "device": "desktop"},
+        ]
+
+        for tag in tags:
+            self._generate_one_span(tag)
+
+        response = self.do_request(query={"dataset": "spans"})
+        assert response.status_code == 200, response.data
+        distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
+        assert distributions[0]["attributeName"] == "broswer"
+        assert distributions[0]["buckets"] == [
+            {"label": "chrome", "value": 4.0},
+            {"label": "safari", "value": 1.0},
+        ]
+        assert distributions[1]["attributeName"] == "device"
+        assert distributions[1]["buckets"] == [
+            {"label": "desktop", "value": 3.0},
+            {"label": "mobile", "value": 2.0},
+        ]
