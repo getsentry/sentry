@@ -8,8 +8,9 @@ from django.utils import timezone
 from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
+from sentry.integrations.repository.notification_action import NotificationActionNotificationMessage
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.service import RuleDataError, SlackService
+from sentry.integrations.slack.service import ActionDataError, RuleDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.activity import Activity
@@ -96,6 +97,14 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 external_id="slack:1",
                 metadata={"access_token": "xoxb-access-token"},
             )
+
+        self.action = self.create_action(target_identifier="C0123456789")
+
+        self.parent_notification_action = NotificationMessage.objects.create(
+            message_identifier="1a2s3d",
+            action=self.action,
+            group=self.group,
+        )
 
     def test_none_group(self):
         self.activity.update(group=None)
@@ -317,6 +326,112 @@ class TestNotifyAllThreadsForActivity(TestCase):
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_send.called
 
+    def test_none_user_id_uptime_resolved(self):
+        """Test that uptime resolved notifications are allowed even without a user_id"""
+        self.group.update(type=UptimeDomainCheckFailure.type_id)
+        self.activity.update(
+            user_id=None,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+
+        with mock.patch.object(self.service, "_notify_all_threads_for_activity") as mock_notify:
+            self.service.notify_all_threads_for_activity(activity=self.activity)
+            mock_notify.assert_called_once()
+
+    @with_feature("organizations:workflow-engine-notification-action")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+    )
+    def test_handle_parent_notification_with_notification_action(
+        self, mock_get_channel_id, mock_send_notification, mock_record
+    ):
+        """Test that notification action repository is used when feature flag is enabled"""
+        activity = Activity.objects.create(
+            group=self.group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+
+        NotificationActionNotificationMessage.from_model(
+            instance=self.parent_notification_action,
+        )
+
+        self.service.notify_all_threads_for_activity(activity=activity)
+
+        # Verify the notification action repository was used
+        assert mock_send_notification.call_count == 1
+        assert (
+            mock_get_channel_id.call_args.args[0].__class__ == NotificationActionNotificationMessage
+        )
+
+    @with_feature(
+        {
+            "organizations:workflow-engine-notification-action": True,
+            "organizations:slack-threads-refactor-uptime": True,
+        }
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+    )
+    def test_handle_parent_notification_with_notification_action_and_open_period(
+        self, mock_get_channel_id, mock_send_notification, mock_record
+    ):
+        """Test that notification action repository is used with open period when both features are enabled"""
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+
+        # Create NotificationMessage model instances first
+        NotificationMessage.objects.create(
+            id=123,
+            date_added=timezone.now(),
+            message_identifier="1a2s3d",
+            group=group,
+            action=self.action,
+            open_period_start=timezone.now() - timedelta(minutes=1),
+        )
+
+        notification_2 = NotificationMessage.objects.create(
+            id=124,
+            date_added=timezone.now(),
+            message_identifier="1a2s3d",
+            group=group,
+            action=self.action,
+            open_period_start=timezone.now(),
+        )
+
+        # Convert to NotificationActionNotificationMessage objects
+        parent_notification_2_message = NotificationActionNotificationMessage.from_model(
+            notification_2
+        )
+
+        self.service.notify_all_threads_for_activity(activity=activity)
+
+        # Verify only one notification was handled
+        assert mock_send_notification.call_count == 1
+        # Verify it was the newer notification
+        mock_send_notification.assert_called_once()
+        assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
+        assert (
+            mock_get_channel_id.call_args.args[0].__class__ == NotificationActionNotificationMessage
+        )
+
 
 class TestSlackServiceMethods(TestCase):
     def setUp(self) -> None:
@@ -374,6 +489,16 @@ class TestSlackServiceMethods(TestCase):
             message_identifier="1a2s3d",
             rule_action_uuid=self.rule_action_uuid,
             rule_fire_history=self.slack_rule_fire_history,
+        )
+
+        self.action = self.create_action(target_identifier="C0123456789")
+
+        self.parent_notification_action = NotificationActionNotificationMessage(
+            id=123,
+            date_added=datetime.now(),
+            message_identifier="1a2s3d",
+            action=self.action,
+            group=self.group,
         )
 
     def test_get_channel_id_from_parent_notification(self):
@@ -499,3 +624,40 @@ class TestSlackServiceMethods(TestCase):
                 client=SlackSdkClient(integration_id=self.integration.id),
             )
         assert err.value.response["ok"] is False
+
+    def test_get_channel_id_from_parent_notification_notification_action(self):
+        channel_id = self.service._get_channel_id_from_parent_notification_notification_action(
+            parent_notification=self.parent_notification_action,
+        )
+        assert channel_id == "C0123456789"
+
+    def test_get_channel_id_from_parent_notification_notification_action_no_action(self):
+        parent_notification = NotificationActionNotificationMessage(
+            id=123,
+            date_added=datetime.now(),
+            message_identifier="1a2s3d",
+        )
+
+        with pytest.raises(ActionDataError) as err:
+            self.service._get_channel_id_from_parent_notification_notification_action(
+                parent_notification=parent_notification,
+            )
+        assert (
+            str(err.value)
+            == f"parent notification {parent_notification.id} does not have an action"
+        )
+
+    def test_get_channel_id_from_parent_notification_notification_action_no_target_identifier(self):
+        self.action.target_identifier = None
+        parent_notification = NotificationActionNotificationMessage(
+            id=123,
+            date_added=datetime.now(),
+            message_identifier="1a2s3d",
+            action=self.action,
+            group=self.group,
+        )
+
+        with pytest.raises(ActionDataError):
+            self.service._get_channel_id_from_parent_notification_notification_action(
+                parent_notification=parent_notification,
+            )

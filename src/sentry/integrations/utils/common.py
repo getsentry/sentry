@@ -26,3 +26,26 @@ def get_active_integration_for_organization(
             },
         )
         return None
+
+
+def get_integration_id_integration_mapping_for_organization(
+    organization_id: int,
+    provider: ExternalProviderEnum,
+) -> dict[int, RpcIntegration]:
+    """
+    Returns a mapping of integration id to integration for the given organization.
+    """
+    try:
+        integrations = integration_service.get_integrations(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            providers=[provider.value],
+        )
+        return {integration.id: integration for integration in integrations}
+    except Exception as err:
+        _default_logger.info(
+            "error getting active integrations for organization from service",
+            exc_info=err,
+            extra={"organization_id": organization_id},
+        )
+        return {}
