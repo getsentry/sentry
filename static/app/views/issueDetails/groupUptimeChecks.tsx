@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -23,12 +24,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus, type UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {statusToText, tickStyle} from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+
+/**
+ * This value is used when a trace was not recorded since the field is required.
+ * It will never link to trace, so omit the row to avoid confusion.
+ */
+const EMPTY_TRACE = '00000000000000000000000000000000';
 
 export default function GroupUptimeChecks() {
   const organization = useOrganization();
@@ -36,6 +44,7 @@ export default function GroupUptimeChecks() {
   const location = useLocation();
   const user = useUser();
   const {detectorDetails} = useIssueDetails();
+  const {since, until} = usePageFilterDates();
 
   const {
     data: group,
@@ -68,6 +77,8 @@ export default function GroupUptimeChecks() {
       uptimeAlertId: uptimeAlertId ?? '',
       cursor: decodeScalar(location.query.cursor),
       limit: 50,
+      start: since.toISOString(),
+      end: until.toISOString(),
     },
     {enabled: canFetchUptimeChecks}
   );
@@ -203,21 +214,13 @@ function CheckInBodyCell({
     }
     case 'checkStatus': {
       let checkResult = <Cell>{cellData}</Cell>;
-      switch (cellData) {
-        case 'success':
-          checkResult = <Cell style={{color: theme.successText}}>{t('Success')}</Cell>;
-          break;
-        case 'missed_window':
-          checkResult = (
-            <Cell style={{color: theme.warningText}}>{t('Missed Window')}</Cell>
-          );
-          break;
-        case 'failure':
-          checkResult = <Cell style={{color: theme.errorText}}>{t('Failure')}</Cell>;
-          break;
-        default:
-          checkResult = <Cell>{cellData}</Cell>;
-          break;
+      const status = cellData as CheckStatus;
+      if (Object.values(CheckStatus).includes(status)) {
+        checkResult = (
+          <Cell style={{color: tickStyle[status].labelColor}}>
+            {statusToText[status]}
+          </Cell>
+        );
       }
       return dataRow.checkStatusReason ? (
         <Tooltip
@@ -235,6 +238,9 @@ function CheckInBodyCell({
       );
     }
     case 'traceId':
+      if (cellData === EMPTY_TRACE) {
+        return <Cell />;
+      }
       return (
         <LinkCell to={`/performance/trace/${cellData}`}>
           {getShortEventId(String(cellData))}
