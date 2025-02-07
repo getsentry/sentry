@@ -79,7 +79,7 @@ function AcceptActions({
 }
 
 function ExistingMemberAlert() {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const user = ConfigStore.get('user');
 
   return (
@@ -194,7 +194,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
 }
 
 function AcceptOrganizationInvite() {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const params = useParams<{memberId: string; token: string; orgId?: string}>();
 
   const orgSlug = params.orgId || ConfigStore.get('customerDomain')?.subdomain || null;
