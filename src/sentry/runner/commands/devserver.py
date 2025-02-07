@@ -31,6 +31,7 @@ _DEFAULT_DAEMONS = {
     "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
     "taskworker": ["sentry", "run", "taskworker"],
+    "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -144,6 +145,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     default=False,
     help="Run kafka-based task workers",
 )
+@click.option(
+    "--taskworker-scheduler/--no-taskworker-scheduler",
+    default=False,
+    help="Run periodic task scheduler for taskworkers.",
+)
 @click.argument(
     "bind",
     default=None,
@@ -171,6 +177,7 @@ def devserver(
     ngrok: str | None,
     silo: str | None,
     taskworker: bool,
+    taskworker_scheduler: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -295,6 +302,9 @@ def devserver(
 
     if taskworker:
         daemons.append(_get_daemon("taskworker"))
+
+    if taskworker_scheduler:
+        daemons.append(_get_daemon("taskworker-scheduler"))
 
     if workers and not celery_beat:
         click.secho(
