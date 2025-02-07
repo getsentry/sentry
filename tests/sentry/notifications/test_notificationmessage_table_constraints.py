@@ -78,29 +78,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         assert notification1.open_period_start == open_period_1
         assert notification2.open_period_start == open_period_2
 
-    def test_constraint_enforces_uniqueness_for_action_group(self):
-        """Test that the constraint prevents duplicate action/group combinations without open_period_start but allows them with different open_period_start"""
-
-        group = self.create_group(project=self.project)
-        action = self.create_action()
-
-        # Create first notification without open_period_start
-        NotificationMessage.objects.create(
-            action_id=action.id,
-            group_id=group.id,
-            error_code=None,
-            parent_notification_message=None,
-        )
-
-        # Attempting to create second notification without open_period_start should fail
-        with pytest.raises(IntegrityError):
-            NotificationMessage.objects.create(
-                action_id=action.id,
-                group_id=group.id,
-                error_code=None,
-                parent_notification_message=None,
-            )
-
     def test_constraint_allows_issue_alert_with_open_period_start(self):
         """Test that the new constraint allows issue alert notifications"""
 

@@ -5,6 +5,7 @@ import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
 
@@ -16,15 +17,17 @@ function Layout({children}: any) {
 
   return (
     <div className="app">
-      <AuthContainer>
-        <div className="pattern-bg" />
-        <AuthPanel>
-          <AuthSidebar>
-            <SentryButton />
-          </AuthSidebar>
-          <div>{children}</div>
-        </AuthPanel>
-      </AuthContainer>
+      <AppBodyContent>
+        <AuthContainer>
+          <div className="pattern-bg" />
+          <AuthPanel>
+            <AuthSidebar>
+              <SentryButton />
+            </AuthSidebar>
+            <div>{children}</div>
+          </AuthPanel>
+        </AuthContainer>
+      </AppBodyContent>
     </div>
   );
 }

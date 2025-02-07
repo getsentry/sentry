@@ -23,26 +23,18 @@ async function importStory(filename: string): Promise<StoryDescriptor> {
   };
 }
 
-type StoriesResult<T> = T extends string ? StoryDescriptor : StoryDescriptor[];
-
-interface UseStoriesLoaderOptions<T extends string | string[]> {
-  filename: T;
+interface UseStoriesLoaderOptions {
+  files: string[];
 }
 
-export default function useStoriesLoader<T extends string | string[]>(
-  options: UseStoriesLoaderOptions<T>
-): UseQueryResult<StoriesResult<T>, Error> {
+export function useStoriesLoader(
+  options: UseStoriesLoaderOptions
+): UseQueryResult<StoryDescriptor[], Error> {
   return useQuery({
-    queryKey: [options.filename],
-    queryFn: (): Promise<StoriesResult<T>> => {
-      if (Array.isArray(options.filename)) {
-        return Promise.all(options.filename.map(importStory)) as Promise<
-          StoriesResult<T>
-        >;
-      }
-
-      return importStory(options.filename) as Promise<StoriesResult<T>>;
+    queryKey: [options.files],
+    queryFn: (): Promise<StoryDescriptor[]> => {
+      return Promise.all(options.files.map(importStory));
     },
-    enabled: !!options.filename,
+    enabled: !!options.files,
   });
 }

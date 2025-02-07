@@ -9,7 +9,6 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
-from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.db import router
 from django.utils import timezone
@@ -271,10 +270,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             assert response_data[i]["name"] == trusted_relays[i]["name"]
             assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = parse_date(response_data[i]["lastModified"])
+            last_modified = datetime.fromisoformat(response_data[i]["lastModified"])
             assert start_time < last_modified < end_time
             # check that created is in the correct range
-            created = parse_date(response_data[i]["created"])
+            created = datetime.fromisoformat(response_data[i]["created"])
             assert start_time < created < end_time
 
     def test_has_auth_provider(self):
@@ -916,11 +915,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert response_data[i]["name"] == trusted_relays[i]["name"]
             assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = parse_date(actual[i]["last_modified"])
+            last_modified = datetime.fromisoformat(actual[i]["last_modified"])
             assert start_time < last_modified < end_time
             assert response_data[i]["lastModified"] == actual[i]["last_modified"]
             # check that created is in the correct range
-            created = parse_date(actual[i]["created"])
+            created = datetime.fromisoformat(actual[i]["created"])
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
@@ -997,8 +996,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert actual[i]["name"] == modified_trusted_relays[i]["name"]
             assert actual[i]["description"] == modified_trusted_relays[i]["description"]
 
-            last_modified = parse_date(actual[i]["last_modified"])
-            created = parse_date(actual[i]["created"])
+            last_modified = datetime.fromisoformat(actual[i]["last_modified"])
+            created = datetime.fromisoformat(actual[i]["created"])
             key = modified_trusted_relays[i]["publicKey"]
 
             if key == _VALID_RELAY_KEYS[1]:

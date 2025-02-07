@@ -23,11 +23,11 @@ export interface FieldGroupProps {
   /**
    * Should field be disabled?
    */
-  disabled?: boolean | ((props: FieldGroupProps) => boolean);
+  disabled?: boolean;
   /**
    * Produces a question tooltip on the field, explaining why it is disabled
    */
-  disabledReason?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
+  disabledReason?: React.ReactNode;
   /**
    * Display the  error indicator
    */
@@ -46,7 +46,7 @@ export interface FieldGroupProps {
   /**
    * Help or description of the field
    */
-  help?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
+  help?: React.ReactNode;
   /**
    * Hide the fields control state
    */
@@ -109,7 +109,7 @@ export interface FieldGroupProps {
   /**
    * Should field be visible
    */
-  visible?: boolean | ((props: FieldGroupProps) => boolean);
+  visible?: boolean;
 }
 
 /**

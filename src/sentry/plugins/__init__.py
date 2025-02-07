@@ -6,5 +6,4 @@ HIDDEN_PLUGINS = (
     "jira",
     "pagerduty",
     "opsgenie",
-    "phabricator",
 )

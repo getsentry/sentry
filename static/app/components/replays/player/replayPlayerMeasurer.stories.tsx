@@ -6,7 +6,7 @@ import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(ReplayPlayerMeasurer, story => {
+export default storyBook('ReplayPlayerMeasurer', story => {
   story('measure=both, the default, container has fixed height', () => {
     function Example() {
       return (

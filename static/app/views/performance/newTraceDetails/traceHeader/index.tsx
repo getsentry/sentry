@@ -2,12 +2,14 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -17,6 +19,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
@@ -44,6 +47,29 @@ interface TraceMetadataHeaderProps {
   tree: TraceTree;
 }
 
+function FeedbackButton() {
+  const openForm = useFeedbackForm();
+
+  return openForm ? (
+    <Button
+      size="xs"
+      aria-label="trace-view-feedback"
+      icon={<IconMegaphone size="xs" />}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('How can we make the trace view better for you?'),
+          tags: {
+            ['feedback.source']: 'trace-view',
+            ['feedback.owner']: 'performance',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  ) : null;
+}
+
 function PlaceHolder({organization}: {organization: Organization}) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
@@ -61,6 +87,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
               view
             )}
           />
+          <FeedbackButton />
         </HeaderRow>
         <HeaderRow>
           <PlaceHolderTitleWrapper>
@@ -199,7 +226,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const hasNewTraceViewUi = useHasTraceNewUi();
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
-
   const dispatch = useTraceStateDispatch();
 
   const onProjectClick = useCallback(
@@ -240,9 +266,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view
             )}
           />
+          <FeedbackButton />
         </HeaderRow>
         <HeaderRow>
           <Title
+            tree={props.tree}
             traceSlug={props.traceSlug}
             representativeTransaction={representativeTransaction}
           />
@@ -285,13 +313,14 @@ const ProjectsRendererWrapper = styled('div')`
 
 const HeaderLayout = styled(Layout.Header)`
   background-color: ${p => p.theme.background};
-  padding: ${space(2)} ${space(2)} 0 !important;
+  padding: ${space(2)} ${space(4)} 0 !important;
 `;
 
 const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(2)};
+  align-items: center;
 
   &:not(:first-child) {
     margin: ${space(1)} 0;

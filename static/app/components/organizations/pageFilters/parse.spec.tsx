@@ -169,7 +169,6 @@ describe('normalizeDateTimeParams', function () {
         statsPeriod: '14d',
       })
     ).toEqual({
-      utc: 'true',
       statsPeriod: '90d',
     });
   });
@@ -179,17 +178,38 @@ describe('normalizeDateTimeParams', function () {
   });
 
   it('should parse utc when it is defined', function () {
-    expect(normalizeDateTimeParams({utc: 'true'})).toEqual({
+    expect(
+      normalizeDateTimeParams({
+        utc: 'true',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+      })
+    ).toEqual({
       utc: 'true',
-      statsPeriod: '14d',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
     });
-    expect(normalizeDateTimeParams({utc: 'false'})).toEqual({
+    expect(
+      normalizeDateTimeParams({
+        utc: 'false',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+      })
+    ).toEqual({
       utc: 'false',
-      statsPeriod: '14d',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
     });
-    expect(normalizeDateTimeParams({utc: 'invalid'})).toEqual({
+    expect(
+      normalizeDateTimeParams({
+        utc: 'invalid',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+      })
+    ).toEqual({
       utc: 'false',
-      statsPeriod: '14d',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
     });
 
     expect(normalizeDateTimeParams({utc: null})).toEqual({statsPeriod: '14d'});
