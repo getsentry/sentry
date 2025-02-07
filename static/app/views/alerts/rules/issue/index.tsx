@@ -79,7 +79,7 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getProjectOptions} from '../utils';
 
@@ -1183,7 +1183,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           orgSlug={organization.slug}
           projectSlug={project.slug}
         />
-        <PermissionAlert access={['alerts:write']} project={project} />
+        <ProjectPermissionAlert access={['alerts:write']} project={project} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}

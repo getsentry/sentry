@@ -13,7 +13,7 @@ import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/us
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {CustomMetricsTable} from 'sentry/views/settings/projectMetrics/customMetricsTable';
 
 type Props = {
@@ -53,7 +53,7 @@ function ProjectMetrics({project, organization}: Props) {
 
       <MetricsBetaEndAlert organization={organization} />
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <CustomMetricsTable project={project} />
     </Fragment>

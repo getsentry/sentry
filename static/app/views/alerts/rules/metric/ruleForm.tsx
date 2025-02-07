@@ -73,7 +73,7 @@ import {
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {addOrUpdateRule} from './actions';
@@ -1303,7 +1303,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // Rendering the main form body
     return (
       <Main fullWidth>
-        <PermissionAlert access={['alerts:write']} project={project} />
+        <ProjectPermissionAlert access={['alerts:write']} project={project} />
         {isCustomMetricAlert(rule.aggregate) && (
           <MetricsBetaEndAlert organization={organization} />
         )}

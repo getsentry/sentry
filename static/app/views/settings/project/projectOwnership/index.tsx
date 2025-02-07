@@ -28,7 +28,7 @@ import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/ad
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 export default function ProjectOwnership({project}: {project: Project}) {
   const organization = useOrganization();
@@ -161,7 +161,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           }
         )}
       </TextBlock>
-      <PermissionAlert
+      <ProjectPermissionAlert
         access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
         project={project}
       />
@@ -185,7 +185,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </ErrorBoundary>
       )}
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       {hasCodeowners && (
         <CodeOwnerFileTable
           project={project}

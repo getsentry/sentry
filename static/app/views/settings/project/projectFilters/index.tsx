@@ -13,7 +13,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   organization: Organization;
@@ -39,7 +39,7 @@ function ProjectFilters(props: Props) {
         )}
       </TextBlock>
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <div>
         <ProjectFiltersChart project={project} />

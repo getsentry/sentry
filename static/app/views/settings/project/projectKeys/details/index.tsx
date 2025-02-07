@@ -12,7 +12,7 @@ import RouteError from 'sentry/views/routeError';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
-import PermissionAlert from 'sentry/views/settings/project/projectPermissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   organization: Organization;
@@ -64,7 +64,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   return (
     <SentryDocumentTitle title={t('Key Details')}>
       <SettingsPageHeader title={t('Key Details')} data-test-id="key-details" />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <KeyStats api={api} organization={organization} params={params} />
       <KeySettings
         data={projKeyData}
