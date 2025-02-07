@@ -20,7 +20,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_ADOPTED_RELEASE
-    rule_cls = LatestAdoptedReleaseFilter
     payload = {
         "id": LatestAdoptedReleaseFilter.id,
         "oldest_or_newest": "oldest",

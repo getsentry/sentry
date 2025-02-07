@@ -11,7 +11,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestExistingHighPriorityIssueCondition(ConditionTestCase):
     condition = Condition.EXISTING_HIGH_PRIORITY_ISSUE
-    rule_cls = ExistingHighPriorityIssueCondition
     payload = {"id": ExistingHighPriorityIssueCondition.id}
 
     def setUp(self):

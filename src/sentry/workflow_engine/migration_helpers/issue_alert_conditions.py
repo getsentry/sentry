@@ -8,6 +8,7 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
+from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.level import LevelCondition
@@ -25,7 +26,7 @@ from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
-from sentry.utils.registry import Registry
+from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 
@@ -34,8 +35,16 @@ data_condition_translator_registry = Registry[
 ](enable_reverse_lookup=False)
 
 
-def translate_to_data_condition(data: dict[str, Any], dcg: DataConditionGroup):
-    translator = data_condition_translator_registry.get(data["id"])
+def translate_to_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition | None:
+    try:
+        translator = data_condition_translator_registry.get(data["id"])
+    except NoRegistrationExistsError:
+        if data["id"] == EveryEventCondition.id:
+            return None
+        raise
+
     return translator(data, dcg)
 
 
