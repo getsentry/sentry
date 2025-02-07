@@ -67,7 +67,6 @@ export default storyBook('WidgetFrame', story => {
             <WidgetFrame
               title="p95(measurements.lcp) / p95(measurements.inp)"
               description="This is a tough formula to reason about"
-              hideActions
             />
           </NormalWidget>
           <NormalWidget>

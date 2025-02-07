@@ -11,11 +11,11 @@ export interface WidgetLayoutProps {
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
-  forceShowActions?: boolean;
   height?: number;
   noFooterPadding?: boolean;
   noHeaderPadding?: boolean;
   noVisualizationPadding?: boolean;
+  revealActions?: 'hover' | 'always';
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
@@ -23,7 +23,7 @@ export function WidgetLayout(props: WidgetLayoutProps) {
     <Frame
       aria-label={props.ariaLabel}
       height={props.height}
-      forceShowActions={props.forceShowActions}
+      revealActions={props.revealActions}
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
@@ -55,7 +55,7 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
+const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -79,7 +79,7 @@ const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
   }
 
   ${p =>
-    !p.forceShowActions &&
+    p.revealActions === 'hover' &&
     `&:not(:hover):not(:focus-within) {
     ${TitleHoverItems} {
       opacity: 0;
