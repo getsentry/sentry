@@ -512,6 +512,72 @@ describe('IssueViewsHeader', () => {
         })
       );
     });
+
+    it('renders the unsaved changes indicator if the projects have been changed', async () => {
+      const goodViewIdChangedProjectsRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            viewId: getRequestViews[1]!.id,
+            project: '1',
+          },
+        }),
+      });
+
+      render(
+        <IssueViewsPFIssueListHeader
+          {...defaultProps}
+          router={goodViewIdChangedProjectsRouter}
+        />,
+        {organization, router: goodViewIdChangedProjectsRouter}
+      );
+
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+    });
+
+    it('renders the unsaved changes indicator if the environments have been changed', async () => {
+      const goodViewIdChangedEnvironmentsRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            viewId: getRequestViews[1]!.id,
+            environment: ['prod', 'dev'],
+          },
+        }),
+      });
+
+      render(
+        <IssueViewsPFIssueListHeader
+          {...defaultProps}
+          router={goodViewIdChangedEnvironmentsRouter}
+        />,
+        {organization, router: goodViewIdChangedEnvironmentsRouter}
+      );
+
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+    });
+
+    it('renders the unsaved changes indicator if the time filters have been changed', async () => {
+      const goodViewIdChangedTimeFiltersRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            viewId: getRequestViews[1]!.id,
+            statsPeriod: '7d',
+          },
+        }),
+      });
+
+      render(
+        <IssueViewsPFIssueListHeader
+          {...defaultProps}
+          router={goodViewIdChangedTimeFiltersRouter}
+        />,
+        {organization, router: goodViewIdChangedTimeFiltersRouter}
+      );
+
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+    });
   });
 
   describe('Tab ellipsis menu options', () => {
