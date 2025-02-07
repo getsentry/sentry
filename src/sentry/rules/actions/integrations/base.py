@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import abc
 
-from django import forms
-
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.services.integration import (
@@ -82,9 +80,6 @@ class IntegrationEventAction(EventAction, abc.ABC):
         return integration_service.get_organization_integration(
             integration_id=self.get_integration_id(), organization_id=self.project.organization_id
         )
-
-    def get_form_instance(self) -> forms.Form:
-        return self.form_cls(self.data, integrations=self.get_integrations())
 
     def record_notification_sent(
         self,
