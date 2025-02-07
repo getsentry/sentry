@@ -236,7 +236,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
     },
   ];
 
-  const footer = () => {
+  const renderFooter = () => {
     return (
       <Footer>
         By submitting your integration, you acknowledge and agree that Sentry reserves the
@@ -264,7 +264,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
           submitLabel={t('Request Publication')}
           onCancel={closeModal}
         >
-          <JsonForm forms={forms} renderFooter={footer} />
+          <JsonForm forms={forms} renderFooter={renderFooter} />
           {/* <p>THE FOOTER GOES HERE</p> */}
         </Form>
       </Body>
