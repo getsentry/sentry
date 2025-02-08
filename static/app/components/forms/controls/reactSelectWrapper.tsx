@@ -1,31 +1,38 @@
+/* eslint-disable no-restricted-imports */
 import {forwardRef} from 'react';
-import ReactSelect, {
-  components as selectComponents,
-  createFilter,
-  mergeStyles,
-  type Props as ReactSelectProps,
-} from 'react-select';
+import ReactSelect, {components} from 'react-select';
 
-import type {SelectValue} from 'sentry/types/core';
+// This file is a thin wrapper around react-select that removes defaultProps from functional components
+// They are not supported in react 19
 
 // Make shallow copy of default props and re-use in wrapper
 const reactSelectDefaultProps = {...ReactSelect.defaultProps};
 // @ts-expect-error remove default props for react 19
 ReactSelect.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
-selectComponents.MultiValue.defaultProps = undefined;
+components.MultiValue.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
-selectComponents.NoOptionsMessage.defaultProps = undefined;
+components.NoOptionsMessage.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
-selectComponents.LoadingMessage.defaultProps = undefined;
+components.LoadingMessage.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
-selectComponents.LoadingIndicator.defaultProps = undefined;
+components.LoadingIndicator.defaultProps = undefined;
 
-const ReactSelectWrapper = forwardRef<ReactSelect<SelectValue<any>>, ReactSelectProps>(
-  (props, ref) => {
-    // Reapply default props to the component
-    return <ReactSelect {...reactSelectDefaultProps} {...props} ref={ref as any} />;
-  }
-) as any as typeof ReactSelect;
+const ReactSelectWrapper = forwardRef(function ReactSelectWrapper(props: any, ref) {
+  // Reapply default props to the component
+  return <ReactSelect {...reactSelectDefaultProps} {...props} ref={ref as any} />;
+}) as any as typeof ReactSelect;
 
-export {ReactSelectWrapper as ReactSelect, selectComponents, createFilter, mergeStyles};
+export {ReactSelectWrapper as ReactSelect, ReactSelectWrapper as default, components};
+// biome-ignore lint/performance/noBarrelFile: not really a barrel file per say
+export {createFilter, mergeStyles} from 'react-select';
+export type {
+  Props,
+  StylesConfig,
+  SingleValueProps,
+  GroupedOptionsType,
+  MultiValueProps,
+  OptionsType,
+  OptionTypeBase,
+  ValueType,
+} from 'react-select';

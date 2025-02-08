@@ -1,11 +1,4 @@
 import {forwardRef, useCallback, useMemo} from 'react';
-import type {
-  GroupedOptionsType,
-  OptionsType,
-  OptionTypeBase,
-  Props as ReactSelectProps,
-  StylesConfig as ReactSelectStylesConfig,
-} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -15,11 +8,18 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {Chevron} from 'sentry/components/chevron';
+import type {
+  GroupedOptionsType,
+  OptionsType,
+  OptionTypeBase,
+  Props as ReactSelectProps,
+  StylesConfig as ReactSelectStylesConfig,
+} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {
+  components as selectComponents,
   createFilter,
   mergeStyles,
   ReactSelect,
-  selectComponents,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClose} from 'sentry/icons';
@@ -167,7 +167,7 @@ interface WrappedControlProps<OptionType extends OptionTypeBase>
    * Ref forwarded into ReactSelect component.
    * The any is inherited from react-select.
    */
-  forwardedRef: React.Ref<ReactSelect>;
+  forwardedRef: React.Ref<typeof ReactSelect>;
 }
 
 // TODO(ts) The exported component uses forwardRef.
@@ -525,7 +525,7 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 
 // The generics need to be filled here as forwardRef can't expose generics.
 const RefForwardedSelectControl = forwardRef<
-  ReactSelect<GeneralSelectValue>,
+  typeof ReactSelect<GeneralSelectValue>,
   ControlProps
 >(function RefForwardedSelectControl(props, ref) {
   return <SelectControl forwardedRef={ref as any} {...props} />;
