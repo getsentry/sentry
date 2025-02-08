@@ -20,7 +20,7 @@ type Options = {
 
 type Return = {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
-  getBreadcrumbTypes: () => {label: string; value: string}[];
+  getBreadcrumbTypes: () => Array<{label: string; value: string}>;
   items: ReplayFrame[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
@@ -51,6 +51,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   input: 'Input',
   tap: 'User Tap',
   swipe: 'User Swipe',
+  scroll: 'User Scroll',
   device: 'Device',
   app: 'App',
   custom: 'Custom',
@@ -77,6 +78,7 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'ui.click': 'click',
   'ui.tap': 'tap',
   'ui.swipe': 'swipe',
+  'ui.scroll': 'scroll',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
   feedback: 'feedback',
@@ -128,11 +130,14 @@ function useBreadcrumbFilters({frames}: Options): Return {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
     const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE).reduce(
       (dict, [key, value]) =>
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         dict[value]
-          ? {...dict, [value]: [dict[value], key].flat()}
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            {...dict, [value]: [dict[value], key].flat()}
           : {...dict, [value]: key},
       {}
     );
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);
     return filterItems({
       items: frames,

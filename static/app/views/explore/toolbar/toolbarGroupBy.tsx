@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
@@ -17,6 +17,7 @@ import {
   useExploreMode,
   useSetExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {DragNDropContext} from '../contexts/dragNDropContext';
@@ -42,9 +43,20 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const groupBys = useExploreGroupBys();
   const setGroupBys = useSetExploreGroupBys();
 
-  const options: SelectOption<string>[] = useMemo(() => {
+  const disabledOptions: Array<SelectOption<string>> = useMemo(() => {
+    return [
+      {
+        label: <Disabled>{t('Samples not grouped')}</Disabled>,
+        value: UNGROUPED,
+        textValue: t('none'),
+      },
+    ];
+  }, []);
+
+  const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
-      ...Object.keys(tags),
+      // We do not support grouping by span id, we have a dedicated sample mode for that
+      ...Object.keys(tags).filter(key => key !== 'id'),
 
       // These options aren't known to exist on this project but it was inserted into
       // the group bys somehow so it should be a valid options in the group bys.
@@ -57,7 +69,11 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
     return [
       // hard code in an empty option
-      {label: t('None'), value: '', textValue: t('none')},
+      {
+        label: <Disabled>{t('None')}</Disabled>,
+        value: UNGROUPED,
+        textValue: t('none'),
+      },
       ...potentialOptions.map(key => ({
         label: key,
         value: key,
@@ -69,35 +85,6 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   return (
     <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
-        let columnEditorRows = (
-          <Fragment>
-            {editableColumns.map((column, i) => (
-              <ColumnEditorRow
-                disabled={mode === Mode.SAMPLES}
-                key={column.id}
-                canDelete={
-                  editableColumns.length > 1 || !['', undefined].includes(column.column)
-                }
-                column={column}
-                options={options}
-                onColumnChange={c => updateColumnAtIndex(i, c)}
-                onColumnDelete={() => deleteColumnAtIndex(i)}
-              />
-            ))}
-          </Fragment>
-        );
-
-        if (disabled) {
-          columnEditorRows = (
-            <FullWidthTooltip
-              position="top"
-              title={t('Group by is only applicable to aggregate results.')}
-            >
-              {columnEditorRows}
-            </FullWidthTooltip>
-          );
-        }
-
         return (
           <ToolbarSection data-test-id="section-group-by">
             <ToolbarHeader>
@@ -120,7 +107,34 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
                 />
               </Tooltip>
             </ToolbarHeader>
-            {columnEditorRows}
+            {disabled ? (
+              <FullWidthTooltip
+                title={t('Switch to aggregate results to apply grouping')}
+              >
+                <ColumnEditorRow
+                  disabled={disabled}
+                  canDelete={false}
+                  column={{id: 1, column: ''}}
+                  options={disabledOptions}
+                  onColumnChange={() => {}}
+                  onColumnDelete={() => {}}
+                />
+              </FullWidthTooltip>
+            ) : (
+              editableColumns.map((column, i) => (
+                <ColumnEditorRow
+                  disabled={mode === Mode.SAMPLES}
+                  key={column.id}
+                  canDelete={
+                    editableColumns.length > 1 || !['', undefined].includes(column.column)
+                  }
+                  column={column}
+                  options={enabledOptions}
+                  onColumnChange={c => updateColumnAtIndex(i, c)}
+                  onColumnDelete={() => deleteColumnAtIndex(i)}
+                />
+              ))
+            )}
           </ToolbarSection>
         );
       }}
@@ -128,16 +142,12 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   );
 }
 
-const FullWidthTooltip = styled(Tooltip)`
-  width: 100%;
-`;
-
 interface ColumnEditorRowProps {
   canDelete: boolean;
   column: Column;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
-  options: SelectOption<string>[];
+  options: Array<SelectOption<string>>;
   disabled?: boolean;
 }
 
@@ -219,4 +229,12 @@ const TriggerLabel = styled('span')`
   line-height: normal;
   position: relative;
   font-weight: normal;
+`;
+
+const Disabled = styled('span')`
+  color: ${p => p.theme.gray300};
+`;
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
 `;

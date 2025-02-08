@@ -37,7 +37,7 @@ class AutoEnableCodecovTest(TestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -61,7 +61,7 @@ class AutoEnableCodecovTest(TestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     @with_feature("organizations:codecov-integration")

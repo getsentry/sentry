@@ -34,7 +34,7 @@ function getPostBreakpointEventView(location: Location, event: Event, end: numbe
   eventView.fields = REQUEST_FIELDS;
 
   if (event?.occurrence) {
-    const {breakpoint, aggregateRange2, transaction} = event?.occurrence?.evidenceData;
+    const {breakpoint, aggregateRange2, transaction} = event.occurrence.evidenceData;
     eventView.start = new Date(breakpoint * 1000).toISOString();
     eventView.end = new Date(end).toISOString();
 
@@ -53,7 +53,7 @@ function getPreBreakpointEventView(location: Location, event: Event) {
 
   if (event?.occurrence) {
     const {breakpoint, aggregateRange1, transaction, dataStart} =
-      event?.occurrence?.evidenceData;
+      event.occurrence.evidenceData;
     eventView.start = new Date(
       Math.max(dataStart * 1000, retentionPeriodMs)
     ).toISOString();
@@ -84,6 +84,7 @@ function renderBodyCell({
       />
     );
   }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return row[column.key];
 }
 

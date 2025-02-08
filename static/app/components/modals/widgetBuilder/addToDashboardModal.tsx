@@ -187,7 +187,7 @@ function AddToDashboardModal({
     const title =
       // Metric widgets have their default title derived from the query
       widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('All Events')
+        ? t('Custom Widget')
         : widget.title;
 
     const newWidget = {
@@ -240,7 +240,7 @@ function AddToDashboardModal({
           }),
         tooltipOptions: {position: 'right'},
       })),
-    ].filter(Boolean) as SelectValue<string>[];
+    ].filter(Boolean) as Array<SelectValue<string>>;
   }, [allowCreateNewDashboard, dashboards]);
 
   const widgetLegendState = new WidgetLegendSelectionState({

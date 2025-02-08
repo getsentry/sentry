@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -21,12 +20,13 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
+from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
@@ -982,8 +982,6 @@ CELERY_QUEUES_REGION = [
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
-    # XXX: Temporarilty keep in place until we have migrated to the new queue
-    Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("auto_source_code_config", routing_key="auto_source_code_config"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
@@ -1194,9 +1192,9 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
-        # Run every 5 minute
-        "schedule": crontab(minute="*/5"),
-        "options": {"expires": 5 * 60},
+        # Run every minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -1355,6 +1353,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
+# Schedules for taskworker tasks to be spawned on.
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -1766,6 +1766,10 @@ SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
+# Flag storage backend
+SENTRY_FLAGSTORE = os.environ.get("SENTRY_FLAGSTORE", "sentry.tagstore.snuba.SnubaFlagStorage")
+SENTRY_FLAGSTORE_OPTIONS: dict[str, Any] = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
@@ -1882,9 +1886,6 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
-
-# Secret key for OpenAI
-OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
@@ -2292,12 +2293,6 @@ SENTRY_USE_TASKBROKER = False
 # }
 
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-# ubuntu: aarch64
-ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
-
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
         {
@@ -2457,9 +2452,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "ports": {"50051/tcp": 50051},
             "environment": {
                 "TASKBROKER_KAFKA_CLUSTER": (
-                    "kafka-kafka-1"
-                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
-                    else "sentry_kafka"
+                    "sentry_kafka"
+                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
+                    else "kafka-kafka-1"
                 ),
             },
             "only_if": settings.SENTRY_USE_TASKBROKER,
@@ -2971,6 +2966,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "task-worker": "default",
+    "snuba-ourlogs": "default",
 }
 
 
@@ -3037,6 +3033,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
+    "sentry.uptime.endpoints",
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
@@ -3468,11 +3465,18 @@ UPTIME_REGIONS = [
     UptimeRegionConfig(
         slug="default",
         name="Default Region",
-        config_topic=Topic.UPTIME_CONFIGS,
+        config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),
 ]
+UPTIME_CONFIG_PARTITIONS = 128
 
+MARKETO: Mapping[str, Any] = {
+    "base-url": os.getenv("MARKETO_BASE_URL"),
+    "client-id": os.getenv("MARKETO_CLIENT_ID"),
+    "client-secret": os.getenv("MARKETO_CLIENT_SECRET"),
+    "form-id": os.getenv("MARKETO_FORM_ID"),
+}
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

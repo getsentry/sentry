@@ -30,8 +30,8 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
   ) {
     super(canvas, flamegraph, theme, options);
 
-    // @ts-expect-error we are mocking the ctx so that
     // safe renderer initialization does not skip the renderer
+    // @ts-expect-error TS(2740): Type '{}' is missing the following properties from... Remove this comment to see the full error message
     this.ctx = {};
 
     const newContainer = document.createElement('div');

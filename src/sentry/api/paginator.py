@@ -2,9 +2,9 @@ import bisect
 import functools
 import logging
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -410,11 +410,17 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     return lo
 
 
-class SequencePaginator:
-    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
-        self.scores, self.values = (
-            map(list, zip(*sorted(data, reverse=reverse))) if data else ([], [])
-        )
+class SequencePaginator[T]:
+    def __init__(
+        self,
+        data: Iterable[tuple[int, T]],
+        reverse: bool = False,
+        max_limit: int = MAX_LIMIT,
+        on_results=None,
+    ):
+        data = sorted(data, reverse=reverse)
+        self.scores = [score for score, _ in data]
+        self.values = [value for _, value in data]
         self.reverse = reverse
         self.search = functools.partial(
             reverse_bisect_left if reverse else bisect.bisect_left, self.scores
@@ -765,10 +771,14 @@ class ChainPaginator:
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
+class Callback(Protocol):
+    def __call__(self, limit: int, offset: int) -> list[Any]: ...
+
+
 class CallbackPaginator:
     def __init__(
         self,
-        callback: Callable[[int, int], Sequence[Any]],
+        callback: Callback,
         on_results: Callable[[Sequence[Any]], Any] | None = None,
     ):
         self.offset = 0

@@ -383,7 +383,9 @@ export class TokenConverter {
     isNumeric: (key: string) =>
       this.config.numericKeys.has(key) ||
       isMeasurement(key) ||
-      isSpanOperationBreakdownField(key),
+      isSpanOperationBreakdownField(key) ||
+      this.keyValidation.isDuration(key) ||
+      this.keyValidation.isSize(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -535,7 +537,7 @@ export class TokenConverter {
 
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
-    args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
+    args: Array<ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>>
   ) => {
     return {
       ...this.defaultTokenFields,
@@ -547,7 +549,7 @@ export class TokenConverter {
   tokenValueIso8601Date = (
     value: string,
     date: Array<string | string[]>,
-    time?: Array<string | string[] | Array<string[]>>,
+    time?: Array<string | string[] | string[][]>,
     tz?: Array<string | string[]>
   ) => ({
     ...this.defaultTokenFields,
@@ -643,7 +645,7 @@ export class TokenConverter {
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueNumber']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER_LIST as const,
@@ -652,7 +654,7 @@ export class TokenConverter {
 
   tokenValueTextList = (
     item1: ReturnType<TokenConverter['tokenValueText']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueText']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_TEXT_LIST as const,
@@ -985,6 +987,7 @@ export class TokenConverter {
 
     if (
       this.config.disallowWildcard &&
+      // @ts-expect-error TS(2531): Object is possibly 'null'.
       items.some(item => item.value.value.includes('*'))
     ) {
       return {

@@ -7,7 +7,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {
   PROVIDER_OPTION_TO_URLS,
@@ -102,6 +102,7 @@ export default function OnboardingIntegrationSection({
             {tct(
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
               {
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />,
               }
             )}

@@ -72,7 +72,7 @@ import {withScrollbarManager} from './scrollbarManager';
 import type {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import type {AggregateSpanType, GapSpanType, ProcessedSpanType} from './types';
+import type {AggregateSpanType, GapSpanType} from './types';
 import {GroupType} from './types';
 import type {SpanGeneratedBoundsType, SpanViewBoundsType, VerticalMark} from './utils';
 import {
@@ -379,7 +379,7 @@ export class NewTraceDetailsSpanBar extends Component<
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: React.ReactNode[] = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {
@@ -799,7 +799,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const transactions = this.getChildTransactions(quickTrace);
 
     return {
-      span: span as ProcessedSpanType,
+      span,
       organization,
       event: event as EventTransaction,
       isRoot: !!isRoot,

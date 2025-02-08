@@ -27,9 +27,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {
   generateTempViewId,
   type IssueView,
+  type IssueViewParams,
   IssueViews,
   IssueViewsContext,
 } from 'sentry/views/issueList/issueViews/issueViews';
@@ -166,6 +168,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const navigate = useNavigate();
   const location = useLocation();
   const pageFilters = usePageFilters();
+  const user = useUser();
 
   const {newViewActive, setNewViewActive} = useContext(NewTabContext);
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
@@ -174,7 +177,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+  const queryParams = router.location.query;
   const {query, sort, viewId, project, environment} = queryParams;
   const queryParamsWithPageFilters = useMemo(() => {
     return {
@@ -191,6 +194,18 @@ function IssueViewsIssueListHeaderTabsContent({
     project,
     queryParams,
   ]);
+
+  // This useEffect is here temporarily to start saving user's most recently used page filters
+  // to their views. This will be removed once the frontend is updated to use a view's page filters
+  useEffect(() => {
+    dispatch({type: 'SYNC_VIEWS_TO_BACKEND'});
+
+    trackAnalytics('issue_views.page_filters_logged', {
+      user_id: user.id,
+      organization,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageFilters.selection]);
 
   // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
@@ -211,22 +226,28 @@ function IssueViewsIssueListHeaderTabsContent({
       tabListState?.setSelectedKey(views[0]!.key);
       return;
     }
-    // if a viewId is present, check if it exists in the existing views.
+    // if a viewId is present, check the frontend is aware of a view with that id.
     if (viewId) {
-      const selectedTab = views.find(tab => tab.id === viewId);
-      if (selectedTab) {
+      const selectedView = views.find(tab => tab.id === viewId);
+      if (selectedView) {
+        // If the frontend is aware of a view with that id, check if the query/sort is different
+        // from the view's original query/sort.
+        const {query: originalQuery, querySort: originalSort} = selectedView;
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
           : IssueSortOptions.DATE;
 
-        const newUnsavedChanges: [string, IssueSortOptions] | undefined =
-          query === selectedTab.query && sort === selectedTab.querySort
+        const newUnsavedChanges: IssueViewParams | undefined =
+          query === originalQuery && sort === originalSort
             ? undefined
-            : [query ?? selectedTab.query, issueSortOption];
+            : {
+                query,
+                querySort: issueSortOption,
+              };
         if (
-          (newUnsavedChanges && !selectedTab.unsavedChanges) ||
-          selectedTab.unsavedChanges?.[0] !== newUnsavedChanges?.[0] ||
-          selectedTab.unsavedChanges?.[1] !== newUnsavedChanges?.[1]
+          (newUnsavedChanges && !selectedView.unsavedChanges) ||
+          selectedView.unsavedChanges?.query !== newUnsavedChanges?.query ||
+          selectedView.unsavedChanges?.querySort !== newUnsavedChanges?.querySort
         ) {
           // If there were no unsaved changes before, or the existing unsaved changes
           // don't match the new query and/or sort, update the unsaved changes
@@ -234,24 +255,24 @@ function IssueViewsIssueListHeaderTabsContent({
             type: 'UPDATE_UNSAVED_CHANGES',
             unsavedChanges: newUnsavedChanges,
           });
-        } else if (!newUnsavedChanges && selectedTab.unsavedChanges) {
-          // If there are no longer unsaved changes but there were before, remove them
+        } else if (!newUnsavedChanges && selectedView.unsavedChanges) {
+          // If the query/sort are the same as the original query/sort, remove any unsaved changes
           dispatch({type: 'UPDATE_UNSAVED_CHANGES', unsavedChanges: undefined});
         }
-        if (!tabListState?.selectionManager.isSelected(selectedTab.key)) {
+        if (!tabListState?.selectionManager.isSelected(selectedView.key)) {
           navigate(
             normalizeUrl({
               ...location,
               query: {
                 ...queryParamsWithPageFilters,
-                query: newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query,
-                sort: newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort,
-                viewId: selectedTab.id,
+                query: newUnsavedChanges?.query ?? selectedView.query,
+                sort: newUnsavedChanges?.querySort ?? selectedView.querySort,
+                viewId: selectedView.id,
               },
             }),
             {replace: true}
           );
-          tabListState?.setSelectedKey(selectedTab.key);
+          tabListState?.setSelectedKey(selectedView.key);
         }
       } else {
         // if a viewId does not exist, remove it from the query
@@ -317,7 +338,7 @@ function IssueViewsIssueListHeaderTabsContent({
         setNewViewActive(false);
         dispatch({
           type: 'UPDATE_UNSAVED_CHANGES',
-          unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+          unsavedChanges: {query, querySort: sort ?? IssueSortOptions.DATE},
           isCommitted: true,
           syncViews: true,
         });
@@ -375,7 +396,7 @@ function IssueViewsIssueListHeaderTabsContent({
 
   return (
     <DraggableTabList
-      onReorder={(newOrder: Node<DraggableTabListItemProps>[]) =>
+      onReorder={(newOrder: Array<Node<DraggableTabListItemProps>>) =>
         dispatch({
           type: 'REORDER_TABS',
           newKeyOrder: newOrder.map(node => node.key.toString()),
@@ -395,9 +416,11 @@ function IssueViewsIssueListHeaderTabsContent({
           to={normalizeUrl({
             query: {
               ...queryParams,
-              query: view.unsavedChanges?.[0] ?? view.query,
-              sort: view.unsavedChanges?.[1] ?? view.querySort,
+              query: view.unsavedChanges?.query ?? view.query,
+              sort: view.unsavedChanges?.querySort ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+              cursor: undefined,
+              page: undefined,
             },
             pathname: `/organizations/${organization.slug}/issues/`,
           })}

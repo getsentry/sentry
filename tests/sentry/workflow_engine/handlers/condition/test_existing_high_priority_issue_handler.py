@@ -1,3 +1,6 @@
+import pytest
+from jsonschema import ValidationError
+
 from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.types.group import PriorityLevel
@@ -43,6 +46,24 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         assert dc.comparison is True
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison=True,
+            condition_result=True,
+        )
+
+        dc.comparison = False
+        dc.save()
+
+        dc.comparison = {"time": "asdf"}
+        with pytest.raises(ValidationError):
+            dc.save()
+
+        dc.comparison = "hello"
+        with pytest.raises(ValidationError):
+            dc.save()
 
     def test(self):
         self.assert_passes(self.dc, self.job)

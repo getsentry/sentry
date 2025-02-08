@@ -8,6 +8,7 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -19,7 +20,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
@@ -41,6 +41,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
+  isAllowedSelection: boolean;
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
@@ -65,6 +66,7 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
+  isAllowedSelection,
   query,
   timeseriesResult,
 }: ExploreChartsProps) {
@@ -75,13 +77,14 @@ export function ExploreCharts({
 
   const extrapolationMetaResults = useExtrapolationMeta({
     dataset,
+    isAllowedSelection,
     query,
   });
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -233,7 +236,6 @@ export function ExploreCharts({
                   top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
-                legendFormatter={value => formatVersion(value)}
                 legendOptions={{
                   itemGap: 24,
                   top: '4px',
@@ -271,9 +273,11 @@ export function ExploreCharts({
 export function useExtrapolationMeta({
   dataset,
   query,
+  isAllowedSelection,
 }: {
   dataset: DiscoverDatasets;
   query: string;
+  isAllowedSelection?: boolean;
 }) {
   const {selection} = usePageFilters();
 
@@ -301,7 +305,10 @@ export function useExtrapolationMeta({
     eventView: extrapolationMetaEventView,
     initialData: [],
     referrer: 'api.explore.spans-extrapolation-meta',
-    enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    enabled:
+      (defined(isAllowedSelection) ? isAllowedSelection : true) &&
+      dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    trackResponseAnalytics: false,
   });
 }
 
@@ -318,9 +325,13 @@ const ChartHeader = styled('div')`
 `;
 
 const ChartTitle = styled('div')`
-  ${p => p.theme.text.cardTitle}
-  line-height: 32px;
   flex: 1;
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  /* @TODO(jonasbadalic) line height 32px ? */
+  line-height: 32px;
 `;
 
 const ChartLabel = styled('div')`

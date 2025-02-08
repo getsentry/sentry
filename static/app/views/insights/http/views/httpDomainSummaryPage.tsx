@@ -1,6 +1,6 @@
 import React, {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -70,6 +70,7 @@ export function HTTPDomainSummaryPage() {
   const {view} = useDomainViewFilters();
 
   // TODO: Fetch sort information using `useLocationQuery`
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
@@ -104,6 +105,7 @@ export function HTTPDomainSummaryPage() {
       : {}),
   };
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
@@ -281,7 +283,7 @@ export function HTTPDomainSummaryPage() {
                       value={domainMetrics?.[0]?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       tooltip={getTimeSpentExplanation(
-                        domainMetrics?.[0]!?.['time_spent_percentage()'],
+                        domainMetrics?.[0]?.['time_spent_percentage()']!,
                         'http'
                       )}
                       isLoading={areDomainMetricsLoading}

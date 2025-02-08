@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {Theme} from '@emotion/react';
 import type {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -45,6 +44,7 @@ import {
   ErrorNodeContent,
   EventNode,
   ExternalDropdownLink,
+  type NodeType,
   QuickTraceContainer,
   QuickTraceValue,
   SectionSubtext,
@@ -80,7 +80,7 @@ export default function QuickTrace({
   errorDest,
   transactionDest,
 }: QuickTraceProps) {
-  let parsedQuickTrace;
+  let parsedQuickTrace: any;
   const traceSlug = event.contexts?.trace?.trace_id ?? '';
   const noTrace = <Fragment>{'\u2014'}</Fragment>;
   try {
@@ -339,7 +339,7 @@ function EventNodeSelector({
     event => event.performance_issues ?? []
   );
 
-  let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
+  let type: NodeType = nodeKey === 'current' ? 'black' : 'white';
 
   const hasErrors = errors.length > 0 || perfIssues.length > 0;
 
@@ -575,7 +575,7 @@ type EventNodeProps = {
   text: React.ReactNode;
   onClick?: (eventKey: any) => void;
   to?: LocationDescriptor;
-  type?: keyof Theme['tag'];
+  type?: NodeType;
 };
 
 function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {

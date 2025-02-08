@@ -208,7 +208,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   constructor(props: RowProps) {
     super(props);
 
-    let initialSubfilters;
+    let initialSubfilters: any;
     if (props.data.active === true) {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
@@ -296,12 +296,14 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
                 return true;
               }
               return this.state.subfilters.has(key);
             })
             .map(key => {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
               return (
                 <FilterGridItem key={key}>
@@ -460,6 +462,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                 const fieldProps = {
                   name: filter.id,
                   disabled: !hasAccess,
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   ...filterDescriptions[filter.id],
                 };
 
@@ -477,7 +480,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       onFieldChange={(name, value) => {
                         trackAnalytics('settings.inbound_filter_updated', {
                           organization,
-                          project_id: parseInt(project.id as string, 10),
+                          project_id: parseInt(project.id, 10),
                           filter: name,
                           new_state:
                             filter.id === 'legacy-browsers' && value instanceof Set
@@ -501,9 +504,11 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         <FormField
                           inline={false}
                           {...fieldProps}
-                          getData={data => ({subfilters: [...data[filter.id]]})}
+                          getData={(data: any) => ({
+                            subfilters: [...data[filter.id]],
+                          })}
                         >
-                          {({onChange, onBlur}) => (
+                          {({onChange, onBlur}: any) => (
                             <LegacyBrowserFilterRow
                               key={filter.id}
                               data={filter}
@@ -531,7 +536,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });
@@ -573,7 +578,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });

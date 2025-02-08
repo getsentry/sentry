@@ -97,7 +97,7 @@ export interface AssigneeSelectorDropdownProps {
   /**
    * Optional list of suggested owners of the group
    */
-  owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   /**
    * Maximum number of teams/users to display in the dropdown
    */
@@ -373,7 +373,7 @@ export default function AssigneeSelectorDropdown({
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
     label: <TeamBadge data-test-id="assignee-option" team={assignableTeam.team} />,
     value: `team:${assignableTeam.team.id}`,
-    textValue: assignableTeam.team.slug,
+    textValue: `#${assignableTeam.team.slug}`,
   });
 
   const makeSuggestedAssigneeOption = (
@@ -414,8 +414,8 @@ export default function AssigneeSelectorDropdown({
     };
   };
 
-  const makeAllOptions = (): SelectOptionOrSection<string>[] => {
-    const options: SelectOptionOrSection<string>[] = [];
+  const makeAllOptions = (): Array<SelectOptionOrSection<string>> => {
+    const options: Array<SelectOptionOrSection<string>> = [];
 
     let memList = currentMemberList;
     let assignableTeamList = getAssignableTeams();
@@ -572,7 +572,6 @@ export default function AssigneeSelectorDropdown({
             ? `${group.assignedTo?.type === 'user' ? 'user:' : 'team:'}${group.assignedTo.id}`
             : ''
         }
-        onClear={() => handleSelect(null)}
         menuTitle={t('Assignee')}
         searchPlaceholder="Search users or teams..."
         size="sm"

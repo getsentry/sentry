@@ -31,7 +31,7 @@ export interface MetricTimeseriesRow {
 }
 
 export type DiscoverSeries = Series & {
-  meta?: EventsMetaType;
+  meta: EventsMetaType;
 };
 
 interface UseMetricsSeriesOptions<Fields> {
@@ -133,6 +133,7 @@ const useDiscoverSeries = <T extends string[]>(
   const parsedData: Record<string, DiscoverSeries> = {};
 
   yAxis.forEach(seriesName => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const dataSeries = result.data?.[seriesName] ?? result?.data ?? {};
     const convertedSeries: DiscoverSeries = {
       seriesName,

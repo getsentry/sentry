@@ -43,12 +43,12 @@ export function makeMonitorDetailsQueryKey(
 
 // Orders the status in terms of ascending precedence for showing to the user
 export const checkInStatusPrecedent: CheckInStatus[] = [
-  CheckInStatus.IN_PROGRESS,
-  CheckInStatus.OK,
-  CheckInStatus.MISSED,
-  CheckInStatus.TIMEOUT,
-  CheckInStatus.ERROR,
   CheckInStatus.UNKNOWN,
+  CheckInStatus.ERROR,
+  CheckInStatus.TIMEOUT,
+  CheckInStatus.MISSED,
+  CheckInStatus.OK,
+  CheckInStatus.IN_PROGRESS,
 ];
 
 export const statusToText: Record<CheckInStatus, string> = {
@@ -89,7 +89,7 @@ export const tickStyle: Record<CheckInStatus, TickStyle> = {
   },
 };
 
-export const getScheduleIntervals = (n: number): SelectValue<string>[] => [
+export const getScheduleIntervals = (n: number): Array<SelectValue<string>> => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
   {value: 'hour', label: tn('hour', 'hours', n)},
   {value: 'day', label: tn('day', 'days', n)},

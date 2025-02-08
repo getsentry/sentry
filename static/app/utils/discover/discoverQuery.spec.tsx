@@ -4,7 +4,7 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 
 describe('DiscoverQuery', function () {
-  let location, eventView;
+  let location: any, eventView: any;
   beforeEach(() => {
     location = {
       pathname: '/events',
@@ -91,7 +91,7 @@ describe('DiscoverQuery', function () {
       statusCode: 400,
     });
 
-    let errorValue;
+    let errorValue: any;
     render(
       <DiscoverQuery
         orgSlug="test-org"
@@ -124,7 +124,7 @@ describe('DiscoverQuery', function () {
       statusCode: 400,
     });
 
-    let errorValue;
+    let errorValue: any;
     render(
       <DiscoverQuery
         orgSlug="test-org"

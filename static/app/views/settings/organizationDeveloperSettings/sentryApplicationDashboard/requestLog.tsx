@@ -54,7 +54,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   );
   if (issueLinkComponent) {
     issueLinkEvents = ['external_issue.created', 'external_issue.linked'];
-    if (componentHasSelectUri(issueLinkComponent as SentryAppSchemaIssueLink)) {
+    if (componentHasSelectUri(issueLinkComponent)) {
       issueLinkEvents.push('select_options.requested');
     }
   }
@@ -328,7 +328,7 @@ const RequestLogFilters = styled('div')`
   padding-bottom: ${space(1)};
 
   > :first-child ${StyledButton} {
-    border-radius: ${p => p.theme.borderRadiusLeft};
+    border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   }
 `;
 

@@ -668,7 +668,7 @@ describe('WaterfallModel', () => {
 
     expected[1] = {
       type: 'out_of_view',
-      span: fullWaterfall[1]!!.span,
+      span: fullWaterfall[1]!.span,
     } as EnhancedProcessedSpanType;
 
     expected[4] = {
@@ -696,7 +696,7 @@ describe('WaterfallModel', () => {
       },
       {
         type: 'out_of_view',
-        span: fullWaterfall[1]!!.span,
+        span: fullWaterfall[1]!.span,
       },
       fullWaterfall[2],
       fullWaterfall[3],
@@ -722,11 +722,11 @@ describe('WaterfallModel', () => {
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10]!.spanNestedGrouping![0]!.span,
+        span: fullWaterfall[10]!.spanNestedGrouping[0]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10]!.spanNestedGrouping![1]!.span,
+        span: fullWaterfall[10]!.spanNestedGrouping[1]!.span,
       },
       {
         type: 'filtered_out',
@@ -814,7 +814,7 @@ describe('WaterfallModel', () => {
       ...event,
       entries: [
         {
-          data: [event.entries[0]!.data[0]],
+          data: [(event.entries[0] as any).data[0]],
           type: EntryType.SPANS,
         },
       ],
@@ -848,10 +848,10 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
-            event.entries[0]!.data[0],
+            (event.entries[0] as any).data[0],
             {
-              ...event.entries[0]!.data[0],
-              parent_span_id: event.entries[0]!.data[0].span_id,
+              ...(event.entries[0] as any).data[0],
+              parent_span_id: (event.entries[0] as any).data[0].span_id,
               span_id: 'foo',
             },
           ],
@@ -884,8 +884,8 @@ describe('WaterfallModel', () => {
       {
         ...fullWaterfall[1]!,
         span: {
-          ...fullWaterfall[1]!!.span,
-          parent_span_id: event.entries[0]!.data[0]!.span_id,
+          ...fullWaterfall[1]!.span,
+          parent_span_id: (event.entries[0] as any).data[0]!.span_id,
           span_id: 'foo',
         },
         treeDepth: 2,
@@ -902,14 +902,14 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
-            event.entries[0]!.data[0],
+            (event.entries[0] as any).data[0],
             {
-              ...event.entries[0]!.data[0],
-              parent_span_id: event.entries[0]!.data[0]!.span_id,
+              ...(event.entries[0] as any).data[0],
+              parent_span_id: (event.entries[0] as any).data[0]!.span_id,
               span_id: 'foo',
             },
             {
-              ...event.entries[0]!.data[0],
+              ...(event.entries[0] as any).data[0],
               parent_span_id: 'foo',
               span_id: 'bar',
             },
@@ -955,7 +955,7 @@ describe('WaterfallModel', () => {
             ...fullWaterfall[1]!,
             span: {
               ...fullWaterfall[1]!.span,
-              parent_span_id: event.entries[0]!.data[0].span_id,
+              parent_span_id: (event.entries[0] as any).data[0].span_id,
               span_id: 'foo',
             },
             isLastSibling: true,
@@ -1012,7 +1012,7 @@ describe('WaterfallModel', () => {
         ...fullWaterfall[1]!,
         span: {
           ...fullWaterfall[1]!.span,
-          parent_span_id: event.entries[0]!.data[0].span_id,
+          parent_span_id: (event.entries[0] as any).data[0].span_id,
           span_id: 'foo',
         },
         isLastSibling: true,

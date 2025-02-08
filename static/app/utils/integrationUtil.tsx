@@ -45,15 +45,15 @@ export const trackIntegrationAnalytics = trackAnalytics;
  * is not registered for rendering the features list like this simply show the
  * features as a normal list.
  */
-const generateFeaturesList = p => (
+const generateFeaturesList = (p: any) => (
   <ul>
-    {p.features.map((f, i) => (
+    {p.features.map((f: any, i: any) => (
       <li key={i}>{f.description}</li>
     ))}
   </ul>
 );
 
-const generateIntegrationFeatures = p =>
+const generateIntegrationFeatures = (p: any) =>
   p.children({
     disabled: false,
     disabledReason: null,
@@ -243,7 +243,7 @@ export const getIntegrationSourceUrl = (
     case 'bitbucket':
     case 'bitbucket_server':
       return `${sourceUrl}#lines-${lineNo}`;
-    case 'vsts':
+    case 'vsts': {
       const url = new URL(sourceUrl);
       if (lineNo) {
         url.searchParams.set('line', lineNo.toString());
@@ -254,6 +254,7 @@ export const getIntegrationSourceUrl = (
         url.searchParams.set('_a', 'contents');
       }
       return url.toString();
+    }
     case 'github':
     case 'github_enterprise':
     default:
@@ -317,7 +318,7 @@ export const getExternalActorEndpointDetails = (
   };
 };
 
-export const sentryNameToOption = ({id, name}): Result => ({
+export const sentryNameToOption = ({id, name}: any): Result => ({
   value: id,
   label: name,
 });

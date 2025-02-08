@@ -201,9 +201,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     return {
       description: {
         defaultValue: t('(unnamed span)'),
-        link: dataRow => ({
+        link: (dataRow: any) => ({
           target: spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             spanSlug: {op: dataRow.operation, group: dataRow.group},
             transaction,
             projectID: project.id,

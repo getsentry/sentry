@@ -259,17 +259,17 @@ class IncidentsList extends DeprecatedAsyncComponent<
   }
 
   renderBody() {
-    const {organization, router, location} = this.props;
+    const {organization, location} = this.props;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
         <PageFiltersContainer>
-          <AlertHeader router={router} activeTab="stream" />
+          <AlertHeader activeTab="stream" />
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert showIcon>
+                  <StyledAlert type="info" showIcon>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar

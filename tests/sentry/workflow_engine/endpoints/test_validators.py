@@ -7,10 +7,6 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.incidents.endpoints.validators import (
-    MetricAlertComparisonConditionValidator,
-    MetricAlertsDetectorValidator,
-)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
@@ -29,6 +25,10 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseGroupTypeDetectorValidator,
     DataSourceCreator,
     NumericComparisonConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.base.metric_alerts import (
+    MetricAlertComparisonConditionValidator,
+    MetricAlertsDetectorValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
@@ -200,7 +200,7 @@ class DetectorValidatorTest(TestCase):
             },
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_mock_validator(self, mock_audit):
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -210,7 +210,7 @@ class DetectorValidatorTest(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "metric_alert_fire"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
 
         # Verify data source in DB
         data_source = DataSource.objects.get(detector=detector)
@@ -292,7 +292,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(self, mock_audit):
         validator = MetricAlertsDetectorValidator(
             data=self.valid_data,
@@ -307,7 +307,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "metric_alert_fire"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
 
         # Verify data source and query subscription in DB
         data_source = DataSource.objects.get(detector=detector)

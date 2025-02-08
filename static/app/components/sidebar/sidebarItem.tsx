@@ -207,10 +207,14 @@ function SidebarItem({
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       setExpandedItemId(null);
-      !(to || href) && event.preventDefault();
+      if (!to && !href) {
+        event.preventDefault();
+      }
       recordAnalytics();
       onClick?.(id, event);
-      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+      if (showIsNew) {
+        localStorage.setItem(isNewSeenKey, 'true');
+      }
     },
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
@@ -308,11 +312,15 @@ function SidebarItem({
     </Tooltip>
   );
 }
+SidebarItem.displayName = 'SidebarItem';
 
 export function isItemActive(
-  item: Pick<SidebarItemProps, 'to' | 'label'>,
+  item: Pick<SidebarItemProps, 'to' | 'label' | 'active'>,
   exact?: boolean
 ): boolean {
+  if (typeof item.active === 'boolean') {
+    return item.active;
+  }
   // take off the query params for matching
   const toPathWithoutReferrer = item?.to?.split('?')[0];
   if (!toPathWithoutReferrer) {
@@ -521,7 +529,7 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}) => {
+const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   if (!collapsed) {
     return '';
   }
@@ -540,6 +548,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
   `;
 };
 
+// @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;

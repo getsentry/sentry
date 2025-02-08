@@ -102,7 +102,7 @@ app.Get("/foo", func(ctx iris.Context) {
 
 app.Run(iris.Addr(":3000"))`;
 
-const getBeforeSendSnippet = params => `
+const getBeforeSendSnippet = (params: any) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
@@ -175,7 +175,7 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <AlertWithoutMarginBottom>
+          <AlertWithoutMarginBottom type="info">
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryiris]!",
               {code: <code />}

@@ -92,7 +92,7 @@ export function getGroupReleaseChartMarkers(
   const markerTooltip = {
     show: true,
     trigger: 'item',
-    formatter: ({data}) => {
+    formatter: ({data}: any) => {
       const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
         local: true,
       });
@@ -157,8 +157,8 @@ function GroupReleaseChart(props: Props) {
   series.push({
     seriesName: t('Events in %s', environmentLabel),
     data: environmentStats[statsPeriod]!.map(point => ({
-      name: point![0] * 1000,
-      value: point![1],
+      name: point[0] * 1000,
+      value: point[1],
     })),
   });
 
@@ -166,8 +166,8 @@ function GroupReleaseChart(props: Props) {
     series.push({
       seriesName: t('Events in release %s', formatVersion(release.version)),
       data: releaseStats[statsPeriod]!.map(point => ({
-        name: point![0] * 1000,
-        value: point![1],
+        name: point[0] * 1000,
+        value: point[1],
       })),
     });
   }

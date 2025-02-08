@@ -221,7 +221,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
+  const frameSelectOptions: Array<SelectOption<'system' | 'application' | 'all'>> =
     useMemo(() => {
       return [
         {value: 'system', label: t('System Frames')},
@@ -349,7 +349,7 @@ const ALLOWED_SORTS = [
 ] as const;
 type SortOption = (typeof ALLOWED_SORTS)[number];
 
-const sortOptions: SelectOption<SortOption>[] = [
+const sortOptions: Array<SelectOption<SortOption>> = [
   {value: '-timestamp', label: t('Newest Events')},
   {value: 'timestamp', label: t('Oldest Events')},
   {value: '-transaction.duration', label: t('Slowest Events')},
@@ -432,6 +432,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
   );
 
   const handleCursor = useCallback(
+    // @ts-expect-error TS(7006): Parameter 'newCursor' implicitly has an 'any' type... Remove this comment to see the full error message
     (newCursor, pathname, query) => {
       navigate({
         pathname,
@@ -476,7 +477,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               location,
               organization,
               transactionName: transaction,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY_PROFILES,
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             });
 
             const profileTarget = generateProfileLink()(

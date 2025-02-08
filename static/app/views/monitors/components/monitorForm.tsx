@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -33,12 +33,12 @@ import useProjects from 'sentry/utils/useProjects';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
-import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
+import type {IntervalConfig, Monitor, MonitorConfig} from '../types';
 import {ScheduleType} from '../types';
 
 import {platformsWithGuides} from './monitorQuickStartGuide';
 
-const SCHEDULE_OPTIONS: SelectValue<string>[] = [
+const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
@@ -98,6 +98,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const targetType = RULE_TARGET_MAP[type!];
 
         return {targetType, targetIdentifier: Number(id)};
@@ -130,10 +131,12 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
     }
 
     if (k.startsWith('config.')) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       data.config[k.substring(7)] = v;
       return data;
     }
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     data[k] = v;
     return data;
   }, {});
@@ -180,28 +183,23 @@ function MonitorForm({
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
-  function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
+  function formDataFromConfig(config: MonitorConfig) {
     const rv: Record<string, MonitorConfig[keyof MonitorConfig]> = {};
-    switch (type) {
-      case 'cron_job':
-        rv['config.scheduleType'] = config.schedule_type;
-        rv['config.checkinMargin'] = config.checkin_margin;
-        rv['config.maxRuntime'] = config.max_runtime;
-        rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
-        rv['config.recoveryThreshold'] = config.recovery_threshold;
+    rv['config.scheduleType'] = config.schedule_type;
+    rv['config.checkinMargin'] = config.checkin_margin;
+    rv['config.maxRuntime'] = config.max_runtime;
+    rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
+    rv['config.recoveryThreshold'] = config.recovery_threshold;
 
-        switch (config.schedule_type) {
-          case 'interval':
-            rv['config.schedule.frequency'] = config.schedule[0];
-            rv['config.schedule.interval'] = config.schedule[1];
-            break;
-          case 'crontab':
-          default:
-            rv['config.schedule'] = config.schedule;
-            rv['config.timezone'] = config.timezone;
-        }
+    switch (config.schedule_type) {
+      case 'interval':
+        rv['config.schedule.frequency'] = config.schedule[0];
+        rv['config.schedule.interval'] = config.schedule[1];
         break;
+      case 'crontab':
       default:
+        rv['config.schedule'] = config.schedule;
+        rv['config.timezone'] = config.timezone;
     }
     return rv;
   }
@@ -242,15 +240,13 @@ function MonitorForm({
               name: monitor.name,
               slug: monitor.slug,
               owner,
-              type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
               'alertRule.environment': monitor.alertRule?.environment,
-              ...formDataFromConfig(monitor.type, monitor.config),
+              ...formDataFromConfig(monitor.config),
             }
           : {
               project: selectedProject ? selectedProject.slug : null,
-              type: DEFAULT_MONITOR_TYPE,
             }
       }
       onSubmitSuccess={onSubmitSuccess}
@@ -435,7 +431,7 @@ function MonitorForm({
                   DEFAULT_MAX_RUNTIME
                 )}
                 help={t(
-                  'Number of a minutes before an in-progress check-in is marked timed out.'
+                  'Number of minutes before an in-progress check-in is marked timed out.'
                 )}
                 label={t('Max Runtime')}
               />

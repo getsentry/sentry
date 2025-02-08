@@ -303,7 +303,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     describe('updates and saves', function () {
-      let mock;
+      let mock: any;
 
       beforeEach(function () {
         mock = MockApiClient.addMockResponse({

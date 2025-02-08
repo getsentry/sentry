@@ -1,11 +1,10 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -156,26 +155,20 @@ export const MetricWidget = memo(
     );
 
     const handleQueryChange = useCallback(
-      (queryIndex, data: Partial<MetricsWidget>) => {
+      (queryIndex: any, data: Partial<MetricsWidget>) => {
         onChange(queryIndex, data);
       },
       [onChange]
     );
 
     const handleDisplayTypeChange = ({value}: SelectOption<MetricDisplayType>) => {
-      Sentry.metrics.increment('ddm.widget.display');
       onChange(index, {displayType: value});
     };
 
-    const handleOverlayChange = (options: SelectOption<MetricChartOverlayType>[]) => {
+    const handleOverlayChange = (
+      options: Array<SelectOption<MetricChartOverlayType>>
+    ) => {
       const values = options.map(({value}) => value);
-
-      Sentry.metrics.increment('ddm.widget.overlay', 1, {
-        tags: {
-          releases: values.includes(MetricChartOverlayType.RELEASES),
-          samples: values.includes(MetricChartOverlayType.SAMPLES),
-        },
-      });
 
       onChange(index, {overlays: values});
     };
@@ -405,7 +398,6 @@ const MetricWidgetBody = memo(
 
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
-        Sentry.metrics.increment('ddm.enhance.zoom');
         updateDateTime(range, router, {save: true});
       },
       [router]
@@ -502,7 +494,7 @@ const MetricWidgetBody = memo(
     );
 
     const handleSortChange = useCallback(
-      newSort => {
+      (newSort: any) => {
         onChange?.({sort: newSort});
       },
       [onChange]

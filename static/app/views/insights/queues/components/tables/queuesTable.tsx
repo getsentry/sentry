@@ -95,7 +95,7 @@ type ValidSort = Sort & {
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as ReadonlyArray<string>).includes(sort.field);
+  return (SORTABLE_FIELDS as readonly string[]).includes(sort.field);
 }
 
 interface Props {
@@ -173,6 +173,7 @@ function renderBodyCell(
   organization: Organization
 ) {
   const key = column.key;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (row[key] === undefined) {
     return (
       <AlignRight>
@@ -186,6 +187,7 @@ function renderBodyCell(
   }
 
   if (key.startsWith('count')) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
   }
 
@@ -199,12 +201,14 @@ function renderBodyCell(
     const formatter = FIELD_FORMATTERS.percentage.renderFunc;
     return (
       <AlignRight>
+        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
         {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
       </AlignRight>
     );
   }
 
   if (!meta?.fields) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return row[column.key];
   }
 

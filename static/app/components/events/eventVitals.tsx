@@ -46,6 +46,7 @@ export default function EventVitals({event}: Props) {
 
 function WebVitals({event}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
@@ -77,6 +78,7 @@ function WebVitals({event}: Props) {
           // here but are stored using their abbreviated name `<name>`. Make sure
           // to convert it appropriately.
           const measurement = `measurements.${name}`;
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const vital = WEB_VITAL_DETAILS[measurement];
 
           return <EventVital key={name} event={event} name={name} vital={vital} />;
@@ -88,6 +90,7 @@ function WebVitals({event}: Props) {
 
 function MobileVitals({event}: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     .filter(name => Boolean(MOBILE_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
@@ -104,6 +107,7 @@ function MobileVitals({event}: Props) {
           // here but are stored using their abbreviated name `<name>`. Make sure
           // to convert it appropriately.
           const measurement = `measurements.${name}`;
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const vital = MOBILE_VITAL_DETAILS[measurement];
 
           return <EventVital key={name} event={event} name={name} vital={vital} />;
@@ -175,7 +179,7 @@ const ValueRow = styled('div')`
   align-items: center;
 `;
 
-const WarningIconContainer = styled('span')<{size: IconSize | string}>`
+const WarningIconContainer = styled('span')<{size: IconSize}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
@@ -183,7 +187,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   color: ${p => p.theme.errorText};
 `;
 
-const FireIconContainer = styled('span')<{size: IconSize | string}>`
+const FireIconContainer = styled('span')<{size: IconSize}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};

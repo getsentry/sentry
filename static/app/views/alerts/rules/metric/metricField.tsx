@@ -66,6 +66,7 @@ export const getFieldOptionConfig = ({
         return [key, agg];
       }
 
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return [key, AGGREGATIONS[key]];
     })
   );
@@ -103,7 +104,7 @@ function MetricField({
 }: Props) {
   return (
     <FormField {...props}>
-      {({onChange, value, model, disabled}) => {
+      {({onChange, value, model, disabled}: any) => {
         const dataset = model.getValue('dataset');
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =

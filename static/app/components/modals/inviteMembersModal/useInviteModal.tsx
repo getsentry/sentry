@@ -14,7 +14,7 @@ import useApi from 'sentry/utils/useApi';
 
 interface Props {
   organization: Organization;
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   source?: string;
 }
 
@@ -165,6 +165,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
     setState(prev => {
       const emails = prev.pendingInvites[0]!.emails;
       const filteredEmails = Array.from(emails).filter(
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         email => !prev.inviteStatus[email]?.sent
       );
       return {
@@ -180,7 +181,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   }, []);
 
   useEffect(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const statuses = Object.values<InviteStatus>(state.inviteStatus);
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
     // Don't track if no invites have been sent or invites are still sending

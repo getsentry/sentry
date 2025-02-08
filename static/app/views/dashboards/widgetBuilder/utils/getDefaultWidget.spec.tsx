@@ -6,17 +6,17 @@ describe('getDefaultWidget', () => {
   it('should return a default widget for errors', () => {
     const widget = getDefaultWidget(WidgetType.ERRORS);
     expect(widget).toEqual({
-      displayType: DisplayType.TABLE,
+      displayType: DisplayType.LINE,
       interval: '',
       title: 'Custom Widget',
       widgetType: WidgetType.ERRORS,
       queries: [
         {
-          fields: ['count()'],
+          fields: ['count_unique(user)'],
           conditions: '',
-          aggregates: ['count()'],
+          aggregates: ['count_unique(user)'],
           columns: [],
-          orderby: '-count()',
+          orderby: '-count_unique(user)',
           fieldAliases: [],
           name: '',
         },
@@ -27,7 +27,7 @@ describe('getDefaultWidget', () => {
   it('should return a default widget for spans', () => {
     const widget = getDefaultWidget(WidgetType.SPANS);
     expect(widget).toEqual({
-      displayType: DisplayType.TABLE,
+      displayType: DisplayType.LINE,
       interval: '',
       title: 'Custom Widget',
       widgetType: WidgetType.SPANS,
@@ -69,7 +69,7 @@ describe('getDefaultWidget', () => {
   it('should return a default widget for releases', () => {
     const widget = getDefaultWidget(WidgetType.RELEASE);
     expect(widget).toEqual({
-      displayType: DisplayType.TABLE,
+      displayType: DisplayType.LINE,
       interval: '',
       title: 'Custom Widget',
       widgetType: WidgetType.RELEASE,

@@ -43,7 +43,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<{'span.action': string}[]>({
+  const {data: actions} = useSpansQuery<Array<{'span.action': string}>>({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
@@ -123,9 +123,10 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   uptime: t('Action'),
   other: t('Action'),
   'mobile-ui': t('Action'),
-  'mobile-screens': t('Action'),
+  'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
   ai: 'Action',
+  sessions: t('Action'),
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -23,6 +23,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1116,7 +1117,7 @@ function ScrapingSourceFileAvailableChecklistItem({
   }
 
   const failureReasonTexts =
-    SOURCE_FILE_SCRAPING_REASON_MAP[
+    (SOURCE_FILE_SCRAPING_REASON_MAP as any)[
       sourceResolutionResults.sourceFileScrapingStatus.reason
     ] ?? SOURCE_FILE_SCRAPING_REASON_MAP.other;
 
@@ -1186,6 +1187,7 @@ function ScrapingSourceMapAvailableChecklistItem({
   }
 
   const failureReasonTexts =
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     SOURCE_MAP_SCRAPING_REASON_MAP[
       sourceResolutionResults.sourceMapScrapingStatus.reason
     ] ?? SOURCE_MAP_SCRAPING_REASON_MAP.other;
@@ -1246,6 +1248,7 @@ function VerifyAgainNote() {
 }
 
 function ChecklistDoneNote() {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
     <CompletionNoteContainer>
       <IconCheckmark size="md" color="green200" />
@@ -1253,6 +1256,15 @@ function ChecklistDoneNote() {
         {t(
           'You completed all of the steps above. Capture a new event to verify your setup!'
         )}
+        {isSelfHosted
+          ? ' ' +
+            tct(
+              'If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
+              {
+                symbolicator: <MonoBlock>symbolicator</MonoBlock>,
+              }
+            )
+          : ''}
       </p>
     </CompletionNoteContainer>
   );

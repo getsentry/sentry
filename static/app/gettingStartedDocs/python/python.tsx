@@ -47,7 +47,10 @@ const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn.public}",${
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -192,7 +195,7 @@ import sentry_sdk
 
 sentry_sdk.init(
   dsn="${params.dsn.public}",
-  enable_tracing=True,
+  traces_sample_rate=1.0,
 )`,
           additionalInfo: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
@@ -261,7 +264,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
           ? `This provider doesn't use an integration. Simply initialize Sentry and import the API.`
           : tct('Add [name] to your integrations list.', {
               name: (
-                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
+                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}()`}</code>
               ),
             }),
       configurations: [
@@ -279,12 +282,12 @@ sentry_sdk.init(
   ]
 )`
               : `import sentry_sdk
-from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}
 
 sentry_sdk.init(
   dsn="${dsn.public}",
   integrations=[
-    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
+    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}(),
   ]
 )`,
         },

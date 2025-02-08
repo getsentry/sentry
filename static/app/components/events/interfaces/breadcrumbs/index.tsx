@@ -32,7 +32,7 @@ type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelTy
 
 type Props = {
   data: {
-    values: Array<RawCrumb>;
+    values: RawCrumb[];
   };
   event: Event;
   organization: Organization;
@@ -72,6 +72,7 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
     Object.keys(
       pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
     ).some(key => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const info = breadcrumb[key];
 
       if (!defined(info) || !String(info).trim()) {
@@ -89,7 +90,9 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
 
 function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
+  const [filterSelections, setFilterSelections] = useState<Array<SelectOption<string>>>(
+    []
+  );
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
@@ -121,7 +124,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
     const typeOptions = getFilterTypes(initialBreadcrumbs);
     const levels = getFilterLevels(typeOptions);
 
-    const options: SelectSection<string>[] = [];
+    const options: Array<SelectSection<string>> = [];
 
     if (typeOptions.length) {
       options.push({
@@ -165,7 +168,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
         breadcrumb?.level &&
         !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType]!.levels?.push(breadcrumb!.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb.level);
       }
     }
 
@@ -173,10 +176,11 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   }
 
   function getFilterLevels(types: SelectOptionWithLevels[]) {
-    const filterLevels: SelectOption<string>[] = [];
+    const filterLevels: Array<SelectOption<string>> = [];
 
     for (const indexType in types) {
       for (const indexLevel in types[indexType]!.levels) {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         const level = types[indexType]!.levels?.[indexLevel];
 
         if (filterLevels.some(f => f.value === `level-${level}`)) {
@@ -200,7 +204,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
 
   function applySelectedFilters(
     breadcrumbs: BreadcrumbWithMeta[],
-    selectedFilterOptions: SelectOption<string>[]
+    selectedFilterOptions: Array<SelectOption<string>>
   ) {
     const checkedTypeOptions = new Set(
       selectedFilterOptions

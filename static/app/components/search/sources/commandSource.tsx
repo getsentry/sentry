@@ -38,13 +38,14 @@ const ACTIONS: Action[] = [
     action: () =>
       openSudo({
         isSuperuser: true,
+        needsReload: true,
       }),
   },
 
   {
     title: t('Toggle dark mode'),
     description: t('Toggle dark mode (superuser only atm)'),
-    requiresSuperuser: true,
+    requiresSuperuser: false,
     action: () => {
       removeBodyTheme();
       ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark');

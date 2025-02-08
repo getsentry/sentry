@@ -264,7 +264,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   }
 
   listeners = [
-    ProjectsStatsStore.listen(itemsBySlug => {
+    ProjectsStatsStore.listen((itemsBySlug: any) => {
       this.onProjectStatsStoreUpdate(itemsBySlug);
     }, undefined),
   ];
@@ -328,9 +328,12 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   align-items: flex-start;
   gap: 0 ${space(0.5)};
-
-  ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.2;
 `;
 
 const StyledProjectCard = styled(Panel)`

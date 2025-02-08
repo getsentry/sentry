@@ -10,7 +10,7 @@ import {
 import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
 
 describe('InviteRowControlNew', function () {
-  const renderComponent = props => {
+  const renderComponent = (props: any) => {
     render(
       <InviteMembersContext.Provider
         value={{...defaultInviteProps, ...props, willInvite: true}}

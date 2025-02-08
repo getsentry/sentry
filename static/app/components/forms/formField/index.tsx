@@ -101,7 +101,7 @@ interface BaseProps {
   /**
    * Used to render the actual control
    */
-  children: (renderProps) => React.ReactNode;
+  children: (renderProps: any) => React.ReactNode;
   /**
    * Name of the field
    */
@@ -118,9 +118,9 @@ interface BaseProps {
    * Should hide error message?
    */
   hideErrorMessage?: boolean;
-  onBlur?: (value, event) => void;
-  onChange?: (value, event) => void;
-  onKeyDown?: (value, event) => void;
+  onBlur?: (value: any, event: any) => void;
+  onChange?: (value: any, event: any) => void;
+  onKeyDown?: (value: any, event: any) => void;
   placeholder?: ObservedFnOrValue<{}, React.ReactNode>;
 
   resetOnError?: boolean;
@@ -229,7 +229,7 @@ function FormField(props: FormFieldProps) {
    * Update field value in form model
    */
   const handleChange = useCallback(
-    (...args) => {
+    (...args: any[]) => {
       const {value, event} = getValueFromEvent(...args);
       onChange?.(value, event);
       model.setValue(name, value);
@@ -241,7 +241,7 @@ function FormField(props: FormFieldProps) {
    * Notify model of a field being blurred
    */
   const handleBlur = useCallback(
-    (...args) => {
+    (...args: any[]) => {
       const {value, event} = getValueFromEvent(...args);
 
       onBlur?.(value, event);
@@ -255,7 +255,7 @@ function FormField(props: FormFieldProps) {
    * Handle keydown to trigger a save on Enter
    */
   const handleKeyDown = useCallback(
-    (...args) => {
+    (...args: any[]) => {
       const {value, event} = getValueFromEvent(...args);
 
       if (event.key === 'Enter') {
@@ -370,6 +370,10 @@ function FormField(props: FormFieldProps) {
                       error,
                       initialData: model.initialData,
                       'aria-describedby': `${id}_help`,
+                      placeholder:
+                        typeof fieldProps.placeholder === 'function'
+                          ? fieldProps.placeholder({...props, model})
+                          : fieldProps.placeholder,
                     })}
                   </Fragment>
                 );
@@ -382,14 +386,9 @@ function FormField(props: FormFieldProps) {
                 const error = model.getError(name);
                 const value = model.getValue(name);
 
-                const isVisible =
-                  typeof fieldProps.visible === 'function'
-                    ? fieldProps.visible({...props, ...fieldProps} as ResolvedProps)
-                    : true;
-
                 return (
                   <Fragment>
-                    {isVisible
+                    {fieldProps.visible
                       ? selectionInfoFunction({...fieldProps, error, value})
                       : null}
                   </Fragment>
@@ -409,7 +408,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
-                    type={saveMessageAlertType}
+                    type={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>
                         <Button onClick={handleCancelField} size="xs">

@@ -16,7 +16,7 @@ export const ExpandedContext = createContext<{
 });
 
 // Provides the expanded context to the sidebar accordion when it's in the floating state only (collapsed sidebar or on mobile view)
-export function ExpandedContextProvider(props) {
+export function ExpandedContextProvider(props: any) {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const theme = useTheme();
   const preferences = useLegacyStore(PreferencesStore);

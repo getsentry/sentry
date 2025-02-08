@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Flex} from 'sentry/components/container/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';

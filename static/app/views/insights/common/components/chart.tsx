@@ -77,7 +77,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[] | ReadonlyArray<string>;
+  chartColors?: string[] | readonly string[];
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;
@@ -108,7 +108,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 
@@ -143,11 +143,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendOptions,
-  /**
-   * Setting a default formatter for some reason causes `>` to
-   * render correctly instead of rendering as `&gt;` in the legend.
-   */
-  legendFormatter = name => name,
+  legendFormatter,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -231,10 +227,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]!?.data[1]!?.name).getTime() -
-    new Date(series[0]!?.data[0]!?.name).getTime();
+    new Date(series[0]?.data[1]?.name!).getTime() -
+    new Date(series[0]?.data[0]?.name!).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name!
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
@@ -324,13 +320,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -352,7 +351,13 @@ function Chart({
   };
 
   const legend = isLegendVisible
-    ? {top: 0, right: 10, formatter: legendFormatter, ...legendOptions}
+    ? {
+        top: 0,
+        right: 10,
+        truncate: true,
+        formatter: legendFormatter,
+        ...legendOptions,
+      }
     : undefined;
 
   const areaChartProps = {
@@ -643,7 +648,7 @@ export function useSynchronizeCharts(
   ]);
 }
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;

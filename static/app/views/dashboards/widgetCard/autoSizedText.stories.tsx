@@ -6,7 +6,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
-export default storyBook(AutoSizedText, story => {
+export default storyBook('AutoSizedText', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

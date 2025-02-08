@@ -55,8 +55,6 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleBase(abc.ABC):
-    form_cls: type[forms.Form] = None  # type: ignore[assignment]
-
     logger = logging.getLogger("sentry.rules")
 
     def __init__(
@@ -79,21 +77,21 @@ class RuleBase(abc.ABC):
     def is_enabled(self) -> bool:
         return True
 
-    def get_option(self, key: str, default: str | None = None) -> str:
+    def get_option(self, key: str, default: str | None = None) -> Any:
         return self.data.get(key, default)
 
-    def get_form_instance(self) -> forms.Form:
-        return self.form_cls(self.data if self.had_data else None)
+    def get_form_instance(self) -> forms.Form | None:
+        return None
 
     def render_label(self) -> str:
         return self.label.format(**self.data)
 
     def validate_form(self) -> bool:
-        if not self.form_cls:
+        form = self.get_form_instance()
+        if form is None:
             return True
-
-        is_valid: bool = self.get_form_instance().is_valid()
-        return is_valid
+        else:
+            return form.is_valid()
 
     def future(
         self,

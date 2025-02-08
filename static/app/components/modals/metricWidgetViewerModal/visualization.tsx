@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -142,7 +142,7 @@ export function MetricVisualization({
       expressions.some(
         expression =>
           expression.type === MetricExpressionType.QUERY &&
-          parseMRI(expression.mri)!.type === 's'
+          parseMRI(expression.mri).type === 's'
       ),
     [expressions]
   );
@@ -235,6 +235,7 @@ export function MetricVisualization({
           triggerProps={{prefix: t('Visualization')}}
           value={displayType}
           options={Object.keys(displayTypes).map(value => ({
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: displayTypes[value],
             value,
           }))}

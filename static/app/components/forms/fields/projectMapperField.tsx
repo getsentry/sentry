@@ -228,7 +228,7 @@ export class RenderField extends Component<RenderProps, State> {
             name="mappedDropdown"
             options={mappedItemOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     <MappedValueContainer>
@@ -248,7 +248,7 @@ export class RenderField extends Component<RenderProps, State> {
             name="project"
             options={projectOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     {renderIdBadge({id: selectedSentryProjectId, hideName: false})}

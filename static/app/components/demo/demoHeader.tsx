@@ -12,22 +12,23 @@ import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
   isDemoModeEnabled,
-  openDemoSignupModal,
+  openDemoEmailModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
+
+export const DEMO_HEADER_HEIGHT_PX = 70;
 
 export default function DemoHeader() {
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
   useEffect(() => {
-    openDemoSignupModal();
+    openDemoEmailModal();
   }, []);
 
   if (!isDemoModeEnabled()) {
     return null;
   }
 
-  const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
 
@@ -58,29 +59,23 @@ export default function DemoHeader() {
   const signUpBtn = (
     <FreeTrial
       onClick={() => {
-        const url =
-          sandboxData?.cta?.url ||
-          urlAttachQueryParams(
-            'https://sentry.io/signup/',
-            extraQueryParameterWithEmail()
-          );
+        const url = urlAttachQueryParams(
+          'https://sentry.io/signup/',
+          extraQueryParameterWithEmail()
+        );
 
         // Using window.open instead of href={} because we need to read `email`
         // from localStorage when the user clicks the button.
         window.open(url, '_blank');
 
         trackAnalytics('growth.demo_click_get_started', {
-          cta: sandboxData?.cta?.id,
+          cta: undefined,
           organization: null,
         });
       }}
     >
-      <FreeTrialTextLong>
-        {sandboxData?.cta?.title || t('Start Free Trial')}
-      </FreeTrialTextLong>
-      <FreeTrialTextShort>
-        {sandboxData?.cta?.shortTitle || t('Sign Up')}
-      </FreeTrialTextShort>
+      <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>
+      <FreeTrialTextShort>{t('Sign Up')}</FreeTrialTextShort>
     </FreeTrial>
   );
 
@@ -98,7 +93,7 @@ export default function DemoHeader() {
 const Wrapper = styled('div')<{collapsed: boolean}>`
   padding-right: ${space(3)};
   background-color: ${p => p.theme.white};
-  height: ${p => p.theme.demo.headerSize};
+  height: ${DEMO_HEADER_HEIGHT_PX}px;
   display: flex;
   justify-content: space-between;
   text-transform: uppercase;

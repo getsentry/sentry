@@ -70,6 +70,7 @@ function DurationChart({
   }
 
   if (subregions) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
@@ -103,6 +104,7 @@ function DurationChart({
 
   const spanMetrics = data[0] ?? {};
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
 
   const {

@@ -118,8 +118,10 @@ export function transformIssuesResponseToTable(
     }) => {
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
       Object.keys(resultProps)
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
         .forEach(key => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedResultProps[key] = resultProps[key];
         });
 

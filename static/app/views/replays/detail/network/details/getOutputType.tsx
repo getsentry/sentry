@@ -9,16 +9,23 @@ export enum Output {
   BODY_SKIPPED = 'body_skipped',
   BODY_PARSE_ERROR = 'body_parse_error',
   BODY_PARSE_TIMEOUT = 'body_parse_timeout',
+  UNPARSEABLE_BODY_TYPE = 'unparseable_body_type',
   DATA = 'data',
 }
 
 type Args = {
+  isCaptureBodySetup: boolean;
   isSetup: boolean;
   item: SectionProps['item'];
   visibleTab: TabKey;
 };
 
-export default function getOutputType({isSetup, item, visibleTab}: Args): Output {
+export default function getOutputType({
+  isCaptureBodySetup,
+  isSetup,
+  item,
+  visibleTab,
+}: Args): Output {
   if (!isRequestFrame(item)) {
     return Output.UNSUPPORTED;
   }
@@ -55,18 +62,18 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
     return Output.BODY_PARSE_TIMEOUT;
   }
 
+  if (respWarnings?.includes('UNPARSEABLE_BODY_TYPE')) {
+    // Differs from BODY_PARSE_ERROR in that we did not attempt to parse it
+    return Output.UNPARSEABLE_BODY_TYPE;
+  }
+
   if (isReqUrlSkipped || isRespUrlSkipped) {
     return Output.URL_SKIPPED;
   }
 
-  if (['request', 'response'].includes(visibleTab)) {
-    // @ts-expect-error: is BODY_SKIPPED really emitted from the SDK?
-    const isReqBodySkipped = reqWarnings.includes('BODY_SKIPPED');
-    // @ts-expect-error: is BODY_SKIPPED really emitted from the SDK?
-    const isRespBodySkipped = respWarnings.includes('BODY_SKIPPED');
-    if (isReqBodySkipped || isRespBodySkipped) {
-      return Output.BODY_SKIPPED;
-    }
+  // Capture body is not setup (this should also imply there is no body)
+  if (['request', 'response'].includes(visibleTab) && !hasBody && !isCaptureBodySetup) {
+    return Output.BODY_SKIPPED;
   }
 
   return Output.DATA;

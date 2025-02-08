@@ -27,7 +27,7 @@ type Options = {
 
 type Return = {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
-  getLogLevels: () => {label: string; value: string}[];
+  getLogLevels: () => Array<{label: string; value: string}>;
   items: BreadcrumbFrame[];
   logLevel: string[];
   searchTerm: string;
@@ -37,7 +37,7 @@ type Return = {
 
 function getFilterableField(frame: BreadcrumbFrame) {
   if (isConsoleFrame(frame)) {
-    const consoleFrame = frame as ConsoleFrame;
+    const consoleFrame = frame;
     return consoleFrame.level;
   }
   return undefined;
@@ -65,7 +65,9 @@ function sortBySeverity(a: string, b: string) {
     trace: 6,
   };
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aRank = levels[a] ?? UNKNOWN_LEVEL;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const bRank = levels[b] ?? UNKNOWN_LEVEL;
   return aRank - bRank;
 }

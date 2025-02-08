@@ -13,6 +13,7 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 
 interface UseExploreSpansTableOptions {
   enabled: boolean;
+  limit: number;
   query: string;
 }
 
@@ -23,6 +24,7 @@ export interface SpansTableResult {
 
 export function useExploreSpansTable({
   enabled,
+  limit,
   query,
 }: UseExploreSpansTableOptions): SpansTableResult {
   const {selection} = usePageFilters();
@@ -70,8 +72,10 @@ export function useExploreSpansTable({
     enabled,
     eventView,
     initialData: [],
+    limit,
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
+    trackResponseAnalytics: false,
   });
 
   return useMemo(() => {

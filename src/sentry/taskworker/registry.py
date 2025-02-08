@@ -3,13 +3,12 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
-from functools import cached_property
 from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
-from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
@@ -17,6 +16,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
 from sentry.utils import metrics
+from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -44,17 +44,14 @@ class TaskNamespace:
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
-        self._producer: KafkaProducer | None = None
+        self._producer: SingletonProducer = SingletonProducer(
+            self._basic_producer, max_futures=1000
+        )
 
-    @cached_property
-    def producer(self) -> KafkaProducer:
-        if self._producer:
-            return self._producer
+    def _basic_producer(self) -> KafkaProducer:
         cluster_name = get_topic_definition(self.topic)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
-        self._producer = KafkaProducer(producer_config)
-
-        return self._producer
+        return KafkaProducer(producer_config)
 
     def get(self, name: str) -> Task[Any, Any]:
         """
@@ -134,7 +131,7 @@ class TaskNamespace:
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
 
-        produce_future = self.producer.produce(
+        produce_future = self._producer.produce(
             ArroyoTopic(name=self.topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )

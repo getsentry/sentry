@@ -10,7 +10,7 @@ from sentry.grouping.ingest.hashing import (
     _calculate_secondary_hashes,
 )
 from sentry.models.group import Group
-from sentry.projectoptions.defaults import LEGACY_GROUPING_CONFIG
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -91,15 +91,15 @@ class BackgroundGroupingTest(TestCase):
 class SecondaryGroupingTest(TestCase):
     def test_applies_secondary_grouping(self):
         project = self.project
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
         timestamp = time()
         manager = EventManager({"message": "foo 123", "timestamp": timestamp})
         manager.normalize()
         event = manager.save(project.id)
 
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", timestamp + 3600)
 
         # Switching to newstyle grouping changes the hash because now '123' will be parametrized
@@ -142,7 +142,7 @@ class SecondaryGroupingTest(TestCase):
         mock_capture_exception: MagicMock,
     ) -> None:
         secondary_grouping_error = Exception("nope")
-        secondary_grouping_config = "legacy:2019-03-12"
+        secondary_grouping_config = LEGACY_GROUPING_CONFIG
 
         def mock_calculate_event_grouping(project, event, grouping_config):
             # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hash`,
@@ -153,7 +153,7 @@ class SecondaryGroupingTest(TestCase):
                 return _calculate_event_grouping(project, event, grouping_config)
 
         project = self.project
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
+        project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
         project.update_option("sentry:secondary_grouping_config", secondary_grouping_config)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 

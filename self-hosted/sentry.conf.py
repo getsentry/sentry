@@ -38,7 +38,6 @@ import os.path
 from sentry.conf.server import *
 from sentry.utils.types import Bool
 
-CONF_ROOT = os.path.dirname(__file__)
 env = os.environ.get
 
 postgres = env("SENTRY_POSTGRES_HOST") or (env("POSTGRES_PORT_5432_TCP_ADDR") and "postgres")
@@ -186,7 +185,7 @@ SENTRY_QUOTAS = "sentry.quotas.redis.RedisQuota"
 # The TSDB is used for building charts as well as making things like per-rate
 # alerts possible.
 
-SENTRY_TSDB = "sentry.tsdb.redis.RedisSnubaTSDB"
+SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
 
 ###########
 # Digests #

@@ -47,7 +47,12 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule_trigger,
+    dual_update_resolve_condition,
+    migrate_alert_rule,
+    migrate_resolve_threshold_data_conditions,
+)
 
 from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
@@ -511,13 +516,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     extra={"details": str(e)},
                 )
                 raise BadRequest
-            self._handle_triggers(alert_rule, triggers)
 
-            if features.has(
+            should_dual_write = features.has(
                 "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
-            ):
+            )
+            if should_dual_write:
                 migrate_alert_rule(alert_rule, user)
 
+            self._handle_triggers(alert_rule, triggers)
+            if should_dual_write:
+                # create the resolution data triggers once we've migrated the critical/warning triggers
+                migrate_resolve_threshold_data_conditions(alert_rule)
             return alert_rule
 
     def update(self, instance, validated_data):
@@ -557,6 +566,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
+                dual_delete_migrated_alert_rule_trigger(trigger)
                 delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:
@@ -591,5 +601,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                         channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(trigger_serializer.errors)
+            # after all the triggers have been processed, dual update the resolve data condition if necessary
+            # if an error occurs in this method, it won't affect the alert rule triggers, which have already been saved
+            dual_update_resolve_condition(alert_rule)
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error

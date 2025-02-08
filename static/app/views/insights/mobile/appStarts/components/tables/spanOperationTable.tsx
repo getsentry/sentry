@@ -64,9 +64,9 @@ export function SpanOperationTable({
   secondaryRelease,
 }: Props) {
   const organization = useOrganization();
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
   const moduleURL = useModuleURL(
-    isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+    isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
   );
   const baseURL = isMobileScreensEnabled
     ? `${moduleURL}/details/`
@@ -166,7 +166,7 @@ export function SpanOperationTable({
       t('Change'),
   };
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
     }

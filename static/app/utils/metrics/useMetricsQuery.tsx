@@ -81,7 +81,7 @@ export function isMetricFormula(
 }
 
 export function getMetricsQueryApiRequestPayload(
-  queries: (MetricsQueryApiRequestQuery | MetricsQueryApiRequestFormula)[],
+  queries: Array<MetricsQueryApiRequestQuery | MetricsQueryApiRequestFormula>,
   {
     projects,
     environments,
@@ -89,7 +89,7 @@ export function getMetricsQueryApiRequestPayload(
   }: {
     datetime: PageFilters['datetime'];
     environments: PageFilters['environments'];
-    projects: (number | string)[];
+    projects: Array<number | string>;
   },
   {
     intervalLadder,
@@ -114,13 +114,13 @@ export function getMetricsQueryApiRequestPayload(
         '1m'
       );
 
-  const requestQueries: {mql: string; name: string}[] = [];
-  const requestFormulas: {
+  const requestQueries: Array<{mql: string; name: string}> = [];
+  const requestFormulas: Array<{
     mql: string;
     limit?: number;
     name?: string;
     order?: 'asc' | 'desc';
-  }[] = [];
+  }> = [];
 
   queries.forEach((query, index) => {
     if (isMetricFormula(query)) {
@@ -187,7 +187,7 @@ export function useMetricsQuery(
   }: {
     datetime: PageFilters['datetime'];
     environments: PageFilters['environments'];
-    projects: (number | string)[];
+    projects: Array<number | string>;
   },
   overrides: {
     includeSeries?: boolean;

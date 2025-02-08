@@ -138,7 +138,7 @@ export function EnvironmentPageFilter({
   );
 
   const onToggle = useCallback(
-    newValue => {
+    (newValue: any) => {
       trackAnalytics('environmentselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(router.routes),

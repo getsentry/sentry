@@ -111,7 +111,7 @@ export function MetricWidgetCard({
       metricExpressions.some(
         expression =>
           expression.type === MetricExpressionType.QUERY &&
-          parseMRI(expression.mri)!.type === 's'
+          parseMRI(expression.mri).type === 's'
       ),
     [metricExpressions]
   );
@@ -241,7 +241,13 @@ export function MetricWidgetCard({
   );
 }
 
-function WidgetCardBody({children, isError, timeseriesData, renderErrorMessage, error}) {
+function WidgetCardBody({
+  children,
+  isError,
+  timeseriesData,
+  renderErrorMessage,
+  error,
+}: any) {
   if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');

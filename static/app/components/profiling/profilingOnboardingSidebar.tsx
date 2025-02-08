@@ -101,12 +101,15 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
 
     // if it's a list of projects, pick the first one that's supported
     const supportedProjectsById = supportedProjects.reduce((mapping, project) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       mapping[project.id] = project;
       return mapping;
     }, {});
 
     for (const projectId of pageFilters.selection.projects) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (supportedProjectsById[String(projectId)]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         setCurrentProject(supportedProjectsById[String(projectId)]);
         return;
       }
@@ -119,7 +122,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
   ]);
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -131,7 +134,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,

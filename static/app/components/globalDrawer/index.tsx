@@ -87,7 +87,7 @@ const DrawerContext = createContext<DrawerContextType>({
   closeDrawer: () => {},
 });
 
-export function GlobalDrawer({children}) {
+export function GlobalDrawer({children}: any) {
   const location = useLocation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     DrawerConfig | undefined

@@ -28,6 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -65,10 +66,10 @@ export function EventSamplesTable({
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const {view} = useDomainViewFilters();
   const eventViewColumns = eventView.getColumns();
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
     }
@@ -83,6 +84,7 @@ export function EventSamplesTable({
             timestamp: row.timestamp,
             organization,
             location,
+            view,
             source: TraceViewSources.SCREEN_LOADS_MODULE,
           })}
         >

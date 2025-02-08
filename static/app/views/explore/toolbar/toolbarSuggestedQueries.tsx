@@ -84,7 +84,9 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
       PlatformCategory.MOBILE,
       PlatformCategory.BACKEND,
     ]
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(k => counters[k] > 0)
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .sort((a, b) => counters[b] - counters[a]);
 
     return getSuggestedQueries(platforms);
@@ -337,5 +339,5 @@ const SuggestedQueriesContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;

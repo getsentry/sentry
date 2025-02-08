@@ -1,7 +1,4 @@
-import {
-  getDiffInMinutes,
-  shouldFetchPreviousPeriod,
-} from 'sentry/components/charts/utils';
+import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -50,7 +47,7 @@ const useCrashFreeRate = (props: Props) => {
   const commonQuery = {
     environment,
     project: projects[0],
-    interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
+    interval: getInterval(selection.datetime),
     query,
     field,
   };
@@ -159,6 +156,7 @@ function ProjectStabilityScoreCard(props: Props) {
         fields: {
           [`${props.field}()`]: 'percentage',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}

@@ -14,8 +14,6 @@ import {
   DEFAULT_FIELD,
   MISSING_DATA_MESSAGE,
   NON_FINITE_NUMBER_MESSAGE,
-  X_GUTTER,
-  Y_GUTTER,
 } from '../common/settings';
 import type {StateProps} from '../common/types';
 
@@ -35,6 +33,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
         title={props.title}
         description={props.description}
         borderless={props.borderless}
+        forceDescriptionTooltip={props.forceDescriptionTooltip}
       >
         <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
       </WidgetFrame>
@@ -67,6 +66,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
       error={error}
       onRetry={props.onRetry}
       borderless={props.borderless}
+      forceDescriptionTooltip={props.forceDescriptionTooltip}
     >
       {defined(value) && (
         <BigNumberResizeWrapper>
@@ -92,6 +92,5 @@ const BigNumberResizeWrapper = styled('div')`
 
 const LoadingPlaceholder = styled('span')`
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  padding: ${X_GUTTER} ${Y_GUTTER};
   font-size: ${p => p.theme.fontSizeLarge};
 `;

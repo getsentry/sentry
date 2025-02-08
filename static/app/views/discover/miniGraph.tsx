@@ -38,7 +38,7 @@ type Props = {
 };
 
 class MiniGraph extends Component<Props> {
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: any) {
     // We pay for the cost of the deep comparison here since it is cheaper
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
     // render.
@@ -273,7 +273,7 @@ class MiniGraph extends Component<Props> {
   }
 }
 
-const StyledGraphContainer = styled(props => (
+const StyledGraphContainer = styled((props: any) => (
   <LoadingContainer {...props} maskBackgroundColor="transparent" />
 ))`
   height: 150px;

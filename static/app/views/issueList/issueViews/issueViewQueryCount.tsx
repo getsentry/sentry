@@ -46,15 +46,25 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     isError,
   } = useFetchIssueCounts({
     orgSlug: organization.slug,
-    query: [view.unsavedChanges ? view.unsavedChanges[0] : view.query],
+    query: [view.unsavedChanges?.query ?? view.query],
     project: pageFilters.selection.projects,
     environment: pageFilters.selection.environments,
     ...constructCountTimeFrame(pageFilters.selection.datetime),
   });
 
+  // The endpoint's response type looks like this: { <query1>: <count>, <query2>: <count> }
+  // But this component only ever sends one query, so we can just get the count of the first key.
+  // This is a bit hacky, but it avoids having to use a state to store the previous query
+  // when the query changes and the new data is still being fetched.
+  const defaultQuery =
+    Object.keys(queryCount ?? {}).length > 0
+      ? Object.keys(queryCount ?? {})[0]
+      : undefined;
   const count = isError
     ? 0
-    : queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ?? 0;
+    : queryCount?.[view.unsavedChanges?.query ?? view.query] ??
+      queryCount?.[defaultQuery ?? ''] ??
+      0;
 
   return (
     <QueryCountBubble

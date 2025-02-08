@@ -68,6 +68,7 @@ function SpansContent(props: Props) {
   const handleChange = useCallback(
     (key: string) => {
       return function (value: string | undefined) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
@@ -205,6 +206,7 @@ function SpansContentV2(props: Props) {
   const handleChange = useCallback(
     (key: string) => {
       return function (value: string | undefined) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({

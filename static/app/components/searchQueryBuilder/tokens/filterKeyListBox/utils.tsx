@@ -20,8 +20,8 @@ import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
-export const ALL_CATEGORY_VALUE = '__all' as const;
-export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches' as const;
+export const ALL_CATEGORY_VALUE = '__all';
+export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
 
 export const ALL_CATEGORY = {value: ALL_CATEGORY_VALUE, label: t('All')};
 export const RECENT_SEARCH_CATEGORY = {
@@ -32,7 +32,7 @@ export const RECENT_SEARCH_CATEGORY = {
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
 
-function trimQuotes(value) {
+function trimQuotes(value: any) {
   return value.replace(/^"+|"+$/g, '');
 }
 

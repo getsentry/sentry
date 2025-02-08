@@ -50,10 +50,10 @@ export default function AlertRuleStatus({rule}: Props) {
   }
 
   const criticalTrigger = rule.triggers.find(
-    ({label}) => label === AlertRuleTriggerType.CRITICAL
+    ({label}: any) => label === AlertRuleTriggerType.CRITICAL
   );
   const warningTrigger = rule.triggers.find(
-    ({label}) => label === AlertRuleTriggerType.WARNING
+    ({label}: any) => label === AlertRuleTriggerType.WARNING
   );
   const resolvedTrigger = rule.resolveThreshold;
 

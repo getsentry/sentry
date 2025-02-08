@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -67,9 +68,19 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     environment: environments,
   });
 
+  const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+  }, [detailedProject, project]);
+
   const tagValues = useMemo(
     () =>
       data.reduce((valueMap, tag) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
         return valueMap;
       }, {}),
@@ -77,17 +88,24 @@ export function GroupTagsDrawer({group}: {group: Group}) {
   );
 
   const displayTags = useMemo(() => {
-    const sortedTags = data.sort((a, b) => a.key.localeCompare(b.key));
-    const searchedTags = sortedTags.filter(
+    const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
+    const orderedHighlightTags = highlightTags.sort(
+      (a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key)
+    );
+    const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
+    const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
+    const orderedTags = [...orderedHighlightTags, ...sortedTags];
+    const searchedTags = orderedTags.filter(
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         tagValues[tag.key].includes(search)
     );
     return searchedTags;
-  }, [data, search, tagValues]);
+  }, [data, search, tagValues, highlightTagKeys]);
 
-  if (isPending) {
+  if (isPending || isHighlightsPending) {
     return <LoadingIndicator />;
   }
 
@@ -196,7 +214,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
           <Wrapper>
             <Container>
               {displayTags.map((tag, tagIdx) => (
-                <TagDistribution tag={tag} key={tagIdx} />
+                <TagDistribution tag={tag} key={tagIdx} groupId={group.id} />
               ))}
             </Container>
           </Wrapper>

@@ -2,10 +2,12 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -21,7 +23,6 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import localStorage from 'sentry/utils/localStorage';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -31,17 +32,17 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
-import {DASHBOARD_RPC_TOGGLE_KEY} from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -59,6 +60,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[aggregate] = {
     isSortable: true,
     outputType: null,
@@ -75,7 +77,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
 }, {});
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
@@ -206,14 +208,12 @@ function getEventsRequest(
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
 
-  const useRpc = localStorage.getItem(DASHBOARD_RPC_TOGGLE_KEY) === 'true';
-
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: useRpc ? '1' : undefined,
+    useRpc: '1',
     ...queryExtras,
   };
 
@@ -277,8 +277,8 @@ function getSeriesRequest(
     referrer
   );
 
-  const useRpc = localStorage.getItem(DASHBOARD_RPC_TOGGLE_KEY) === 'true';
-  requestData.useRpc = useRpc;
+  requestData.useRpc = true;
+  requestData.interval = getInterval(pageFilters.datetime, 'spans');
 
   return doEventsRequest<true>(api, requestData);
 }

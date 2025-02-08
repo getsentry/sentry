@@ -13,7 +13,7 @@ jest.mocked(useReleaseSelection).mockReturnValue({
   secondaryRelease: 'com.example.vu.android@2.10.3+42',
 });
 
-function getMockEventView({fields}) {
+function getMockEventView({fields}: {fields: any}) {
   return new EventView({
     id: '1',
     name: 'mock query',

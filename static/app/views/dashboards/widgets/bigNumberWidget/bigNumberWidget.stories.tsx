@@ -8,7 +8,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
-export default storyBook(BigNumberWidget, story => {
+export default storyBook('BigNumberWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -128,6 +128,7 @@ export default storyBook(BigNumberWidget, story => {
                 fields: {
                   'count()': 'integer',
                 },
+                units: {},
               }}
             />
           </SmallWidget>
@@ -228,6 +229,7 @@ export default storyBook(BigNumberWidget, story => {
                 fields: {
                   'http_rate(500)': 'percentage',
                 },
+                units: {},
               }}
             />
           </SmallWidget>
@@ -242,6 +244,7 @@ export default storyBook(BigNumberWidget, story => {
                 fields: {
                   'http_rate(200)': 'percentage',
                 },
+                units: {},
               }}
             />
           </SmallWidget>

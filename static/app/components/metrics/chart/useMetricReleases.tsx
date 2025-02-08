@@ -23,15 +23,15 @@ interface Release {
 
 interface ReleaseQuery {
   end: DateString;
-  environment: Readonly<string[]>;
-  project: Readonly<number[]>;
+  environment: readonly string[];
+  project: readonly number[];
   start: DateString;
   cursor?: string;
   query?: string;
   statsPeriod?: string | null;
 }
 
-function getQuery(conditions) {
+function getQuery(conditions: any) {
   const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -39,6 +39,7 @@ function getQuery(conditions) {
       value = getUtcDateString(value);
     }
     if (value) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       query[key] = value;
     }
   });

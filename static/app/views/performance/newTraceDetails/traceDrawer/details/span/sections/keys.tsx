@@ -25,6 +25,7 @@ import {
 import {isSpanNode} from '../../../../traceGuards';
 import {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import {TraceDrawerActionValueKind} from '../../utils';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -46,16 +47,19 @@ function partitionSizes(data: RawSpanType['data']): {
       nonSizeKeys: {},
     };
   }
-  const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-    if (data.hasOwnProperty(key) && defined(data[key])) {
-      try {
-        keys[key] = parseFloat(data[key]);
-      } catch (e) {
-        keys[key] = data[key];
+  const sizeKeys = SIZE_DATA_KEYS.reduce(
+    (keys, key) => {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
+        try {
+          keys[key] = parseFloat(data[key]);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
-    }
-    return keys;
-  }, {});
+      return keys;
+    },
+    {} as Record<string, number>
+  );
 
   const nonSizeKeys = {...data};
   SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -114,6 +118,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
 
 export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
+  const projectIds = node.event?.projectID;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
     value => value === 0
@@ -156,6 +161,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
           {value >= 1024 && <span>{` (${value} B)`}</span>}
         </Fragment>
       ),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={key}
+          rowValue={value}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   Object.entries(nonSizeKeys).forEach(([key, value]) => {
@@ -164,6 +178,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         key,
         subject: key,
         value: value as string | number,
+        actionButton: (
+          <TraceDrawerComponents.KeyValueAction
+            rowKey={key}
+            rowValue={value as string | number}
+            kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+            projectIds={projectIds}
+          />
+        ),
+        actionButtonAlwaysVisible: true,
       });
     }
   });
@@ -171,7 +194,16 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     items.push({
       key,
       subject: key,
-      value: span[key],
+      value: (span as any)[key],
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={key}
+          rowValue={(span as any)[key]}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   timingKeys.forEach(timing => {
@@ -185,6 +217,15 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         </TraceDrawerComponents.FlexBox>
       ),
       value: getPerformanceDuration(Number(timing.duration) * 1000),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={timing.name}
+          rowValue={getPerformanceDuration(Number(timing.duration) * 1000)}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
 

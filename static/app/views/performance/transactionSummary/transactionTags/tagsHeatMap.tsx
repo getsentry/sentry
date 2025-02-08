@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
-import {truncate} from '@sentry/utils';
+import {truncate} from '@sentry/core';
 import type {VisualMapComponentOption} from 'echarts';
 import type {Location} from 'history';
 import memoize from 'lodash/memoize';
@@ -225,7 +225,7 @@ function TagsHeatMap(
       dataArray: _data,
       label: {
         show: true,
-        formatter: data => formatAbbreviatedNumber(data.value[2]),
+        formatter: (data: any) => formatAbbreviatedNumber(data.value[2]),
       },
       emphasis: {
         itemStyle: {
@@ -236,7 +236,7 @@ function TagsHeatMap(
     } as any); // TODO(k-fish): Fix heatmap data typing
   }
 
-  const onChartClick = bucket => {
+  const onChartClick = (bucket: any) => {
     const htmlEvent = bucket.event.event;
     // Make a copy of the dims because echarts can remove elements after this click happens.
     // TODO(k-fish): Look at improving this to respond properly to resize events.
@@ -339,7 +339,7 @@ function TagsHeatMap(
                 }
 
                 const moreEventsTarget = eventsRouteWithQuery({
-                  orgSlug: organization.slug,
+                  organization,
                   transaction: transactionName,
                   projectID: decodeScalar(location.query.project),
                   query: {

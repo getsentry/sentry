@@ -5,11 +5,12 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
-  if (metric.value == null) {
+  if (metric.value === undefined) {
     return '-';
   }
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
     const seconds =
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000;
     return getDuration(seconds, 2, true);
   }
@@ -83,6 +84,7 @@ export function getColdAppStartPerformance(metric: MetricValue): VitalStatus {
   let status = PerformanceScore.NONE;
 
   if (typeof metric.value === 'number' && metric.unit) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const durationMs = metric.value * DURATION_UNITS[metric.unit];
 
     // TODO should be platform dependant
@@ -110,6 +112,7 @@ export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
   let status = PerformanceScore.NONE;
 
   if (typeof metric.value === 'number' && metric.unit) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const durationMs = metric.value * DURATION_UNITS[metric.unit];
 
     // TODO should be platform dependant

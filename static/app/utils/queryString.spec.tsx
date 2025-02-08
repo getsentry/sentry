@@ -22,7 +22,7 @@ describe('addQueryParamsToExistingUrl', function () {
   });
 
   it('returns empty string no url is passed', function () {
-    let url;
+    let url: any;
     const newParams = {
       id: 4,
     };
@@ -115,7 +115,7 @@ describe('decodeScalar()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeScalar(undefined)).toBeUndefined();
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeScalar(false)).toBeUndefined();
     expect(utils.decodeScalar('')).toBeUndefined();
   });
@@ -140,7 +140,7 @@ describe('decodeList()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeList(undefined)).toEqual([]);
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeList(false)).toEqual([]);
     expect(utils.decodeList('')).toEqual([]);
   });
@@ -165,7 +165,7 @@ describe('decodeInteger()', function () {
 
   it('handles falsey values', function () {
     expect(utils.decodeInteger(undefined, 2020)).toBe(2020);
-    // @ts-expect-error
+    // @ts-expect-error type false is not assignable to QueryValue
     expect(utils.decodeInteger(false, 2020)).toBe(2020);
     expect(utils.decodeInteger('', 2020)).toBe(2020);
   });

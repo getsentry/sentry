@@ -146,6 +146,38 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             )
         assert results == []
 
+    def test_sending_metric_before_evaluating(self):
+        detector = self.create_detector(type=self.handler_type.slug)
+        data_packet = self.build_data_packet()
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_detectors(data_packet, [detector])
+
+            mock_incr.assert_called_once_with(
+                "workflow_engine.process_detector",
+                tags={"detector_type": detector.type},
+            )
+
+    def test_sending_metric_with_results(self):
+        detector = self.create_detector(type=self.update_handler_type.slug)
+        data_packet = self.build_data_packet()
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_detectors(data_packet, [detector])
+
+            mock_incr.assert_any_call(
+                "workflow_engine.process_detector.triggered",
+                tags={"detector_type": detector.type},
+            )
+
+    def test_doesnt_send_metric(self):
+        detector = self.create_detector(type=self.no_handler_type.slug)
+        data_packet = self.build_data_packet()
+
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
+            process_detectors(data_packet, [detector])
+            mock_incr.assert_not_called()
+
 
 class TestKeyBuilders(unittest.TestCase):
     def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:

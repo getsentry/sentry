@@ -37,12 +37,12 @@ function withOrganizations<P extends InjectedOrganizationsProps>(
       const {organizationsLoading, organizations, ...props} = this.props as P;
       return (
         <WrappedComponent
-          {...({
-            organizationsLoading:
-              organizationsLoading ?? !OrganizationsStore.getState().loaded,
-            organizations: organizations ?? this.state.organizations,
-            ...props,
-          } as P)}
+          organizationsLoading={
+            organizationsLoading ?? !OrganizationsStore.getState().loaded
+          }
+          organizations={organizations ?? this.state.organizations}
+          // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+          {...(props as Omit<P, 'organizationsLoading' | 'organizations'> as any)}
         />
       );
     }

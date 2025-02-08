@@ -14,6 +14,15 @@ describe('getConfigFromTimeRange', function () {
       end,
       dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
       elapsedMinutes: 5,
+      rollupConfig: {
+        bucketPixels: 40,
+        interval: 15,
+        timelineUnderscanWidth: 0,
+        totalBuckets: 20,
+        underscanBuckets: 0,
+        underscanPeriod: 0,
+      },
+      showUnderscanHelp: false,
       intervals: {
         normalMarkerInterval: 1,
         minimumMarkerInterval: 0.625,
@@ -33,13 +42,22 @@ describe('getConfigFromTimeRange', function () {
       end,
       dateLabelFormat: getFormat(),
       elapsedMinutes: 1445,
+      rollupConfig: {
+        bucketPixels: 0.5,
+        interval: 60,
+        timelineUnderscanWidth: 77,
+        totalBuckets: 1446,
+        underscanBuckets: 154,
+        underscanPeriod: 9240,
+      },
+      showUnderscanHelp: false,
       intervals: {
         normalMarkerInterval: 240,
-        minimumMarkerInterval: 198.6875,
-        referenceMarkerInterval: 207.71875,
+        minimumMarkerInterval: 219.8478561549101,
+        referenceMarkerInterval: 229.84094052558783,
       },
       dateTimeProps: {timeOnly: false},
-      timelineWidth,
+      timelineWidth: 723,
     });
   });
 
@@ -52,13 +70,22 @@ describe('getConfigFromTimeRange', function () {
       end,
       dateLabelFormat: getFormat({timeOnly: true}),
       elapsedMinutes: 900,
+      rollupConfig: {
+        bucketPixels: 13,
+        interval: 900,
+        timelineUnderscanWidth: 20,
+        totalBuckets: 60,
+        underscanBuckets: 1,
+        underscanPeriod: 900,
+      },
       intervals: {
         normalMarkerInterval: 120,
-        minimumMarkerInterval: 112.5,
-        referenceMarkerInterval: 129.375,
+        minimumMarkerInterval: 115.38461538461537,
+        referenceMarkerInterval: 132.69230769230768,
       },
+      showUnderscanHelp: false,
       dateTimeProps: {timeOnly: true},
-      timelineWidth,
+      timelineWidth: 780,
     });
   });
 
@@ -72,14 +99,23 @@ describe('getConfigFromTimeRange', function () {
       dateLabelFormat: getFormat(),
       // 31 elapsed days
       elapsedMinutes: 31 * 24 * 60,
+      rollupConfig: {
+        bucketPixels: 0.5,
+        interval: 1800,
+        timelineUnderscanWidth: 56,
+        totalBuckets: 1488,
+        underscanBuckets: 112,
+        underscanPeriod: 201600,
+      },
       // 5 days in between each time label
       intervals: {
         normalMarkerInterval: 5 * 24 * 60,
-        minimumMarkerInterval: 6138,
-        referenceMarkerInterval: 6417,
+        minimumMarkerInterval: 6000,
+        referenceMarkerInterval: 6900,
       },
+      showUnderscanHelp: false,
       dateTimeProps: {dateOnly: true},
-      timelineWidth,
+      timelineWidth: 744,
     });
   });
 
@@ -93,13 +129,22 @@ describe('getConfigFromTimeRange', function () {
       dateLabelFormat: getFormat(),
       // 14 hours
       elapsedMinutes: 14 * 60,
+      rollupConfig: {
+        bucketPixels: 14,
+        interval: 900,
+        timelineUnderscanWidth: 16,
+        totalBuckets: 56,
+        underscanBuckets: 1,
+        underscanPeriod: 900,
+      },
+      showUnderscanHelp: false,
       intervals: {
         normalMarkerInterval: 120,
-        minimumMarkerInterval: 115.5,
-        referenceMarkerInterval: 120.75,
+        minimumMarkerInterval: 117.85714285714285,
+        referenceMarkerInterval: 123.21428571428571,
       },
       dateTimeProps: {timeOnly: false},
-      timelineWidth,
+      timelineWidth: 784,
     });
   });
 });

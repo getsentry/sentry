@@ -114,14 +114,14 @@ overridden.
 This for instance is how one of the configurations is defined::
 
     register_strategy_config(
-        id="newstyle:2019-10-29",
-        base="newstyle:2019-05-08",
+        id="newstyle:SomeDate",
+        base="newstyle:AnotherDate",
         delegates=["frame:v4"],
         risk=RISK_LEVEL_MEDIUM,
         changelog="...",
     )
 
-The configuration ID (`newstyle:2019-10-29`) is defined in the project
+The configuration ID (`newstyle:SomeDate`) is defined in the project
 options and then becomes the strategy configuration of choice for all new
 events.  Because in this case it inherits from another strategy, the default
 configurations from that strategy are reused.  Here the `frame` is changed

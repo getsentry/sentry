@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
@@ -136,7 +136,8 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
         const label = release;
         if (yAxis in transformedReleaseSeries) {
           const data =
-            series[release]![yAxis]!?.data.map(datum => {
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            series[release]![yAxis]?.data.map((datum: any) => {
               return {
                 name: datum[0] * 1000,
                 value: datum[1][0].count,
@@ -202,9 +203,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                     {
                       title: t('TTID by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[0]!],
-                      series: Object.values(
-                        transformedEvents[YAXIS_COLUMNS[yAxes[0]!]!]!
-                      ),
+                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
                       subtitle: primaryRelease
                         ? t(
@@ -240,7 +239,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                   <Chart
                     height={80}
                     data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]!]!
+                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]]!
                     )}
                     loading={isSeriesLoading}
                     grid={{
@@ -272,9 +271,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                     {
                       title: t('TTFD by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[1]!],
-                      series: Object.values(
-                        transformedEvents[YAXIS_COLUMNS[yAxes[1]!]!]!
-                      ),
+                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
                       subtitle: primaryRelease
                         ? t(
@@ -310,7 +307,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                   <Chart
                     height={80}
                     data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]!]!
+                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]]!
                     )}
                     loading={isSeriesLoading}
                     grid={{
@@ -352,7 +349,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               }
             >
               <Chart
-                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]!]!)}
+                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]]!)}
                 height={245}
                 loading={isSeriesLoading}
                 grid={{

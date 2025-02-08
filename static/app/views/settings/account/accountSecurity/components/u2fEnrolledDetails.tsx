@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-function U2fEnrolledDetails(props) {
+function U2fEnrolledDetails(props: any) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
     props;
 
@@ -37,7 +37,7 @@ function U2fEnrolledDetails(props) {
           <EmptyMessage>{t('You have not added any U2F devices')}</EmptyMessage>
         )}
         {hasDevices &&
-          devices?.map((device, i) => (
+          devices?.map((device: any, i: any) => (
             <Device
               key={i}
               device={device}
@@ -56,7 +56,7 @@ function U2fEnrolledDetails(props) {
   );
 }
 
-function Device(props) {
+function Device(props: any) {
   const {device, isLastDevice, onRenameU2fDevice, onRemoveU2fDevice} = props;
   const [deviceName, setDeviceName] = useState(device.name);
   const [isEditing, setEditting] = useState(false);

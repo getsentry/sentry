@@ -547,9 +547,9 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         onClick={e => {
           e.stopPropagation();
           traceAnalytics.trackTabPin(organization);
-          props.pinned
-            ? props.traceDispatch({type: 'unpin tab', payload: props.index})
-            : props.traceDispatch({type: 'pin tab'});
+          props.traceDispatch(
+            props.pinned ? {type: 'unpin tab', payload: props.index} : {type: 'pin tab'}
+          );
         }}
       />
     </Tab>
@@ -749,11 +749,13 @@ const TabsLayout = styled('div')`
   grid-template-columns: auto 1fr auto;
   padding-left: ${space(1)};
   padding-right: ${space(0.5)};
+  width: 100%;
 `;
 
 const TabsContainer = styled('ul')`
   display: grid;
   list-style-type: none;
+  height: 100%;
   width: 100%;
   align-items: center;
   justify-content: left;

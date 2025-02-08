@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -268,7 +268,9 @@ export function TransactionNodeDetails({
 }
 
 type TransactionSpecificSectionsProps = {
-  cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
+  cacheMetrics: Array<
+    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
+  >;
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;

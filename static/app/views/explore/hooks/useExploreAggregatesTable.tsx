@@ -15,6 +15,7 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 
 interface UseExploreAggregatesTableOptions {
   enabled: boolean;
+  limit: number;
   query: string;
 }
 
@@ -26,6 +27,7 @@ export interface AggregatesTableResult {
 
 export function useExploreAggregatesTable({
   enabled,
+  limit,
   query,
 }: UseExploreAggregatesTableOptions): AggregatesTableResult {
   const {selection} = usePageFilters();
@@ -84,7 +86,9 @@ export function useExploreAggregatesTable({
     enabled,
     eventView,
     initialData: [],
+    limit,
     referrer: 'api.explore.spans-aggregates-table',
+    trackResponseAnalytics: false,
   });
 
   return useMemo(() => {

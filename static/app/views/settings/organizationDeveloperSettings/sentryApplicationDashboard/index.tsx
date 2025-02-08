@@ -25,16 +25,16 @@ import RequestLog from './requestLog';
 
 type Interactions = {
   componentInteractions: {
-    [key: string]: [number, number][];
+    [key: string]: Array<[number, number]>;
   };
-  views: [number, number][];
+  views: Array<[number, number]>;
 };
 
 type Stats = {
-  installStats: [number, number][];
+  installStats: Array<[number, number]>;
   totalInstalls: number;
   totalUninstalls: number;
-  uninstallStats: [number, number][];
+  uninstallStats: Array<[number, number]>;
 };
 
 function SentryApplicationDashboard() {
@@ -195,10 +195,16 @@ function SentryApplicationDashboard() {
           <StyledFooter>
             {Object.keys(componentInteractions).map(
               (component, idx) =>
-                componentInteractionsDetails[component] && (
+                componentInteractionsDetails[
+                  component as keyof typeof componentInteractionsDetails
+                ] && (
                   <Fragment key={idx}>
                     <strong>{`${component}: `}</strong>
-                    {componentInteractionsDetails[component]}
+                    {
+                      componentInteractionsDetails[
+                        component as keyof typeof componentInteractionsDetails
+                      ]
+                    }
                     <br />
                   </Fragment>
                 )
@@ -225,7 +231,7 @@ export default SentryApplicationDashboard;
 
 type InteractionsChartProps = {
   data: {
-    [key: string]: [number, number][];
+    [key: string]: Array<[number, number]>;
   };
 };
 function InteractionsChart({data}: InteractionsChartProps) {

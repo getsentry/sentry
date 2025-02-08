@@ -24,7 +24,6 @@ import {
   truncationFormatter,
 } from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
-import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
@@ -94,7 +93,7 @@ class ReleasesAdoptionChart extends Component<Props> {
     let releases: string[] | undefined =
       response?.groups.map(group => group.by.release as string) ?? [];
     if (response?.groups && response.groups.length > 50) {
-      releases = response!.groups
+      releases = response.groups
         .sort((a, b) => b.totals['sum(session)']! - a.totals['sum(session)']!)
         .slice(0, 50)
         .map(group => group.by.release as string);
@@ -221,16 +220,21 @@ class ReleasesAdoptionChart extends Component<Props> {
                             const series = Array.isArray(seriesParams)
                               ? seriesParams
                               : [seriesParams];
+                            // @ts-expect-error TS(2532): Object is possibly 'undefined'.
                             const timestamp = series[0].data[0];
                             const [first, second, third, ...rest] = series
+                              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                               .filter(s => s.data[1] > 0)
+                              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                               .sort((a, b) => b.data[1] - a.data[1]);
 
+                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             const restSum = rest.reduce((acc, s) => acc + s.data[1], 0);
 
                             const seriesToRender = compact([first, second, third]);
 
                             if (rest.length) {
+                              // @ts-expect-error TS(2345): Argument of type '{ seriesName: string; data: any[... Remove this comment to see the full error message
                               seriesToRender.push({
                                 seriesName: tn('%s Other', '%s Others', rest.length),
                                 data: [timestamp, restSum],
@@ -249,11 +253,11 @@ class ReleasesAdoptionChart extends Component<Props> {
                             };
                             const intervalStart = moment(timestamp).format('MMM D LT');
                             const intervalEnd = (
-                              series[0].dataIndex === numDataPoints - 1
+                              series[0]?.dataIndex === numDataPoints - 1
                                 ? moment(response?.end)
                                 : moment(timestamp).add(
                                     parseInt(periodObj.period!, 10),
-                                    periodObj.periodLength as StatsPeriodType
+                                    periodObj.periodLength
                                   )
                             ).format('MMM D LT');
 
@@ -267,6 +271,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                     }<strong>${
                                       s.seriesName &&
                                       truncationFormatter(s.seriesName, 32)
+                                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                     }</strong></span>${s.data[1].toFixed(2)}%</div>`
                                 )
                                 .join(''),

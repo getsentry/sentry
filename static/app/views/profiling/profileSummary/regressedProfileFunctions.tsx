@@ -35,7 +35,7 @@ import {ProfilingSparklineChart} from './profilingSparklineChart';
 const REGRESSED_FUNCTIONS_LIMIT = 5;
 const REGRESSED_FUNCTIONS_CURSOR = 'functionRegressionCursor';
 
-function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}[] {
+function trendToPoints(trend: FunctionTrend): Array<{timestamp: number; value: number}> {
   if (!trend.stats.data.length) {
     return [];
   }
@@ -43,6 +43,7 @@ function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}
   return trend.stats.data.map(p => {
     return {
       timestamp: p[0],
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       value: p[1][0].count,
     };
   });
@@ -133,7 +134,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
   );
 
   const handleRegressedFunctionsCursor = useCallback(
-    (cursor, pathname, query) => {
+    (cursor: any, pathname: any, query: any) => {
       navigate({
         pathname,
         query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
@@ -160,7 +161,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 
   const trends = trendsQuery?.data ?? [];
 
-  const onChangeTrendType = useCallback(v => setTrendType(v.value), []);
+  const onChangeTrendType = useCallback((v: any) => setTrendType(v.value), []);
 
   const hasDifferentialFlamegraphPageFeature = organization.features.includes(
     'profiling-differential-flamegraph-page'
@@ -282,8 +283,8 @@ function RegressedFunctionDifferentialFlamegraph(
     query: {
       // specify the frame to focus, the flamegraph will switch
       // to the appropriate thread when these are specified
-      frameName: props.fn.function as string,
-      framePackage: props.fn.package as string,
+      frameName: props.fn.function,
+      framePackage: props.fn.package,
     },
   });
 
@@ -296,15 +297,9 @@ function RegressedFunctionDifferentialFlamegraph(
       </div>
       <div>
         <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_1 as number}
-          />
+          <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
           <ChangeArrow>{' \u2192 '}</ChangeArrow>
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_2 as number}
-          />
+          <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
         </Link>
       </div>
     </RegressedFunctionMainRow>
@@ -330,6 +325,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }, [props.organization]);
 
   let rendered = <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const example = props.fn['all_examples()']?.[0];
   if (defined(example)) {
     rendered = (
@@ -341,8 +337,8 @@ function RegressedFunctionBeforeAfterFlamechart(
           reference: example,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {rendered}
@@ -351,10 +347,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }
 
   let before = (
-    <PerformanceDuration
-      abbreviation
-      nanoseconds={props.fn.aggregate_range_1 as number}
-    />
+    <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_1} />
   );
   if (props.before) {
     before = (
@@ -366,8 +359,8 @@ function RegressedFunctionBeforeAfterFlamechart(
           reference: props.before,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {before}
@@ -376,10 +369,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }
 
   let after = (
-    <PerformanceDuration
-      abbreviation
-      nanoseconds={props.fn.aggregate_range_2 as number}
-    />
+    <PerformanceDuration abbreviation nanoseconds={props.fn.aggregate_range_2} />
   );
   if (props.after) {
     after = (
@@ -391,8 +381,8 @@ function RegressedFunctionBeforeAfterFlamechart(
           reference: props.after,
           // specify the frame to focus, the flamegraph will switch
           // to the appropriate thread when these are specified
-          frameName: props.fn.function as string,
-          framePackage: props.fn.package as string,
+          frameName: props.fn.function,
+          framePackage: props.fn.package,
         })}
       >
         {after}
@@ -488,7 +478,7 @@ const RegressedFunctionsQueryState = styled('div')`
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
-const TREND_FUNCTION_OPTIONS: SelectOption<TrendType>[] = [
+const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [
   {
     label: t('Most Regressed Functions'),
     value: 'regression' as const,

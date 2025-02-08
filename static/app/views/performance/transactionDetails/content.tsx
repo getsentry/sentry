@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
@@ -100,7 +100,7 @@ function EventDetailsContent(props: Props) {
       query: appendTagCondition(query, formatTagKey(tag.key), tag.value),
     };
     return transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: event.title,
       projectID: event.projectID,
       query: newQuery,

@@ -12,7 +12,11 @@ import {
   updateDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -130,6 +134,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   dashboardState: DashboardState;
+  isSavingDashboardFilters: boolean;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
@@ -251,6 +256,7 @@ class DashboardDetail extends Component<Props, State> {
       location: this.props.location,
       router: this.props.router,
     }),
+    isSavingDashboardFilters: false,
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
     openWidgetTemplates: undefined,
   };
@@ -292,8 +298,14 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
-      this.state;
+    const {
+      seriesData,
+      tableData,
+      pageLinks,
+      totalIssuesCount,
+      seriesResultsType,
+      confidence,
+    } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -303,6 +315,7 @@ class DashboardDetail extends Component<Props, State> {
           // we check for both cases at runtime as I am not sure which is the correct type.
           return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
         }) ??
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
@@ -357,6 +370,7 @@ class DashboardDetail extends Component<Props, State> {
               return;
             }
           },
+          confidence,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -551,6 +565,7 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       Object.keys(activeFilters).every(
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         key => !newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
       )
     ) {
@@ -559,6 +574,7 @@ class DashboardDetail extends Component<Props, State> {
 
     const filterParams: DashboardFilters = {};
     Object.keys(activeFilters).forEach(key => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
@@ -621,7 +637,11 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-        } else {
+        } else if (
+          !organization.features.includes('dashboards-widget-builder-redesign')
+        ) {
+          // If we're not using the new widget builder, we need to replace the URL to
+          // ensure we're navigating back to the dashboard
           browserHistory.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
@@ -780,13 +800,7 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleSaveWidget = async ({
-    index,
-    widget,
-  }: {
-    index: number | undefined;
-    widget: Widget;
-  }) => {
+  handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
     if (
       !this.props.organization.features.includes('dashboards-widget-builder-redesign')
     ) {
@@ -797,7 +811,7 @@ class DashboardDetail extends Component<Props, State> {
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
-    const mergedWidget = {...baseWidget, ...widget};
+    const mergedWidget = assignTempId({...baseWidget, ...widget});
 
     const newWidgets = defined(index)
       ? [
@@ -810,7 +824,8 @@ class DashboardDetail extends Component<Props, State> {
     try {
       if (!this.isEditingDashboard) {
         // If we're not in edit mode, send a request to update the dashboard
-        await this.handleUpdateWidgetList(newWidgets);
+        addLoadingMessage(t('Saving widget'));
+        this.handleUpdateWidgetList(newWidgets);
       } else {
         // If we're in edit mode, update the edit state
         this.onUpdateWidget(newWidgets);
@@ -1163,6 +1178,7 @@ class DashboardDetail extends Component<Props, State> {
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           disablePersistence
+          skipLoadLastUsed
           defaultSelection={{
             datetime: {
               start: null,
@@ -1256,6 +1272,7 @@ class DashboardDetail extends Component<Props, State> {
                                 }
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
+                                shouldBusySaveButton={this.state.isSavingDashboardFilters}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1277,6 +1294,8 @@ class DashboardDetail extends Component<Props, State> {
                                       getDashboardFiltersFromURL(location) ??
                                       (modifiedDashboard ?? dashboard).filters,
                                   };
+                                  this.setState({isSavingDashboardFilters: true});
+                                  addLoadingMessage(t('Saving dashboard filters'));
                                   updateDashboard(
                                     api,
                                     organization.slug,
@@ -1305,6 +1324,7 @@ class DashboardDetail extends Component<Props, State> {
                                         this.setState(
                                           {
                                             modifiedDashboard: null,
+                                            isSavingDashboardFilters: false,
                                           },
                                           () => {
                                             // Wait for modifiedDashboard state to update before navigating
@@ -1315,6 +1335,7 @@ class DashboardDetail extends Component<Props, State> {
                                       }
 
                                       navigateToDashboard();
+                                      this.setState({isSavingDashboardFilters: false});
                                     },
                                     // `updateDashboard` does its own error handling
                                     () => undefined

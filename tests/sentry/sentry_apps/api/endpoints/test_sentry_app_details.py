@@ -85,10 +85,26 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
     def test_internal_integrations_are_not_public(self):
         # User not in Org who owns the Integration
         self.login_as(self.create_user())
-        self.get_error_response(self.internal_integration.slug, status_code=400)
+        response = self.get_error_response(self.internal_integration.slug, status_code=403)
+        assert (
+            response.data["detail"]
+            == "User must be in the app owner's organization for unpublished apps"
+        )
+        assert response.data["context"] == {
+            "integration": self.internal_integration.slug,
+            "user_organizations": [],
+        }
 
     def test_users_do_not_see_unowned_unpublished_apps(self):
-        self.get_error_response(self.unowned_unpublished_app.slug, status_code=400)
+        response = self.get_error_response(self.unowned_unpublished_app.slug, status_code=403)
+        assert (
+            response.data["detail"]
+            == "User must be in the app owner's organization for unpublished apps"
+        )
+        assert response.data["context"] == {
+            "integration": self.unowned_unpublished_app.slug,
+            "user_organizations": [self.organization.slug],
+        }
 
 
 @control_silo_test
@@ -440,12 +456,21 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_cannot_update_non_owned_apps(self):
         app = self.create_sentry_app(name="SampleApp", organization=self.create_organization())
-        self.get_error_response(
+        response = self.get_error_response(
             app.slug,
             name="NewName",
             webhookUrl="https://newurl.com",
-            status_code=400,
+            status_code=403,
         )
+
+        assert (
+            response.data["detail"]
+            == "User must be in the app owner's organization for unpublished apps"
+        )
+        assert response.data["context"] == {
+            "integration": app.slug,
+            "user_organizations": [self.organization.slug],
+        }
 
     def test_superuser_can_update_popularity(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -741,12 +766,16 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(staff_user, staff=False)
         response = self.get_error_response(
             self.unpublished_app.slug,
-            status_code=400,
+            status_code=403,
         )
         assert (
             response.data["detail"]
             == "User must be in the app owner's organization for unpublished apps"
         )
+        assert response.data["context"] == {
+            "integration": self.unpublished_app.slug,
+            "user_organizations": [],
+        }
 
         assert not AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")

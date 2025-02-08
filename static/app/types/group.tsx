@@ -17,7 +17,7 @@ import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
-export type EntryData = Record<string, any | Array<any>>;
+export type EntryData = Record<string, any | any[]>;
 
 /**
  * Saved issues searches
@@ -102,6 +102,9 @@ export enum IssueType {
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -177,6 +180,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
   if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
   }
   return undefined;
@@ -214,6 +218,7 @@ export function getIssueTypeFromOccurrenceType(
   if (!typeId) {
     return null;
   }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
 }
 
@@ -305,7 +310,7 @@ type Topvalue = {
 export type TagWithTopValues = {
   key: string;
   name: string;
-  topValues: Array<Topvalue>;
+  topValues: Topvalue[];
   totalValues: number;
   uniqueValues: number;
   canDelete?: boolean;
@@ -573,7 +578,7 @@ export interface GroupActivityReprocess extends GroupActivityBase {
 
 interface GroupActivityUnmergeDestination extends GroupActivityBase {
   data: {
-    fingerprints: Array<string>;
+    fingerprints: string[];
     source?: {
       id: string;
       shortId: string;
@@ -584,7 +589,7 @@ interface GroupActivityUnmergeDestination extends GroupActivityBase {
 
 interface GroupActivityUnmergeSource extends GroupActivityBase {
   data: {
-    fingerprints: Array<string>;
+    fingerprints: string[];
     destination?: {
       id: string;
       shortId: string;
@@ -595,7 +600,7 @@ interface GroupActivityUnmergeSource extends GroupActivityBase {
 
 interface GroupActivityMerge extends GroupActivityBase {
   data: {
-    issues: Array<any>;
+    issues: any[];
   };
   type: GroupActivityType.MERGE;
 }
@@ -817,7 +822,7 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: TitledPlugin[];
+  pluginActions: Array<[title: string, actionLink: string]>;
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
@@ -846,6 +851,7 @@ export interface GroupOpenPeriod {
   duration: string;
   end: string;
   isOpen: boolean;
+  lastChecked: string;
   start: string;
 }
 
@@ -888,10 +894,10 @@ export interface GroupTombstoneHelper extends GroupTombstone {
  * Datascrubbing
  */
 export type Meta = {
-  chunks: Array<ChunkType>;
-  err: Array<MetaError>;
+  chunks: ChunkType[];
+  err: MetaError[];
   len: number;
-  rem: Array<MetaRemark>;
+  rem: MetaRemark[];
 };
 
 export type MetaError = string | [string, any];
@@ -958,7 +964,7 @@ export type Note = {
   /**
    * Array of [id, display string] tuples used for @-mentions
    */
-  mentions: [string, string][];
+  mentions: Array<[string, string]>;
 
   /**
    * Note contents (markdown allowed)

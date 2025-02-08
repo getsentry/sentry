@@ -45,7 +45,7 @@ type TreeResultLocatorOpts = {
   /**
    * The tree to visit
    */
-  tree: TokenResult<Token>[];
+  tree: Array<TokenResult<Token>>;
   /**
    * A function used to check if we've found the result in the node we're
    * visiting. May also indicate that we want to skip any further traversal of
@@ -100,7 +100,9 @@ export function treeResultLocator<T>({
         break;
       case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
-        token.args && nodeVisitor(token.args);
+        if (token.args) {
+          nodeVisitor(token.args);
+        }
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
         break;
@@ -145,7 +147,7 @@ type TreeTransformerOpts = {
   /**
    * The tree to transform
    */
-  tree: TokenResult<Token>[];
+  tree: Array<TokenResult<Token>>;
 };
 
 /**
@@ -153,7 +155,7 @@ type TreeTransformerOpts = {
  * a transform to those nodes.
  */
 export function treeTransformer({tree, transform}: TreeTransformerOpts) {
-  const nodeVisitor = (token: TokenResult<Token> | null) => {
+  const nodeVisitor = (token: TokenResult<Token> | null): any => {
     if (token === null) {
       return null;
     }
@@ -202,8 +204,7 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
       case Token.VALUE_TEXT_LIST:
         return transform({
           ...token,
-          // TODO(ts): Not sure why `v` cannot be inferred here
-          items: token.items.map((v: any) => ({...v, value: nodeVisitor(v.value)})),
+          items: token.items.map(v => ({...v, value: nodeVisitor(v.value)})),
         });
 
       default:
@@ -295,7 +296,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   return stringifiedToken;
 }
 
-export function stringifyToken(token: TokenResult<Token>) {
+export function stringifyToken(token: TokenResult<Token>): string {
   switch (token.type) {
     case Token.FREE_TEXT:
     case Token.SPACES:
@@ -306,16 +307,18 @@ export function stringifyToken(token: TokenResult<Token>) {
       return `(${token.inner.map(innerToken => stringifyToken(innerToken)).join(' ')})`;
     case Token.LOGIC_BOOLEAN:
       return token.value;
-    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_TEXT_LIST: {
       const textListItems = token.items
         .map(item => item.value?.text ?? '')
         .filter(text => text.length > 0);
       return `[${textListItems.join(',')}]`;
-    case Token.VALUE_NUMBER_LIST:
+    }
+    case Token.VALUE_NUMBER_LIST: {
       const numberListItems = token.items
         .map(item => (item.value ? item.value.value + (item.value.unit ?? '') : ''))
         .filter(str => str.length > 0);
       return `[${numberListItems.join(',')}]`;
+    }
     case Token.KEY_SIMPLE:
       return token.value;
     case Token.KEY_AGGREGATE:

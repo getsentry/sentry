@@ -12,8 +12,6 @@ import type {
   RouteComponentProps,
   RouteContextInterface,
 } from 'sentry/types/legacyReactRouter';
-import {metric} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
@@ -74,13 +72,6 @@ class DeprecatedAsyncComponent<
     this.render = wrapErrorHandling(this, this.render.bind(this));
 
     this.state = this.getDefaultState() as Readonly<S>;
-
-    this._measurement = {
-      hasMeasured: false,
-    };
-    if (props.routes) {
-      metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
-    }
   }
 
   componentDidMount() {
@@ -108,25 +99,6 @@ class DeprecatedAsyncComponent<
 
     if (!(currentLocation && prevLocation)) {
       return;
-    }
-
-    // Take a measurement from when this component is initially created until it finishes its first
-    // set of API requests
-    if (
-      !this._measurement.hasMeasured &&
-      this._measurement.finished &&
-      this.props.routes
-    ) {
-      const routeString = getRouteStringFromRoutes(this.props.routes);
-      metric.measure({
-        name: 'app.component.async-component',
-        start: `async-component-${routeString}`,
-        data: {
-          route: routeString,
-          error: this._measurement.error,
-        },
-      });
-      this._measurement.hasMeasured = true;
     }
 
     // Re-fetch data when router params change.
@@ -186,7 +158,6 @@ class DeprecatedAsyncComponent<
   disableErrorReport = true;
 
   api: Client = new Client();
-  private _measurement: any;
 
   // XXX: can't call this getInitialState as React whines
   getDefaultState(): AsyncComponentState {
@@ -210,21 +181,11 @@ class DeprecatedAsyncComponent<
     }
 
     endpoints.forEach(([stateKey, _endpoint]) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       state[stateKey] = null;
     });
     return state;
   }
-
-  // Check if we should measure render time for this component
-  markShouldMeasure = ({
-    remainingRequests,
-    error,
-  }: {error?: any; remainingRequests?: number} = {}) => {
-    if (!this._measurement.hasMeasured) {
-      this._measurement.finished = remainingRequests === 0;
-      this._measurement.error = error || this._measurement.error;
-    }
-  };
 
   remountComponent = () => {
     if (this.shouldReload) {
@@ -293,11 +254,11 @@ class DeprecatedAsyncComponent<
     });
   };
 
-  onRequestSuccess(_resp /* {stateKey, data, resp} */) {
+  onRequestSuccess(_resp: any /* {stateKey, data, resp} */) {
     // Allow children to implement this
   }
 
-  onRequestError(_resp, _args) {
+  onRequestError(_resp: any, _args: any) {
     // Allow children to implement this
   }
 
@@ -305,7 +266,7 @@ class DeprecatedAsyncComponent<
     // Allow children to implement this
   }
 
-  handleRequestSuccess({stateKey, data, resp}, initialRequest?: boolean) {
+  handleRequestSuccess({stateKey, data, resp}: any, initialRequest?: boolean) {
     this.setState(
       prevState => {
         const state = {
@@ -318,7 +279,6 @@ class DeprecatedAsyncComponent<
           state.remainingRequests = prevState.remainingRequests! - 1;
           state.loading = prevState.remainingRequests! > 1;
           state.reloading = prevState.reloading && state.loading;
-          this.markShouldMeasure({remainingRequests: state.remainingRequests});
         }
 
         return state;
@@ -333,7 +293,7 @@ class DeprecatedAsyncComponent<
     this.onRequestSuccess({stateKey, data, resp});
   }
 
-  handleError(error, args) {
+  handleError(error: any, args: any) {
     const [stateKey] = args;
     if (error?.responseText) {
       Sentry.addBreadcrumb({
@@ -355,7 +315,6 @@ class DeprecatedAsyncComponent<
         loading,
         reloading: prevState.reloading && loading,
       };
-      this.markShouldMeasure({remainingRequests: state.remainingRequests, error: true});
 
       return state;
     });

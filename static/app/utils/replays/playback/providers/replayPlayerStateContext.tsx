@@ -156,7 +156,7 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
     case 'didSpeedStateChange':
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};
     default:
-      // @ts-expect-error: Unreachable code: the switch should be exhaustive and cover all possible values.
+      // @ts-expect-error TS(2339): Property 'type' does not exist on type 'never'.
       throw Error('Unknown action: ' + replayerAction.type);
   }
 }
@@ -180,7 +180,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       });
       return;
 
-    case 'jumpToOffset':
+    case 'jumpToOffset': {
       const offsetMs = clamp(userAction.offsetMs, 0, replayer.getMetaData().totalTime);
       // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
 
@@ -199,9 +199,9 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       replayer.setConfig({skipInactive});
 
       return;
+    }
     default:
-      // @ts-expect-error: Unreachable code: the switch should be exhaustive and cover all possible values.
-      throw Error('Unknown action: ' + action.type);
+      throw Error('Unknown action: ' + (userAction as any).type);
   }
 }
 
