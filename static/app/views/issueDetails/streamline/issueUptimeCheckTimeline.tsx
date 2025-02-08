@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
@@ -8,6 +8,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -16,6 +17,8 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -58,7 +61,7 @@ export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | un
     : event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
 }
 
-export function IssueCheckInTimeline({group}: {group: Group}) {
+export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const uptimeAlertId = useUptimeIssueAlertId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -70,46 +73,73 @@ export function IssueCheckInTimeline({group}: {group: Group}) {
     timeWindowConfig,
   });
 
+  const legendStatuses = useMemo(() => {
+    const hasUnknownStatus =
+      uptimeAlertId &&
+      uptimeStats?.[uptimeAlertId]?.some(
+        ([_, stats]) => stats[CheckStatus.MISSED_WINDOW] > 0
+      );
+    return [CheckStatus.SUCCESS, CheckStatus.MISSED_WINDOW, CheckStatus.FAILURE].filter(
+      status => (hasUnknownStatus ? true : status !== CheckStatus.MISSED_WINDOW)
+    );
+  }, [uptimeAlertId, uptimeStats]);
+
   return (
     <ChartContainer>
-      <TimelineWidthTracker ref={elementRef} />
-      <IssueGridLineOverlay
+      <TimelineLegend ref={elementRef}>
+        {legendStatuses.map(status => (
+          <Flex align="center" gap={space(0.5)} key={status}>
+            <CheckIndicator status={status} width={8} />
+            <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
+          </Flex>
+        ))}
+      </TimelineLegend>
+      <GridLineOverlay
         stickyCursor
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
+        labelPosition="center-bottom"
       />
-      <GridLineLabels timeWindowConfig={timeWindowConfig} />
-      {isPending ? (
-        <CheckInPlaceholder />
-      ) : (
-        <CheckInTimeline
-          bucketedData={uptimeAlertId ? uptimeStats?.[uptimeAlertId] ?? [] : []}
-          statusLabel={statusToText}
-          statusStyle={tickStyle}
-          statusPrecedent={checkStatusPrecedent}
-          timeWindowConfig={timeWindowConfig}
-        />
-      )}
+      <GridLineLabels timeWindowConfig={timeWindowConfig} labelPosition="center-bottom" />
+      <TimelineContainer>
+        {isPending ? (
+          <CheckInPlaceholder />
+        ) : (
+          <CheckInTimeline
+            bucketedData={uptimeAlertId ? uptimeStats?.[uptimeAlertId] ?? [] : []}
+            statusLabel={statusToText}
+            statusStyle={tickStyle}
+            statusPrecedent={checkStatusPrecedent}
+            timeWindowConfig={timeWindowConfig}
+          />
+        )}
+      </TimelineContainer>
     </ChartContainer>
   );
 }
 
 const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
+  position: relative;
   min-height: 104px;
   width: 100%;
-  position: relative;
 `;
 
-const IssueGridLineOverlay = styled(GridLineOverlay)`
+const TimelineLegend = styled('div')`
   position: absolute;
   width: 100%;
+  user-select: none;
+  display: flex;
+  gap: ${space(1)};
+  margin-top: ${space(1.5)};
 `;
 
-const TimelineWidthTracker = styled('div')`
+const TimelineLegendText = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const TimelineContainer = styled('div')`
   position: absolute;
-  width: 100%;
+  top: 36px;
 `;

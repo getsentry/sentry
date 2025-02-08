@@ -25,7 +25,7 @@ const cronConfig: IssueCategoryConfigMapping = {
     },
     header: {
       filterBar: {enabled: false, fixedEnvironment: true},
-      graph: {enabled: false, type: 'checkin-timeline'},
+      graph: {enabled: false},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
