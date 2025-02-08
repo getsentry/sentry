@@ -850,13 +850,13 @@ class ProcessResultTest(ConfigPusherTestMixin):
         expected_config_updates: list[tuple[str, str | None]],
         current_minute=5,
     ):
-        regions = [
+        region_configs = [
             UptimeRegionConfig(slug=slug, name=slug, enabled=enabled, config_redis_key_prefix=slug)
             for slug, enabled in regions
         ]
 
         with (
-            override_settings(UPTIME_REGIONS=regions),
+            override_settings(UPTIME_REGIONS=region_configs),
             self.tasks(),
             freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
         ):
