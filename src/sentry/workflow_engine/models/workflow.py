@@ -10,7 +10,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import WorkflowJob
 
 from .json_config import JSONConfigBase
@@ -76,8 +76,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return True, []
 
         job["workflow"] = self
-        evaluation, _, remaining_conditions = evaluate_condition_group(
-            self.when_condition_group, job
+        (evaluation, _), remaining_conditions = process_data_condition_group(
+            self.when_condition_group.id, job
         )
         return evaluation, remaining_conditions
 
