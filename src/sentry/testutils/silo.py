@@ -568,7 +568,9 @@ def validate_no_cross_silo_deletions(
     from sentry.workflow_engine.models.data_source import DataSource
 
     # hack for datasource registry, needs type
-    instantiation_params = {DataSource: {"type": DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION}}
+    instantiation_params: dict[type[Model], dict[str, str]] = {
+        DataSource: {"type": DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION}
+    }
 
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
