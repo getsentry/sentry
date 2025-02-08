@@ -1,33 +1,41 @@
 import Access from 'sentry/components/acl/access';
-import {Alert, type AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-interface ProjectPermissionAlertProps extends Omit<AlertProps, 'type'> {
+interface PermissionAlertProps extends Omit<AlertProps, 'type'> {
   access?: Scope[];
   project?: Project;
   team?: Team;
 }
 
-export function ProjectPermissionAlert({
+export const permissionAlertText = t(
+  'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.'
+);
+
+/**
+ * @deprecated Use `ProjectPermissionAlert` instead.
+ */
+function PermissionAlert({
   access = ['project:write'],
   project,
   team,
   ...props
-}: ProjectPermissionAlertProps) {
+}: PermissionAlertProps) {
   return (
     <Access access={access} project={project} team={team}>
       {({hasAccess}) =>
         !hasAccess && (
           <Alert data-test-id="project-permission-alert" type="warning" {...props}>
-            {t(
-              'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.'
-            )}
+            {permissionAlertText}
           </Alert>
         )
       }
     </Access>
   );
 }
+
+export default PermissionAlert;
