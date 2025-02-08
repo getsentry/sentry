@@ -98,6 +98,15 @@ def process_data_condition_group(
         )
         return (False, []), []
 
+    try:
+        logic_type = DataConditionGroup.Type(group.logic_type)
+    except ValueError:
+        logger.exception(
+            "Invalid DataConditionGroup.logic_type found in processor",
+            extra={"logic_type": group.logic_type},
+        )
+        return (False, []), []
+
     conditions = get_data_conditions_for_group(data_condition_group_id)
 
     if is_fast:
