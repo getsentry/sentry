@@ -2,8 +2,13 @@ from unittest.mock import Mock, patch
 
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.tempest.models import MessageType
-from sentry.tempest.tasks import (fetch_latest_item_id, poll_tempest, 
-    poll_tempest_crashes, TempestError, TempestAPIError)
+from sentry.tempest.tasks import (
+    TempestAPIError,
+    TempestError,
+    fetch_latest_item_id,
+    poll_tempest,
+    poll_tempest_crashes,
+)
 from sentry.tempest.test_utils import create_mock_response
 from sentry.testutils.cases import TestCase
 
@@ -221,17 +226,14 @@ class TempestTasksTest(TestCase):
         self.credentials.save()
 
         # Simulate a 500 error response
-        mock_fetch.return_value = create_mock_response(
-            500, 
-            {"error": "Internal Server Error"}
-        )
+        mock_fetch.return_value = create_mock_response(500, {"error": "Internal Server Error"})
 
         # Should raise TempestAPIError to trigger retry
         with self.assertRaises(TempestAPIError) as cm:
             poll_tempest_crashes(self.credentials.id)
 
         self.assertEqual(cm.exception.status_code, 500)
-        
+
         # Verify credentials were updated with error message
         self.credentials.refresh_from_db()
         assert self.credentials.message.startswith("Error fetching crashes")
@@ -245,17 +247,13 @@ class TempestTasksTest(TestCase):
         self.credentials.save()
 
         # Return invalid JSON response
-        mock_fetch.return_value = create_mock_response(
-            200,
-            "Invalid JSON",
-            is_json=False
-        )
+        mock_fetch.return_value = create_mock_response(200, "Invalid JSON", is_json=False)
 
         with self.assertRaises(TempestAPIError) as cm:
             poll_tempest_crashes(self.credentials.id)
 
         assert "Invalid JSON response" in str(cm.exception)
-        
+
         # Verify state preserved
         self.credentials.refresh_from_db()
         assert self.credentials.latest_fetched_item_id == "42"
@@ -269,17 +267,14 @@ class TempestTasksTest(TestCase):
         self.credentials.save()
 
         # Return response missing latest_id
-        mock_fetch.return_value = create_mock_response(
-            200,
-            {"data": "some data but no latest_id"}
-        )
+        mock_fetch.return_value = create_mock_response(200, {"data": "some data but no latest_id"})
 
         with self.assertRaises(TempestAPIError) as cm:
             poll_tempest_crashes(self.credentials.id)
 
         assert "Missing required fields" in str(cm.exception)
         assert "latest_id" in str(cm.exception)
-        
+
         # Verify state preserved
         self.credentials.refresh_from_db()
         assert self.credentials.latest_fetched_item_id == "42"
