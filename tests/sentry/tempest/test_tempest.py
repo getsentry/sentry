@@ -2,7 +2,9 @@ from unittest.mock import Mock, patch
 
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.tempest.models import MessageType
-from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest, poll_tempest_crashes
+from sentry.tempest.tasks import (fetch_latest_item_id, poll_tempest, 
+    poll_tempest_crashes, TempestError, TempestAPIError)
+from sentry.tempest.test_utils import create_mock_response
 from sentry.testutils.cases import TestCase
 
 
@@ -210,3 +212,98 @@ class TempestTasksTest(TestCase):
         # Second call -> should reuse existing ProjectKey and thus not invalidate config
         poll_tempest_crashes(self.credentials.id)
         mock_invalidate.assert_not_called()
+
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
+    def test_poll_tempest_crashes_http_500_retry(self, mock_fetch):
+        """Test that 500 errors trigger a retry with backoff"""
+        # Setup initial state
+        self.credentials.latest_fetched_item_id = "42"
+        self.credentials.save()
+
+        # Simulate a 500 error response
+        mock_fetch.return_value = create_mock_response(
+            500, 
+            {"error": "Internal Server Error"}
+        )
+
+        # Should raise TempestAPIError to trigger retry
+        with self.assertRaises(TempestAPIError) as cm:
+            poll_tempest_crashes(self.credentials.id)
+
+        self.assertEqual(cm.exception.status_code, 500)
+        
+        # Verify credentials were updated with error message
+        self.credentials.refresh_from_db()
+        assert self.credentials.message.startswith("Error fetching crashes")
+        assert self.credentials.message_type == MessageType.ERROR
+        assert self.credentials.latest_fetched_item_id == "42"  # Should not change
+
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
+    def test_poll_tempest_crashes_invalid_json(self, mock_fetch):
+        """Test handling of invalid JSON responses"""
+        self.credentials.latest_fetched_item_id = "42"
+        self.credentials.save()
+
+        # Return invalid JSON response
+        mock_fetch.return_value = create_mock_response(
+            200,
+            "Invalid JSON",
+            is_json=False
+        )
+
+        with self.assertRaises(TempestAPIError) as cm:
+            poll_tempest_crashes(self.credentials.id)
+
+        assert "Invalid JSON response" in str(cm.exception)
+        
+        # Verify state preserved
+        self.credentials.refresh_from_db()
+        assert self.credentials.latest_fetched_item_id == "42"
+        assert "Error fetching crashes" in self.credentials.message
+        assert self.credentials.message_type == MessageType.ERROR
+
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
+    def test_poll_tempest_crashes_missing_fields(self, mock_fetch):
+        """Test handling of responses missing required fields"""
+        self.credentials.latest_fetched_item_id = "42"
+        self.credentials.save()
+
+        # Return response missing latest_id
+        mock_fetch.return_value = create_mock_response(
+            200,
+            {"data": "some data but no latest_id"}
+        )
+
+        with self.assertRaises(TempestAPIError) as cm:
+            poll_tempest_crashes(self.credentials.id)
+
+        assert "Missing required fields" in str(cm.exception)
+        assert "latest_id" in str(cm.exception)
+        
+        # Verify state preserved
+        self.credentials.refresh_from_db()
+        assert self.credentials.latest_fetched_item_id == "42"
+        assert "Error fetching crashes" in self.credentials.message
+        assert self.credentials.message_type == MessageType.ERROR
+
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
+    def test_poll_tempest_crashes_race_condition(self, mock_fetch):
+        """Test handling of concurrent updates to latest_fetched_item_id"""
+        self.credentials.latest_fetched_item_id = "42"
+        self.credentials.save()
+
+        def side_effect(*args, **kwargs):
+            # Simulate another process updating the ID while we're processing
+            self.credentials.latest_fetched_item_id = "43"
+            self.credentials.save()
+            return create_mock_response(200, {"latest_id": "44"})
+
+        mock_fetch.side_effect = side_effect
+
+        poll_tempest_crashes(self.credentials.id)
+
+        # Verify the update was atomic and preserved the latest value
+        self.credentials.refresh_from_db()
+        assert self.credentials.latest_fetched_item_id == "44"
+        assert self.credentials.message == ""
+        assert self.credentials.message_type == MessageType.INFO

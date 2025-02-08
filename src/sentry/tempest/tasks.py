@@ -1,7 +1,9 @@
 import logging
+import json
 
 import requests
 import sentry_sdk
+from django.db import transaction
 from django.conf import settings
 from requests import Response
 
@@ -11,9 +13,64 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tempest.models import MessageType, TempestCredentials
+from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
+class TempestError(Exception):
+    """Base exception for Tempest-related errors."""
+    pass
+
+class TempestAPIError(TempestError):
+    """Exception raised for Tempest API errors."""
+    def __init__(self, message: str, status_code: int, response_body: str):
+        self.status_code = status_code
+        self.response_body = response_body
+        super().__init__(message)
+
+def validate_tempest_response(response: Response, required_fields: list[str]) -> dict:
+    """Validates a Tempest API response and returns the parsed JSON data."""
+    if response.status_code >= 500:
+        raise TempestAPIError(
+            f"Tempest service error: {response.status_code}",
+            response.status_code,
+            response.text,
+        )
+    
+    if response.status_code >= 400:
+        raise TempestAPIError(
+            f"Tempest request error: {response.status_code}",
+            response.status_code,
+            response.text,
+        )
+    
+    try:
+        result = response.json()
+    except ValueError as e:
+        raise TempestAPIError(
+            "Invalid JSON response from Tempest",
+            response.status_code,
+            response.text,
+        ) from e
+    
+    if "error" in result:
+        error_type = result["error"].get("type", "unknown")
+        error_message = result["error"].get("message", "Unknown error")
+        raise TempestAPIError(
+            f"Tempest error: {error_type} - {error_message}",
+            response.status_code,
+            response.text,
+        )
+    
+    missing_fields = [field for field in required_fields if field not in result]
+    if missing_fields:
+        raise TempestAPIError(
+            f"Missing required fields in response: {', '.join(missing_fields)}",
+            response.status_code,
+            response.text,
+        )
+    
+    return result
 
 @instrumented_task(
     name="sentry.tempest.tasks.poll_tempest",
@@ -106,6 +163,11 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     name="sentry.tempest.tasks.poll_tempest_crashes",
     queue="tempest",
     silo_mode=SiloMode.REGION,
+    max_retries=3,
+    autoretry_for=(TempestAPIError,),
+    retry_backoff=True,
+    retry_backoff_max=3600,  # 1 hour max delay
+    retry_jitter=True,
     soft_time_limit=55,
     time_limit=60,
 )
@@ -147,9 +209,22 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 "when latest_fetched_item_id is set."
             )
 
-        result = response.json()
-        credentials.latest_fetched_item_id = result["latest_id"]
-        credentials.save(update_fields=["latest_fetched_item_id"])
+        try:
+            result = validate_tempest_response(response, required_fields=["latest_id"])
+            
+            # Use select_for_update to prevent race conditions
+            with transaction.atomic():
+                credentials = TempestCredentials.objects.select_for_update().get(id=credentials_id)
+                credentials.latest_fetched_item_id = result["latest_id"]
+                credentials.message = ""  # Clear any previous error messages
+                credentials.message_type = MessageType.INFO
+                credentials.save(update_fields=["latest_fetched_item_id", "message", "message_type"])
+                
+        except TempestAPIError as e:
+            credentials.message = f"Error fetching crashes: {str(e)}"
+            credentials.message_type = MessageType.ERROR
+            credentials.save(update_fields=["message", "message_type"])
+            raise  # Re-raise to trigger retry for 5xx errors
     except Exception as e:
         logger.exception(
             "Fetching the crashes failed.",
@@ -161,6 +236,9 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 "error": str(e),
             },
         )
+        credentials.message = "An unexpected error occurred while fetching crashes"
+        credentials.message_type = MessageType.ERROR
+        credentials.save(update_fields=["message", "message_type"])
 
 
 def fetch_latest_id_from_tempest(
