@@ -5,7 +5,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
-import Link from 'sentry/components/links/link';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -63,8 +63,8 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
             `See our [link:Billing Quota Management] docs for more information about managing your organization's quota.`,
             {
               link: (
-                <Link
-                  to="https://docs.sentry.io/pricing/quotas/"
+                <ExternalLink
+                  href="https://docs.sentry.io/pricing/quotas/"
                   aria-label={t('Billing Quota Management')}
                 />
               ),
