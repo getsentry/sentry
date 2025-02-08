@@ -414,7 +414,7 @@ class TestInit(RuleTestCase):
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.action.id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 2
