@@ -78,7 +78,11 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
                 isTruncated={isTruncated}
                 data-test-id={`autofix-root-cause-timeline-item-${index}`}
               >
-                {event.title}
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: singleLineRenderer(event.title),
+                  }}
+                />
                 {!isTruncated && (
                   <StyledIconChevron
                     direction={expandedItems.includes(index) ? 'down' : 'right'}
