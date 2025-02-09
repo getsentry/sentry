@@ -35,9 +35,18 @@ describe('AutofixSteps', () => {
           causes: [
             {
               id: 'cause1',
-              description: 'Root cause 1',
-              title: 'cause 1',
-              code_context: [],
+              root_cause_reproduction: [
+                {
+                  title: 'step 1',
+                  code_snippet_and_analysis: 'details',
+                  is_most_important_event: true,
+                  relevant_code_file: {
+                    file_path: 'file.py',
+                    repo_name: 'owner/repo',
+                  },
+                  timeline_item_type: 'internal_code',
+                },
+              ],
             },
           ],
           selection: null,
@@ -58,8 +67,7 @@ describe('AutofixSteps', () => {
   it('renders steps correctly', () => {
     render(<AutofixSteps {...defaultProps} />);
 
-    expect(screen.getByText('Root cause 1')).toBeInTheDocument();
-    expect(screen.getByText('Find Fix')).toBeInTheDocument();
+    expect(screen.getByText('step 1')).toBeInTheDocument();
   });
 
   it('renders output stream when last step is processing', async () => {

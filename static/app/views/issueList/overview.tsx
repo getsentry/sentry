@@ -50,6 +50,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
+import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -410,7 +411,7 @@ function IssueListOverview({router}: Props) {
 
   const fetchCounts = useCallback(
     (currentQueryCount: number, fetchAllCounts: boolean) => {
-      let newQueryCounts: QueryCounts = {...queryCounts};
+      const newQueryCounts: QueryCounts = {...queryCounts};
 
       const endpointParams = getEndpointParams();
       const tabQueriesWithCounts = getTabsWithCounts();
@@ -433,7 +434,7 @@ function IssueListOverview({router}: Props) {
       if (
         fetchAllCounts ||
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+        !tabQueriesWithCounts.every(tabQuery => newQueryCounts[tabQuery] !== undefined)
       ) {
         const countsRequestParams: CountsEndpointParams = {
           ...omit(endpointParams, 'query'),
@@ -454,20 +455,17 @@ function IssueListOverview({router}: Props) {
             if (!data) {
               return;
             }
-            // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-            newQueryCounts = {
-              ...queryCounts,
-              ...mapValues(data, (count: number) => ({
-                count,
-                hasMore: count > TAB_MAX_COUNT,
+            setQueryCounts({
+              ...newQueryCounts,
+              ...mapValues(data, (count: number | null) => ({
+                count: count ?? 0,
+                // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+                hasMore: (count ?? 0) > TAB_MAX_COUNT,
               })),
-            };
+            });
           },
           error: () => {
             setQueryCounts({});
-          },
-          complete: () => {
-            setQueryCounts(newQueryCounts);
           },
         });
       }
@@ -1070,14 +1068,25 @@ function IssueListOverview({router}: Props) {
     <NewTabContextProvider>
       <Layout.Page>
         {organization.features.includes('issue-stream-custom-views') ? (
-          <ErrorBoundary message={'Failed to load custom tabs'} mini>
-            <IssueViewsIssueListHeader
-              router={router}
-              selectedProjectIds={selection.projects}
-              realtimeActive={realtimeActive}
-              onRealtimeChange={onRealtimeChange}
-            />
-          </ErrorBoundary>
+          organization.features.includes('issue-views-page-filter') ? (
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <IssueViewsPFIssueListHeader
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={onRealtimeChange}
+              />
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <IssueViewsIssueListHeader
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={onRealtimeChange}
+              />
+            </ErrorBoundary>
+          )
         ) : (
           <IssueListHeader
             organization={organization}

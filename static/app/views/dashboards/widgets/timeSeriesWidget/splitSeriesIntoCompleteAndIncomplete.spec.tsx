@@ -1,7 +1,5 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {TimeseriesData} from '../common/types';
-
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 describe('splitSeriesIntoCompleteAndIncomplete', () => {
@@ -14,7 +12,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Does not split a series with all complete data', () => {
-    const serie: TimeseriesData = {
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -30,6 +28,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:56:00.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
@@ -56,7 +62,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Does not split a series with all incomplete data', () => {
-    const serie: TimeseriesData = {
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -76,6 +82,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:58:20.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
@@ -106,7 +120,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Splits a series with partial incomplete data', () => {
-    const serie: TimeseriesData = {
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -130,6 +144,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:59:00.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
@@ -170,8 +192,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
   it('Splits a series with long buckets', () => {
     // The time buckets are an hour long. The ingestion delay is 90s. The last buckets should be marked incomplete.
-    //
-    const serie: TimeseriesData = {
+
+    const serie = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -191,6 +213,14 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           timestamp: '2024-10-24T15:00:00.000Z',
         },
       ],
+      meta: {
+        fields: {
+          'p99(span.duration)': 'duration',
+        },
+        units: {
+          'p99(span.duration)': 'millisecond',
+        },
+      },
     };
 
     const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(

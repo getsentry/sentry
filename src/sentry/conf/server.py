@@ -20,12 +20,13 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
+from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
@@ -1352,6 +1353,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
+# Schedules for taskworker tasks to be spawned on.
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -3030,6 +3033,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
+    "sentry.uptime.endpoints",
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
@@ -3461,7 +3465,6 @@ UPTIME_REGIONS = [
     UptimeRegionConfig(
         slug="default",
         name="Default Region",
-        config_topic=Topic.UPTIME_CONFIGS,
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),

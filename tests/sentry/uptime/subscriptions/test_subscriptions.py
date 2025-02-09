@@ -5,7 +5,6 @@ from django.conf import settings
 from django.test import override_settings
 from pytest import raises
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
@@ -237,27 +236,59 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
                     mode=ProjectUptimeSubscriptionMode.MANUAL,
                 )[1]
 
+    def test_override_max_proj_subs(self):
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=1
+        ):
+            assert get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+            )[1]
+            with pytest.raises(MaxManualUptimeSubscriptionsReached):
+                get_or_create_project_uptime_subscription(
+                    self.project,
+                    self.environment,
+                    url="https://santry.io",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=ProjectUptimeSubscriptionMode.MANUAL,
+                    override_manual_org_limit=False,
+                )[1]
+            assert get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://santry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+                override_manual_org_limit=True,
+            )[1]
+
     def test_auto_associates_active_regions(self):
         regions = [
             UptimeRegionConfig(
                 slug="region1",
                 name="Region 1",
-                config_topic=Topic.UPTIME_CONFIGS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
-                config_topic=Topic.UPTIME_RESULTS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region3",
                 name="Region 3",
-                config_topic=Topic.MONITORS_CLOCK_TASKS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r3",
                 enabled=False,  # This one shouldn't be associated
             ),
         ]
@@ -644,7 +675,8 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
 
 
 class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
-    def test_other_subscriptions(self):
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_other_subscriptions(self, mock_disable_seat):
         other_project = self.create_project()
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
@@ -673,8 +705,10 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
             proj_sub.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_sub.uptime_subscription_id).exists()
+        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
-    def test_single_subscriptions(self):
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_single_subscriptions(self, mock_disable_seat):
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -691,6 +725,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             proj_sub.uptime_subscription.refresh_from_db()
+        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
 
 class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):

@@ -18,7 +18,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorStateData,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 T = TypeVar("T")
@@ -177,9 +177,10 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
         # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
         # level, but usually we want to set this at a higher level.
+        # TODO 2: Validate that we will never have slow conditions here.
         new_status = DetectorPriorityLevel.OK
-        is_group_condition_met, condition_results = evaluate_condition_group(
-            self.condition_group, value
+        (is_group_condition_met, condition_results), _ = process_data_condition_group(
+            self.condition_group.id, value
         )
 
         if is_group_condition_met:

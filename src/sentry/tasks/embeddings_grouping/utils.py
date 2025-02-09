@@ -34,7 +34,7 @@ from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
     filter_null_from_string,
-    get_stacktrace_string_with_metrics,
+    get_stacktrace_string,
     has_too_many_contributing_frames,
 )
 from sentry.snuba.dataset import Dataset
@@ -70,6 +70,12 @@ class GroupStacktraceData(TypedDict):
 def filter_snuba_results(
     snuba_results, groups_to_backfill_with_no_embedding, project, worker_number
 ):
+    """
+    Not all of the groups in `groups_to_backfill_with_no_embedding` are guaranteed to have
+    corresponding snuba data. Filter both that and the snuba results to weed out groups which don't
+    have data in snuba.
+    """
+
     if not snuba_results or not snuba_results[0].get("data"):
         logger.info(
             "backfill_seer_grouping_records.empty_snuba_results",
@@ -80,12 +86,16 @@ def filter_snuba_results(
             },
         )
         return [], []
+    # First, filter out any results which have no data
     filtered_snuba_results: list[GroupEventRow] = [
         snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
     ]
 
-    groups_to_backfill_with_no_embedding_has_snuba_row = []
+    # Then get the group id from any results which do
     row_group_ids = {row["group_id"] for row in filtered_snuba_results}
+
+    # Finally, use these group ids to filter our original list
+    groups_to_backfill_with_no_embedding_has_snuba_row = []
     for group_id in groups_to_backfill_with_no_embedding:
         if group_id in row_group_ids:
             groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
@@ -108,8 +118,8 @@ def create_project_cohort(
     last_processed_project_id: int | None,
 ) -> list[int]:
     """
-    Create project cohort by the following calculation: project_id % threads == worker_number
-    to assign projects uniquely to available threads
+    Create project cohort by hashing and modding project ids, to assign projects uniquely to
+    the worker with the given number.
     """
     project_id_filter = Q()
     if last_processed_project_id is not None:
@@ -131,21 +141,6 @@ def create_project_cohort(
     return list(project_cohort_list)
 
 
-@sentry_sdk.tracing.trace
-def initialize_backfill(
-    project_id: int,
-    last_processed_group_id: int | None,
-    last_processed_project_index: int | None,
-):
-    project = Project.objects.get_from_cache(id=project_id)
-
-    last_processed_project_index_ret = (
-        last_processed_project_index if last_processed_project_index else 0
-    )
-
-    return project, last_processed_group_id, last_processed_project_index_ret
-
-
 def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):
     """
     Return the filtered batch of group ids to be backfilled, the last group id in the raw batch,
@@ -161,24 +156,31 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
         .values_list("id", "data", "status", "last_seen", "times_seen")
         .order_by("-id")[:batch_size]
     )
+    backfill_batch_raw_length = len(groups_to_backfill_batch_raw)
 
-    # Filter out groups that are pending deletion and have times_seen > 1 in memory so postgres won't make a bad query plan
-    # Get the last queried group id while we are iterating; even if it's not valid to be backfilled
-    # we want to keep the value to be used as an filter for the next batch
-    groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length = [], None, 0
+    # Filter out groups that are pending deletion, are too old, or have times_seen > 1 in here
+    # rather than in the database so postgres won't make a bad query plan
+    groups_to_backfill_batch = []
     for group in groups_to_backfill_batch_raw:
+        group_id, data, status, last_seen, times_seen = group
         if (
-            group[2]
+            status
             not in [
                 GroupStatus.PENDING_DELETION,
                 GroupStatus.DELETION_IN_PROGRESS,
             ]
-            and group[3] > datetime.now(UTC) - timedelta(days=90)
-            and group[4] > 1
+            and last_seen > datetime.now(UTC) - timedelta(days=90)
+            and times_seen > 1
         ):
-            groups_to_backfill_batch.append((group[0], group[1]))
-        batch_raw_end_group_id = group[0]
-        backfill_batch_raw_length += 1
+            groups_to_backfill_batch.append((group_id, data))
+
+    # Get the group id of the last group in the raw batch; even if it's not valid to be backfilled,
+    # we want to keep the value to be used as a filter for the next batch
+    batch_raw_end_group_id = (
+        None
+        if backfill_batch_raw_length == 0
+        else groups_to_backfill_batch_raw[backfill_batch_raw_length - 1][0]
+    )
 
     return groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length
 
@@ -219,10 +221,7 @@ def get_current_batch_groups_from_postgres(
             )
             project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
-        return (
-            groups_to_backfill_batch,
-            None,
-        )
+        return ([], None)
 
     groups_to_backfill_with_no_embedding = [
         group_id
@@ -374,9 +373,7 @@ def get_events_from_nodestore(
 
             if not has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
                 grouping_info = get_grouping_info_from_variants(variants)
-                stacktrace_string = get_stacktrace_string_with_metrics(
-                    grouping_info, event.platform, ReferrerOptions.BACKFILL
-                )
+                stacktrace_string = get_stacktrace_string(grouping_info)
 
             if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
@@ -737,10 +734,10 @@ def delete_seer_grouping_records(
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
 
 
-def get_project_for_batch(last_processed_project_index, cohort_projects):
+def get_next_project_from_cohort(last_processed_project_index, cohort_projects):
     next_project_index = last_processed_project_index + 1
     if next_project_index >= len(cohort_projects):
         return None, None
+
     project_id = cohort_projects[next_project_index]
-    last_processed_project_index = next_project_index
-    return project_id, last_processed_project_index
+    return project_id, next_project_index

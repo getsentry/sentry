@@ -66,6 +66,13 @@ export default function getGuidesContent(
               and triage through issue management tools like Jira. `
           ),
         },
+        {
+          title: t('Quick Setup'),
+          target: 'onboarding_sidebar',
+          description: t(
+            'Walk through this guide to get the most out of Sentry right away.'
+          ),
+        },
       ],
     },
     {
@@ -244,6 +251,24 @@ export default function getGuidesContent(
                 ) && organization?.features.includes('performance-trace-explorer')
                   ? t('To filter by tags found only on spans, click "Open in Traces".')
                   : '',
+            }
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'crons_backend_insights',
+      requiredTargets: ['crons_backend_insights'],
+      steps: [
+        {
+          title: t('Crons are now Alerts'),
+          target: 'crons_backend_insights',
+          description: tct(
+            'Crons are now a type of Sentry Alert and can be managed there. The detailed timeline is now here under Insights\u00A0→\u00A0Backend. [link:Learn more].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/crons/alerts-backend-insights-migration/" />
+              ),
             }
           ),
         },

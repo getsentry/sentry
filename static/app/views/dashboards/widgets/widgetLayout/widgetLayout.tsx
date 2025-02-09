@@ -7,12 +7,15 @@ import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 export interface WidgetLayoutProps {
   Actions?: React.ReactNode;
-  Caption?: React.ReactNode;
+  Footer?: React.ReactNode;
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
   forceShowActions?: boolean;
   height?: number;
+  noFooterPadding?: boolean;
+  noHeaderPadding?: boolean;
+  noVisualizationPadding?: boolean;
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
@@ -22,16 +25,20 @@ export function WidgetLayout(props: WidgetLayoutProps) {
       height={props.height}
       forceShowActions={props.forceShowActions}
     >
-      <Header>
+      <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
       </Header>
 
       {props.Visualization && (
-        <VisualizationWrapper>{props.Visualization}</VisualizationWrapper>
+        <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+          {props.Visualization}
+        </VisualizationWrapper>
       )}
 
-      {props.Caption && <CaptionWrapper>{props.Caption}</CaptionWrapper>}
+      {props.Footer && (
+        <FooterWrapper noPadding={props.noFooterPadding}>{props.Footer}</FooterWrapper>
+      )}
     </Frame>
   );
 }
@@ -58,7 +65,7 @@ const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  border-radius: ${p => p.theme.panelBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
 
   background: ${p => p.theme.background};
@@ -81,25 +88,26 @@ const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
   }`}
 `;
 
-const Header = styled('div')`
+const Header = styled('div')<{noPadding?: boolean}>`
   display: flex;
   align-items: center;
   height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
   flex-shrink: 0;
   gap: ${space(0.75)};
-  padding: ${X_GUTTER} ${Y_GUTTER} 0 ${X_GUTTER};
+  padding: ${p => (p.noPadding ? 0 : `${Y_GUTTER} ${X_GUTTER} 0 ${X_GUTTER}`)};
 `;
 
-const VisualizationWrapper = styled('div')`
+const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   min-height: 0;
   position: relative;
-  padding: 0;
+  padding: ${p => (p.noPadding ? 0 : `0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER}`)};
 `;
 
-const CaptionWrapper = styled('div')`
-  padding: ${space(0.5)} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};
 `;

@@ -332,8 +332,12 @@ from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
+from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
+    ProjectUptimeAlertCheckIndexEndpoint,
+)
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.uptime.endpoints.uptime_ips import UptimeIpsEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
@@ -2756,14 +2760,19 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     # Uptime
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
+        ProjectUptimeAlertIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-index",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/$",
         ProjectUptimeAlertDetailsEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
-        ProjectUptimeAlertIndexEndpoint.as_view(),
-        name="sentry-api-0-project-uptime-alert-index",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/checks/$",
+        ProjectUptimeAlertCheckIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-checks",
     ),
     # Tempest
     re_path(
@@ -3252,6 +3261,12 @@ urlpatterns = [
         r"^publickeys/relocations/$",
         RelocationPublicKeyEndpoint.as_view(),
         name="sentry-api-0-relocations-public-key",
+    ),
+    # Uptime checker public IP address list
+    re_path(
+        r"^uptime-ips/$",
+        UptimeIpsEndpoint.as_view(),
+        name="sentry-api-0-uptime-ips",
     ),
     # Secret Scanning
     re_path(

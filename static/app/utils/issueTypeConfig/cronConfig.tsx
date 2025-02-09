@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const cronConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -23,16 +24,29 @@ const cronConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     header: {
-      filterAndSearch: {enabled: false},
+      filterBar: {enabled: false, fixedEnvironment: true},
+      graph: {enabled: false},
       tagDistribution: {enabled: false},
-      timelineSummary: {enabled: false},
+      occurrenceSummary: {enabled: false},
     },
-    attachments: {enabled: false},
+    detector: {
+      enabled: true,
+      title: t('Cron Monitor'),
+      ctaText: t('View monitor details'),
+    },
+    pages: {
+      landingPage: Tab.DETAILS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: false},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: true},
+    },
     autofix: false,
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
     similarIssues: {enabled: false},
-    userFeedback: {enabled: false},
     usesIssuePlatform: true,
     issueSummary: {enabled: false},
   },

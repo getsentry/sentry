@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,21 +22,19 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
 
   return (
     <Fragment>
-      <SecondaryNav>
+      <SecondaryNav group={PrimaryNavGroup.ISSUES}>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={baseUrl}>{t('All')}</SecondaryNav.Item>
-            {/* TODO(malwilley): Move feedback under the /issues/ route */}
-            <SecondaryNav.Item to={`/organizations/${organization.slug}/feedback/`}>
+            <SecondaryNav.Item to={`${baseUrl}/`} end>
+              {t('All')}
+            </SecondaryNav.Item>
+            <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         </SecondaryNav.Body>
         <SecondaryNav.Footer>
-          {/* TODO(malwilley): Move alerts under the /issues/ route */}
-          <SecondaryNav.Item to={`/organizations/${organization.slug}/alerts/`}>
-            {t('Alerts')}
-          </SecondaryNav.Item>
+          <SecondaryNav.Item to={`${baseUrl}/alerts/`}>{t('Alerts')}</SecondaryNav.Item>
         </SecondaryNav.Footer>
       </SecondaryNav>
       {children}

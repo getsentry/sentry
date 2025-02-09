@@ -349,9 +349,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         # Get each variant's hash value, filtering out Nones
         hashes = [
-            hashes_by_variant[variant_name]
-            for variant_name in sorted_variant_names
-            if hashes_by_variant[variant_name] is not None
+            h
+            for h in (hashes_by_variant[variant_name] for variant_name in sorted_variant_names)
+            if h is not None
         ]
 
         # Write to event before returning
@@ -417,7 +417,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             from sentry.grouping.strategies.base import StrategyConfiguration
 
             if isinstance(force_config, str):
-                # A string like `"newstyle:2023-01-11"`
+                # A string like `"newstyle:YYYY-MM-DD"`
                 stored_config = self.get_grouping_config()
                 grouping_config = stored_config.copy()
                 grouping_config["id"] = force_config

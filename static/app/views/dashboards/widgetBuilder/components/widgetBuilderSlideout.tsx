@@ -21,6 +21,7 @@ import {
   DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
@@ -140,6 +141,7 @@ function WidgetBuilderSlideout({
       collapsed={!isOpen}
       slidePosition="left"
       data-test-id="widget-slideout"
+      transitionProps={animationTransitionSettings}
     >
       <SlideoutHeaderWrapper>
         <SlideoutTitle>{title}</SlideoutTitle>
@@ -200,6 +202,8 @@ function WidgetBuilderSlideout({
                 <ThresholdsSection
                   dataType={thresholdMetaState?.dataType}
                   dataUnit={thresholdMetaState?.dataUnit}
+                  error={error}
+                  setError={setError}
                 />
               </Section>
             )}
@@ -275,5 +279,5 @@ const SlideoutBodyWrapper = styled('div')`
 `;
 
 const Section = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: 24px;
 `;

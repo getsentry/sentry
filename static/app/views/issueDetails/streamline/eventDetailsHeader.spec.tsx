@@ -58,6 +58,10 @@ describe('EventDetailsHeader', () => {
     );
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
@@ -124,7 +128,11 @@ describe('EventDetailsHeader', () => {
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
 
-  it('renders timeline summary if enabled', async function () {
+  it('renders occurrence summary if enabled', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: {data: event},
+    });
     render(
       <EventDetailsHeader
         {...defaultProps}
@@ -132,11 +140,21 @@ describe('EventDetailsHeader', () => {
           issueCategory: IssueCategory.UPTIME,
           issueType: IssueType.UPTIME_DOMAIN_FAILURE,
         })}
+        event={EventFixture({
+          occurrence: {
+            evidenceDisplay: [
+              {name: 'Status Code', value: '500'},
+              {name: 'Failure reason', value: 'bad things'},
+            ],
+          },
+        })}
       />,
       {organization, router}
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
-
-    expect(screen.getByText('Duration')).toBeInTheDocument();
+    expect(await screen.findByText('Downtime')).toBeInTheDocument();
+    expect(screen.getByText('Status Code')).toBeInTheDocument();
+    expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('Reason')).toBeInTheDocument();
+    expect(screen.getByText('bad things')).toBeInTheDocument();
   });
 });

@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0822_alert_rule_always_organization
+sentry: 0826_make_sentryapp_uuid_unique
 
 social_auth: 0002_default_auto_field
 
@@ -23,4 +23,4 @@ tempest: 0001_create_tempest_credentials_model
 
 uptime: 0024_add_status_to_project_uptime_subscription
 
-workflow_engine: 0027_drop_org_detector_req_action
+workflow_engine: 0028_wfe_change_query_id_to_source_id

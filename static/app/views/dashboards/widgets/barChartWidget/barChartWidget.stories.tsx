@@ -9,12 +9,13 @@ import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {TimeseriesData} from '../common/types';
+import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleLatencyTimeSeries} from './fixtures/sampleLatencyTimeSeries';
+import {sampleSpanDurationTimeSeries} from './fixtures/sampleSpanDurationTimeSeries';
 import {BarChartWidget} from './barChartWidget';
-import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
-import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
-export default storyBook(BarChartWidget, story => {
+export default storyBook('BarChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -38,14 +39,10 @@ export default storyBook(BarChartWidget, story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
-    const latencyTimeSeries = toTimeSeriesSelection(
-      sampleLatencyTimeSeries as unknown as TimeseriesData,
-      start,
-      end
-    );
+    const latencyTimeSeries = toTimeSeriesSelection(sampleLatencyTimeSeries, start, end);
 
     const spanDurationTimeSeries = toTimeSeriesSelection(
-      sampleSpanDurationTimeSeries as unknown as TimeseriesData,
+      sampleSpanDurationTimeSeries,
       start,
       end
     );
@@ -61,7 +58,11 @@ export default storyBook(BarChartWidget, story => {
           <BarChartWidget
             title="Duration Breakdown"
             description="Explains what proportion of total duration is taken up by latency vs. span duration"
-            timeseries={[latencyTimeSeries, spanDurationTimeSeries]}
+            timeseries={[
+              shiftTimeserieToNow(latencyTimeSeries),
+              shiftTimeserieToNow(spanDurationTimeSeries),
+            ]}
+            dataCompletenessDelay={600}
           />
         </SmallSizingWindow>
       </Fragment>

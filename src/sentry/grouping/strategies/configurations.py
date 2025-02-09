@@ -1,6 +1,5 @@
 from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
-    RISK_LEVEL_MEDIUM,
     StrategyConfiguration,
     create_strategy_configuration,
 )
@@ -94,7 +93,6 @@ register_strategy_config(
 # This is a grouping strategy that applies very simple rules and will
 # become the new default at one point.  Optimized for native and
 # javascript but works for all platforms.
-
 register_strategy_config(
     id="newstyle:2019-05-08",
     risk=RISK_LEVEL_HIGH,
@@ -120,32 +118,23 @@ register_strategy_config(
     enhancements_base="common:2019-03-23",
 )
 
+# This is the grouping strategy used for new projects.
 register_strategy_config(
-    id="newstyle:2019-10-29",
+    id="newstyle:2023-01-11",
     base="newstyle:2019-05-08",
-    risk=RISK_LEVEL_MEDIUM,
+    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
         * Better support for PHP7 anonymous classes.
-    """,
-    initial_context={
-        "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
-    },
-)
-
-register_strategy_config(
-    id="newstyle:2023-01-11",
-    base="newstyle:2019-10-29",
-    risk=RISK_LEVEL_MEDIUM,
-    changelog="""
         * Added new language/platform specific stack trace grouping enhancements rules
           that should make the default grouping experience better.
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
         * Added ChukloadErrors via new built-in fingerprinting support.
     """,
     initial_context={
+        "php_detect_anonymous_classes": True,
+        "with_context_line_file_origin_bug": False,
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",

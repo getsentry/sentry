@@ -56,8 +56,9 @@ class GithubRateLimitInfo:
 
 
 class GithubProxyClient(IntegrationProxyClient):
+    integration: Integration  # late init
+
     def _get_installation_id(self) -> str:
-        self.integration: RpcIntegration
         """
         Returns the Github App installation identifier.
         This is necessary since Github and Github Enterprise integrations store the
@@ -175,9 +176,13 @@ class GithubProxyClient(IntegrationProxyClient):
         return prepared_request
 
     def is_error_fatal(self, error: Exception) -> bool:
-        if hasattr(error.response, "text") and error.response.text:
-            if "suspended" in error.response.text:
-                return True
+        if (
+            hasattr(error, "response")
+            and hasattr(error.response, "text")
+            and error.response.text
+            and "suspended" in error.response.text
+        ):
+            return True
         return super().is_error_fatal(error)
 
 
@@ -330,22 +335,15 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return should_count_error
 
-    def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
+    def get_repos(self) -> list[dict[str, Any]]:
         """
-        args:
-         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
-
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self.get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
-        )
+        return self.get_with_pagination("/installation/repositories", response_key="repositories")
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
@@ -365,7 +363,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
-    ) -> Sequence[Any]:
+    ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our

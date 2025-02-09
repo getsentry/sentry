@@ -5,17 +5,28 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
-interface DetectorDetails {
-  alertRuleId?: string;
+export interface DetectorDetails {
   description?: string;
+  detectorId?: string;
+  detectorPath?: string;
+  detectorType?: 'metric_alert' | 'cron_monitor' | 'uptime_monitor';
 }
 
-export function getDetectorDetails({event}: {event: Event}): DetectorDetails {
+export function getDetectorDetails({
+  event,
+  organization,
+  project,
+}: {
+  event: Event;
+  organization: Organization;
+  project: Project;
+}): DetectorDetails {
   /**
    * Rather than check the issue category, we just check all the current set locations
    * for Alert Rule IDs. Hopefully we can consolidate this when we move to the detector system.
@@ -24,43 +35,49 @@ export function getDetectorDetails({event}: {event: Event}): DetectorDetails {
   const metricAlertRuleId = event?.contexts?.metric_alert?.alert_rule_id;
   if (metricAlertRuleId) {
     return {
-      alertRuleId: metricAlertRuleId,
+      detectorType: 'metric_alert',
+      detectorId: metricAlertRuleId,
+      detectorPath: `/organizations/${organization.slug}/alerts/rules/details/${metricAlertRuleId}/`,
       // TODO(issues): We can probably enrich this description with details from the alert itself.
       description: t(
         'This issue was created by a metric alert detector. View the detector details to learn more.'
       ),
     };
   }
-  const uptimeAlertRuleId = event?.tags?.find(tag => tag?.key === 'uptime_rule')?.value;
-  if (uptimeAlertRuleId) {
+
+  const cronSlug = event?.tags?.find(({key}) => key === 'monitor.slug')?.value;
+  if (cronSlug) {
     return {
-      alertRuleId: uptimeAlertRuleId,
-      // TODO(issues): Update this to mention detectors when that language is user-facing
+      detectorType: 'cron_monitor',
+      detectorId: cronSlug,
+      detectorPath: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${cronSlug}/details/`,
       description: t(
-        'This issue was created by an uptime alert rule. After 2 consecutive failed check-ins, an open period will be created.'
+        'This issue was created by a cron monitor. View the monitor details to learn more.'
       ),
     };
   }
-  return {
-    alertRuleId: undefined,
-    description: undefined,
-  };
+
+  const uptimeAlertRuleId = event?.tags?.find(tag => tag?.key === 'uptime_rule')?.value;
+  if (uptimeAlertRuleId) {
+    return {
+      detectorType: 'uptime_monitor',
+      detectorId: uptimeAlertRuleId,
+      detectorPath: `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
+      // TODO(issues): Update this to mention detectors when that language is user-facing
+      description: t(
+        'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
+      ),
+    };
+  }
+  return {};
 }
 
-export function DetectorSection({
-  event,
-  group,
-  project,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
-  const organization = useOrganization();
-  const {alertRuleId, description} = getDetectorDetails({event});
+export function DetectorSection({group, project}: {group: Group; project: Project}) {
   const issueConfig = getConfigForIssueType(group, project);
+  const {detectorDetails} = useIssueDetails();
+  const {detectorPath, description} = detectorDetails;
 
-  if (!alertRuleId) {
+  if (!detectorPath) {
     return null;
   }
 
@@ -72,7 +89,7 @@ export function DetectorSection({
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={issueConfig.detector.ctaText ?? t('View detector details')}
-        href={`/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`}
+        href={detectorPath}
         style={{width: '100%'}}
         size="sm"
       >
