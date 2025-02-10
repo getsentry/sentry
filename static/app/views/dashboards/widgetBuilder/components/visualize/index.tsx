@@ -391,7 +391,20 @@ function Visualize({error, setError}: VisualizeProps) {
                 aggregateOptions = [...baseOptions, ...spanColumnOptions];
               } else {
                 // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
-                aggregateOptions = [...baseOptions, ...columnOptions];
+                aggregateOptions = [
+                  ...baseOptions,
+
+                  // Iterate over fieldOptions so we can show all of the fields without any filtering
+                  // imposed by the aggregate filtering its possible columns
+                  ...Object.values(fieldOptions)
+                    .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
+                    .map(option => ({
+                      label: option.value.meta.name,
+                      value: option.value.meta.name,
+                      textValue: option.value.meta.name,
+                      trailingItems: renderTag(option.value.kind, option.value.meta.name),
+                    })),
+                ];
               }
             }
 
