@@ -9,5 +9,6 @@ class TestFirstSeenEventCondition(ConditionTestCase):
         # skip translating every event condition
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc is None

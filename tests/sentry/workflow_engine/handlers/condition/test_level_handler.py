@@ -40,6 +40,7 @@ class TestLevelCondition(ConditionTestCase):
     def test_dual_write(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
@@ -53,6 +54,7 @@ class TestLevelCondition(ConditionTestCase):
         self.payload["id"] = LevelFilter.id
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
