@@ -109,14 +109,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
-        snuba_query = SnubaQuery.objects.create(
-            environment=env,
-            type=0,
-            query="title:ohno",
-            aggregate="",
-            time_window=3600,
-            resolution=60,
-        )
+        snuba_query = metric_alert_rule.snuba_query
         query_sub = QuerySubscription.objects.create(
             project=project,
             snuba_query=snuba_query,

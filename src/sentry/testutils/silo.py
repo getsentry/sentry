@@ -564,12 +564,21 @@ def validate_no_cross_silo_deletions(
 ) -> None:
     from sentry import deletions
     from sentry.deletions.base import BaseDeletionTask
+    from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+    from sentry.workflow_engine.models.data_source import DataSource
+
+    # hack for datasource registry, needs type
+    instantiation_params: dict[type[Model], dict[str, str]] = {
+        DataSource: {"type": DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION}
+    }
 
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
         deletion_task: BaseDeletionTask = deletions.get(model=model_class, query={})
-        for relation in deletion_task.get_child_relations(model_class()):
+        for relation in deletion_task.get_child_relations(
+            model_class(**instantiation_params.get(model_class, {}))
+        ):
             to_model = relation.params["model"]
             if (model_class, to_model) in exemptions or (to_model, model_class) in exemptions:
                 continue
