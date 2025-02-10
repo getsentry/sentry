@@ -225,7 +225,7 @@ function getDashboardsBreadCrumbs(organization: Organization, location: Location
   return crumbs;
 }
 
-export function getInsightsModuleBreadcrumbs(
+function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
   moduleURLBuilder: URLBuilder,
