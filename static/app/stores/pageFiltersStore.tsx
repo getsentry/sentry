@@ -6,7 +6,7 @@ import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 import type {StrictStoreDefinition} from './types';
 
-function datetimeHasSameValue(
+export function datetimeHasSameValue(
   a: PageFilters['datetime'],
   b: PageFilters['datetime']
 ): boolean {

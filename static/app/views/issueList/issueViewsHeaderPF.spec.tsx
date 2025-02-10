@@ -1,33 +1,70 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueViewsHeader', () => {
-  const organization = OrganizationFixture();
+  const {organization} = initializeOrg({
+    organization: {features: ['global-views']},
+    projects: [],
+  });
+  beforeEach(() => {
+    OrganizationStore.init();
 
-  const getRequestViews = [
+    OrganizationStore.onUpdate(organization, {replace: true});
+  });
+
+  const getRequestViews: GroupSearchView[] = [
     {
       id: '1',
       name: 'High Priority',
       query: 'priority:high',
       querySort: IssueSortOptions.DATE,
+      environments: [],
+      isAllProjects: false,
+      projects: [],
+      timeFilters: {
+        end: '2024-01-01',
+        period: null,
+        start: '2024-01-02',
+        utc: false,
+      },
     },
     {
       id: '2',
       name: 'Medium Priority',
       query: 'priority:medium',
       querySort: IssueSortOptions.DATE,
+      environments: [],
+      isAllProjects: false,
+      projects: [],
+      timeFilters: {
+        start: null,
+        end: null,
+        period: '1d',
+        utc: null,
+      },
     },
     {
       id: '3',
       name: 'Low Priority',
       query: 'priority:low',
       querySort: IssueSortOptions.NEW,
+      environments: [],
+      isAllProjects: false,
+      projects: [],
+      timeFilters: {
+        end: '2024-01-01',
+        period: null,
+        start: '2024-01-02',
+        utc: true,
+      },
     },
   ];
 
@@ -78,14 +115,13 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: {},
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-      });
     });
 
     it('renders all tabs, selects the first one by default, and replaces the query params accordingly', async () => {
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
@@ -125,11 +161,23 @@ describe('IssueViewsHeader', () => {
             name: 'Prioritized',
             query: 'is:unresolved issue.priority:[high, medium]',
             querySort: IssueSortOptions.DATE,
+            environments: [],
+            isAllProjects: false,
+            projects: [],
+            timeFilters: {
+              end: null,
+              period: '30d',
+              start: null,
+              utc: null,
+            },
           },
         ],
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: /Prioritized/})).toHaveAttribute(
@@ -157,11 +205,21 @@ describe('IssueViewsHeader', () => {
             name: 'Prioritized',
             query: 'is:unresolved issue.priority:[high, medium]',
             querySort: IssueSortOptions.DATE,
+            environments: [],
+            isAllProjects: false,
+            projects: [],
+            timeFilters: {
+              end: null,
+              period: '30d',
+              start: null,
+              utc: null,
+            },
           },
         ],
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+      render(<IssueViewsPFIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+        organization,
         router: queryOnlyRouter,
       });
 
@@ -192,9 +250,13 @@ describe('IssueViewsHeader', () => {
         }),
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
-        router: specificTabRouter,
-      });
+      render(
+        <IssueViewsPFIssueListHeader {...defaultProps} router={specificTabRouter} />,
+        {
+          organization,
+          router: specificTabRouter,
+        }
+      );
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
         'aria-selected',
@@ -213,7 +275,8 @@ describe('IssueViewsHeader', () => {
     });
 
     it('initially selects a temporary tab when only a query is present in the url', async () => {
-      render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+      render(<IssueViewsPFIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+        organization,
         router: queryOnlyRouter,
       });
 
@@ -246,9 +309,13 @@ describe('IssueViewsHeader', () => {
           },
         }),
       });
-      render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
-        router: specificTabRouter,
-      });
+      render(
+        <IssueViewsPFIssueListHeader {...defaultProps} router={specificTabRouter} />,
+        {
+          organization,
+          router: specificTabRouter,
+        }
+      );
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
@@ -280,6 +347,15 @@ describe('IssueViewsHeader', () => {
             name: 'Prioritized',
             query: 'is:unresolved issue.priority:[high, medium]',
             querySort: IssueSortOptions.DATE,
+            environments: [],
+            isAllProjects: false,
+            projects: [],
+            timeFilters: {
+              end: null,
+              period: '30d',
+              start: null,
+              utc: null,
+            },
           },
         ],
       });
@@ -295,13 +371,11 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsIssueListHeader
+        <IssueViewsPFIssueListHeader
           {...defaultProps}
           router={defaultTabDifferentQueryRouter}
         />,
-        {
-          router: defaultTabDifferentQueryRouter,
-        }
+        {organization, router: defaultTabDifferentQueryRouter}
       );
       expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
       expect(screen.getByTestId('unsaved-changes-indicator')).toBeInTheDocument();
@@ -331,15 +405,13 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: {},
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-        body: getRequestViews,
-      });
     });
 
     it('switches tabs when clicked, and updates the query params accordingly', async () => {
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       await userEvent.click(await screen.findByRole('tab', {name: /Medium Priority/}));
 
@@ -379,11 +451,11 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsIssueListHeader
+        <IssueViewsPFIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedQueryRouter}
         />,
-        {router: goodViewIdChangedQueryRouter}
+        {organization, router: goodViewIdChangedQueryRouter}
       );
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
@@ -416,11 +488,11 @@ describe('IssueViewsHeader', () => {
       });
 
       render(
-        <IssueViewsIssueListHeader
+        <IssueViewsPFIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedSortRouter}
         />,
-        {router: goodViewIdChangedSortRouter}
+        {organization, router: goodViewIdChangedSortRouter}
       );
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
@@ -439,6 +511,72 @@ describe('IssueViewsHeader', () => {
           }),
         })
       );
+    });
+
+    it('renders the unsaved changes indicator if the projects have been changed', async () => {
+      const goodViewIdChangedProjectsRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            viewId: getRequestViews[1]!.id,
+            project: '1',
+          },
+        }),
+      });
+
+      render(
+        <IssueViewsPFIssueListHeader
+          {...defaultProps}
+          router={goodViewIdChangedProjectsRouter}
+        />,
+        {organization, router: goodViewIdChangedProjectsRouter}
+      );
+
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+    });
+
+    it('renders the unsaved changes indicator if the environments have been changed', async () => {
+      const goodViewIdChangedEnvironmentsRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            viewId: getRequestViews[1]!.id,
+            environment: ['prod', 'dev'],
+          },
+        }),
+      });
+
+      render(
+        <IssueViewsPFIssueListHeader
+          {...defaultProps}
+          router={goodViewIdChangedEnvironmentsRouter}
+        />,
+        {organization, router: goodViewIdChangedEnvironmentsRouter}
+      );
+
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+    });
+
+    it('renders the unsaved changes indicator if the time filters have been changed', async () => {
+      const goodViewIdChangedTimeFiltersRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            viewId: getRequestViews[1]!.id,
+            statsPeriod: '7d',
+          },
+        }),
+      });
+
+      render(
+        <IssueViewsPFIssueListHeader
+          {...defaultProps}
+          router={goodViewIdChangedTimeFiltersRouter}
+        />,
+        {organization, router: goodViewIdChangedTimeFiltersRouter}
+      );
+
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
     });
   });
 
@@ -463,13 +601,8 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: getRequestViews,
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-        body: getRequestViews,
-      });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />);
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {organization});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -499,13 +632,13 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: getRequestViews,
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-        body: getRequestViews,
-      });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />);
+      render(
+        <IssueViewsPFIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+        {
+          organization,
+        }
+      );
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -534,13 +667,8 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: [getRequestViews[0]],
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-        body: [getRequestViews[0]],
-      });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />);
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {organization});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -574,7 +702,10 @@ describe('IssueViewsHeader', () => {
           body: getRequestViews,
         });
 
-        render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+          organization,
+          router: defaultRouter,
+        });
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -594,8 +725,8 @@ describe('IssueViewsHeader', () => {
         expect(defaultRouter.push).not.toHaveBeenCalled();
 
         // Make sure the put request is called, and the renamed view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(2);
-        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
         expect(putRequestViews).toHaveLength(3);
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
@@ -618,7 +749,10 @@ describe('IssueViewsHeader', () => {
           body: getRequestViews,
         });
 
-        render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+          organization,
+          router: defaultRouter,
+        });
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -629,8 +763,8 @@ describe('IssueViewsHeader', () => {
         );
 
         // Make sure the put request is called, and the duplicated view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(2);
-        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
         expect(putRequestViews).toHaveLength(4);
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
@@ -668,7 +802,10 @@ describe('IssueViewsHeader', () => {
           body: getRequestViews,
         });
 
-        render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+          organization,
+          router: defaultRouter,
+        });
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -677,8 +814,8 @@ describe('IssueViewsHeader', () => {
         await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
         // Make sure the put request is called, and the deleted view not in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(2);
-        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
         expect(putRequestViews).toHaveLength(2);
         expect(putRequestViews.every).not.toEqual(
           expect.objectContaining({id: getRequestViews[0]!.id})
@@ -706,8 +843,8 @@ describe('IssueViewsHeader', () => {
         });
 
         render(
-          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
-          {router: unsavedTabRouter}
+          <IssueViewsPFIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          {organization, router: unsavedTabRouter}
         );
 
         await userEvent.click(
@@ -719,8 +856,8 @@ describe('IssueViewsHeader', () => {
         );
 
         // Make sure the put request is called, and the saved view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(2);
-        const putRequestViews = mockPutRequest.mock.calls[1][1].data.views;
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
         expect(putRequestViews).toHaveLength(3);
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
@@ -746,8 +883,8 @@ describe('IssueViewsHeader', () => {
         });
 
         render(
-          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
-          {router: unsavedTabRouter}
+          <IssueViewsPFIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          {organization, router: unsavedTabRouter}
         );
 
         await userEvent.click(
@@ -758,7 +895,7 @@ describe('IssueViewsHeader', () => {
           await screen.findByRole('menuitemradio', {name: 'Discard Changes'})
         );
         // Just to be safe, make sure discarding changes does not trigger the put request
-        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        expect(mockPutRequest).toHaveBeenCalledTimes(0);
 
         // Make sure that the tab's original query is restored
         expect(unsavedTabRouter.push).toHaveBeenCalledWith(
@@ -786,11 +923,6 @@ describe('IssueViewsHeader', () => {
         body: [getRequestViews[0]],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-        body: [getRequestViews[0]],
-      });
-      MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues-count/`,
         method: 'GET',
         query: {
@@ -801,7 +933,10 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       expect(await screen.findByText('42')).toBeInTheDocument();
     });
@@ -810,11 +945,6 @@ describe('IssueViewsHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
-        body: getRequestViews,
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
         body: getRequestViews,
       });
       MockApiClient.addMockResponse({
@@ -827,7 +957,10 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       expect(await screen.findByText('42')).toBeInTheDocument();
       expect(screen.getByText('6')).toBeInTheDocument();
@@ -841,11 +974,6 @@ describe('IssueViewsHeader', () => {
         body: [getRequestViews[0]],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
-        body: [getRequestViews[0]],
-      });
-      MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues-count/`,
         method: 'GET',
         query: {
@@ -856,7 +984,10 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       expect(await screen.findByText('99+')).toBeInTheDocument();
     });
@@ -865,11 +996,6 @@ describe('IssueViewsHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
-        body: [getRequestViews[0]],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
-        method: 'PUT',
         body: [getRequestViews[0]],
       });
       MockApiClient.addMockResponse({
@@ -883,7 +1009,10 @@ describe('IssueViewsHeader', () => {
         },
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsPFIssueListHeader {...defaultProps} />, {
+        organization,
+        router: defaultRouter,
+      });
 
       expect(await screen.findByText('0')).toBeInTheDocument();
     });
