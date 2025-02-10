@@ -1,10 +1,14 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import {useInstantRef} from 'sentry/utils/metrics';
+export function useInstantRef<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
 
 type Breakpoint = keyof Theme['breakpoints'];
 export function checkBreakpoints(

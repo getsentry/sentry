@@ -42,7 +42,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -348,7 +347,6 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -566,7 +564,6 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
       ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),

@@ -14,7 +14,6 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -24,6 +23,20 @@ import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import type {ViewProps} from '../types';
 
 import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
+
+type MetricsApiResponse = {
+  end: string;
+  groups: MetricsGroup[];
+  intervals: string[];
+  query: string;
+  start: string;
+};
+
+type MetricsGroup = {
+  by: Record<string, string>;
+  series: Record<string, Array<number | null>>;
+  totals: Record<string, number | null>;
+};
 
 type Props = Omit<ViewProps, 'query' | 'start' | 'end'> & {
   end: DateString | null;

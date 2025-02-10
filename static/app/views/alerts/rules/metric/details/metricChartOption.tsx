@@ -11,7 +11,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
@@ -181,10 +180,7 @@ export function getMetricAlertChartOption({
     }
   }
 
-  const series: AreaChartSeries[] = timeseriesData.map(s => ({
-    ...s,
-    seriesName: s.seriesName && formatMRIField(s.seriesName),
-  }));
+  const series: AreaChartSeries[] = timeseriesData.map(s => s);
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
   series[0]!.z = 1;

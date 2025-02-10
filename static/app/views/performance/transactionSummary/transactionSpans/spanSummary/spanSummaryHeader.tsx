@@ -6,7 +6,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 
 type Props = {

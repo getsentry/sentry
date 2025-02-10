@@ -33,7 +33,6 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -52,12 +51,11 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
-type PairOfMetricSeries = [MetricSeries[], MetricSeries[]];
+type PairOfSeries = [Series[], Series[]];
 
 export enum ChartType {
   BAR = 0,
@@ -241,14 +239,8 @@ function Chart({
 
   // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
-    const metricChartType =
-      type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
     const seriesToShow = series.map(serie => {
-      const ingestionSeries = createIngestionSeries(
-        serie as MetricSeries,
-        ingestionBuckets,
-        metricChartType
-      );
+      const ingestionSeries = createIngestionSeries(serie, ingestionBuckets, type);
       // this helper causes all the incomplete series to stack, here we remove the stacking
       if (!stacked) {
         for (const s of ingestionSeries) {
@@ -258,8 +250,8 @@ function Chart({
       return ingestionSeries;
     });
 
-    [series, incompleteSeries] = seriesToShow.reduce<PairOfMetricSeries>(
-      (acc: PairOfMetricSeries, serie: MetricSeries[], index: number) => {
+    [series, incompleteSeries] = seriesToShow.reduce<PairOfSeries>(
+      (acc: PairOfSeries, serie: Series[], index: number) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
 
@@ -269,9 +261,9 @@ function Chart({
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
           ],
-        ] as PairOfMetricSeries;
+        ] as PairOfSeries;
       },
-      [[], []] as PairOfMetricSeries
+      [[], []] as PairOfSeries
     );
   }
 

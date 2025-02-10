@@ -72,7 +72,6 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
@@ -1096,10 +1095,6 @@ function OpenButton({
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
-      break;
-    case WidgetType.METRICS:
-      openLabel = t('Open in Metrics');
-      path = getWidgetMetricsUrl(widget, selection, organization);
       break;
     case WidgetType.SPANS:
       openLabel = t('Open in Explore');
