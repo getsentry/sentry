@@ -73,7 +73,9 @@ function EditAccessSelector({
         : [],
   });
   const {teams: allSelectedTeams} = useTeamsById({
-    ids: selectedOptions.filter(option => option !== '_allUsers'),
+    ids: selectedOptions.filter(
+      option => option !== '_allUsers' && option !== '_creator'
+    ),
   });
 
   // Gets selected options for the dropdown from dashboard object
