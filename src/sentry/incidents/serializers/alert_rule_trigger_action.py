@@ -209,7 +209,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             organization_id=getattr(self.context["organization"], "id"),
         )
         if features.has(
-            "organizations:workflow-engine-metric-alert-processing",
+            "organizations:workflow-engine-metric-alert-dual-write",
             action.alert_rule_trigger.alert_rule.organization,
         ):
             migrate_metric_action(action)

@@ -811,7 +811,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_delete_trigger_dual_update_resolve(self):
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
@@ -842,7 +842,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_update_trigger_threshold_dual_update_resolve(self):
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
@@ -881,7 +881,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_update_trigger_threshold_dual_update_resolve_noop(self):
         """
         If there is an explicit resolve threshold on an alert rule, then updating triggers should
@@ -907,7 +907,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # remains unchanged
         assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_remove_resolve_threshold_dual_update_resolve(self):
         """
         If we set the remove the resolve threshold from an alert rule, then we need to update the
