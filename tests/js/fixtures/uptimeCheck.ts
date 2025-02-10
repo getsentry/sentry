@@ -10,7 +10,6 @@ export function UptimeCheckFixture(params: Partial<UptimeCheck> = {}): UptimeChe
     projectUptimeSubscriptionId: 40123,
     region: 'us-west',
     scheduledCheckTime: '2025-01-01T00:00:00Z',
-    // TODO(epurkhiser): This hasn't been implemented on the backend yet
     statusCode: '200',
     timestamp: '2025-01-01T00:00:00Z',
     traceId: '97f0e440317c5bb5b5e0024ca202a61d',
