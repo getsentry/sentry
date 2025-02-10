@@ -9,13 +9,9 @@ import type {
   RoutableModuleNames,
   URLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {
-  DOMAIN_VIEW_BASE_TITLE,
-  DOMAIN_VIEW_BASE_URL,
-} from 'sentry/views/insights/pages/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -239,10 +235,6 @@ function getInsightsModuleBreadcrumbs(
 
   if (view && DOMAIN_VIEW_TITLES[view]) {
     crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
-    });
-    crumbs.push({
       label: DOMAIN_VIEW_TITLES[view],
       to: getBreadCrumbTarget(
         `${DOMAIN_VIEW_BASE_URL}/${view}/`,
@@ -267,14 +259,6 @@ function getInsightsModuleBreadcrumbs(
     moduleName = TRACE_SOURCE_TO_INSIGHTS_MODULE[
       location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
     ] as RoutableModuleNames;
-    crumbs.push({
-      label: MODULE_TITLES[moduleName],
-      to: getBreadCrumbTarget(
-        `${moduleURLBuilder(moduleName, view)}/`,
-        location.query,
-        organization
-      ),
-    });
   }
 
   switch (moduleName) {
