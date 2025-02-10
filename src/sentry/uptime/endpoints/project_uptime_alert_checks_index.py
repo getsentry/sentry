@@ -145,7 +145,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     label="trace_id",
                     key=AttributeKey(name="trace_id", type=AttributeKey.Type.TYPE_STRING),
                 ),
-                # TODO: Add http_status_code once nullable problem figured out
+                Column(
+                    label="http_status_code",
+                    key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_INT),
+                ),
             ],
             order_by=[
                 TraceItemTableRequest.OrderBy(
