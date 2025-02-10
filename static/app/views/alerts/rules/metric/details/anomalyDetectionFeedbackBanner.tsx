@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {useDismissable} from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';

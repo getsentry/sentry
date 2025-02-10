@@ -47,9 +47,6 @@ import {
 } from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
-import {parseField} from 'sentry/utils/metrics/mri';
-import type {MetricsWidget} from 'sentry/utils/metrics/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
@@ -369,40 +366,6 @@ export function getWidgetReleasesUrl(
     environment: selection.environments,
   })}`;
   return releasesLocation;
-}
-
-export function getWidgetMetricsUrl(
-  _widget: Widget,
-  selection: PageFilters,
-  organization: Organization
-) {
-  const {start, end, utc, period} = selection.datetime;
-  const datetime =
-    start && end
-      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-      : {statsPeriod: period};
-
-  // ensures that My Projects selection is properly handled
-  const project = selection.projects.length ? selection.projects : [0];
-
-  const metricsLocation = getMetricsUrl(organization.slug, {
-    ...datetime,
-    project,
-    environment: selection.environments,
-    widgets: _widget.queries.map(query => {
-      const parsed = parseField(query.aggregates[0]!);
-
-      return {
-        mri: parsed?.mri,
-        aggregation: parsed?.aggregation,
-        groupBy: query.columns,
-        query: query.conditions ?? '',
-        displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies Partial<MetricsWidget>;
-    }),
-  });
-
-  return metricsLocation;
 }
 
 export function flattenErrors(

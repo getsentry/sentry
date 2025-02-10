@@ -544,8 +544,7 @@ function TransactionBar(props: Props) {
     const rows: React.ReactElement[] = [];
     // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(transaction.timestamp - transaction.start_timestamp) || 1;
-    for (let i = 0; i < transaction.performance_issues.length; i++) {
-      const issue = transaction.performance_issues[i]!;
+    for (const issue of transaction.performance_issues) {
       const startPosition = Math.abs(issue.start - transaction.start_timestamp);
       const startPercentage = startPosition / delta;
       const duration = Math.abs(issue.end - issue.start);

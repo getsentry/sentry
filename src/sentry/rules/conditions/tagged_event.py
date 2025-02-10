@@ -36,7 +36,6 @@ class TaggedEventForm(forms.Form):
 
 class TaggedEventCondition(EventCondition):
     id = "sentry.rules.conditions.tagged_event.TaggedEventCondition"
-    form_cls = TaggedEventForm
     label = "The event's tags match {key} {match} {value}"
 
     form_fields = {
@@ -113,3 +112,6 @@ class TaggedEventCondition(EventCondition):
             [Columns.TAGS_KEY, Columns.TAGS_VALUE]
         )
         return columns
+
+    def get_form_instance(self) -> TaggedEventForm:
+        return TaggedEventForm(self.data)

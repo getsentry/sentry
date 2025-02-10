@@ -1,11 +1,9 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/alert';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -15,7 +13,6 @@ import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import {StoryExports} from 'sentry/views/stories/storyExports';
 import {StoryHeader} from 'sentry/views/stories/storyHeader';
-import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
 import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
@@ -90,18 +87,7 @@ export default function Stories() {
             </VerticalScroll>
           ) : story.isSuccess ? (
             <StoryMainContainer>
-              {story.data.map((s, _i, arr) => {
-                // We render extra information if this is the only story that is being rendered
-                if (arr.length === 1) {
-                  <Fragment key={s.filename}>
-                    <TextOverflow>{s.filename}</TextOverflow>
-                    <CopyToClipboardButton size="xs" iconSize="xs" text={s.filename} />
-                    <StorySourceLinks story={s} />
-                    <StoryExports story={s} />
-                  </Fragment>;
-                }
-
-                // Render just the story exports in case of multiple stories being rendered
+              {story.data.map(s => {
                 return <StoryExports key={s.filename} story={s} />;
               })}
             </StoryMainContainer>
