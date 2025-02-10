@@ -53,7 +53,7 @@ export function onRequest(context) {
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
-      'In this quick guide, you'll set up and configure the Sentry Cloudflare SDK for use in your Cloudflare Pages application. This will enable Sentry for the backend part of your application: the functions. If you'd like to monitor the frontend as well, refer to the instrumentation guide for [platformLink:the framework of your choice].',
+      "In this quick guide, you'll set up and configure the Sentry Cloudflare SDK for use in your Cloudflare Pages application. This will enable Sentry for the backend part of your application: the functions. If you'd like to monitor the frontend as well, refer to the instrumentation guide for [platformLink:the framework of your choice].",
       {
         platformLink: <ExternalLink href="https://docs.sentry.io/platforms/" />,
       }
