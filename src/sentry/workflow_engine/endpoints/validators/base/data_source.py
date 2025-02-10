@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Generic, TypeVar
 
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.db.models import Model
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
@@ -20,7 +20,7 @@ class DataSourceCreator(Generic[T]):
         return self._instance
 
 
-class BaseDataSourceValidator(CamelSnakeSerializer, Generic[T]):
+class BaseDataSourceValidator(CamelSnakeModelSerializer[T], Generic[T]):
     @property
     def data_source_type_handler(self) -> type[DataSourceTypeHandler]:
         raise NotImplementedError

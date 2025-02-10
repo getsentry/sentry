@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import orjson
@@ -31,7 +31,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
-    QUERY_TYPE_VALID_DATASETS,
     STRING_TO_ACTION_TARGET_TYPE,
     AlertRuleSerializer,
     AlertRuleTriggerActionSerializer,
@@ -48,6 +47,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.snuba_query_validator import QUERY_TYPE_VALID_DATASETS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -300,7 +300,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["triggers"].pop()
         serializer = AlertRuleSerializer(context=self.context, data=params)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         trigger = alert_rule.alertruletrigger_set.filter(label="critical").get()
         assert trigger.alert_threshold == alert_threshold
 
@@ -704,14 +704,14 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         base_params.update({"owner": f"team:{self.team.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
         base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         # Reload user for actor
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
@@ -742,7 +742,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.comparison_delta == 60 * 60
         assert alert_rule.resolve_threshold == 110
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
@@ -762,7 +762,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.comparison_delta == 60 * 60
         assert alert_rule.resolve_threshold == 90
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
@@ -780,7 +780,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             context=self.context, instance=alert_rule, data=params, partial=True
         )
         assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
+        alert_rule = cast(AlertRule, serializer.save())
         assert alert_rule.comparison_delta is None
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
