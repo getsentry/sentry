@@ -70,28 +70,3 @@ deprecated_event_errors = [
     EventError.JS_NO_COLUMN,
     EventError.TOO_LARGE_FOR_CACHE,
 ]
-
-
-def get_file_extension(filename):
-    segments = filename.split(".")
-    if len(segments) > 1:
-        return segments[-1]
-    return None
-
-
-def is_frame_filename_valid(frame):
-    filename = frame.abs_path
-    if not filename:
-        return False
-    try:
-        filename = filename.split("/")[-1]
-    except Exception:
-        pass
-
-    if frame.filename == "<anonymous>" and frame.in_app:
-        return False
-    elif frame.function in fileNameBlocklist:
-        return False
-    elif filename and not get_file_extension(filename):
-        return False
-    return True
