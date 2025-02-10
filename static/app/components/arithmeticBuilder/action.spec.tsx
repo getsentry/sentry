@@ -1,7 +1,6 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
-import {isTokenFreeText} from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 describe('useArithmeticBuilderAction', function () {
@@ -105,46 +104,6 @@ describe('useArithmeticBuilderAction', function () {
       dispatch: expect.any(Function),
       state: {
         query: '( )',
-        focusOverride: null,
-      },
-    });
-  });
-
-  it('updates free text token', function () {
-    const expression = '( foobar )';
-
-    const tokens = tokenizeExpression(expression);
-
-    const {result} = renderHook(
-      ({initialQuery}) =>
-        useArithmeticBuilderAction({
-          initialQuery,
-        }),
-      {
-        initialProps: {
-          initialQuery: expression,
-        },
-      }
-    );
-
-    const token = tokens[2];
-
-    if (!isTokenFreeText(token)) {
-      throw new Error('this should be a free text token');
-    }
-
-    act(() =>
-      result.current.dispatch({
-        type: 'UPDATE_FREE_TEXT',
-        token,
-        text: 'sum(span.duration)',
-      })
-    );
-
-    expect(result.current).toEqual({
-      dispatch: expect.any(Function),
-      state: {
-        query: '( sum(span.duration) )',
         focusOverride: null,
       },
     });

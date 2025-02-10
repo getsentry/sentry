@@ -1,7 +1,7 @@
 import type {Reducer} from 'react';
 import {useCallback, useReducer} from 'react';
 
-import type {Token, TokenFreeText} from 'sentry/components/arithmeticBuilder/token';
+import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {defined} from 'sentry/utils';
 
@@ -14,13 +14,6 @@ type ArithmeticBuilderDeleteAction = {
   type: 'DELETE_TOKEN';
 };
 
-type ArithmeticBuilderUpdateFreeTextAction = {
-  text: string;
-  token: TokenFreeText;
-  type: 'UPDATE_FREE_TEXT';
-  focusOverride?: FocusOverride;
-};
-
 type ArithmeticBuilderReplaceAction = {
   text: string;
   token: Token;
@@ -31,7 +24,6 @@ type ArithmeticBuilderReplaceAction = {
 export type ArithmeticBuilderAction =
   | ArithmeticBuilderUpdateResetFocusOverrideAction
   | ArithmeticBuilderDeleteAction
-  | ArithmeticBuilderUpdateFreeTextAction
   | ArithmeticBuilderReplaceAction;
 
 function isArithmeticBuilderUpdateResetFocusOverrideAction(
@@ -44,12 +36,6 @@ function isArithmeticBuilderDeleteAction(
   action: ArithmeticBuilderAction
 ): action is ArithmeticBuilderDeleteAction {
   return action.type === 'DELETE_TOKEN';
-}
-
-function isArithmeticBuilderUpdateFreeTextAction(
-  action: ArithmeticBuilderAction
-): action is ArithmeticBuilderUpdateFreeTextAction {
-  return action.type === 'UPDATE_FREE_TEXT';
 }
 
 function isArithmeticBuilderReplaceAction(
@@ -78,10 +64,6 @@ export function useArithmeticBuilderAction({
 
       if (isArithmeticBuilderDeleteAction(action)) {
         return deleteToken(state, action);
-      }
-
-      if (isArithmeticBuilderUpdateFreeTextAction(action)) {
-        return updateFreeText(state, action);
       }
 
       if (isArithmeticBuilderReplaceAction(action)) {
@@ -117,21 +99,6 @@ function deleteToken(
   return {
     ...state,
     query,
-  };
-}
-
-function updateFreeText(
-  state: ArithmeticBuilderState,
-  action: ArithmeticBuilderUpdateFreeTextAction
-): ArithmeticBuilderState {
-  const [head, tail] = queryHeadTail(state.query, action.token);
-  const query = removeExcessWhitespaceFromParts(head, action.text, tail);
-  return {
-    ...state,
-    query,
-    focusOverride: defined(action.focusOverride)
-      ? action.focusOverride
-      : state.focusOverride,
   };
 }
 
