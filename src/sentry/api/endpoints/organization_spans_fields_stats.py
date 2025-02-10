@@ -1,6 +1,5 @@
 from google.protobuf.json_format import MessageToDict
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
@@ -23,17 +22,10 @@ from sentry.utils import snuba_rpc
 
 
 class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
-    dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
-    # if values are not provided, we will use zeros and then snuba RPC will set the defaults
     # Top number of frequencies to return for each attribute, defaults in snuba to 10 and can't be more than 100
     max_buckets = serializers.IntegerField(required=False, min_value=0, max_value=100, default=10)
     # Total number of attributes to return, defaults in snuba to 10_000
     max_attributes = serializers.IntegerField(required=False, min_value=0)
-
-    def validate(self, attrs):
-        if attrs["dataset"] != "spans":
-            raise ParseError(detail='only using dataset="spans" is supported for this endpoint')
-        return attrs
 
 
 @region_silo_endpoint
@@ -76,7 +68,8 @@ class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
-                max_buckets=serialized["max_buckets"], max_attributes=serialized["max_attributes"]
+                max_buckets=serialized["max_buckets"],
+                max_attributes=serialized.get("max_attributes", 0),
             )
         )
 

@@ -18,8 +18,6 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         if features is None:
             features = ["organizations:performance-spans-fields-stats"]
 
-        if query and "dataset" not in query.keys():
-            query["dataset"] = "spans"
         if query and "type" not in query.keys():
             query["type"] = "string"
 
@@ -60,12 +58,6 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
     def test_no_feature(self):
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
-
-    def test_invalid_dataset(self):
-        self._generate_one_span()
-        response = self.do_request(query={"dataset": "transactions"})
-        assert response.status_code == 400
-        assert str(response.data["dataset"][0]) == '"transactions" is not a valid choice.'
 
     def test_invalid_params(self):
         self._generate_one_span()
