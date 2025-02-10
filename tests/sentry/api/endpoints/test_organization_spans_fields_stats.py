@@ -6,9 +6,9 @@ from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
+class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = True
-    view = "sentry-api-0-organization-spans-frequency-stats"
+    view = "sentry-api-0-organization-spans-fields-stats"
 
     def setUp(self):
         super().setUp()

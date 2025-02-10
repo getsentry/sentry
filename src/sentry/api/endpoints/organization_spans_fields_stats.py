@@ -22,7 +22,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 
 
-class OrganizationSpansFrequencyStatsEndpointSerializer(serializers.Serializer):
+class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
     # if values are not provided, we will use zeros and then snuba RPC will set the defaults
     # Top number of frequencies to return for each attribute, defaults in snuba to 10 and can't be more than 100
@@ -37,7 +37,7 @@ class OrganizationSpansFrequencyStatsEndpointSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
     snuba_methods = ["GET"]
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -58,7 +58,7 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
                 {"attributeDistributions": []}  # Empty response matching the expected structure
             )
 
-        serializer = OrganizationSpansFrequencyStatsEndpointSerializer(data=request.GET)
+        serializer = OrganizationSpansFieldsStatsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
@@ -89,5 +89,5 @@ class OrganizationSpansFrequencyStatsEndpoint(OrganizationEventsV2EndpointBase):
         rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
 
         response_data = MessageToDict(rpc_response)
-
-        return Response(response_data)
+        # Only return the results field from the response
+        return Response({"results": response_data.get("results", [])})
