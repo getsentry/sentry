@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -158,6 +159,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
 function IssueTagButton({tags}: {tags: GroupTag[]}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
+  const organization = useOrganization();
   if (tags.length === 0) {
     return (
       <HorizontalIssueTagsButton
@@ -176,19 +178,17 @@ function IssueTagButton({tags}: {tags: GroupTag[]}) {
   }
 
   return (
-    <IssueTagsButton
-      aria-label={t('View issue tag distributions')}
-      size="xs"
+    <IssueTagsLink
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
         query: location.query,
-        replace: true,
       }}
-      analyticsEventKey="issue_details.issue_tags_clicked"
-      analyticsEventName="Issue Details: Issue Tags Clicked"
+      onClick={() => {
+        trackAnalytics('issue_details.issue_tags_click', {organization});
+      }}
     >
-      {t('All Tags')}
-    </IssueTagsButton>
+      {t('View all tags')}
+    </IssueTagsLink>
   );
 }
 
@@ -256,7 +256,7 @@ export default function IssueTagsPreview({
       <Fragment>
         <SectionDivider />
         <IssueTagPreviewSection>
-          <Placeholder width="340px" height="100px" />
+          <Placeholder width="340px" height="90px" />
         </IssueTagPreviewSection>
       </Fragment>
     );
@@ -388,13 +388,12 @@ const LegendTitle = styled('div')`
   margin-bottom: ${space(0.75)};
 `;
 
-const IssueTagsButton = styled(LinkButton)`
-  display: block;
-  flex: 0;
-  height: unset;
-  text-align: center;
-  span {
-    white-space: unset;
+const IssueTagsLink = styled(Link)`
+  color: ${p => p.theme.purple300};
+  align-self: flex-end;
+
+  &:hover {
+    color: ${p => p.theme.purple400};
   }
 `;
 

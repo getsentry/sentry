@@ -132,6 +132,7 @@ export type IssueEventParameters = {
     content: string;
   };
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.issue_tags_click': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.related_trace_issue.trace_issue_clicked': {
@@ -391,6 +392,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Issues Banner Feedback Received',
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
+  'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
