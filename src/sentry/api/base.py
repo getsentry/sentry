@@ -375,6 +375,8 @@ class Endpoint(APIView):
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 
+        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
+
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
