@@ -2,7 +2,7 @@
 // the active org. Otherwise we will trigger an action that does nothing
 import 'sentry/stores/latestContextStore';
 
-import {useEffect} from 'react';
+import {useLayoutEffect} from 'react';
 
 import {type ApiResult, Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -24,7 +24,7 @@ const BOOTSTRAP_QUERY_GC_TIME = 10 * 60 * 1000;
 export function useBootstrapOrganizationQuery(orgSlug: string | null) {
   const organizationQuery = useQuery(getBootstrapOrganizationQueryOptions(orgSlug));
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (organizationQuery.data) {
       OrganizationStore.onUpdate(organizationQuery.data);
     }
@@ -39,7 +39,7 @@ export function useBootstrapOrganizationQuery(orgSlug: string | null) {
 export function useBootstrapTeamsQuery(orgSlug: string | null) {
   const teamsQuery = useQuery(getBoostrapTeamsQueryOptions(orgSlug));
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (teamsQuery.data) {
       TeamStore.loadInitialData(
         teamsQuery.data.teams,
@@ -55,7 +55,7 @@ export function useBootstrapTeamsQuery(orgSlug: string | null) {
 export function useBootstrapProjectsQuery(orgSlug: string | null) {
   const projectsQuery = useQuery(getBootstrapProjectsQueryOptions(orgSlug));
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (projectsQuery.data) {
       ProjectsStore.loadInitialData(projectsQuery.data);
     }
