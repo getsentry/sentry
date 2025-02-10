@@ -215,7 +215,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         assert remaining_conditions == [self.slow_condition]
 
     def test_execute_slow_conditions(self):
-        logic_result, condition_results, remaining_conditions = process_data_condition_group(
+        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
             self.data_condition_group,
             [10],
             False,

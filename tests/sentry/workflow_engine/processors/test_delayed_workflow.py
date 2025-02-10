@@ -621,12 +621,10 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.condition_group_results,
         )
 
+        # all dcgs except workflow 2 IF, which never passes
         assert result == {
-            self.group1.id: set(
-                self.workflow1_dcgs + [self.workflow2_dcgs[0]]
-            ),  # all dcgs except workflow 2 IF, which never passes
-            self.group2.id: {
-                self.workflow2_dcgs[0],
-                self.workflow1_dcgs[0],
-            },  # WHEN dcgs (ANY-short)
+            self.group1.id: set(self.workflow1_dcgs + [self.workflow2_dcgs[0]]),
+            self.group2.id: set(
+                self.workflow1_dcgs + [self.workflow2_dcgs[0]],
+            ),
         }

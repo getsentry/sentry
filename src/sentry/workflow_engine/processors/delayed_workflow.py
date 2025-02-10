@@ -25,6 +25,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
+from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.types import DataConditionHandlerType
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
@@ -238,9 +239,9 @@ def get_groups_to_fire(
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
     for dcg in data_condition_groups:
         slow_conditions = get_slow_conditions(dcg)
-        conditions_matched = 0
         action_match = dcg.logic_type
         for group_id in dcg_to_groups[dcg.id]:
+            conditions_to_evaluate = []
             for condition in slow_conditions:
                 unique_queries = generate_unique_queries(
                     condition, workflows_to_envs[dcg_to_workflow[dcg.id]]
@@ -249,34 +250,11 @@ def get_groups_to_fire(
                     condition_group_results[unique_query][group_id]
                     for unique_query in unique_queries
                 ]
+                conditions_to_evaluate.append((condition, query_values))
 
-                try:
-                    handler = condition_handler_registry.get(condition.type)
-                except NoRegistrationExistsError:
-                    logger.exception(
-                        "No registration exists for condition",
-                        extra={"type": condition.type, "id": condition.id},
-                    )
-                    continue
-
-                if not handler.evaluate_value(query_values, condition.comparison):
-                    continue
-
-                # TODO(cathy): replace this with logic evaluating the entire condition group with results from all slow conditions
-                # TODO: account for getting results for ANY types?
-                if action_match in (
-                    DataConditionGroup.Type.ANY,
-                    DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
-                ):
-                    groups_to_fire[group_id].add(dcg)
-                    break
-                elif action_match == DataConditionGroup.Type.ALL:
-                    conditions_matched += 1
-
-            if action_match == DataConditionGroup.Type.ALL and conditions_matched == len(
-                slow_conditions
-            ):
+            if evaluate_data_conditions(conditions_to_evaluate, action_match)[0]:
                 groups_to_fire[group_id].add(dcg)
+
     return groups_to_fire
 
 
