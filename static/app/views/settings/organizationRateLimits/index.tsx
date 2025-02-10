@@ -1,5 +1,5 @@
 import withOrganization from 'sentry/utils/withOrganization';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import OrganizationRateLimits from './organizationRateLimits';
 
@@ -13,7 +13,7 @@ function OrganizationRateLimitsContainer(
   return props.organization.access.includes('org:write') ? (
     <OrganizationRateLimits {...props} />
   ) : (
-    <PermissionAlert />
+    <OrganizationPermissionAlert />
   );
 }
 

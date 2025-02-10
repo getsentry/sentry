@@ -502,7 +502,7 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
   });
 
-  it('disables the aggregate selection when there is only one aggregate option', async () => {
+  it('disables the aggregate selection for issue widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -957,6 +957,60 @@ describe('Visualize', () => {
     const removeButtons = await screen.findAllByRole('button', {name: 'Remove field'});
     expect(removeButtons[0]).toBeEnabled();
     expect(removeButtons[1]).toBeDisabled();
+  });
+
+  it('shows draggable button when there is more than one field on non big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['transaction.duration', 'transaction.id'],
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(
+      2
+    );
+  });
+
+  it('allows for selecting a column from the aggregate dropdown', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+    // Component automatically populates the selection as a column
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'field (no aggregate)'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'message'
+    );
   });
 
   describe('spans', () => {

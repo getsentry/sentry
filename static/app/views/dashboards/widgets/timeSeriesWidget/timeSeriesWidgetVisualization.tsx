@@ -262,7 +262,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           }),
       ].filter(defined)}
       grid={{
-        left: 0,
+        // NOTE: Adding a few pixels of left padding prevents ECharts from
+        // incorrectly truncating long labels. See
+        // https://github.com/apache/echarts/issues/15562
+        left: 2,
         top: showLegend ? 25 : 10,
         right: 4,
         bottom: 0,
