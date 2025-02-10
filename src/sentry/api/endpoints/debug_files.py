@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import features, ratelimits
+from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -505,90 +505,11 @@ def batch_assemble(project, files):
         if file_info is None:
             continue
 
-        name, debug_id, chunks = file_info
-        assemble_dif.apply_async(
-            kwargs={
-                "project_id": project.id,
-                "name": name,
-                "debug_id": debug_id,
-                "checksum": checksum,
-                "chunks": chunks,
-            }
-        )
-
-        file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
-
-    return file_response
-
-
-def sequential_assemble(project, files):
-    """
-    Performs assembling in a sequential fashion, issuing queries for each file, identified by its `checksum`.
-    """
-    file_response = {}
-
-    for checksum, file_to_assemble in files.items():
-        name = file_to_assemble.get("name", None)
-        debug_id = file_to_assemble.get("debug_id", None)
-        chunks = file_to_assemble.get("chunks", [])
-
-        # First, check the cached assemble status. During assembling, a
-        # ProjectDebugFile will be created and we need to prevent a race
-        # condition.
-        state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
-        if state == ChunkFileState.OK:
-            file_response[checksum] = {
-                "state": state,
-                "detail": None,
-                "missingChunks": [],
-                "dif": detail,
-            }
-            continue
-        elif state is not None:
-            file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
-            continue
-
-        # Next, check if this project already owns the ProjectDebugFile.
-        # This can under rare circumstances yield more than one file
-        # which is why we use first() here instead of get().
-        dif = (
-            ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
-            .select_related("file")
-            .order_by("-id")
-            .first()
-        )
-
-        if dif is not None:
-            file_response[checksum] = {
-                "state": ChunkFileState.OK,
-                "detail": None,
-                "missingChunks": [],
-                "dif": serialize(dif),
-            }
-            continue
-
-        # There is neither a known file nor a cached state, so we will
-        # have to create a new file.  Assure that there are checksums.
-        # If not, we assume this is a poll and report NOT_FOUND
-        if not chunks:
-            file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
-            continue
-
-        # Check if all requested chunks have been uploaded.
-        missing_chunks = find_missing_chunks(project.organization.id, chunks)
-        if missing_chunks:
-            file_response[checksum] = {
-                "state": ChunkFileState.NOT_FOUND,
-                "missingChunks": missing_chunks,
-            }
-            continue
-
-        # We don't have a state yet, this means we can now start
-        # an assemble job in the background.
+        # We don't have a state yet, this means we can now start an assemble job in the background and mark
+        # this in the state.
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
-        from sentry.tasks.assemble import assemble_dif
-
+        name, debug_id, chunks = file_info
         assemble_dif.apply_async(
             kwargs={
                 "project_id": project.id,
@@ -647,16 +568,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        use_batch_assemble = features.has(
-            "organizations:batch-assemble-debug-files",
-            organization=project.organization,
-            actor=request.user,
-        )
-
-        if use_batch_assemble:
-            file_response = batch_assemble(project=project, files=files)
-        else:
-            file_response = sequential_assemble(project=project, files=files)
+        file_response = batch_assemble(project=project, files=files)
 
         return Response(file_response, status=200)
 
