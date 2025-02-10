@@ -81,7 +81,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         with patch(GET_TREES_FOR_ORG, side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
-            assert_failure_metric(mock_record, error)
+            assert_halt_metric(mock_record, error)
 
     def test_raises_generic_errors(self, mock_record: Any) -> None:
         with patch(GET_TREES_FOR_ORG, side_effect=Exception("foo")):
