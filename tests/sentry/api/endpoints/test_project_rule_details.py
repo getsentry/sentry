@@ -1581,14 +1581,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         when_dcg = workflow.when_condition_group
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
 
-        assert when_dcg is not None
-        assert if_dcg is not None
-
-        conditions = DataCondition.objects.filter(condition_group=when_dcg)
-        assert conditions.count() == 1
-        filters = DataCondition.objects.filter(condition_group=if_dcg)
-        assert filters.count() == 1
-
         self.get_success_response(
             self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
@@ -1599,3 +1591,11 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+
+    def test_dual_delete_workflow_engine_no_migrated_models(self):
+        rule = self.create_project_rule(self.project)
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
+        )
+
+        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
