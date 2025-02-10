@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -99,21 +98,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
-    def check_and_update_regions(self, subscription: UptimeSubscription, result: CheckResult):
+    def check_and_update_regions(self, subscription: UptimeSubscription):
         """
         This method will check if regions have been added or removed from our region configuration,
         and updates regions associated with this uptime monitor to reflect the new state. This is
         done probabilistically, so that the check is performed roughly once an hour for each uptime
         monitor.
         """
-        # Run region checks and updates once an hour
-        runs_per_hour = UptimeSubscription.IntervalSeconds.ONE_HOUR / subscription.interval_seconds
-        subscription_run = UUID(subscription.subscription_id).int % runs_per_hour
-        current_run = (
-            datetime.fromtimestamp(result["scheduled_check_time_ms"] / 1000, timezone.utc).minute
-            * 60
-        ) // subscription.interval_seconds
-        if subscription_run != current_run:
+        # Run region checks and updates roughly once an hour
+        chance_to_run = subscription.interval_seconds / timedelta(hours=1).total_seconds()
+        if random.random() >= chance_to_run:
             return
 
         subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
@@ -165,7 +159,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
-        self.check_and_update_regions(subscription, result)
+        self.check_and_update_regions(subscription)
 
         project_subscriptions = list(
             subscription.projectuptimesubscription_set.select_related(
