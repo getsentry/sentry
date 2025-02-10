@@ -242,7 +242,7 @@ describe('TableView > CellActions', function () {
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
-        query: 'tag:value !title:"some title"',
+        query: 'tag:value title:nope !title:"some title"',
       }),
     });
   });

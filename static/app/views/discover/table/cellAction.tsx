@@ -115,9 +115,6 @@ export function excludeFromFilter(
   key: string,
   value: React.ReactText | string[]
 ) {
-  // Remove positive if it exists.
-  oldFilter.removeFilter(key);
-
   // Negations should stack up.
   const negation = `!${key}`;
 
