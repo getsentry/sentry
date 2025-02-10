@@ -1,6 +1,4 @@
-import type {SentryTheme} from './theme';
-
-const chonkShared = {
+const _chonkShared = {
   space: {
     // @TODO(jonasbadalic): none doesn't need to exist
     // none: 0,
@@ -24,7 +22,7 @@ const chonkShared = {
   },
 };
 
-const chonkLightColors = {
+const _chonkLightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
   static: {
     black: '#181225',
@@ -106,7 +104,7 @@ const chonkLightColors = {
   },
 };
 
-const chonkDarkColors: typeof chonkLightColors = {
+const _chonkDarkColors: typeof chonkLightColors = {
   static: {
     black: '#181225',
     white: '#FFFFFF',
