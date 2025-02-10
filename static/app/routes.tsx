@@ -1297,6 +1297,12 @@ function buildRoutes() {
               path=":projectId/:uptimeRuleId/details/"
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
+            <Route
+              path="existing-or-create/"
+              component={make(
+                () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
+              )}
+            />
           </Route>
           <Route
             path="crons/"
