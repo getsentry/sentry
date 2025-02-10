@@ -123,7 +123,6 @@ def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     return parse_public_field(field)
 
 
-# TODO(ddm): implement this similar to parse_mri_field
 def parse_public_field(field: str) -> MetricField:
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
 

@@ -11,25 +11,16 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
 )
 from arroyo.types import Commit, Message, Partition
-from django.core.cache import cache
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
-from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
-from sentry.signals import first_custom_metric_received
-from sentry.snuba.metrics import parse_mri
-from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
 # 7 days of TTL.
 CACHE_TTL_IN_SECONDS = 60 * 60 * 24 * 7
-
-
-def _get_project_flag_updated_cache_key(org_id: int, project_id: int) -> str:
-    return f"has-custom-metrics-flag-updated:{org_id}:{project_id}"
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -75,7 +66,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = self._get_payload(message)
 
         self._produce_outcomes(payload)
-        self._flag_metric_received_for_project(payload)
 
         self.__next_step.submit(message)
 
@@ -133,30 +123,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             category=category,
             quantity=quantity,
         )
-
-    def _flag_metric_received_for_project(self, generic_metric: GenericMetric) -> None:
-        try:
-            org_id = generic_metric["org_id"]
-            project_id = generic_metric["project_id"]
-            metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
-
-            parsed_mri = parse_mri(metric_mri)
-            if parsed_mri is None or not is_custom_metric(parsed_mri):
-                return
-
-            # If the cache key is present, it means that we have already updated the metric flag for this project.
-            cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
-            if cache.get(cache_key) is not None:
-                return
-
-            project = Project.objects.get_from_cache(id=project_id)
-
-            if not project.flags.has_custom_metrics:
-                first_custom_metric_received.send_robust(project=project, sender=project)
-
-            cache.set(cache_key, "1", CACHE_TTL_IN_SECONDS)
-        except Project.DoesNotExist:
-            pass
 
     def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
         for _, inner_meta in mapping_meta.items():

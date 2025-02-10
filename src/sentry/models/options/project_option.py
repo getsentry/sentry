@@ -56,7 +56,6 @@ OPTION_KEYS = frozenset(
         "sentry:similarity_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
-        "sentry:metrics_extraction_rules",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
         "sentry:target_sample_rate",
