@@ -436,7 +436,7 @@ const appConfig: webpack.Configuration = {
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
-      getsentryimages: path.join(staticPrefix, 'getsentry-images'),
+      'getsentry-images': path.join(staticPrefix, 'getsentry-images'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
