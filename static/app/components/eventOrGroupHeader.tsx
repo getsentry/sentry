@@ -58,7 +58,7 @@ function EventOrGroupHeader({
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <ErrorBoundary customComponent={<EventTitleError />} mini>
+        <ErrorBoundary CustomComponent={EventTitleError} mini>
           <StyledEventOrGroupTitle
             data={data}
             // hasSeen is undefined for GroupTombstone

@@ -35,7 +35,7 @@ describe('ErrorBoundary', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
-      <ErrorBoundary customComponent={<div data-test-id="yikes" />}>
+      <ErrorBoundary CustomComponent={ErrorMessage}>
         <HelloComponent />
         <ErrorComponent />
       </ErrorBoundary>
@@ -43,6 +43,7 @@ describe('ErrorBoundary', () => {
 
     expect(screen.queryByText('hello')).not.toBeInTheDocument();
     expect(screen.getByTestId('yikes')).toBeInTheDocument();
+    expect(screen.getByText(/I really did it/)).toBeInTheDocument();
 
     errorSpy.mockRestore();
   });
@@ -67,7 +68,7 @@ describe('ErrorBoundary', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
-      <ErrorBoundary customComponent={null}>
+      <ErrorBoundary CustomComponent={null}>
         <HelloComponent />
         <ErrorComponent />
       </ErrorBoundary>
@@ -85,4 +86,8 @@ function HelloComponent() {
 
 function ErrorComponent(): React.ReactNode {
   throw new Error('I really did it this time');
+}
+
+function ErrorMessage({error}: {error: Error | null}) {
+  return <div data-test-id="yikes">{error?.message}, yikes</div>;
 }

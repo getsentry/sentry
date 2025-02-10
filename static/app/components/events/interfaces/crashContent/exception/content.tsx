@@ -200,7 +200,7 @@ export function Content({
           onExceptionClick={expandException}
         />
         {exc.stacktrace && isTopException && !isSampleError && (
-          <ErrorBoundary customComponent={null}>
+          <ErrorBoundary CustomComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
         )}

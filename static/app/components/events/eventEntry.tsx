@@ -154,11 +154,11 @@ function EventEntryContent({
 export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
-      customComponent={
+      CustomComponent={() => (
         <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
         </InterimSection>
-      }
+      )}
     >
       <EventEntryContent {...props} />
     </ErrorBoundary>

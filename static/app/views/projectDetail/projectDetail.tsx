@@ -207,7 +207,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
             </Layout.Header>
 
             <Layout.Body noRowGap>
-              <ErrorBoundary customComponent={null}>
+              <ErrorBoundary CustomComponent={null}>
                 {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               </ErrorBoundary>
               <Layout.Main>

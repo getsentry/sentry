@@ -13,11 +13,15 @@ type DefaultProps = {
   mini: boolean;
 };
 
+type CustomErrorComponentProps = {
+  error: Error | null;
+};
+
 type Props = DefaultProps & {
+  CustomComponent?: React.ComponentType<CustomErrorComponentProps> | null;
   children?: React.ReactNode;
   // To add context for better UX
   className?: string;
-  customComponent?: React.ReactNode;
   // To add context for better error reporting
   errorTag?: Record<string, string>;
 
@@ -94,10 +98,14 @@ class ErrorBoundary extends Component<Props, State> {
       return this.props.children;
     }
 
-    const {customComponent, mini, message, className} = this.props;
+    const {CustomComponent, mini, message, className} = this.props;
 
-    if (typeof customComponent !== 'undefined') {
-      return customComponent;
+    if (CustomComponent === null) {
+      return null;
+    }
+
+    if (CustomComponent) {
+      return <CustomComponent error={error} />;
     }
 
     if (mini) {

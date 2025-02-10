@@ -154,7 +154,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           <ErrorPanel error={error} />
         ) : (
           <ErrorBoundary
-            customComponent={<ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
+            CustomComponent={() => <ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
           >
             {props.children}
           </ErrorBoundary>
