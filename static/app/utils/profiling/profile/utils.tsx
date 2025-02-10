@@ -246,26 +246,26 @@ function indexNodeToParents(
       return;
     }
 
-    for (let i = 0; i < node.children.length; i++) {
-      indexNode(node.children[i]!, node); // iterating over non empty array
+    for (const child of node.children) {
+      indexNode(child, node);
     }
   }
 
   // Begin in each root node
-  for (let i = 0; i < roots.length; i++) {
+  for (const root of roots) {
     // If the root is a leaf node, push it to the leafs array
-    if (!roots[i]!.children?.length) {
-      leafs.push(roots[i]!);
+    if (!root.children?.length) {
+      leafs.push(root);
     }
 
     // Init the map for the root in case we havent yet
-    if (!map[roots[i]!.key]) {
-      map[roots[i]!.key] = [];
+    if (!map[root.key]) {
+      map[root.key] = [];
     }
 
     // descend down to each child and index them
-    for (let j = 0; j < roots[i]!.children.length; j++) {
-      indexNode(roots[i]!.children[j]!, roots[i]!);
+    for (const child of root.children) {
+      indexNode(child, root);
     }
   }
 }

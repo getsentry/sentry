@@ -147,11 +147,8 @@ class FlamegraphTextRenderer extends TextRenderer {
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          for (let i = 0; i < frameResults.match.length; i++) {
-            const highlightedBounds = computeHighlightedBounds(
-              frameResults.match[i]!,
-              trim
-            );
+          for (const match of frameResults.match) {
+            const highlightedBounds = computeHighlightedBounds(match, trim);
 
             const frontMatter = trim.text.slice(0, highlightedBounds[0]);
             const highlightWidth = this.measureAndCacheText(

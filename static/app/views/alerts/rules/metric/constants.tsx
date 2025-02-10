@@ -201,8 +201,7 @@ export function getAlertTimeWindow(period: string | undefined): TimeWindow | und
     .filter((value): value is TimeWindow => typeof value === 'number')
     .sort((a, b) => a - b);
 
-  for (let index = 0; index < timeWindows.length; index++) {
-    const timeWindow = timeWindows[index]!;
+  for (const timeWindow of timeWindows) {
     if (periodMinutes <= timeWindow) {
       return timeWindow;
     }

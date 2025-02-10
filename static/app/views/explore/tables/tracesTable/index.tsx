@@ -159,8 +159,8 @@ function TraceRow({
     const leadingProjects: string[] = [];
     const trailingProjects: string[] = [];
 
-    for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i]!.project;
+    for (const breakdown of trace.breakdowns) {
+      const project = breakdown.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }
