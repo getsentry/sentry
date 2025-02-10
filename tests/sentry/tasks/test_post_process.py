@@ -219,6 +219,12 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
         data.setdefault("platform", "javascript")
         return self.store_event(data=data, project_id=project_id or self.project.id)
 
+    def _generate_node_data(self, filename: str) -> dict[str, Any]:
+        return {
+            "stacktrace": {"frames": [{"filename": f"src/{filename}.py", "in_app": True}]},
+            "platform": "python",
+        }
+
     def _call_post_process_group(self, event: Event) -> None:
         self.call_post_process_group(
             is_new=True,
@@ -237,7 +243,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
         for platform in SUPPORTED_LANGUAGES:
-            event = self._create_event({"platform": platform})
+            event = self._create_event(self._generate_node_data("foo"))
             self._call_post_process_group(event)
 
             assert mock_derive_code_mappings.delay.call_count == 1
@@ -245,10 +251,10 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event = self._create_event({"fingerprint": ["themaiseymasieydog"]}, dogs_project.id)
-        charlie_event = self._create_event({"fingerprint": ["charliebear"]}, dogs_project.id)
-        cory_event = self._create_event({"fingerprint": ["thenudge"]}, dogs_project.id)
-        bodhi_event = self._create_event({"fingerprint": ["theescapeartist"]}, dogs_project.id)
+        maisey_event = self._create_event(self._generate_node_data("themaiseydog"), dogs_project.id)
+        charlie_event = self._create_event(self._generate_node_data("charliebear"), dogs_project.id)
+        cory_event = self._create_event(self._generate_node_data("thenudge"), dogs_project.id)
+        bodhi_event = self._create_event(self._generate_node_data("escapeartist"), dogs_project.id)
 
         self._call_post_process_group(maisey_event)
         assert mock_derive_code_mappings.delay.call_count == 1
@@ -270,10 +276,14 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event1 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
-        maisey_event2 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
-        maisey_event3 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
-        maisey_event4 = self._create_event({"fingerprint": ["themaiseymaiseydog"]}, dogs_project.id)
+        data = {
+            "stacktrace": {"frames": [{"filename": "src/app/example.py", "in_app": True}]},
+            "platform": "python",
+        }
+        maisey_event1 = self._create_event(data, dogs_project.id)
+        maisey_event2 = self._create_event(data, dogs_project.id)
+        maisey_event3 = self._create_event(data, dogs_project.id)
+        maisey_event4 = self._create_event(data, dogs_project.id)
         # because of the fingerprint, the events should always end up in the same group,
         # but the rest of the test is bogus if they aren't, so let's be sure
         assert maisey_event1.group_id == maisey_event2.group_id
@@ -300,9 +310,13 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
     def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
-        maisey_event = self._create_event({"fingerprint": ["themaiseymasieydog"]}, dogs_project.id)
-        charlie_event1 = self._create_event({"fingerprint": ["charliebear"]}, dogs_project.id)
-        charlie_event2 = self._create_event({"fingerprint": ["charliebear"]}, dogs_project.id)
+        maisey_event = self._create_event(self._generate_node_data("themaiseydog"), dogs_project.id)
+        charlie_event1 = self._create_event(
+            self._generate_node_data("charliebear"), dogs_project.id
+        )
+        charlie_event2 = self._create_event(
+            self._generate_node_data("charliebear"), dogs_project.id
+        )
         # because of the fingerprint, the two Charlie events should always end up in the same group,
         # but the rest of the test is bogus if they aren't, so let's be sure
         assert charlie_event1.group_id == charlie_event2.group_id
