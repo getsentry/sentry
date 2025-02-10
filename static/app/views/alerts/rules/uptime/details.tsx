@@ -42,6 +42,7 @@ import {
 
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
+import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
@@ -159,6 +160,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           </StyledPageFilterBar>
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
+          <UptimeChecksTable uptimeRule={uptimeRule} />
         </Layout.Main>
         <Layout.Side>
           <SectionHeading>{t('Checked URL')}</SectionHeading>
