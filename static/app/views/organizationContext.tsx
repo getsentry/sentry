@@ -59,10 +59,6 @@ function setRecentBootstrapTag(orgSlug: string) {
 /**
  * Context provider responsible for loading the organization into the
  * OrganizationStore if it is not already present.
- *
- * This provider *does not* immediately attempt to load the organization. A
- * child component must be responsible for calling `useEnsureOrganization` to
- * have the organization loaded.
  */
 export function OrganizationContextProvider({children}: Props) {
   const configStore = useLegacyStore(ConfigStore);
