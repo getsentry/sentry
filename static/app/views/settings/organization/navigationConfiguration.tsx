@@ -126,6 +126,14 @@ const organizationNavigation: NavigationSection[] = [
         show: ({organization}) =>
           !!organization && organization.features.includes('feature-flag-ui'),
       },
+      {
+        path: `${organizationSettingsPathPrefix}/stats/`,
+        title: t('Stats & Usage'),
+        description: t('View organization stats and usage'),
+        id: 'stats',
+        show: ({organization}) =>
+          organization?.features.includes('navigation-sidebar-v2') ?? false,
+      },
     ],
   },
   {
