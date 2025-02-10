@@ -92,11 +92,12 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         if features.has(
             "organizations:streamlined-publishing-flow", organization, actor=request.user
         ):
-            new_subject = "Your Sentry Integration Submission Confirmation"
+            new_subject = f"We've received your integration submission for {sentry_app.slug}"
             new_context = {
                 "questionnaire": questionnaire,
                 "actor": request.user,
                 "sentry_app": sentry_app,
+                "organization": organization,
             }
 
             template = "sentry/emails/sentry-app-publish-confirmation.txt"
@@ -111,7 +112,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             )
 
             # Must send to user & partners so that the reply-to email will be each other
-            recipients = ["partners@sentry.io", request.user.email]
+            recipients = ["christina.long@sentry.io", request.user.email]
             sent_messages = message.send(
                 to=recipients,
             )

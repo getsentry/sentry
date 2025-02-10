@@ -3,8 +3,7 @@
 {% autoescape off %}
 
 Thank you for your submission!
-This email confirms that user {{ actor.email }} has submitted the integration publishing form for {{ sentry_app.slug }}
-Please note our current processing time for integration publishing requests is 4–5 weeks.
+This email confirms that user {{ actor.email }} has submitted {{ sentry_app.slug }} for {{ organization.slug }}.
 
 Here're your responses to the submission form:
 -------
@@ -16,6 +15,8 @@ Here're your responses to the submission form:
 {% endfor %}
 -------
 Our team will review your submission to ensure it meets our guidelines.
+By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.
+Please note our current processing time for integration publishing requests is 4–5 weeks.
 You’ll hear from us once the integration is approved or if any changes are required.
 Thanks again for contributing to the Sentry community!
 
