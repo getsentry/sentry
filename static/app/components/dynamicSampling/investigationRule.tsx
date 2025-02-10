@@ -233,7 +233,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
         <Tooltip
           isHoverable
           title={tct(
-            'A user has temporarily adjusted retention priorities, increasing the odds of getting events matching your search query. [link:Learn more.]',
+            'A user has temporarily adjusted sampling priorities, increasing the odds of getting events matching your search query. [link:Learn more.]',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
@@ -254,7 +254,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       title={
         isTransactionQueryMissing
           ? tct(
-              'If you filter by [code:event.type:transaction] we can adjust your retention priorities, increasing the odds of getting matching events. [link:Learn more.]',
+              'If you filter by [code:event.type:transaction] we can adjust your sampling priorities, increasing the odds of getting matching events. [link:Learn more.]',
               {
                 code: <code />,
                 link: (
@@ -263,7 +263,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
               }
             )
           : tct(
-              'We can find more events that match your search query by adjusting your retention priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
+              'We can find more events that match your search query by adjusting your sampling priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
