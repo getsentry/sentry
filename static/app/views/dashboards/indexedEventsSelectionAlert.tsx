@@ -64,7 +64,7 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
               ) {
                 if (!widgetContainsErrorFields) {
                   return (
-                    <StoredDataAlert showIcon>
+                    <StoredDataAlert type="info" showIcon>
                       {tct(
                         "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                         {

@@ -10,16 +10,6 @@ import click
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
-_DEV_METRICS_INDEXER_ARGS = [
-    # We don't really need more than 1 process.
-    "--processes",
-    "1",
-    # Avoid Offset out of range errors.
-    "--auto-offset-reset",
-    "latest",
-    "--no-strict-offset-reset",
-]
-
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
 #     daemons += [_get_daemon("my_new_daemon")]

@@ -1813,8 +1813,6 @@ SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1  # relative to SENTRY_BACKEND_APM_SAMPLING
 
-SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
-
 SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
@@ -3088,9 +3086,6 @@ SENTRY_REPROCESSING_PAGE_SIZE = 10
 # is about "remaining events" exclusively.
 SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
-# XXX(meredith): Temporary metrics indexer
-SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
-
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with
 # save_event tasks from single project.
@@ -3439,9 +3434,6 @@ APIGATEWAY_PROXY_SKIP_RELAY = False
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
-
-# Disable DDM entirely
-SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
 
 SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
