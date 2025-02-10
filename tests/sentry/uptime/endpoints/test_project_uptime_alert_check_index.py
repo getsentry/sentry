@@ -57,6 +57,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             "checkStatus",
             "checkStatusReason",
             "traceId",
+            "httpStatusCode",
         ]:
             assert key in first, f"{key} not in {first}"
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id

@@ -2392,7 +2392,7 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "status_reason": None,
                 "trace_id": str(uuid.uuid4()),
                 "request_info": {
-                    "status_code": http_status,
+                    "http_status_code": http_status,
                 },
             }
         )
