@@ -15,7 +15,10 @@ function IssueListContainer({children}: Props) {
 
   return (
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer
+        skipLoadLastUsed={organization.features.includes('issue-views-page-filter')}
+        disablePersistence={organization.features.includes('issue-views-page-filter')}
+      >
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
