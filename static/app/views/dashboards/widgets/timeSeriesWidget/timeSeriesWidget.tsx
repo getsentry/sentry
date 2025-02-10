@@ -57,6 +57,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
           timeseries={timeseries}
           releases={props.releases}
           aliases={props.aliases}
+          stacked={props.stacked}
           dataCompletenessDelay={props.dataCompletenessDelay}
           timeseriesSelection={props.timeseriesSelection}
           onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
