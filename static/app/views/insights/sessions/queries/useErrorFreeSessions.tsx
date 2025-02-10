@@ -3,7 +3,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function useErrorFreeSessions() {
+interface Props {
+  groupByRelease?: boolean;
+}
+
+export default function useErrorFreeSessions({groupByRelease}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {
@@ -13,7 +17,13 @@ export default function useErrorFreeSessions() {
   } = useApiQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
-      {query: {...location.query, field: ['sum(session)'], groupBy: ['session.status']}},
+      {
+        query: {
+          ...location.query,
+          field: ['sum(session)'],
+          groupBy: groupByRelease ? ['session.status', 'release'] : ['session.status'],
+        },
+      },
     ],
     {staleTime: 0}
   );
@@ -31,6 +41,65 @@ export default function useErrorFreeSessions() {
       seriesData: [],
       isPending: false,
       error,
+    };
+  }
+
+  if (groupByRelease) {
+    // Group the data by release first
+    const releaseGroups = new Map<string, typeof sessionsData.groups>();
+    sessionsData.groups.forEach(group => {
+      const release = group.by.release?.toString() ?? '';
+      if (!releaseGroups.has(release)) {
+        releaseGroups.set(release, []);
+      }
+      releaseGroups.get(release)!.push(group);
+    });
+
+    // Calculate healthy percentage for each release
+    const healthySessionsPercentageData: number[][] = [];
+    const releases: string[] = [];
+
+    releaseGroups.forEach((groups, release) => {
+      releases.push(release);
+
+      // Get series data for each session status
+      const healthySeries =
+        groups.find(g => g.by['session.status'] === 'healthy')?.series['sum(session)'] ??
+        [];
+      const abnormalSeries =
+        groups.find(g => g.by['session.status'] === 'abnormal')?.series['sum(session)'] ??
+        [];
+      const crashedSeries =
+        groups.find(g => g.by['session.status'] === 'crashed')?.series['sum(session)'] ??
+        [];
+      const erroredSeries =
+        groups.find(g => g.by['session.status'] === 'errored')?.series['sum(session)'] ??
+        [];
+
+      // Calculate percentage for each point in time
+      const percentages = healthySeries.map((healthy, idx) => {
+        const total =
+          healthy +
+          (abnormalSeries[idx] || 0) +
+          (crashedSeries[idx] || 0) +
+          (erroredSeries[idx] || 0);
+        return total > 0 ? healthy / total : 1;
+      });
+
+      healthySessionsPercentageData.push(percentages);
+    });
+
+    return {
+      seriesData: [],
+      mobileSeriesData: healthySessionsPercentageData.map(releaseData =>
+        releaseData.map((val, idx) => ({
+          name: sessionsData.intervals[idx] ?? '',
+          value: val,
+        }))
+      ),
+      releases,
+      isPending: false,
+      error: null,
     };
   }
 
