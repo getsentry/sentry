@@ -5,21 +5,18 @@ import {Alert, type AlertProps} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 
-interface PermissionAlertProps extends Omit<AlertProps, 'type'> {
+export interface OrganizationPermissionAlertProps extends Omit<AlertProps, 'type'> {
   access?: Scope[];
   message?: ReactNode;
 }
 
-/**
- * @deprecated Use `OrganizationPermissionAlert` instead.
- */
-function PermissionAlert({
+export function OrganizationPermissionAlert({
   access = ['org:write'],
   message = t(
     'These settings can only be edited by users with the organization owner or manager role.'
   ),
   ...props
-}: PermissionAlertProps) {
+}: OrganizationPermissionAlertProps) {
   return (
     <Access access={access}>
       {({hasAccess}) =>
@@ -33,4 +30,4 @@ function PermissionAlert({
   );
 }
 
-export default PermissionAlert;
+export default OrganizationPermissionAlert;

@@ -43,7 +43,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
@@ -543,7 +543,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-        <PermissionAlert access={['org:integrations']} />
+        <OrganizationPermissionAlert access={['org:integrations']} />
         <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">

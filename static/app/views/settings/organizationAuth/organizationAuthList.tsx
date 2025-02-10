@@ -11,7 +11,7 @@ import {descopeFeatureName} from 'sentry/utils';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import ProviderItem from './providerItem';
 
@@ -69,7 +69,7 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
   return (
     <div className="sso">
       <SettingsPageHeader title="Authentication" />
-      <PermissionAlert />
+      <OrganizationPermissionAlert />
       <Panel>
         <PanelHeader>{t('Choose a provider')}</PanelHeader>
         <PanelBody>

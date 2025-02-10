@@ -17,7 +17,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -67,7 +67,7 @@ export function RelayWrapper() {
           </Button>
         }
       />
-      <PermissionAlert />
+      <OrganizationPermissionAlert />
       <TextBlock>
         {tct(
           'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
