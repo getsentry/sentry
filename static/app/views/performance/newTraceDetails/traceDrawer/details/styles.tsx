@@ -140,21 +140,21 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
 }
 
 function SubtitleWithCopyButton({
-  text,
-  hideCopyButton = false,
+  subTitle,
+  clipboardText,
 }: {
-  text: string;
-  hideCopyButton?: boolean;
+  clipboardText: string;
+  subTitle: string;
 }) {
   return (
     <SubTitleWrapper>
-      <StyledSubTitleText>{text}</StyledSubTitleText>
-      {!hideCopyButton ? (
+      <StyledSubTitleText>{subTitle}</StyledSubTitleText>
+      {clipboardText ? (
         <CopyToClipboardButton
           borderless
           size="zero"
           iconSize="xs"
-          text={text}
+          text={clipboardText}
           tooltipProps={{disabled: true}}
         />
       ) : null}
