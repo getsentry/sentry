@@ -204,7 +204,9 @@ def get_hash_basis_and_metadata(
     return hash_basis, hashing_metadata
 
 
-def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> None:
+def record_grouphash_metadata_metrics(
+    grouphash_metadata: GroupHashMetadata, platform: str | None
+) -> None:
     # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but theoretically on
     # track for 3.14), we can mark the various hashing metadata types as closed and that should
     # narrow the types for the tag values such that we can stop stringifying everything

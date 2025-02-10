@@ -143,7 +143,8 @@ def _assert_and_snapshot_results(
 
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
-            GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata)
+            GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata),
+            event.platform,
         )
 
         metric_names = [call.args[0] for call in mock_metrics_incr.mock_calls]
