@@ -9,7 +9,7 @@ import type {
   RoutableModuleNames,
   URLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -225,7 +225,7 @@ function getDashboardsBreadCrumbs(organization: Organization, location: Location
   return crumbs;
 }
 
-function getInsightsModuleBreadcrumbs(
+export function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
   moduleURLBuilder: URLBuilder,
@@ -235,8 +235,12 @@ function getInsightsModuleBreadcrumbs(
 
   if (view && DOMAIN_VIEW_TITLES[view]) {
     crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
+      label: DOMAIN_VIEW_TITLES[view],
+      to: getBreadCrumbTarget(
+        `${DOMAIN_VIEW_BASE_URL}/${view}/`,
+        location.query,
+        organization
+      ),
     });
   } else {
     crumbs.push({
