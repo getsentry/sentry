@@ -23,8 +23,7 @@ T = TypeVar("T")
 
 @dataclasses.dataclass
 class DataPacket(Generic[T]):
-    # TODO - @saponifi3d - update this to source_id to match, when implementing
-    query_id: str
+    source_id: str
     packet: T
 
 
