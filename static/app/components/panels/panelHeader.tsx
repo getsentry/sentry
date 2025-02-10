@@ -33,8 +33,7 @@ const PanelHeader = styled('div')<Props>`
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: calc(${p => p.theme.borderRadius} - 1px)
-    calc(${p => p.theme.borderRadius} - 1px) 0 0;
+  border-radius: calc(${p => p.theme.borderRadius}) calc(${p => p.theme.borderRadius}) 0 0;
   background: ${p => p.theme.backgroundSecondary};
   line-height: 1;
   position: relative;
