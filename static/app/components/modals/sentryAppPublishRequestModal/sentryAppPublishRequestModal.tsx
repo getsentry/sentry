@@ -110,9 +110,12 @@ export function SentryAppPublishRequestModal(props: Props) {
         label: (
           <Fragment>
             {t(
-              'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on'
+              'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on '
             )}
-            <a href="https://sentry.io/integrations/"> {t('Sentry Integrations')}</a>.
+            <a target="_blank" href="https://sentry.io/integrations/" rel="noreferrer">
+              {t('Sentry Integrations')}
+            </a>
+            .
           </Fragment>
         ),
         autosize: true,
@@ -126,9 +129,12 @@ export function SentryAppPublishRequestModal(props: Props) {
         meta: 'Select what category best describes your integration.',
         label: (
           <Fragment>
-            {t('Select what category best describes your integration.')}
-            <a href="https://sentry.io/integrations/">
-              {' '}
+            {t('Select what category best describes your integration. ')}
+            <a
+              target="_blank"
+              href="https://docs.sentry.io/organization/integrations/"
+              rel="noreferrer"
+            >
               {t('Documentation for reference.')}
             </a>
           </Fragment>
