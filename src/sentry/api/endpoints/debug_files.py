@@ -505,8 +505,8 @@ def batch_assemble(project, files):
         if file_info is None:
             continue
 
-        # We don't have a state yet, this means we can now start
-        # an assemble job in the background.
+        # We don't have a state yet, this means we can now start an assemble job in the background and mark
+        # this in the state.
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
         name, debug_id, chunks = file_info
