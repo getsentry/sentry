@@ -4,11 +4,11 @@ import BarSeries from 'sentry/components/charts/series/barSeries';
 
 import type {TimeseriesData} from '../../common/types';
 
-export function BarChartWidgetSeries(timeserie: TimeseriesData) {
+export function BarChartWidgetSeries(timeserie: TimeseriesData, stack?: string) {
   return BarSeries({
     name: timeserie.field,
     color: timeserie.color,
-    stack: 'complete',
+    stack,
     animation: false,
     itemStyle: {
       color: params => {
