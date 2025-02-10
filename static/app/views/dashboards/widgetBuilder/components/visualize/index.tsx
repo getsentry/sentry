@@ -225,7 +225,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions: Array<SelectValue<string>>;
+  let spanColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
   if (state.dataset === WidgetType.SPANS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
@@ -270,22 +270,12 @@ function Visualize({error, setError}: VisualizeProps) {
       }),
     ];
     spanColumnOptions.sort((a, b) => {
-      if (!a.label && b.label) {
+      if (a.label < b.label) {
         return -1;
       }
 
-      if (a.label && !b.label) {
+      if (a.label > b.label) {
         return 1;
-      }
-
-      if (a.label && b.label) {
-        if (a.label < b.label) {
-          return -1;
-        }
-
-        if (a.label > b.label) {
-          return 1;
-        }
       }
 
       return 0;
