@@ -1,14 +1,14 @@
 import partition from 'lodash/partition';
 
-import type {TimeseriesData} from '../common/types';
+import type {TimeSeries, TimeSeriesItem} from '../common/types';
 
 import {markDelayedData} from './markDelayedData';
 
 export function splitSeriesIntoCompleteAndIncomplete(
-  serie: TimeseriesData,
+  timeSeries: TimeSeries,
   delay: number
-): Array<TimeseriesData | undefined> {
-  const markedTimeserie = markDelayedData(serie, delay);
+): Array<TimeSeries | undefined> {
+  const markedTimeserie = markDelayedData(timeSeries, delay);
 
   const [completeData, incompleteData] = partition(
     markedTimeserie.data,
@@ -29,13 +29,13 @@ export function splitSeriesIntoCompleteAndIncomplete(
   return [
     completeData.length > 0
       ? {
-          ...serie,
+          ...timeSeries,
           data: completeData.map(discardDelayProperty),
         }
       : undefined,
     incompleteData.length > 0
       ? {
-          ...serie,
+          ...timeSeries,
           data: incompleteData.map(discardDelayProperty),
         }
       : undefined,
@@ -43,8 +43,8 @@ export function splitSeriesIntoCompleteAndIncomplete(
 }
 
 function discardDelayProperty(
-  datum: TimeseriesData['data'][number]
-): Omit<TimeseriesData['data'][number], 'delayed'> {
+  datum: TimeSeriesItem
+): Omit<TimeSeries['data'][number], 'delayed'> {
   const {delayed: _delayed, ...other} = datum;
   return other;
 }

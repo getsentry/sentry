@@ -1,18 +1,18 @@
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
-import type {TimeseriesData} from '../../common/types';
+import type {TimeSeries} from '../../common/types';
 
-export function CompleteAreaChartWidgetSeries(timeserie: TimeseriesData) {
+export function CompleteAreaChartWidgetSeries(timeSeries: TimeSeries) {
   return LineSeries({
-    name: timeserie.field,
-    color: timeserie.color,
+    name: timeSeries.field,
+    color: timeSeries.color,
     stack: 'complete',
     animation: false,
     areaStyle: {
-      color: timeserie.color,
+      color: timeSeries.color,
       opacity: 1.0,
     },
-    data: timeserie.data.map(datum => {
+    data: timeSeries.data.map(datum => {
       return [datum.timestamp, datum.value];
     }),
   });
