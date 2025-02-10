@@ -30,7 +30,7 @@ class ConditionTestCase(BaseWorkflowTest):
 
     def translate_to_data_condition(
         self, data: dict[str, Any], dcg: DataConditionGroup
-    ) -> DataCondition | None:
+    ) -> DataCondition:
         return dual_write_condition(data, dcg)
 
     def assert_passes(self, data_condition: DataCondition, job: WorkflowJob) -> None:
