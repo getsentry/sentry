@@ -1,11 +1,16 @@
+from datetime import timedelta
+
 from rest_framework import serializers
 
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
+from sentry.snuba.subscriptions import update_snuba_query
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
     NumericComparisonConditionValidator,
 )
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -38,3 +43,84 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         if len(conditions) > 2:
             raise serializers.ValidationError("Too many conditions")
         return attrs
+
+    def update_data_conditions(self, instance, data_conditions):
+        """
+        Update the data condition if it already exists, create one if it does not
+        """
+        if instance.workflow_condition_group:
+            try:
+                data_condition_group = DataConditionGroup.objects.get(
+                    id=instance.workflow_condition_group.id
+                )
+            except DataConditionGroup.DoesNotExist:
+                raise serializers.ValidationError("DataConditionGroup not found, can't update")
+        # else make one if data is passed?
+
+        for data_condition in data_conditions:
+            current_data_condition = DataCondition.objects.get(
+                id=data_condition.get("id"), condition_group=data_condition_group
+            )
+            # XXX: we pass 'result' rather than 'condition_result' - enforced by the NumericComparisonConditionValidator
+            updated_values = {
+                "type": data_condition.get("type", current_data_condition.type),
+                "comparison": data_condition.get("comparison", current_data_condition.comparison),
+                "condition_result": data_condition.get(
+                    "result", current_data_condition.condition_result
+                ),
+            }
+            if current_data_condition:
+                data_condition.update(**updated_values)
+            return instance.workflow_condition_group
+
+            DataCondition.objects.create(
+                type=data_conditions.get("type"),
+                comparison=data_conditions.get("comparison"),
+                condition_result=data_conditions.get("result"),
+                workflow_condition_group=data_condition_group,
+            )
+        return data_condition_group
+
+    def update_data_source(self, instance, data_source):
+        for source in data_source:
+            try:
+                source_instance = DataSource.objects.get(detector=instance)
+            except DataSource.DoesNotExist:
+                continue
+            if source_instance:
+                try:
+                    snuba_query = SnubaQuery.objects.get(id=source_instance.query_id)
+                except SnubaQuery.DoesNotExist:
+                    raise serializers.ValidationError("SnubaQuery not found, can't update")
+
+            event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+            update_snuba_query(
+                snuba_query=snuba_query,
+                query_type=source.get("query_type", snuba_query.type),
+                dataset=source.get("dataset", snuba_query.dataset),
+                query=source.get("query", snuba_query.query),
+                aggregate=source.get("aggregate", snuba_query.aggregate),
+                time_window=source.get("time_window", timedelta(seconds=snuba_query.time_window)),
+                resolution=timedelta(seconds=source.get("resolution", snuba_query.resolution)),
+                environment=source.get("environment", snuba_query.environment),
+                event_types=source.get("event_types", [event_types]),
+            )
+            # TODO handle adding an additional DataSource
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        instance.type = validated_data.get("group_type", instance.group_type).slug
+        data_conditions = validated_data.pop("data_conditions")
+        if data_conditions:
+            instance.workflow_condition_group = self.update_data_conditions(
+                instance, data_conditions
+            )
+
+        data_source = validated_data.pop(
+            "data_source"
+        )  # TODO this IS a m2m, should be updated to data_sources plural
+        if data_source:
+            self.update_data_source(instance, data_source)
+
+        instance.save()
+        return instance
