@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.projects.project_rules.creator import ProjectRuleCreator
@@ -140,3 +142,44 @@ class TestProjectRuleCreator(TestCase):
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    @patch("sentry.projects.project_rules.creator.migrate_issue_alert")
+    def test_dual_create_workflow_engine__fails(self, mock_migrate):
+        mock_migrate.side_effect = Exception("oh no")
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "key": "foo",
+                "match": "eq",
+                "value": "bar",
+            },
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "foo",
+                "match": "is",
+            },
+        ]
+
+        rule = ProjectRuleCreator(
+            name="New Cool Rule",
+            owner=Actor.from_id(user_id=self.user.id),
+            project=self.project,
+            action_match="any",
+            filter_match="all",
+            conditions=conditions,
+            environment=self.environment.id,
+            actions=[
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                }
+            ],
+            frequency=5,
+        ).run()
+
+        rule_id = rule.id
+
+        # creating the rule does not fail, creating workflow engine objects does
+        assert not AlertRuleDetector.objects.filter(rule_id=rule_id).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule_id).exists()

@@ -32,8 +32,14 @@ class ProjectRuleCreator:
             if features.has(
                 "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
             ):
-                # TODO(cathy): handle errors from broken actions
-                migrate_issue_alert(self.rule, self.request.user.id if self.request else None)
+                try:
+                    with transaction.atomic(router.db_for_write(Rule)):
+                        # TODO(cathy): handle errors from broken actions
+                        migrate_issue_alert(
+                            self.rule, self.request.user.id if self.request else None
+                        )
+                except Exception:
+                    pass
 
             return self.rule
 

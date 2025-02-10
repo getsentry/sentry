@@ -159,6 +159,16 @@ class RuleMigrationHelpersTest(APITestCase):
         dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
         assert dc.condition_group.logic_type == DataConditionGroup.Type.ALL
 
+    def test_create_issue_no_double_migrate(self):
+        migrate_issue_alert(self.issue_alert, self.user.id)
+        migrate_issue_alert(self.issue_alert, self.user.id)
+
+        # there should be only 1
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule=self.issue_alert)
+        Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+        Detector.objects.get(id=issue_alert_detector.detector.id)
+
     def test_update_issue_alert(self):
         migrate_issue_alert(self.issue_alert, self.user.id)
         conditions_payload = [

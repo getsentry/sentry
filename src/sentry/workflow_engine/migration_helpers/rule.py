@@ -38,7 +38,10 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
     error_detector, _ = Detector.objects.get_or_create(
         type=ErrorGroupType.slug, project=project, defaults={"config": {}, "name": "Error Detector"}
     )
-    AlertRuleDetector.objects.create(detector=error_detector, rule=rule)
+    _, created = AlertRuleDetector.objects.get_or_create(detector=error_detector, rule=rule)
+    if not created:
+        logger.info("Issue alert already migrated", extra={"rule_id": rule.id})
+        return
 
     conditions, filters = split_conditions_and_filters(data["conditions"])
     when_dcg = create_when_dcg(
