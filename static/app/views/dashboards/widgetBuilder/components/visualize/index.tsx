@@ -230,7 +230,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions: any;
+  let spanColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
   if (state.dataset === WidgetType.SPANS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
@@ -274,7 +274,6 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    // @ts-expect-error TS(7006): Parameter 'a' implicitly has an 'any' type.
     spanColumnOptions.sort((a, b) => {
       if (a.label < b.label) {
         return -1;
@@ -398,23 +397,57 @@ function Visualize({error, setError}: VisualizeProps) {
                   columnFilterMethod ?? (() => true)
                 );
 
-                let aggregateOptions: Array<{
-                  label: string | React.ReactNode;
-                  trailingItems: React.ReactNode | null;
-                  value: string;
-                  textValue?: string;
-                }> = aggregates.map(option => ({
+                let aggregateOptions: Array<
+                  | {
+                      label: string | React.ReactNode;
+                      trailingItems: React.ReactNode | null;
+                      value: string;
+                      textValue?: string;
+                    }
+                  | SelectValue<string>
+                > = aggregates.map(option => ({
                   value: option.value.meta.name,
                   label: option.value.meta.name,
                   trailingItems:
                     renderTag(option.value.kind, option.value.meta.name) ?? null,
                 }));
-                aggregateOptions =
-                  isChartWidget ||
-                  isBigNumberWidget ||
-                  (state.dataset === WidgetType.RELEASE && !canDelete)
-                    ? aggregateOptions
-                    : [NONE_AGGREGATE, ...aggregateOptions];
+
+                // TODO: These options should be exposing other Release health options such as
+                // environment, project, release, session.status
+                if (
+                  !isChartWidget &&
+                  !isBigNumberWidget &&
+                  !(state.dataset === WidgetType.RELEASE && !canDelete)
+                ) {
+                  const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
+
+                  if (state.dataset === WidgetType.ISSUE) {
+                    // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
+                    aggregateOptions = baseOptions;
+                  } else if (state.dataset === WidgetType.SPANS) {
+                    // Add span column options for Spans dataset
+                    aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                  } else {
+                    // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
+                    aggregateOptions = [
+                      ...baseOptions,
+
+                      // Iterate over fieldOptions so we can show all of the fields without any filtering
+                      // imposed by the aggregate filtering its possible columns
+                      ...Object.values(fieldOptions)
+                        .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
+                        .map(option => ({
+                          label: option.value.meta.name,
+                          value: option.value.meta.name,
+                          textValue: option.value.meta.name,
+                          trailingItems: renderTag(
+                            option.value.kind,
+                            option.value.meta.name
+                          ),
+                        })),
+                    ];
+                  }
+                }
 
                 let matchingAggregate: any;
                 if (
@@ -529,30 +562,47 @@ function Visualize({error, setError}: VisualizeProps) {
                                     NONE
                                   }
                                   position="bottom-start"
-                                  onChange={aggregateSelection => {
-                                    const isNone = aggregateSelection.value === NONE;
+                                  onChange={dropdownSelection => {
+                                    const isNone = dropdownSelection.value === NONE;
                                     const newFields = cloneDeep(fields);
                                     const currentField = newFields[index]!;
-                                    const newAggregate = aggregates.find(
+                                    const selectedAggregate = aggregates.find(
                                       option =>
-                                        option.value.meta.name ===
-                                        aggregateSelection.value
+                                        option.value.meta.name === dropdownSelection.value
                                     );
                                     // Update the current field's aggregate with the new aggregate
-                                    if (!isNone) {
+                                    if (!selectedAggregate && !isNone) {
+                                      // Handles new selection of a field from the aggregate dropdown
+                                      newFields[index] = {
+                                        kind: FieldValueKind.FIELD,
+                                        field: dropdownSelection.value as string,
+                                      };
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                          field: 'visualize.updateAggregate',
+                                          from: source,
+                                          new_widget: !isEditing,
+                                          value: 'direct_column',
+                                          widget_type: state.dataset ?? '',
+                                          organization,
+                                        }
+                                      );
+                                    } else if (!isNone) {
                                       if (currentField.kind === FieldValueKind.FUNCTION) {
                                         // Handle setting an aggregate from an aggregate
                                         currentField.function[0] =
-                                          aggregateSelection.value as AggregationKeyWithAlias;
+                                          dropdownSelection.value as AggregationKeyWithAlias;
                                         if (
-                                          newAggregate?.value.meta &&
-                                          'parameters' in newAggregate.value.meta
+                                          selectedAggregate?.value.meta &&
+                                          'parameters' in selectedAggregate.value.meta
                                         ) {
                                           // There are aggregates that have no parameters, so wipe out the argument
                                           // if it's supposed to be empty
                                           if (
-                                            newAggregate.value.meta.parameters.length ===
-                                            0
+                                            selectedAggregate.value.meta.parameters
+                                              .length === 0
                                           ) {
                                             currentField.function[1] = '';
                                           } else {
@@ -564,12 +614,13 @@ function Visualize({error, setError}: VisualizeProps) {
                                               // If no column filter method is provided, show all options
                                               columnFilterMethod ?? (() => true)
                                             );
-                                            const newAggregateIsApdexOrUserMisery =
-                                              newAggregate?.value.meta.name === 'apdex' ||
-                                              newAggregate?.value.meta.name ===
+                                            const selectedAggregateIsApdexOrUserMisery =
+                                              selectedAggregate?.value.meta.name ===
+                                                'apdex' ||
+                                              selectedAggregate?.value.meta.name ===
                                                 'user_misery';
                                             const isValidColumn =
-                                              !newAggregateIsApdexOrUserMisery &&
+                                              !selectedAggregateIsApdexOrUserMisery &&
                                               Boolean(
                                                 newColumnOptions.find(
                                                   option =>
@@ -580,19 +631,20 @@ function Visualize({error, setError}: VisualizeProps) {
                                             currentField.function[1] =
                                               (isValidColumn
                                                 ? currentField.function[1]
-                                                : newAggregate.value.meta.parameters[0]!
-                                                    .defaultValue) ?? '';
+                                                : selectedAggregate.value.meta
+                                                    .parameters[0]!.defaultValue) ?? '';
 
                                             // Set the remaining parameters for the new aggregate
                                             for (
                                               let i = 1; // The first parameter is the column selection
                                               i <
-                                              newAggregate.value.meta.parameters.length;
+                                              selectedAggregate.value.meta.parameters
+                                                .length;
                                               i++
                                             ) {
                                               // Increment by 1 to skip past the aggregate name
                                               currentField.function[i + 1] =
-                                                newAggregate.value.meta.parameters[
+                                                selectedAggregate.value.meta.parameters[
                                                   i
                                                 ]!.defaultValue;
                                             }
@@ -603,7 +655,8 @@ function Visualize({error, setError}: VisualizeProps) {
                                           // more parameters to ones of fewer parameters
                                           for (
                                             let i =
-                                              newAggregate.value.meta.parameters.length;
+                                              selectedAggregate.value.meta.parameters
+                                                .length;
                                             i < MAX_FUNCTION_PARAMETERS;
                                             i++
                                           ) {
@@ -612,24 +665,24 @@ function Visualize({error, setError}: VisualizeProps) {
                                         }
                                       } else {
                                         if (
-                                          !newAggregate ||
-                                          !('parameters' in newAggregate.value.meta)
+                                          !selectedAggregate ||
+                                          !('parameters' in selectedAggregate.value.meta)
                                         ) {
                                           return;
                                         }
 
                                         // Handle setting an aggregate from a field
                                         const newFunction: AggregateFunction = [
-                                          aggregateSelection.value as AggregationKeyWithAlias,
-                                          ((newAggregate?.value.meta?.parameters.length >
-                                            0 &&
+                                          dropdownSelection.value as AggregationKeyWithAlias,
+                                          ((selectedAggregate?.value.meta?.parameters
+                                            .length > 0 &&
                                             currentField.field) ||
-                                            newAggregate?.value.meta?.parameters?.[0]
+                                            selectedAggregate?.value.meta?.parameters?.[0]
                                               ?.defaultValue) ??
                                             '',
-                                          newAggregate?.value.meta?.parameters?.[1]
+                                          selectedAggregate?.value.meta?.parameters?.[1]
                                             ?.defaultValue ?? undefined,
-                                          newAggregate?.value.meta?.parameters?.[2]
+                                          selectedAggregate?.value.meta?.parameters?.[2]
                                             ?.defaultValue ?? undefined,
                                         ];
                                         const newColumnOptions = getColumnOptions(
@@ -643,10 +696,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                           columnFilterMethod ?? (() => true)
                                         );
                                         if (
-                                          newAggregate?.value.meta &&
-                                          'parameters' in newAggregate.value.meta
+                                          selectedAggregate?.value.meta &&
+                                          'parameters' in selectedAggregate.value.meta
                                         ) {
-                                          newAggregate?.value.meta.parameters.forEach(
+                                          selectedAggregate?.value.meta.parameters.forEach(
                                             (parameter, parameterIndex) => {
                                               const isValidParameter = validateParameter(
                                                 newColumnOptions,
