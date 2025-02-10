@@ -466,17 +466,17 @@ describe('updateQuery()', function () {
     updateQuery(results, Actions.ADD, columnB, '2');
     expect(results.formatString()).toBe('a:1 b:2');
     updateQuery(results, Actions.EXCLUDE, columnA, '3');
-    expect(results.formatString()).toBe('b:2 !a:3');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3');
     updateQuery(results, Actions.EXCLUDE, columnB, '4');
-    expect(results.formatString()).toBe('!a:3 !b:4');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4');
     results.addFilterValues('!a', ['*dontescapeme*'], false);
-    expect(results.formatString()).toBe('!a:3 !b:4 !a:*dontescapeme*');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4 !a:*dontescapeme*');
     updateQuery(results, Actions.EXCLUDE, columnA, '*escapeme*');
     expect(results.formatString()).toBe(
-      '!b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
+      'a:1 b:2 !b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
     );
     updateQuery(results, Actions.ADD, columnA, '5');
-    expect(results.formatString()).toBe('!b:4 a:5');
+    expect(results.formatString()).toBe('b:2 !b:4 a:5');
     updateQuery(results, Actions.ADD, columnB, '6');
     expect(results.formatString()).toBe('a:5 b:6');
   });
