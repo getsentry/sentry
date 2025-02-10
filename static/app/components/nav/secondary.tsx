@@ -46,6 +46,16 @@ export function SecondaryNav({children, group}: SecondaryNavProps) {
   return createPortal(children, secondaryNavEl);
 }
 
+SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
+  const {layout} = useNavContext();
+
+  if (layout === NavLayout.MOBILE) {
+    return null;
+  }
+
+  return <Header>{children}</Header>;
+};
+
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
 
@@ -101,6 +111,12 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
   return <Footer layout={layout}>{children}</Footer>;
 };
+
+const Header = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+`;
 
 const Body = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)};

@@ -1,15 +1,14 @@
 import {Fragment, type MouseEventHandler, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import type {ButtonProps} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link, {type LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {NAV_GROUP_LABELS, PRIMARY_SIDEBAR_WIDTH} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
@@ -32,52 +31,64 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
+  label: string;
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
-  linkProps?: Partial<Omit<LinkProps, 'ref'>>;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
 interface SidebarItemDropdownProps {
   analyticsKey: string;
   items: MenuItemProps[];
-  buttonProps?: Partial<ButtonProps>;
+  label: string;
   children?: React.ReactNode;
 }
 
 function SidebarBody({children}: {children: React.ReactNode}) {
-  return <SidebarItemList>{children}</SidebarItemList>;
+  const {layout} = useNavContext();
+  return (
+    <SidebarItemList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarItemList>
+  );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
+  const {layout} = useNavContext();
   return (
     <SidebarFooterWrapper>
-      <SidebarItemList>{children}</SidebarItemList>
+      <SidebarItemList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarItemList>
     </SidebarFooterWrapper>
   );
 }
 
-function SidebarMenu({
-  items,
-  children,
-  analyticsKey,
-  buttonProps = {},
-}: SidebarItemDropdownProps) {
+function SidebarItem({children}: {children: React.ReactNode}) {
+  const {layout} = useNavContext();
+  return (
+    <SidebarItemWrapper isMobile={layout === NavLayout.MOBILE}>
+      {children}
+    </SidebarItemWrapper>
+  );
+}
+
+function SidebarMenu({items, children, analyticsKey, label}: SidebarItemDropdownProps) {
   const organization = useOrganization();
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
     [organization, analyticsKey]
   );
+  const {layout} = useNavContext();
+
+  const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItemWrapper>
+    <SidebarItem>
       <DropdownMenu
         position="right-end"
         trigger={(props, isOpen) => {
           return (
             <NavButton
-              {...mergeProps(buttonProps, props)}
+              {...props}
+              aria-label={!showLabel ? label : undefined}
               onClick={event => {
                 recordAnalytics();
                 props.onClick?.(event);
@@ -85,12 +96,13 @@ function SidebarMenu({
             >
               <InteractionStateLayer hasSelectedBackground={isOpen} />
               {children}
+              {showLabel ? label : null}
             </NavButton>
           );
         }}
         items={items}
       />
-    </SidebarItemWrapper>
+    </SidebarItem>
   );
 }
 
@@ -99,12 +111,15 @@ function SidebarLink({
   to,
   activeTo = to,
   analyticsKey,
-  linkProps: incomingLinkProps = {},
+  label,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const linkProps = makeLinkPropsFromTo(to);
+
+  const {layout} = useNavContext();
+  const showLabel = layout === NavLayout.MOBILE;
 
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
@@ -112,17 +127,19 @@ function SidebarLink({
   );
 
   return (
-    <SidebarItemWrapper>
+    <SidebarItem>
       <NavLink
-        {...mergeProps(linkProps, incomingLinkProps)}
+        {...linkProps}
         onClick={recordAnalytics}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
+        aria-label={!showLabel ? label : undefined}
       >
         <InteractionStateLayer hasSelectedBackground={isActive} />
         {children}
+        {showLabel ? label : null}
       </NavLink>
-    </SidebarItemWrapper>
+    </SidebarItem>
   );
 }
 
@@ -134,7 +151,7 @@ function CollapseButton() {
   }
 
   return (
-    <SidebarItemWrapper>
+    <SidebarItem>
       <NavButton
         onClick={() => setIsCollapsed(!isCollapsed)}
         aria-label={isCollapsed ? t('Expand') : t('Collapse')}
@@ -142,28 +159,31 @@ function CollapseButton() {
         <InteractionStateLayer />
         <IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />
       </NavButton>
-    </SidebarItemWrapper>
+    </SidebarItem>
   );
 }
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
-  const {layout} = useNavContext();
-
-  const includeFooterLabels = layout !== NavLayout.SIDEBAR;
 
   return (
     <Fragment>
       <SidebarBody>
-        <SidebarLink to={`/${prefix}/issues/`} analyticsKey="issues">
+        <SidebarLink
+          to={`/${prefix}/issues/`}
+          analyticsKey="issues"
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
+        >
           <IconIssues />
-          <span>{NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}</span>
         </SidebarLink>
 
-        <SidebarLink to={`/${prefix}/explore/traces/`} analyticsKey="explore">
+        <SidebarLink
+          to={`/${prefix}/explore/traces/`}
+          analyticsKey="explore"
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+        >
           <IconSearch />
-          <span>{NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}</span>
         </SidebarLink>
 
         <Feature
@@ -174,9 +194,9 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/dashboards/`}
             analyticsKey="customizable-dashboards"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
           >
             <IconDashboard />
-            <span>{NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}</span>
           </SidebarLink>
         </Feature>
 
@@ -184,9 +204,9 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
             analyticsKey="insights-domains"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
           >
             <IconGraph />
-            <span>{NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}</span>
           </SidebarLink>
         </Feature>
       </SidebarBody>
@@ -218,20 +238,18 @@ export function PrimaryNavigationItems() {
             },
           ]}
           analyticsKey="help"
-          buttonProps={!includeFooterLabels ? {'aria-label': t('Help')} : undefined}
+          label={t('Help')}
         >
           <IconQuestion />
-          {includeFooterLabels && <span>{t('Help')}</span>}
         </SidebarMenu>
 
         <SidebarLink
           to={`/${prefix}/settings/${organization.slug}/`}
           activeTo={`/${prefix}/settings/`}
           analyticsKey="settings"
-          linkProps={!includeFooterLabels ? {'aria-label': t('Settings')} : undefined}
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
         >
           <IconSettings />
-          {includeFooterLabels && <span>{t('Settings')}</span>}
         </SidebarLink>
 
         <CollapseButton />
@@ -240,7 +258,7 @@ export function PrimaryNavigationItems() {
   );
 }
 
-const SidebarItemList = styled('ul')`
+const SidebarItemList = styled('ul')<{isMobile: boolean}>`
   position: relative;
   list-style: none;
   margin: 0;
@@ -248,23 +266,30 @@ const SidebarItemList = styled('ul')`
   padding-top: ${space(1)};
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: ${space(0.5)};
   width: 100%;
   color: rgba(255, 255, 255, 0.85);
 
-  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: ${space(1)};
-  }
+  ${p =>
+    !p.isMobile &&
+    css`
+      align-items: center;
+      gap: ${space(1)};
+    `}
 `;
 
-const SidebarItemWrapper = styled('li')`
+const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
   svg {
     --size: 14px;
     width: var(--size);
     height: var(--size);
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      --size: 16px;
-    }
+    ${p =>
+      !p.isMobile &&
+      css`
+        --size: 18px;
+      `}
   }
   > a,
   button {
@@ -277,21 +302,24 @@ const SidebarItemWrapper = styled('li')`
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
     line-height: 1;
+    width: 100%;
 
     & > * {
       pointer-events: none;
     }
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      flex-direction: column;
-      justify-content: center;
-      border-radius: ${p => p.theme.borderRadius};
-      font-size: ${p => p.theme.fontSizeExtraSmall};
-      margin-inline: ${space(1)};
-      gap: ${space(0.75)};
-      padding: 10px 0;
-      min-height: 40px;
-    }
+    ${p =>
+      !p.isMobile &&
+      css`
+        flex-direction: column;
+        justify-content: center;
+        border-radius: ${p.theme.borderRadius};
+        margin-inline: 0 auto;
+        gap: ${space(0.75)};
+        padding: ${space(1.5)} 0;
+        min-height: 44px;
+        width: ${PRIMARY_SIDEBAR_WIDTH - 16}px;
+      `}
   }
 `;
 
@@ -313,7 +341,6 @@ const NavButton = styled('button')`
   border: none;
   position: relative;
   background: transparent;
-  min-width: 58px;
 
   ${linkStyles}
 `;
