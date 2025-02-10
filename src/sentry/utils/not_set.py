@@ -13,7 +13,7 @@ NOT_SET = NotSet.TOKEN
 T = TypeVar("T")
 
 
-def get_current_value_if_not_set(current_value: T, new_value: T | NotSet) -> T:
+def default_if_not_set(current_value: T, new_value: T | NotSet) -> T:
     """
     Used for optionally passing parameters to a function, and defaulting to some value if not passed.
     This is useful for updating fields on a model, since we can't set those defaults on the function level.
