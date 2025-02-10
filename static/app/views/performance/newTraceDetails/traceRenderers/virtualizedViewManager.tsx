@@ -643,8 +643,7 @@ export class VirtualizedViewManager {
       }
     }
 
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'none';
       }
@@ -665,8 +664,7 @@ export class VirtualizedViewManager {
         span_text.ref.style.pointerEvents = 'auto';
       }
     }
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'auto';
       }

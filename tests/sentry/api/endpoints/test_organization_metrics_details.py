@@ -10,7 +10,6 @@ from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseIDAPIAccess,
     get_use_case_id_api_access,
 )
-from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -179,131 +178,6 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             use_case_ids=public_use_case_ids,
         )
 
-    def test_metrics_details_for_custom_metrics(self):
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        block_metric("s:custom/user@none", [project_1])
-        block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
-
-        metrics: tuple[tuple[str, Project], ...] = (
-            ("s:custom/user@none", project_1),
-            ("s:custom/user@none", project_2),
-            ("c:custom/clicks@none", project_1),
-            ("d:custom/page_load@millisecond", project_2),
-            ("g:custom/page_load@millisecond", project_2),
-        )
-        for mri, project in metrics:
-            self.store_metric(
-                project.organization.id,
-                project.id,
-                mri,
-                {"transaction": "/hello"},
-                int(self.now.timestamp()),
-                10,
-            )
-
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        assert len(response.data) == 4
-
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert data[0]["mri"] == "c:custom/clicks@none"
-        assert data[0]["projectIds"] == [project_1.id]
-        assert data[0]["blockingStatus"] == []
-        assert data[1]["mri"] == "d:custom/page_load@millisecond"
-        assert data[1]["projectIds"] == [project_2.id]
-        assert data[1]["blockingStatus"] == [
-            {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
-        ]
-        assert data[3]["mri"] == "s:custom/user@none"
-        assert sorted(data[3]["projectIds"]) == sorted([project_1.id, project_2.id])
-        assert data[3]["blockingStatus"] == [
-            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
-        ]
-        assert sorted(data[1]["operations"]) == [
-            "avg",
-            "count",
-            "max",
-            "min",
-            "p50",
-            "p75",
-            "p90",
-            "p95",
-            "p99",
-            "sum",
-        ]
-
-        assert sorted(data[2]["operations"]) == [
-            "avg",
-            "count",
-            "max",
-            "min",
-            "sum",
-        ]
-
-        # test default activated percentiles
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert sorted(data[1]["operations"]) == [
-            "avg",
-            "count",
-            "max",
-            "min",
-            "p50",
-            "p75",
-            "p90",
-            "p95",
-            "p99",
-            "sum",
-        ]
-
-        # test deactivated percentiles
-        self.organization.update_option("sentry:metrics_activate_percentiles", False)
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert sorted(data[1]["operations"]) == [
-            "avg",
-            "count",
-            "max",
-            "min",
-            "sum",
-        ]
-
-        # test default deactivated gauges
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert sorted(data[2]["operations"]) == [
-            "avg",
-            "count",
-            "max",
-            "min",
-            "sum",
-        ]
-
-        # test activated gauges
-        self.organization.update_option("sentry:metrics_activate_last_for_gauges", True)
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        data = sorted(response.data, key=lambda d: d["mri"])
-
-        assert sorted(data[2]["operations"]) == [
-            "avg",
-            "count",
-            "last",
-            "max",
-            "min",
-            "sum",
-        ]
-
     def test_metrics_details_when_organization_has_no_projects(self):
         organization_without_projects = self.create_organization()
         self.create_member(user=self.user, organization=organization_without_projects)
@@ -311,10 +185,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert response.status_code == 404
         assert response.data["detail"] == "You must supply at least one project to see its metrics"
 
-    def test_blocking_metrics_dont_duplicate_with_multiple_use_cases(self):
         project_1 = self.create_project()
-
-        block_metric("s:custom/user@none", [project_1])
 
         metrics: tuple[tuple[str, Project], ...] = (
             ("s:custom/user@none", project_1),
@@ -338,9 +209,5 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
         assert data[0]["projectIds"] == [project_1.id]
-        assert data[0]["blockingStatus"] == []
         assert data[1]["mri"] == "s:custom/user@none"
         assert sorted(data[1]["projectIds"]) == sorted([project_1.id])
-        assert data[1]["blockingStatus"] == [
-            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
-        ]

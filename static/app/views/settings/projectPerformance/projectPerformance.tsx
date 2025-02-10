@@ -965,7 +965,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
-                  title={t('Retention Priorities')}
+                  title={t('Sampling Priorities')}
                   fields={this.retentionPrioritiesFormFields}
                   disabled={!hasAccess}
                   renderFooter={() => (

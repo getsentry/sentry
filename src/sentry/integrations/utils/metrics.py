@@ -178,6 +178,10 @@ class EventLifecycle:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
 
+        Calling it means that the feature is broken and requires immediate attention.
+
+        An error will be reported to Sentry.
+
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
         on an exception.
@@ -196,6 +200,8 @@ class EventLifecycle:
         self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
     ) -> None:
         """Record that the event halted in an ambiguous state.
+
+        It will be logged to GCP but no Sentry error will be reported.
 
         This method can be called in response to a sufficiently ambiguous exception
         or other error condition, where it may have been caused by a user error or

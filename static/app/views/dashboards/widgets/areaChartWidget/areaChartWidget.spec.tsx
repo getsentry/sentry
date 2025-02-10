@@ -11,7 +11,7 @@ describe('AreaChartWidget', () => {
         <AreaChartWidget
           title="eps()"
           description="Number of events per second"
-          timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
+          timeSeries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
         />
       );
     });

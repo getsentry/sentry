@@ -92,7 +92,8 @@ function TransactionNodeDetailHeader({
             {t('Transaction')}
           </TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            text={`ID: ${node.value.event_id}`}
+            subTitle={`ID: ${node.value.event_id}`}
+            clipboardText={node.value.event_id}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
