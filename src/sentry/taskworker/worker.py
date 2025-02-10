@@ -279,13 +279,19 @@ class TaskWorker:
         signal.signal(signal.SIGINT, self._handle_sigint)
 
         while True:
-            self.run_once()
+            work_remaining = self.run_once()
+            if work_remaining:
+                self.backoff_sleep_seconds = 0
+            else:
+                self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
+                time.sleep(self.backoff_sleep_seconds)
 
-    def run_once(self) -> None:
+    def run_once(self) -> bool:
         """Access point for tests to run a single worker loop"""
-        self._add_task()
-        self._drain_result()
+        task_added = self._add_task()
+        results_drained = self._drain_result()
         self._spawn_children()
+        return task_added or results_drained
 
     def _handle_sigint(self, signum: int, frame: FrameType | None) -> None:
         logger.info("taskworker.worker.sigint_received")
@@ -307,29 +313,28 @@ class TaskWorker:
             child.terminate()
             child.join()
 
-    def _add_task(self) -> None:
+    def _add_task(self) -> bool:
         """
-        Add a task to child tasks queue
+        Add a task to child tasks queue. Returns False if no new task was fetched.
         """
         if self._child_tasks.full():
-            return
+            return False
 
         task = self.fetch_task()
         if task:
             try:
-                self.backoff_sleep_seconds = 0
                 self._child_tasks.put(task, timeout=0.1)
             except queue.Full:
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full", extra={"task_id": task.id}
                 )
+            return True
         else:
-            time.sleep(self.backoff_sleep_seconds)
-            self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
+            return False
 
     def _drain_result(self, fetch: bool = True) -> bool:
         """
-        Consume results from children and update taskbroker
+        Consume results from children and update taskbroker. Returns True if there are more tasks to process.
         """
         try:
             result = self._processed_tasks.get_nowait()
@@ -352,7 +357,7 @@ class TaskWorker:
                     "taskworker.drain_result.update_task_failed",
                     extra={"task_id": result.task_id, "error": e},
                 )
-                return False
+                return True
 
             if next_task:
                 try:
