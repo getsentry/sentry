@@ -33,11 +33,11 @@ import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fiel
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -305,8 +305,13 @@ export function ReplayCell({
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
+  const replayDetailsPathname = makeReplaysPathname({
+    path: `/${replay.id}/`,
+    organization,
+  });
+
   const replayDetails = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    pathname: replayDetailsPathname,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
@@ -314,7 +319,7 @@ export function ReplayCell({
   };
 
   const replayDetailsDeadRage = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    pathname: replayDetailsPathname,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),

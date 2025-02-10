@@ -3,10 +3,10 @@ import {useMemo} from 'react';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
   selected: 'replays' | 'selectors';
@@ -17,22 +17,32 @@ export default function ReplayTabs({selected}: Props) {
   const location = useLocation();
   const {allMobileProj} = useAllMobileProj({});
 
+  const replaysPathname = makeReplaysPathname({
+    path: '/',
+    organization,
+  });
+
+  const selectorsPathname = makeReplaysPathname({
+    path: '/selectors/',
+    organization,
+  });
+
   const tabs = useMemo(
     () => [
       {
         key: 'replays',
         label: t('Replays'),
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+        pathname: replaysPathname,
         query: {...location.query, sort: undefined},
       },
       {
         key: 'selectors',
         label: t('Selectors'),
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/selectors/`),
+        pathname: selectorsPathname,
         query: {...location.query, sort: '-count_dead_clicks'},
       },
     ],
-    [organization.slug, location.query]
+    [location.query, replaysPathname, selectorsPathname]
   );
 
   return (
