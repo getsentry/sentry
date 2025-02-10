@@ -34,7 +34,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
           'Manually specify the percentage of incoming traffic that should be stored for each project. [link:Read the docs]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+              <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
             ),
           }
         )}
