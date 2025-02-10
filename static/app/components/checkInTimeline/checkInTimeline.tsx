@@ -136,7 +136,7 @@ export function MockCheckInTimeline<Status extends string>({
 
 const TimelineContainer = styled('div')`
   position: relative;
-  height: 100%;
+  height: 14px;
 `;
 
 const JobTick = styled('div')<{

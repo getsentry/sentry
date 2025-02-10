@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -92,7 +92,8 @@ function TransactionNodeDetailHeader({
             {t('Transaction')}
           </TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            text={`ID: ${node.value.event_id}`}
+            subTitle={`ID: ${node.value.event_id}`}
+            clipboardText={node.value.event_id}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>

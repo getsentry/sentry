@@ -392,6 +392,10 @@ module:core-js/** -app -group
 module:regenerator-runtime/** -app -group
 module:tslib/** -app -group
 
+## react-native
+### babel
+family:javascript function:_callSuper -app -group
+
 ## node
 function:runMicrotasks -app -group
 function:queueMicrotask -app -group

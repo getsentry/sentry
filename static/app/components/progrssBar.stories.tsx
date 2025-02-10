@@ -2,7 +2,7 @@ import ProgressBar from 'sentry/components/progressBar';
 import Matrix from 'sentry/components/stories/matrix';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(ProgressBar, story => {
+export default storyBook('ProgressBar', story => {
   story('Default', () => (
     <Matrix
       propMatrix={{

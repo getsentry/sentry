@@ -155,12 +155,12 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({tags}: {tags: GroupTag[]}) {
+function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: string}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  if (tags.length === 0) {
+  if (tags.length === 0 || searchQuery) {
     return (
-      <HorizontalIssueTagsButton
+      <VerticalIssueTagsButton
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
@@ -168,10 +168,10 @@ function IssueTagButton({tags}: {tags: GroupTag[]}) {
           query: location.query,
           replace: true,
         }}
-        disabled
+        disabled={tags.length === 0}
       >
         {t('All Tags')}
-      </HorizontalIssueTagsButton>
+      </VerticalIssueTagsButton>
     );
   }
 
@@ -262,12 +262,12 @@ export default function IssueTagsPreview({
     );
   }
 
-  if (isError || searchQuery) {
+  if (isError) {
     return null;
   }
 
-  if (tagsToPreview.length === 0) {
-    return <IssueTagButton tags={tagsToPreview} />;
+  if (tagsToPreview.length === 0 || searchQuery) {
+    return <IssueTagButton tags={tagsToPreview} searchQuery={searchQuery} />;
   }
 
   return (
@@ -398,7 +398,7 @@ const IssueTagsButton = styled(LinkButton)`
   }
 `;
 
-const HorizontalIssueTagsButton = styled(LinkButton)`
+const VerticalIssueTagsButton = styled(LinkButton)`
   display: block;
   flex: 0;
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};

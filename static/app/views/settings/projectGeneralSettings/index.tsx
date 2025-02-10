@@ -37,7 +37,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = DeprecatedAsyncComponent['props'] &
   RouteComponentProps<{projectId: string}, {}> & {
@@ -314,7 +314,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
       <div>
         <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Project Settings')} />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}

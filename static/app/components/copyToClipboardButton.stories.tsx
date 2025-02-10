@@ -10,7 +10,7 @@ import {IconLink} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-export default storyBook(CopyToClipboardButton, story => {
+export default storyBook('CopyToClipboardButton', story => {
   story('Basic', () => (
     <Fragment>
       <p>

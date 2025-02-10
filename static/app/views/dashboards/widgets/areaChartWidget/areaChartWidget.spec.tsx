@@ -1,8 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {sampleLatencyTimeSeries} from './fixtures/sampleLatencyTimeSeries';
+import {sampleSpanDurationTimeSeries} from './fixtures/sampleSpanDurationTimeSeries';
 import {AreaChartWidget} from './areaChartWidget';
-import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
-import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
 describe('AreaChartWidget', () => {
   describe('Layout', () => {
@@ -11,7 +11,7 @@ describe('AreaChartWidget', () => {
         <AreaChartWidget
           title="eps()"
           description="Number of events per second"
-          timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
+          timeSeries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
         />
       );
     });

@@ -21,7 +21,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -54,26 +53,6 @@ const getInstallConfig = (params: Params) => {
     },
   ];
 };
-
-const getManualInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/nextjs',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/nextjs',
-      },
-    ],
-  },
-];
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -396,9 +375,6 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({
-    getInstallConfig: getManualInstallConfig,
-  }),
   performanceOnboarding,
   crashReportOnboarding,
   featureFlagOnboarding,

@@ -65,6 +65,7 @@ def retrieve_uptime_subscription(
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
+    trace_sampling: bool,
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -73,6 +74,7 @@ def retrieve_uptime_subscription(
                 interval_seconds=interval_seconds,
                 timeout_ms=timeout_ms,
                 method=method,
+                trace_sampling=trace_sampling,
             )
             .annotate(
                 headers_md5=MD5("headers", output_field=TextField()),
@@ -109,7 +111,7 @@ def get_or_create_uptime_subscription(
     result = extract_domain_parts(url)
 
     subscription = retrieve_uptime_subscription(
-        url, interval_seconds, timeout_ms, method, headers, body
+        url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
     )
     created = False
 
@@ -132,7 +134,7 @@ def get_or_create_uptime_subscription(
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
             subscription = retrieve_uptime_subscription(
-                url, interval_seconds, timeout_ms, method, headers, body
+                url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
             )
 
     if subscription is None:
@@ -278,12 +280,6 @@ def update_project_uptime_subscription(
         body=body,
         trace_sampling=trace_sampling,
     )
-    updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
-
-    mode = uptime_monitor.mode
-    if updated_subscription:
-        # If the `uptime_subscription` is updated then treat this as a manual subscription
-        mode = ProjectUptimeSubscriptionMode.MANUAL
 
     owner_user_id = uptime_monitor.owner_user_id
     owner_team_id = uptime_monitor.owner_team_id
@@ -299,14 +295,14 @@ def update_project_uptime_subscription(
         environment=environment,
         uptime_subscription=new_uptime_subscription,
         name=name,
-        mode=mode,
+        # After an update, we always convert a subscription to manual mode
+        mode=ProjectUptimeSubscriptionMode.MANUAL,
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
     # If we changed any fields on the actual subscription we created a new subscription and associated it with this
     # uptime monitor. Check if the old subscription was orphaned due to this.
-    if updated_subscription:
-        remove_uptime_subscription_if_unused(cur_uptime_subscription)
+    remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
     # Update status. This may have the side effect of removing or creating a
     # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat

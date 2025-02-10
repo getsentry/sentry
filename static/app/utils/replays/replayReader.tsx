@@ -726,6 +726,8 @@ export default class ReplayReader {
 
   isVideoReplay = () => this.getVideoEvents().length > 0;
 
+  isNetworkCaptureBodySetup = () => Boolean(this.getSDKOptions()?.networkCaptureBodies);
+
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();
     if (sdkOptions) {

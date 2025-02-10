@@ -101,11 +101,23 @@ def _fetch_file_blame(
             extra=extra,
         )
     else:
-        response = client.get(
-            request_path,
-            params=params,
-        )
-        client.set_cache(cache_key, response, 60)
+        try:
+            response = client.get(
+                request_path,
+                params=params,
+            )
+            client.set_cache(cache_key, response, 60)
+        except ApiError:
+            logger.exception(
+                "fetch_file_blame_ApiError",
+                extra={
+                    "file_path": file.path,
+                    "request_path": request_path,
+                    "repo_org_id": file.repo.organization_id,
+                    "repo_integration_id": file.repo.integration_id,
+                },
+            )
+            raise
 
     if not isinstance(response, SequenceApiResponse):
         raise ApiError("Response is not in expected format", code=500)

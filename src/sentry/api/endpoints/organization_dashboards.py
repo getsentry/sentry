@@ -34,7 +34,6 @@ from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
 
 MAX_RETRIES = 2
-DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
 
 
 class OrganizationDashboardsPermission(OrganizationPermission):

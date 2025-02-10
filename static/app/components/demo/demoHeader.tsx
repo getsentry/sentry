@@ -16,6 +16,8 @@ import {
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
+export const DEMO_HEADER_HEIGHT_PX = 70;
+
 export default function DemoHeader() {
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
@@ -91,7 +93,7 @@ export default function DemoHeader() {
 const Wrapper = styled('div')<{collapsed: boolean}>`
   padding-right: ${space(3)};
   background-color: ${p => p.theme.white};
-  height: ${p => p.theme.demo.headerSize};
+  height: ${DEMO_HEADER_HEIGHT_PX}px;
   display: flex;
   justify-content: space-between;
   text-transform: uppercase;

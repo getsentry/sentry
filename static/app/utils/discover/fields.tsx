@@ -3,10 +3,8 @@ import isEqual from 'lodash/isEqual';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
-import type {MetricType} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -59,10 +57,7 @@ type ValidateColumnValueFunction = (data: {
   name: string;
 }) => boolean;
 
-export type ValidateColumnTypes =
-  | ColumnType[]
-  | MetricType[]
-  | ValidateColumnValueFunction;
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
@@ -1418,9 +1413,7 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
-  if (isMRIField(columnName)) {
-    return 'right';
-  }
+
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1438,7 +1431,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricType) {
+export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

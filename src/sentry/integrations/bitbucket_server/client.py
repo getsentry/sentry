@@ -257,5 +257,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         raise IntegrationFeatureNotImplementedError
 
-    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         raise IntegrationFeatureNotImplementedError

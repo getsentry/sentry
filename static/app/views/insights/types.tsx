@@ -19,6 +19,7 @@ export enum ModuleName {
   SCREEN_RENDERING = 'screen-rendering',
   CRONS = 'crons',
   UPTIME = 'uptime',
+  SESSIONS = 'sessions',
   OTHER = 'other',
 }
 
@@ -255,6 +256,12 @@ export enum SpanIndexedField {
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
+  LCP = 'measurements.lcp',
+  LCP_SCORE = 'measurements.score.lcp',
+  CLS = 'measurements.cls',
+  CLS_SCORE = 'measurements.score.cls',
+  TTFB = 'measurements.ttfb',
+  FCP = 'measurements.fcp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
@@ -322,9 +329,14 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_ID]: string;
   [SpanIndexedField.USER_EMAIL]: string;
   [SpanIndexedField.USER_USERNAME]: string;
+  [SpanIndexedField.USER_IP]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.LCP]: number;
+  [SpanIndexedField.LCP_SCORE]: number;
+  [SpanIndexedField.CLS]: number;
+  [SpanIndexedField.CLS_SCORE]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';

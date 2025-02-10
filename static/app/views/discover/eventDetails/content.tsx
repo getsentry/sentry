@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';

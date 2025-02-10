@@ -19,6 +19,8 @@ describe('getConfigFromTimeRange', function () {
         interval: 15,
         timelineUnderscanWidth: 0,
         totalBuckets: 20,
+        underscanBuckets: 0,
+        underscanPeriod: 0,
       },
       showUnderscanHelp: false,
       intervals: {
@@ -45,6 +47,8 @@ describe('getConfigFromTimeRange', function () {
         interval: 60,
         timelineUnderscanWidth: 77,
         totalBuckets: 1446,
+        underscanBuckets: 154,
+        underscanPeriod: 9240,
       },
       showUnderscanHelp: false,
       intervals: {
@@ -71,6 +75,8 @@ describe('getConfigFromTimeRange', function () {
         interval: 900,
         timelineUnderscanWidth: 20,
         totalBuckets: 60,
+        underscanBuckets: 1,
+        underscanPeriod: 900,
       },
       intervals: {
         normalMarkerInterval: 120,
@@ -98,6 +104,8 @@ describe('getConfigFromTimeRange', function () {
         interval: 1800,
         timelineUnderscanWidth: 56,
         totalBuckets: 1488,
+        underscanBuckets: 112,
+        underscanPeriod: 201600,
       },
       // 5 days in between each time label
       intervals: {
@@ -126,6 +134,8 @@ describe('getConfigFromTimeRange', function () {
         interval: 900,
         timelineUnderscanWidth: 16,
         totalBuckets: 56,
+        underscanBuckets: 1,
+        underscanPeriod: 900,
       },
       showUnderscanHelp: false,
       intervals: {

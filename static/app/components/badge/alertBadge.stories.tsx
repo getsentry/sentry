@@ -5,7 +5,7 @@ import Matrix from 'sentry/components/stories/matrix';
 import storyBook from 'sentry/stories/storyBook';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-export default storyBook(AlertBadge, story => {
+export default storyBook('AlertBadge', story => {
   story('Default', () => <AlertBadge />);
 
   const props = {

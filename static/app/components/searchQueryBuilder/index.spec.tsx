@@ -2183,6 +2183,141 @@ describe('SearchQueryBuilder', function () {
       });
     });
 
+    describe('size', function () {
+      const sizeFilterKeys: TagCollection = {
+        size: {
+          key: 'size',
+          name: 'Size',
+        },
+      };
+
+      const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
+        valueType: FieldValueType.SIZE,
+        kind: FieldKind.FIELD,
+      });
+
+      const sizeProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: sizeFilterKeys,
+        filterKeySections: [],
+        fieldDefinitionGetter,
+      };
+
+      it('new size filters start with greater than operator and default value', async function () {
+        render(<SearchQueryBuilder {...sizeProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'size'}));
+
+        // Should start with the > operator and a value of 10ms
+        expect(
+          await screen.findByRole('row', {name: 'size:>10bytes'})
+        ).toBeInTheDocument();
+      });
+
+      it('size filters have the correct operator options', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>100bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: size'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<='})).toBeInTheDocument();
+      });
+
+      it('size filters have the correct value suggestions', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>100bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        // Default suggestions
+        expect(await screen.findByRole('option', {name: '10bytes'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '10kib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '10mib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '10gib'})).toBeInTheDocument();
+
+        // Entering a number will show unit suggestions for that value
+        await userEvent.keyboard('7');
+        expect(await screen.findByRole('option', {name: '7bytes'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7kib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7mib'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7gib'})).toBeInTheDocument();
+      });
+
+      it('size filters can change operator', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>10bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: size'})
+        );
+
+        await userEvent.click(await screen.findByRole('option', {name: '<='}));
+
+        expect(
+          await screen.findByRole('row', {name: 'size:<=10bytes'})
+        ).toBeInTheDocument();
+      });
+
+      it('size filters do not allow invalid values', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>10bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'size:>10bytes'})).toBeInTheDocument();
+
+        await userEvent.keyboard('{Backspace}7kib{Enter}');
+
+        // Should accept "7kib" as a valid value
+        expect(await screen.findByRole('row', {name: 'size:>7kib'})).toBeInTheDocument();
+      });
+
+      it('size filters will add a default unit to entered numbers', async function () {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>10bytes" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        await userEvent.keyboard('7{Enter}');
+
+        // Should accept "7" and add "bytes" as the default unit
+        expect(
+          await screen.findByRole('row', {name: 'size:>7bytes'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...sizeProps}
+            onChange={mockOnChange}
+            initialQuery="size:>10bytes"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(
+          await screen.findByRole('row', {name: 'size:>10bytes'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+    });
+
     describe('percentage', function () {
       const percentageFilterKeys: TagCollection = {
         rate: {
@@ -2706,7 +2841,17 @@ describe('SearchQueryBuilder', function () {
           name: 'Edit function parameters',
         });
         expect(input).toHaveFocus();
-        expect(input).toHaveValue('transaction.duration,');
+        expect(input).toHaveAttribute('placeholder', 'transaction.duration,');
+        expect(input).toHaveValue('');
+
+        await userEvent.click(
+          await screen.findByRole('option', {name: 'transaction.duration'})
+        );
+        await waitFor(() => {
+          expect(input).toHaveValue('transaction.duration');
+        });
+
+        await userEvent.keyboard(',');
 
         await userEvent.click(await screen.findByRole('option', {name: 'less'}));
         await waitFor(() => {
@@ -2759,11 +2904,6 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
         );
-        const input = await screen.findByRole('combobox', {
-          name: 'Edit function parameters',
-        });
-
-        await userEvent.clear(input);
         await userEvent.keyboard('a,b,c{enter}');
 
         expect(

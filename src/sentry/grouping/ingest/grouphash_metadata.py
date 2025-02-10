@@ -335,7 +335,7 @@ def _get_fingerprint_hashing_metadata(
     if matched_rule:
         metadata["matched_fingerprinting_rule"] = matched_rule["text"]
     if client_fingerprint:
-        metadata["client_fingerprint"] = str(client_fingerprint)
+        metadata["client_fingerprint"] = json.dumps(client_fingerprint)
 
     return metadata
 
@@ -425,3 +425,22 @@ def _get_fallback_hashing_metadata(
         reason = "other"
 
     return {"fallback_reason": reason}
+
+
+def check_grouphashes_for_positive_fingerprint_match(
+    grouphash1: GroupHash, grouphash2: GroupHash
+) -> bool:
+    """
+    Given two grouphashes, see if a) they both have associated fingerprints, and b) if their
+    resolved fingerprints match.
+
+    Returns False if either grouphash doesn't have an associated fingerprint. (In other words, both
+    fingerprints being None doesn't count as a match.)
+    """
+    fingerprint1 = grouphash1.get_associated_fingerprint()
+    fingerprint2 = grouphash2.get_associated_fingerprint()
+
+    if not fingerprint1 or not fingerprint2:
+        return False
+
+    return fingerprint1 == fingerprint2

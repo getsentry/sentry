@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -196,7 +196,7 @@ export function SpansTabContentImpl({
           />
         )}
       </TopSection>
-      <SideSection>
+      <SideSection withToolbar={expanded}>
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
@@ -221,7 +221,7 @@ export function SpansTabContentImpl({
             samplesTab={samplesTab}
             setSamplesTab={setSamplesTab}
           />
-          <Toggle withToolbar={expanded}>
+          <Toggle>
             <StyledButton
               aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
               size="xs"
@@ -282,6 +282,8 @@ const Body = styled(Layout.Body)<{withToolbar: boolean}>`
       p.withToolbar
         ? `grid-template-columns: 300px minmax(100px, auto);`
         : `grid-template-columns: 0px minmax(100px, auto);`}
+    grid-template-rows: auto 1fr;
+    align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
     transition: 700ms;
   }
@@ -299,8 +301,10 @@ const TopSection = styled('div')`
   }
 `;
 
-const SideSection = styled('aside')`
-  overflow: hidden;
+const SideSection = styled('aside')<{withToolbar: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    ${p => !p.withToolbar && 'overflow: hidden;'}
+  }
 `;
 
 const MainContent = styled('div')`
@@ -312,7 +316,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
 
-const Toggle = styled('div')<{withToolbar: boolean}>`
+const Toggle = styled('div')`
   display: none;
   position: absolute;
   top: 0px;

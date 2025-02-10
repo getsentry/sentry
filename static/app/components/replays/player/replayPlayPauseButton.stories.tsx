@@ -8,7 +8,7 @@ import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPa
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(ReplayPlayer, story => {
+export default storyBook('ReplayPlayer', story => {
   story('Default', () => {
     function Example() {
       return (

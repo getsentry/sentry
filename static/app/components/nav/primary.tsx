@@ -1,49 +1,49 @@
 import {Fragment, type MouseEventHandler, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import type {ButtonProps} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {useNavContext} from 'sentry/components/nav/context';
+import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
+import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
 import {
-  isLinkActive,
-  makeLinkPropsFromTo,
-  type NavSidebarItem,
-} from 'sentry/components/nav/utils';
-import {
+  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconQuestion,
   IconSearch,
   IconSettings,
-  IconStats,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface SidebarItemProps {
-  item: NavSidebarItem;
-  children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLElement>;
-}
-
 interface SidebarItemLinkProps {
+  analyticsKey: string;
   to: string;
+  activeTo?: string;
   children?: React.ReactNode;
+  linkProps?: Partial<Omit<LinkProps, 'ref'>>;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
 interface SidebarItemDropdownProps {
+  analyticsKey: string;
   items: MenuItemProps[];
+  buttonProps?: Partial<ButtonProps>;
   children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLElement>;
 }
 
 function SidebarBody({children}: {children: React.ReactNode}) {
@@ -58,177 +58,183 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   );
 }
 
-function SidebarItem({item}: SidebarItemProps) {
+function SidebarMenu({
+  items,
+  children,
+  analyticsKey,
+  buttonProps = {},
+}: SidebarItemDropdownProps) {
   const organization = useOrganization();
-
   const recordAnalytics = useCallback(
-    () =>
-      trackAnalytics('growth.clicked_sidebar', {item: item.analyticsKey, organization}),
-    [organization, item.analyticsKey]
+    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
+    [organization, analyticsKey]
   );
 
-  if (item.to) {
-    return (
-      <SidebarItemWrapper>
-        <SidebarLink to={item.to} key={item.label} onClick={recordAnalytics}>
-          {item.icon}
-          <span>{item.label}</span>
-        </SidebarLink>
-      </SidebarItemWrapper>
-    );
-  }
-
-  if (item.dropdown) {
-    return (
-      <SidebarItemWrapper>
-        <SidebarMenu items={item.dropdown} key={item.label} onClick={recordAnalytics}>
-          {item.icon}
-          <span>{item.label}</span>
-        </SidebarMenu>
-      </SidebarItemWrapper>
-    );
-  }
-
-  return null;
-}
-
-function SidebarMenu({items, children, onClick}: SidebarItemDropdownProps) {
   return (
-    <DropdownMenu
-      position="right-end"
-      trigger={(props, isOpen) => {
-        return (
-          <NavButton
-            {...props}
-            onClick={event => {
-              onClick?.(event);
-              props.onClick?.(event);
-            }}
-          >
-            <InteractionStateLayer hasSelectedBackground={isOpen} />
-            {children}
-          </NavButton>
-        );
-      }}
-      items={items}
-    />
+    <SidebarItemWrapper>
+      <DropdownMenu
+        position="right-end"
+        trigger={(props, isOpen) => {
+          return (
+            <NavButton
+              {...mergeProps(buttonProps, props)}
+              onClick={event => {
+                recordAnalytics();
+                props.onClick?.(event);
+              }}
+            >
+              <InteractionStateLayer hasSelectedBackground={isOpen} />
+              {children}
+            </NavButton>
+          );
+        }}
+        items={items}
+      />
+    </SidebarItemWrapper>
   );
 }
 
-function SidebarLink({children, to, onClick}: SidebarItemLinkProps) {
+function SidebarLink({
+  children,
+  to,
+  activeTo = to,
+  analyticsKey,
+  linkProps: incomingLinkProps = {},
+}: SidebarItemLinkProps) {
+  const organization = useOrganization();
   const location = useLocation();
-  const isActive = isLinkActive(to, location.pathname);
+  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const linkProps = makeLinkPropsFromTo(to);
 
+  const recordAnalytics = useCallback(
+    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
+    [organization, analyticsKey]
+  );
+
   return (
-    <NavLink
-      {...linkProps}
-      onClick={onClick}
-      aria-selected={isActive}
-      aria-current={isActive ? 'page' : undefined}
-    >
-      <InteractionStateLayer hasSelectedBackground={isActive} />
-      {children}
-    </NavLink>
+    <SidebarItemWrapper>
+      <NavLink
+        {...mergeProps(linkProps, incomingLinkProps)}
+        onClick={recordAnalytics}
+        aria-selected={isActive}
+        aria-current={isActive ? 'page' : undefined}
+      >
+        <InteractionStateLayer hasSelectedBackground={isActive} />
+        {children}
+      </NavLink>
+    </SidebarItemWrapper>
+  );
+}
+
+function CollapseButton() {
+  const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+
+  if (layout !== NavLayout.SIDEBAR) {
+    return null;
+  }
+
+  return (
+    <SidebarItemWrapper>
+      <NavButton
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      >
+        <InteractionStateLayer />
+        <IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />
+      </NavButton>
+    </SidebarItemWrapper>
   );
 }
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
+  const {layout} = useNavContext();
+
+  const includeFooterLabels = layout !== NavLayout.SIDEBAR;
 
   return (
     <Fragment>
       <SidebarBody>
-        <SidebarItem
-          item={{
-            label: t('Issues'),
-            icon: <IconIssues />,
-            analyticsKey: 'issues',
-            to: `/${prefix}/issues/`,
-          }}
-        />
-        <SidebarItem
-          item={{
-            label: t('Explore'),
-            icon: <IconSearch />,
-            analyticsKey: 'explore',
-            to: `/${prefix}/explore/traces/`,
-          }}
-        />
+        <SidebarLink to={`/${prefix}/issues/`} analyticsKey="issues">
+          <IconIssues />
+          <span>{NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}</span>
+        </SidebarLink>
+
+        <SidebarLink to={`/${prefix}/explore/traces/`} analyticsKey="explore">
+          <IconSearch />
+          <span>{NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}</span>
+        </SidebarLink>
+
         <Feature
           features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
           hookName="feature-disabled:dashboards-sidebar-item"
           requireAll={false}
         >
-          <SidebarItem
-            item={{
-              label: t('Boards'),
-              icon: <IconDashboard />,
-              analyticsKey: 'customizable-dashboards',
-              to: `/${prefix}/dashboards/`,
-            }}
-          />
+          <SidebarLink
+            to={`/${prefix}/dashboards/`}
+            analyticsKey="customizable-dashboards"
+          >
+            <IconDashboard />
+            <span>{NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}</span>
+          </SidebarLink>
         </Feature>
+
         <Feature features={['performance-view']}>
-          <SidebarItem
-            item={{
-              label: t('Insights'),
-              icon: <IconGraph />,
-              analyticsKey: 'insights-domains',
-              to: `/${prefix}/insights/frontend/`,
-            }}
-          />
+          <SidebarLink
+            to={`/${prefix}/insights/frontend/`}
+            analyticsKey="insights-domains"
+          >
+            <IconGraph />
+            <span>{NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}</span>
+          </SidebarLink>
         </Feature>
       </SidebarBody>
+
       <SidebarFooter>
-        <SidebarItem
-          item={{
-            label: t('Help'),
-            icon: <IconQuestion />,
-            analyticsKey: 'help',
-            dropdown: [
-              {
-                key: 'search',
-                label: t('Search Support, Docs and More'),
-                onAction() {
-                  openHelpSearchModal({organization});
-                },
+        <SidebarMenu
+          items={[
+            {
+              key: 'search',
+              label: t('Search Support, Docs and More'),
+              onAction() {
+                openHelpSearchModal({organization});
               },
-              {
-                key: 'help',
-                label: t('Visit Help Center'),
-                to: 'https://sentry.zendesk.com/hc/en-us',
-              },
-              {
-                key: 'discord',
-                label: t('Join our Discord'),
-                to: 'https://discord.com/invite/sentry',
-              },
-              {
-                key: 'support',
-                label: t('Contact Support'),
-                to: `mailto:${ConfigStore.get('supportEmail')}`,
-              },
-            ],
-          }}
-        />
-        <SidebarItem
-          item={{
-            label: t('Stats'),
-            icon: <IconStats />,
-            analyticsKey: 'stats',
-            to: `/${prefix}/stats/`,
-          }}
-        />
-        <SidebarItem
-          item={{
-            label: t('Settings'),
-            icon: <IconSettings />,
-            analyticsKey: 'settings',
-            to: `${prefix}/settings/${organization.slug}/`,
-          }}
-        />
+            },
+            {
+              key: 'help',
+              label: t('Visit Help Center'),
+              to: 'https://sentry.zendesk.com/hc/en-us',
+            },
+            {
+              key: 'discord',
+              label: t('Join our Discord'),
+              to: 'https://discord.com/invite/sentry',
+            },
+            {
+              key: 'support',
+              label: t('Contact Support'),
+              to: `mailto:${ConfigStore.get('supportEmail')}`,
+            },
+          ]}
+          analyticsKey="help"
+          buttonProps={!includeFooterLabels ? {'aria-label': t('Help')} : undefined}
+        >
+          <IconQuestion />
+          {includeFooterLabels && <span>{t('Help')}</span>}
+        </SidebarMenu>
+
+        <SidebarLink
+          to={`/${prefix}/settings/${organization.slug}/`}
+          activeTo={`/${prefix}/settings/`}
+          analyticsKey="settings"
+          linkProps={!includeFooterLabels ? {'aria-label': t('Settings')} : undefined}
+        >
+          <IconSettings />
+          {includeFooterLabels && <span>{t('Settings')}</span>}
+        </SidebarLink>
+
+        <CollapseButton />
       </SidebarFooter>
     </Fragment>
   );
@@ -257,22 +263,20 @@ const SidebarItemWrapper = styled('li')`
     height: var(--size);
 
     @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      --size: 18px;
-      padding-top: ${space(0.5)};
+      --size: 16px;
     }
   }
   > a,
   button {
     display: flex;
     flex-direction: row;
-    height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: auto ${space(1.5)};
+    padding: ${space(1.5)} ${space(3)};
     color: var(--color, currentColor);
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
-    line-height: 177.75%;
+    line-height: 1;
 
     & > * {
       pointer-events: none;
@@ -281,12 +285,12 @@ const SidebarItemWrapper = styled('li')`
     @media (min-width: ${p => p.theme.breakpoints.medium}) {
       flex-direction: column;
       justify-content: center;
-      height: 52px;
-      padding: ${space(0.5)} ${space(0.75)};
       border-radius: ${p => p.theme.borderRadius};
       font-size: ${p => p.theme.fontSizeExtraSmall};
       margin-inline: ${space(1)};
-      gap: ${space(0.5)};
+      gap: ${space(0.75)};
+      padding: 10px 0;
+      min-height: 40px;
     }
   }
 `;
