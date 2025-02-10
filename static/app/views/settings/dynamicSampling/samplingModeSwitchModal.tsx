@@ -97,7 +97,7 @@ function SamplingModeSwitchModal({
                   'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
                   {
                     learnMoreLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
                     ),
                   }
                 )
@@ -105,10 +105,10 @@ function SamplingModeSwitchModal({
                   'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
                   {
                     prioritiesLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
                     ),
                     learnMoreLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
                     ),
                   }
                 )}
