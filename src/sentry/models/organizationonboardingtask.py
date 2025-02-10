@@ -60,31 +60,32 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_extra("user_id", kwargs["user_id"])
-            scope.set_extra("project_id", kwargs["project_id"])
-            scope.set_extra("organization_id", kwargs["organization_id"])
+        scope = sentry_sdk.get_current_scope()
 
-            if cache.get(cache_key) is None:
-                try:
-                    with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                        self.create(
-                            organization_id=organization_id,
-                            task=task,
-                            **kwargs,
-                        )
-                        return True
-                except IntegrityError:
-                    sentry_sdk.capture_message(
-                        f"Integrity error while creating task {task} for organization {organization_id}",
-                        level="warning",
+        scope.set_extra("user_id", kwargs["user_id"])
+        scope.set_extra("project_id", kwargs["project_id"])
+        scope.set_extra("organization_id", kwargs["organization_id"])
+
+        if cache.get(cache_key) is None:
+            try:
+                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
+                    self.create(
+                        organization_id=organization_id,
+                        task=task,
+                        **kwargs,
                     )
-                    pass
+                    return True
+            except IntegrityError:
+                sentry_sdk.capture_message(
+                    f"Integrity error while creating task {task} for organization {organization_id}",
+                    level="warning",
+                )
+                pass
 
-                # Store marker to prevent running all the time
-                cache.set(cache_key, 1, 3600)
+            # Store marker to prevent running all the time
+            cache.set(cache_key, 1, 3600)
 
-            return False
+        return False
 
 
 class AbstractOnboardingTask(Model):
