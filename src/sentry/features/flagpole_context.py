@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
@@ -21,7 +22,12 @@ class InvalidContextDataException(Exception):
 class SentryContextData:
     actor: User | RpcUser | AnonymousUser | None = None
     organization: (
-        Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None
+        Organization
+        | RpcOrganization
+        | RpcOrganizationSummary
+        | RpcOrganizationMapping
+        | OrganizationMapping
+        | None
     ) = None
     project: Project | RpcProject | None = None
 
@@ -38,6 +44,12 @@ def organization_context_transformer(data: SentryContextData) -> EvaluationConte
         context_data["organization_id"] = org.id
         early_adopter = bool(org.flags.early_adopter) if org.flags is not None else False
         context_data["organization_is-early-adopter"] = early_adopter
+
+    elif isinstance(org, OrganizationMapping):
+        context_data["organization_slug"] = org.slug
+        context_data["organization_name"] = org.name
+        context_data["organization_id"] = org.organization_id
+        context_data["organization_is-early-adopter"] = org.flags.early_adopter
 
     elif isinstance(org, RpcOrganization):
         context_data["organization_slug"] = org.slug
