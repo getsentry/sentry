@@ -28,15 +28,17 @@ class TestProcessDataSources(BaseWorkflowTest):
         self.detector_one = self.create_detector(name="test_detector1")
         self.detector_two = self.create_detector(name="test_detector2", type="metric_alert_fire")
 
-        self.ds1 = self.create_data_source(query_id=self.query.id, type="test")
+        self.ds1 = self.create_data_source(source_id=self.query.id, type="test")
         self.ds1.detectors.set([self.detector_one])
 
-        self.ds2 = self.create_data_source(query_id=self.query_two.id, type="test")
+        self.ds2 = self.create_data_source(source_id=self.query_two.id, type="test")
         self.ds2.detectors.set([self.detector_two])
 
-        self.packet = DataPacket[dict](self.query.id, {"query_id": self.query.id, "foo": "bar"})
+        self.packet = DataPacket[dict](
+            str(self.query.id), {"source_id": self.query.id, "foo": "bar"}
+        )
         self.packet_two = DataPacket[dict](
-            self.query_two.id, {"query_id": self.query_two.id, "foo": "baz"}
+            str(self.query_two.id), {"source_id": self.query_two.id, "foo": "baz"}
         )
 
         self.data_packets = [self.packet, self.packet_two]

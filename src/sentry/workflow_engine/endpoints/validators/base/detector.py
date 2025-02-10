@@ -55,7 +55,7 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
             data_source = data_source_creator.create()
             detector_data_source = DataSource.objects.create(
                 organization_id=self.context["project"].organization_id,
-                query_id=data_source.id,
+                source_id=data_source.id,
                 type=validated_data["data_source"]["data_source_type"],
             )
             for condition in validated_data["data_conditions"]:

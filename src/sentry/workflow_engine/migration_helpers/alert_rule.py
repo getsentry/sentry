@@ -402,7 +402,7 @@ def create_data_source(
         return None
     return DataSource.objects.create(
         organization_id=organization_id,
-        query_id=query_subscription.id,
+        source_id=str(query_subscription.id),
         type="snuba_query_subscription",
     )
 
@@ -720,7 +720,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     try:
         data_source = DataSource.objects.get(
             organization=organization,
-            query_id=query_subscription.id,
+            source_id=query_subscription.id,
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
     except DataSource.DoesNotExist:
