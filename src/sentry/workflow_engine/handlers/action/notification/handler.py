@@ -14,6 +14,10 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 logger = logging.getLogger(__name__)
 
 
+class NotificationHandlerException(Exception):
+    pass
+
+
 class LegacyRegistryInvoker(ABC):
     """
     Abstract base class that defines the interface for notification handlers.
@@ -63,11 +67,13 @@ class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
                 action.type,
                 extra={"action_id": action.id},
             )
-        except Exception:
+            raise
+        except Exception as e:
             logger.exception(
                 "Error invoking issue alert handler",
                 extra={"action_id": action.id},
             )
+            raise NotificationHandlerException(e)
 
 
 @group_type_notification_registry.register(MetricIssuePOC.slug)

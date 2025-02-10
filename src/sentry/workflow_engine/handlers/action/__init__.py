@@ -2,4 +2,4 @@ __all__ = [
     "NotificationActionHandler",
 ]
 
-from .notification.notification import NotificationActionHandler
+from .notification.handler import NotificationActionHandler
