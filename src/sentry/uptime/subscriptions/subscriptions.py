@@ -302,9 +302,7 @@ def update_project_uptime_subscription(
     )
     # If we changed any fields on the actual subscription we created a new subscription and associated it with this
     # uptime monitor. Check if the old subscription was orphaned due to this.
-    updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
-    if updated_subscription:
-        remove_uptime_subscription_if_unused(cur_uptime_subscription)
+    remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
     # Update status. This may have the side effect of removing or creating a
     # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
