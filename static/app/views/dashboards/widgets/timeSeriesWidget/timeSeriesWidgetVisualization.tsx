@@ -27,12 +27,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import type {
-  Aliases,
-  Release,
-  TimeseriesData,
-  TimeseriesSelection,
-} from '../common/types';
+import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
 import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
 import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
@@ -50,12 +45,13 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 type VisualizationType = 'area' | 'line' | 'bar';
 
 export interface TimeSeriesWidgetVisualizationProps {
-  timeseries: TimeseriesData[];
+  timeSeries: TimeSeries[];
   visualizationType: VisualizationType;
   aliases?: Aliases;
   dataCompletenessDelay?: number;
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
   releases?: Release[];
+  stacked?: boolean;
   timeseriesSelection?: TimeseriesSelection;
 }
 
@@ -100,7 +96,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
-    props.timeseries.map(timeserie => {
+    props.timeSeries.map(timeserie => {
       return timeserie?.meta?.fields?.[timeserie.field];
     })
   ).filter(Boolean) as AggregationOutputType[];
@@ -116,7 +112,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
 
   const units = uniq(
-    props.timeseries.map(timeserie => {
+    props.timeSeries.map(timeserie => {
       return timeserie?.meta?.units?.[timeserie.field];
     })
   ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
@@ -133,7 +129,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   // Apply unit scaling to all series
-  const scaledSeries = props.timeseries.map(timeserie => {
+  const scaledSeries = props.timeSeries.map(timeserie => {
     return scaleTimeSeriesData(timeserie, yAxisUnit);
   });
 
@@ -150,7 +146,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     // For bar charts, convert straight from time series to series, which will
     // automatically mark "delayed" bars
     markedSeries.forEach(timeSeries => {
-      plottableSeries.push(BarChartWidgetSeries(timeSeries));
+      plottableSeries.push(
+        BarChartWidgetSeries(timeSeries, props.stacked ? GLOBAL_STACK_NAME : undefined)
+      );
     });
   } else {
     // For line and area charts, split each time series into two series, each
@@ -329,3 +327,5 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
+
+const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

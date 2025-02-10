@@ -15,7 +15,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
-from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowJob
 
@@ -87,7 +87,9 @@ def evaluate_workflows_action_filters(
     ).distinct()
 
     for action_condition in action_conditions:
-        evaluation, result, remaining_conditions = evaluate_condition_group(action_condition, job)
+        (evaluation, result), remaining_conditions = process_data_condition_group(
+            action_condition.id, job
+        )
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,

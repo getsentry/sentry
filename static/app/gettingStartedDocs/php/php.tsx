@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -11,8 +11,6 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportPHPInstallStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -35,13 +33,6 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
   'profiles_sample_rate' => 1.0,`
       : ''
   }
-]);`;
-
-const getMetricsConfigureSnippet = () => `
-use function \\Sentry\\init;
-
-\\Sentry\\init([
-    'attach_metric_code_locations' => true,
 ]);`;
 
 const getVerifySnippet = () => `
@@ -143,106 +134,6 @@ const onboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [codeVersion:4.3.0] of the Sentry PHP SDK installed.',
-        {
-          codeVersion: <code />,
-        }
-      ),
-      configurations: [
-        {
-          language: 'bash',
-          code: 'composer install sentry/sentry',
-        },
-      ],
-    },
-  ],
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'Once the SDK is installed or updated, you can enable code locations being emitted with your metrics:'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'PHP',
-              value: 'php',
-              language: 'php',
-              code: getMetricsConfigureSnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges].",
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Counter',
-              value: 'counter',
-              language: 'php',
-              code: exampleSnippets.php.counter,
-            },
-            {
-              label: 'Distribution',
-              value: 'distribution',
-              language: 'php',
-              code: exampleSnippets.php.distribution,
-            },
-            {
-              label: 'Set',
-              value: 'set',
-              language: 'php',
-              code: exampleSnippets.php.set,
-            },
-            {
-              label: 'Gauge',
-              value: 'gauge',
-              language: 'php',
-              code: exampleSnippets.php.gauge,
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/php/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-};
-
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportPHPInstallStep(params),
@@ -332,7 +223,6 @@ const performanceOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding,
   performanceOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,

@@ -25,7 +25,6 @@ from sentry.sentry_metrics.querying.units import (
     UnitFamily,
     get_unit_family_and_unit,
 )
-from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -978,126 +977,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 2, None]
         assert data[0][0]["totals"] == 2
 
-    def test_query_with_one_metric_blocked_for_one_project(self):
         mri = "d:custom/page_size@byte"
 
         project_1 = self.create_project()
         project_2 = self.create_project()
-
-        block_metric(mri, [project_1])
-
-        for project, value in ((project_1, 10.0), (project_2, 15.0)):
-            self.store_metric(
-                self.project.organization.id,
-                project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                value,
-            )
-
-        query_1 = self.mql("sum", mri)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[project_1, project_2],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, self.to_reference_unit(15.0, "byte"), None]
-        assert data[0][0]["totals"] == self.to_reference_unit(15.0, "byte")
-
-    def test_query_with_one_metric_blocked_for_all_projects(self):
-        mri = "d:custom/page_load@millisecond"
-
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        block_metric(mri, [project_1, project_2])
-
-        for project, value in ((project_1, 10.0), (project_2, 15.0)):
-            self.store_metric(
-                self.project.organization.id,
-                project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                value,
-            )
-
-        query_1 = self.mql("sum", mri)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[project_1, project_2],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0][0]["series"] == [None, None, None]
-        assert data[0][0]["totals"] is None
-
-    def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
-        mri_1 = "d:custom/page_load@millisecond"
-        mri_2 = "d:custom/app_load@millisecond"
-
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        block_metric(mri_1, [project_1, project_2])
-
-        for project, mri in ((project_1, mri_1), (project_2, mri_2)):
-            self.store_metric(
-                self.project.organization.id,
-                project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                10.0,
-            )
-
-        query_1 = self.mql("sum", mri_1)
-        query_2 = self.mql("sum", mri_2)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1), MQLQuery(query_2)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[project_1, project_2],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 2
-        assert len(data[0][0]["series"]) == 3
-        assert data[0][0]["series"] == [None, None, None]
-        assert data[0][0]["totals"] is None
-        assert data[1][0]["by"] == {}
-        assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
-        assert data[1][0]["totals"] == self.to_reference_unit(10.0)
-
-    def test_query_with_one_tag_blocked_for_one_project(self):
-        mri = "d:custom/page_size@byte"
-
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        # Blocking a tag should not affect the querying, since we do not want to filter out the tag.
-        block_tags_of_metric(mri, {"transaction"}, [project_1])
 
         for project, value in ((project_1, 10.0), (project_2, 15.0)):
             self.store_metric(

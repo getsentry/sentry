@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';
@@ -64,7 +64,7 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
               ) {
                 if (!widgetContainsErrorFields) {
                   return (
-                    <StoredDataAlert showIcon>
+                    <StoredDataAlert type="info" showIcon>
                       {tct(
                         "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                         {

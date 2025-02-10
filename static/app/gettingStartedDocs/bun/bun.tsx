@@ -1,4 +1,3 @@
-import ExternalLink from 'sentry/components/links/externalLink';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -11,13 +10,11 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -47,15 +44,6 @@ const getVerifySnippet = () => `try {
 } catch (e) {
   Sentry.captureException(e);
 }`;
-
-const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Only needed for SDK versions < 8.0.0
-  // _experiments: {
-  //   metricsAggregator: true,
-  // },
-});`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -98,95 +86,6 @@ const onboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [code:7.91.0] of [code:@sentry/bun].',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'With the default snippet in place, there is no need for any further configuration.'
-      ),
-      configurations: [
-        {
-          code: getMetricsConfigureSnippet(params),
-          language: 'javascript',
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Counter',
-              value: 'counter',
-              language: 'javascript',
-              code: exampleSnippets.javascript.counter,
-            },
-            {
-              label: 'Distribution',
-              value: 'distribution',
-              language: 'javascript',
-              code: exampleSnippets.javascript.distribution,
-            },
-            {
-              label: 'Set',
-              value: 'set',
-              language: 'javascript',
-              code: exampleSnippets.javascript.set,
-            },
-            {
-              label: 'Gauge',
-              value: 'gauge',
-              language: 'javascript',
-              code: exampleSnippets.javascript.gauge,
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/bun/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-};
-
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
@@ -208,7 +107,6 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };
