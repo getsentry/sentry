@@ -22,7 +22,7 @@ export function SearchBarSection({query, index}: Props) {
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
-  const updateQuerySearch = useUpdateQueryAtIndex();
+  const updateQuerySearch = useUpdateQueryAtIndex(index);
 
   return (
     <Section data-test-id={`section-filter-${index}`}>
@@ -32,7 +32,7 @@ export function SearchBarSection({query, index}: Props) {
       <EAPSpanSearchQueryBuilder
         projects={selection.projects}
         initialQuery={query.query ?? ''}
-        onSearch={value => updateQuerySearch(index, {query: value})}
+        onSearch={value => updateQuerySearch({query: value})}
         searchSource="explore"
         numberTags={numberTags}
         stringTags={stringTags}

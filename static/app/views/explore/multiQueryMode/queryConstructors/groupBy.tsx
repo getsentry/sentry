@@ -22,7 +22,7 @@ type Props = {
 export function GroupBySection({query, index}: Props) {
   const tags = useSpanTags();
 
-  const updateGroupBys = useUpdateQueryAtIndex();
+  const updateGroupBys = useUpdateQueryAtIndex(index);
 
   const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = Object.keys(tags).filter(key => key !== 'id');
@@ -47,7 +47,7 @@ export function GroupBySection({query, index}: Props) {
         clearable
         searchable
         onChange={options =>
-          updateGroupBys(index, {groupBys: options.map(value => value.value.toString())})
+          updateGroupBys({groupBys: options.map(value => value.value.toString())})
         }
       />
     </Section>

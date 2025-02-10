@@ -31,7 +31,7 @@ export function VisualizeSection({query, index}: Props) {
     yAxes: query.yAxes,
   });
 
-  const updateYAxis = useUpdateQueryAtIndex();
+  const updateYAxis = useUpdateQueryAtIndex(index);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -62,7 +62,7 @@ export function VisualizeSection({query, index}: Props) {
             value={parsedFunction?.name}
             onChange={newAggregate => {
               const newYAxis = `${newAggregate.value}(${parsedFunction!.arguments[0]})`;
-              updateYAxis(index, {yAxes: [newYAxis]});
+              updateYAxis({yAxes: [newYAxis]});
             }}
           />
           <CompactSelect
@@ -71,7 +71,7 @@ export function VisualizeSection({query, index}: Props) {
             value={parsedFunction?.arguments[0]}
             onChange={newField => {
               const newYAxis = `${parsedFunction!.name}(${newField.value})`;
-              updateYAxis(index, {yAxes: [newYAxis]});
+              updateYAxis({yAxes: [newYAxis]});
             }}
           />
         </StyledPageFilterBar>

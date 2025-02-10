@@ -148,13 +148,13 @@ function getUpdatedLocationWithQueries(
   return location;
 }
 
-export function useUpdateQueryAtIndex() {
+export function useUpdateQueryAtIndex(index: number) {
   const location = useLocation();
   const queries = useReadQueriesFromLocation();
   const navigate = useNavigate();
 
   return useCallback(
-    (index: number, updates: Partial<WritableExploreQueryParts>) => {
+    (updates: Partial<WritableExploreQueryParts>) => {
       const queryToUpdate = queries[index];
       if (!queryToUpdate) {
         return;
@@ -168,7 +168,7 @@ export function useUpdateQueryAtIndex() {
       const target = getUpdatedLocationWithQueries(location, newQueries);
       navigate(target);
     },
-    [location, navigate, queries]
+    [index, location, navigate, queries]
   );
 }
 

@@ -30,7 +30,7 @@ export function SortBySection({query, index}: Props) {
   const yAxes = query.yAxes;
 
   const fieldOptions = useSortByFields({fields, yAxes, groupBys, mode});
-  const updateSort = useUpdateQueryAtIndex();
+  const updateSort = useUpdateQueryAtIndex(index);
 
   const kindOptions: Array<SelectOption<Sort['kind']>> = useMemo(() => {
     return [
@@ -66,7 +66,7 @@ export function SortBySection({query, index}: Props) {
               const newSorts = query.sortBys?.map(sort => {
                 return {...sort, field: newSortField.value};
               });
-              updateSort(index, {sortBys: newSorts});
+              updateSort({sortBys: newSorts});
             }}
           />
           <CompactSelect
@@ -76,7 +76,7 @@ export function SortBySection({query, index}: Props) {
               const newSorts = query.sortBys?.map(sort => {
                 return {...sort, kind: newSortKind.value};
               });
-              updateSort(index, {sortBys: newSorts});
+              updateSort({sortBys: newSorts});
             }}
           />
         </StyledPageFilterBar>
