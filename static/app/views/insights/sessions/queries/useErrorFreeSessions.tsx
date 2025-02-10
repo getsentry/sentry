@@ -30,7 +30,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
 
   if (isPending) {
     return {
-      seriesData: [],
+      series: [],
       isPending: true,
       error,
     };
@@ -38,7 +38,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
 
   if (!sessionsData && !isPending) {
     return {
-      seriesData: [],
+      series: [],
       isPending: false,
       error,
     };
@@ -47,6 +47,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
   if (groupByRelease) {
     // Group the data by release first
     const releaseGroups = new Map<string, typeof sessionsData.groups>();
+
     sessionsData.groups.forEach(group => {
       const release = group.by.release?.toString() ?? '';
       if (!releaseGroups.has(release)) {
@@ -89,17 +90,33 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
       healthySessionsPercentageData.push(percentages);
     });
 
+    const seriesData = healthySessionsPercentageData.map(releaseData =>
+      releaseData.map((val, idx) => ({
+        name: sessionsData.intervals[idx] ?? '',
+        value: val,
+      }))
+    );
+
+    const series =
+      seriesData?.map((s, index) => ({
+        data: s,
+        seriesName: `successful_session_rate_${releases[index]}`,
+        meta: {
+          fields: {
+            [`successful_session_rate_${releases[index]}`]: 'percentage' as const,
+            time: 'date' as const,
+          },
+          units: {
+            [`successful_session_rate_${releases[index]}`]: '%',
+          },
+        },
+      })) ?? [];
+
     return {
-      seriesData: [],
-      mobileSeriesData: healthySessionsPercentageData.map(releaseData =>
-        releaseData.map((val, idx) => ({
-          name: sessionsData.intervals[idx] ?? '',
-          value: val,
-        }))
-      ),
+      series,
       releases,
-      isPending: false,
-      error: null,
+      isPending,
+      error,
     };
   }
 
@@ -124,10 +141,28 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
     return total > 0 ? healthyCount / total : 0;
   });
 
+  const seriesData = healthySessionsPercentageData.map((val, idx) => {
+    return {name: sessionsData.intervals[idx] ?? '', value: val};
+  });
+
+  const series = [
+    {
+      data: seriesData,
+      seriesName: 'successful_session_rate',
+      meta: {
+        fields: {
+          successful_session_rate: 'percentage' as const,
+          time: 'date' as const,
+        },
+        units: {
+          successful_session_rate: '%',
+        },
+      },
+    },
+  ];
+
   return {
-    seriesData: healthySessionsPercentageData.map((val, idx) => {
-      return {name: sessionsData.intervals[idx] ?? '', value: val};
-    }),
+    series,
     isPending,
     error,
   };
