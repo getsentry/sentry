@@ -138,7 +138,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
   // Calculate percentage for each interval
   const healthySessionsPercentageData = healthySessionsSeries.map((healthyCount, idx) => {
     const total = totalSessionsByInterval?.[idx] ?? 1;
-    return total > 0 ? healthyCount / total : 0;
+    return total > 0 ? healthyCount / total : 1;
   });
 
   const seriesData = healthySessionsPercentageData.map((val, idx) => {

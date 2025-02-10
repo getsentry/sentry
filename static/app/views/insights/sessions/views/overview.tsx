@@ -22,7 +22,6 @@ export function SessionsOverview() {
   };
 
   const {view} = useDomainViewFilters();
-  const isMobile = view === MOBILE_LANDING_SUB_PATH;
 
   return (
     <React.Fragment>
@@ -40,7 +39,7 @@ export function SessionsOverview() {
                 />
               </ToolRibbon>
             </ModuleLayout.Full>
-            {isMobile ? (
+            {view === MOBILE_LANDING_SUB_PATH ? (
               <ModuleLayout.Half>
                 <ErrorFreeSessionsChart groupByRelease />
               </ModuleLayout.Half>
