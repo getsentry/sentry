@@ -16,7 +16,7 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:performance-spans-fields-stats"]
 
         if query and "dataset" not in query.keys():
             query["dataset"] = "spans"

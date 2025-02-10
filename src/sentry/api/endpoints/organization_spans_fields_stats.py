@@ -47,7 +47,7 @@ class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
 
         if not features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:performance-spans-fields-stats", organization, actor=request.user
         ):
             return Response(status=404)
 
