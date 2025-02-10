@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-export default storyBook(WidgetFrame, story => {
+export default storyBook('WidgetFrame', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -27,7 +27,13 @@ export default storyBook(WidgetFrame, story => {
         <p>
           <JSXNode name="WidgetFrame" /> supports a few basic props that control its
           content. This includes a title, a description, and the <code>children</code>.
-          The title is automatically wrapped in a tooltip if it does not fit.
+          The title is automatically wrapped in a tooltip if it does not fit. The
+          description and the actions are usually hidden and shown on hover. You can
+          control this behaviour with the <code>revealActions</code> prop.
+          <code>revealActions</code> is set to <code>"hover"</code> by default, but you
+          can set it to <code>"always"</code> to forcibly show the actions.
+          <code>revealActions</code> is automatically set to <code>"always"</code> if the{' '}
+          <code>revealTooltip</code> prop is set to <code>"always"</code>.
         </p>
 
         <p>
@@ -40,13 +46,9 @@ export default storyBook(WidgetFrame, story => {
             <WidgetFrame
               title="Count"
               description="This counts up the amount of something that happens."
-            />
-          </NormalWidget>
-          <NormalWidget>
-            <WidgetFrame
-              title="p95(measurements.lcp) / p95(measurements.inp)"
-              description="This is a tough formula to reason about"
-            />
+            >
+              <p>Lorem whoopsie, feed me pickles please I am lacking in probiotics</p>
+            </WidgetFrame>
           </NormalWidget>
           <NormalWidget>
             <WidgetFrame
@@ -58,6 +60,23 @@ export default storyBook(WidgetFrame, story => {
                   </ExternalLink>
                 ),
               })}
+            />
+          </NormalWidget>
+        </SideBySide>
+
+        <br />
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame
+              title="p95(measurements.lcp) / p95(measurements.inp)"
+              description="This is a tough formula to reason about"
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <WidgetFrame
+              title="p95(measurements.lcp) / p95(measurements.inp)"
+              description="This is a tough formula to reason about"
             />
           </NormalWidget>
         </SideBySide>

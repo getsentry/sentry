@@ -68,7 +68,8 @@ function SpanNodeDetailHeader({
         <TraceDrawerComponents.LegacyTitleText>
           <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            text={`ID: ${node.value.span_id}`}
+            subTitle={`ID: ${node.value.span_id}`}
+            clipboardText={node.value.span_id}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
@@ -164,7 +165,7 @@ function SpanSections({
           <TraceDrawerComponents.SectionCardGroup>
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-            {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+            {hasSpanTags(node.value) ? <Tags node={node} /> : null}
             {hasSpanMeasurements(node.value) ? (
               <Measurements node={node} location={location} organization={organization} />
             ) : null}
@@ -195,7 +196,7 @@ function LegacySpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-      {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+      {hasSpanTags(node.value) ? <Tags node={node} /> : null}
       {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
     </TraceDrawerComponents.SectionCardGroup>
   );

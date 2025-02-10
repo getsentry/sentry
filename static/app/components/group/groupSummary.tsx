@@ -1,14 +1,15 @@
-import {useEffect, useState} from 'react';
+import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Placeholder from 'sentry/components/placeholder';
-import {IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
+import {IconDocs, IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -95,6 +96,7 @@ export function GroupSummary({
   project: Project;
   preview?: boolean;
 }) {
+  const config = getConfigForIssueType(group, project);
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
   const openFeedbackForm = useFeedbackForm();
@@ -163,6 +165,7 @@ export function GroupSummary({
     !data?.scores ||
     (data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
       data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
+  const shouldShowResources = config.resources && !preview;
 
   const insightCards = [
     {
@@ -187,6 +190,20 @@ export function GroupSummary({
             insight: data?.possibleCause,
             icon: <IconFocus size="sm" />,
             showWhenLoading: false,
+          },
+        ]
+      : []),
+    ...(shouldShowResources
+      ? [
+          {
+            id: 'resources',
+            title: t('Resources'),
+            insight: `${isValidElement(config.resources?.description) ? '' : config.resources?.description ?? ''}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insightElement: isValidElement(config.resources?.description)
+              ? config.resources?.description
+              : null,
+            icon: <IconDocs size="sm" />,
+            showWhenLoading: true,
           },
         ]
       : []),
@@ -234,17 +251,18 @@ export function GroupSummary({
                       <Placeholder height="1.5rem" />
                     </CardContent>
                   ) : (
-                    card.insight && (
-                      <CardContent
-                        dangerouslySetInnerHTML={{
-                          __html: marked(
-                            preview
-                              ? card.insight.replace(/\*\*/g, '') ?? ''
-                              : card.insight ?? ''
-                          ),
-                        }}
-                      />
-                    )
+                    <CardContent>
+                      {card.insightElement}
+                      {card.insight && (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                            ),
+                          }}
+                        />
+                      )}
+                    </CardContent>
                   )}
                 </CardContentContainer>
               </InsightCard>

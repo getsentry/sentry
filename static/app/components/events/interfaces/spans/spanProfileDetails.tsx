@@ -115,8 +115,8 @@ export function useSpanProfileDetails(
   const maxNodes = useMemo(() => {
     // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i]!.count >= TOP_NODE_MIN_COUNT) {
+    for (const node of nodes) {
+      if (node.count >= TOP_NODE_MIN_COUNT) {
         hasMinCount += 1;
       } else {
         break;

@@ -11,9 +11,10 @@ import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnal
 import useDevToolbar from 'sentry/utils/useDevToolbar';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 
-import Body from './body';
+import OrganizationDetailsBody from './body';
 
 interface Props {
   children: React.ReactNode;
@@ -57,13 +58,15 @@ interface LayoutProps extends Props {
 function AppLayout({children, organization}: LayoutProps) {
   return (
     <NavContextProvider>
-      <AppContainer className="app">
+      <AppContainer>
         <Nav />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
         <BodyContainer id="main">
-          {organization && <OrganizationHeader organization={organization} />}
-          {organization && <DevToolInit />}
-          <Body>{children}</Body>
+          <AppBodyContent>
+            {organization && <OrganizationHeader organization={organization} />}
+            {organization && <DevToolInit />}
+            <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
+          </AppBodyContent>
           <Footer />
         </BodyContainer>
       </AppContainer>
@@ -77,14 +80,20 @@ function LegacyAppLayout({children, organization}: LayoutProps) {
       {organization && <OrganizationHeader organization={organization} />}
       {organization && <DevToolInit />}
       <Sidebar />
-      <Body>{children}</Body>
+      <AppBodyContent>
+        <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
+      </AppBodyContent>
       <Footer />
     </div>
   );
 }
 
 const AppContainer = styled('div')`
+  position: relative;
   display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     flex-direction: row;
   }

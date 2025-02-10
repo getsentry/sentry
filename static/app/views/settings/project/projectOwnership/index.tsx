@@ -1,6 +1,6 @@
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -24,11 +24,11 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 export default function ProjectOwnership({project}: {project: Project}) {
   const organization = useOrganization();
@@ -161,7 +161,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           }
         )}
       </TextBlock>
-      <PermissionAlert
+      <ProjectPermissionAlert
         access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
         project={project}
       />
@@ -185,7 +185,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </ErrorBoundary>
       )}
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       {hasCodeowners && (
         <CodeOwnerFileTable
           project={project}

@@ -129,7 +129,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    sunba_methods = ["GET"]
 
     def get_features(
         self, organization: Organization, request: Request

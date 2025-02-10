@@ -32,6 +32,9 @@ export function updateLocationWithGroupBys(
 ) {
   if (defined(groupBys)) {
     location.query.groupBy = groupBys;
+
+    // make sure to clear the cursor every time the query is updated
+    delete location.query.cursor;
   } else if (groupBys === null) {
     delete location.query.groupBy;
   }

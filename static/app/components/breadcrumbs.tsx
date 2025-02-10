@@ -93,7 +93,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   }
 
   return (
-    <BreadcrumbList {...props}>
+    <BreadcrumbList {...props} data-test-id="breadcrumb-list">
       {crumbs.map((crumb, index) => {
         if (isCrumbDropdown(crumb)) {
           const {label, ...crumbProps} = crumb;
@@ -123,7 +123,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
                 {label}
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbItem>{label}</BreadcrumbItem>
+              <BreadcrumbItem data-test-id="breadcrumb-item">{label}</BreadcrumbItem>
             )}
 
             {index < crumbs.length - 1 && <BreadcrumbDividerIcon direction="right" />}

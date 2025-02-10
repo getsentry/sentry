@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,14 +15,18 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
+import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
+import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
@@ -33,11 +37,29 @@ interface EventDetailsHeaderProps {
 }
 
 export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const {dispatch} = useIssueDetails();
+
+  useEffect(() => {
+    if (event) {
+      // Since detector details are identical across the issue but only provided at the event level,
+      // we need to persist the details in state to prevent breakage when an event is unloaded.
+      const detectorDetails = getDetectorDetails({
+        event,
+        organization,
+        project,
+      });
+      dispatch({
+        type: 'UPDATE_DETECTOR_DETAILS',
+        detectorDetails,
+      });
+    }
+  }, [event, organization, project, dispatch]);
 
   const searchText = t(
     'Filter %s\u2026',
@@ -85,10 +107,14 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         )}
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
-            {issueTypeConfig.header.graph.type === 'detector-history' ? (
-              <MetricIssueChart group={group} project={project} event={event} />
-            ) : (
+            {issueTypeConfig.header.graph.type === 'discover-events' && (
               <EventGraph event={event} group={group} style={{flex: 1}} />
+            )}
+            {issueTypeConfig.header.graph.type === 'detector-history' && (
+              <MetricIssueChart group={group} project={project} event={event} />
+            )}
+            {issueTypeConfig.header.graph.type === 'uptime-checks' && (
+              <IssueUptimeCheckTimeline group={group} />
             )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview
@@ -100,7 +126,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           </GraphSection>
         )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
-          <OccurrenceSummarySection group={group} />
+          <OccurrenceSummarySection group={group} event={event} />
         )}
       </FilterContainer>
     </PageErrorBoundary>
@@ -133,7 +159,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       title={t('This issue only occurs in a single environment')}
       css={environmentCss}
     >
-      {eventEnvironment}
+      {eventEnvironment ?? t('All Envs')}
     </Button>
   ) : (
     <EnvironmentPageFilter

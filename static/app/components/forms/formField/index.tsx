@@ -386,14 +386,9 @@ function FormField(props: FormFieldProps) {
                 const error = model.getError(name);
                 const value = model.getValue(name);
 
-                const isVisible =
-                  typeof fieldProps.visible === 'function'
-                    ? fieldProps.visible({...props, ...fieldProps} as ResolvedProps)
-                    : true;
-
                 return (
                   <Fragment>
-                    {isVisible
+                    {fieldProps.visible
                       ? selectionInfoFunction({...fieldProps, error, value})
                       : null}
                   </Fragment>
@@ -413,7 +408,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
-                    type={saveMessageAlertType}
+                    type={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>
                         <Button onClick={handleCancelField} size="xs">

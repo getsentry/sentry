@@ -16,7 +16,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type ProjectTeamsProps = {
   organization: Organization;
@@ -66,7 +66,7 @@ export function ProjectTeams({organization, project}: ProjectTeamsProps) {
             'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
           )}
         </TextBlock>
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
 
         <TeamSelectForProject
           disabled={!hasWriteAccess}

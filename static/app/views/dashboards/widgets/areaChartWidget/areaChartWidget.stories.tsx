@@ -10,14 +10,14 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {Release, TimeseriesData} from '../common/types';
+import type {Release, TimeSeries} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleLatencyTimeSeries} from './fixtures/sampleLatencyTimeSeries';
+import {sampleSpanDurationTimeSeries} from './fixtures/sampleSpanDurationTimeSeries';
 import {AreaChartWidget} from './areaChartWidget';
-import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
-import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
-export default storyBook(AreaChartWidget, story => {
+export default storyBook('AreaChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -43,14 +43,10 @@ export default storyBook(AreaChartWidget, story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
-    const latencyTimeSeries = toTimeSeriesSelection(
-      sampleLatencyTimeSeries as unknown as TimeseriesData,
-      start,
-      end
-    );
+    const latencyTimeSeries = toTimeSeriesSelection(sampleLatencyTimeSeries, start, end);
 
     const spanDurationTimeSeries = toTimeSeriesSelection(
-      sampleSpanDurationTimeSeries as unknown as TimeseriesData,
+      sampleSpanDurationTimeSeries,
       start,
       end
     );
@@ -66,7 +62,7 @@ export default storyBook(AreaChartWidget, story => {
           <AreaChartWidget
             title="Duration Breakdown"
             description="Explains what proportion of total duration is taken up by latency vs. span duration"
-            timeseries={[latencyTimeSeries, spanDurationTimeSeries]}
+            timeSeries={[latencyTimeSeries, spanDurationTimeSeries]}
           />
         </SmallSizingWindow>
 
@@ -82,7 +78,7 @@ export default storyBook(AreaChartWidget, story => {
             <AreaChartWidget
               title="span.duration"
               dataCompletenessDelay={60 * 60 * 3}
-              timeseries={[
+              timeSeries={[
                 shiftTimeserieToNow(latencyTimeSeries),
                 shiftTimeserieToNow(spanDurationTimeSeries),
               ]}
@@ -141,7 +137,7 @@ export default storyBook(AreaChartWidget, story => {
           <AreaChartWidget
             title="error_rate()"
             description="Rate of Errors"
-            timeseries={[
+            timeSeries={[
               {...sampleLatencyTimeSeries, color: theme.error},
 
               {...sampleSpanDurationTimeSeries, color: theme.warning},
@@ -175,7 +171,7 @@ export default storyBook(AreaChartWidget, story => {
         <MediumWidget>
           <AreaChartWidget
             title="error_rate()"
-            timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
+            timeSeries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
             releases={releases}
           />
         </MediumWidget>
@@ -200,10 +196,10 @@ const SmallSizingWindow = styled(SizingWindow)`
 `;
 
 function toTimeSeriesSelection(
-  timeSeries: TimeseriesData,
+  timeSeries: TimeSeries,
   start: DateString | null,
   end: DateString | null
-): TimeseriesData {
+): TimeSeries {
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {

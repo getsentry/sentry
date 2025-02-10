@@ -1,19 +1,31 @@
+from dataclasses import asdict
+from datetime import timedelta
+
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models.data_condition import (
+    PERCENT_CONDITIONS,
+    SLOW_CONDITIONS,
+    Condition,
+)
 from sentry.workflow_engine.processors.delayed_workflow import (
+    UniqueConditionQuery,
     fetch_active_data_condition_groups,
     fetch_group_to_event_data,
     fetch_workflows_and_environments,
+    generate_unique_queries,
+    get_condition_group_results,
+    get_condition_query_groups,
     get_dcg_group_workflow_data,
 )
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
@@ -87,10 +99,9 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
     def create_project_event_freq_workflow(
         self, project: Project, environment: Environment | None = None
     ) -> tuple[Workflow, list[DataConditionGroup]]:
-        if not Detector.objects.filter(project_id=project.id, type=ErrorGroupType.slug).exists():
-            detector = self.create_detector(project=project, type=ErrorGroupType.slug)
-        else:
-            detector = Detector.objects.get(project_id=project.id, type=ErrorGroupType.slug)
+        detector, _ = Detector.objects.get_or_create(
+            project_id=project.id, type=ErrorGroupType.slug, defaults={"config": {}}
+        )
 
         workflow_trigger_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
@@ -241,3 +252,217 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             list(self.dcg_to_groups.keys()), self.dcg_to_workflow, workflow_ids_to_workflows
         )
         assert set(active_dcgs) == set(self.workflow2_dcgs)
+
+
+class TestDelayedWorkflowQueries(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
+        self.count_dc = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+
+        self.percent_dc = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_PERCENT,
+            comparison={"interval": "1h", "value": 100, "comparison_interval": "1w"},
+            condition_result=True,
+        )
+
+        self.workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL
+        )
+        self.create_data_condition(
+            condition_group=self.workflow_filters,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.workflow_filters
+        )
+
+    def test_generate_unique_queries(self):
+        count_queries = generate_unique_queries(self.count_dc, None)
+        percent_queries = generate_unique_queries(self.percent_dc, None)
+
+        assert len(count_queries) == 1
+        assert len(percent_queries) == 2
+        assert count_queries[0] == percent_queries[0]  # they share 1 query
+
+        # 2nd query for percent is the same as the 1st but has comparison interval
+        comparison_query_dict = asdict(percent_queries[0])
+        comparison_query_dict["comparison_interval"] = "1w"
+        expected_comparison_query = UniqueConditionQuery(**comparison_query_dict)
+        assert percent_queries[1] == expected_comparison_query
+
+    def test_generate_unique_queries__invalid(self):
+        dc = self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.REGRESSION_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        # not slow condition
+        assert generate_unique_queries(dc, None) == []
+
+        # invalid condition.type
+        dc.update(type="asdf")
+        assert generate_unique_queries(dc, None) == []
+
+        # no handler
+        dc.update(type=Condition.NOT_EQUAL)
+        assert generate_unique_queries(dc, None) == []
+
+    def test_get_condition_query_groups(self):
+        group2 = self.create_group()
+        group3 = self.create_group()
+
+        other_workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL
+        )
+        other_condition = self.create_data_condition(
+            condition_group=other_workflow_filters,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "15m", "value": 100},
+            condition_result=True,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=other_workflow_filters
+        )
+
+        dcgs = [self.workflow_triggers, self.workflow_filters, other_workflow_filters]
+        dcg_to_groups = {
+            self.workflow_triggers.id: {self.group.id},
+            self.workflow_filters.id: {group2.id},
+            other_workflow_filters.id: {group3.id},
+        }
+        dcg_to_workflow = {
+            self.workflow_triggers.id: self.workflow.id,
+            self.workflow_filters.id: self.workflow.id,
+            other_workflow_filters.id: self.workflow.id,
+        }
+        workflows_to_envs: dict[int, int | None] = {self.workflow.id: None}
+
+        result = get_condition_query_groups(dcgs, dcg_to_groups, dcg_to_workflow, workflows_to_envs)
+
+        count_query = generate_unique_queries(self.count_dc, None)[0]
+        percent_only_query = generate_unique_queries(self.percent_dc, None)[1]
+        different_query = generate_unique_queries(other_condition, None)[0]
+
+        assert result[count_query] == {self.group.id, group2.id}  # count and percent condition
+        assert result[percent_only_query] == {self.group.id}
+        assert result[different_query] == {group3.id}
+
+
+@freeze_time(FROZEN_TIME)
+class TestGetSnubaResults(BaseWorkflowTest):
+    def tearDown(self):
+        super().tearDown()
+
+    def create_events(self, comparison_type: ComparisonType) -> Event:
+        # Create current events for the first query
+        event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        if comparison_type == ComparisonType.PERCENT:
+            # Create a past event for the second query
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME - timedelta(hours=1, minutes=10),
+                "group-1",
+                self.environment.name,
+            )
+        return event
+
+    def create_condition_groups(
+        self, data_conditions: list[DataCondition]
+    ) -> tuple[dict[UniqueConditionQuery, set[int]], int, list[UniqueConditionQuery]]:
+        condition_groups = {}
+        all_unique_queries = []
+        for data_condition in data_conditions:
+            unique_queries = generate_unique_queries(data_condition, self.environment.id)
+            comparison_type = (
+                ComparisonType.PERCENT
+                if Condition(data_condition.type) in PERCENT_CONDITIONS
+                else ComparisonType.COUNT
+            )
+            event = self.create_events(comparison_type)
+            assert event.group
+            group = event.group
+            condition_groups.update({query: {event.group.id} for query in unique_queries})
+            all_unique_queries.extend(unique_queries)
+        return condition_groups, group.id, all_unique_queries
+
+    def create_event_frequency_condition(
+        self, type: Condition | None = Condition.EVENT_FREQUENCY_COUNT
+    ) -> DataCondition:
+        if type not in SLOW_CONDITIONS:
+            raise ValueError(f"{type} is not a slow condition")
+
+        comparison = {"interval": "1h", "value": 100}
+
+        if type in PERCENT_CONDITIONS:
+            comparison["comparison_interval"] = "15m"
+
+        return self.create_data_condition(
+            type=type,
+            comparison=comparison,
+            condition_result=True,
+        )
+
+    def test_empty_condition_groups(self):
+        assert get_condition_group_results({}) == {}
+
+    def test_count_comparison_condition(self):
+        dc = self.create_event_frequency_condition()
+        condition_groups, group_id, unique_queries = self.create_condition_groups([dc])
+
+        results = get_condition_group_results(condition_groups)
+        assert results == {
+            unique_queries[0]: {group_id: 2},
+        }
+
+    def test_percent_comparison_condition(self):
+        dc = self.create_event_frequency_condition(type=Condition.EVENT_FREQUENCY_PERCENT)
+        condition_groups, group_id, unique_queries = self.create_condition_groups([dc])
+        results = get_condition_group_results(condition_groups)
+
+        present_percent_query, offset_percent_query = unique_queries
+
+        assert results == {
+            present_percent_query: {group_id: 2},
+            offset_percent_query: {group_id: 1},
+        }
+
+    def test_count_percent_conditions_together(self):
+        """
+        Test that a percent and count condition are processed as expected.
+        """
+        count_dc = self.create_event_frequency_condition()
+        percent_dc = self.create_event_frequency_condition(type=Condition.EVENT_FREQUENCY_PERCENT)
+        condition_groups, group_id, all_queries = self.create_condition_groups(
+            [count_dc, percent_dc]
+        )
+
+        results = get_condition_group_results(condition_groups)
+
+        count_query, present_percent_query, offset_percent_query = all_queries
+        # The count query and first percent query should be identical
+        assert count_query == present_percent_query
+
+        # We should only query twice b/c the count query and first percent query
+        # share a single scan.
+        assert results == {
+            count_query: {group_id: 4},
+            offset_percent_query: {group_id: 1},
+        }

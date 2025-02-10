@@ -12,6 +12,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -19,10 +20,12 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -33,6 +36,7 @@ import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOve
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   FRONTEND_LANDING_TITLE,
+  FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {
@@ -82,6 +86,7 @@ function FrontendOverviewPage() {
   const navigate = useNavigate();
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
+  const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
@@ -89,6 +94,9 @@ function FrontendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
+
+  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -107,8 +115,23 @@ function FrontendOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
+  );
+
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
+  if (selectedFrontendProjects.length > 0) {
+    existingQuery.addOp('OR');
+    existingQuery.addFilterValue(
+      'project.id',
+      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
+    );
+  }
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -136,8 +159,6 @@ function FrontendOverviewPage() {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
-
-  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -192,7 +213,7 @@ function FrontendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}

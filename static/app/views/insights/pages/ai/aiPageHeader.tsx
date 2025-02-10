@@ -36,6 +36,7 @@ export function AiHeader({
 
   return (
     <DomainViewHeader
+      hasOverviewPage={false}
       domainBaseUrl={aiBaseUrl}
       headerTitle={headerTitle}
       domainTitle={AI_LANDING_TITLE}

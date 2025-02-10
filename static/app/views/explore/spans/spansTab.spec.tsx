@@ -15,6 +15,8 @@ describe('SpansTabContent', function () {
   });
 
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
+
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
 

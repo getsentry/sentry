@@ -90,6 +90,12 @@ class ScheduleEntry:
         # Secondary sorting for heapq when remaining time is the same
         return self.fullname < other.fullname
 
+    def __repr__(self) -> str:
+        last_run = self._last_run.isoformat() if self._last_run else None
+        remaining_seconds = self.remaining_seconds()
+
+        return f"<ScheduleEntry fullname={self.fullname} last_run={last_run} remaining_seconds={remaining_seconds}>"
+
     @property
     def fullname(self) -> str:
         return self._task.fullname
@@ -139,13 +145,20 @@ class ScheduleRunner:
         self._entries.append(entry)
         self._heap = []
 
+    def log_startup(self) -> None:
+        task_names = [entry.fullname for entry in self._entries]
+        logger.info("taskworker.scheduler.startup", extra={"tasks": task_names})
+
     def tick(self) -> float:
         """
         Check if any tasks are due to run at current_time, and spawn them.
 
         Returns the number of seconds to sleep until the next task is due.
         """
-        self._build_heap()
+        self._update_heap()
+
+        if not self._heap:
+            return 60
 
         while True:
             # Peek at the top, and if it is due, pop, spawn and update last run time
@@ -163,7 +176,7 @@ class ScheduleRunner:
                 # The top of the heap isn't ready, break for sleep
                 break
 
-        return entry.remaining_seconds()
+        return self._heap[0][0]
 
     def _try_spawn(self, entry: ScheduleEntry) -> None:
         now = timezone.now()
@@ -181,17 +194,23 @@ class ScheduleRunner:
             logger.info("taskworker.scheduler.sync_with_storage", extra={"task": entry.fullname})
             metrics.incr("taskworker.scheduler.sync_with_storage")
 
-    def _build_heap(self) -> None:
-        if self._heap:
-            return
+    def _update_heap(self) -> None:
+        """update the heap to reflect current remaining time"""
+        if not self._heap:
+            self._load_last_run()
 
-        heap_items = []
+        heap_items = [(item.remaining_seconds(), item) for item in self._entries]
+        heapq.heapify(heap_items)
+        self._heap = heap_items
+
+    def _load_last_run(self) -> None:
+        """
+        load last_run state from storage
+
+        We synchronize each time the schedule set is modified and
+        then incrementally as tasks spawn attempts are made.
+        """
         last_run_times = self._run_storage.read_many([item.fullname for item in self._entries])
         for item in self._entries:
             last_run = last_run_times.get(item.fullname, None)
             item.set_last_run(last_run)
-            remaining_time = item.remaining_seconds()
-            heap_items.append((remaining_time, item))
-
-        heapq.heapify(heap_items)
-        self._heap = heap_items

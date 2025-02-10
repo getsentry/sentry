@@ -10,7 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -38,11 +38,6 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import {
-  getForceMetricsLayerQueryExtras,
-  hasCustomMetrics,
-} from 'sentry/utils/metrics/features';
-import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
@@ -61,7 +56,6 @@ import {
 } from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -72,8 +66,7 @@ import {
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
-import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {addOrUpdateRule} from './actions';
@@ -86,20 +79,18 @@ import {
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
+  AlertRuleComparisonType,
   AlertRuleSeasonality,
   AlertRuleSensitivity,
-  type EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
-  type Trigger,
-  type UnsavedMetricRule,
-} from './types';
-import {
-  AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
   TimeWindow,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -121,7 +112,6 @@ type Props = {
   userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
-  isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
@@ -183,7 +173,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['custom_metrics', 'span_metrics', 'eap_metrics'].includes(alertType)
+      !['span_metrics', 'eap_metrics'].includes(alertType)
         ? query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
@@ -546,11 +536,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return triggerErrors;
   }
 
-  validateMri = () => {
-    const {aggregate} = this.state;
-    return aggregate !== DEFAULT_METRIC_ALERT_FIELD;
-  };
-
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
     const {timeWindow, chartError} = this.state;
@@ -566,7 +551,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
         timeWindow:
-          ['custom_metrics', 'span_metrics'].includes(value as string) &&
+          ['span_metrics'].includes(value as string) &&
           timeWindow === TimeWindow.ONE_MINUTE
             ? TimeWindow.FIVE_MINUTES
             : timeWindow,
@@ -646,10 +631,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   validateSubmit = (model: any) => {
-    if (!this.validateMri()) {
-      addErrorMessage(t('You need to select a metric before you can save the alert'));
-      return false;
-    }
     // This validates all fields *except* for Triggers
     const validRule = model.validateForm();
 
@@ -787,7 +768,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             wizardV3: 'true',
             referrer: location?.query?.referrer,
             sessionId,
-            ...getForceMetricsLayerQueryExtras(organization, dataset),
           }
         );
         // if we get a 202 back it means that we have an async task
@@ -1153,9 +1133,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
-    if (alertType === 'custom_metrics') {
-      formattedAggregate = formatMRIField(aggregate);
-    }
+
     const func = parseFunction(aggregate);
     if (func && alertType === 'eap_metrics') {
       formattedAggregate = prettifyParsedFunction(func);
@@ -1180,8 +1158,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonType,
       isQueryValid,
       isOnDemandMetricAlert: isOnDemand,
-      showTotalCount:
-        !['custom_metrics', 'span_metrics'].includes(alertType) && !isOnDemand,
+      showTotalCount: !['span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
       onConfidenceDataLoaded: this.handleConfidenceTimeSeriesDataFetched,
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
@@ -1191,7 +1168,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (alertType === 'custom_metrics' || alertType === 'eap_metrics') {
+    if (alertType === 'eap_metrics') {
       formattedQuery = '';
     }
 
@@ -1303,10 +1280,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // Rendering the main form body
     return (
       <Main fullWidth>
-        <PermissionAlert access={['alerts:write']} project={project} />
-        {isCustomMetricAlert(rule.aggregate) && (
-          <MetricsBetaEndAlert organization={organization} />
-        )}
+        <ProjectPermissionAlert access={['alerts:write']} project={project} />
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
@@ -1359,9 +1333,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               aggregate={aggregate}
               alertType={alertType}
               allowChangeEventTypes={
-                hasCustomMetrics(organization)
-                  ? dataset === Dataset.ERRORS
-                  : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
+                dataset === Dataset.ERRORS || alertType === 'custom_transactions'
               }
               comparisonDelta={comparisonDelta}
               comparisonType={comparisonType}
