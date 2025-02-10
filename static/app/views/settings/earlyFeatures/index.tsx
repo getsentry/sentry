@@ -8,7 +8,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import EarlyFeaturesSettingsForm from 'sentry/views/settings/earlyFeatures/settingsForm';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 export default function OrganizationGeneralSettings(props: RouteComponentProps<{}, {}>) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
@@ -23,7 +23,7 @@ export default function OrganizationGeneralSettings(props: RouteComponentProps<{
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Early Features')} />
-        <PermissionAlert />
+        <OrganizationPermissionAlert />
 
         <EarlyFeaturesSettingsForm {...props} access={access} />
       </div>
