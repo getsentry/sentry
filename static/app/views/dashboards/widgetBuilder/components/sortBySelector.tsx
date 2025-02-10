@@ -94,6 +94,7 @@ function WidgetBuilderSortBySelector() {
       <Tooltip
         title={disableSortReason}
         disabled={!(disableSortDirection && disableSort)}
+        skipWrapper
       >
         <FieldGroup
           inline={false}
