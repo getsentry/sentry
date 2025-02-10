@@ -150,7 +150,7 @@ def _resolve_user_display_alias(builder: BaseQueryBuilder, alias: str) -> Select
     )
 
 
-def _resolve_replay_id_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+def _resolve_replay_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
     columns = ["replay.id", "replayId"]
     return Function(
         "coalesce",

@@ -60,7 +60,7 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
-REPLAY_ID = "replay.id"
+REPLAY_ALIAS = "replay"
 
 
 class ThresholdDict(TypedDict):

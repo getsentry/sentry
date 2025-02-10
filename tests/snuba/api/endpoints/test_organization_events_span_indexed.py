@@ -1182,10 +1182,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         )
         response = self.do_request(
             {
-                "field": ["replay.id"],
+                "field": ["replay"],
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "orderby": "replay.id",
+                "orderby": "replay",
             }
         )
         assert response.status_code == 200, response.content
@@ -1193,12 +1193,12 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             {
                 "id": mock.ANY,
                 "project.name": self.project.slug,
-                "replay.id": "123",
+                "replay": "123",
             },
             {
                 "id": mock.ANY,
                 "project.name": self.project.slug,
-                "replay.id": "321",
+                "replay": "321",
             },
         ]
 

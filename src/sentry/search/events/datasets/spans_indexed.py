@@ -81,7 +81,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.USER_DISPLAY_ALIAS: lambda alias: field_aliases._resolve_user_display_alias(
                 self.builder, alias
             ),
-            constants.REPLAY_ID: lambda alias: field_aliases._resolve_replay_id_alias(
+            constants.REPLAY_ALIAS: lambda alias: field_aliases._resolve_replay_alias(
                 self.builder, alias
             ),
         }
