@@ -294,7 +294,7 @@ function WidgetCard(props: Props) {
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
                   borderless={props.borderless}
-                  forceDescriptionTooltip={props.forceDescriptionTooltip}
+                  revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
                 />
               );
             }}
@@ -311,7 +311,7 @@ function WidgetCard(props: Props) {
             actions={actions}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
-            forceDescriptionTooltip={props.forceDescriptionTooltip}
+            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
             noVisualizationPadding
           >
             <WidgetCardChartContainer
