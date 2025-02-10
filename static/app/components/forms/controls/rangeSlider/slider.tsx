@@ -8,7 +8,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   appearance: none;
   width: 100%;
   background: transparent;
-  margin: ${space(1)}px 0 ${p => space(p.hasLabel ? 2 : 1)}px;
+  margin: ${space(1)} 0 ${p => space(p.hasLabel ? 2 : 1)}px;
 
   &::-webkit-slider-runnable-track {
     width: 100%;
