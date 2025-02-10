@@ -39,6 +39,7 @@ from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.utils import metrics
+from sentry.workflow_engine.migration_helpers.rule import delete_migrated_issue_alert
 
 logger = logging.getLogger(__name__)
 
@@ -368,6 +369,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )
         scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+
+        if features.has(
+            "organizations:workflow-engine-issue-alert-dual-write", project.organization
+        ):
+            delete_migrated_issue_alert(rule)
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
