@@ -140,21 +140,21 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
 }
 
 function SubtitleWithCopyButton({
-  text,
-  hideCopyButton = false,
+  subTitle,
+  clipboardText,
 }: {
-  text: string;
-  hideCopyButton?: boolean;
+  clipboardText: string;
+  subTitle: string;
 }) {
   return (
     <SubTitleWrapper>
-      <StyledSubTitleText>{text}</StyledSubTitleText>
-      {!hideCopyButton ? (
+      <StyledSubTitleText>{subTitle}</StyledSubTitleText>
+      {clipboardText ? (
         <CopyToClipboardButton
           borderless
           size="zero"
           iconSize="xs"
-          text={text}
+          text={clipboardText}
           tooltipProps={{disabled: true}}
         />
       ) : null}
@@ -795,17 +795,21 @@ function KeyValueAction({
     },
   ];
 
-  const valueType = getFieldDefinition(rowKey)?.valueType;
-  const isMeasurement =
-    valueType &&
-    [
-      FieldValueType.DURATION,
-      FieldValueType.NUMBER,
-      FieldValueType.INTEGER,
-      FieldValueType.PERCENTAGE,
-    ].includes(valueType);
+  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
+  const isNumeric =
+    typeof rowValue === 'number' ||
+    (valueType &&
+      [
+        FieldValueType.DURATION,
+        FieldValueType.NUMBER,
+        FieldValueType.INTEGER,
+        FieldValueType.PERCENTAGE,
+        FieldValueType.DATE,
+        FieldValueType.RATE,
+        FieldValueType.PERCENT_CHANGE,
+      ].includes(valueType));
 
-  if (isMeasurement) {
+  if (isNumeric) {
     dropdownOptions.push(
       {
         key: 'includeGreaterThan',

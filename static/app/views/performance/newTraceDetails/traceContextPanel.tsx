@@ -136,6 +136,7 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: ${space(1)};
 `;
 
 const TraceContextContainer = styled('div')`
@@ -143,7 +144,6 @@ const TraceContextContainer = styled('div')`
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-top: ${space(1)};
   --panel-height: ${DEFAULT_HEIGHT}px;
   height: var(--panel-height);
 
@@ -174,7 +174,6 @@ const VitalMetersContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   width: 100%;
-  margin-bottom: ${space(1)};
 `;
 
 const TraceTagsContainer = styled('div')`
@@ -182,5 +181,6 @@ const TraceTagsContainer = styled('div')`
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 0 ${space(0.5)};
+  padding: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

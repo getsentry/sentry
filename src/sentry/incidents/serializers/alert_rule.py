@@ -150,10 +150,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
 
     def validate_aggregate(self, aggregate):
         allow_mri = features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
             "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
@@ -277,10 +273,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         dataset = data.setdefault("dataset", Dataset.Events)
 
         if features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
             "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
@@ -518,7 +510,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 raise BadRequest
 
             should_dual_write = features.has(
-                "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
+                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
             )
             if should_dual_write:
                 migrate_alert_rule(alert_rule, user)

@@ -27,10 +27,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CheckStatus, type UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {statusToText, tickStyle} from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
-import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import {useUptimeIssueAlertId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 /**
  * This value is used when a trace was not recorded since the field is required.
@@ -43,8 +42,8 @@ export default function GroupUptimeChecks() {
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
   const user = useUser();
-  const {detectorDetails} = useIssueDetails();
   const {since, until} = usePageFilterDates();
+  const uptimeAlertId = useUptimeIssueAlertId({groupId});
 
   const {
     data: group,
@@ -52,20 +51,6 @@ export default function GroupUptimeChecks() {
     isError: isGroupError,
     refetch: refetchGroup,
   } = useGroup({groupId});
-
-  const {
-    data: event,
-    isError: isEventError,
-    refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId: user.options.defaultIssueEvent,
-  });
-
-  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
-  const uptimeAlertId =
-    detectorDetails.detectorId ??
-    event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
 
   const canFetchUptimeChecks =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
@@ -85,11 +70,6 @@ export default function GroupUptimeChecks() {
 
   if (isGroupError) {
     return <LoadingError onRetry={refetchGroup} />;
-  }
-
-  // If the event query failed, only show an error if we don't already have the detector details
-  if (!canFetchUptimeChecks && isEventError) {
-    return <LoadingError onRetry={refetchEvent} />;
   }
 
   if (isGroupPending || !uptimeData) {
@@ -114,12 +94,12 @@ export default function GroupUptimeChecks() {
     >
       <GridEditable
         isLoading={isGroupPending}
+        emptyMessage={t('No matching uptime checks found')}
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
           {key: 'checkStatus', width: 115, name: t('Status')},
           {key: 'durationMs', width: 110, name: t('Duration')},
-          {key: 'environment', width: 115, name: t('Environment')},
           {key: 'traceId', width: 100, name: t('Trace')},
           {key: 'region', width: 100, name: t('Region')},
           {key: 'uptimeCheckId', width: 100, name: t('ID')},
@@ -216,10 +196,9 @@ function CheckInBodyCell({
       let checkResult = <Cell>{cellData}</Cell>;
       const status = cellData as CheckStatus;
       if (Object.values(CheckStatus).includes(status)) {
+        const colorKey = tickStyle[status].labelColor ?? 'textColor';
         checkResult = (
-          <Cell style={{color: tickStyle[status].labelColor}}>
-            {statusToText[status]}
-          </Cell>
+          <Cell style={{color: theme[colorKey] as string}}>{statusToText[status]}</Cell>
         );
       }
       return dataRow.checkStatusReason ? (
@@ -242,7 +221,7 @@ function CheckInBodyCell({
         return <Cell />;
       }
       return (
-        <LinkCell to={`/performance/trace/${cellData}`}>
+        <LinkCell to={`/performance/trace/${cellData}/`}>
           {getShortEventId(String(cellData))}
         </LinkCell>
       );

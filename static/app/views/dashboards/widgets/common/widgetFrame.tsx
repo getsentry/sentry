@@ -32,6 +32,8 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   children?: React.ReactNode;
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
+  revealActions?: 'always' | 'hover';
+  revealTooltip?: 'always' | 'hover';
   title?: string;
   warnings?: string[];
 }
@@ -61,7 +63,6 @@ export function WidgetFrame(props: WidgetFrameProps) {
   return (
     <WidgetLayout
       ariaLabel="Widget panel"
-      forceShowActions={props.forceDescriptionTooltip}
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
@@ -80,6 +81,9 @@ export function WidgetFrame(props: WidgetFrameProps) {
             )}
         </Fragment>
       }
+      revealActions={
+        props.revealTooltip === 'always' ? 'always' : props.revealActions ?? 'hover'
+      }
       Actions={
         <Fragment>
           {props.description && (
@@ -87,7 +91,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             <WidgetDescription
               title={props.title}
               description={props.description}
-              forceDescriptionTooltip={props.forceDescriptionTooltip}
+              revealTooltip={props.revealTooltip ?? 'hover'}
             />
           )}
 

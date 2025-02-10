@@ -75,7 +75,11 @@ function defaultPageParams(): ReadablePageParams {
   const query = defaultQuery();
   const visualizes = defaultVisualizes();
   const title = defaultTitle();
-  const sortBys = defaultSortBys(mode, fields, visualizes);
+  const sortBys = defaultSortBys(
+    mode,
+    fields,
+    visualizes.flatMap(visualize => visualize.yAxes)
+  );
 
   return {
     dataset,

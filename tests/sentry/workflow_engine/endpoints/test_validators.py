@@ -316,7 +316,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         )
         assert data_source.organization_id == self.project.organization_id
 
-        query_sub = QuerySubscription.objects.get(id=data_source.query_id)
+        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
         assert query_sub.project == self.project
         assert query_sub.type == INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 
