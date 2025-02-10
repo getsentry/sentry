@@ -145,7 +145,7 @@ export default function MetricDetailsBody({
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert showIcon>
+            <Alert type="warning" showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                 ? tct(
                     "[creator] muted this alert so these notifications won't be sent in the future.",

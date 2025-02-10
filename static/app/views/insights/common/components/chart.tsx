@@ -588,8 +588,8 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
-    for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i]!.data.map(point => point.value)) as number;
+    for (const serie of data) {
+      maxValue += max(serie.data.map(point => point.value)) as number;
     }
   } else {
     maxValue = computeMax(data);
