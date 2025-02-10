@@ -270,17 +270,22 @@ function Visualize({error, setError}: VisualizeProps) {
       }),
     ];
     spanColumnOptions.sort((a, b) => {
-      // TODO: Fix this in the case where label is actually undefined
-      if (!a.label || !b.label) {
-        return 0;
-      }
-
-      if (a.label < b.label) {
+      if (!a.label && b.label) {
         return -1;
       }
 
-      if (a.label > b.label) {
+      if (a.label && !b.label) {
         return 1;
+      }
+
+      if (a.label && b.label) {
+        if (a.label < b.label) {
+          return -1;
+        }
+
+        if (a.label > b.label) {
+          return 1;
+        }
       }
 
       return 0;
