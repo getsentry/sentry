@@ -67,6 +67,7 @@ backend_all: &backend_all
   - '**/*.py'
   - '**/*.pyi'
   - 'devservices/**'
+
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
   - *frontend_all
