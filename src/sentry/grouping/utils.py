@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
+DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
 def parse_fingerprint_var(value: str) -> str | None:
