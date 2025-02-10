@@ -64,7 +64,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
 
         scope.set_extra("user_id", kwargs["user_id"])
         scope.set_extra("project_id", kwargs["project_id"])
-        scope.set_extra("organization_id", kwargs["organization_id"])
+        scope.set_extra("organization_id", organization_id)
 
         if cache.get(cache_key) is None:
             try:
