@@ -21,7 +21,6 @@ import {
   IconQuestion,
   IconSearch,
   IconSettings,
-  IconStats,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -226,16 +225,7 @@ export function PrimaryNavigationItems() {
         </SidebarMenu>
 
         <SidebarLink
-          to={`/${prefix}/stats/`}
-          analyticsKey="stats"
-          linkProps={!includeFooterLabels ? {'aria-label': t('Stats')} : undefined}
-        >
-          <IconStats />
-          {includeFooterLabels && <span>{t('Stats')}</span>}
-        </SidebarLink>
-
-        <SidebarLink
-          to={`/${prefix}/settings/`}
+          to={`/${prefix}/settings/${organization.slug}/`}
           activeTo={`/${prefix}/settings/`}
           analyticsKey="settings"
           linkProps={!includeFooterLabels ? {'aria-label': t('Settings')} : undefined}
