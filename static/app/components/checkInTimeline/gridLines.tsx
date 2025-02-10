@@ -309,11 +309,11 @@ const TimeLabelContainer = styled('div')<{
   display: flex;
   align-items: center;
   height: 100%;
+  padding-left: ${space(1)};
   ${p =>
     p.labelPosition === 'center-bottom' &&
     // Skip the translation for the first label
     css`
-      padding-left: ${space(1)};
       transform: ${p.isFirst ? 'none' : 'translateX(-50%)'};
     `}
 `;
