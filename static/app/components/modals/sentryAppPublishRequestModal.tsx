@@ -294,5 +294,5 @@ const Permission = styled('code')`
 `;
 
 const Footer = styled('div')`
-  ${space(2)}
+  padding: ${space(2)};
 `;
