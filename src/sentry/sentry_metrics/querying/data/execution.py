@@ -295,46 +295,6 @@ class QueryResult:
             )
 
     @classmethod
-    def empty_from(cls, scheduled_query: ScheduledQuery) -> "QueryResult":
-        """
-        Creates a new empty QueryResult from a ScheduledQuery.
-
-        The idea behind using an empty query result is to be able to represent the values of queries that are not run
-        by the executor (for example because they are empty). Representing such queries as empty results in a cleaner
-        implementation of the downstream code since no modifications need to be done. It's not ideal but it simplifies
-        the code quite a bit.
-
-        Returns:
-            An empty QueryResult which contains no data.
-        """
-        series_query = None
-        totals_query = None
-
-        # For now, we naively assume that if a query has a next, the first is a totals query and the second is a series
-        # query.
-        if scheduled_query.next is not None:
-            totals_query = scheduled_query
-            series_query = scheduled_query.next
-        else:
-            if scheduled_query.type == ScheduledQueryType.SERIES:
-                series_query = scheduled_query
-            elif scheduled_query.type == ScheduledQueryType.TOTALS:
-                totals_query = scheduled_query
-
-        return QueryResult(
-            series_query=series_query,
-            totals_query=totals_query,
-            result={
-                "series": {"data": [], "meta": []},
-                "totals": {"data": [], "meta": []},
-                # We want to honor the date ranges of the supplied query.
-                "modified_start": scheduled_query.metrics_query.start,
-                "modified_end": scheduled_query.metrics_query.end,
-            },
-            has_more=False,
-        )
-
-    @classmethod
     def from_scheduled_query(
         cls, scheduled_query: ScheduledQuery, query_result: Mapping[str, Any], has_more: bool
     ) -> "QueryResult":
