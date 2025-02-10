@@ -23,7 +23,6 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
   'ourlogs-enabled',

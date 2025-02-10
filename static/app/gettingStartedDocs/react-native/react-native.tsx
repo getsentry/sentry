@@ -13,7 +13,6 @@ import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -380,26 +379,6 @@ Sentry.captureUserFeedback(userFeedback);`,
   nextSteps: () => [],
 };
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/react-native',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react-native',
-      },
-    ],
-  },
-];
-
 const replayOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
@@ -479,7 +458,6 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi,
   crashReportOnboarding: feedbackOnboardingCrashApi,
-  customMetricsOnboarding: getReactNativeMetricsOnboarding({getInstallConfig}),
   replayOnboarding,
 };
 

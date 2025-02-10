@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, useMemo} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,7 +13,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -23,10 +22,8 @@ import {
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {UserSelectValues} from 'sentry/utils/userselect';
 import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -452,7 +449,7 @@ class ColumnEditCollection extends Component<Props, State> {
       filterPrimaryOptions,
       noFieldsMessage,
       showAliasField,
-      source,
+      // source,
       isOnDemandWidget,
     } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -499,42 +496,21 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
-          {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) ? (
-            <MetricTagQueryField
-              mri={
-                columns[0]!.kind === FieldValueKind.FUNCTION
-                  ? columns[0]!.function[1]
-                  : // We should never get here because the first column should always be function for metrics
-                    undefined
-              }
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          ) : (
-            <QueryField
-              fieldOptions={fieldOptions}
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          )}
+          <QueryField
+            fieldOptions={fieldOptions}
+            gridColumns={gridColumns}
+            fieldValue={col}
+            onChange={value => this.handleUpdateColumn(i, value)}
+            error={this.state.error.get(i)}
+            takeFocus={i === this.props.columns.length - 1}
+            otherColumns={columns}
+            shouldRenderTag
+            disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
+            noFieldsMessage={noFieldsMessage}
+            skipParameterPlaceholder={showAliasField}
+          />
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
@@ -691,39 +667,6 @@ class ColumnEditCollection extends Component<Props, State> {
       </div>
     );
   }
-}
-
-interface MetricTagQueryFieldProps
-  extends Omit<React.ComponentProps<typeof QueryField>, 'fieldOptions'> {
-  mri?: string;
-}
-
-const EMPTY_ARRAY: any = [];
-function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
-  const {projects} = usePageFilters().selection;
-  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, {projects});
-
-  const fieldOptions = useMemo(() => {
-    return data.reduce(
-      // @ts-expect-error TS(7006): Parameter 'acc' implicitly has an 'any' type.
-      (acc, tag) => {
-        acc[`tag:${tag.key}`] = {
-          label: tag.key,
-          value: {
-            kind: FieldValueKind.TAG,
-            meta: {
-              dataType: 'string',
-              name: tag.key,
-            },
-          },
-        };
-        return acc;
-      },
-      {} as Record<string, FieldValueOption>
-    );
-  }, [data]);
-
-  return <QueryField fieldOptions={fieldOptions} {...props} />;
 }
 
 function OnDemandEquationsWarning() {

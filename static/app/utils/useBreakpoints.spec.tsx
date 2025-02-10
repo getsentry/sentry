@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import {checkBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
+import {checkBreakpoints} from 'sentry/utils/useBreakpoints';
 
 describe('checkBreakpoints', () => {
   it('returns true for active breakpoints', () => {

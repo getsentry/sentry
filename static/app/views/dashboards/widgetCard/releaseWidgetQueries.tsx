@@ -11,7 +11,6 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
@@ -234,14 +233,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   customDidUpdateComparator = (
-    prevProps: GenericWidgetQueriesProps<
-      SessionApiResponse | MetricsApiResponse,
-      SessionApiResponse | MetricsApiResponse
-    >,
-    nextProps: GenericWidgetQueriesProps<
-      SessionApiResponse | MetricsApiResponse,
-      SessionApiResponse | MetricsApiResponse
-    >
+    prevProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
+    nextProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
   ) => {
     const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
       nextProps;
@@ -325,7 +318,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     return widget;
   };
 
-  afterFetchData = (data: SessionApiResponse | MetricsApiResponse) => {
+  afterFetchData = (data: SessionApiResponse) => {
     const {widget} = this.props;
     const {releases} = this.state;
 
@@ -371,10 +364,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const config = ReleasesConfig;
 
     return (
-      <GenericWidgetQueries<
-        SessionApiResponse | MetricsApiResponse,
-        SessionApiResponse | MetricsApiResponse
-      >
+      <GenericWidgetQueries<SessionApiResponse, SessionApiResponse>
         config={config}
         api={api}
         organization={organization}

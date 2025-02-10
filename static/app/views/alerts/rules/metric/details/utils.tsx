@@ -14,7 +14,6 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import type {Incident} from 'sentry/views/alerts/types';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
-import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
 /**
  * Retrieve start/end date of a metric alert incident for the events graph
@@ -60,13 +59,9 @@ export function getPeriodInterval(timePeriod: TimePeriodType, rule: MetricRule) 
 }
 
 export function getFilter(rule: MetricRule): string[] | null {
-  const {aggregate, dataset, query} = rule;
+  const {dataset, query} = rule;
 
-  if (
-    isCrashFreeAlert(dataset) ||
-    isCustomMetricAlert(aggregate) ||
-    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-  ) {
+  if (isCrashFreeAlert(dataset) || dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return query.trim().split(' ');
   }
 

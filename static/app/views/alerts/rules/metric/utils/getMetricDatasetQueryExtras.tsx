@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
@@ -29,7 +28,6 @@ export function getMetricDatasetQueryExtras({
 
   const hasMetricDataset =
     hasOnDemandMetricAlertFeature(organization) ||
-    hasCustomMetrics(organization) ||
     organization.features.includes('mep-rollout-flag') ||
     organization.features.includes('dashboards-metrics-transition');
   const disableMetricDataset =
