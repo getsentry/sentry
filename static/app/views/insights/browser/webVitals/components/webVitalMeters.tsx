@@ -354,6 +354,7 @@ const VitalPillContainer = styled('div')`
   flex-direction: row;
   width: 100%;
   height: 30px;
+  margin-bottom: ${space(1)};
 `;
 
 const VitalPillName = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
