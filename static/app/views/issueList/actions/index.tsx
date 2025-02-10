@@ -523,7 +523,7 @@ const StickyActions = styled(Sticky)`
 
   border-bottom: 1px solid ${p => p.theme.border};
   border-top: none;
-  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
@@ -533,7 +533,7 @@ const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
   padding-bottom: ${p => (p.narrowHeader ? space(0.5) : space(1))};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`

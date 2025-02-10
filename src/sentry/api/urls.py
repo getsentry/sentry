@@ -337,6 +337,7 @@ from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
 )
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.uptime.endpoints.uptime_ips import UptimeIpsEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
@@ -3248,6 +3249,12 @@ urlpatterns = [
         r"^publickeys/relocations/$",
         RelocationPublicKeyEndpoint.as_view(),
         name="sentry-api-0-relocations-public-key",
+    ),
+    # Uptime checker public IP address list
+    re_path(
+        r"^uptime-ips/$",
+        UptimeIpsEndpoint.as_view(),
+        name="sentry-api-0-uptime-ips",
     ),
     # Secret Scanning
     re_path(

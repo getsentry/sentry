@@ -20,7 +20,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
@@ -3462,7 +3462,6 @@ UPTIME_REGIONS = [
     UptimeRegionConfig(
         slug="default",
         name="Default Region",
-        config_topic=Topic.UPTIME_CONFIGS,
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),

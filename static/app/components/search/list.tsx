@@ -136,7 +136,7 @@ export default List;
 const DropdownBox = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.modalBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   position: absolute;
   top: 36px;
