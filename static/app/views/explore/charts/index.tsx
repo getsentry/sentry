@@ -191,6 +191,7 @@ export function ExploreCharts({
                 height={CHART_HEIGHT}
                 Title={Title}
                 Visualization={<LoadingPanel />}
+                revealActions="always"
               />
             );
           }
@@ -202,6 +203,7 @@ export function ExploreCharts({
                 height={CHART_HEIGHT}
                 Title={Title}
                 Visualization={<ErrorPanel error={chartInfo.error} />}
+                revealActions="always"
               />
             );
           }
@@ -254,6 +256,7 @@ export function ExploreCharts({
                   visualizeIndex={index}
                 />,
               ]}
+              revealActions="always"
               Visualization={
                 <TimeSeriesWidgetVisualization
                   dataCompletenessDelay={INGESTION_DELAY}
