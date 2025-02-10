@@ -510,7 +510,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 raise BadRequest
 
             should_dual_write = features.has(
-                "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
+                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
             )
             if should_dual_write:
                 migrate_alert_rule(alert_rule, user)
