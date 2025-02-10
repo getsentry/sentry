@@ -10,9 +10,6 @@ export interface OrganizationPermissionAlertProps extends Omit<AlertProps, 'type
   message?: ReactNode;
 }
 
-/**
- * @deprecated Use `OrganizationPermissionAlert` instead.
- */
 export function OrganizationPermissionAlert({
   access = ['org:write'],
   message = t(
