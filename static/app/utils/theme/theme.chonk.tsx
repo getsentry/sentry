@@ -185,11 +185,3 @@ const chonkDarkColors: typeof chonkLightColors = {
     pink100: '#FFF',
   },
 };
-
-export const chonkLightTheme: SentryTheme = {
-  isChonk: true,
-};
-
-export const chonkDarkTheme: SentryTheme = {
-  isChonk: true,
-};
