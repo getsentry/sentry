@@ -423,6 +423,8 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
       currentData.map(({name, value}) => [Number(name), value])
     );
 
+    // smoothed is not iterable - only indexable
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < smoothed.length; i++) {
       const point = smoothed[i] as any;
       const value = point.y;

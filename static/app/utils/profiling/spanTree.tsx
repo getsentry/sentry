@@ -114,14 +114,12 @@ class SpanTree {
     const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
     const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
-    for (let i = 0; i < spansSortedByStartTime.length; i++) {
-      const span = spansSortedByStartTime[i]!;
+    for (const span of spansSortedByStartTime) {
       let parent = this.root;
 
       while (parent.contains(span)) {
         let nextParent: SpanTreeNode | null = null;
-        for (let j = 0; j < parent.children.length; j++) {
-          const child = parent.children[j]!;
+        for (const child of parent.children) {
           if (child.span.op !== 'missing instrumentation' && child.contains(span)) {
             nextParent = child;
             break;

@@ -51,6 +51,7 @@ export interface TimeSeriesWidgetVisualizationProps {
   dataCompletenessDelay?: number;
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
   releases?: Release[];
+  stacked?: boolean;
   timeseriesSelection?: TimeseriesSelection;
 }
 
@@ -145,7 +146,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     // For bar charts, convert straight from time series to series, which will
     // automatically mark "delayed" bars
     markedSeries.forEach(timeSeries => {
-      plottableSeries.push(BarChartWidgetSeries(timeSeries));
+      plottableSeries.push(
+        BarChartWidgetSeries(timeSeries, props.stacked ? GLOBAL_STACK_NAME : undefined)
+      );
     });
   } else {
     // For line and area charts, split each time series into two series, each
@@ -324,3 +327,5 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
+
+const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';
