@@ -493,8 +493,8 @@ export default IssueViewsPFIssueListHeader;
  * it is converted to single element array.
  */
 const normalizeProjectsEnvironments = (
-  project: any[] | undefined,
-  env: any[] | undefined
+  project: string[] | string | undefined,
+  env: string[] | string | undefined
 ): {queryEnvs: string[]; queryProjects: number[]} => {
   let queryProjects: number[] = [];
   if (Array.isArray(project)) {
