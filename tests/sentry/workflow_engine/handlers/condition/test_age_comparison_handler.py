@@ -14,7 +14,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
 class TestAgeComparisonCondition(ConditionTestCase):
     condition = Condition.AGE_COMPARISON
-    rule_cls = AgeComparisonFilter
     payload = {
         "id": AgeComparisonFilter.id,
         "comparison_type": AgeComparisonType.OLDER,

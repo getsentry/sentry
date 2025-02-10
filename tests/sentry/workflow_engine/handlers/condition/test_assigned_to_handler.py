@@ -10,7 +10,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestAssignedToCondition(ConditionTestCase):
     condition = Condition.ASSIGNED_TO
-    rule_cls = AssignedToFilter
     payload = {
         "id": AssignedToFilter.id,
         "targetType": "Member",

@@ -2,6 +2,7 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
+from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
@@ -10,7 +11,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestTaggedEventCondition(ConditionTestCase):
     condition = Condition.TAGGED_EVENT
-    rule_cls = TaggedEventCondition
     payload = {
         "id": TaggedEventCondition.id,
         "match": MatchType.EQUAL,
@@ -59,6 +59,36 @@ class TestTaggedEventCondition(ConditionTestCase):
 
         self.payload = {
             "id": TaggedEventCondition.id,
+            "match": MatchType.IS_SET,
+            "key": "logger",
+        }
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.IS_SET,
+            "key": "logger",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_filter(self):
+        self.payload["id"] = TaggedEventFilter.id
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.EQUAL,
+            "key": "LOGGER",
+            "value": "sentry.example",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+        self.payload = {
+            "id": TaggedEventFilter.id,
             "match": MatchType.IS_SET,
             "key": "logger",
         }
