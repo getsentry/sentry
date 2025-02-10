@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
 
@@ -19,9 +20,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
-    DataConditionGroupDetector,
     DataConditionGroupGroups,
-    DataConditionGroupWorkflow,
     UniqueConditionQuery,
     fetch_detectors,
     fetch_group_to_event_data,
@@ -87,14 +86,26 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.dcg_to_groups: DataConditionGroupGroups = {
             dcg.id: {self.group1.id} for dcg in self.workflow1_dcgs
         } | {dcg.id: {self.group2.id} for dcg in self.workflow2_dcgs}
-        self.dcg_to_workflow: DataConditionGroupWorkflow = {
-            dcg.id: self.workflow1.id for dcg in self.workflow1_dcgs
-        } | {dcg.id: self.workflow2.id for dcg in self.workflow2_dcgs}
+        self.trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]] = (
+            defaultdict(dict)
+        )
+
+        workflow_dcgs = self.workflow1_dcgs + self.workflow2_dcgs
+        for i, dcg in enumerate(workflow_dcgs):
+            handler_type = (
+                DataConditionHandlerType.WORKFLOW_TRIGGER
+                if i % 2 == 0
+                else DataConditionHandlerType.ACTION_FILTER
+            )
+            workflow_id = self.workflow1.id if i < len(self.workflow1_dcgs) else self.workflow2.id
+            self.trigger_type_to_dcg_model[handler_type][dcg.id] = workflow_id
 
         self.detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
         self.detector_dcg = self.create_data_condition_group()
         self.detector.update(workflow_condition_group=self.detector_dcg)
-        self.dcg_to_detector: DataConditionGroupDetector = {self.detector_dcg.id: self.detector.id}
+        self.trigger_type_to_dcg_model[DataConditionHandlerType.DETECTOR_TRIGGER][
+            self.detector_dcg.id
+        ] = self.detector.id
 
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -234,17 +245,19 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
 
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_to_groups, dcg_to_workflow, dcg_to_detector = get_dcg_group_workflow_detector_data(
-            buffer_data
-        )
+        dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(buffer_data)
 
         assert dcg_to_groups == self.dcg_to_groups
-        assert dcg_to_workflow == self.dcg_to_workflow
-        assert dcg_to_detector == self.dcg_to_detector
+        assert trigger_type_to_dcg_model == self.trigger_type_to_dcg_model
 
     def test_fetch_workflows_envs(self):
+        dcg_to_workflow = self.trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]
+        dcg_to_workflow.update(
+            self.trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER]
+        )
+
         workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_envs(
-            list(self.dcg_to_workflow.values())
+            list(dcg_to_workflow.values())
         )
         assert workflows_to_envs == {
             self.workflow1.id: self.environment.id,
@@ -256,7 +269,10 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         }
 
     def test_fetch_detectors(self):
-        detector_ids_to_detectors = fetch_detectors(list(self.dcg_to_detector.values()))
+        detector_ids = list(
+            self.trigger_type_to_dcg_model[DataConditionHandlerType.DETECTOR_TRIGGER].values()
+        )
+        detector_ids_to_detectors = fetch_detectors(detector_ids)
         assert detector_ids_to_detectors == {
             self.detector.id: self.detector,
         }

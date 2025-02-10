@@ -32,8 +32,6 @@ logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
 DataConditionGroupGroups = dict[int, set[int]]
-DataConditionGroupWorkflow = dict[int, int]
-DataConditionGroupDetector = dict[int, int]
 WorkflowMapping = dict[int, Workflow]
 WorkflowEnvMapping = dict[int, int | None]
 DetectorMapping = dict[int, Detector]
@@ -80,31 +78,30 @@ def fetch_group_to_event_data(
 
 def get_dcg_group_workflow_detector_data(
     workflow_event_dcg_data: dict[str, str]
-) -> tuple[DataConditionGroupGroups, DataConditionGroupWorkflow, DataConditionGroupDetector]:
+) -> tuple[DataConditionGroupGroups, dict[DataConditionHandlerType, dict[int, int]]]:
     """
     Parse the data in the buffer hash, which is in the form of {workflow/detector_id}:{event_id}:{dcg_id, ..., dcg_id}:{dcg_type}
     """
 
     dcg_to_groups: DataConditionGroupGroups = defaultdict(set)
-    dcg_to_workflow: DataConditionGroupWorkflow = {}
-    dcg_to_detector: DataConditionGroupDetector = {}
+    trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]] = defaultdict(dict)
 
     for workflow_event_dcg, _ in workflow_event_dcg_data.items():
         data = workflow_event_dcg.split(":")
-        dcg_type = data[3]  # TODO: use dcg_type to split WHEN and IF DCGs
+        try:
+            dcg_type = DataConditionHandlerType(data[3])
+        except ValueError:
+            continue
 
+        event_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
-        target_dict = (
-            dcg_to_detector
-            if dcg_type == DataConditionHandlerType.DETECTOR_TRIGGER
-            else dcg_to_workflow
-        )
 
         for dcg_id in dcg_ids:
-            dcg_to_groups[dcg_id].add(int(data[1]))
-            target_dict[dcg_id] = int(data[0])
+            dcg_to_groups[dcg_id].add(event_id)
 
-    return dcg_to_groups, dcg_to_workflow, dcg_to_detector
+            trigger_type_to_dcg_model[dcg_type][dcg_id] = int(data[0])
+
+    return dcg_to_groups, trigger_type_to_dcg_model
 
 
 def fetch_workflows_envs(
@@ -195,7 +192,7 @@ def generate_unique_queries(
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     dcg_to_groups: DataConditionGroupGroups,
-    dcg_to_workflow: DataConditionGroupWorkflow,
+    dcg_to_workflow: dict[int, int],
     workflows_to_envs: WorkflowEnvMapping,
 ) -> dict[UniqueConditionQuery, set[int]]:
     """
@@ -264,11 +261,16 @@ def process_delayed_workflows(
     workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
     # Get mappings from DataConditionGroups to other info
-    dcg_to_groups, dcg_to_workflow, dcg_to_detector = get_dcg_group_workflow_detector_data(
+    dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
+    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]
+    dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
+
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
-    _ = fetch_detectors(list(dcg_to_detector.values()))
+    _ = fetch_detectors(
+        list(trigger_type_to_dcg_model[DataConditionHandlerType.DETECTOR_TRIGGER].values())
+    )
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
     _ = get_condition_query_groups(
