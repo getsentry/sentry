@@ -2841,7 +2841,17 @@ describe('SearchQueryBuilder', function () {
           name: 'Edit function parameters',
         });
         expect(input).toHaveFocus();
-        expect(input).toHaveValue('transaction.duration,');
+        expect(input).toHaveAttribute('placeholder', 'transaction.duration,');
+        expect(input).toHaveValue('');
+
+        await userEvent.click(
+          await screen.findByRole('option', {name: 'transaction.duration'})
+        );
+        await waitFor(() => {
+          expect(input).toHaveValue('transaction.duration');
+        });
+
+        await userEvent.keyboard(',');
 
         await userEvent.click(await screen.findByRole('option', {name: 'less'}));
         await waitFor(() => {
@@ -2894,11 +2904,6 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
         );
-        const input = await screen.findByRole('combobox', {
-          name: 'Edit function parameters',
-        });
-
-        await userEvent.clear(input);
         await userEvent.keyboard('a,b,c{enter}');
 
         expect(
