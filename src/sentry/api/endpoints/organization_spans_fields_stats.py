@@ -26,9 +26,9 @@ class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(["spans", "spansIndexed"], required=False, default="spans")
     # if values are not provided, we will use zeros and then snuba RPC will set the defaults
     # Top number of frequencies to return for each attribute, defaults in snuba to 10 and can't be more than 100
-    max_buckets = serializers.IntegerField(required=False, min_value=0, max_value=100, default=0)
+    max_buckets = serializers.IntegerField(required=False, min_value=0, max_value=100, default=10)
     # Total number of attributes to return, defaults in snuba to 10_000
-    max_attributes = serializers.IntegerField(required=False, min_value=0, default=0)
+    max_attributes = serializers.IntegerField(required=False, min_value=0)
 
     def validate(self, attrs):
         if attrs["dataset"] != "spans":
