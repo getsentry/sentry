@@ -191,7 +191,6 @@ module = [
     "sentry.integrations.slack.webhooks.event",
     "sentry.integrations.utils.commit_context",
     "sentry.integrations.utils.sync",
-    "sentry.integrations.vercel.client",
     "sentry.integrations.vercel.integration",
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
