@@ -145,7 +145,6 @@ module = [
     "sentry.auth.provider",
     "sentry.db.mixin",
     "sentry.db.postgres.base",
-    "sentry.discover.endpoints.discover_key_transactions",
     "sentry.eventstore.models",
     "sentry.grouping.strategies.legacy",
     "sentry.identity.bitbucket.provider",

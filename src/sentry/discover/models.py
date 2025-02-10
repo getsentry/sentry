@@ -191,7 +191,7 @@ class TeamKeyTransaction(Model):
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
-    project_team = FlexibleForeignKey("sentry.ProjectTeam", null=True, db_constraint=False)
+    project_team = FlexibleForeignKey("sentry.ProjectTeam", db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # Custom Model Manager required to override post_save/post_delete method
