@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -156,11 +157,20 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: string}) {
+function IssueTagButton({
+  tags,
+  searchQuery,
+  isScreenSmall,
+}: {
+  tags: GroupTag[];
+  isScreenSmall?: boolean;
+  searchQuery?: string;
+}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
-  if (tags.length === 0 || searchQuery) {
+
+  if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
       <VerticalIssueTagsButton
         aria-label={t('View issue tag distributions')}
@@ -172,7 +182,7 @@ function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: st
         }}
         disabled={tags.length === 0}
       >
-        {t('All Tags')}
+        {t('View All Tags')}
       </VerticalIssueTagsButton>
     );
   }
@@ -203,6 +213,8 @@ export default function IssueTagsPreview({
 }) {
   const searchQuery = useEventQuery({groupId});
   const organization = useOrganization();
+  const theme = useTheme();
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
     orgSlug: organization.slug,
@@ -224,6 +236,7 @@ export default function IssueTagsPreview({
     groupId,
     environment: environments,
   });
+
   const tagsToPreview = useMemo(() => {
     if (!tags) {
       return [];
@@ -266,8 +279,14 @@ export default function IssueTagsPreview({
     return null;
   }
 
-  if (tagsToPreview.length === 0 || searchQuery) {
-    return <IssueTagButton tags={tagsToPreview} searchQuery={searchQuery} />;
+  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
   }
 
   return (
