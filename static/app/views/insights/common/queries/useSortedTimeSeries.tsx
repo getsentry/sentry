@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
-import type {TimeseriesData} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
@@ -28,7 +28,7 @@ import {
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
 type SeriesMap = {
-  [seriesName: string]: TimeseriesData[];
+  [seriesName: string]: TimeSeries[];
 };
 
 interface Options<Fields> {
@@ -142,7 +142,7 @@ export function transformToSeriesMap(
   // Multiple series, applies to multi axis or topN events queries
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
-    const processedResults: Array<[number, TimeseriesData]> = Object.keys(result).map(
+    const processedResults: Array<[number, TimeSeries]> = Object.keys(result).map(
       seriesOrGroupName => {
         // If this is a single-axis top N result, the keys in the response are
         // group names. The field name is the first (and only) Y axis. If it's a
@@ -209,10 +209,10 @@ function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
   alias?: string
-): [number, TimeseriesData] {
+): [number, TimeSeries] {
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
-  const serie: TimeseriesData = {
+  const serie: TimeSeries = {
     field: label,
     data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
       timestamp: new Date(timestamp * 1000).toISOString(),

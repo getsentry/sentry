@@ -13,7 +13,7 @@ import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext'
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
-import type {TimeseriesData} from '../dashboards/widgets/common/types';
+import type {TimeSeries} from '../dashboards/widgets/common/types';
 
 export function getExploreUrl({
   orgSlug,
@@ -60,7 +60,7 @@ export function getExploreUrl({
 }
 
 export function combineConfidenceForSeries(
-  series: Array<Pick<TimeseriesData, 'confidence'>>
+  series: Array<Pick<TimeSeries, 'confidence'>>
 ): Confidence {
   let lows = 0;
   let highs = 0;
