@@ -91,7 +91,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
     # Temporary column we'll use to migrate away from the url based unique constraint
-    migrated = models.BooleanField(default=False)
+    migrated = models.BooleanField(db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],

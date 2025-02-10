@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="uptimesubscription",
             name="migrated",
-            field=models.BooleanField(default=False),
+            field=models.BooleanField(db_default=False),
         ),
         migrations.AddConstraint(
             model_name="uptimesubscription",
