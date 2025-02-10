@@ -75,7 +75,6 @@ export function tokenizeExpression(
         tokens.push(space(loc, token.location));
       }
 
-      // tokens[tokens.length - 1].merge(token);
       tokens.push(token);
       loc = token.location;
     }
