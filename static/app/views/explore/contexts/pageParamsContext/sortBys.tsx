@@ -8,11 +8,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {Mode} from './mode';
 import type {Visualize} from './visualizes';
 
-export function defaultSortBys(
-  mode: Mode,
-  fields: string[],
-  visualizes: Visualize[]
-): Sort[] {
+export function defaultSortBys(mode: Mode, fields: string[], yAxes: string[]): Sort[] {
   if (mode === Mode.SAMPLES) {
     if (fields.includes('timestamp')) {
       return [
@@ -34,10 +30,10 @@ export function defaultSortBys(
   }
 
   if (mode === Mode.AGGREGATE) {
-    if (visualizes[0]?.yAxes?.[0]) {
+    if (yAxes[0]) {
       return [
         {
-          field: visualizes[0].yAxes[0],
+          field: yAxes[0],
           kind: 'desc' as const,
         },
       ];
@@ -73,7 +69,11 @@ export function getSortBysFromLocation(
     }
   }
 
-  return defaultSortBys(mode, fields, visualizes);
+  return defaultSortBys(
+    mode,
+    fields,
+    visualizes.flatMap(visualize => visualize.yAxes)
+  );
 }
 
 export function updateLocationWithSortBys(
