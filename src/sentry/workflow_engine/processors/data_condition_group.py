@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
@@ -85,7 +85,7 @@ def evaluate_data_conditions(
 
 def process_data_condition_group(
     data_condition_group_id: int,
-    value: Any,
+    value: T,
     is_fast: bool = True,
 ) -> DataConditionGroupResult:
     invalid_group_result: DataConditionGroupResult = (False, []), []
