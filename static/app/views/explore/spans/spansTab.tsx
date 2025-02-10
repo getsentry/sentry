@@ -196,7 +196,7 @@ export function SpansTabContentImpl({
           />
         )}
       </TopSection>
-      <SideSection>
+      <SideSection withToolbar={expanded}>
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
@@ -221,7 +221,7 @@ export function SpansTabContentImpl({
             samplesTab={samplesTab}
             setSamplesTab={setSamplesTab}
           />
-          <Toggle withToolbar={expanded}>
+          <Toggle>
             <StyledButton
               aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
               size="xs"
@@ -301,9 +301,9 @@ const TopSection = styled('div')`
   }
 `;
 
-const SideSection = styled('aside')`
+const SideSection = styled('aside')<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    overflow: hidden;
+    ${p => !p.withToolbar && 'overflow: hidden;'}
   }
 `;
 
@@ -316,7 +316,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
 
-const Toggle = styled('div')<{withToolbar: boolean}>`
+const Toggle = styled('div')`
   display: none;
   position: absolute;
   top: 0px;
