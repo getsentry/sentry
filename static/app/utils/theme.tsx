@@ -1054,11 +1054,6 @@ const commonTheme = {
 
   borderRadius: '6px',
 
-  // @TODO(jonasbadalic) This should exist their respective components
-  panelBorderRadius: '6px',
-  modalBorderRadius: '8px',
-  linkBorderRadius: '2px',
-
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
   fontSizeRelativeSmall: '0.9em',
@@ -1139,15 +1134,6 @@ const commonTheme = {
     empty: '#e2dee6',
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
   },
-
-  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'] as const,
-  barBreakdownFontColors: [
-    '#564277',
-    '#E8E2F1',
-    '#E8E2F1',
-    '#E8E2F1',
-    '#E8E2F1',
-  ] as const,
 };
 
 // Light and dark theme definitions

@@ -1,13 +1,13 @@
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
-import type {TimeseriesData} from '../../common/types';
+import type {TimeSeries} from '../../common/types';
 
-export function IncompleteLineChartWidgetSeries(timeserie: TimeseriesData) {
+export function IncompleteLineChartWidgetSeries(timeSeries: TimeSeries) {
   return LineSeries({
-    name: timeserie.field,
-    color: timeserie.color,
+    name: timeSeries.field,
+    color: timeSeries.color,
     animation: false,
-    data: timeserie.data.map(datum => {
+    data: timeSeries.data.map(datum => {
       return [datum.timestamp, datum.value];
     }),
     lineStyle: {

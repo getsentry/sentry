@@ -264,7 +264,7 @@ export function ExploreCharts({
                         ? 'line'
                         : 'bar'
                   }
-                  timeseries={chartInfo.data}
+                  timeSeries={chartInfo.data}
                 />
               }
               Footer={

@@ -16,7 +16,7 @@ export type TimeSeriesItem = {
   delayed?: boolean;
 };
 
-export type TimeseriesData = {
+export type TimeSeries = {
   data: TimeSeriesItem[];
   field: string;
   meta: Meta;

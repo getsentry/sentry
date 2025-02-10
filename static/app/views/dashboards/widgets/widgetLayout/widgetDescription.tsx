@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 
 export interface WidgetDescriptionProps {
   description?: React.ReactElement | string;
-  forceDescriptionTooltip?: boolean;
+  revealTooltip?: 'hover' | 'always';
   title?: string;
 }
 
@@ -16,16 +16,16 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
   return (
     <Tooltip
       title={
-        <span>
+        <WidgetTooltipContents>
           {props.title && <WidgetTooltipTitle>{props.title}</WidgetTooltipTitle>}
           {props.description && (
             <WidgetTooltipDescription>{props.description}</WidgetTooltipDescription>
           )}
-        </span>
+        </WidgetTooltipContents>
       }
       containerDisplayMode="grid"
       isHoverable
-      forceVisible={props.forceDescriptionTooltip}
+      forceVisible={props.revealTooltip === 'always' ? true : undefined}
     >
       <WidgetTooltipButton
         aria-label={t('Widget description')}
@@ -37,6 +37,14 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
   );
 }
 
+const WidgetTooltipContents = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  max-height: 33vh;
+  overflow: hidden;
+`;
+
 const WidgetTooltipTitle = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -44,7 +52,6 @@ const WidgetTooltipTitle = styled('div')`
 `;
 
 const WidgetTooltipDescription = styled('div')`
-  margin-top: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: left;
 `;
