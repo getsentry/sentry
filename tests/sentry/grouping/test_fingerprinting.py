@@ -2,8 +2,10 @@ from typing import Any
 
 import pytest
 
+from sentry.db.models.fields.node import NodeData
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.utils import resolve_fingerprint_values
 from sentry.grouping.variants import BaseVariant
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import FingerprintInput, with_fingerprint_input
@@ -18,7 +20,13 @@ def test_basic_parsing() -> None:
 type:DatabaseUnavailable                        -> DatabaseUnavailable
 function:assertion_failed module:foo            -> AssertionFailed, foo
 app:true                                        -> aha
+app:true                                        -> {{default}}
 app:true                                        -> {{ default }}
+app:true                                        -> {{  default }}
+app:true                                        -> {{default}}, stuff
+app:true                                        -> {{ default }}, stuff
+app:true                                        -> {{  default }}, stuff
+app:true                                        -> "default stuff"
 !path:**/foo/**                                 -> everything
 !"path":**/foo/**                               -> everything
 logger:sentry.*                                 -> logger-, {{ logger }}
@@ -51,6 +59,42 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "text": 'app:"true" -> "{{ default }}"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}stuff"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}", "stuff"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}stuff"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}", "stuff"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}stuff"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}", "stuff"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "default stuff"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["default stuff"],
                 "attributes": {},
             },
             {
@@ -213,6 +257,21 @@ release:foo                                     -> release-foo
         )._to_config_structure()
         == rules._to_config_structure()
     )
+
+
+def test_variable_resolution() -> None:
+    # TODO: This should be fleshed out to test way more cases, at which point we'll need to add some
+    # actual data here
+    event_data = NodeData(id="11211231")
+
+    for fingerprint_entry, expected_resolved_value in [
+        ("{{ default }}", "{{ default }}"),
+        ("{{default}}", "{{ default }}"),
+        ("{{  default }}", "{{ default }}"),
+    ]:
+        assert resolve_fingerprint_values([fingerprint_entry], event_data) == [
+            expected_resolved_value
+        ], f"Entry {fingerprint_entry} resolved incorrectly"
 
 
 @with_fingerprint_input("input")

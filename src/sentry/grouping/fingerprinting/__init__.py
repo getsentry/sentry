@@ -11,7 +11,11 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.grouping.utils import bool_from_string
+from sentry.grouping.utils import (
+    DEFAULT_FINGERPRINT_VARIABLE,
+    bool_from_string,
+    is_default_fingerprint_var,
+)
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.event_frames import find_stack_frames
@@ -647,6 +651,9 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_fp_value(self, _: object, children: tuple[object, str, object, object]) -> str:
         _, argument, _, _ = children
+        # Normalize variations of `{{ default }}`
+        if isinstance(argument, str) and is_default_fingerprint_var(argument):
+            return DEFAULT_FINGERPRINT_VARIABLE
         return argument
 
     def visit_fp_attribute(self, _: object, children: tuple[str, object, str]) -> tuple[str, str]:
