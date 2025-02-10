@@ -160,7 +160,7 @@ Then, use it to run sync this one time.
         (
             # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
             (
-                "python dependencies (1/4)",
+                "python dependencies (1/3)",
                 (
                     # upgrading pip first
                     "pip",
@@ -176,44 +176,25 @@ Then, use it to run sync this one time.
     ):
         return 1
 
-    procs = []
-    if not SKIP_FRONTEND:
-        procs.append(
-            (
-                # Spreading out the network load by installing js,
-                # then py in the next batch.
-                "javascript dependencies (1/1)",
-                (
-                    "yarn",
-                    "install",
-                    "--frozen-lockfile",
-                    "--no-progress",
-                    "--non-interactive",
-                ),
-                {
-                    "NODE_ENV": "development",
-                },
-            )
-        )
-    procs.append(
-        (
-            "python dependencies (2/4)",
-            (
-                "pip",
-                "uninstall",
-                "-qqy",
-                "djangorestframework-stubs",
-                "django-stubs",
-            ),
-            {},
-        )
-    )
-
-    if not run_procs(
+    if not SKIP_FRONTEND and not run_procs(
         repo,
         reporoot,
         venv_dir,
-        procs,
+        (
+            # Spreading out the network load by installing js,
+            # then py in the next batch.
+            "javascript dependencies (1/1)",
+            (
+                "yarn",
+                "install",
+                "--frozen-lockfile",
+                "--no-progress",
+                "--non-interactive",
+            ),
+            {
+                "NODE_ENV": "development",
+            },
+        ),
         verbose,
     ):
         return 1
@@ -226,7 +207,7 @@ Then, use it to run sync this one time.
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
-                "python dependencies (3/4)",
+                "python dependencies (2/3)",
                 (
                     "pip",
                     "install",
@@ -248,7 +229,7 @@ Then, use it to run sync this one time.
         venv_dir,
         (
             (
-                "python dependencies (4/4)",
+                "python dependencies (3/3)",
                 ("python3", "-m", "tools.fast_editable", "--path", "."),
                 {},
             ),
