@@ -107,6 +107,7 @@ Then, use it to run sync this one time.
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+    SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
 
     USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
@@ -175,11 +176,9 @@ Then, use it to run sync this one time.
     ):
         return 1
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
+    procs = []
+    if not SKIP_FRONTEND:
+        procs.append(
             (
                 # Spreading out the network load by installing js,
                 # then py in the next batch.
@@ -194,19 +193,27 @@ Then, use it to run sync this one time.
                 {
                     "NODE_ENV": "development",
                 },
-            ),
+            )
+        )
+    procs.append(
+        (
+            "python dependencies (2/4)",
             (
-                "python dependencies (2/4)",
-                (
-                    "pip",
-                    "uninstall",
-                    "-qqy",
-                    "djangorestframework-stubs",
-                    "django-stubs",
-                ),
-                {},
+                "pip",
+                "uninstall",
+                "-qqy",
+                "djangorestframework-stubs",
+                "django-stubs",
             ),
-        ),
+            {},
+        )
+    )
+
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        procs,
         verbose,
     ):
         return 1
