@@ -21,6 +21,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0001_create_tempest_credentials_model
 
-uptime: 0025_uptime_update_constraint
+uptime: 0025_uptime_migrate_constraint
 
 workflow_engine: 0028_wfe_change_query_id_to_source_id

@@ -104,15 +104,13 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 
         constraints = [
             models.UniqueConstraint(
-                fields=[
-                    "url",
-                    "interval_seconds",
-                    "timeout_ms",
-                    "method",
-                    "trace_sampling",
-                    MD5("headers"),
-                    Coalesce(MD5("body"), Value("")),
-                ],
+                "url",
+                "interval_seconds",
+                "timeout_ms",
+                "method",
+                "trace_sampling",
+                MD5("headers"),
+                Coalesce(MD5("body"), Value("")),
                 condition=Q(migrated=False),
                 name="uptime_uptimesubscription_unique_subscription_check_4",
             ),
