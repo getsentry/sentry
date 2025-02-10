@@ -463,7 +463,7 @@ function TableView(props: TableViewProps) {
 
       if (projectSlug && profileId) {
         const target = generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: String(projectSlug),
           profileId: String(profileId),
         });

@@ -190,7 +190,7 @@ export function generateProfileLink() {
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
       return generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(tableRow['project.name']),
         profileId: String(profileId),
       });
@@ -214,7 +214,7 @@ export function generateProfileLink() {
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(projectSlug),
         profilerId: String(profilerId),
         start: start.toISOString(),
