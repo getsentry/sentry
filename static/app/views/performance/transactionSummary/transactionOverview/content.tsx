@@ -343,6 +343,7 @@ function OTelSummaryContentInner({
               p95: totalValues?.['p95()'] ?? 0,
               spanOperationBreakdownFilter,
             })}
+            supportsInvestigationRule
           />
           <TransactionsList
             location={location}
@@ -986,7 +987,7 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-function getOTelTransactionsListSort(
+export function getOTelTransactionsListSort(
   location: Location,
   options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
 ): {options: DropdownOption[]; selected: DropdownOption} {

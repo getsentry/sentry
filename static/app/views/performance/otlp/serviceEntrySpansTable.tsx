@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
+import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -14,6 +15,7 @@ import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {parseCursor} from 'sentry/utils/cursor';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -105,6 +107,7 @@ type Props = {
   handleDropdownChange: (k: string) => void;
   options: DropdownOption[];
   selected: DropdownOption;
+  supportsInvestigationRule?: boolean;
 };
 
 export function ServiceEntrySpansTable({
@@ -112,6 +115,7 @@ export function ServiceEntrySpansTable({
   options,
   selected,
   handleDropdownChange,
+  supportsInvestigationRule,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -119,6 +123,7 @@ export function ServiceEntrySpansTable({
   const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
+  const cursorUrlParam = decodeScalar(location.query?.[CURSOR_NAME]);
 
   const {
     data: tableData,
@@ -147,7 +152,7 @@ export function ServiceEntrySpansTable({
       ],
       sorts: [selected.sort],
       limit: LIMIT,
-      cursor: decodeScalar(location.query?.[CURSOR_NAME]),
+      cursor: cursorUrlParam,
     },
     'api.performance.service-entry-spans-table',
     true
@@ -169,6 +174,9 @@ export function ServiceEntrySpansTable({
     });
   };
 
+  const cursorOffset = parseCursor(cursorUrlParam)?.offset ?? 0;
+  const totalNumSamples = cursorOffset;
+
   return (
     <Fragment>
       <Header>
@@ -178,6 +186,15 @@ export function ServiceEntrySpansTable({
           options={options}
           onChange={opt => handleDropdownChange(opt.value)}
         />
+        {supportsInvestigationRule && (
+          <InvestigationRuleWrapper>
+            <InvestigationRuleCreation
+              buttonProps={{size: 'xs'}}
+              eventView={eventView}
+              numSamples={totalNumSamples}
+            />
+          </InvestigationRuleWrapper>
+        )}
         <CustomPagination
           pageLinks={pageLinks}
           onCursor={handleCursor}
@@ -319,4 +336,8 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const InvestigationRuleWrapper = styled('div')`
+  margin-right: ${space(1)};
 `;
