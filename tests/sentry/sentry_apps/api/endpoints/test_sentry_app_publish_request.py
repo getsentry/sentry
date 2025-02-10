@@ -29,8 +29,28 @@ class SentryAppPublishRequestTest(APITestCase):
         self.url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
         self.login_as(user=self.user)
 
-    @mock.patch("sentry.utils.email.send_mail")
-    def test_publish_request(self, send_mail):
+    @mock.patch("sentry.utils.email.MessageBuilder.send")
+    def test_publish_request(self, send):
+        self.upload_logo()
+        self.upload_issue_link_logo()
+        send.return_value = 2
+
+        response = self.client.post(
+            self.url,
+            format="json",
+            data={
+                "questionnaire": [
+                    {"question": "First question", "answer": "First response"},
+                    {"question": "Second question", "answer": "Second response"},
+                ]
+            },
+        )
+        assert response.status_code == 201
+        send.assert_called_with(to=["partners@sentry.io", self.user.email])
+
+    @mock.patch("sentry.utils.email.MessageBuilder.send")
+    def test_publish_request_email_fails(self, send):
+        send.return_value = 0
         self.upload_logo()
         self.upload_issue_link_logo()
         response = self.client.post(
@@ -43,20 +63,11 @@ class SentryAppPublishRequestTest(APITestCase):
                 ]
             },
         )
-        assert response.status_code == 201
-        message = (
-            "User boop@example.com of organization my-org wants to publish testin"
-            "\n\n\n>First question\nFirst response"
-            "\n\n>Second question\nSecond response"
-        )
-
-        send_mail.assert_called_with(
-            "Sentry Integration Publication Request from my-org",
-            message,
-            "root@localhost",
-            ["partners@sentry.io"],
-            reply_to=[self.user.email],
-        )
+        assert response.status_code == 500
+        assert response.data == {
+            "detail": "Something went wrong trying to send publish confirmation email"
+        }
+        send.assert_called_with(to=["partners@sentry.io", self.user.email])
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_already_published(self, send_mail):
