@@ -19,6 +19,7 @@ SLACK_SDK_ERROR_CATEGORIES = (
     MODAL_NOT_FOUND := SlackSdkErrorCategory("not_found"),
     RATE_LIMITED := SlackSdkErrorCategory("ratelimited"),
     RESTRICTED_ACTION := SlackSdkErrorCategory("restricted_action"),
+    MESSAGE_LIMIT_EXCEEDED := SlackSdkErrorCategory("message_limit_exceeded"),
 )
 
 """
