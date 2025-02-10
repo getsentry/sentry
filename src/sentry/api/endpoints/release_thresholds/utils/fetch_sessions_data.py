@@ -13,11 +13,6 @@ from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.snuba.sessions_v2 import QueryDefinition
 
-# In minutes
-TWO_WEEKS = 20160
-ONE_WEEK = 10080
-TWENTY_FOUR_HOURS = 1440
-
 
 def fetch_sessions_data(
     request: Request,
