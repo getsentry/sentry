@@ -3,12 +3,12 @@ from collections.abc import Iterable, Mapping
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
 from sentry import options
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.profiles.task import process_profile_task
-from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
@@ -19,43 +19,23 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(
-        self,
-        max_batch_size: int,
-        max_batch_time: int,
-        num_processes: int,
-        input_block_size: int | None,
-        output_block_size: int | None,
-    ) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.health_checker = HealthChecker("profiles")
-        self.input_block_size = input_block_size
-        self.max_batch_size = max_batch_size
-        self.max_batch_time = max_batch_time
-        self.output_block_size = output_block_size
-        self._pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        next_step = run_task_with_multiprocessing(
+        next_step = RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            pool=self._pool,
-            input_block_size=self.input_block_size,
-            output_block_size=self.output_block_size,
         )
         return create_backpressure_step(
             health_checker=self.health_checker,
             next_step=next_step,
         )
-
-    def shutdown(self) -> None:
-        self._pool.close()
 
 
 def is_sampled(headers: Iterable[tuple[str, str | bytes]]) -> bool:
