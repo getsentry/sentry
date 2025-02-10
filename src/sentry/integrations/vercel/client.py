@@ -1,9 +1,17 @@
+from __future__ import annotations
+
 import logging
+from typing import NotRequired, TypedDict
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.vercel.api")
+
+
+class _ParamsDict(TypedDict):
+    limit: int
+    until: NotRequired[str | None]
 
 
 class VercelClient(ApiClient):
@@ -65,9 +73,9 @@ class VercelClient(ApiClient):
 
     def get_from_pagination(self, url, data_key):
         # Vercel Pagination Guide: https://vercel.com/docs/rest-api#introduction/api-basics/pagination
-        params = {"limit": self.pagination_limit}
+        params: _ParamsDict = {"limit": self.pagination_limit}
         results = []
-        next_timestamp = ""
+        next_timestamp: str | None = ""
         while next_timestamp is not None:
             response = self.get(url, params=params)
             results += response[data_key]
