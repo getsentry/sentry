@@ -121,7 +121,7 @@ export function GridLineLabels({
           <QuestionTooltip
             size="xs"
             title={t(
-              'This area of the timeline is outside of your selected time range to allow for improved rendering of markers.'
+              'This area of the timeline is outside of your selected time range to allow for accurate rendering of markers.'
             )}
           />
         </TimeLabelContainer>
