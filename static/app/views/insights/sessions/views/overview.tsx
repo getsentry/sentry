@@ -6,6 +6,8 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -22,6 +24,7 @@ export function SessionsOverview() {
   return (
     <React.Fragment>
       {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
+      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
