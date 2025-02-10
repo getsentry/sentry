@@ -24,7 +24,7 @@ import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   api: Client;
@@ -206,7 +206,7 @@ class ProjectEnvironments extends Component<Props, State> {
             </NavTabs>
           }
         />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
 
         <Panel>
           <PanelHeader>{isHidden ? t('Hidden') : t('Active Environments')}</PanelHeader>
