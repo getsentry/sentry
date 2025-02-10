@@ -2,6 +2,7 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.filters.level import LevelFilter
 from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
@@ -10,7 +11,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLevelCondition(ConditionTestCase):
     condition = Condition.LEVEL
-    rule_cls = LevelCondition
     payload = {
         "id": LevelCondition.id,
         "match": MatchType.EQUAL,
@@ -38,6 +38,19 @@ class TestLevelCondition(ConditionTestCase):
         )
 
     def test_dual_write(self):
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.EQUAL,
+            "level": 20,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_filter(self):
+        self.payload["id"] = LevelFilter.id
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 

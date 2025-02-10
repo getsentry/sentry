@@ -40,6 +40,7 @@ class Condition(models.TextChoices):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    EVERY_EVENT = "every_event"  # skipped
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
