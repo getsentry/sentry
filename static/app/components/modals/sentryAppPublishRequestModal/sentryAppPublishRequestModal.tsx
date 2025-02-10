@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppUtils';
+import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
 import type {PermissionChoice} from 'sentry/constants';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';

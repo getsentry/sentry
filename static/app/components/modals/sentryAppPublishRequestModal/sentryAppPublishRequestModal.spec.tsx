@@ -9,7 +9,7 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import {
   getPermissionSelectionsFromScopes,
   SentryAppPublishRequestModal,
-} from 'sentry/components/modals/sentryAppPublishRequestModal';
+} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 
 describe('SentryAppDetailsModal', function () {
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
@@ -40,7 +40,7 @@ describe('SentryAppDetailsModal', function () {
         'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.'
       )
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Request Publication')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Request Publication'})).toBeInTheDocument();
   });
 
   it('renders new modal questions when feature flag is true', () => {
@@ -72,7 +72,7 @@ describe('SentryAppDetailsModal', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Request Publication')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Request Publication'})).toBeInTheDocument();
   });
 
   it('sends correctly formatted JSON for the old modal flow', async () => {
