@@ -516,7 +516,7 @@ function Visualize({error, setError}: VisualizeProps) {
                               option => option.value.meta.name === dropdownSelection.value
                             );
                             // Update the current field's aggregate with the new aggregate
-                            if (!selectedAggregate) {
+                            if (!selectedAggregate && !isNone) {
                               // Handles new selection of a field from the aggregate dropdown
                               newFields[index] = {
                                 kind: FieldValueKind.FIELD,
