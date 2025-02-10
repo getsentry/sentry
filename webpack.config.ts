@@ -233,7 +233,7 @@ const appConfig: webpack.Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['sentry/utils/statics-setup', 'sentry', 'getsentry'],
+    app: ['sentry/utils/statics-setup', 'sentry'],
 
     /**
      * Pipeline View for integrations
