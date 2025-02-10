@@ -1579,6 +1579,7 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
         workflow = alert_rule_workflow.workflow
         when_dcg = workflow.when_condition_group
+        assert when_dcg
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
 
         self.get_success_response(
