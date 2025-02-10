@@ -90,6 +90,8 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
+    # Temporary column we'll use to migrate away from the url based unique constraint
+    migrated = models.BooleanField(default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -102,14 +104,17 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 
         constraints = [
             models.UniqueConstraint(
-                "url",
-                "interval_seconds",
-                "timeout_ms",
-                "method",
-                "trace_sampling",
-                MD5("headers"),
-                Coalesce(MD5("body"), Value("")),
-                name="uptime_uptimesubscription_unique_subscription_check_3",
+                fields=[
+                    "url",
+                    "interval_seconds",
+                    "timeout_ms",
+                    "method",
+                    "trace_sampling",
+                    MD5("headers"),
+                    Coalesce(MD5("body"), Value("")),
+                ],
+                condition=Q(migrated=False),
+                name="uptime_uptimesubscription_unique_subscription_check_4",
             ),
         ]
 
