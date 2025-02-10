@@ -65,14 +65,20 @@ export function tokenizeExpression(
   const tokens: Token[] = [];
 
   for (const token of tryTokenizeExpression(expression)) {
-    // make sure to inject a free text token between every pair of non free space
-    // tokens to allow users to enter things between them
-    if (!isTokenFreeText(tokens[tokens.length - 1]) && !isTokenFreeText(token)) {
-      tokens.push(space(loc, token.location));
-    }
+    const prev = tokens[tokens.length - 1];
+    if (isTokenFreeText(prev) && isTokenFreeText(token)) {
+      prev.merge(token);
+    } else {
+      // make sure to inject a free text token between every pair of non free space
+      // tokens to allow users to enter things between them
+      if (!isTokenFreeText(prev) && !isTokenFreeText(token)) {
+        tokens.push(space(loc, token.location));
+      }
 
-    tokens.push(token);
-    loc = token.location;
+      // tokens[tokens.length - 1].merge(token);
+      tokens.push(token);
+      loc = token.location;
+    }
   }
 
   // make sure to check if we need a space at the end

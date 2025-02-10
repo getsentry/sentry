@@ -98,6 +98,14 @@ export class TokenFreeText extends Token {
     super(location);
     this.text = text;
   }
+
+  merge(token: TokenFreeText) {
+    // Assumes `this` and `token` are adjacent tokens with 0 more spaces between them.
+    // Merges the 2 tokens into 1 token and fills the missing text with spaces.
+    const spaces = token.location.start.offset - this.location.end.offset;
+    this.location.end = token.location.end;
+    this.text = `${this.text}${' '.repeat(spaces)}${token.text}`;
+  }
 }
 
 export function isTokenParenthesis(

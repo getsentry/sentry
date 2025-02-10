@@ -565,4 +565,21 @@ describe('tokenizeExpression', function () {
   ])('tokenizes complex partial expressions `%s`', function (expression, expected) {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
+
+  it.each([
+    ['', [s(0, '')]],
+    [' ', [s(0, '')]],
+    [',', [s(0, ',')]],
+    [',', [s(0, ',')]],
+    [', +', [s(0, ','), o(0, '+'), s(1, '')]],
+    [
+      ', + avg(span.duration)',
+      [s(0, ','), o(0, '+'), s(1, ''), f(0, 'avg', [a(0, 'span.duration')]), s(2, '')],
+    ],
+    ['foo,bar(', [s(0, 'foo,bar(')]],
+    ['foo     bar(', [s(0, 'foo     bar(')]],
+    ['foo     bar(baz)     qux', [s(0, 'foo'), f(0, 'bar', [a(0, 'baz')]), s(1, 'qux')]],
+  ])('tokenizes bad expressions `%s`', function (expression, expected) {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
 });
