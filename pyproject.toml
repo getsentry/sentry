@@ -208,7 +208,6 @@ module = [
     "sentry.pipeline.base",
     "sentry.pipeline.views.base",
     "sentry.pipeline.views.nested",
-    "sentry.plugins.bases.notify",
     "sentry.plugins.config",
     "sentry.receivers.releases",
     "sentry.release_health.metrics_sessions_v2",
