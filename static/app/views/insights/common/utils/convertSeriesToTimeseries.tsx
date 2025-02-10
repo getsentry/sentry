@@ -1,8 +1,8 @@
-import type {TimeseriesData} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 
-export function convertSeriesToTimeseries(series: DiscoverSeries): TimeseriesData {
+export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
   return {
     field: series.seriesName,
     meta: series.meta,

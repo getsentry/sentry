@@ -34,14 +34,14 @@ export default storyBook('WidgetSyncContext', story => {
             <MediumWidget>
               <LineChartWidget
                 title="span.duration"
-                timeseries={[sampleDurationTimeSeries]}
+                timeSeries={[sampleDurationTimeSeries]}
               />
             </MediumWidget>
             {visible && (
               <MediumWidget>
                 <LineChartWidget
                   title="span.duration"
-                  timeseries={[sampleThroughputTimeSeries]}
+                  timeSeries={[sampleThroughputTimeSeries]}
                 />
               </MediumWidget>
             )}

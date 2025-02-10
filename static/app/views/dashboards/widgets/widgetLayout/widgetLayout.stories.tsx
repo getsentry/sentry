@@ -105,7 +105,7 @@ import {WidgetTitle} from './widgetTitle';
               </Fragment>
             }
             Visualization={
-              <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
+              <LineChartWidgetVisualization timeSeries={[sampleDurationTimeSeries]} />
             }
             Footer={<span>This data is incomplete!</span>}
           />

@@ -9,7 +9,7 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {TimeseriesData} from '../common/types';
+import type {TimeSeries} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {sampleLatencyTimeSeries} from './fixtures/sampleLatencyTimeSeries';
@@ -63,7 +63,7 @@ export default storyBook('BarChartWidget', story => {
             <BarChartWidget
               title="Duration Breakdown"
               description="Explains what proportion of total duration is taken up by latency vs. span duration"
-              timeseries={[
+              timeSeries={[
                 shiftTimeserieToNow(latencyTimeSeries),
                 shiftTimeserieToNow(spanDurationTimeSeries),
               ]}
@@ -74,7 +74,7 @@ export default storyBook('BarChartWidget', story => {
             <BarChartWidget
               title="Duration Breakdown"
               description="Explains what proportion of total duration is taken up by latency vs. span duration"
-              timeseries={[
+              timeSeries={[
                 shiftTimeserieToNow(latencyTimeSeries),
                 shiftTimeserieToNow(spanDurationTimeSeries),
               ]}
@@ -93,10 +93,10 @@ const SmallSizingWindow = styled(SizingWindow)`
 `;
 
 function toTimeSeriesSelection(
-  timeSeries: TimeseriesData,
+  timeSeries: TimeSeries,
   start: DateString | null,
   end: DateString | null
-): TimeseriesData {
+): TimeSeries {
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {

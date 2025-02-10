@@ -1,15 +1,15 @@
-import type {TimeseriesData} from '../common/types';
+import type {TimeSeries} from '../common/types';
 
 /**
  * Given a timeseries and a delay in seconds, goes through the timeseries data, and marks each point as either delayed (data bucket ended before the delay threshold) or not
  */
 
-export function markDelayedData(timeserie: TimeseriesData, delay: number) {
+export function markDelayedData(timeSeries: TimeSeries, delay: number) {
   if (delay === 0) {
-    return timeserie;
+    return timeSeries;
   }
 
-  const bucketSize = getTimeSeriesBucketSize(timeserie);
+  const bucketSize = getTimeSeriesBucketSize(timeSeries);
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
@@ -17,8 +17,8 @@ export function markDelayedData(timeserie: TimeseriesData, delay: number) {
   // last few points are affected, we can make this a lot faster by iterating
   // backwards and immediately stopping once we see the first complete point
   return {
-    ...timeserie,
-    data: timeserie.data.map(datum => {
+    ...timeSeries,
+    data: timeSeries.data.map(datum => {
       const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
       const delayed = bucketEndTimestamp >= ingestionDelayTimestamp;
 
@@ -30,9 +30,9 @@ export function markDelayedData(timeserie: TimeseriesData, delay: number) {
   };
 }
 
-function getTimeSeriesBucketSize(timeseries: TimeseriesData): number {
-  const penultimateDatum = timeseries.data.at(-2);
-  const finalDatum = timeseries.data.at(-1);
+function getTimeSeriesBucketSize(timeSeries: TimeSeries): number {
+  const penultimateDatum = timeSeries.data.at(-2);
+  const finalDatum = timeSeries.data.at(-1);
 
   let bucketSize: number = 0;
   if (penultimateDatum && finalDatum) {
