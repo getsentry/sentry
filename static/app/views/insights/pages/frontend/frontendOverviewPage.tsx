@@ -94,6 +94,7 @@ function FrontendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
@@ -212,7 +213,7 @@ function FrontendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
