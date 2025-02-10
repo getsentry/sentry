@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
-import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
+import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {space} from 'sentry/styles/space';
@@ -39,11 +39,18 @@ export default class SentryApplicationRow extends PureComponent<Props> {
   handlePublish = () => {
     const {app} = this.props;
 
-    openModal(deps => <SentryAppPublishRequestModal app={app} {...deps} />);
+    openModal(deps => (
+      <SentryAppPublishRequestModal
+        organization={this.props.organization}
+        app={app}
+        {...deps}
+      />
+    ));
   };
 
   render() {
     const {app, organization, onRemoveApp} = this.props;
+
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
