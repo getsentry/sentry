@@ -515,16 +515,12 @@ function Visualize({error, setError}: VisualizeProps) {
                             const selectedAggregate = aggregates.find(
                               option => option.value.meta.name === dropdownSelection.value
                             );
-                            const selectedColumn = (
-                              state.dataset === WidgetType.SPANS
-                                ? spanColumnOptions
-                                : columnOptions
-                            ).find(option => option.value === dropdownSelection.value);
                             // Update the current field's aggregate with the new aggregate
-                            if (selectedColumn) {
+                            if (!selectedAggregate) {
+                              // Handles new selection of a field from the aggregate dropdown
                               newFields[index] = {
                                 kind: FieldValueKind.FIELD,
-                                field: selectedColumn.value,
+                                field: dropdownSelection.value as string,
                               };
                             } else if (!isNone) {
                               if (currentField.kind === FieldValueKind.FUNCTION) {
