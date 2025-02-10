@@ -30,7 +30,6 @@ class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
-    snuba_methods = ["GET"]
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -69,7 +68,7 @@ class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
         stats_type = StatsType(
             attribute_distributions=AttributeDistributionsRequest(
                 max_buckets=serialized["max_buckets"],
-                max_attributes=serialized.get("max_attributes", 0),
+                max_attributes=serialized.get("max_attributes"),
             )
         )
 
