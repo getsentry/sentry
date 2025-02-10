@@ -1,6 +1,19 @@
 from django.db import migrations
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+
+
+def remove_project_option(apps: StateApps, key: str):
+    ProjectOption = apps.get_model("sentry", "ProjectOption")
+    for option in ProjectOption.objects.filter(key=key):
+        option.delete()
+
+
+def remove_org_option(apps: StateApps, key: str):
+    OrganizationOption = apps.get_model("sentry", "OrganizationOption")
+    for option in OrganizationOption.objects.filter(key=key):
+        option.delete()
 
 
 class Migration(CheckedMigration):
@@ -23,20 +36,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            "DELETE FROM sentry_projectoption WHERE key='sentry:blocked_metrics'",
+        migrations.RunPython(
+            lambda apps, _: remove_project_option(apps, "sentry:blocked_metrics"),
+            migrations.RunPython.noop,
             hints={"tables": ["sentry_projectoptions"]},
         ),
-        migrations.RunSQL(
-            "DELETE FROM sentry_projectoption WHERE key='sentry:metrics_extraction_rules'",
+        migrations.RunPython(
+            lambda apps, _: remove_project_option(apps, "sentry:metrics_extraction_rules"),
+            migrations.RunPython.noop,
             hints={"tables": ["sentry_projectoptions"]},
         ),
-        migrations.RunSQL(
-            "DELETE FROM sentry_projectoption WHERE key='sentry:metrics_activate_percentiles'",
+        migrations.RunPython(
+            lambda apps, _: remove_org_option(apps, "sentry:metrics_activate_percentiles"),
+            migrations.RunPython.noop,
             hints={"tables": ["sentry_organizationoptions"]},
         ),
-        migrations.RunSQL(
-            "DELETE FROM sentry_projectoption WHERE key='sentry:metrics_activate_last_for_gauges'",
+        migrations.RunPython(
+            lambda apps, _: remove_org_option(apps, "sentry:metrics_activate_last_for_gauges"),
+            migrations.RunPython.noop,
             hints={"tables": ["sentry_organizationoptions"]},
         ),
     ]
