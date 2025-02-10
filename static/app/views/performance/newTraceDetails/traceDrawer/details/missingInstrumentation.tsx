@@ -49,7 +49,7 @@ export function MissingInstrumentationNodeDetails(
               {t('No Instrumentation')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              copyText=""
+              clipboardText=""
               subTitle={t('How Awkward')}
             />
           </TraceDrawerComponents.LegacyTitleText>

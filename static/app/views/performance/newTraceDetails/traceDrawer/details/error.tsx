@@ -48,7 +48,7 @@ export function ErrorNodeDetails(
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
               subTitle={`ID: ${props.node.value.event_id}`}
-              copyText={props.node.value.event_id}
+              clipboardText={props.node.value.event_id}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>

@@ -45,7 +45,7 @@ export function AutogroupNodeDetails(
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
               subTitle={`ID: ${node.value.span_id}`}
-              copyText={node.value.span_id}
+              clipboardText={node.value.span_id}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
