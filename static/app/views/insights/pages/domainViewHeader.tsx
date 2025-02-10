@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -18,7 +17,7 @@ import {
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
-import {ModuleName} from 'sentry/views/insights/types';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
@@ -75,7 +74,7 @@ export function DomainViewHeader({
       .filter(moduleName => isModuleVisible(moduleName, organization))
       .map(moduleName => ({
         key: moduleName,
-        children: <TabLabel moduleName={moduleName} isActive={tabValue === moduleName} />,
+        children: <TabLabel moduleName={moduleName} />,
         to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
       })),
   ];
@@ -109,11 +108,10 @@ export function DomainViewHeader({
 }
 
 interface TabLabelProps {
-  isActive: boolean;
   moduleName: ModuleName;
 }
 
-function TabLabel({moduleName, isActive}: TabLabelProps) {
+function TabLabel({moduleName}: TabLabelProps) {
   const moduleTitles = useModuleTitles();
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
@@ -123,15 +121,6 @@ function TabLabel({moduleName, isActive}: TabLabelProps) {
         {moduleTitles[moduleName]}
         <IconBusiness />
       </TabWithIconContainer>
-    );
-  }
-
-  // XXX(epurkhiser): Crons explicitly get's a guide anchor
-  if (moduleName === ModuleName.CRONS) {
-    return (
-      <GuideAnchor target="crons_backend_insights" disabled={!isActive}>
-        {moduleTitles[moduleName]}
-      </GuideAnchor>
     );
   }
 
