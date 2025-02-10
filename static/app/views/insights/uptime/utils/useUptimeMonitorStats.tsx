@@ -2,7 +2,6 @@ import {useState} from 'react';
 
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {CheckStatusBucket} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -40,8 +39,6 @@ export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
   };
 
   const organization = useOrganization();
-  const location = useLocation();
-
   const monitorStatsQueryKey = `/organizations/${organization.slug}/uptime-stats/`;
 
   return useApiQuery<Record<string, CheckStatusBucket[]>>(
@@ -51,7 +48,6 @@ export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
         query: {
           projectUptimeSubscriptionId: ruleIds,
           ...selectionQuery,
-          ...location.query,
         },
       },
     ],
