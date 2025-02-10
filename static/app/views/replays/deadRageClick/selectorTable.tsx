@@ -16,11 +16,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export interface UrlState {
@@ -182,12 +182,17 @@ export function SelectorLink({
     </TooltipContainer>
   );
 
+  const pathname = makeReplaysPathname({
+    path: '/',
+    organization,
+  });
+
   return (
     <StyledTextOverflow>
       <WiderHovercard position="right" body={hovercardContent}>
         <Link
           to={{
-            pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+            pathname,
             query: {
               ...location.query,
               query: selectorQuery,
