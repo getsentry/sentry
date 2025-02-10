@@ -24,9 +24,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         super().setUp()
 
     def build_data_packet(self, **kwargs):
-        query_id = "1234"
+        source_id = "1234"
         return DataPacket[dict](
-            query_id, {"query_id": query_id, "group_vals": {"group_1": 6}, **kwargs}
+            source_id, {"source_id": source_id, "group_vals": {"group_1": 6}, **kwargs}
         )
 
     def test(self):

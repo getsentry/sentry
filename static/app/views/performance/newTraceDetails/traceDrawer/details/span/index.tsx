@@ -68,7 +68,8 @@ function SpanNodeDetailHeader({
         <TraceDrawerComponents.LegacyTitleText>
           <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            text={`ID: ${node.value.span_id}`}
+            subTitle={`ID: ${node.value.span_id}`}
+            clipboardText={node.value.span_id}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>

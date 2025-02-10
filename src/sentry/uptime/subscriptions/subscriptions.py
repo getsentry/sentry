@@ -280,12 +280,6 @@ def update_project_uptime_subscription(
         body=body,
         trace_sampling=trace_sampling,
     )
-    updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
-
-    mode = uptime_monitor.mode
-    if updated_subscription:
-        # If the `uptime_subscription` is updated then treat this as a manual subscription
-        mode = ProjectUptimeSubscriptionMode.MANUAL
 
     owner_user_id = uptime_monitor.owner_user_id
     owner_team_id = uptime_monitor.owner_team_id
@@ -301,14 +295,14 @@ def update_project_uptime_subscription(
         environment=environment,
         uptime_subscription=new_uptime_subscription,
         name=name,
-        mode=mode,
+        # After an update, we always convert a subscription to manual mode
+        mode=ProjectUptimeSubscriptionMode.MANUAL,
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
     # If we changed any fields on the actual subscription we created a new subscription and associated it with this
     # uptime monitor. Check if the old subscription was orphaned due to this.
-    if updated_subscription:
-        remove_uptime_subscription_if_unused(cur_uptime_subscription)
+    remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
     # Update status. This may have the side effect of removing or creating a
     # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat

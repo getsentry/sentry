@@ -33,7 +33,7 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 // These labels need to be exported so that they can be used in audit logs
 export const retentionPrioritiesLabels = {
@@ -874,7 +874,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
       <Fragment>
         <SentryDocumentTitle title={t('Performance')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
             <Feature features="organizations:insights-initial-modules">
@@ -965,7 +965,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
-                  title={t('Retention Priorities')}
+                  title={t('Sampling Priorities')}
                   fields={this.retentionPrioritiesFormFields}
                   disabled={!hasAccess}
                   renderFooter={() => (
