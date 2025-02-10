@@ -7,12 +7,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    DefaultFieldsModel,
-    FlexibleForeignKey,
-    region_silo_model,
-)
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -33,12 +28,8 @@ class DataSource(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
 
-    # TODO - @saponifi3d - complete removal of this field
-    # QUERY_ID is DEPRECATED and should not be used, instead use source_id
-    query_id = BoundedBigIntegerField(null=True)
-
-    # TODO - @saponifi3d remove the db_default once the field exists
-    source_id = models.TextField(db_default="")
+    # source_id is used in a composite index with type to dynamically lookup the data source
+    source_id = models.TextField()
 
     # This is a dynamic field, depending on the type in the data_source_type_registry
     type = models.TextField()
