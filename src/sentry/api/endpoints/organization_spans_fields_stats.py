@@ -32,7 +32,7 @@ class OrganizationSpansFieldsStatsEndpointSerializer(serializers.Serializer):
 class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsV2EndpointBase):
     snuba_methods = ["GET"]
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.PERFORMANCE
 
