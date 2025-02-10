@@ -225,7 +225,7 @@ def record_grouphash_metadata_metrics(
     hashing_metadata = grouphash_metadata.hashing_metadata
 
     if hash_basis:
-        hash_basis_tags: dict[str, str] = {"hash_basis": hash_basis}
+        hash_basis_tags: dict[str, str | None] = {"hash_basis": hash_basis, "platform": platform}
         if hashing_metadata:
             hash_basis_tags["is_hybrid_fingerprint"] = str(
                 hashing_metadata.get("is_hybrid_fingerprint", False)
@@ -247,7 +247,12 @@ def record_grouphash_metadata_metrics(
                 metrics.incr(
                     f"grouping.grouphashmetadata.event_hashing_metadata.{hash_basis}",
                     sample_rate=1.0,
-                    tags=hashing_metadata_tags,
+                    tags={
+                        **hashing_metadata_tags,
+                        # Add this in at the end so it's not the reason we log the metric if it's
+                        # the only tag we have
+                        "platform": platform,
+                    },
                 )
 
 
