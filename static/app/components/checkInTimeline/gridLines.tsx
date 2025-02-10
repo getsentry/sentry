@@ -313,8 +313,9 @@ const TimeLabelContainer = styled('div')<{
   ${p =>
     p.labelPosition === 'center-bottom' &&
     // Skip the translation for the first label
+    !p.isFirst &&
     css`
-      transform: ${p.isFirst ? 'none' : 'translateX(-50%)'};
+      transform: translateX(-50%);
     `}
 `;
 
