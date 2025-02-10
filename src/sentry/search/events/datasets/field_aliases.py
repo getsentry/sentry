@@ -139,3 +139,21 @@ def resolve_precise_timestamp(timestamp_column: str, ms_column: str, alias: str)
         ],
         alias,
     )
+
+
+def _resolve_user_display_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    columns = ["user.email", "user.username", "user.id", "user.ip"]
+    return Function(
+        "coalesce",
+        [Function("nullif", [builder.column(column), ""]) for column in columns],
+        alias,
+    )
+
+
+def _resolve_replay_id_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    columns = ["replay.id", "replayId"]
+    return Function(
+        "coalesce",
+        [Function("nullif", [builder.column(column), ""]) for column in columns],
+        alias,
+    )
