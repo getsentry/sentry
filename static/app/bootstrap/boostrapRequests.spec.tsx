@@ -4,10 +4,12 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {ApiResult} from 'sentry/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import type {Organization} from 'sentry/types/organization';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
@@ -68,6 +70,16 @@ describe('useBootstrapOrganizationQuery', function () {
   it('does not fetch when orgSlug is null', function () {
     const {result} = renderHook(() => useBootstrapOrganizationQuery(null), {wrapper});
     expect(result.current.data).toBeUndefined();
+  });
+
+  it('removes the promise from window.__sentry_preload after use', async function () {
+    window.__sentry_preload = {
+      orgSlug: org.slug,
+      organization: Promise.resolve<ApiResult<Organization>>([org, undefined, undefined]),
+    };
+    const {result} = renderHook(() => useBootstrapOrganizationQuery(orgSlug), {wrapper});
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(window.__sentry_preload?.organization).toBeUndefined();
   });
 });
 
