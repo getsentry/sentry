@@ -577,6 +577,18 @@ function Visualize({error, setError}: VisualizeProps) {
                                         kind: FieldValueKind.FIELD,
                                         field: dropdownSelection.value as string,
                                       };
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                          field: 'visualize.updateAggregate',
+                                          from: source,
+                                          new_widget: !isEditing,
+                                          value: 'direct_field',
+                                          widget_type: state.dataset ?? '',
+                                          organization,
+                                        }
+                                      );
                                     } else if (!isNone) {
                                       if (currentField.kind === FieldValueKind.FUNCTION) {
                                         // Handle setting an aggregate from an aggregate
