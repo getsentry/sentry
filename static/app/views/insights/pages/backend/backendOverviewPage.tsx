@@ -100,6 +100,7 @@ function BackendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -236,7 +237,7 @@ function BackendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
