@@ -148,7 +148,7 @@ def get_trees_for_org(
             lifecycle.record_halt(error, extra)
         except UnableToAcquireLock as error:
             extra["error"] = str(error)
-            lifecycle.record_failure(error, extra)
+            lifecycle.record_halt(error, extra)
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
 
