@@ -1,4 +1,3 @@
-
 import logging
 import operator
 from datetime import timedelta
@@ -30,8 +29,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
-from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
     dual_update_resolve_condition,
