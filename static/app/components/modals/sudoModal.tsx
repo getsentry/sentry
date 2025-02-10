@@ -97,7 +97,7 @@ function SudoModal({
 
       try {
         // Await all preload requests
-        await Promise.allSettled(Object.values(window.__sentry_preload));
+        await Promise.allSettled(Object.values(window.__sentry_preload ?? {}));
       } catch {
         // ignore errors
       }

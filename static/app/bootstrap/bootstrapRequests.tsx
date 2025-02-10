@@ -3,6 +3,7 @@
 import 'sentry/stores/latestContextStore';
 
 import {useLayoutEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {type ApiResult, Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -68,7 +69,6 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-organization', orgSlug],
     queryFn: async (): Promise<Organization> => {
-      const uncancelableApi = new Client();
       // Get the preloaded data promise
       try {
         const preloadResponse = await getPreloadedData('organization', orgSlug!);
@@ -76,10 +76,14 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
         if (Array.isArray(preloadResponse) && preloadResponse[0] !== null) {
           return preloadResponse[0];
         }
-      } catch {
-        //
+      } catch (error) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['bootstrap-organization-query-error']);
+          Sentry.captureException(error);
+        });
       }
 
+      const uncancelableApi = new Client();
       const [org] = await uncancelableApi.requestPromise(`/organizations/${orgSlug}/`, {
         includeAllArgs: true,
         query: {detailed: 0, include_feature_flags: 1},
@@ -117,7 +121,6 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
       hasMore: boolean;
       teams: Team[];
     }> => {
-      const uncancelableApi = new Client();
       // Get the preloaded data promise
       try {
         const preloadResponse = await getPreloadedData('teams', orgSlug!);
@@ -125,10 +128,14 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
         if (preloadResponse !== null && preloadResponse[0] !== null) {
           return createTeamsObject(preloadResponse);
         }
-      } catch {
-        //
+      } catch (error) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['bootstrap-teams-query-error']);
+          Sentry.captureException(error);
+        });
       }
 
+      const uncancelableApi = new Client();
       const teamsApiResponse = await uncancelableApi.requestPromise(
         `/organizations/${orgSlug}/teams/`,
         {
@@ -148,7 +155,6 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-projects', orgSlug],
     queryFn: async (): Promise<Project[]> => {
-      const uncancelableApi = new Client();
       // Get the preloaded data promise
       try {
         const preloadResponse = await getPreloadedData('projects', orgSlug!);
@@ -156,10 +162,14 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
         if (preloadResponse !== null && preloadResponse[0] !== null) {
           return preloadResponse[0];
         }
-      } catch {
-        //
+      } catch (error) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['bootstrap-projects-query-error']);
+          Sentry.captureException(error);
+        });
       }
 
+      const uncancelableApi = new Client();
       const [projects] = await uncancelableApi.requestPromise(
         `/organizations/${orgSlug}/projects/`,
         {
@@ -187,14 +197,12 @@ function getPreloadedData(
   slug: string
 ): Promise<ApiResult | null> {
   const data = window.__sentry_preload;
-  if (
-    !data ||
-    !data[name] ||
-    !data.orgSlug ||
-    data.orgSlug.toLowerCase() !== slug.toLowerCase()
-  ) {
-    return Promise.reject(new Error('Prefetch query not found or slug mismatch'));
+  if (!data?.[name] || data.orgSlug?.toLowerCase() !== slug.toLowerCase()) {
+    throw new Error('Prefetch query not found or slug mismatch');
   }
 
-  return data[name];
+  const promise = data[name];
+  // Prevent reusing the promise later
+  delete data[name];
+  return promise;
 }
