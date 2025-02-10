@@ -179,25 +179,13 @@ export const CHART_PALETTE = [
 ] as const;
 
 export type ChartColorPalette = typeof CHART_PALETTE;
-type ValidLengthArgument =
-  | 0
-  | 1
-  | 2
-  | 3
-  | 4
-  | 5
-  | 6
-  | 7
-  | 8
-  | 9
-  | 10
-  | 11
-  | 12
-  | 13
-  | 14
-  | 15
-  | 16
-  | 17;
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type GetRange<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A[number]
+  : GetRange<N, [...A, A['length']]>;
+
+type ValidLengthArgument = GetRange<ChartColorPalette['length']>;
 
 // @TODO(jonasbadalic) I hate this, but iirc it is the only way to the type to the next index
 type LengthPlusOne<T extends ValidLengthArgument> = T extends 0
