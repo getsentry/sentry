@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
+DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
 def parse_fingerprint_var(value: str) -> str | None:
@@ -137,6 +138,8 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
 def resolve_fingerprint_values(values: list[str], event_data: NodeData) -> list[str]:
     def _get_fingerprint_value(value: str) -> str:
         var = parse_fingerprint_var(value)
+        if var == "default":
+            return DEFAULT_FINGERPRINT_VARIABLE
         if var is None:
             return value
         rv = get_fingerprint_value(var, event_data)
