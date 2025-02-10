@@ -18,7 +18,7 @@ from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers imp
     BaseEventFrequencyQueryHandler,
     slow_condition_query_handler_registry,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
@@ -34,7 +34,6 @@ COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 DataConditionGroupGroups = dict[int, set[int]]
 WorkflowMapping = dict[int, Workflow]
 WorkflowEnvMapping = dict[int, int | None]
-DetectorMapping = dict[int, Detector]
 
 
 @dataclass(frozen=True)
@@ -117,16 +116,6 @@ def fetch_workflows_envs(
         workflow_ids_to_workflows[workflow.id] = workflow
 
     return workflow_ids_to_workflows, workflows_to_envs
-
-
-def fetch_detectors(detector_ids: list[int]) -> DetectorMapping:
-    detector_ids_to_detectors: DetectorMapping = {}
-    detectors = list(Detector.objects.filter(id__in=detector_ids))
-
-    for detector in detectors:
-        detector_ids_to_detectors[detector.id] = detector
-
-    return detector_ids_to_detectors
 
 
 def fetch_data_condition_groups(
@@ -268,9 +257,6 @@ def process_delayed_workflows(
     dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
 
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
-    _ = fetch_detectors(
-        list(trigger_type_to_dcg_model[DataConditionHandlerType.DETECTOR_TRIGGER].values())
-    )
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
     _ = get_condition_query_groups(

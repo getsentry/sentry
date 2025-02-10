@@ -22,7 +22,6 @@ from sentry.workflow_engine.models.data_condition import (
 from sentry.workflow_engine.processors.delayed_workflow import (
     DataConditionGroupGroups,
     UniqueConditionQuery,
-    fetch_detectors,
     fetch_group_to_event_data,
     fetch_workflows_envs,
     generate_unique_queries,
@@ -266,15 +265,6 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         assert workflow_ids_to_workflows == {
             self.workflow1.id: self.workflow1,
             self.workflow2.id: self.workflow2,
-        }
-
-    def test_fetch_detectors(self):
-        detector_ids = list(
-            self.trigger_type_to_dcg_model[DataConditionHandlerType.DETECTOR_TRIGGER].values()
-        )
-        detector_ids_to_detectors = fetch_detectors(detector_ids)
-        assert detector_ids_to_detectors == {
-            self.detector.id: self.detector,
         }
 
 
