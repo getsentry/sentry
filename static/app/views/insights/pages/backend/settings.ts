@@ -12,4 +12,5 @@ export const MODULES = [
   ModuleName.QUEUE,
   ModuleName.CRONS,
   ModuleName.UPTIME,
+  ModuleName.SESSIONS,
 ];
