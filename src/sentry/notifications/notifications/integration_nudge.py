@@ -13,7 +13,6 @@ from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class IntegrationNudgeNotification(BaseNotification):
     def __init__(
         self,
         organization: Organization,
-        recipient: User,
+        recipient: Actor,
         provider: ExternalProviders,
         seed: int | None = None,
     ) -> None:
