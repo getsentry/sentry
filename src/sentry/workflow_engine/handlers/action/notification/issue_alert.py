@@ -40,17 +40,24 @@ class BaseIssueAlertHandler(ABC):
         cls,
         action: Action,
         detector: Detector,
+        job: WorkflowJob,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
         :param action: Action
         :param detector: Detector
+        :param job: WorkflowJob
         :return: Rule instance
         """
+        workflow = job.get("workflow")
+        environment_id = None
+        if workflow and workflow.environment:
+            environment_id = workflow.environment.id
 
         rule = Rule(
             id=action.id,
             project=detector.project,
+            environment_id=environment_id,
             label=detector.name,
             data={"actions": [cls.build_rule_action_blob(action)]},
             status=ObjectStatus.ACTIVE,
@@ -114,7 +121,7 @@ class BaseIssueAlertHandler(ABC):
             notification_uuid = str(uuid.uuid4())
 
             # Create a rule
-            rule = cls.create_rule_instance_from_action(action, detector)
+            rule = cls.create_rule_instance_from_action(action, detector, job)
 
             # Get the futures
             futures = cls.get_rule_futures(job, rule, notification_uuid)
