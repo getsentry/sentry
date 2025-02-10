@@ -181,19 +181,21 @@ Then, use it to run sync this one time.
         reporoot,
         venv_dir,
         (
-            # Spreading out the network load by installing js,
-            # then py in the next batch.
-            "javascript dependencies (1/1)",
             (
-                "yarn",
-                "install",
-                "--frozen-lockfile",
-                "--no-progress",
-                "--non-interactive",
+                # Spreading out the network load by installing js,
+                # then py in the next batch.
+                "javascript dependencies (1/1)",
+                (
+                    "yarn",
+                    "install",
+                    "--frozen-lockfile",
+                    "--no-progress",
+                    "--non-interactive",
+                ),
+                {
+                    "NODE_ENV": "development",
+                },
             ),
-            {
-                "NODE_ENV": "development",
-            },
         ),
         verbose,
     ):
