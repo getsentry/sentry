@@ -38,7 +38,7 @@ import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 
-interface TraceMetadataHeaderProps {
+export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;

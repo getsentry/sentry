@@ -121,7 +121,7 @@ export function GridLineLabels({
           <QuestionTooltip
             size="xs"
             title={t(
-              'This area of the timeline is outside of your selected time range to allow for improved rendering of markers.'
+              'This area of the timeline is outside of your selected time range to allow for accurate rendering of markers.'
             )}
           />
         </TimeLabelContainer>
@@ -309,12 +309,13 @@ const TimeLabelContainer = styled('div')<{
   display: flex;
   align-items: center;
   height: 100%;
+  padding-left: ${space(1)};
   ${p =>
     p.labelPosition === 'center-bottom' &&
     // Skip the translation for the first label
+    !p.isFirst &&
     css`
-      padding-left: ${space(1)};
-      transform: ${p.isFirst ? 'none' : 'translateX(-50%)'};
+      transform: translateX(-50%);
     `}
 `;
 

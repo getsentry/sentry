@@ -22,7 +22,6 @@ import {motion, Reorder} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import type {DraggableTabListProps} from 'sentry/components/draggableTabs/draggableTabList';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
@@ -34,14 +33,15 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {IssueViewsPFContext} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
+import {
+  IssueViewsPFContext,
+  TEMPORARY_TAB_KEY,
+} from 'sentry/views/issueList/issueViewsPF/issueViewsPF';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 
-export const TEMPORARY_TAB_KEY = 'temporary-tab';
-
-interface BaseDraggableTabListProps extends DraggableTabListProps {
+interface BaseDraggableTabListProps extends DraggableTabListPFProps {
   items: DraggableTabListItemProps[];
 }
 
