@@ -18,7 +18,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type RouteParams = {
   projectId: string;
@@ -93,7 +93,7 @@ export default function ProjectToolbarSettings({
             `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
           )}
         </TextBlock>
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         {domain && (
           <Alert type="info" showIcon>
             {tct(

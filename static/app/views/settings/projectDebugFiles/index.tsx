@@ -31,7 +31,7 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import DebugFileRow from './debugFileRow';
 import Sources from './sources';
@@ -159,7 +159,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
 
       {organization.features.includes('symbol-sources') && (
         <Fragment>
-          <PermissionAlert project={project} />
+          <ProjectPermissionAlert project={project} />
 
           {isLoadingSymbolSources ? (
             <LoadingIndicator />

@@ -42,7 +42,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
   GRID_TEMPLATE,
 } from 'sentry/views/settings/organizationTeams/teamMembersRow';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getButtonHelpText} from './utils';
 
@@ -373,7 +373,7 @@ function TeamMembers({team}: TeamMembersProps) {
     <Fragment>
       <TextBlock>{renderPageTextBlock()}</TextBlock>
 
-      <PermissionAlert
+      <ProjectPermissionAlert
         access={organization.openMembership ? ['org:read'] : ['team:write']}
         team={team}
       />
