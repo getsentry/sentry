@@ -58,15 +58,7 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {organization, router});
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
-    for (const column of [
-      'Timestamp',
-      'Status',
-      'Duration',
-      'Environment',
-      'Trace',
-      'Region',
-      'ID',
-    ]) {
+    for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region', 'ID']) {
       expect(screen.getByText(column)).toBeInTheDocument();
     }
     expect(screen.getByText('No matching uptime checks found')).toBeInTheDocument();
@@ -89,7 +81,6 @@ describe('GroupUptimeChecks', () => {
     expect(screen.getByRole('time')).toHaveTextContent(/Jan 1, 2025/);
     expect(screen.getByText(statusToText[uptimeCheck.checkStatus])).toBeInTheDocument();
     expect(screen.getByText(`${uptimeCheck.durationMs}ms`)).toBeInTheDocument();
-    expect(screen.getByText(uptimeCheck.environment)).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: getShortEventId(uptimeCheck.traceId)})
     ).toHaveAttribute('href', `/performance/trace/${uptimeCheck.traceId}/`);
