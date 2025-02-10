@@ -1,3 +1,5 @@
+import type {Confidence} from 'sentry/types/organization';
+
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type Meta = {
@@ -19,6 +21,7 @@ export type TimeSeries = {
   field: string;
   meta: Meta;
   color?: string;
+  confidence?: Confidence;
 };
 
 export type ErrorProp = Error | string;

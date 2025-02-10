@@ -192,7 +192,7 @@ sentry-ophio==1.0.0
 sentry-protos==0.1.58
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.6
-sentry-sdk==2.20.0
+sentry-sdk==2.19.2
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0

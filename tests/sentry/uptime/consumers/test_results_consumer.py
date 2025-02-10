@@ -9,6 +9,7 @@ from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
+from django.conf import settings
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
@@ -23,7 +24,6 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
@@ -841,144 +841,105 @@ class ProcessResultTest(ConfigPusherTestMixin):
         assert parsed_value["project_id"] == self.project.id
         assert parsed_value["retention_days"] == 90
 
-    def run_check_and_update_region_test(
-        self,
-        sub: UptimeSubscription,
-        regions: list[tuple[str, bool]],
-        expected_regions_before: set[str],
-        expected_regions_after: set[str],
-        expected_config_updates: list[tuple[str, str | None]],
-        current_minute=5,
-    ):
-        region_configs = [
-            UptimeRegionConfig(slug=slug, name=slug, enabled=enabled, config_redis_key_prefix=slug)
-            for slug, enabled in regions
+    @mock.patch("random.random")
+    def test_check_and_update_regions(self, mock_random):
+        # Force the check to run
+        mock_random.return_value = 0
+
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
+                enabled=True,
+            ),
+            UptimeRegionConfig(
+                slug="region2",
+                name="Region 2",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
+                enabled=True,
+            ),
         ]
 
-        with (
-            override_settings(UPTIME_REGIONS=region_configs),
-            self.tasks(),
-            freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
-        ):
+        with override_settings(UPTIME_REGIONS=regions), self.tasks():
+            # Create subscription with only one region
+            sub = self.create_uptime_subscription(
+                subscription_id=uuid.uuid4().hex,
+                region_slugs=["region1"],
+            )
             result = self.create_uptime_result(
                 sub.subscription_id,
-                scheduled_check_time=datetime.now(),
+                scheduled_check_time=datetime.now() - timedelta(minutes=1),
             )
-            assert {r.region_slug for r in sub.regions.all()} == expected_regions_before
+            assert {r.region_slug for r in sub.regions.all()} == {"region1"}
             self.send_result(result)
             sub.refresh_from_db()
-            assert {r.region_slug for r in sub.regions.all()} == expected_regions_after
-            for expected_region, expected_action in expected_config_updates:
-                self.assert_redis_config(expected_region, sub, expected_action)
+            assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
+            self.assert_redis_config("region1", sub, "upsert")
+            self.assert_redis_config("region2", sub, "upsert")
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
-    def test_check_and_update_regions(self):
+    @mock.patch("random.random")
+    def test_check_and_update_regions_removes_disabled(self, mock_random):
+        mock_random.return_value = 0
         sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=5).hex,
-            region_slugs=["region1"],
+            subscription_id=uuid.uuid4().hex, region_slugs=["region1", "region2"]
         )
-        self.run_check_and_update_region_test(
-            sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1"},
-            [],
-            4,
-        )
-        self.run_check_and_update_region_test(
-            sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
-            5,
-        )
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
+                enabled=True,
+            ),
+            UptimeRegionConfig(
+                slug="region2",
+                name="Region 2",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
+                enabled=False,
+            ),
+        ]
 
-    def test_check_and_update_regions_larger_interval(self):
-        # Create subscription with only one region
-        hour_sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=4).hex,
-            region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
-        )
-        self.run_check_and_update_region_test(
-            hour_sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
-            37,
-        )
+        with override_settings(UPTIME_REGIONS=regions), self.tasks():
+            result = self.create_uptime_result(
+                sub.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=1),
+            )
+            assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
+            self.send_result(result)
+            sub.refresh_from_db()
+            assert {r.region_slug for r in sub.regions.all()} == {"region1"}
+            assert sub.subscription_id
+            self.assert_redis_config("region1", sub, "upsert")
+            self.assert_redis_config("region2", sub, "delete")
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
-        five_min_sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=6).hex,
-            region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
-        )
-        self.run_check_and_update_region_test(
-            five_min_sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1"},
-            [],
-            current_minute=6,
-        )
-        self.run_check_and_update_region_test(
-            five_min_sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1"},
-            [],
-            current_minute=35,
-        )
-        self.run_check_and_update_region_test(
-            five_min_sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1"},
-            [],
-            current_minute=49,
-        )
-        self.run_check_and_update_region_test(
-            five_min_sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
-            current_minute=30,
-        )
-        # Make sure it works any time within the valid window
-        five_min_sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=66).hex,
-            region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
-        )
-        self.run_check_and_update_region_test(
-            five_min_sub,
-            [("region1", True), ("region2", True)],
-            {"region1"},
-            {"region1", "region2"},
-            [("region1", "upsert"), ("region2", "upsert")],
-            current_minute=34,
-        )
+    @mock.patch("random.random")
+    def test_check_and_update_regions_random_skip(self, mock_random):
+        # Force the check to NOT run
+        mock_random.return_value = 1
 
-    def test_check_and_update_regions_removes_disabled(self):
-        sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=5).hex, region_slugs=["region1", "region2"]
-        )
-        self.run_check_and_update_region_test(
-            sub,
-            [("region1", True), ("region2", False)],
-            {"region1", "region2"},
-            {"region1", "region2"},
-            [],
-            current_minute=4,
-        )
-        self.run_check_and_update_region_test(
-            sub,
-            [("region1", True), ("region2", False)],
-            {"region1", "region2"},
-            {"region1"},
-            [("region1", "upsert"), ("region2", "delete")],
-            current_minute=5,
-        )
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                enabled=True,
+            ),
+        ]
+
+        with override_settings(UPTIME_REGIONS=regions), self.tasks():
+            sub = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex, region_slugs=[])
+            result = self.create_uptime_result(
+                sub.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=1),
+            )
+            assert {r.region_slug for r in sub.regions.all()} == set()
+            self.send_result(result)
+            sub.refresh_from_db()
+            assert {r.region_slug for r in sub.regions.all()} == set()
+            self.assert_redis_config("region1", sub, None)

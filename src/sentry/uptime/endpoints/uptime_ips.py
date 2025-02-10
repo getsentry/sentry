@@ -6,9 +6,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 
 UPTIME_IP_ADDRESSES = [
+    "34.123.33.225",
+    "34.41.121.171",
     "34.169.179.115",
     "35.237.134.233",
     "34.85.249.57",
+    "34.159.197.47",
+    "35.242.231.10",
     "34.107.93.3",
     "35.204.169.245",
 ]
