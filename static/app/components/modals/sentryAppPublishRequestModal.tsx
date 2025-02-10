@@ -14,13 +14,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option
  * @param scopes {Array}
  */
-const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
+export const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
   const permissions: string[] = [];
   for (const permObj of SENTRY_APP_PERMISSIONS) {
     let highestChoice: PermissionChoice | undefined;
@@ -60,14 +60,13 @@ function transformData(data: Record<string, any>, model: FormModel) {
 
 type Props = ModalRenderProps & {
   app: SentryApp;
+  organization: Organization;
 };
 
-export default function SentryAppPublishRequestModal(props: Props) {
+export function SentryAppPublishRequestModal(props: Props) {
   const [form] = useState<FormModel>(() => new FormModel({transformData}));
-  const {app, closeModal, Header, Body} = props;
-  const isNewModalVisible = useOrganization().features.includes(
-    `streamlined-publishing-flow`
-  );
+  const {app, closeModal, Header, Body, organization} = props;
+  const isNewModalVisible = organization.features.includes(`streamlined-publishing-flow`);
 
   const formFields = () => {
     const permissions = getPermissionSelectionsFromScopes(app.scopes);
@@ -91,8 +90,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
       </Fragment>
     );
 
-    // No translations since we need to be able to read this email :)
-    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
+    const newModalFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -104,7 +102,6 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question0',
-        visible: isNewModalVisible,
       },
       {
         type: 'textarea',
@@ -122,7 +119,6 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question1',
-        visible: isNewModalVisible,
       },
       {
         type: 'select',
@@ -142,7 +138,6 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question2',
-        visible: isNewModalVisible,
       },
       {
         type: 'string',
@@ -153,7 +148,6 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question3',
-        visible: isNewModalVisible,
       },
       {
         type: 'string',
@@ -166,8 +160,10 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question4',
-        visible: isNewModalVisible,
       },
+    ];
+
+    const oldModalFields: React.ComponentProps<typeof JsonForm>['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -177,34 +173,32 @@ export default function SentryAppPublishRequestModal(props: Props) {
         rows: 1,
         inline: false,
         name: 'question5',
-        visible: isNewModalVisible,
       },
       {
         type: 'textarea',
         required: true,
         label: t('What value does it offer customers?'),
+        meta: 'What value does it offer customers?',
         autosize: true,
         rows: 1,
         inline: false,
         name: 'question6',
-        visible: isNewModalVisible,
       },
       {
         type: 'textarea',
         required: true,
         label: t('Do you operate the web service your integration communicates with?'),
-        meta: 'What does your integration do? Please be as detailed as possible.',
+        meta: 'Do you operate the web service your integration communicates with?',
         autosize: true,
         rows: 1,
         inline: false,
         name: 'question7',
-        visible: isNewModalVisible,
       },
     ];
 
     // Only add the permissions question if there are perms to add
     if (permissions.length > 0) {
-      baseFields.push({
+      oldModalFields.push({
         type: 'textarea',
         required: true,
         label: permissionLabel,
@@ -214,9 +208,13 @@ export default function SentryAppPublishRequestModal(props: Props) {
         inline: false,
         meta: permissionQuestionPlainText,
         name: 'question8',
-        visible: isNewModalVisible,
       });
     }
+
+    // No translations since we need to be able to read this email :)
+    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = isNewModalVisible
+      ? newModalFields
+      : oldModalFields;
 
     return baseFields;
   };
@@ -272,7 +270,10 @@ export default function SentryAppPublishRequestModal(props: Props) {
           submitLabel={t('Request Publication')}
           onCancel={closeModal}
         >
-          <JsonForm forms={forms} renderFooter={renderFooter} />
+          <JsonForm
+            forms={forms}
+            renderFooter={isNewModalVisible ? renderFooter : () => <Fragment />}
+          />
         </Form>
       </Body>
     </Fragment>
