@@ -374,22 +374,26 @@ function Visualize({error, setError}: VisualizeProps) {
               trailingItems: renderTag(option.value.kind, option.value.meta.name) ?? null,
             }));
 
-            // TODO: Simplify this logic, and release health widgets don't seem to have options
-            // for project, env, release, session.status
-            aggregateOptions =
-              isChartWidget ||
-              isBigNumberWidget ||
-              (state.dataset === WidgetType.RELEASE && !canDelete)
-                ? aggregateOptions
-                : [
-                    NONE_AGGREGATE,
-                    ...aggregateOptions,
-                    ...(state.dataset !== WidgetType.ISSUE &&
-                    state.dataset !== WidgetType.SPANS
-                      ? columnOptions
-                      : []),
-                    ...(state.dataset === WidgetType.SPANS ? spanColumnOptions : []),
-                  ];
+            // TODO: These options should be exposing other Release health options such as
+            // environment, project, release, session.status
+            if (
+              !isChartWidget &&
+              !isBigNumberWidget &&
+              !(state.dataset === WidgetType.RELEASE && !canDelete)
+            ) {
+              const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
+
+              if (state.dataset === WidgetType.ISSUE) {
+                // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
+                aggregateOptions = baseOptions;
+              } else if (state.dataset === WidgetType.SPANS) {
+                // Add span column options for Spans dataset
+                aggregateOptions = [...baseOptions, ...spanColumnOptions];
+              } else {
+                // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
+                aggregateOptions = [...baseOptions, ...columnOptions];
+              }
+            }
 
             let matchingAggregate: any;
             if (
