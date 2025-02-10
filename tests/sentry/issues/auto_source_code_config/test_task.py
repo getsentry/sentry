@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from typing import Any
 from unittest.mock import patch
 
@@ -8,9 +9,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
-from sentry.issues.auto_source_code_config.stacktraces import identify_stacktrace_paths
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
-from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
@@ -28,20 +27,20 @@ GET_TREES_FOR_ORG = (
 
 class BaseDeriveCodeMappings(TestCase):
     platform: str
+    provider = "github"
+    domain_name = "github.com"
 
     def setUp(self) -> None:
-        self.organization = self.create_organization(
-            status=OrganizationStatus.ACTIVE,
-        )
-        self.project = self.create_project(organization=self.organization)
         self.integration = self.create_integration(
             organization=self.organization,
-            provider="github",
+            provider=self.provider,
             external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
+            metadata={"domain_name": f"{self.domain_name}/Test-Org"},
         )
 
-    def create_event(self, frames: list[dict[str, str | bool]], platform: str = "python") -> Event:
+    def create_event(
+        self, frames: Sequence[Mapping[str, str | bool]], platform: str = "python"
+    ) -> Event:
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id)
 
@@ -54,35 +53,21 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         super().setUp()
         self.event = self.create_event([{"filename": "foo.py", "in_app": True}])
 
-    def test_does_not_raise_installation_removed(self, mock_record: Any) -> None:
-        error = ApiError(
-            '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
-        )
+    def test_api_errors_halts(self, mock_record: Any) -> None:
+        error = ApiError('{"message":"Not Found"}')
         with patch(GET_TREES_FOR_ORG, side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_halt_metric(mock_record, error)
 
-    def test_does_not_raise_installation_removed_old_code_path(self, mock_record: Any) -> None:
-        error = ApiError(
-            '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
-        )
-        with patch(GET_TREES_FOR_ORG, side_effect=error):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
-            assert_halt_metric(mock_record, error)
-
-    def test_raises_other_api_errors(self, mock_record: Any) -> None:
-        with patch(GET_TREES_FOR_ORG, side_effect=ApiError("foo")):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
-            assert_halt_metric(mock_record, ApiError("foo"))
-
-    def test_unable_to_get_lock(self, mock_record: Any) -> None:
+    def test_unable_to_get_lock_halts(self, mock_record: Any) -> None:
         error = UnableToAcquireLock()
         with patch(GET_TREES_FOR_ORG, side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_halt_metric(mock_record, error)
 
-    def test_raises_generic_errors(self, mock_record: Any) -> None:
+    def test_generic_errors_fail(self, mock_record: Any) -> None:
+        """Failures require manual investigation."""
         with patch(GET_TREES_FOR_ORG, side_effect=Exception("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
@@ -167,46 +152,11 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
                     "filename": "../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
                     "in_app": False,
                 },
-                {
-                    "filename": "./app/utils/handleXhrErrorResponse.tsx",
-                    "in_app": True,
-                },
-                {
-                    "filename": "some/path/Test.tsx",
-                    "in_app": True,
-                },
-                {
-                    "filename": "sentry/test_app.tsx",
-                    "in_app": True,
-                },
+                {"filename": "./app/utils/handleXhrErrorResponse.tsx", "in_app": True},
+                {"filename": "some/path/Test.tsx", "in_app": True},
+                {"filename": "sentry/test_app.tsx", "in_app": True},
             ]
         )
-
-    def test_find_stacktrace_paths_single_project(self) -> None:
-        stacktrace_paths = identify_stacktrace_paths(self.event.data)
-        assert set(stacktrace_paths) == {
-            "./app/utils/handleXhrErrorResponse.tsx",
-            "some/path/Test.tsx",
-            "sentry/test_app.tsx",
-        }
-
-    def test_find_stacktrace_empty(self) -> None:
-        event = self.create_event([{}])
-        event.data["stacktrace"]["frames"] = [None]
-        stacktrace_paths = identify_stacktrace_paths(event.data)
-        assert stacktrace_paths == []
-
-    def test_find_stacktrace_paths_bad_data(self) -> None:
-        event = self.create_event([{}])
-        event.data["stacktrace"]["frames"] = [
-            {
-                "abs_path": "https://example.com/static/chunks/foo.bar.js",
-                "data": {"sourcemap": "https://example.com/_next/static/chunks/foo.bar.js.map"},
-                "in_app": True,
-            }
-        ]
-        stacktrace_paths = identify_stacktrace_paths(event.data)
-        assert stacktrace_paths == []
 
     @responses.activate
     def test_auto_source_code_config_starts_with_period_slash(self) -> None:
@@ -271,20 +221,10 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
         self.platform = "ruby"
         self.event = self.create_event(
             [
-                {
-                    "filename": "some/path/test.rb",
-                    "in_app": True,
-                },
-                {
-                    "filename": "lib/tasks/crontask.rake",
-                    "in_app": True,
-                },
+                {"filename": "some/path/test.rb", "in_app": True},
+                {"filename": "lib/tasks/crontask.rake", "in_app": True},
             ]
         )
-
-    def test_find_stacktrace_paths_single_project(self) -> None:
-        stacktrace_paths = identify_stacktrace_paths(self.event.data)
-        assert set(stacktrace_paths) == {"some/path/test.rb", "lib/tasks/crontask.rake"}
 
     @responses.activate
     def test_auto_source_code_config_rb(self) -> None:
@@ -319,28 +259,11 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         self.platform = "node"
         self.event = self.create_event(
             [
-                {
-                    "filename": "app:///utils/errors.js",
-                    "in_app": True,
-                },
-                {
-                    "filename": "../../../../../../packages/api/src/response.ts",
-                    "in_app": True,
-                },
-                {
-                    "filename": "app:///../services/event/EventLifecycle/index.js",
-                    "in_app": True,
-                },
+                {"filename": "app:///utils/errors.js", "in_app": True},
+                {"filename": "../../../../../../packages/api/src/response.ts", "in_app": True},
+                {"filename": "app:///../services/event/EventLifecycle/index.js", "in_app": True},
             ]
         )
-
-    def test_find_stacktrace_paths_single_project(self) -> None:
-        stacktrace_paths = identify_stacktrace_paths(self.event.data)
-        assert set(stacktrace_paths) == {
-            "app:///utils/errors.js",
-            "../../../../../../packages/api/src/response.ts",
-            "app:///../services/event/EventLifecycle/index.js",
-        }
 
     @responses.activate
     def test_auto_source_code_config_starts_with_app(self) -> None:
@@ -407,18 +330,9 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
         self.event = self.create_event(
             [
                 {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
-                {
-                    "in_app": True,
-                    "filename": "/Users/JohnDoe/Documents/code/sentry/kangaroo.go",
-                },
-                {
-                    "in_app": True,
-                    "filename": "/src/cmd/vroom/profile.go",
-                },
-                {
-                    "in_app": True,
-                    "filename": "Users/JohnDoe/src/sentry/main.go",
-                },
+                {"in_app": True, "filename": "/Users/JohnDoe/Documents/code/sentry/kangaroo.go"},
+                {"in_app": True, "filename": "/src/cmd/vroom/profile.go"},
+                {"in_app": True, "filename": "Users/JohnDoe/src/sentry/main.go"},
             ],
             self.platform,
         )
@@ -468,10 +382,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             [
                 {"in_app": True, "filename": "/sentry/capybara.php"},
                 {"in_app": True, "filename": "/sentry/potato/kangaroo.php"},
-                {
-                    "in_app": False,
-                    "filename": "/sentry/potato/vendor/sentry/sentry/src/functions.php",
-                },
+                {"in_app": False, "filename": "/sentry/potato/vendor/sentry/src/functions.php"},
             ],
             self.platform,
         )
@@ -513,10 +424,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             [
                 {"in_app": True, "filename": "/sentry/capybara.cs"},
                 {"in_app": True, "filename": "/sentry/potato/kangaroo.cs"},
-                {
-                    "in_app": False,
-                    "filename": "/sentry/potato/vendor/sentry/sentry/src/functions.cs",
-                },
+                {"in_app": False, "filename": "/sentry/potato/vendor/sentry/src/functions.cs"},
             ],
             self.platform,
         )
@@ -578,22 +486,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             ],
             "python",
         )
-
-    def test_finds_stacktrace_paths_single_project(self) -> None:
-        stacktrace_paths = identify_stacktrace_paths(self.event.data)
-        assert sorted(stacktrace_paths) == [
-            "sentry/models/release.py",
-            "sentry/tasks.py",
-        ]
-
-    def test_handle_duplicate_filenames_in_stacktrace(self) -> None:
-        self.event.data["stacktrace"]["frames"].append(self.event.data["stacktrace"]["frames"][0])
-
-        stacktrace_paths = identify_stacktrace_paths(self.event.data)
-        assert sorted(stacktrace_paths) == [
-            "sentry/models/release.py",
-            "sentry/tasks.py",
-        ]
 
     @patch(
         "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
