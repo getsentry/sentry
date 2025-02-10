@@ -20,7 +20,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
-from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
@@ -3440,9 +3440,6 @@ APIGATEWAY_PROXY_SKIP_RELAY = False
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
-# Disable DDM entirely
-SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
-
 SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
@@ -3465,7 +3462,6 @@ UPTIME_REGIONS = [
     UptimeRegionConfig(
         slug="default",
         name="Default Region",
-        config_topic=Topic.UPTIME_CONFIGS,
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
         enabled=True,
     ),

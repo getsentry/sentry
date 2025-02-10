@@ -16,7 +16,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -403,10 +402,6 @@ describe('Dashboards > Detail', function () {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/metrics/meta/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/measurements-meta/',
         body: [],
       });
@@ -542,92 +537,6 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       await userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
       expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
-    });
-
-    it('shows add widget option with dataset selector flag', async function () {
-      const router = RouterFixture({
-        location: initialData.router.location,
-        params: {orgId: 'org-slug', dashboardId: '1'},
-      });
-      initialData = initializeOrg({
-        organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-            'custom-metrics',
-            'performance-discover-dataset-selector',
-          ],
-        }),
-      });
-      render(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          >
-            {null}
-          </ViewEditDashboard>
-        </OrganizationContext.Provider>,
-        {router}
-      );
-
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(await screen.getAllByText('Add Widget')[0]!);
-      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
-      expect(menuOptions.map(e => e.textContent)).toEqual([
-        'Errors',
-        'Transactions',
-        'Issues',
-        'Releases',
-        'Metrics',
-      ]);
-    });
-
-    it('shows add widget option without dataset selector flag', async function () {
-      const router = RouterFixture({
-        location: initialData.router.location,
-        params: {orgId: 'org-slug', dashboardId: '1'},
-      });
-      initialData = initializeOrg({
-        organization: OrganizationFixture({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-            'custom-metrics',
-          ],
-        }),
-      });
-      render(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          >
-            {null}
-          </ViewEditDashboard>
-        </OrganizationContext.Provider>,
-        {router}
-      );
-
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(await screen.getAllByText('Add Widget')[0]!);
-      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
-      expect(menuOptions.map(e => e.textContent)).toEqual([
-        'Errors and Transactions',
-        'Issues',
-        'Releases',
-        'Metrics',
-      ]);
     });
 
     it('shows top level release filter', async function () {

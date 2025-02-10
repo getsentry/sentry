@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';

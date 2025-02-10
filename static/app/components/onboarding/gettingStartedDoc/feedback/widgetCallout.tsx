@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 

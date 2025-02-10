@@ -24,7 +24,12 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
   if (props.isLoading) {
     return (
-      <WidgetFrame title={props.title} description={props.description}>
+      <WidgetFrame
+        title={props.title}
+        description={props.description}
+        revealActions={props.revealActions}
+        revealTooltip={props.revealTooltip}
+      >
         <LoadingPanel />
       </WidgetFrame>
     );
@@ -50,6 +55,8 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       warnings={props.warnings}
       error={error}
       onRetry={props.onRetry}
+      revealActions={props.revealActions}
+      revealTooltip={props.revealTooltip}
     >
       {defined(timeseries) && (
         <TimeSeriesWidgetVisualization
@@ -57,6 +64,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
           timeseries={timeseries}
           releases={props.releases}
           aliases={props.aliases}
+          stacked={props.stacked}
           dataCompletenessDelay={props.dataCompletenessDelay}
           timeseriesSelection={props.timeseriesSelection}
           onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}

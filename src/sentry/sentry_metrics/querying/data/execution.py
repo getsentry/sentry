@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Union, cast
 
 import sentry_sdk
-from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request
+from snuba_sdk import Column, Direction, MetricsQuery, Request
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 
 from sentry.models.organization import Organization
@@ -21,11 +21,9 @@ from sentry.sentry_metrics.querying.errors import (
 from sentry.sentry_metrics.querying.types import GroupsCollection, QueryOrder, QueryType
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
-    QueriedMetricsVisitor,
     TimeseriesConditionInjectionVisitor,
     UsedGroupBysVisitor,
 )
-from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import bulk_run_query
 from sentry.utils import metrics
@@ -152,7 +150,6 @@ class ScheduledQuery:
         self,
         organization: Organization,
         projects: Sequence[Project],
-        blocked_metrics_for_projects: Mapping[str, set[int]],
     ) -> "ScheduledQuery":
         """
         Initializes the query via a series of transformations that prepare it for being executed.
@@ -162,10 +159,6 @@ class ScheduledQuery:
         """
         updated_metrics_query = self.metrics_query
 
-        # We filter out all the projects for which the queried metrics are blocked.
-        updated_metrics_query = self._filter_blocked_projects(
-            updated_metrics_query, organization, projects, blocked_metrics_for_projects
-        )
         # We align the date range of the query, considering the supplied interval. We also return
         # the number of intervals request, which will be used later on to compute the dynamic groups in case no limit
         # is supplied.
@@ -184,9 +177,7 @@ class ScheduledQuery:
         # We recursively apply the initialization transformations downstream.
         updated_next = None
         if self.next is not None:
-            updated_next = self.next.initialize(
-                organization, projects, blocked_metrics_for_projects
-            )
+            updated_next = self.next.initialize(organization, projects)
 
         return replace(
             self,
@@ -252,44 +243,6 @@ class ScheduledQuery:
             updated_metrics_query = updated_metrics_query.set_limit(min(limit, SNUBA_QUERY_LIMIT))
 
         return updated_metrics_query, dynamic_limit
-
-    def is_empty(self) -> bool:
-        """
-        Checks if a query is empty, where empty means that it doesn't query any org or any projects.
-
-        Returns:
-            A boolean indicating whether the query is empty or not.
-        """
-        return not self.metrics_query.scope.org_ids or not self.metrics_query.scope.project_ids
-
-    @classmethod
-    def _filter_blocked_projects(
-        cls,
-        metrics_query: MetricsQuery,
-        organization: Organization,
-        projects: Sequence[Project],
-        blocked_metrics_for_projects: Mapping[str, set[int]],
-    ) -> MetricsQuery:
-        """
-        Filters the projects for which the queried metrics are blocked.
-
-        Returns:
-            A new MetricsQuery which filters only the projects for which all metrics are available.
-        """
-        intersected_projects: set[int] = {project.id for project in projects}
-
-        for queried_metric in QueriedMetricsVisitor().visit(metrics_query.query):
-            blocked_for_projects = blocked_metrics_for_projects.get(queried_metric)
-            if blocked_for_projects:
-                metrics.incr(key="ddm.metrics_api.execution.blocked_metric_queried")
-                intersected_projects -= blocked_for_projects
-
-        return metrics_query.set_scope(
-            MetricsScope(
-                org_ids=[organization.id],
-                project_ids=list(intersected_projects),
-            )
-        )
 
     @classmethod
     def _align_date_range(cls, metrics_query: MetricsQuery) -> tuple[MetricsQuery, int | None]:
@@ -610,32 +563,8 @@ class QueryExecutor:
         # List of query results that will be populated during query execution.
         self._query_results: list[PartialQueryResult | QueryResult | None] = []
 
-        # We load the blocked metrics for the supplied projects.
-        self._blocked_metrics_for_projects = self._load_blocked_metrics_for_projects()
-
         # Tracks the number of queries that have been executed (for measuring purposes).
         self._number_of_executed_queries = 0
-
-    def _load_blocked_metrics_for_projects(self) -> Mapping[str, set[int]]:
-        """
-        Loads the blocked metrics for the supplied projects and stores them in the executor in an efficient way that
-        speeds up the determining of the projects to exclude from the query.
-
-        Returns:
-            A mapping of blocked projects for each metric mri.
-        """
-        blocked_metrics_for_projects: dict[str, set[int]] = {}
-
-        for project_id, metrics_blocking_state in get_metrics_blocking_state(
-            self._projects
-        ).items():
-            for metric_blocking in metrics_blocking_state.metrics.values():
-                if metric_blocking.is_blocked:
-                    blocked_metrics_for_projects.setdefault(metric_blocking.metric_mri, set()).add(
-                        project_id
-                    )
-
-        return blocked_metrics_for_projects
 
     def _build_request(self, query: MetricsQuery) -> Request:
         """
@@ -710,13 +639,6 @@ class QueryExecutor:
         mappings = []
         for query_index, scheduled_query in enumerate(self._scheduled_queries):
             if scheduled_query is None:
-                continue
-
-            # If the query is empty, which can happen after the blocked projects are filtered out, we want to add an
-            # empty result and immediately put the query to `None` since we do not need to execute it.
-            if scheduled_query.is_empty():
-                self._query_results[query_index] = QueryResult.empty_from(scheduled_query)
-                self._scheduled_queries[query_index] = None
                 continue
 
             previous_result = self._query_results[query_index]
@@ -842,7 +764,7 @@ class QueryExecutor:
         # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
         # (e.g., adding `totals` to a totals query...).
         final_query = replace(totals_query, next=series_query).initialize(
-            self._organization, self._projects, self._blocked_metrics_for_projects
+            self._organization, self._projects
         )
 
         self._scheduled_queries.append(final_query)

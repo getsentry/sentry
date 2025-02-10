@@ -242,10 +242,6 @@ def build_metric_alert_chart(
         )
 
     allow_mri = features.has(
-        "organizations:custom-metrics",
-        organization,
-        actor=user,
-    ) or features.has(
         "organizations:insights-alerts",
         organization,
         actor=user,

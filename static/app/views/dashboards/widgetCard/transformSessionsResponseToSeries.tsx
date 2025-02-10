@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
@@ -23,7 +22,7 @@ export function getSeriesName(
 }
 
 export function transformSessionsResponseToSeries(
-  response: SessionApiResponse | MetricsApiResponse | null,
+  response: SessionApiResponse | null,
   requestedStatusMetrics: string[],
   injectedFields: string[],
   queryAlias?: string
@@ -55,7 +54,6 @@ export function transformSessionsResponseToSeries(
       // stripped.
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
-          // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
           seriesName: getSeriesName(field, group, queryAlias),
           data: response.intervals.map((interval, index) => ({
             name: interval,
@@ -80,7 +78,6 @@ export function transformSessionsResponseToSeries(
             }
           }
           results.push({
-            // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
             seriesName: getSeriesName(status, group, queryAlias),
             data: response.intervals.map((interval, index) => ({
               name: interval,

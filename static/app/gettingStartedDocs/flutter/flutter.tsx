@@ -3,15 +3,12 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -104,23 +101,6 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }`;
 
-const getConfigureMetricsSnippet = (params: Params) => `
-import 'package:sentry_flutter/sentry_flutter.dart';
-
-Future<void> main() async {
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = '${params.dsn.public}';
-      options.enableMetrics = true;
-    },
-    appRunner: () => runApp(
-      SentryWidget(
-        child: MyApp(),
-      ),
-    ),
-  );
-};`;
-
 const getInstallReplaySnippet = () => `
 await SentryFlutter.init(
   (options) {
@@ -139,108 +119,6 @@ await SentryFlutter.init(
 const getConfigureReplaySnippet = () => `
 options.experimental.replay.maskAllText = true;
 options.experimental.replay.maskAllImages = true;`;
-
-const metricsOnboarding: OnboardingConfig = {
-  install: (params: DocsParams) => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need Sentry Flutter SDK version [code:7.19.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
-        {
-          code: <code />,
-          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
-        }
-      ),
-      configurations: [
-        {
-          language: 'yml',
-          partialLoading: params.sourcePackageRegistries?.isLoading,
-          code: getInstallSnippet(params),
-        },
-      ],
-    },
-  ],
-  configure: (params: DocsParams) => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'To enable capturing metrics, you need to enable the metrics feature.'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'Dart',
-              value: 'dart',
-              language: 'dart',
-              code: getConfigureMetricsSnippet(params),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics()] namespace.",
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Counter',
-              value: 'counter',
-              language: 'dart',
-              code: exampleSnippets.dart.counter,
-            },
-            {
-              label: 'Distribution',
-              value: 'distribution',
-              language: 'dart',
-              code: exampleSnippets.dart.distribution,
-            },
-            {
-              label: 'Set',
-              value: 'set',
-              language: 'dart',
-              code: exampleSnippets.dart.set,
-            },
-            {
-              label: 'Gauge',
-              value: 'gauge',
-              language: 'dart',
-              code: exampleSnippets.dart.gauge,
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/flutter/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-};
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -451,7 +329,6 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
-  customMetricsOnboarding: metricsOnboarding,
   replayOnboarding,
 };
 

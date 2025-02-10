@@ -561,18 +561,7 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
-      <Route path="metrics/" name={t('Metrics')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
-        <Route
-          name={t('Metrics Details')}
-          path=":mri/"
-          component={make(
-            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
-          )}
-        />
-      </Route>
+
       <Route
         path="playstation/"
         name={t('PlayStation')}
@@ -1815,6 +1804,11 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/crons/views/overview'))}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/sessions/views/overview'))}
+        />
+      </Route>
     </Fragment>
   );
 
@@ -1973,15 +1967,6 @@ function buildRoutes() {
         />
       </Route>
     </Fragment>
-  );
-  const profilingRoutes = (
-    <Route
-      path="/profiling/"
-      component={make(() => import('sentry/views/profiling'))}
-      withOrgPath
-    >
-      {profilingChildRoutes}
-    </Route>
   );
 
   const exploreRoutes = (
@@ -2245,19 +2230,45 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const metricsRoutes = (
-    <Fragment>
+  const profilingRoutes = (
+    <Route
+      path="/profiling/"
+      component={make(() => import('sentry/views/profiling'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
-        path="/metrics/"
-        component={make(() => import('sentry/views/metrics'))}
-        withOrgPath
+        path="summary/:projectId/"
+        component={make(() => import('sentry/views/profiling/profileSummary'))}
+      />
+      <Route
+        path="profile/:projectId/differential-flamegraph/"
+        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+      />
+      {traceViewRoute}
+      <Route
+        path="profile/:projectId/"
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
       >
-        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
-        {traceViewRoute}
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+          )}
+        />
       </Route>
-      {/* TODO(ddm): fade this out */}
-      <Redirect from="/ddm/" to="/metrics/" />
-    </Fragment>
+      <Route
+        path="profile/:projectId/:eventId/"
+        component={make(
+          () => import('sentry/views/profiling/transactionProfileProvider')
+        )}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+      </Route>
+    </Route>
   );
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
@@ -2370,7 +2381,6 @@ function buildRoutes() {
       {exploreRoutes}
       {llmMonitoringRedirects}
       {profilingRoutes}
-      {metricsRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
