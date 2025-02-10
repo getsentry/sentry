@@ -144,7 +144,7 @@ const FieldHelp = styled('div')`
 const FieldWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-  padding: ${space(2)}px;
+  padding: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
