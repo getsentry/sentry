@@ -70,9 +70,7 @@ export class ContinuousProfile extends Profile {
     let frame: Frame | null = null;
     const resolvedStack: Frame[] = new Array(256); // stack size limit
 
-    for (let i = 0; i < samples.length; i++) {
-      const sample = samples[i]!;
-
+    for (const sample of samples) {
       const stack = chunk.stacks[sample.stack_id];
       let size = 0;
 
@@ -205,8 +203,7 @@ export function minTimestampInChunk(
 ): number {
   let timestamp: number | null = null;
 
-  for (let i = 0; i < chunk.samples.length; i++) {
-    const sample = chunk.samples[i]!;
+  for (const sample of chunk.samples) {
     if (!defined(timestamp) || timestamp > sample.timestamp) {
       timestamp = sample.timestamp;
     }

@@ -51,9 +51,9 @@ async function collectDefinitions(files: string[]): Promise<Mapping> {
       continue;
     }
 
-    for (let i = 0; i < content.length; i++) {
-      if (content[i].Identifier) {
-        definitions[content[i].Identifier] = content[i].Generation;
+    for (const c of content) {
+      if (c.Identifier) {
+        definitions[c.Identifier] = c.Generation;
       }
     }
   }

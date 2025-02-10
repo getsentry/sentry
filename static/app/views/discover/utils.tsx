@@ -413,8 +413,7 @@ function generateAdditionalConditions(
 export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
   let usesTransactions: boolean = false;
   const parsedQuery = new MutableSearch(eventView.query);
-  for (let index = 0; index < yAxisValue.length; index++) {
-    const yAxis = yAxisValue[index]!;
+  for (const yAxis of yAxisValue) {
     const aggregateArg = getAggregateArg(yAxis) ?? '';
     if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
       usesTransactions = true;
@@ -661,9 +660,9 @@ export function eventViewToWidgetQuery({
   if (sort) {
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
-    for (let i = 0; i < aggregateFields.length; i++) {
-      if (sort.field === getAggregateAlias(aggregateFields[i]!)) {
-        orderbyFunction = aggregateFields[i]!;
+    for (const field of aggregateFields) {
+      if (sort.field === getAggregateAlias(field)) {
+        orderbyFunction = field;
         break;
       }
     }

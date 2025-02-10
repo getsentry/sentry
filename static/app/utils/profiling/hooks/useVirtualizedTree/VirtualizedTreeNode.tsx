@@ -33,8 +33,8 @@ export class VirtualizedTreeNode<T> {
       }
 
       if (next.expanded) {
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]!);
+        for (const child of next.children) {
+          queue.push(child);
         }
       }
       count++;
@@ -72,13 +72,13 @@ export class VirtualizedTreeNode<T> {
         return;
       }
 
-      for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]!);
+      for (const child of node.children) {
+        visit(child);
       }
     }
 
-    for (let i = 0; i < this.children.length; i++) {
-      visit(this.children[i]!);
+    for (const child of this.children) {
+      visit(child);
     }
 
     return list;

@@ -11,13 +11,13 @@ function toFlattenedList(tree: VirtualizedTree<any>): Array<VirtualizedTreeNode<
   function visit(node: VirtualizedTreeNode<any>): void {
     list.push(node);
 
-    for (let i = 0; i < node.children.length; i++) {
-      visit(node.children[i]!);
+    for (const child of node.children) {
+      visit(child);
     }
   }
 
-  for (let i = 0; i < tree.roots.length; i++) {
-    visit(tree.roots[i]!);
+  for (const root of tree.roots) {
+    visit(root);
   }
 
   return list;
