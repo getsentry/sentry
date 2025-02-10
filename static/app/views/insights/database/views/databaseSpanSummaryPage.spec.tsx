@@ -27,7 +27,7 @@ describe('DatabaseSpanSummaryPage', function () {
         period: '10d',
         start: null,
         end: null,
-        utc: false,
+        utc: null,
       },
       environments: [],
       projects: [],
@@ -313,7 +313,6 @@ describe('DatabaseSpanSummaryPage', function () {
           shortIdLookup: 1,
           project: [],
           statsPeriod: '10d',
-          utc: 'false',
         },
       })
     );

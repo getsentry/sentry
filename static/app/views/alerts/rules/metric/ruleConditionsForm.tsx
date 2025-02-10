@@ -8,7 +8,7 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,

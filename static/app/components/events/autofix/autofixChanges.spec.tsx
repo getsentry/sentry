@@ -100,7 +100,6 @@ describe('AutofixChanges', () => {
     expect(screen.getByText('Add error handling')).toBeInTheDocument();
     expect(screen.getByText('owner/hello-world')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Add Tests'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Check Out Locally'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
   });

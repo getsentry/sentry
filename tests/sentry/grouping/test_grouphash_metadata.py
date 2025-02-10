@@ -35,6 +35,7 @@ from tests.sentry.grouping import (
 dummy_project = Mock(id=11211231)
 
 
+@django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
@@ -157,10 +158,14 @@ def _assert_and_snapshot_results(
         assert metric_names == expected_metric_names
 
     # Convert any fingerprint value from json to a string before jsonifying the entire metadata dict
-    # to avoid a bunch of escaping which would be caused by double jsonification
+    # below to avoid a bunch of escaping which would be caused by double jsonification
+    _hashing_metadata: Any = hashing_metadata  # Alias for typing purposes
     if "fingerprint" in hashing_metadata:
-        _hashing_metadata: Any = hashing_metadata  # Alias for typing purposes
         _hashing_metadata["fingerprint"] = str(json.loads(_hashing_metadata["fingerprint"]))
+    if "client_fingerprint" in hashing_metadata:
+        _hashing_metadata["client_fingerprint"] = str(
+            json.loads(_hashing_metadata["client_fingerprint"])
+        )
 
     lines.append("hash_basis: %s" % hash_basis)
     lines.append("hashing_metadata: %s" % to_json(hashing_metadata, pretty_print=True))
@@ -187,6 +192,7 @@ def _assert_and_snapshot_results(
     )
 
 
+@django_db_all
 class GroupHashMetadataTest(TestCase):
     def test_check_grouphashes_for_positive_fingerprint_match(self):
         grouphash1 = GroupHash.objects.create(hash="dogs", project_id=self.project.id)

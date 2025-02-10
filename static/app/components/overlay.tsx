@@ -133,7 +133,7 @@ const Overlay = styled(
   )
 )`
   position: relative;
-  border-radius: ${p => p.theme.panelBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundElevated};
   box-shadow:
     0 0 0 1px ${p => p.theme.translucentBorder},

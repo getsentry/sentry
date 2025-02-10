@@ -294,13 +294,18 @@ class _Table extends Component<Props, State> {
       if (dataRow.hasOwnProperty('transaction.op')) {
         existingQuery.removeFilter('!transaction.op');
         existingQuery.removeFilter('transaction.op');
-        summaryView.query = existingQuery.formatString();
         if (dataRow['transaction.op']) {
           summaryView.additionalConditions.setFilterValues('transaction.op', [
             dataRow['transaction.op'] as string,
           ]);
         }
       }
+
+      // This is carried forward from the insight overview pages
+      existingQuery.removeFilter('project.id');
+      existingQuery.removeFilter('!project.id');
+
+      summaryView.query = existingQuery.formatString();
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
       if (isUnparameterizedRow && !this.unparameterizedMetricSet) {
         this.sendUnparameterizedAnalytic(project);
