@@ -17,8 +17,6 @@ const BreadcrumbList = styled('nav')`
   padding: ${space(1)} 0;
 `;
 
-BreadcrumbList.displayName = 'BreadcrumbList';
-
 export interface Crumb {
   /**
    * Label of the crumb
