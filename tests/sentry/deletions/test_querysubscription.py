@@ -37,7 +37,7 @@ class DeleteQuerySubscriptionTest(BaseWorkflowTest, HybridCloudTestMixin):
             subscription_id="123",
             snuba_query=snuba_query,
         )
-        self.create_data_source(organization=self.organization, query_id=subscription.id)
+        self.create_data_source(organization=self.organization, source_id=subscription.id)
 
         self.ScheduledDeletion.schedule(instance=subscription, days=0)
 

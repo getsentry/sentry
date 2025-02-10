@@ -25,7 +25,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             snuba_query=self.snuba_query,
         )
         self.data_source = self.create_data_source(
-            organization=self.organization, query_id=self.subscription.id
+            organization=self.organization, source_id=self.subscription.id
         )
         self.detector = self.create_detector(
             project_id=self.project.id,
@@ -65,7 +65,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             snuba_query=snuba_query_2,
         )
         data_source_2 = self.create_data_source(
-            organization=self.organization, query_id=subscription_2.id
+            organization=self.organization, source_id=subscription_2.id
         )
         data_source_detector_2 = self.create_data_source_detector(
             data_source=data_source_2, detector=self.detector

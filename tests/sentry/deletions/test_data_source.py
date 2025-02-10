@@ -11,7 +11,7 @@ class DeleteDataSourceTest(BaseWorkflowTest, HybridCloudTestMixin):
         self.snuba_query = self.alert_rule.snuba_query
         self.subscription = QuerySubscription.objects.get(snuba_query_id=self.snuba_query.id)
         self.data_source = self.create_data_source(
-            organization=self.organization, query_id=self.subscription.id
+            organization=self.organization, source_id=self.subscription.id
         )
 
     def test_simple(self):

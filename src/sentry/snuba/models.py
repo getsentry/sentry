@@ -172,4 +172,4 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
 
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
-        return [ModelRelation(QuerySubscription, {"id": instance.query_id})]
+        return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
