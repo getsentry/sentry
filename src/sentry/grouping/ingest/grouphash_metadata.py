@@ -119,6 +119,7 @@ def create_or_update_grouphash_metadata_if_needed(
             latest_grouping_config=grouping_config,
             hash_basis=hash_basis,
             hashing_metadata=hashing_metadata,
+            platform=event.platform,
         )
     elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
         # Keep track of the most recent config which computed this hash, so that once a
