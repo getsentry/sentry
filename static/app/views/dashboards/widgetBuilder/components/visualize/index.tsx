@@ -1,4 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
+import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
+import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -40,7 +42,9 @@ import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
+import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -199,6 +203,7 @@ interface VisualizeProps {
 }
 
 function Visualize({error, setError}: VisualizeProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const api = useApi();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -312,6 +317,11 @@ function Visualize({error, setError}: VisualizeProps) {
     (aggregateError: any) => aggregateError?.aggregates
   )?.aggregates;
 
+  const canDrag =
+    fields?.length && fields.length > 1 && state.displayType !== DisplayType.BIG_NUMBER;
+
+  const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
+
   return (
     <Fragment>
       <SectionHeader
@@ -325,458 +335,552 @@ function Visualize({error, setError}: VisualizeProps) {
         inline={false}
         flexibleControlStateSize
       >
-        <Fields>
-          {fields?.map((field, index) => {
-            const canDelete = canDeleteField(
-              state.dataset ?? WidgetType.ERRORS,
-              fields,
-              field
-            );
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragStart={({active}) => {
+            setActiveId(active.id.toString());
+          }}
+          onDragEnd={({over, active}) => {
+            setActiveId(null);
 
-            const isOnlyFieldOrAggregate =
-              fields.length === 2 &&
-              field.kind !== FieldValueKind.EQUATION &&
-              fields.filter(fieldItem => fieldItem.kind === FieldValueKind.EQUATION)
-                .length > 0;
+            if (over) {
+              const getIndex = draggableFieldIds.indexOf.bind(draggableFieldIds);
+              const activeIndex = getIndex(active.id);
+              const overIndex = getIndex(over.id);
 
-            // Depending on the dataset and the display type, we use different options for
-            // displaying in the column select.
-            // For charts, we show aggregate parameter options for the y-axis as primary options.
-            // For tables, we show all string tags and fields as primary options, as well
-            // as aggregates that don't take parameters.
-            const columnFilterMethod = isChartWidget
-              ? datasetConfig.filterYAxisAggregateParams?.(
-                  field,
-                  state.displayType ?? DisplayType.LINE
-                )
-              : field.kind === FieldValueKind.FUNCTION
-                ? datasetConfig.filterAggregateParams
-                : datasetConfig.filterTableOptions;
-            const columnOptions = getColumnOptions(
-              state.dataset ?? WidgetType.ERRORS,
-              field,
-              fieldOptions,
-              // If no column filter method is provided, show all options
-              columnFilterMethod ?? (() => true)
-            );
-
-            let aggregateOptions: Array<
-              | {
-                  label: string | React.ReactNode;
-                  trailingItems: React.ReactNode | null;
-                  value: string;
-                  textValue?: string;
-                }
-              | SelectValue<string>
-            > = aggregates.map(option => ({
-              value: option.value.meta.name,
-              label: option.value.meta.name,
-              trailingItems: renderTag(option.value.kind, option.value.meta.name) ?? null,
-            }));
-
-            // TODO: These options should be exposing other Release health options such as
-            // environment, project, release, session.status
-            if (
-              !isChartWidget &&
-              !isBigNumberWidget &&
-              !(state.dataset === WidgetType.RELEASE && !canDelete)
-            ) {
-              const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
-
-              if (state.dataset === WidgetType.ISSUE) {
-                // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
-                aggregateOptions = baseOptions;
-              } else if (state.dataset === WidgetType.SPANS) {
-                // Add span column options for Spans dataset
-                aggregateOptions = [...baseOptions, ...spanColumnOptions];
-              } else {
-                // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
-                aggregateOptions = [
-                  ...baseOptions,
-
-                  // Iterate over fieldOptions so we can show all of the fields without any filtering
-                  // imposed by the aggregate filtering its possible columns
-                  ...Object.values(fieldOptions)
-                    .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
-                    .map(option => ({
-                      label: option.value.meta.name,
-                      value: option.value.meta.name,
-                      textValue: option.value.meta.name,
-                      trailingItems: renderTag(option.value.kind, option.value.meta.name),
-                    })),
-                ];
+              if (activeIndex !== overIndex) {
+                dispatch({
+                  type: updateAction,
+                  payload: arrayMove(fields ?? [], activeIndex, overIndex),
+                });
               }
             }
+          }}
+          onDragCancel={() => setActiveId(null)}
+        >
+          <SortableContext
+            items={draggableFieldIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <Fields>
+              {fields?.map((field, index) => {
+                const canDelete = canDeleteField(
+                  state.dataset ?? WidgetType.ERRORS,
+                  fields,
+                  field
+                );
 
-            let matchingAggregate: any;
-            if (
-              fields[index]!.kind === FieldValueKind.FUNCTION &&
-              FieldValueKind.FUNCTION in fields[index]!
-            ) {
-              matchingAggregate = aggregates.find(
-                option =>
-                  option.value.meta.name ===
-                  parseFunction(stringFields?.[index] ?? '')?.name
-              );
-            }
+                const isOnlyFieldOrAggregate =
+                  fields.length === 2 &&
+                  field.kind !== FieldValueKind.EQUATION &&
+                  fields.filter(fieldItem => fieldItem.kind === FieldValueKind.EQUATION)
+                    .length > 0;
 
-            const parameterRefinements =
-              matchingAggregate?.value.meta.parameters.length > 1
-                ? matchingAggregate?.value.meta.parameters.slice(1)
-                : [];
+                // Depending on the dataset and the display type, we use different options for
+                // displaying in the column select.
+                // For charts, we show aggregate parameter options for the y-axis as primary options.
+                // For tables, we show all string tags and fields as primary options, as well
+                // as aggregates that don't take parameters.
+                const columnFilterMethod = isChartWidget
+                  ? datasetConfig.filterYAxisAggregateParams?.(
+                      field,
+                      state.displayType ?? DisplayType.LINE
+                    )
+                  : field.kind === FieldValueKind.FUNCTION
+                    ? datasetConfig.filterAggregateParams
+                    : datasetConfig.filterTableOptions;
+                const columnOptions = getColumnOptions(
+                  state.dataset ?? WidgetType.ERRORS,
+                  field,
+                  fieldOptions,
+                  // If no column filter method is provided, show all options
+                  columnFilterMethod ?? (() => true)
+                );
 
-            // Apdex and User Misery are special cases where the column parameter is not applicable
-            const isApdexOrUserMisery =
-              matchingAggregate?.value.meta.name === 'apdex' ||
-              matchingAggregate?.value.meta.name === 'user_misery';
+                let aggregateOptions: Array<
+                  | {
+                      label: string | React.ReactNode;
+                      trailingItems: React.ReactNode | null;
+                      value: string;
+                      textValue?: string;
+                    }
+                  | SelectValue<string>
+                > = aggregates.map(option => ({
+                  value: option.value.meta.name,
+                  label: option.value.meta.name,
+                  trailingItems:
+                    renderTag(option.value.kind, option.value.meta.name) ?? null,
+                }));
 
-            const hasColumnParameter =
-              (fields[index]!.kind === FieldValueKind.FUNCTION &&
-                !isApdexOrUserMisery &&
-                matchingAggregate?.value.meta.parameters.length !== 0) ||
-              fields[index]!.kind === FieldValueKind.FIELD;
+                // TODO: These options should be exposing other Release health options such as
+                // environment, project, release, session.status
+                if (
+                  !isChartWidget &&
+                  !isBigNumberWidget &&
+                  !(state.dataset === WidgetType.RELEASE && !canDelete)
+                ) {
+                  const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
 
-            return (
-              <FieldRow key={index}>
-                {fields.length > 1 && state.displayType === DisplayType.BIG_NUMBER && (
-                  <RadioLineItem
-                    index={index}
-                    role="radio"
-                    aria-label="aggregate-selector"
-                  >
-                    <Radio
-                      checked={index === state.selectedAggregate}
-                      onChange={() => {
-                        dispatch({
-                          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                          payload: index,
-                        });
-                      }}
-                      onClick={() => {
-                        setSelectedAggregateSet(true);
-                        trackAnalytics('dashboards_views.widget_builder.change', {
-                          builder_version: WidgetBuilderVersion.SLIDEOUT,
-                          field: 'visualize.selectAggregate',
-                          from: source,
-                          new_widget: !isEditing,
-                          value: '',
-                          widget_type: state.dataset ?? '',
-                          organization,
-                        });
-                      }}
-                      aria-label={'field' + index}
-                    />
-                  </RadioLineItem>
-                )}
-                <FieldBar data-testid={'field-bar'}>
-                  {field.kind === FieldValueKind.EQUATION ? (
-                    <StyledArithmeticInput
-                      name="arithmetic"
-                      key="parameter:text"
-                      type="text"
-                      required
-                      value={field.field}
-                      onUpdate={value => {
-                        dispatch({
-                          type: updateAction,
-                          payload: fields.map((_field, i) =>
-                            i === index ? {..._field, field: value} : _field
+                  if (state.dataset === WidgetType.ISSUE) {
+                    // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
+                    aggregateOptions = baseOptions;
+                  } else if (state.dataset === WidgetType.SPANS) {
+                    // Add span column options for Spans dataset
+                    aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                  } else {
+                    // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
+                    aggregateOptions = [
+                      ...baseOptions,
+
+                      // Iterate over fieldOptions so we can show all of the fields without any filtering
+                      // imposed by the aggregate filtering its possible columns
+                      ...Object.values(fieldOptions)
+                        .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
+                        .map(option => ({
+                          label: option.value.meta.name,
+                          value: option.value.meta.name,
+                          textValue: option.value.meta.name,
+                          trailingItems: renderTag(
+                            option.value.kind,
+                            option.value.meta.name
                           ),
-                        });
-                        setError?.({...error, queries: []});
-                        trackAnalytics('dashboards_views.widget_builder.change', {
-                          builder_version: WidgetBuilderVersion.SLIDEOUT,
-                          field: 'visualize.updateEquation',
-                          from: source,
-                          new_widget: !isEditing,
-                          value: '',
-                          widget_type: state.dataset ?? '',
-                          organization,
-                        });
-                      }}
-                      options={fields}
-                      placeholder={t('Equation')}
-                      aria-label={t('Equation')}
-                    />
-                  ) : (
-                    <Fragment>
-                      <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
-                        <AggregateCompactSelect
-                          searchable
-                          hasColumnParameter={hasColumnParameter}
-                          disabled={aggregateOptions.length <= 1}
-                          options={aggregateOptions}
-                          value={parseFunction(stringFields?.[index] ?? '')?.name ?? NONE}
-                          position="bottom-start"
-                          onChange={dropdownSelection => {
-                            const isNone = dropdownSelection.value === NONE;
-                            const newFields = cloneDeep(fields);
-                            const currentField = newFields[index]!;
-                            const selectedAggregate = aggregates.find(
-                              option => option.value.meta.name === dropdownSelection.value
-                            );
-                            // Update the current field's aggregate with the new aggregate
-                            if (!selectedAggregate && !isNone) {
-                              // Handles new selection of a field from the aggregate dropdown
-                              newFields[index] = {
-                                kind: FieldValueKind.FIELD,
-                                field: dropdownSelection.value as string,
-                              };
-                            } else if (!isNone) {
-                              if (currentField.kind === FieldValueKind.FUNCTION) {
-                                // Handle setting an aggregate from an aggregate
-                                currentField.function[0] =
-                                  dropdownSelection.value as AggregationKeyWithAlias;
-                                if (
-                                  selectedAggregate?.value.meta &&
-                                  'parameters' in selectedAggregate.value.meta
-                                ) {
-                                  // There are aggregates that have no parameters, so wipe out the argument
-                                  // if it's supposed to be empty
-                                  if (
-                                    selectedAggregate.value.meta.parameters.length === 0
-                                  ) {
-                                    currentField.function[1] = '';
-                                  } else {
-                                    // Check if the column is a valid column for the new aggregate
-                                    const newColumnOptions = getColumnOptions(
-                                      state.dataset ?? WidgetType.ERRORS,
-                                      currentField,
-                                      fieldOptions,
-                                      // If no column filter method is provided, show all options
-                                      columnFilterMethod ?? (() => true)
-                                    );
-                                    const selectedAggregateIsApdexOrUserMisery =
-                                      selectedAggregate?.value.meta.name === 'apdex' ||
-                                      selectedAggregate?.value.meta.name ===
-                                        'user_misery';
-                                    const isValidColumn =
-                                      !selectedAggregateIsApdexOrUserMisery &&
-                                      Boolean(
-                                        newColumnOptions.find(
-                                          option =>
-                                            option.value === currentField.function[1]
-                                        )?.value
-                                      );
-                                    currentField.function[1] =
-                                      (isValidColumn
-                                        ? currentField.function[1]
-                                        : selectedAggregate.value.meta.parameters[0]!
-                                            .defaultValue) ?? '';
+                        })),
+                    ];
+                  }
+                }
 
-                                    // Set the remaining parameters for the new aggregate
-                                    for (
-                                      let i = 1; // The first parameter is the column selection
-                                      i < selectedAggregate.value.meta.parameters.length;
-                                      i++
-                                    ) {
-                                      // Increment by 1 to skip past the aggregate name
-                                      currentField.function[i + 1] =
-                                        selectedAggregate.value.meta.parameters[
-                                          i
-                                        ]!.defaultValue;
-                                    }
-                                  }
+                let matchingAggregate: any;
+                if (
+                  fields[index]!.kind === FieldValueKind.FUNCTION &&
+                  FieldValueKind.FUNCTION in fields[index]!
+                ) {
+                  matchingAggregate = aggregates.find(
+                    option =>
+                      option.value.meta.name ===
+                      parseFunction(stringFields?.[index] ?? '')?.name
+                  );
+                }
 
-                                  // Wipe out the remaining parameters that are unnecessary
-                                  // This is necessary for transitioning between aggregates that have
-                                  // more parameters to ones of fewer parameters
-                                  for (
-                                    let i =
-                                      selectedAggregate.value.meta.parameters.length;
-                                    i < MAX_FUNCTION_PARAMETERS;
-                                    i++
-                                  ) {
-                                    currentField.function[i + 1] = undefined;
-                                  }
-                                }
-                              } else {
-                                if (
-                                  !selectedAggregate ||
-                                  !('parameters' in selectedAggregate.value.meta)
-                                ) {
-                                  return;
-                                }
+                const parameterRefinements =
+                  matchingAggregate?.value.meta.parameters.length > 1
+                    ? matchingAggregate?.value.meta.parameters.slice(1)
+                    : [];
 
-                                // Handle setting an aggregate from a field
-                                const newFunction: AggregateFunction = [
-                                  dropdownSelection.value as AggregationKeyWithAlias,
-                                  ((selectedAggregate?.value.meta?.parameters.length >
-                                    0 &&
-                                    currentField.field) ||
-                                    selectedAggregate?.value.meta?.parameters?.[0]
-                                      ?.defaultValue) ??
-                                    '',
-                                  selectedAggregate?.value.meta?.parameters?.[1]
-                                    ?.defaultValue ?? undefined,
-                                  selectedAggregate?.value.meta?.parameters?.[2]
-                                    ?.defaultValue ?? undefined,
-                                ];
-                                const newColumnOptions = getColumnOptions(
-                                  state.dataset ?? WidgetType.ERRORS,
-                                  {
-                                    kind: FieldValueKind.FUNCTION,
-                                    function: newFunction,
-                                  },
-                                  fieldOptions,
-                                  // If no column filter method is provided, show all options
-                                  columnFilterMethod ?? (() => true)
-                                );
-                                if (
-                                  selectedAggregate?.value.meta &&
-                                  'parameters' in selectedAggregate.value.meta
-                                ) {
-                                  selectedAggregate?.value.meta.parameters.forEach(
-                                    (parameter, parameterIndex) => {
-                                      const isValidParameter = validateParameter(
-                                        newColumnOptions,
-                                        parameter,
-                                        newFunction[parameterIndex + 1]
-                                      );
-                                      // Increment by 1 to skip past the aggregate name
-                                      newFunction[parameterIndex + 1] =
-                                        (isValidParameter
-                                          ? newFunction[parameterIndex + 1]
-                                          : parameter.defaultValue) ?? '';
+                // Apdex and User Misery are special cases where the column parameter is not applicable
+                const isApdexOrUserMisery =
+                  matchingAggregate?.value.meta.name === 'apdex' ||
+                  matchingAggregate?.value.meta.name === 'user_misery';
+
+                const hasColumnParameter =
+                  (fields[index]!.kind === FieldValueKind.FUNCTION &&
+                    !isApdexOrUserMisery &&
+                    matchingAggregate?.value.meta.parameters.length !== 0) ||
+                  fields[index]!.kind === FieldValueKind.FIELD;
+
+                return (
+                  <SortableVisualizeFieldWrapper
+                    dragId={draggableFieldIds[index] ?? ''}
+                    canDrag={!!canDrag}
+                    key={draggableFieldIds[index]}
+                  >
+                    {activeId !== null && index === Number(activeId) ? null : (
+                      <FieldRow>
+                        {fields.length > 1 &&
+                          state.displayType === DisplayType.BIG_NUMBER && (
+                            <RadioLineItem
+                              index={index}
+                              role="radio"
+                              aria-label="aggregate-selector"
+                            >
+                              <Radio
+                                checked={index === state.selectedAggregate}
+                                onChange={() => {
+                                  dispatch({
+                                    type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                    payload: index,
+                                  });
+                                }}
+                                onClick={() => {
+                                  setSelectedAggregateSet(true);
+                                  trackAnalytics(
+                                    'dashboards_views.widget_builder.change',
+                                    {
+                                      builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                      field: 'visualize.selectAggregate',
+                                      from: source,
+                                      new_widget: !isEditing,
+                                      value: '',
+                                      widget_type: state.dataset ?? '',
+                                      organization,
                                     }
                                   );
-                                }
-                                newFields[index] = {
-                                  kind: FieldValueKind.FUNCTION,
-                                  function: newFunction,
-                                };
-                              }
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field: 'visualize.updateAggregate',
-                                from: source,
-                                new_widget: !isEditing,
-                                value: 'aggregate',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            } else {
-                              // Handle selecting NONE so we can select just a field, e.g. for samples
-                              // If NONE is selected, set the field to a field value
-
-                              // When selecting NONE, the next possible columns may be different from the
-                              // possible columns for the previous aggregate. Calculate the valid columns,
-                              // see if the current field's function argument is in the valid columns, and if so,
-                              // set the field to a field value. Otherwise, set the field to the first valid column.
-                              const validColumnFields = Object.values(
-                                datasetConfig.getTableFieldOptions?.(
+                                }}
+                                aria-label={'field' + index}
+                              />
+                            </RadioLineItem>
+                          )}
+                        <FieldBar data-testid={'field-bar'}>
+                          {field.kind === FieldValueKind.EQUATION ? (
+                            <StyledArithmeticInput
+                              name="arithmetic"
+                              key="parameter:text"
+                              type="text"
+                              required
+                              value={field.field}
+                              onUpdate={value => {
+                                dispatch({
+                                  type: updateAction,
+                                  payload: fields.map((_field, i) =>
+                                    i === index ? {..._field, field: value} : _field
+                                  ),
+                                });
+                                setError?.({...error, queries: []});
+                                trackAnalytics('dashboards_views.widget_builder.change', {
+                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                  field: 'visualize.updateEquation',
+                                  from: source,
+                                  new_widget: !isEditing,
+                                  value: '',
+                                  widget_type: state.dataset ?? '',
                                   organization,
-                                  tags,
-                                  customMeasurements,
-                                  api
-                                ) ?? []
-                              ).filter(
-                                option =>
-                                  option.value.kind !== FieldValueKind.FUNCTION &&
-                                  (datasetConfig.filterTableOptions?.(option) ?? true)
-                              );
-                              const functionArgInValidColumnFields =
-                                ('function' in currentField &&
-                                  validColumnFields.find(
-                                    option =>
-                                      option.value.meta.name === currentField.function[1]
-                                  )) ||
-                                undefined;
-                              const validColumn =
-                                functionArgInValidColumnFields?.value.meta.name ??
-                                validColumnFields?.[0]?.value.meta.name ??
-                                '';
-                              newFields[index] = {
-                                kind: FieldValueKind.FIELD,
-                                field: validColumn,
-                              };
+                                });
+                              }}
+                              options={fields}
+                              placeholder={t('Equation')}
+                              aria-label={t('Equation')}
+                            />
+                          ) : (
+                            <Fragment>
+                              <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
+                                <AggregateCompactSelect
+                                  searchable
+                                  hasColumnParameter={hasColumnParameter}
+                                  disabled={aggregateOptions.length <= 1}
+                                  options={aggregateOptions}
+                                  value={
+                                    parseFunction(stringFields?.[index] ?? '')?.name ??
+                                    NONE
+                                  }
+                                  position="bottom-start"
+                                  onChange={dropdownSelection => {
+                                    const isNone = dropdownSelection.value === NONE;
+                                    const newFields = cloneDeep(fields);
+                                    const currentField = newFields[index]!;
+                                    const selectedAggregate = aggregates.find(
+                                      option =>
+                                        option.value.meta.name === dropdownSelection.value
+                                    );
+                                    // Update the current field's aggregate with the new aggregate
+                                    if (!selectedAggregate && !isNone) {
+                                      // Handles new selection of a field from the aggregate dropdown
+                                      newFields[index] = {
+                                        kind: FieldValueKind.FIELD,
+                                        field: dropdownSelection.value as string,
+                                      };
+                                    } else if (!isNone) {
+                                      if (currentField.kind === FieldValueKind.FUNCTION) {
+                                        // Handle setting an aggregate from an aggregate
+                                        currentField.function[0] =
+                                          dropdownSelection.value as AggregationKeyWithAlias;
+                                        if (
+                                          selectedAggregate?.value.meta &&
+                                          'parameters' in selectedAggregate.value.meta
+                                        ) {
+                                          // There are aggregates that have no parameters, so wipe out the argument
+                                          // if it's supposed to be empty
+                                          if (
+                                            selectedAggregate.value.meta.parameters
+                                              .length === 0
+                                          ) {
+                                            currentField.function[1] = '';
+                                          } else {
+                                            // Check if the column is a valid column for the new aggregate
+                                            const newColumnOptions = getColumnOptions(
+                                              state.dataset ?? WidgetType.ERRORS,
+                                              currentField,
+                                              fieldOptions,
+                                              // If no column filter method is provided, show all options
+                                              columnFilterMethod ?? (() => true)
+                                            );
+                                            const selectedAggregateIsApdexOrUserMisery =
+                                              selectedAggregate?.value.meta.name ===
+                                                'apdex' ||
+                                              selectedAggregate?.value.meta.name ===
+                                                'user_misery';
+                                            const isValidColumn =
+                                              !selectedAggregateIsApdexOrUserMisery &&
+                                              Boolean(
+                                                newColumnOptions.find(
+                                                  option =>
+                                                    option.value ===
+                                                    currentField.function[1]
+                                                )?.value
+                                              );
+                                            currentField.function[1] =
+                                              (isValidColumn
+                                                ? currentField.function[1]
+                                                : selectedAggregate.value.meta
+                                                    .parameters[0]!.defaultValue) ?? '';
 
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field: 'visualize.updateAggregate',
-                                from: source,
-                                new_widget: !isEditing,
-                                value: 'column',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }
-                            dispatch({
-                              type: updateAction,
-                              payload: newFields,
-                            });
-                            setError?.({...error, queries: []});
-                          }}
-                          triggerProps={{
-                            'aria-label': t('Aggregate Selection'),
-                          }}
-                        />
-                        {hasColumnParameter && (
-                          <ColumnCompactSelect
-                            searchable
-                            position="bottom-start"
-                            options={
-                              state.dataset === WidgetType.SPANS &&
-                              field.kind !== FieldValueKind.FUNCTION
-                                ? spanColumnOptions
-                                : columnOptions
-                            }
-                            value={
-                              field.kind === FieldValueKind.FUNCTION
-                                ? parseFunction(stringFields?.[index] ?? '')
-                                    ?.arguments[0] ?? ''
-                                : field.field
-                            }
-                            onChange={newField => {
-                              const newFields = cloneDeep(fields);
-                              const currentField = newFields[index]!;
-                              // Update the current field's aggregate with the new aggregate
-                              if (currentField.kind === FieldValueKind.FUNCTION) {
-                                currentField.function[1] = newField.value as string;
-                              }
-                              if (currentField.kind === FieldValueKind.FIELD) {
-                                currentField.field = newField.value as string;
-                              }
-                              dispatch({
-                                type: updateAction,
-                                payload: newFields,
-                              });
-                              setError?.({...error, queries: []});
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field: 'visualize.updateColumn',
-                                from: source,
-                                new_widget: !isEditing,
-                                value:
-                                  currentField.kind === FieldValueKind.FIELD
-                                    ? 'column'
-                                    : 'aggregate',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }}
-                            triggerProps={{
-                              'aria-label': t('Column Selection'),
-                            }}
-                          />
-                        )}
-                      </PrimarySelectRow>
-                      {field.kind === FieldValueKind.FUNCTION &&
-                        parameterRefinements.length > 0 && (
-                          <ParameterRefinements>
-                            {parameterRefinements.map(
-                              (parameter: any, parameterIndex: any) => {
-                                // The current value is displaced by 2 because the first two parameters
-                                // are the aggregate name and the column selection
-                                const currentValue =
-                                  field.function[parameterIndex + 2] || '';
-                                const key = `${field.function.join('_')}-${parameterIndex}`;
-                                return (
+                                            // Set the remaining parameters for the new aggregate
+                                            for (
+                                              let i = 1; // The first parameter is the column selection
+                                              i <
+                                              selectedAggregate.value.meta.parameters
+                                                .length;
+                                              i++
+                                            ) {
+                                              // Increment by 1 to skip past the aggregate name
+                                              currentField.function[i + 1] =
+                                                selectedAggregate.value.meta.parameters[
+                                                  i
+                                                ]!.defaultValue;
+                                            }
+                                          }
+
+                                          // Wipe out the remaining parameters that are unnecessary
+                                          // This is necessary for transitioning between aggregates that have
+                                          // more parameters to ones of fewer parameters
+                                          for (
+                                            let i =
+                                              selectedAggregate.value.meta.parameters
+                                                .length;
+                                            i < MAX_FUNCTION_PARAMETERS;
+                                            i++
+                                          ) {
+                                            currentField.function[i + 1] = undefined;
+                                          }
+                                        }
+                                      } else {
+                                        if (
+                                          !selectedAggregate ||
+                                          !('parameters' in selectedAggregate.value.meta)
+                                        ) {
+                                          return;
+                                        }
+
+                                        // Handle setting an aggregate from a field
+                                        const newFunction: AggregateFunction = [
+                                          dropdownSelection.value as AggregationKeyWithAlias,
+                                          ((selectedAggregate?.value.meta?.parameters
+                                            .length > 0 &&
+                                            currentField.field) ||
+                                            selectedAggregate?.value.meta?.parameters?.[0]
+                                              ?.defaultValue) ??
+                                            '',
+                                          selectedAggregate?.value.meta?.parameters?.[1]
+                                            ?.defaultValue ?? undefined,
+                                          selectedAggregate?.value.meta?.parameters?.[2]
+                                            ?.defaultValue ?? undefined,
+                                        ];
+                                        const newColumnOptions = getColumnOptions(
+                                          state.dataset ?? WidgetType.ERRORS,
+                                          {
+                                            kind: FieldValueKind.FUNCTION,
+                                            function: newFunction,
+                                          },
+                                          fieldOptions,
+                                          // If no column filter method is provided, show all options
+                                          columnFilterMethod ?? (() => true)
+                                        );
+                                        if (
+                                          selectedAggregate?.value.meta &&
+                                          'parameters' in selectedAggregate.value.meta
+                                        ) {
+                                          selectedAggregate?.value.meta.parameters.forEach(
+                                            (parameter, parameterIndex) => {
+                                              const isValidParameter = validateParameter(
+                                                newColumnOptions,
+                                                parameter,
+                                                newFunction[parameterIndex + 1]
+                                              );
+                                              // Increment by 1 to skip past the aggregate name
+                                              newFunction[parameterIndex + 1] =
+                                                (isValidParameter
+                                                  ? newFunction[parameterIndex + 1]
+                                                  : parameter.defaultValue) ?? '';
+                                            }
+                                          );
+                                        }
+                                        newFields[index] = {
+                                          kind: FieldValueKind.FUNCTION,
+                                          function: newFunction,
+                                        };
+                                      }
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                          field: 'visualize.updateAggregate',
+                                          from: source,
+                                          new_widget: !isEditing,
+                                          value: 'aggregate',
+                                          widget_type: state.dataset ?? '',
+                                          organization,
+                                        }
+                                      );
+                                    } else {
+                                      // Handle selecting NONE so we can select just a field, e.g. for samples
+                                      // If NONE is selected, set the field to a field value
+
+                                      // When selecting NONE, the next possible columns may be different from the
+                                      // possible columns for the previous aggregate. Calculate the valid columns,
+                                      // see if the current field's function argument is in the valid columns, and if so,
+                                      // set the field to a field value. Otherwise, set the field to the first valid column.
+                                      const validColumnFields = Object.values(
+                                        datasetConfig.getTableFieldOptions?.(
+                                          organization,
+                                          tags,
+                                          customMeasurements,
+                                          api
+                                        ) ?? []
+                                      ).filter(
+                                        option =>
+                                          option.value.kind !== FieldValueKind.FUNCTION &&
+                                          (datasetConfig.filterTableOptions?.(option) ??
+                                            true)
+                                      );
+                                      const functionArgInValidColumnFields =
+                                        ('function' in currentField &&
+                                          validColumnFields.find(
+                                            option =>
+                                              option.value.meta.name ===
+                                              currentField.function[1]
+                                          )) ||
+                                        undefined;
+                                      const validColumn =
+                                        functionArgInValidColumnFields?.value.meta.name ??
+                                        validColumnFields?.[0]?.value.meta.name ??
+                                        '';
+                                      newFields[index] = {
+                                        kind: FieldValueKind.FIELD,
+                                        field: validColumn,
+                                      };
+
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                          field: 'visualize.updateAggregate',
+                                          from: source,
+                                          new_widget: !isEditing,
+                                          value: 'column',
+                                          widget_type: state.dataset ?? '',
+                                          organization,
+                                        }
+                                      );
+                                    }
+                                    dispatch({
+                                      type: updateAction,
+                                      payload: newFields,
+                                    });
+                                    setError?.({...error, queries: []});
+                                  }}
+                                  triggerProps={{
+                                    'aria-label': t('Aggregate Selection'),
+                                  }}
+                                />
+                                {hasColumnParameter && (
+                                  <ColumnCompactSelect
+                                    searchable
+                                    position="bottom-start"
+                                    options={
+                                      state.dataset === WidgetType.SPANS &&
+                                      field.kind !== FieldValueKind.FUNCTION
+                                        ? spanColumnOptions
+                                        : columnOptions
+                                    }
+                                    value={
+                                      field.kind === FieldValueKind.FUNCTION
+                                        ? parseFunction(stringFields?.[index] ?? '')
+                                            ?.arguments[0] ?? ''
+                                        : field.field
+                                    }
+                                    onChange={newField => {
+                                      const newFields = cloneDeep(fields);
+                                      const currentField = newFields[index]!;
+                                      // Update the current field's aggregate with the new aggregate
+                                      if (currentField.kind === FieldValueKind.FUNCTION) {
+                                        currentField.function[1] =
+                                          newField.value as string;
+                                      }
+                                      if (currentField.kind === FieldValueKind.FIELD) {
+                                        currentField.field = newField.value as string;
+                                      }
+                                      dispatch({
+                                        type: updateAction,
+                                        payload: newFields,
+                                      });
+                                      setError?.({...error, queries: []});
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                          field: 'visualize.updateColumn',
+                                          from: source,
+                                          new_widget: !isEditing,
+                                          value:
+                                            currentField.kind === FieldValueKind.FIELD
+                                              ? 'column'
+                                              : 'aggregate',
+                                          widget_type: state.dataset ?? '',
+                                          organization,
+                                        }
+                                      );
+                                    }}
+                                    triggerProps={{
+                                      'aria-label': t('Column Selection'),
+                                    }}
+                                  />
+                                )}
+                              </PrimarySelectRow>
+                              {field.kind === FieldValueKind.FUNCTION &&
+                                parameterRefinements.length > 0 && (
+                                  <ParameterRefinements>
+                                    {parameterRefinements.map(
+                                      (parameter: any, parameterIndex: any) => {
+                                        // The current value is displaced by 2 because the first two parameters
+                                        // are the aggregate name and the column selection
+                                        const currentValue =
+                                          field.function[parameterIndex + 2] || '';
+                                        const key = `${field.function.join('_')}-${parameterIndex}`;
+                                        return (
+                                          <AggregateParameterField
+                                            key={key}
+                                            parameter={parameter}
+                                            fieldValue={field}
+                                            currentValue={currentValue}
+                                            onChange={value => {
+                                              const newFields = cloneDeep(fields);
+                                              if (
+                                                newFields[index]!.kind !==
+                                                FieldValueKind.FUNCTION
+                                              ) {
+                                                return;
+                                              }
+                                              newFields[index]!.function[
+                                                parameterIndex + 2
+                                              ] = value;
+                                              dispatch({
+                                                type: updateAction,
+                                                payload: newFields,
+                                              });
+                                              setError?.({...error, queries: []});
+                                            }}
+                                          />
+                                        );
+                                      }
+                                    )}
+                                  </ParameterRefinements>
+                                )}
+                              {isApdexOrUserMisery &&
+                                field.kind === FieldValueKind.FUNCTION && (
                                   <AggregateParameterField
-                                    key={key}
-                                    parameter={parameter}
+                                    parameter={
+                                      matchingAggregate?.value.meta.parameters[0]
+                                    }
                                     fieldValue={field}
-                                    currentValue={currentValue}
+                                    currentValue={field.function[1]}
                                     onChange={value => {
                                       const newFields = cloneDeep(fields);
                                       if (
@@ -784,8 +888,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                       ) {
                                         return;
                                       }
-                                      newFields[index]!.function[parameterIndex + 2] =
-                                        value;
+                                      newFields[index]!.function[1] = value;
                                       dispatch({
                                         type: updateAction,
                                         payload: newFields,
@@ -793,107 +896,102 @@ function Visualize({error, setError}: VisualizeProps) {
                                       setError?.({...error, queries: []});
                                     }}
                                   />
-                                );
-                              }
-                            )}
-                          </ParameterRefinements>
-                        )}
-                      {isApdexOrUserMisery && field.kind === FieldValueKind.FUNCTION && (
-                        <AggregateParameterField
-                          parameter={matchingAggregate?.value.meta.parameters[0]}
-                          fieldValue={field}
-                          currentValue={field.function[1]}
-                          onChange={value => {
-                            const newFields = cloneDeep(fields);
-                            if (newFields[index]!.kind !== FieldValueKind.FUNCTION) {
-                              return;
+                                )}
+                            </Fragment>
+                          )}
+                        </FieldBar>
+                        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
+                          {!isChartWidget && !isBigNumberWidget && (
+                            <LegendAliasInput
+                              type="text"
+                              name="name"
+                              placeholder={t('Add Alias')}
+                              value={field.alias ?? ''}
+                              onChange={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
+                                dispatch({
+                                  type: updateAction,
+                                  payload: newFields,
+                                });
+                              }}
+                              onBlur={() => {
+                                trackAnalytics('dashboards_views.widget_builder.change', {
+                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                  field: 'visualize.legendAlias',
+                                  from: source,
+                                  new_widget: !isEditing,
+                                  value: '',
+                                  widget_type: state.dataset ?? '',
+                                  organization,
+                                });
+                              }}
+                            />
+                          )}
+                          <StyledDeleteButton
+                            borderless
+                            icon={<IconDelete />}
+                            size="zero"
+                            disabled={
+                              fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
                             }
-                            newFields[index]!.function[1] = value;
-                            dispatch({
-                              type: updateAction,
-                              payload: newFields,
-                            });
-                            setError?.({...error, queries: []});
-                          }}
-                        />
-                      )}
-                    </Fragment>
-                  )}
-                </FieldBar>
-                <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-                  {!isChartWidget && !isBigNumberWidget && (
-                    <LegendAliasInput
-                      type="text"
-                      name="name"
-                      placeholder={t('Add Alias')}
-                      value={field.alias ?? ''}
-                      onChange={e => {
-                        const newFields = cloneDeep(fields);
-                        newFields[index]!.alias = e.target.value;
-                        dispatch({
-                          type: updateAction,
-                          payload: newFields,
-                        });
-                      }}
-                      onBlur={() => {
-                        trackAnalytics('dashboards_views.widget_builder.change', {
-                          builder_version: WidgetBuilderVersion.SLIDEOUT,
-                          field: 'visualize.legendAlias',
-                          from: source,
-                          new_widget: !isEditing,
-                          value: '',
-                          widget_type: state.dataset ?? '',
-                          organization,
-                        });
-                      }}
-                    />
-                  )}
-                  <StyledDeleteButton
-                    borderless
-                    icon={<IconDelete />}
-                    size="zero"
-                    disabled={fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate}
-                    onClick={() => {
-                      dispatch({
-                        type: updateAction,
-                        payload: fields?.filter((_field, i) => i !== index) ?? [],
-                      });
+                            onClick={() => {
+                              dispatch({
+                                type: updateAction,
+                                payload: fields?.filter((_field, i) => i !== index) ?? [],
+                              });
 
-                      if (
-                        state.displayType === DisplayType.BIG_NUMBER &&
-                        selectedAggregateSet
-                      ) {
-                        // Unset the selected aggregate if it's the last one
-                        // so the state will automatically choose the last aggregate
-                        // as new fields are added
-                        if (state.selectedAggregate === fields.length - 1) {
-                          dispatch({
-                            type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                            payload: undefined,
-                          });
-                        }
-                      }
+                              if (
+                                state.displayType === DisplayType.BIG_NUMBER &&
+                                selectedAggregateSet
+                              ) {
+                                // Unset the selected aggregate if it's the last one
+                                // so the state will automatically choose the last aggregate
+                                // as new fields are added
+                                if (state.selectedAggregate === fields.length - 1) {
+                                  dispatch({
+                                    type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                    payload: undefined,
+                                  });
+                                }
+                              }
 
-                      trackAnalytics('dashboards_views.widget_builder.change', {
-                        builder_version: WidgetBuilderVersion.SLIDEOUT,
-                        field:
-                          field.kind === FieldValueKind.EQUATION
-                            ? 'visualize.deleteEquation'
-                            : 'visualize.deleteField',
-                        from: source,
-                        new_widget: !isEditing,
-                        value: '',
-                        widget_type: state.dataset ?? '',
-                        organization,
-                      });
-                    }}
-                    aria-label={t('Remove field')}
-                  />
-                </FieldExtras>
-              </FieldRow>
-            );
-          })}
-        </Fields>
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field:
+                                  field.kind === FieldValueKind.EQUATION
+                                    ? 'visualize.deleteEquation'
+                                    : 'visualize.deleteField',
+                                from: source,
+                                new_widget: !isEditing,
+                                value: '',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
+                            }}
+                            aria-label={t('Remove field')}
+                          />
+                        </FieldExtras>
+                      </FieldRow>
+                    )}
+                  </SortableVisualizeFieldWrapper>
+                );
+              })}
+            </Fields>
+          </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activeId && (
+              <VisualizeGhostField
+                activeId={Number(activeId)}
+                aggregates={aggregates}
+                fields={fields ?? []}
+                isBigNumberWidget={isBigNumberWidget}
+                isChartWidget={isChartWidget}
+                stringFields={stringFields ?? []}
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
       </StyledFieldGroup>
 
       <AddButtons>
@@ -985,7 +1083,7 @@ function renderTag(kind: FieldValueKind, label: string) {
   return <BaseTag type={tagType}>{text}</BaseTag>;
 }
 
-const ColumnCompactSelect = styled(CompactSelect)`
+export const ColumnCompactSelect = styled(CompactSelect)`
   flex: 1 1 auto;
   min-width: 0;
 
@@ -994,7 +1092,9 @@ const ColumnCompactSelect = styled(CompactSelect)`
   }
 `;
 
-const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolean}>`
+export const AggregateCompactSelect = styled(CompactSelect)<{
+  hasColumnParameter: boolean;
+}>`
   ${p =>
     p.hasColumnParameter
       ? `
@@ -1014,9 +1114,9 @@ const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolea
   }
 `;
 
-const LegendAliasInput = styled(Input)``;
+export const LegendAliasInput = styled(Input)``;
 
-const ParameterRefinements = styled('div')`
+export const ParameterRefinements = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
@@ -1026,14 +1126,14 @@ const ParameterRefinements = styled('div')`
   }
 `;
 
-const FieldBar = styled('div')`
+export const FieldBar = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${space(1)};
   flex: 3;
 `;
 
-const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
+export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   display: flex;
   width: 100%;
   flex: 3;
@@ -1053,15 +1153,16 @@ const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   }
 `;
 
-const FieldRow = styled('div')`
+export const FieldRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  width: 100%;
 `;
 
-const StyledDeleteButton = styled(Button)``;
+export const StyledDeleteButton = styled(Button)``;
 
-const FieldExtras = styled('div')<{isChartWidget: boolean}>`
+export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
@@ -1083,7 +1184,7 @@ const Fields = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledArithmeticInput = styled(ArithmeticInput)`
+export const StyledArithmeticInput = styled(ArithmeticInput)`
   width: 100%;
 `;
 
