@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
@@ -18,27 +19,24 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
-  type?: keyof Theme['alert'];
 }
 
-const DEFAULT_TYPE = 'info';
-
-function Alert({
-  type = DEFAULT_TYPE,
-  showIcon = false,
+export function Alert({
+  showIcon,
   icon,
   opaque,
   system,
   expand,
-  defaultExpanded = false,
+  defaultExpanded,
   trailingItems,
   className,
   children,
+  type,
   ...props
 }: AlertProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const theme = useTheme();
   const showExpand = defined(expand);
-  const showTrailingItems = defined(trailingItems);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Show the hover state (with darker borders) only when hovering over the
   // IconWrapper or MessageContainer.
@@ -48,20 +46,6 @@ function Alert({
   const {hoverProps: expandHoverProps, isHovered: expandIsHovered} = useHover({
     isDisabled: !showExpand,
   });
-
-  function getIcon() {
-    switch (type) {
-      case 'warning':
-        return <IconWarning />;
-      case 'success':
-        return <IconCheckmark />;
-      case 'error':
-        return <IconNot />;
-      case 'info':
-      default:
-        return <IconInfo />;
-    }
-  }
 
   const expandRef = useRef<HTMLDivElement>(null);
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
@@ -79,8 +63,7 @@ function Alert({
   }
 
   return (
-    <Wrap
-      type={type}
+    <AlertContainer
       system={system}
       opaque={opaque}
       expand={expand}
@@ -89,14 +72,20 @@ function Alert({
       onClick={handleClick}
       hovered={isHovered && !expandIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
+      alertColors={getAlertColors(theme, type)}
+      type={type}
       {...hoverProps}
       {...props}
     >
       <PanelProvider>
-        {showIcon && <IconWrapper onClick={handleClick}>{icon ?? getIcon()}</IconWrapper>}
+        {showIcon && (
+          <IconWrapper onClick={handleClick}>
+            {icon ?? <AlertIcon type={type} />}
+          </IconWrapper>
+        )}
         <Message>{children}</Message>
-        {showTrailingItems && (
-          <TrailingItems showIcon={showIcon} onClick={e => e.stopPropagation()}>
+        {!!trailingItems && (
+          <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
             {trailingItems}
           </TrailingItems>
         )}
@@ -108,91 +97,132 @@ function Alert({
         {isExpanded && (
           <ExpandContainer
             ref={expandRef}
-            showIcon={showIcon}
-            showTrailingItems={showTrailingItems}
+            showIcon={!!showIcon}
+            showTrailingItems={!!trailingItems}
             {...expandHoverProps}
           >
             {Array.isArray(expand) ? expand.map(item => item) : expand}
           </ExpandContainer>
         )}
       </PanelProvider>
-    </Wrap>
+    </AlertContainer>
   );
 }
 
-const alertStyles = ({
-  type = DEFAULT_TYPE,
-  system,
-  opaque,
-  expand,
-  showIcon,
-  trailingItems,
-  hovered,
-  theme,
-}: AlertProps & {theme: Theme; hovered?: boolean}) => {
-  const alertColors = theme.alert[type];
-  const showExpand = defined(expand);
-  const showTrailingItems = defined(trailingItems);
+function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
+  switch (type) {
+    case 'muted':
+      return {
+        background: theme.gray200,
+        backgroundLight: theme.backgroundSecondary,
+        border: theme.border,
+        borderHover: theme.border,
+        color: 'inherit',
+      };
+    case 'info':
+      return {
+        background: theme.blue300,
+        backgroundLight: theme.blue100,
+        border: theme.blue200,
+        borderHover: theme.blue300,
+        color: theme.blue400,
+      };
+    case 'warning':
+      return {
+        background: theme.yellow300,
+        backgroundLight: theme.yellow100,
+        border: theme.yellow200,
+        borderHover: theme.yellow300,
+        color: theme.yellow400,
+      };
+    case 'success':
+      return {
+        background: theme.green300,
+        backgroundLight: theme.green100,
+        border: theme.green200,
+        borderHover: theme.green300,
+        color: theme.green400,
+      };
+    case 'error':
+      return {
+        background: theme.red300,
+        backgroundLight: theme.red100,
+        border: theme.red200,
+        borderHover: theme.red300,
+        color: theme.red400,
+      };
+    default:
+      unreachable(type);
+      throw new Error(`Invalid alert type, got ${type}`);
+  }
+}
 
-  return css`
-    display: grid;
-    grid-template-columns:
-      ${showIcon && `minmax(0, max-content)`}
-      minmax(0, 1fr)
-      ${showTrailingItems && 'max-content'}
-      ${showExpand && 'max-content'};
-    gap: ${space(1)};
-    margin: 0 0 ${space(2)};
-    color: ${alertColors.color};
-    font-size: ${theme.fontSizeMedium};
-    border-radius: ${theme.borderRadius};
-    border: 1px solid ${alertColors.border};
-    background: ${opaque
+const AlertContainer = styled('div')<
+  AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
+>`
+  display: grid;
+  grid-template-columns:
+    ${p => p.showIcon && `minmax(0, max-content)`}
+    minmax(0, 1fr)
+    ${p => defined(p.trailingItems) && 'max-content'}
+    ${p => defined(p.expand) && 'max-content'};
+  gap: ${space(1)};
+  margin: 0 0 ${space(2)};
+  color: ${p => p.alertColors.color};
+  font-size: ${p => p.theme.fontSizeMedium};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.alertColors.border};
+  padding: ${space(1.5)} ${space(2)};
+  background: ${p =>
+    p.opaque
       ? `linear-gradient(
-          ${alertColors.backgroundLight},
-          ${alertColors.backgroundLight}),
-          linear-gradient(${theme.background}, ${theme.background}
+          ${p.alertColors.backgroundLight},
+          ${p.alertColors.backgroundLight}),
+          linear-gradient(${p.theme.background}, ${p.theme.background}
         )`
-      : `${alertColors.backgroundLight}`};
+      : `
+          ${p.alertColors.backgroundLight}
+        `};
 
-    a:not([role='button']) {
-      color: ${alertColors.color};
-      text-decoration-color: ${alertColors.border};
-      text-decoration-style: solid;
-      text-decoration-line: underline;
-      text-decoration-thickness: 0.08em;
-      text-underline-offset: 0.06em;
-    }
-    a:not([role='button']):hover {
-      text-decoration-color: ${alertColors.color};
-      text-decoration-style: solid;
-    }
+  a:not([role='button']) {
+    color: ${p => p.alertColors.color};
+    text-decoration-color: ${p => p.alertColors.border};
+    text-decoration-style: solid;
+    text-decoration-line: underline;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.06em;
+  }
+  a:not([role='button']):hover {
+    text-decoration-color: ${p => p.alertColors.color};
+    text-decoration-style: solid;
+  }
 
-    pre {
-      background: ${alertColors.backgroundLight};
-      margin: ${space(0.5)} 0 0;
-    }
+  pre {
+    background: ${p => p.alertColors.backgroundLight};
+    margin: ${space(0.5)} 0 0;
+  }
 
-    ${hovered && `border-color: ${alertColors.borderHover};`}
+  ${p =>
+    p.hovered &&
+    css`
+      border-color: ${p.alertColors.borderHover};
+    `}
 
-    ${showExpand &&
-    `cursor: pointer;
+  ${p =>
+    p.expand &&
+    css`
+      cursor: pointer;
       ${TrailingItems} {
-       cursor: auto;
+        cursor: auto;
       }
     `}
 
-    ${system &&
-    `
+  ${p =>
+    p.system &&
+    css`
       border-width: 0 0 1px 0;
       border-radius: 0;
     `}
-  `;
-};
-
-const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
-  ${alertStyles}
-  padding: ${space(1.5)} ${space(2)};
 `;
 
 const IconWrapper = styled('div')`
@@ -241,6 +271,26 @@ const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boo
   }
 `;
 
-export {Alert, alertStyles};
+// Dont return never just because we are throwing an error and TS will think the code
+// is unreachable and try suggest us to remove it.
+function unreachable(x: never) {
+  return x;
+}
 
-export default Alert;
+function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
+  switch (type) {
+    case 'warning':
+      return <IconWarning />;
+    case 'success':
+      return <IconCheckmark />;
+    case 'error':
+      return <IconNot />;
+    case 'info':
+    case 'muted':
+      return <IconInfo />;
+    default:
+      unreachable(type);
+  }
+
+  return null;
+}
