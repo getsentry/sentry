@@ -27,12 +27,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import type {
-  Aliases,
-  Release,
-  TimeseriesData,
-  TimeseriesSelection,
-} from '../common/types';
+import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
 import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
 import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
@@ -50,7 +45,7 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 type VisualizationType = 'area' | 'line' | 'bar';
 
 export interface TimeSeriesWidgetVisualizationProps {
-  timeseries: TimeseriesData[];
+  timeSeries: TimeSeries[];
   visualizationType: VisualizationType;
   aliases?: Aliases;
   dataCompletenessDelay?: number;
@@ -101,7 +96,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
-    props.timeseries.map(timeserie => {
+    props.timeSeries.map(timeserie => {
       return timeserie?.meta?.fields?.[timeserie.field];
     })
   ).filter(Boolean) as AggregationOutputType[];
@@ -117,7 +112,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
 
   const units = uniq(
-    props.timeseries.map(timeserie => {
+    props.timeSeries.map(timeserie => {
       return timeserie?.meta?.units?.[timeserie.field];
     })
   ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
@@ -134,7 +129,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   // Apply unit scaling to all series
-  const scaledSeries = props.timeseries.map(timeserie => {
+  const scaledSeries = props.timeSeries.map(timeserie => {
     return scaleTimeSeriesData(timeserie, yAxisUnit);
   });
 
