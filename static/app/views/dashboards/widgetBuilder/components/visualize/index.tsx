@@ -584,7 +584,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                           field: 'visualize.updateAggregate',
                                           from: source,
                                           new_widget: !isEditing,
-                                          value: 'direct_field',
+                                          value: 'direct_column',
                                           widget_type: state.dataset ?? '',
                                           organization,
                                         }
