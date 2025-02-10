@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -7,6 +6,7 @@ import debounce from 'lodash/debounce';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {
   ControlProps,
   GeneralSelectValue,
