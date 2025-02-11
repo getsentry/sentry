@@ -6,7 +6,6 @@ from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
-from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -19,13 +18,13 @@ from sentry.utils.locking import UnableToAcquireLock
 pytestmark = [requires_snuba]
 
 INTEGRATIONS_ROOT = "sentry.integrations.source_code_management"
-ISSUES_ROOT = "sentry.issues.auto_source_code_config"
 GET_TREES_FOR_ORG = f"{INTEGRATIONS_ROOT}.repo_trees.RepoTreesIntegration.get_trees_for_org"
+ISSUES_ROOT = "sentry.issues.auto_source_code_config"
 
 
 class BaseDeriveCodeMappings(TestCase):
     platform: str
-
+    repo_name: str = "foo/bar"
     # We may only want to change this for TestTaskBehavior when we add support
     # for other providers
     provider = "github"
@@ -47,19 +46,14 @@ class BaseDeriveCodeMappings(TestCase):
         return self.store_event(data=test_data, project_id=self.project.id)
 
     def _get_trees_for_org(self, files: Sequence[str], branch: str = "master") -> RepoTree:
-        return {
-            self.repo_name: RepoTree(
-                RepoAndBranch(self.repo_name, branch),
-                files,
-            )
-        }
+        return {self.repo_name: RepoTree(RepoAndBranch(self.repo_name, branch), files)}
 
     def _process_and_assert_code_mapping(
         self, files: Sequence[str], stack_root: str, source_root: str
     ) -> None:
         with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
-            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             process_event(self.project.id, self.event.group_id, self.event.event_id)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == stack_root
             assert code_mapping.source_root == source_root
 
@@ -111,28 +105,22 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         )
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
-            stack_root="sentry/models",
-            source_root="src/sentry/models",
+            stack_root="foo/",
+            source_root="src/foo/",
             repository=repository,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
         )
 
-        assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+        # The platform is irrelevant for this test
+        event = self.create_event([{"filename": "foo/bar/baz.py", "in_app": True}], "python")
+        assert event.group_id is not None
 
-        with (
-            patch(
-                f"{ISSUES_ROOT}.task.identify_stacktrace_paths",
-                return_value=["sentry/models/release.py", "sentry/tasks.py"],
-            ) as mock_identify_stacktraces,
-            self.tasks(),
-        ):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
-
-        assert mock_identify_stacktraces.call_count == 1
-        code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
-        assert code_mapping.automatically_generated is False
+        process_event(self.project.id, event.group_id, event.event_id)
+        all_cm = RepositoryProjectPathConfig.objects.all()
+        assert len(all_cm) == 1
+        assert all_cm[0].automatically_generated is False
 
 
 class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
@@ -183,17 +171,17 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_auto_source_code_config_starts_with_period_slash(self) -> None:
+    def test_starts_with_period_slash(self) -> None:
         # ./app/utils/handle.tsx -> app/utils/handle.tsx -> static/app/utils/handle.tsx
         self._process_and_assert_code_mapping(["static/app/utils/handle.tsx"], "./", "static/")
 
-    def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self) -> None:
+    def test_starts_with_period_slash_no_containing_directory(self) -> None:
         self._process_and_assert_code_mapping(["app/utils/handle.tsx"], "./", "")
 
-    def test_auto_source_code_config_one_to_one_match(self) -> None:
+    def test_one_to_one_match(self) -> None:
         self._process_and_assert_code_mapping(["some/path/Test.tsx"], "", "")
 
-    def test_auto_source_code_config_same_trailing_substring(self) -> None:
+    def test_same_trailing_substring(self) -> None:
         self._process_and_assert_code_mapping(["sentry/app.tsx"], "", "")
 
 
@@ -208,10 +196,10 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_auto_source_code_config_rb(self) -> None:
+    def test_rb(self) -> None:
         self._process_and_assert_code_mapping(["some/path/test.rb"], "", "")
 
-    def test_auto_source_code_config_rake(self) -> None:
+    def test_rake(self) -> None:
         self._process_and_assert_code_mapping(["lib/tasks/crontask.rake"], "", "")
 
 
@@ -230,16 +218,16 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_auto_source_code_config_starts_with_app(self) -> None:
+    def test_starts_with_app(self) -> None:
         self._process_and_assert_code_mapping(["utils/errors.js"], "app:///", "")
 
-    def test_auto_source_code_config_starts_with_app_complex(self) -> None:
+    def test_starts_with_app_complex(self) -> None:
         self._process_and_assert_code_mapping(["sentry/utils/errors.js"], "app:///", "sentry/")
 
-    def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self) -> None:
+    def test_starts_with_multiple_dot_dot_slash(self) -> None:
         self._process_and_assert_code_mapping(["packages/api/src/response.ts"], "../../", "")
 
-    def test_auto_source_code_config_starts_with_app_dot_dot_slash(self) -> None:
+    def test_starts_with_app_dot_dot_slash(self) -> None:
         self._process_and_assert_code_mapping(["services/event/index.js"], "../../", "")
 
 
@@ -257,13 +245,13 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_auto_source_code_config_go_abs_filename(self) -> None:
+    def test_go_abs_filename(self) -> None:
         self._process_and_assert_code_mapping(["sentry/capybara.go"], "/Users/JohnDoe/code/", "")
 
-    def test_auto_source_code_config_go_long_abs_filename(self) -> None:
+    def test_go_long_abs_filename(self) -> None:
         self._process_and_assert_code_mapping(["sentry/kangaroo.go"], "/Users/JohnDoe/code/", "")
 
-    def test_auto_source_code_config_similar_but_incorrect_file(self) -> None:
+    def test_similar_but_incorrect_file(self) -> None:
         self._process_and_assert_code_mapping(["notsentry/main.go"], "/Users/JohnDoe/code/", "")
 
 
@@ -280,10 +268,10 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_auto_source_code_config_basic_php(self) -> None:
+    def test_basic_php(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.php"], "/sentry/", "")
 
-    def test_auto_source_code_config_different_roots_php(self) -> None:
+    def test_different_roots_php(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.php"], "/sentry/", "src/sentry/")
 
 
@@ -307,13 +295,13 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    def test_auto_source_code_config_csharp_trivial(self) -> None:
+    def test_csharp_trivial(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.cs"], "/", "")
 
-    def test_auto_source_code_config_different_roots_csharp(self) -> None:
+    def test_different_roots_csharp(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.cs"], "/sentry/", "src/sentry/")
 
-    def test_auto_source_code_config_non_in_app_frame(self) -> None:
+    def test_non_in_app_frame(self) -> None:
         self._process_and_assert_code_mapping(["sentry/src/functions.cs"], "/", "")
 
 
@@ -328,34 +316,11 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             ]
         )
 
-    @patch(
-        "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
-        return_value=[
-            CodeMapping(
-                repo=RepoAndBranch(name="repo", branch="master"),
-                stacktrace_root="sentry/foo",
-                source_path="src/sentry/foo",
-            )
-        ],
-    )
-    def test_auto_source_code_config_single_project(self, mock_generate_code_mapping: Any) -> None:
-        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+    def test_single_project(self) -> None:
+        self._process_and_assert_code_mapping(["sentry/foo/bar.py"], "sentry/foo", "src/sentry/foo")
 
-        with (
-            patch(
-                f"{ISSUES_ROOT}.task.identify_stacktrace_paths",
-                return_value=["sentry/foo/bar.py", "sentry/tasks.py"],
-            ) as mock_identify_stacktraces,
-            self.tasks(),
-        ):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
-
-        assert mock_identify_stacktraces.call_count == 1
-        code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
-        assert code_mapping.automatically_generated is True
-
-    def test_auto_source_code_config_stack_and_source_root_do_not_match(self) -> None:
+    def test_stack_and_source_root_do_not_match(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/foo/bar.py"], "sentry/", "src/sentry/")
 
-    def test_auto_source_code_config_no_normalization(self) -> None:
+    def test_no_normalization(self) -> None:
         self._process_and_assert_code_mapping(["sentry/foo/bar.py"], "", "")
