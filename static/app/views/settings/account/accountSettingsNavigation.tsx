@@ -11,6 +11,8 @@ function AccountSettingsNavigation({organization}: Props) {
     <SettingsNavigation
       organization={organization}
       navigationObjects={getConfiguration({organization})}
+      features={new Set(organization.features)}
+      access={new Set(organization.access)}
     />
   );
 }
