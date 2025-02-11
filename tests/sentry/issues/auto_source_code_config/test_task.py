@@ -93,13 +93,13 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
-    def test_skips_not_supported_platforms(self) -> None:
+    def test_auto_source_code_config_skips_not_supported_platforms(self) -> None:
         event = self.create_event([{}], platform="elixir")
         assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
-    def test_handle_existing_code_mapping(self) -> None:
+    def test_auto_source_code_config_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration=self.integration
@@ -175,14 +175,14 @@ class TestJavascriptDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"filename": "some/path/Test.tsx", "in_app": True},  # No special characters
     ]
 
-    def test_starts_with_period_slash(self) -> None:
+    def test_auto_source_code_config_starts_with_period_slash(self) -> None:
         # ./app/utils/handle.tsx -> app/utils/handle.tsx -> static/app/utils/handle.tsx
         self._process_and_assert_code_mapping(["static/app/utils/handle.tsx"], "./", "static/")
 
-    def test_starts_with_period_slash_no_containing_directory(self) -> None:
+    def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self) -> None:
         self._process_and_assert_code_mapping(["app/utils/handle.tsx"], "./", "")
 
-    def test_one_to_one_match(self) -> None:
+    def test_auto_source_code_config_one_to_one_match(self) -> None:
         self._process_and_assert_code_mapping(["some/path/Test.tsx"], "", "")
 
 
@@ -193,10 +193,10 @@ class TestRubyDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"filename": "lib/tasks/crontask.rake", "in_app": True},
     ]
 
-    def test_rb(self) -> None:
+    def test_auto_source_code_config_rb(self) -> None:
         self._process_and_assert_code_mapping(["some/path/test.rb"], "", "")
 
-    def test_rake(self) -> None:
+    def test_auto_source_code_config_rake(self) -> None:
         self._process_and_assert_code_mapping(["lib/tasks/crontask.rake"], "", "")
 
 
@@ -211,16 +211,16 @@ class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"filename": "app:///../services/event/index.js", "in_app": True},
     ]
 
-    def test_starts_with_app(self) -> None:
+    def test_auto_source_code_config_starts_with_app(self) -> None:
         self._process_and_assert_code_mapping(["utils/errors.js"], "app:///", "")
 
-    def test_starts_with_app_complex(self) -> None:
+    def test_auto_source_code_config_starts_with_app_complex(self) -> None:
         self._process_and_assert_code_mapping(["sentry/utils/errors.js"], "app:///", "sentry/")
 
-    def test_starts_with_multiple_dot_dot_slash(self) -> None:
+    def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self) -> None:
         self._process_and_assert_code_mapping(["packages/api/src/response.ts"], "../../", "")
 
-    def test_starts_with_app_dot_dot_slash(self) -> None:
+    def test_auto_source_code_config_starts_with_app_dot_dot_slash(self) -> None:
         self._process_and_assert_code_mapping(["services/event/index.js"], "app:///../", "")
 
 
@@ -233,13 +233,13 @@ class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"in_app": True, "filename": "Users/JohnDoe/src/sentry/main.go"},
     ]
 
-    def test_go_abs_filename(self) -> None:
+    def test_auto_source_code_config_go_abs_filename(self) -> None:
         self._process_and_assert_code_mapping(["sentry/capybara.go"], "/Users/JohnDoe/code/", "")
 
-    def test_go_long_abs_filename(self) -> None:
+    def test_auto_source_code_config_go_long_abs_filename(self) -> None:
         self._process_and_assert_code_mapping(["sentry/kangaroo.go"], "/Users/JohnDoe/code/", "")
 
-    def test_similar_but_incorrect_file(self) -> None:
+    def test_auto_source_code_config_similar_but_incorrect_file(self) -> None:
         self._process_and_assert_no_code_mapping(["notsentry/main.go"])
 
 
@@ -251,10 +251,10 @@ class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.php"},
     ]
 
-    def test_basic_php(self) -> None:
+    def test_auto_source_code_config_basic_php(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.php"], "/", "")
 
-    def test_different_roots_php(self) -> None:
+    def test_auto_source_code_config_different_roots_php(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.php"], "/sentry/", "src/sentry/")
 
 
@@ -273,13 +273,13 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     #     ]
     # )
 
-    def test_csharp_trivial(self) -> None:
+    def test_auto_source_code_config_csharp_trivial(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.cs"], "/", "")
 
-    def test_different_roots_csharp(self) -> None:
+    def test_auto_source_code_config_different_roots_csharp(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.cs"], "/sentry/", "src/sentry/")
 
-    def test_non_in_app_frame(self) -> None:
+    def test_auto_source_code_config_non_in_app_frame(self) -> None:
         self._process_and_assert_no_code_mapping(["sentry/src/functions.cs"])
 
 
@@ -290,8 +290,8 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"in_app": True, "filename": "sentry/foo/bar.py"},
     ]
 
-    def test_stack_and_source_root_do_not_match(self) -> None:
+    def test_auto_source_code_config_stack_and_source_root_do_not_match(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/foo/bar.py"], "sentry/", "src/sentry/")
 
-    def test_no_normalization(self) -> None:
+    def test_auto_source_code_config_no_normalization(self) -> None:
         self._process_and_assert_code_mapping(["sentry/foo/bar.py"], "", "")
