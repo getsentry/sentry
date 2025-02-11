@@ -1,3 +1,5 @@
+import type {SentryTheme} from 'sentry/utils/theme';
+
 function _generateChonkTokens(colorScheme: typeof _chonkLightColors) {
   return {
     token: {
@@ -134,7 +136,7 @@ const _chonkShared = {
   },
 };
 
-const _chonkLightColors = {
+const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
   static: {
     black: '#181225',
@@ -216,7 +218,7 @@ const _chonkLightColors = {
   },
 };
 
-const _chonkDarkColors: typeof _chonkLightColors = {
+const darkColors: typeof lightColors = {
   static: {
     black: '#181225',
     white: '#FFFFFF',
@@ -294,4 +296,62 @@ const _chonkDarkColors: typeof _chonkLightColors = {
     pink200: '#FFF',
     pink100: '#FFF',
   },
+};
+
+const _chonkLightTheme: SentryTheme = {
+  black: lightColors.static.black,
+  white: lightColors.static.white,
+
+  // @TODO(jonasbadalic): why is this needed?
+  lightModeBlack: lightColors.static.black,
+  lightModeWhite: lightColors.static.white,
+
+  surface100: lightColors.dynamic.surface100,
+  surface200: lightColors.dynamic.surface200,
+  surface300: lightColors.dynamic.surface300,
+  surface400: lightColors.dynamic.surface400,
+
+  translucentSurface100: lightColors.dynamic.surface100,
+  translucentSurface200: lightColors.dynamic.surface200,
+
+  surface500: lightColors.dynamic.surface300,
+
+  gray500: lightColors.dynamic.grayOpaque500,
+  gray400: lightColors.dynamic.grayOpaque400,
+  gray300: lightColors.dynamic.grayOpaque300,
+  gray200: lightColors.dynamic.grayOpaque200,
+  gray100: lightColors.dynamic.grayOpaque100,
+
+  translucentGray200: lightColors.dynamic.grayTransparent200,
+  translucentGray100: lightColors.dynamic.grayTransparent100,
+
+  purple400: lightColors.dynamic.blurple400,
+  purple300: lightColors.dynamic.blurple300,
+  purple200: lightColors.dynamic.blurple200,
+  purple100: lightColors.dynamic.blurple100,
+
+  blue400: lightColors.dynamic.blurple400,
+  blue300: lightColors.dynamic.blurple300,
+  blue200: lightColors.dynamic.blurple200,
+  blue100: lightColors.dynamic.blurple100,
+
+  green400: lightColors.dynamic.green400,
+  green300: lightColors.dynamic.green300,
+  green200: lightColors.dynamic.green200,
+  green100: lightColors.dynamic.green100,
+
+  yellow400: lightColors.dynamic.gold400,
+  yellow300: lightColors.dynamic.gold300,
+  yellow200: lightColors.dynamic.gold200,
+  yellow100: lightColors.dynamic.gold100,
+
+  red400: lightColors.dynamic.red400,
+  red300: lightColors.dynamic.red300,
+  red200: lightColors.dynamic.red200,
+  red100: lightColors.dynamic.red100,
+
+  pink400: lightColors.dynamic.pink400,
+  pink300: lightColors.dynamic.pink300,
+  pink200: lightColors.dynamic.pink200,
+  pink100: lightColors.dynamic.pink100,
 };
