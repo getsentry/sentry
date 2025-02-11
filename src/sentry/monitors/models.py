@@ -508,7 +508,7 @@ class MonitorCheckIn(Model):
 
     date_clock = models.DateTimeField(null=True)
     """
-    Represents the "clock time" that this check in was recoreded at. Since the
+    Represents the "clock time" that this check in was recorded at. Since the
     stream of check-ins is processed within the context of a clock that only
     moves forward as we process kafka messages, this time represents the time
     at which we processed this check-in, in relation to all other tasks (such
