@@ -95,6 +95,7 @@ export function IssueDetailsEventNavigation({
     [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
     [EventNavOptions.LATEST]: t('Last'),
+    [EventNavOptions.CUSTOM]: t('Custom'),
   };
 
   const EventNavTooltips = {
