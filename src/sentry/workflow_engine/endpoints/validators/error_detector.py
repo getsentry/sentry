@@ -19,7 +19,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
     )
 
     def validate_detector_type(self, value: str):
-        detector_type = super().validate_group_type(value)
+        detector_type = super().validate_detector_type(value)
         if detector_type.slug != "error":
             raise serializers.ValidationError("Detector type must be error")
 
