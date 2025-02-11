@@ -15,7 +15,12 @@ from sentry.utils.registry import Registry
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowJob
-from sentry.workflow_engine.typings.notification_action import DiscordDataBlob
+from sentry.workflow_engine.typings.notification_action import (
+    ACTION_FIELD_MAPPINGS,
+    ActionFieldMapping,
+    ActionFieldMappingKeys,
+    DiscordDataBlob,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +31,52 @@ class BaseIssueAlertHandler(ABC):
     """
 
     @staticmethod
+    def get_integration_id(action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        if mapping.get(ActionFieldMappingKeys.INTEGRATION_ID_KEY.value):
+            return {mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value]: action.integration_id}
+        raise ValueError(f"No integration id key found for action type: {action.type}")
+
+    @classmethod
+    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
+            return {
+                mapping[
+                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                ]: action.target_identifier
+            }
+        raise ValueError(f"No target identifier key found for action type: {action.type}")
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        if mapping.get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value):
+            return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: action.target_display}
+        raise ValueError(f"No target display key found for action type: {action.type}")
+
+    @classmethod
     @abstractmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        """Add additional fields to the blob"""
+        raise NotImplementedError(
+            f"get_additional_fields not implemented for action type: {action.type}"
+        )
+
+    @classmethod
     def build_rule_action_blob(
+        cls,
         action: Action,
     ) -> dict[str, Any]:
-        """
-        Build the rule action blob from the Action model.
-        """
-        raise NotImplementedError
+        """Build the base action blob using the standard mapping"""
+        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
+        if mapping is None:
+            raise ValueError(f"No mapping found for action type: {action.type}")
+        blob: dict[str, Any] = {
+            "id": mapping["id"],
+        }
+        blob.update(cls.get_integration_id(action, mapping))
+        blob.update(cls.get_target_identifier(action, mapping))
+        blob.update(cls.get_target_display(action, mapping))
+        blob.update(cls.get_additional_fields(action, mapping))
+        return blob
 
     @classmethod
     def create_rule_instance_from_action(
@@ -135,12 +178,11 @@ issue_alert_handler_registry = Registry[BaseIssueAlertHandler]()
 
 @issue_alert_handler_registry.register(Action.Type.DISCORD)
 class DiscordIssueAlertHandler(BaseIssueAlertHandler):
-    @staticmethod
-    def build_rule_action_blob(action: Action) -> dict[str, Any]:
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         blob = DiscordDataBlob(**action.data)
-        return {
-            "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-            "server": action.integration_id,
-            "channel_id": action.target_identifier,
-            "tags": blob.tags,
-        }
+        return {"tags": blob.tags}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
