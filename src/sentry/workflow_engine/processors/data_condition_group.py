@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
@@ -23,7 +23,7 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
 
 def evaluate_condition_group_results(
     results: list[tuple[bool, DataConditionResult]],
-    logic_type: str,
+    logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionResult:
     logic_result = False
     condition_results = []
@@ -49,10 +49,9 @@ def evaluate_condition_group_results(
     return logic_result, condition_results
 
 
-# TODO - @saponifi3d - refactor the DataConditionGroup.Type (logic_type) so we can use it as a mypy type as well.
 def evaluate_data_conditions(
     conditions_to_evaluate: list[tuple[DataCondition, T]],
-    logic_type: str,
+    logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
@@ -86,9 +85,11 @@ def evaluate_data_conditions(
 
 def process_data_condition_group(
     data_condition_group_id: int,
-    value: Any,
+    value: T,
     is_fast: bool = True,
 ) -> DataConditionGroupResult:
+    invalid_group_result: DataConditionGroupResult = (False, []), []
+
     try:
         group = DataConditionGroup.objects.get_from_cache(id=data_condition_group_id)
     except DataConditionGroup.DoesNotExist:
@@ -96,7 +97,16 @@ def process_data_condition_group(
             "DataConditionGroup does not exist",
             extra={"id": data_condition_group_id},
         )
-        return (False, []), []
+        return invalid_group_result
+
+    try:
+        logic_type = DataConditionGroup.Type(group.logic_type)
+    except ValueError:
+        logger.exception(
+            "Invalid DataConditionGroup.logic_type found in process_data_condition_group",
+            extra={"logic_type": group.logic_type},
+        )
+        return invalid_group_result
 
     conditions = get_data_conditions_for_group(data_condition_group_id)
 
@@ -106,7 +116,6 @@ def process_data_condition_group(
         _, conditions = split_conditions_by_speed(conditions)
         remaining_conditions = []
 
-    logic_type = group.logic_type
     conditions_to_evaluate = [(condition, value) for condition in conditions]
     logic_result, condition_results = evaluate_data_conditions(conditions_to_evaluate, logic_type)
 
