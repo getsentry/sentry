@@ -28,6 +28,7 @@ import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -88,7 +89,10 @@ function ReplayPreviewPlayer({
         <LinkButton
           size="sm"
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+            pathname: makeReplaysPathname({
+              path: `/${replayId}/`,
+              organization,
+            }),
             query: {
               referrer: getRouteStringFromRoutes(routes),
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,

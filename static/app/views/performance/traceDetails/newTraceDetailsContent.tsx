@@ -35,13 +35,13 @@ import type {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
@@ -135,9 +135,10 @@ function NewTraceDetailsContent(props: Props) {
                 tooltipText=""
                 bodyText={
                   <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/replays/${replay_id}/`
-                    )}
+                    to={makeReplaysPathname({
+                      path: `/${replay_id}/`,
+                      organization,
+                    })}
                   >
                     <ReplayLinkBody>
                       {getShortEventId(replay_id)}
