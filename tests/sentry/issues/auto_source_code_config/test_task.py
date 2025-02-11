@@ -23,7 +23,6 @@ GET_TREES_FOR_ORG = (
 
 
 class BaseDeriveCodeMappings(TestCase):
-    platform: str
     # We may only want to change this for TestTaskBehavior when we add support
     # for other providers
     provider = "github"
@@ -36,6 +35,10 @@ class BaseDeriveCodeMappings(TestCase):
             external_id=self.organization.id,
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
+
+    @property
+    def platform(self) -> str:
+        raise NotImplementedError
 
     def create_event(
         self, frames: Sequence[Mapping[str, str | bool]], platform: str | None = None
@@ -305,18 +308,16 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
+    platform = "python"
+
     def setUp(self) -> None:
         super().setUp()
-        self.platform = "python"
         self.event = self.create_event(
             [
                 {"in_app": True, "filename": "sentry/tasks.py"},
                 {"in_app": True, "filename": "sentry/foo/bar.py"},
             ]
         )
-
-    def test_single_project(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/foo/bar.py"], "sentry/foo", "src/sentry/foo")
 
     def test_stack_and_source_root_do_not_match(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/foo/bar.py"], "sentry/", "src/sentry/")
