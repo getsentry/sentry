@@ -27,6 +27,9 @@ from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
 
+BACKOFF_INITIAL = 0.1
+BACKOFF_MAX = 5
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,6 +114,8 @@ class Symbolicator:
         task_id: str | None = None
         json_response = None
 
+        backoff = _Backoff(BACKOFF_INITIAL, BACKOFF_MAX)
+
         with session:
             while True:
                 try:
@@ -135,10 +140,13 @@ class Symbolicator:
                     # Symbolicator instance.
                     session.reset_worker_id()
                     task_id = None
+                    # Backoff on repeated failures to create or query a task.
+                    backoff.sleep_failure()
                     continue
                 finally:
                     self.on_request()
 
+                backoff.reset()
                 metrics.incr(
                     "events.symbolicator.response",
                     tags={
@@ -420,3 +428,32 @@ class SymbolicatorSession:
 
     def reset_worker_id(self):
         self.worker_id = uuid.uuid4().hex
+
+
+class _Backoff:
+    """
+    Creates a new exponential backoff.
+    """
+
+    def __init__(self, initial, max):
+        """
+        :param initial: The initial backoff time in seconds.
+        :param max: The maximum backoff time in seconds.
+        """
+        self.initial = initial
+        self.max = max
+        self._current = 0
+
+    def reset(self):
+        """
+        Resets the backoff time zero.
+        """
+        self._current = 0
+
+    def sleep_failure(self):
+        """
+        Sleeps until the next retry attempt and increases the backoff time for the next failure.
+        """
+        if self._current > 0:
+            time.sleep(self._current)
+        self._current = min(max(self._current * 2, self.initial), self.max)
