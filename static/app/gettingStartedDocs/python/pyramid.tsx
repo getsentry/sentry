@@ -5,7 +5,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -111,9 +110,7 @@ if __name__ == '__main__':
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,

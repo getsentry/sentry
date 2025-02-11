@@ -22,8 +22,8 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
-import {IssueCheckInTimeline} from 'sentry/views/issueDetails/streamline/issueCheckInTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
+import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
@@ -113,8 +113,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} project={project} event={event} />
             )}
-            {issueTypeConfig.header.graph.type === 'checkin-timeline' && (
-              <IssueCheckInTimeline group={group} />
+            {issueTypeConfig.header.graph.type === 'uptime-checks' && (
+              <IssueUptimeCheckTimeline group={group} />
             )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview

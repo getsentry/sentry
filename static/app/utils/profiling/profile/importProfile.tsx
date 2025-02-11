@@ -135,8 +135,7 @@ function importSentrySampledProfile(
     Profiling.SentrySampledProfile['profile']['samples']
   > = {};
 
-  for (let i = 0; i < input.profile.samples.length; i++) {
-    const sample = input.profile.samples[i]!;
+  for (const sample of input.profile.samples) {
     if (!samplesByThread[sample.thread_id]) {
       samplesByThread[sample.thread_id] = [];
     }
@@ -259,9 +258,7 @@ export function importSentryContinuousProfileChunk(
 
   const minTimestamp = minTimestampInChunk(input.profile, input.measurements);
 
-  for (let i = 0; i < input.profile.samples.length; i++) {
-    const sample = input.profile.samples[i]!;
-
+  for (const sample of input.profile.samples) {
     if (!samplesByThread[sample.thread_id]) {
       samplesByThread[sample.thread_id] = [];
     }

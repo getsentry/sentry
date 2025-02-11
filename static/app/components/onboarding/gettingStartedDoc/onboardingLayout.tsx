@@ -157,7 +157,7 @@ export function OnboardingLayout({
               onLoad={onProductSelectionLoad}
             />
           )}
-          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
+          {platformOptions ? (
             <PlatformOptionsControl
               platformOptions={platformOptions}
               onChange={onPlatformOptionsChange}

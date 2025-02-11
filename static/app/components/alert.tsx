@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
@@ -18,11 +19,9 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
-  type?: 'muted' | 'info' | 'warning' | 'success' | 'error';
 }
 
 export function Alert({
-  type = 'info',
   showIcon,
   icon,
   opaque,
@@ -32,6 +31,7 @@ export function Alert({
   trailingItems,
   className,
   children,
+  type,
   ...props
 }: AlertProps) {
   const theme = useTheme();
@@ -64,7 +64,6 @@ export function Alert({
 
   return (
     <AlertContainer
-      type={type}
       system={system}
       opaque={opaque}
       expand={expand}
@@ -74,6 +73,7 @@ export function Alert({
       hovered={isHovered && !expandIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
       alertColors={getAlertColors(theme, type)}
+      type={type}
       {...hoverProps}
       {...props}
     >
@@ -180,7 +180,9 @@ const AlertContainer = styled('div')<
           ${p.alertColors.backgroundLight}),
           linear-gradient(${p.theme.background}, ${p.theme.background}
         )`
-      : `${p.alertColors.backgroundLight}`};
+      : `
+          ${p.alertColors.backgroundLight}
+        `};
 
   a:not([role='button']) {
     color: ${p => p.alertColors.color};
@@ -200,19 +202,24 @@ const AlertContainer = styled('div')<
     margin: ${space(0.5)} 0 0;
   }
 
-  ${p => p.hovered && `border-color: ${p.alertColors.borderHover};`}
+  ${p =>
+    p.hovered &&
+    css`
+      border-color: ${p.alertColors.borderHover};
+    `}
 
   ${p =>
     p.expand &&
-    `cursor: pointer;
+    css`
+      cursor: pointer;
       ${TrailingItems} {
-       cursor: auto;
+        cursor: auto;
       }
     `}
 
   ${p =>
     p.system &&
-    `
+    css`
       border-width: 0 0 1px 0;
       border-radius: 0;
     `}
@@ -270,7 +277,7 @@ function unreachable(x: never) {
   return x;
 }
 
-function AlertIcon({type}: {type: NonNullable<AlertProps['type']>}): React.ReactNode {
+function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {
     case 'warning':
       return <IconWarning />;

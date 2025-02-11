@@ -638,8 +638,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           queue.push(next.head);
         }
 
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]!);
+        for (const child of next.children) {
+          queue.push(child);
         }
       }
     }

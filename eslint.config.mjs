@@ -92,6 +92,10 @@ const restrictedImportPaths = [
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
   },
   {
+    name: 'react-select',
+    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+  },
+  {
     name: 'sentry/utils/withSentryRouter',
     message:
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
@@ -107,7 +111,7 @@ const restrictedImportPaths = [
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
-const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
+const ecmaVersion = 'latest';
 
 export default typescript.config([
   {
@@ -432,7 +436,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [

@@ -21,6 +21,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
 
+from .constants import SUPPORTED_LANGUAGES
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
@@ -62,6 +63,9 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
         logger.error("Event not found.", extra=extra)
         return
 
+    if not supported_platform(event.platform):
+        return
+
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
         return
@@ -72,12 +76,12 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
         set_project_codemappings(code_mappings, installation, project)
-    except InstallationNotFoundError:
-        logger.info("No installation or organization integration found.", extra=extra)
-        return
-    except InstallationCannotGetTreesError:
-        logger.info("Installation does not have required method get_trees_for_org", extra=extra)
-        return
+    except (InstallationNotFoundError, InstallationCannotGetTreesError):
+        pass
+
+
+def supported_platform(platform: str | None) -> bool:
+    return (platform or "") in SUPPORTED_LANGUAGES
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -125,18 +129,14 @@ def get_trees_for_org(
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
     if not hasattr(installation, "get_trees_for_org"):
-        # XXX: We should not get to this point, thus, report it as an error
-        logger.error(
-            "Installation does not have required method get_trees_for_org",
-            extra={"installation_type": type(installation).__name__, **extra},
-        )
         return trees
 
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
     with SCMIntegrationInteractionEvent(
-        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS, provider_key=installation.model.provider
+        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+        provider_key=installation.model.provider,
     ).capture() as lifecycle:
         try:
             with lock.acquire():
@@ -147,8 +147,7 @@ def get_trees_for_org(
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
         except UnableToAcquireLock as error:
-            extra["error"] = str(error)
-            lifecycle.record_failure(error, extra)
+            lifecycle.record_halt(error, extra)
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
 

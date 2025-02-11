@@ -1,8 +1,8 @@
-import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';

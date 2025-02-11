@@ -11,9 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -46,7 +44,6 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
-  project,
   ...fieldProps
 }: Props) {
   const menuOptions: GroupedMenuOption[] = [
@@ -111,14 +108,7 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
-        ...(hasCustomMetrics(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.custom_transactions,
-                value: 'custom_transactions' as const,
-              },
-            ]
-          : []),
+
         ...(hasEAPAlerts(organization)
           ? [
               {
@@ -140,17 +130,12 @@ export default function WizardField({
       ],
     },
     {
-      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
+      label: t('CUSTOM'),
       options: [
-        hasCustomMetrics(organization)
-          ? {
-              label: AlertWizardAlertNames.custom_metrics,
-              value: 'custom_metrics',
-            }
-          : {
-              label: AlertWizardAlertNames.custom_transactions,
-              value: 'custom_transactions',
-            },
+        {
+          label: AlertWizardAlertNames.custom_transactions,
+          value: 'custom_transactions',
+        },
       ],
     },
   ];
@@ -160,7 +145,7 @@ export default function WizardField({
       {({onChange, model, disabled}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
-        const selectedTemplate: AlertType = alertType || 'custom_metrics';
+        const selectedTemplate: AlertType = alertType || 'eap_metrics';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -204,13 +189,7 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {alertType === 'custom_metrics' ? (
-              <MriField
-                project={project}
-                aggregate={aggregate}
-                onChange={newAggregate => onChange(newAggregate, {})}
-              />
-            ) : alertType === 'eap_metrics' ? (
+            {alertType === 'eap_metrics' ? (
               <EAPField
                 aggregate={aggregate}
                 onChange={newAggregate => {

@@ -7,7 +7,6 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {getTickStyle} from 'sentry/components/checkInTimeline/utils/getTickStyle';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -16,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -35,15 +33,16 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {
   CheckStatus,
   type CheckStatusBucket,
   type UptimeRule,
 } from 'sentry/views/alerts/rules/uptime/types';
-import {tickStyle} from 'sentry/views/insights/uptime/timelineConfig';
 
 import {DetailsTimeline} from './detailsTimeline';
 import {StatusToggleButton} from './statusToggleButton';
+import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
@@ -158,10 +157,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
         <Layout.Main>
           <StyledPageFilterBar condensed>
             <DatePageFilter />
-            <EnvironmentPageFilter />
           </StyledPageFilterBar>
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
+          <UptimeChecksTable uptimeRule={uptimeRule} />
         </Layout.Main>
         <Layout.Side>
           <SectionHeading>{t('Checked URL')}</SectionHeading>
@@ -272,15 +271,6 @@ const CheckLegendItem = styled('li')`
   grid-template-columns: subgrid;
   align-items: center;
   grid-column: 1 / -1;
-`;
-
-const CheckIndicator = styled('div')<{status: CheckStatus}>`
-  display: inline-block;
-  position: relative;
-  border-radius: 50%;
-  height: 12px;
-  width: 12px;
-  ${p => getTickStyle(tickStyle, p.status, p.theme)}
 `;
 
 const LegendText = styled(Text)`

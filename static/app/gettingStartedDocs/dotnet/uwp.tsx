@@ -14,7 +14,6 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -244,7 +243,6 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
   crashReportOnboarding,
 };
 

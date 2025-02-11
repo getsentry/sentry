@@ -52,7 +52,7 @@ export function OnDemandMetricAlert({
   }
 
   return (
-    <InfoAlert showIcon>
+    <InfoAlert type="info" showIcon>
       {message}
       {dismissable && (
         <DismissButton
@@ -67,6 +67,7 @@ export function OnDemandMetricAlert({
   );
 }
 
+// @TODO(jonasbadalic): Why cant this just be Alert type=info?
 const InfoAlert = styled(Alert)`
   display: flex;
   align-items: flex-start;

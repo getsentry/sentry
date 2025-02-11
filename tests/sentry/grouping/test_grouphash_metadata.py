@@ -143,11 +143,17 @@ def _assert_and_snapshot_results(
 
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
-            GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata)
+            GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata),
+            event.platform,
         )
 
         metric_names = [call.args[0] for call in mock_metrics_incr.mock_calls]
         tags = [call.kwargs["tags"] for call in mock_metrics_incr.mock_calls]
+        # Filter out all the `platform` tags, because many of the inputs don't have a `platform`
+        # value, so we're going to get a lot of Nones. The fact that we're not providing a default
+        # value to `pop` also ensures that if `platform` is ever missing from the tags, this test
+        # will error out.
+        [t.pop("platform") for t in tags]
         metrics_data = dict(zip(metric_names, tags))
 
         expected_metric_names = ["grouping.grouphashmetadata.event_hash_basis"]

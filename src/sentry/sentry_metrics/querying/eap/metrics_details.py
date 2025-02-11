@@ -19,7 +19,6 @@ def get_eap_meta(projects: list[Project]) -> list[MetricMeta]:
                 operations=["sum", "avg", "p50", "p95", "p99", "count"],
                 projectIds=eap_spans_project_ids,
                 mri="d:eap/eap.measurement@none",
-                blockingStatus=[],
             )
         )
     return metrics

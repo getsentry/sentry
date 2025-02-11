@@ -38,10 +38,8 @@ def trim(
     value,
     max_size=settings.SENTRY_MAX_VARIABLE_SIZE,
     max_depth=6,
-    object_hook=None,
     _depth=0,
     _size=0,
-    **kwargs,
 ):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
@@ -51,7 +49,6 @@ def trim(
     options = {
         "max_depth": max_depth,
         "max_size": max_size,
-        "object_hook": object_hook,
         "_depth": _depth + 1,
     }
 
@@ -89,9 +86,7 @@ def trim(
     else:
         result = value
 
-    if object_hook is None:
-        return result
-    return object_hook(result)
+    return result
 
 
 def get_path(data: PathSearchable, *path, should_log=False, **kwargs):

@@ -23,7 +23,6 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
   'ourlogs-enabled',
@@ -72,9 +71,9 @@ describe('Nav', function () {
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).getAllByRole('link');
-      expect(links).toHaveLength(6);
+      expect(links).toHaveLength(5);
 
-      ['Issues', 'Explore', 'Boards', 'Insights', 'Stats', 'Settings'].forEach(
+      ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
         (title, index) => {
           expect(links[index]).toHaveAccessibleName(title);
         }
@@ -218,9 +217,8 @@ describe('Nav', function () {
       ).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Explore'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Boards'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Dashboards'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Insights'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Stats'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Settings'})).toBeInTheDocument();
 
       // Tapping one of the primary navigation items should close the menu

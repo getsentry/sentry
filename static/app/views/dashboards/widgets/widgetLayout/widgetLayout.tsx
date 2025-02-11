@@ -12,19 +12,23 @@ export interface WidgetLayoutProps {
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
-  forceShowActions?: boolean;
+  borderless?: boolean;
   height?: number;
   noFooterPadding?: boolean;
   noHeaderPadding?: boolean;
   noVisualizationPadding?: boolean;
+  revealActions?: 'hover' | 'always';
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
+  const {revealActions = 'hover'} = props;
+
   return (
     <Frame
       aria-label={props.ariaLabel}
       height={props.height}
-      forceShowActions={props.forceShowActions}
+      borderless={props.borderless}
+      revealActions={revealActions}
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
@@ -56,7 +60,11 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
+const Frame = styled('div')<{
+  borderless?: boolean;
+  height?: number;
+  revealActions?: 'always' | 'hover';
+}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -67,21 +75,21 @@ const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
   min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.border}`)};
 
   background: ${p => p.theme.background};
 
-  :hover {
-    background-color: ${p => p.theme.surface200};
-    transition:
-      background-color 100ms linear,
-      box-shadow 100ms linear;
-    box-shadow: ${p => p.theme.dropShadowLight};
-  }
-
   ${p =>
-    !p.forceShowActions &&
+    p.revealActions === 'hover' &&
     css`
+      :hover {
+        background-color: ${p.theme.surface200};
+        transition:
+          background-color 100ms linear,
+          box-shadow 100ms linear;
+        box-shadow: ${p.theme.dropShadowLight};
+      }
+
       &:not(:hover):not(:focus-within) {
         ${TitleHoverItems} {
           opacity: 0;
