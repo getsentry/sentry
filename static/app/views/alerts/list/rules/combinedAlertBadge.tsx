@@ -59,9 +59,16 @@ const CronsStatusText: Record<
 export default function CombinedAlertBadge({rule}: Props) {
   if (rule.type === CombinedAlertType.UPTIME) {
     const {statusText, incidentStatus} = UptimeStatusText[rule.uptimeStatus];
+    const disabled = rule.status === 'disabled';
     return (
-      <Tooltip title={tct('Uptime Alert Status: [statusText]', {statusText})}>
-        <AlertBadge status={incidentStatus} isDisabled={rule.status === 'disabled'} />
+      <Tooltip
+        title={
+          disabled
+            ? t('Uptime monitor disabled')
+            : tct('Uptime Alert Status: [statusText]', {statusText})
+        }
+      >
+        <AlertBadge status={incidentStatus} isDisabled={disabled} />
       </Tooltip>
     );
   }
@@ -70,7 +77,13 @@ export default function CombinedAlertBadge({rule}: Props) {
     const envStatus = getAggregateEnvStatus(rule.environments);
     const {statusText, incidentStatus, disabled} = CronsStatusText[envStatus];
     return (
-      <Tooltip title={tct('Cron Monitor Status: [statusText]', {statusText})}>
+      <Tooltip
+        title={
+          disabled
+            ? t('Cron Monitor Disabled')
+            : tct('Cron Monitor Status: [statusText]', {statusText})
+        }
+      >
         <AlertBadge status={incidentStatus} isDisabled={disabled} />
       </Tooltip>
     );
