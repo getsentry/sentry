@@ -516,11 +516,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>
