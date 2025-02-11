@@ -42,10 +42,10 @@ class BaseDeriveCodeMappings(TestCase):
     def platform(self) -> str:
         raise NotImplementedError
 
-    # # XXX: Change the return type to be a typed dict
-    # @property
-    # def stacktrace(self) -> list[dict[str, str | bool]]:
-    #     raise NotImplementedError
+    # XXX: Change the return type to be a typed dict
+    @property
+    def frames(self) -> list[dict[str, str | bool]]:
+        raise NotImplementedError
 
     def create_event(
         self, frames: Sequence[Mapping[str, str | bool]], platform: str | None = None
@@ -102,6 +102,9 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
+    platform = "not-used"
+    frames = []
+
     def test_skips_not_supported_platforms(self) -> None:
         event = self.create_event([{}], platform="elixir")
         assert event.group_id is not None
@@ -146,20 +149,15 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
 class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "python"
-
-    def setUp(self) -> None:
-        super().setUp()
-        # The lack of a \ after the drive letter in the third frame signals that
-        # this is a relative path. This may be unlikely to occur in practice,
-        # but worth testing nonetheless.
-        self.event = self.create_event(
-            [
-                {"in_app": True, "filename": "\\sentry\\mouse.py"},
-                {"in_app": True, "filename": "\\sentry\\dog\\cat\\parrot.py"},
-                {"in_app": True, "filename": "C:sentry\\tasks.py"},
-                {"in_app": True, "filename": "D:\\Users\\code\\sentry\\models\\release.py"},
-            ]
-        )
+    # The lack of a \ after the drive letter in the third frame signals that
+    # this is a relative path. This may be unlikely to occur in practice,
+    # but worth testing nonetheless.
+    frames = [
+        {"in_app": True, "filename": "\\sentry\\mouse.py"},
+        {"in_app": True, "filename": "\\sentry\\dog\\cat\\parrot.py"},
+        {"in_app": True, "filename": "C:sentry\\tasks.py"},
+        {"in_app": True, "filename": "D:\\Users\\code\\sentry\\models\\release.py"},
+    ]
 
     def test_backslash_filename_simple(self) -> None:
         self._process_and_assert_code_mapping(["sentry/mouse.py"], "\\", "")
