@@ -19,7 +19,7 @@ export function isNotSharedOrganization(
 }
 
 export type DeepPartial<T> =
-  T extends Record<PropertyKey, unknown>
+  T extends Record<PropertyKey, any>
     ? {
         [P in keyof T]?: DeepPartial<T[P]>;
       }
