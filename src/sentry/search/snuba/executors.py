@@ -165,7 +165,7 @@ def get_search_filter(
         # <, <=, >, >=
         if search_filter.key.name == name and search_filter.operator.startswith(operator):
             val = search_filter.value.raw_value
-            found_val = comparator(val, found_val) if found_val else val
+            found_val = comparator(val, found_val) if found_val else val  # type: ignore[type-var]  # SearchFilter is an unsound union
     return found_val
 
 

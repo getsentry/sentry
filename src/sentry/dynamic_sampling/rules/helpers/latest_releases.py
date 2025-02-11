@@ -228,7 +228,7 @@ class ProjectBoostedReleases:
                 #
                 # We run this logic while counting the number of active release so that we can remove the lrb release
                 # in O(1) in case the number of active releases is >= the limit.
-                if lrb_release is None or timestamp < lrb_release.timestamp:  # type: ignore[unreachable]
+                if lrb_release is None or timestamp < lrb_release.timestamp:
                     lrb_release = LRBRelease(key=boosted_release_key, timestamp=timestamp)
                 # We count this release because it is an active release.
                 active_releases += 1
