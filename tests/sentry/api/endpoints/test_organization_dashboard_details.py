@@ -3079,7 +3079,6 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "widgets": [
                 {**widget, "widgetType": "issue"},
                 {**widget, "widgetType": "metrics"},
-                {**widget, "widgetType": "custom-metrics"},
             ],
         }
 

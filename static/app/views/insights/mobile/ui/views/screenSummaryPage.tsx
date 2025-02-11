@@ -38,14 +38,14 @@ function ScreenSummary() {
   const organization = useOrganization();
   const {transaction: transactionName} = location.query;
 
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <MobileHeader
           hideDefaultTabs={isMobileScreensEnabled}
-          module={ModuleName.MOBILE_SCREENS}
+          module={ModuleName.MOBILE_VITALS}
           headerTitle={transactionName}
           breadcrumbs={[
             {
@@ -71,26 +71,21 @@ export function ScreenSummaryContent() {
   const {transaction: transactionName, spanGroup} = location.query;
 
   useSamplesDrawer({
-    Component: (
-      <SpanSamplesPanel
-        groupId={spanGroup}
-        moduleName={ModuleName.OTHER}
-        onClose={() => {
-          router.replace({
-            pathname: router.location.pathname,
-            query: omit(
-              router.location.query,
-              'spanGroup',
-              'transactionMethod',
-              'spanDescription',
-              'spanOp'
-            ),
-          });
-        }}
-      />
-    ),
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.OTHER} />,
     moduleName: ModuleName.OTHER,
     requiredParams: ['spanGroup', 'spanOp'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(
+          router.location.query,
+          'spanGroup',
+          'transactionMethod',
+          'spanDescription',
+          'spanOp'
+        ),
+      });
+    },
   });
 
   return (
@@ -109,8 +104,8 @@ export function ScreenSummaryContent() {
         <SamplesTables
           transactionName={transactionName}
           SpanOperationTable={SpanOperationTable}
-          // TODO(nar): Add event samples component specific to ui module
-          EventSamples={_props => <div />}
+          // for now, let's only show the span ops table
+          EventSamples={undefined}
         />
       </SamplesContainer>
     </Fragment>

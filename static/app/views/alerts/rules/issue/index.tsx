@@ -1,6 +1,5 @@
 import type {ChangeEvent, ReactNode} from 'react';
 import {Fragment} from 'react';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -24,6 +23,7 @@ import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -79,7 +79,7 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getProjectOptions} from '../utils';
 
@@ -282,10 +282,10 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       ]);
     }
 
-    return endpoints as [string, string][];
+    return endpoints as Array<[string, string]>;
   }
 
-  onRequestSuccess({stateKey, data}) {
+  onRequestSuccess({stateKey, data}: any) {
     if (stateKey === 'rule' && data.name) {
       this.props.onChangeTitle?.(data.name);
     }
@@ -648,7 +648,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     type: ConfigurationKey,
     id: string
   ): IssueAlertConfiguration[ConfigurationKey] => {
-    const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+    const configuration = this.state.configs?.[type]?.find((c: any) => c.id === id);
 
     const hasChangeAlerts =
       configuration?.id &&
@@ -680,7 +680,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
-      const id = (clonedState.rule as IssueAlertRule)[type]![idx]!.id;
+      const id = (clonedState.rule as IssueAlertRule)[type][idx]!.id;
       const newRule = {
         ...this.getInitialValue(type, id),
         id,
@@ -806,6 +806,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
         ? {
             ...condition,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
           }
         : condition
@@ -1028,13 +1029,13 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         required
         disabled={disabled}
       >
-        {({onChange, onBlur}) => (
+        {({onChange, onBlur}: any) => (
           <SelectControl
             clearable={false}
             disabled={disabled}
             value={environment}
             options={environmentOptions}
-            onChange={({value}) => {
+            onChange={({value}: any) => {
               this.handleEnvironmentChange(value);
               onChange(value, {});
               onBlur(value, {});
@@ -1062,7 +1063,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         style={{padding: 0}}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const selectedProject =
             projects.find(({id}) => id === model.getValue('projectId')) ||
             _selectedProject;
@@ -1100,7 +1101,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                 onBlur(value, {});
               }}
               components={{
-                SingleValue: containerProps => (
+                SingleValue: (containerProps: any) => (
                   <components.ValueContainer {...containerProps}>
                     <IdBadge
                       project={selectedProject}
@@ -1134,13 +1135,13 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         disabled={disabled}
         flexibleControlStateSize
       >
-        {({onChange, onBlur}) => (
+        {({onChange, onBlur}: any) => (
           <SelectControl
             clearable={false}
             disabled={disabled}
             value={`${frequency}`}
             options={FREQUENCY_OPTIONS}
-            onChange={({value}) => {
+            onChange={({value}: any) => {
               this.handleChange('frequency', value);
               onChange(value, {});
               onBlur(value, {});
@@ -1182,7 +1183,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           orgSlug={organization.slug}
           projectSlug={project.slug}
         />
-        <PermissionAlert access={['alerts:write']} project={project} />
+        <ProjectPermissionAlert access={['alerts:write']} project={project} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}
@@ -1261,7 +1262,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                                       error: this.hasError('actionMatch'),
                                     })}
                                     styles={{
-                                      control: provided => ({
+                                      control: (provided: any) => ({
                                         ...provided,
                                         minHeight: '21px',
                                         height: '21px',
@@ -1274,7 +1275,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                                     required
                                     flexibleControlStateSize
                                     options={ACTION_MATCH_OPTIONS_MIGRATED}
-                                    onChange={val =>
+                                    onChange={(val: any) =>
                                       this.handleChange('actionMatch', val)
                                     }
                                     size="xs"
@@ -1350,7 +1351,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                                     error: this.hasError('filterMatch'),
                                   })}
                                   styles={{
-                                    control: provided => ({
+                                    control: (provided: any) => ({
                                       ...provided,
                                       minHeight: '21px',
                                       height: '21px',
@@ -1363,7 +1364,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                                   required
                                   flexibleControlStateSize
                                   options={ACTION_MATCH_OPTIONS}
-                                  onChange={val => this.handleChange('filterMatch', val)}
+                                  onChange={(val: any) =>
+                                    this.handleChange('filterMatch', val)
+                                  }
                                   size="xs"
                                   disabled={disabled}
                                 />

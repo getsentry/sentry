@@ -3,7 +3,12 @@ from __future__ import annotations
 from enum import Enum
 from multiprocessing.context import TimeoutError
 
-from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DEADLETTER,
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
+    OnAttemptsExceeded,
+    RetryState,
+)
 
 
 class RetryError(Exception):
@@ -16,6 +21,13 @@ class RetryError(Exception):
 class LastAction(Enum):
     Deadletter = 1
     Discard = 2
+
+    def to_proto(self) -> OnAttemptsExceeded.ValueType:
+        if self == LastAction.Deadletter:
+            return ON_ATTEMPTS_EXCEEDED_DEADLETTER
+        if self == LastAction.Discard:
+            return ON_ATTEMPTS_EXCEEDED_DISCARD
+        raise ValueError(f"Unknown LastAction: {self}")
 
 
 class Retry:
@@ -59,11 +71,6 @@ class Retry:
     def initial_state(self) -> RetryState:
         return RetryState(
             attempts=0,
-            discard_after_attempt=(
-                self._times if self._times_exceeded == LastAction.Discard else None
-            ),
-            deadletter_after_attempt=(
-                self._times if self._times_exceeded == LastAction.Deadletter else None
-            ),
-            kind="sentry.taskworker.retry.Retry",
+            max_attempts=self._times,
+            on_attempts_exceeded=self._times_exceeded.to_proto(),
         )

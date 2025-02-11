@@ -193,9 +193,9 @@ function Chart({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0]!, colors[1]!],
+    colors: [colors[0], colors[1]!],
     tooltip: {
-      valueFormatter: (value, seriesName) => {
+      valueFormatter: (value: any, seriesName: any) => {
         return tooltipFormatter(
           value,
           aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)

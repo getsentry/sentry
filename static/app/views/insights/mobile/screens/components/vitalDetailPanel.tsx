@@ -78,7 +78,7 @@ const VitalDetailTitle = styled('h4')`
   margin-bottom: ${space(1)};
 `;
 
-const Badge = styled('div')<{status: string}>`
+const Badge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   white-space: nowrap;
   border-radius: 12px;
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};

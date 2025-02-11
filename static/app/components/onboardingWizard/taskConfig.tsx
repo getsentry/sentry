@@ -21,8 +21,9 @@ import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -301,12 +302,13 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'action',
       action: router => {
-        router.push(
-          normalizeUrl({
-            pathname: `/organizations/${organization.slug}/replays/`,
-            query: {referrer: 'onboarding_task'},
-          })
-        );
+        router.push({
+          pathname: makeReplaysPathname({
+            path: '/',
+            organization,
+          }),
+          query: {referrer: 'onboarding_task'},
+        });
         // Since the quick start panel is already open and closes on route change
         // Wait for the next tick to open the replay onboarding panel
         setTimeout(() => {
@@ -365,7 +367,9 @@ export function getOnboardingTasks({
 
 export function getMergedTasks({organization, projects, onboardingContext}: Options) {
   const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
-  const serverTasks = organization.onboardingTasks;
+  const serverTasks = isDemoModeEnabled()
+    ? getDemoWalkthroughTasks()
+    : organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
   const allTasks = taskDescriptors.map(

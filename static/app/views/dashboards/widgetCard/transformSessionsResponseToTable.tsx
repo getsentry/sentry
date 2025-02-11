@@ -1,6 +1,5 @@
 import omit from 'lodash/omit';
 
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
@@ -15,6 +14,7 @@ export function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
 ) {
   return Object.keys(obj ?? {}).reduce((acc, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[key] = SESSIONS_TAGS.includes(key) ? 'string' : aggregateOutputType(key);
     return acc;
   }, {});
@@ -28,7 +28,11 @@ export function mapDerivedMetricsToFields(results: Record<string, number | null>
   return mappedResults;
 }
 
-export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
+export function getDerivedMetrics(
+  groupBy: any,
+  totals: any,
+  requestedStatusMetrics: any
+) {
   const derivedTotals = {};
   if (!requestedStatusMetrics.length) {
     return derivedTotals;
@@ -36,16 +40,19 @@ export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
   if (groupBy['session.status'] === undefined) {
     return derivedTotals;
   }
-  requestedStatusMetrics.forEach(status => {
+  requestedStatusMetrics.forEach((status: any) => {
     const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
     if (result) {
       if (groupBy['session.status'] === result[1]) {
         if (result[2] === 'session') {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           derivedTotals[status] = totals['sum(session)'];
         } else if (result[2] === 'user') {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           derivedTotals[status] = totals['count_unique(user)'];
         }
       } else {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         derivedTotals[status] = 0;
       }
     }
@@ -54,13 +61,14 @@ export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
 }
 
 export function transformSessionsResponseToTable(
-  response: SessionApiResponse | MetricsApiResponse | null,
+  response: SessionApiResponse | null,
   requestedStatusMetrics: string[],
   injectedFields: string[]
 ): TableData {
   const data =
     response?.groups.map((group, index) => ({
       id: String(index),
+      // @ts-expect-error TS(2345): Argument of type 'Record<string, string> | Record<... Remove this comment to see the full error message
       ...mapDerivedMetricsToFields(group.by),
       // if `sum(session)` or `count_unique(user)` are not
       // requested as a part of the payload for

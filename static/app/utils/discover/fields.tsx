@@ -3,10 +3,8 @@ import isEqual from 'lodash/isEqual';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
-import type {MetricType} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -59,10 +57,7 @@ type ValidateColumnValueFunction = (data: {
   name: string;
 }) => boolean;
 
-export type ValidateColumnTypes =
-  | ColumnType[]
-  | MetricType[]
-  | ValidateColumnValueFunction;
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
@@ -81,7 +76,7 @@ export type AggregateParameter =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       defaultValue?: string;
       placeholder?: string;
@@ -647,7 +642,7 @@ export type Aggregation = {
   /**
    * List of parameters for the function.
    */
-  parameters: Readonly<AggregateParameter[]>;
+  parameters: readonly AggregateParameter[];
   getFieldOverrides?: (
     data: DefaultValueInputs
   ) => Partial<Omit<AggregateParameter, 'kind'>>;
@@ -794,7 +789,7 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
-export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const TRANSACTION_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
@@ -810,7 +805,7 @@ export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
   f => !TRANSACTION_ONLY_FIELDS.includes(f)
 );
 
-export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const ERROR_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.LOCATION,
   FieldKey.EVENT_TYPE,
   FieldKey.ERROR_TYPE,
@@ -858,6 +853,7 @@ export function isMeasurement(field: string): boolean {
 
 export function measurementType(field: string): MeasurementType {
   if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
@@ -1024,7 +1020,9 @@ export function generateAggregateFields(
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
-    const parameters = AGGREGATIONS[func].parameters.map(param => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -1035,9 +1033,9 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
       const newField = `${func}(${parameters
-        .map(param => param.defaultValue)
+        .map((param: any) => param.defaultValue)
         .join(',')})`;
       if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
@@ -1228,6 +1226,7 @@ export function aggregateFunctionOutputType(
   firstArg: string | undefined
 ): AggregationOutputType | null {
   const aggregate =
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1244,6 +1243,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1251,7 +1251,9 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1278,6 +1280,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1316,6 +1319,7 @@ export function sessionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1332,6 +1336,7 @@ export function sessionsAggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1353,6 +1358,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return AGGREGATIONS[result.name].multiPlotType;
 }
 
@@ -1407,9 +1413,7 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
-  if (isMRIField(columnName)) {
-    return 'right';
-  }
+
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1427,7 +1431,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricType) {
+export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

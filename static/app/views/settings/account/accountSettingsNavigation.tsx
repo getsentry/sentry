@@ -7,7 +7,12 @@ type Props = {
 };
 
 function AccountSettingsNavigation({organization}: Props) {
-  return <SettingsNavigation navigationObjects={getConfiguration({organization})} />;
+  return (
+    <SettingsNavigation
+      organization={organization}
+      navigationObjects={getConfiguration({organization})}
+    />
+  );
 }
 
 export default AccountSettingsNavigation;

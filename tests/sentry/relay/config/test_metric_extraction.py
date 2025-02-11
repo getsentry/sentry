@@ -2066,7 +2066,6 @@ def _on_demand_spec_from_widget(
 
 
 def _on_demand_spec_from_alert(project: Project, alert: AlertRule) -> OnDemandMetricSpec:
-    assert alert.snuba_query is not None
     return fetch_on_demand_metric_spec(
         project.organization.id,
         field=alert.snuba_query.aggregate,

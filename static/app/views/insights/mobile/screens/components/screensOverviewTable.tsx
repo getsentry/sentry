@@ -25,13 +25,13 @@ type Props = {
 };
 
 function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
-  const moduleURL = useModuleURL('mobile-screens');
+  const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const screenRenderingModuleUrl = useModuleURL(ModuleName.SCREEN_RENDERING);
 
   const organization = useOrganization();
   const location = useLocation();
 
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   const columnNameMap = {
     transaction: t('Screen'),
@@ -54,7 +54,7 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     [`avg(measurements.time_to_full_display)`]: t('Average Time to Full Display'),
   };
 
-  function renderBodyCell(column, row): React.ReactNode | null {
+  function renderBodyCell(column: any, row: any): React.ReactNode | null {
     if (!data) {
       return null;
     }

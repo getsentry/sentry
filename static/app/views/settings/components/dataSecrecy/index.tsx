@@ -152,7 +152,7 @@ export default function DataSecrecy() {
         : undefined,
     value: allowDateFormData,
     onBlur: updateTempAccessDate,
-    onChange: v => {
+    onChange: (v: any) => {
       // Don't allow the user to set the date if they have allowed access
       if (allowAccess) {
         return;
@@ -169,17 +169,17 @@ export default function DataSecrecy() {
       <PanelHeader>{t('Support Access')}</PanelHeader>
       <PanelBody>
         {!allowAccess && (
-          <PanelAlert>
+          <PanelAlert type="info">
             {waiver?.accessEnd && moment().isBefore(moment(waiver.accessEnd))
               ? tct(`Sentry employees has access to your organization until [date]`, {
-                  date: formatDateTime(waiver?.accessEnd as string),
+                  date: formatDateTime(waiver?.accessEnd),
                 })
               : t('Sentry employees do not have access to your organization')}
           </PanelAlert>
         )}
 
-        <BooleanField {...(allowAccessProps as BooleanFieldProps)} />
-        <DateTimeField {...(allowTempAccessProps as DateTimeFieldProps)} />
+        <BooleanField {...allowAccessProps} />
+        <DateTimeField {...allowTempAccessProps} />
       </PanelBody>
     </Panel>
   );

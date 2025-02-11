@@ -54,7 +54,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'onSelectionChange'
       | 'autoFocus'
     > {
-  items: SelectOptionOrSectionWithKey<Value>[];
+  items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
    * This list's index number inside composite select menus.
    */
@@ -116,9 +116,9 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
    * Whether to close the menu. Accepts either a boolean value or a callback function
    * that receives the newly selected options and returns whether to close the menu.
    */
-  closeOnSelect?: boolean | ((selectedOptions: SelectOption<Value>[]) => boolean);
+  closeOnSelect?: boolean | ((selectedOptions: Array<SelectOption<Value>>) => boolean);
   defaultValue?: Value[];
-  onChange?: (selectedOptions: SelectOption<Value>[]) => void;
+  onChange?: (selectedOptions: Array<SelectOption<Value>>) => void;
   value?: Value[];
 }
 
@@ -165,7 +165,7 @@ function List<Value extends SelectKey>({
 
     if (multiple) {
       return {
-        selectionMode: 'multiple',
+        selectionMode: 'multiple' as const,
         disabledKeys,
         // react-aria turns all keys into strings
         selectedKeys: value?.map(getEscapedKey),
@@ -191,7 +191,7 @@ function List<Value extends SelectKey>({
     }
 
     return {
-      selectionMode: 'single',
+      selectionMode: 'single' as const,
       disabledKeys,
       // react-aria turns all keys into strings
       selectedKeys: defined(value) ? [getEscapedKey(value)] : undefined,
@@ -201,17 +201,17 @@ function List<Value extends SelectKey>({
       disallowEmptySelection: disallowEmptySelection ?? true,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
-        const selectedOption = getSelectedOptions(items, selection)[0]! ?? null;
+        const selectedOption = getSelectedOptions(items, selection)[0]!;
         // Save selected options in SelectContext, to update the trigger label
-        saveSelectedOptions(compositeIndex, selectedOption);
-        onChange?.(selectedOption);
+        saveSelectedOptions(compositeIndex, selectedOption ?? null);
+        onChange?.(selectedOption ?? null);
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
         // menus will close on selection)
         if (
           !defined(closeOnSelect) ||
           (typeof closeOnSelect === 'function'
-            ? closeOnSelect(selectedOption)
+            ? closeOnSelect(selectedOption ?? null)
             : closeOnSelect)
         ) {
           overlayState?.close();

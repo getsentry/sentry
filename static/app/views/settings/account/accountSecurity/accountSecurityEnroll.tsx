@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -417,6 +418,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
             typeof field !== 'function' ? field.defaultValue : '',
           ])
           .reduce((acc, [name, value]) => {
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[name] = value;
             return acc;
           }, {})
@@ -438,7 +440,9 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
                     : t('Authentication Method Inactive')
                 }
                 enabled={isActive}
-                css={{marginLeft: 6}}
+                css={css`
+                  margin-left: 6px;
+                `}
               />
             </Fragment>
           }

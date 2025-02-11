@@ -228,7 +228,7 @@ export function WidgetInteractiveTitle({
 }) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const menuOptions: SelectOption<string>[] = [];
+  const menuOptions: Array<SelectOption<string>> = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -293,7 +293,7 @@ export function WidgetContainerActions({
 }) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
+  const menuOptions: Array<SelectOption<PerformanceWidgetSetting>> = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -349,7 +349,7 @@ const getEventViewDiscoverPath = (
   eventView: EventView
 ): string => {
   const discoverUrlTarget = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );

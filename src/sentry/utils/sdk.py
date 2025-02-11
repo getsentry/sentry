@@ -22,7 +22,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
-from sentry.features.rollout import in_random_rollout
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.flag import FlagPoleIntegration
@@ -49,6 +49,7 @@ UNSAFE_FILES = (
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
+    "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
@@ -71,8 +72,6 @@ SAMPLED_TASKS = {
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,

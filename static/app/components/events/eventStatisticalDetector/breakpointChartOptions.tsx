@@ -34,15 +34,18 @@ function getBreakpointChartOptionsFromData(
     [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: 'function.duration',
   };
 
-  const defaultTransform = stats => stats;
+  const defaultTransform = (stats: any) => stats;
 
   const transformFunctionStats = (stats: any) => {
-    const rawData = stats?.data?.data?.find(({axis}) => axis === 'p95()');
+    const rawData = stats?.data?.data?.find(({axis}: any) => axis === 'p95()');
     const timestamps = stats?.data?.timestamps;
     if (!timestamps) {
       return [];
     }
-    return timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]);
+    return timestamps.map((timestamp: any, i: any) => [
+      timestamp,
+      [{count: rawData.values[i]}],
+    ]);
   };
 
   // Mapping from BreakpointType to transformation functions

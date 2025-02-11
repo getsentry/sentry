@@ -10,7 +10,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
   useExploreVisualizes,
@@ -19,9 +19,10 @@ import {
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
@@ -43,8 +44,6 @@ export function ToolbarVisualize() {
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
 
-  const numberTags = useSpanTags('number');
-
   const parsedVisualizeGroups: ParsedVisualize[][] = useMemo(() => {
     return visualizes.map(visualize =>
       visualize.yAxes
@@ -59,48 +58,13 @@ export function ToolbarVisualize() {
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<string>[] = useMemo(() => {
-    const unknownOptions = parsedVisualizeGroups
-      .flatMap(group =>
-        group.flatMap(entry => {
-          return entry.func.arguments;
-        })
-      )
-      .filter(option => {
-        return !numberTags.hasOwnProperty(option);
-      });
+  const yAxes: string[] = useMemo(() => {
+    return visualizes.flatMap(visualize => visualize.yAxes);
+  }, [visualizes]);
 
-    const options = [
-      ...unknownOptions.map(option => ({
-        label: prettifyTagKey(option),
-        value: option,
-        textValue: option,
-      })),
-      ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-        };
-      }),
-    ];
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
 
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return options;
-  }, [numberTags, parsedVisualizeGroups]);
-
-  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
@@ -111,17 +75,17 @@ export function ToolbarVisualize() {
   }, []);
 
   const addChart = useCallback(() => {
-    setVisualizes([
-      ...visualizes,
-      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
-    ]);
+    setVisualizes(
+      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
+      DEFAULT_VISUALIZATION_FIELD
+    );
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
-      setVisualizes(newVisualizes);
+      setVisualizes(newVisualizes, DEFAULT_VISUALIZATION_FIELD);
     },
     [setVisualizes, visualizes]
   );
@@ -131,7 +95,7 @@ export function ToolbarVisualize() {
       const newVisualizes = visualizes.slice();
       newVisualizes[group]!.yAxes[index] =
         `${parsedVisualizeGroups[group]![index]!.func.name}(${value})`;
-      setVisualizes(newVisualizes);
+      setVisualizes(newVisualizes, String(value));
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
@@ -201,18 +165,18 @@ export function ToolbarVisualize() {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
-                  <ColumnCompactSelect
-                    searchable
-                    options={fieldOptions}
-                    value={parsedVisualize.func.arguments[0]}
-                    onChange={newField => setChartField(group, index, newField)}
-                  />
                   <AggregateCompactSelect
                     options={aggregateOptions}
                     value={parsedVisualize.func.name}
                     onChange={newAggregate =>
                       setChartAggregate(group, index, newAggregate)
                     }
+                  />
+                  <ColumnCompactSelect
+                    searchable
+                    options={fieldOptions}
+                    value={parsedVisualize.func.arguments[0]}
+                    onChange={newField => setChartField(group, index, newField)}
                   />
                   <Button
                     borderless

@@ -7,10 +7,6 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.incidents.endpoints.validators import (
-    MetricAlertComparisonConditionValidator,
-    MetricAlertsDetectorValidator,
-)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
@@ -23,12 +19,17 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     DataSourceCreator,
     NumericComparisonConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.metric_alert_detector import (
+    MetricAlertComparisonConditionValidator,
+    MetricAlertsDetectorValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
@@ -200,7 +201,7 @@ class DetectorValidatorTest(TestCase):
             },
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_mock_validator(self, mock_audit):
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -210,7 +211,7 @@ class DetectorValidatorTest(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "metric_alert_fire"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
 
         # Verify data source in DB
         data_source = DataSource.objects.get(detector=detector)
@@ -281,7 +282,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
                 "aggregate": "count()",
                 "time_window": 60,
                 "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.value],
+                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "data_conditions": [
                 {
@@ -292,7 +293,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(self, mock_audit):
         validator = MetricAlertsDetectorValidator(
             data=self.valid_data,
@@ -307,7 +308,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "metric_alert_fire"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
 
         # Verify data source and query subscription in DB
         data_source = DataSource.objects.get(detector=detector)
@@ -316,7 +317,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         )
         assert data_source.organization_id == self.project.organization_id
 
-        query_sub = QuerySubscription.objects.get(id=data_source.query_id)
+        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
         assert query_sub.project == self.project
         assert query_sub.type == INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 
@@ -389,6 +390,57 @@ class TestMetricAlertsDetectorValidator(TestCase):
         ]
 
 
+class SnubaQueryValidatorTest(TestCase):
+    def setUp(self):
+        self.valid_data = {
+            "query_type": SnubaQuery.Type.ERROR.value,
+            "dataset": Dataset.Events.value,
+            "query": "test query",
+            "aggregate": "count()",
+            "time_window": 60,
+            "environment": self.environment.name,
+            "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+        }
+        self.context = {
+            "organization": self.project.organization,
+            "project": self.project,
+            "request": self.make_request(),
+        }
+
+    def test_simple(self):
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.validated_data["query_type"] == SnubaQuery.Type.ERROR
+        assert validator.validated_data["dataset"] == Dataset.Events
+        assert validator.validated_data["query"] == "test query"
+        assert validator.validated_data["aggregate"] == "count()"
+        assert validator.validated_data["time_window"] == 60
+        assert validator.validated_data["environment"] == self.environment
+        assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
+        assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
+
+    def test_invalid_query(self):
+        unsupported_query = "release:latest"
+        self.valid_data["query"] = unsupported_query
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("query") == [
+            ErrorDetail(
+                string=f"Unsupported Query: We do not currently support the {unsupported_query} query",
+                code="invalid",
+            )
+        ]
+
+    def test_invalid_query_type(self):
+        invalid_query_type = 666
+        self.valid_data["query_type"] = invalid_query_type
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("queryType") == [
+            ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
+        ]
+
+
 class MockModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -415,6 +467,13 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
     field1 = serializers.CharField()
     field2 = serializers.IntegerField()
     data_source_type_handler = QuerySubscriptionDataSourceHandler
+
+    class Meta:
+        model = MockModel
+        fields = [
+            "field1",
+            "field2",
+        ]
 
     def create_source(self, validated_data) -> MockModel:
         return MockModel.objects.create()

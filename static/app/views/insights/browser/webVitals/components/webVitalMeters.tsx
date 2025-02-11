@@ -131,6 +131,7 @@ export function VitalMeter({
     );
 
   const webVitalKey = `measurements.${webVital}`;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
 
   const headerText = webVitalsConfig[webVital].name;
@@ -277,7 +278,9 @@ function MeterBarFooter({score}: {score: number | undefined}) {
   );
 }
 
-const MeterBarFooterContainer = styled('div')<{status: string}>`
+const MeterBarFooterContainer = styled('div')<{
+  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
@@ -338,7 +341,7 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
     <VitalPillContainer>
       <Tooltip title={tooltipText?.shortDescription}>
         <VitalPillName status={status}>
-          {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
+          {`${webVital ? webVital.toUpperCase() : ''} (${status === 'none' ? 'N/A' : STATUS_TEXT[status]})`}
         </VitalPillName>
       </Tooltip>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
@@ -351,9 +354,10 @@ const VitalPillContainer = styled('div')`
   flex-direction: row;
   width: 100%;
   height: 30px;
+  margin-bottom: ${space(1)};
 `;
 
-const VitalPillName = styled('div')<{status: string}>`
+const VitalPillName = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   display: flex;
   align-items: center;
   position: relative;

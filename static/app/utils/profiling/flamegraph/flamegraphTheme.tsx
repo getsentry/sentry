@@ -35,7 +35,7 @@ export interface LCH {
 export type ColorChannels = [number, number, number] | [number, number, number, number];
 
 export type ColorMapFn = (
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
   theme: FlamegraphTheme,
   sortByKey?: (a: FlamegraphFrame, b: FlamegraphFrame) => number
@@ -78,12 +78,12 @@ export interface FlamegraphTheme {
     SPAN_FRAME_LINE_PATTERN: string;
     SPAN_FRAME_LINE_PATTERN_BACKGROUND: string;
     STACK_TO_COLOR: (
-      frames: ReadonlyArray<FlamegraphFrame>,
+      frames: readonly FlamegraphFrame[],
       colorMapFn: ColorMapFn,
       colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
       theme: FlamegraphTheme
     ) => {
-      colorBuffer: Array<number>;
+      colorBuffer: number[];
       colorMap: Map<Frame['key'], ColorChannels>;
     };
     UI_FRAME_COLOR_FROZEN: [number, number, number, number];
@@ -103,7 +103,7 @@ export interface FlamegraphTheme {
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     GRID_LINE_WIDTH: number;
-    HIGHLIGHTED_FRAME_BORDER_WIDTH;
+    HIGHLIGHTED_FRAME_BORDER_WIDTH: any;
     HOVERED_FRAME_BORDER_WIDTH: number;
     INTERNAL_SAMPLE_TICK_LINE_WIDTH: number;
     LABEL_FONT_PADDING: number;

@@ -122,10 +122,10 @@ export type EChartFinishedHandler = EChartEventHandler<{}>;
 
 export type EChartRenderedHandler = EChartEventHandler<{}>;
 
-type EchartBrushAreas = {
+type EchartBrushAreas = Array<{
   coordRange: number[][];
   range: number[][];
-}[];
+}>;
 
 export type EChartBrushStartHandler = EChartEventHandler<{
   areas: EchartBrushAreas;

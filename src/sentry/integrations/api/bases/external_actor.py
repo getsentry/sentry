@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, TypedDict
 
 from django.db import IntegrityError
 from django.http import Http404
@@ -7,7 +7,6 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
-from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer

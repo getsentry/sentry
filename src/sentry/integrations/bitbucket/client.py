@@ -13,7 +13,6 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
@@ -39,7 +38,6 @@ class BitbucketAPIPath:
 
     repository = "/2.0/repositories/{repo}"
     repositories = "/2.0/repositories/{username}"
-    repository_commit = "/2.0/repositories/{repo}/commit/{sha}"
     repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
@@ -169,7 +167,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
         return self.zip_commit_data(repo, commits)
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(
             path=BitbucketAPIPath.source.format(
                 repo=repo.name,

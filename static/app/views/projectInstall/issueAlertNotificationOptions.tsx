@@ -20,7 +20,7 @@ export const providerDetails = {
     name: t('Slack'),
     action: IssueAlertActionType.SLACK,
     placeholder: t('channel, e.g. #critical'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] workspace to [target]',
         {
@@ -34,7 +34,7 @@ export const providerDetails = {
     name: t('Discord'),
     action: IssueAlertActionType.DISCORD,
     placeholder: t('channel ID or URL'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] server in the channel [target]',
         {
@@ -48,7 +48,7 @@ export const providerDetails = {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
     placeholder: t('channel ID'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct('Send [providerName] notification to the [integrationName] team to [target]', {
         providerName,
         integrationName,
@@ -112,8 +112,8 @@ export function useCreateNotificationAction() {
   useEffect(() => {
     if (messagingIntegrationsQuery.isSuccess) {
       const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0]! ?? undefined;
-      const firstIntegration = providersToIntegrations[firstProvider]?.[0] ?? undefined;
+      const firstProvider = providerKeys[0];
+      const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
       setProvider(firstProvider);
       setIntegration(firstIntegration);
       setShouldRenderSetupButton(!firstProvider);
@@ -122,7 +122,7 @@ export function useCreateNotificationAction() {
 
   type Props = {
     actionMatch: string | undefined;
-    conditions: {id: string; interval: string; value: string}[] | undefined;
+    conditions: Array<{id: string; interval: string; value: string}> | undefined;
     frequency: number | undefined;
     name: string | undefined;
     projectSlug: string;

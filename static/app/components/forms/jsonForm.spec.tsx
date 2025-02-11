@@ -201,7 +201,7 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field!, visible: true}))}
+          fields={jsonFormFields.map(field => ({...field, visible: true}))}
         />
       );
 
@@ -214,7 +214,7 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field!, visible: () => true}))}
+          fields={jsonFormFields.map(field => ({...field, visible: () => true}))}
         />
       );
 
@@ -227,7 +227,7 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field!, visible: false}))}
+          fields={jsonFormFields.map(field => ({...field, visible: false}))}
         />
       );
 
@@ -239,7 +239,7 @@ describe('JsonForm', function () {
       render(
         <JsonForm
           title={accountDetailsFields[0]!.title}
-          fields={jsonFormFields.map(field => ({...field!, visible: () => false}))}
+          fields={jsonFormFields.map(field => ({...field, visible: () => false}))}
         />
       );
 

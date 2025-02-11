@@ -2,11 +2,6 @@ import type {Actor, ObjectStatus} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
-export enum MonitorType {
-  UNKNOWN = 'unknown',
-  CRON_JOB = 'cron_job',
-}
-
 /**
  * Some old monitor configurations do NOT have a schedule_type
  *
@@ -127,7 +122,6 @@ export interface Monitor {
   project: Project;
   slug: string;
   status: ObjectStatus;
-  type: MonitorType;
   alertRule?: {
     targets: Array<{
       targetIdentifier: number;
@@ -179,7 +173,7 @@ export interface CheckIn {
   /**
    * Groups associated to this check-in (determiend by traceId)
    */
-  groups?: {id: number; shortId: string}[];
+  groups?: Array<{id: number; shortId: string}>;
 }
 
 type StatsBucket = {

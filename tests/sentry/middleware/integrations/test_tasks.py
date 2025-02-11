@@ -5,6 +5,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 from responses import matchers
 
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.tasks import (
@@ -156,7 +157,7 @@ class AsyncDiscordResponseTest(TestCase):
         super().setUp()
         application_id = "some-app-id"
         token = "some-token"
-        self.response_url = f"https://discord.com/api/v10/webhooks/{application_id}/{token}"
+        self.response_url = f"{DISCORD_BASE_URL}/webhooks/{application_id}/{token}"
         data = {
             "application_id": application_id,
             "token": token,

@@ -7,7 +7,9 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
+from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import EventFrame
@@ -73,6 +75,7 @@ class StacktraceLinkConfig(TypedDict):
 class StacktraceLinkOutcome(TypedDict):
     source_url: str | None
     error: str | None
+    src_path: str | None
     current_config: StacktraceLinkConfig | None
     iteration_count: int
 
@@ -84,6 +87,7 @@ def get_stacktrace_config(
     result: StacktraceLinkOutcome = {
         "source_url": None,
         "error": None,
+        "src_path": None,
         "current_config": None,
         "iteration_count": 0,
     }
@@ -94,7 +98,7 @@ def get_stacktrace_config(
             sdk_name=ctx["sdk_name"],
             code_mapping=config,
         )
-
+        result["src_path"] = src_path
         if not src_path:
             result["error"] = "stack_root_mismatch"
             continue

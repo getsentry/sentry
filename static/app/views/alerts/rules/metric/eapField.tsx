@@ -6,11 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {
-  DEFAULT_EAP_FIELD,
-  DEFAULT_EAP_METRICS_ALERT_FIELD,
-} from 'sentry/utils/metrics/mri';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+
+export const DEFAULT_EAP_FIELD = 'span.duration';
+export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -53,7 +52,7 @@ function EAPField({aggregate, onChange}: Props) {
   }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
-    option => {
+    (option: any) => {
       const selectedMeta = numberTags[option.value];
       if (!selectedMeta) {
         return;
@@ -64,7 +63,7 @@ function EAPField({aggregate, onChange}: Props) {
   );
 
   const handleOperationChange = useCallback(
-    option => {
+    (option: any) => {
       if (field) {
         onChange(`${option.value}(${field})`, {});
       } else {
@@ -119,7 +118,7 @@ function EAPField({aggregate, onChange}: Props) {
         }
         async
         defaultOptions={getFieldOptions('')}
-        loadOptions={searchText => Promise.resolve(getFieldOptions(searchText))}
+        loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
         value={selectedOption}
         onChange={handleFieldChange}
       />

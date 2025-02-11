@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -519,6 +520,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> {
   const table: Record<number, Project> = {};
   for (const project of projects) {
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     table[project.id] = project;
   }
   return table;
@@ -603,7 +605,12 @@ function ProfileIdsSubMenu(props: {
       {isOpen &&
         props.subMenuPortalRef &&
         createPortal(
-          <ProfilingContextMenu style={popper.styles.popper} css={{maxHeight: 250}}>
+          <ProfilingContextMenu
+            style={popper.styles.popper}
+            css={css`
+              max-height: 250px;
+            `}
+          >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
               {props.profileIds.map((profileId, i) => {
@@ -629,7 +636,12 @@ function ProfileIdsSubMenu(props: {
                     key={i}
                     {...props.contextMenu.getMenuItemProps({})}
                   >
-                    <Link to={to} css={{color: 'unset'}}>
+                    <Link
+                      to={to}
+                      css={css`
+                        color: unset;
+                      `}
+                    >
                       {getShortEventId(
                         typeof profileId === 'string'
                           ? profileId

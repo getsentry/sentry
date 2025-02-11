@@ -12,6 +12,9 @@ TIMEOUT_SPAN_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field or tags.
 """
+TIMEOUT_RPC_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -57,6 +60,7 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
+REPLAY_ALIAS = "replay"
 
 
 class ThresholdDict(TypedDict):

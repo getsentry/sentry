@@ -207,10 +207,11 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           help={t('The layout of the folder structure.')}
           options={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => ({
             value: key,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: DEBUG_SOURCE_LAYOUTS[key],
           }))}
           value={data['layout.type']}
-          onChange={value =>
+          onChange={(value: any) =>
             setData({
               ...data,
               ['layout.type']: value,
@@ -226,10 +227,11 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           help={t('The case of files and folders.')}
           options={Object.keys(DEBUG_SOURCE_CASINGS).map(key => ({
             value: key,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: DEBUG_SOURCE_CASINGS[key],
           }))}
           value={data['layout.casing']}
-          onChange={value =>
+          onChange={(value: any) =>
             setData({
               ...data,
               ['layout.casing']: value,

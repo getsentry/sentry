@@ -453,7 +453,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
       ['codeMappings', t('Code Mappings')],
       ...(hasCodeOwners ? [['userMappings', t('User Mappings')]] : []),
       ...(hasCodeOwners ? [['teamMappings', t('Team Mappings')]] : []),
-    ] as [id: Tab, label: string][];
+    ] as Array<[id: Tab, label: string]>;
 
     return (
       <Fragment>

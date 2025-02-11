@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
 import {Chevron} from 'sentry/components/chevron';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -63,7 +62,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Array of crumbs that will be rendered
    */
-  crumbs: (Crumb | CrumbDropdown)[];
+  crumbs: Array<Crumb | CrumbDropdown>;
 
   /**
    * As a general rule of thumb we don't want the last item to be link as it most likely
@@ -94,7 +93,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   }
 
   return (
-    <BreadcrumbList {...props}>
+    <BreadcrumbList {...props} data-test-id="breadcrumb-list">
       {crumbs.map((crumb, index) => {
         if (isCrumbDropdown(crumb)) {
           const {label, ...crumbProps} = crumb;
@@ -124,7 +123,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
                 {label}
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbItem>{label}</BreadcrumbItem>
+              <BreadcrumbItem data-test-id="breadcrumb-item">{label}</BreadcrumbItem>
             )}
 
             {index < crumbs.length - 1 && <BreadcrumbDividerIcon direction="right" />}
@@ -154,7 +153,7 @@ interface BreadcrumbLinkProps {
 const BreadcrumbLink = styled(
   ({preservePageFilters, to, ...props}: BreadcrumbLinkProps) =>
     preservePageFilters ? (
-      <GlobalSelectionLink to={to as LocationDescriptor} {...props} />
+      <GlobalSelectionLink to={to} {...props} />
     ) : (
       <Link to={to} {...props} />
     )

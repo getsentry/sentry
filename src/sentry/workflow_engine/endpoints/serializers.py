@@ -65,7 +65,7 @@ class DataSourceSerializer(Serializer):
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "type": obj.type,
-            "queryId": str(obj.query_id),
+            "sourceId": str(obj.source_id),
             "queryObj": attrs["query_obj"],
         }
 
@@ -185,7 +185,7 @@ class DetectorSerializer(Serializer):
     def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "organizationId": str(obj.organization_id),
+            "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
             "dateCreated": obj.date_added,
@@ -198,7 +198,7 @@ class DetectorSerializer(Serializer):
 
 @register(Workflow)
 class WorkflowSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Workflow, dict[str, Any]]:
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
             DataConditionGroup.objects.filter(
@@ -224,22 +224,22 @@ class WorkflowSerializer(Serializer):
             dcg_map[wdcg.workflow_id].append(serialized_condition_groups[wdcg.condition_group_id])
 
         for item in item_list:
-            attrs[item]["trigger_condition_group"] = trigger_condition_map.get(
+            attrs[item]["triggers"] = trigger_condition_map.get(
                 item.when_condition_group_id
             )  # when condition group
-            attrs[item]["data_condition_groups"] = dcg_map.get(
+            attrs[item]["actionFilters"] = dcg_map.get(
                 item.id, []
-            )  # data condition groups associated with workflow via WorkflowDataConditionGroup lookup table
+            )  # The data condition groups for filtering actions
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
-        # WHAT TO DO ABOUT CONFIG?
         return {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "triggerConditionGroup": attrs.get("trigger_condition_group"),
-            "dataConditionGroups": attrs.get("data_condition_groups"),
+            "triggers": attrs.get("triggers"),
+            "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
+            "config": obj.config,
         }

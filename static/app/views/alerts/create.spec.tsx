@@ -303,7 +303,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     describe('updates and saves', function () {
-      let mock;
+      let mock: any;
 
       beforeEach(function () {
         mock = MockApiClient.addMockResponse({
@@ -522,8 +522,8 @@ describe('ProjectAlertsCreate', function () {
     it('valid preview table', async () => {
       const groups = GroupsFixture();
       const date = new Date();
-      for (let i = 0; i < groups.length; i++) {
-        groups[i]!.lastTriggered = String(date);
+      for (const group of groups) {
+        group.lastTriggered = String(date);
       }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview/',

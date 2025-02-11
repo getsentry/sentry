@@ -233,7 +233,7 @@ describe('components/interfaces/utils', function () {
           ['Content-Type', 'application/json'],
           ['Referer', 'http://example.com'],
           ['Accept-Encoding', 'gzip'],
-        ] as [string, string][],
+        ] as Array<[string, string]>,
         url: 'https://www.sentry.io',
         query: [],
         data: null,

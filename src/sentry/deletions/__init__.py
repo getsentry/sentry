@@ -111,6 +111,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
     from sentry.sentry_apps.models.servicehook import ServiceHook
     from sentry.snuba import models as snuba_models
+    from sentry.workflow_engine.models import DataSource, Detector
 
     from . import defaults
 
@@ -125,6 +126,8 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.Commit, defaults.CommitDeletionTask)
     manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
     manager.register(CommitFileChange, BulkModelDeletionTask)
+    manager.register(Detector, defaults.DetectorDeletionTask)
+    manager.register(DataSource, defaults.DataSourceDeletionTask)
     manager.register(models.Deploy, BulkModelDeletionTask)
     manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     manager.register(DiscoverSavedQueryProject, BulkModelDeletionTask)

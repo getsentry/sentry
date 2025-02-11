@@ -21,6 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -70,6 +71,7 @@ export default function StreamlinedGroupHeader({
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
   const issueTypeConfig = getConfigForIssueType(group, project);
 
+  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
   const [showLearnMore, setShowLearnMore] = useLocalStorageState(
     'issue-details-learn-more',
     true
@@ -134,20 +136,22 @@ export default function StreamlinedGroupHeader({
             ) : null}
           </Flex>
           <ButtonBar gap={0.5}>
-            <LinkButton
-              size="xs"
-              external
-              title={t('Learn more about the new UI')}
-              href={`https://sentry.zendesk.com/hc/en-us/articles/30882241712795`}
-              aria-label={t('Learn more about the new UI')}
-              icon={<IconInfo />}
-              analyticsEventKey="issue_details.streamline_ui_learn_more"
-              analyticsEventName="Issue Details: Streamline UI Learn More"
-              analyticsParams={{show_learn_more: showLearnMore}}
-              onClick={() => setShowLearnMore(false)}
-            >
-              {showLearnMore ? t("See What's New") : null}
-            </LinkButton>
+            {!hasOnlyOneUIOption && (
+              <LinkButton
+                size="xs"
+                external
+                title={t('Learn more about the new UI')}
+                href={`https://docs.sentry.io/product/issues/issue-details/`}
+                aria-label={t('Learn more about the new UI')}
+                icon={<IconInfo />}
+                analyticsEventKey="issue_details.streamline_ui_learn_more"
+                analyticsEventName="Issue Details: Streamline UI Learn More"
+                analyticsParams={{show_learn_more: showLearnMore}}
+                onClick={() => setShowLearnMore(false)}
+              >
+                {showLearnMore ? t("See What's New") : null}
+              </LinkButton>
+            )}
             <NewIssueExperienceButton />
           </ButtonBar>
         </Flex>

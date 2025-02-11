@@ -130,8 +130,8 @@ export function transformSingleSeries<F extends string>(
           'milliseconds'
         )
       : type === 'string'
-        ? value => value || ''
-        : value => value;
+        ? (value: any) => value || ''
+        : (value: any) => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,
@@ -145,8 +145,7 @@ export function transformSingleSeries<F extends string>(
   };
   const timestamps: EventsStatsSeries<F>['timestamps'] = [];
 
-  for (let i = 0; i < rawSeries.data.length; i++) {
-    const [timestamp, value] = rawSeries.data[i];
+  for (const [timestamp, value] of rawSeries.data) {
     // the api has this awkward structure for legacy reason
     series.values.push(formatter(value[0].count as number));
     timestamps.push(timestamp);

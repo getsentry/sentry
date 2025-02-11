@@ -32,7 +32,7 @@ export type CombinedReducer<M extends ReducersObject> = Reducer<
 export function makeCombinedReducers<M extends ReducersObject>(
   reducers: M
 ): CombinedReducer<M> {
-  const keys: (keyof M)[] = Object.keys(reducers);
+  const keys: Array<keyof M> = Object.keys(reducers);
 
   return (state, action) => {
     const nextState = {} as ReducersState<M>;

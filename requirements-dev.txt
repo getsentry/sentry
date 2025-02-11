@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.14.2
-devservices>=1.0.9
+devservices>=1.0.16
 
 covdefaults>=2.3.0
 sentry-covdefaults-disable-branch-coverage>=1.0.2
@@ -17,6 +17,7 @@ pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
 pytest-rerunfailures>=15
 pytest-sentry>=0.3.0
+pytest-workaround-12888
 pytest-xdist>=3
 responses>=0.23.1
 selenium>=4.16.0
@@ -28,7 +29,7 @@ black>=24.10.0
 flake8>=7
 flake8-bugbear>=22.10
 flake8-logging>=1.5
-pyupgrade>=3.17
+pyupgrade>=3.19.1
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
@@ -37,11 +38,11 @@ pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=5.1.2.post1
-sentry-forked-djangorestframework-stubs>=3.15.2.post1
+sentry-forked-django-stubs>=5.1.3.post2
+sentry-forked-djangorestframework-stubs>=3.15.2.post2
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.14
+mypy>=1.15
 types-beautifulsoup4
 types-cachetools
 types-jsonschema
@@ -52,12 +53,11 @@ types-protobuf
 types-psutil
 types-psycopg2
 types-python-dateutil
-types-pytz
 types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
 types-requests>=2.32.0.20241016
-types-requests-oauthlib
+types-requests-oauthlib>=2.0.0.20250119
 types-setuptools>=68
 types-simplejson>=3.17.7.2
 types-unidiff

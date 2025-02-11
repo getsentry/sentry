@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -70,6 +71,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
+import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -136,6 +138,7 @@ export function Trace({
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const {theme: colorMode} = useLegacyStore(ConfigStore);
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -370,8 +373,8 @@ export function Trace({
 
   const render = useMemo(() => {
     return trace.type !== 'trace' || isLoading
-      ? r => renderLoadingRow(r)
-      : r => renderVirtualizedRow(r);
+      ? (r: any) => renderLoadingRow(r)
+      : (r: any) => renderVirtualizedRow(r);
   }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
 
   const traceNode = trace.root.children[0];
@@ -399,6 +402,9 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
+        {trace_id ? (
+          <TraceLevelOpsBreakdown traceSlug={trace_id} isTraceLoading={isLoading} />
+        ) : null}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -406,6 +412,7 @@ export function Trace({
         className="TraceIndicatorsContainer"
         ref={manager.registerIndicatorContainerRef}
       >
+        <div className="TraceIndicatorContainerMiddleLine" />
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
               const status =
@@ -424,7 +431,7 @@ export function Trace({
                   <div
                     key={i}
                     ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
-                    className={`TraceIndicatorLabelContainer ${status}`}
+                    className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
                   >
                     <Tooltip
                       title={
@@ -552,8 +559,8 @@ function RenderTraceRow(props: {
   );
 
   const registerSpanArrowRef = useCallback(
-    ref => {
-      props.manager.registerArrowRef(ref, node.space!, virtualized_index);
+    (ref: any) => {
+      props.manager.registerArrowRef(ref, node.space, virtualized_index);
     },
     [props.manager, node, virtualized_index]
   );
@@ -578,14 +585,14 @@ function RenderTraceRow(props: {
         organization: props.organization,
       });
       e.stopPropagation();
-      props.manager.onZoomIntoSpace(node.space!);
+      props.manager.onZoomIntoSpace(node.space);
     },
     [node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
     (_e: React.MouseEvent) => {
-      props.manager.onBringRowIntoView(node.space!);
+      props.manager.onBringRowIntoView(node.space);
     },
     [node.space, props.manager]
   );
@@ -769,14 +776,12 @@ const TraceStylingWrapper = styled('div')`
   width: 100%;
   height: 100%;
   grid-area: trace;
-  padding-top: 26px;
+  padding-top: 38px;
 
   &.WithIndicators {
-    padding-top: 44px;
-
     &:before {
       background-color: ${p => p.theme.background};
-      height: 44px;
+      height: 38px;
 
       .TraceScrollbarContainer {
         height: 44px;
@@ -785,7 +790,7 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceIndicator.Timeline {
       .TraceIndicatorLabelContainer {
-        top: 26px;
+        top: 22px;
       }
       .TraceIndicatorLine {
         top: 30px;
@@ -803,9 +808,10 @@ const TraceStylingWrapper = styled('div')`
     left: 0;
     top: 0;
     width: 100%;
-    height: 26px;
-    background-color: ${p => p.theme.backgroundSecondary};
+    height: 38px;
+    background-color: ${p => p.theme.background};
     border-bottom: 1px solid ${p => p.theme.border};
+    z-index: 10;
   }
 
   &.Loading {
@@ -833,11 +839,14 @@ const TraceStylingWrapper = styled('div')`
   .TraceScrollbarContainer {
     left: 0;
     top: 0;
-    height: 26px;
+    height: 38px;
     position: absolute;
     overflow-x: auto;
     overscroll-behavior: none;
     will-change: transform;
+    z-index: 10;
+    display: flex;
+    align-items: center;
 
     .TraceScrollbarScroller {
       height: 1px;
@@ -887,6 +896,14 @@ const TraceStylingWrapper = styled('div')`
     pointer-events: none;
   }
 
+  .TraceIndicatorContainerMiddleLine {
+    position: absolute;
+    top: 18px;
+    background-color: ${p => p.theme.border};
+    width: 100%;
+    height: 1px;
+  }
+
   .TraceIndicatorLabelContainer {
     min-width: 34px;
     text-align: center;
@@ -895,7 +912,7 @@ const TraceStylingWrapper = styled('div')`
     font-weight: ${p => p.theme.fontWeightBold};
     color: ${p => p.theme.textColor};
     background-color: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: 100px;
     border: 1px solid ${p => p.theme.border};
     display: inline-block;
     line-height: 1;
@@ -914,21 +931,46 @@ const TraceStylingWrapper = styled('div')`
     &.Poor {
       color: ${p => p.theme.red300};
       border: 1px solid ${p => p.theme.red300};
+
+      &.light {
+        background-color: rgb(251 232 233);
+      }
+
+      &.dark {
+        background-color: rgb(63 17 20);
+      }
     }
 
     &.Meh {
       color: ${p => p.theme.yellow400};
       border: 1px solid ${p => p.theme.yellow300};
+
+      &.light {
+        background-color: rgb(249 244 224);
+      }
+
+      &.dark {
+        background-color: rgb(45 41 17);
+      }
     }
 
     &.Good {
       color: ${p => p.theme.green300};
       border: 1px solid ${p => p.theme.green300};
+
+      &.light {
+        background-color: rgb(232 241 239);
+      }
+
+      &.dark {
+        background-color: rgb(9 37 30);
+      }
     }
   }
 
   .TraceIndicatorLabel {
     padding: 2px;
+    border-radius: 100px;
   }
 
   .TraceIndicator {
@@ -1020,7 +1062,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceIndicatorLabelContainer {
         font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
-        top: 8px;
+        top: 22px;
         width: auto;
         border: none;
         background-color: transparent;

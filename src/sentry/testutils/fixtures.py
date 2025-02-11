@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
@@ -23,7 +24,13 @@ from sentry.models.project import Project
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import (
+    Monitor,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -434,9 +441,14 @@ class Fixtures:
         if "owner_user_id" not in kwargs:
             kwargs["owner_user_id"] = self.user.id
 
+        if "project" not in kwargs:
+            project_id = self.project.id
+        else:
+            project_id = kwargs.pop("project").id
+
         return Monitor.objects.create(
             organization_id=self.organization.id,
-            project_id=self.project.id,
+            project_id=project_id,
             type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
@@ -446,6 +458,12 @@ class Fixtures:
             },
             **kwargs,
         )
+
+    def create_monitor_environment(self, **kwargs):
+        return MonitorEnvironment.objects.create(**kwargs)
+
+    def create_monitor_incident(self, **kwargs):
+        return MonitorIncident.objects.create(**kwargs)
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
@@ -697,6 +715,7 @@ class Fixtures:
         project: Project | None = None,
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
+        status: int = ObjectStatus.ACTIVE,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
@@ -713,6 +732,7 @@ class Fixtures:
             project,
             env,
             uptime_subscription,
+            status,
             mode,
             name,
             Actor.from_object(owner) if owner else None,

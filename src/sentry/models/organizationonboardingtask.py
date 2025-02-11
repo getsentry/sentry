@@ -29,7 +29,6 @@ class OnboardingTask:
     SECOND_PLATFORM = 4
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
-    ISSUE_TRACKER = 9
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
     SESSION_REPLAY = 14
@@ -47,7 +46,6 @@ class OnboardingTaskStatus:
 #
 #   FIRST_EVENT:      { 'platform':  'flask', }
 #   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   ISSUE_TRACKER:    { 'plugin': 'plugin_name' }
 #   SECOND_PLATFORM:  { 'platform': 'javascript' }
 #
 # NOTE: Currently the `PENDING` status is applicable for the following
@@ -55,7 +53,6 @@ class OnboardingTaskStatus:
 #
 #   FIRST_EVENT:     User confirms that sdk has been installed
 #   INVITE_MEMBER:   Until the member has successfully joined org
-#   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
@@ -103,7 +100,7 @@ class AbstractOnboardingTask(Model):
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
-    NEW_SKIPPABLE_TASKS: frozenset[int]
+    SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True
@@ -122,9 +119,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
-        # TODO(Telemety Experience): This task is no longer shown
-        # in the new experience and shall remove it from code
-        (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
@@ -141,7 +135,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
-    NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
+    REQUIRED_ONBOARDING_TASKS = frozenset(
         [
             OnboardingTask.FIRST_PROJECT,
             OnboardingTask.FIRST_EVENT,
@@ -156,14 +150,14 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
+    REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
         [
-            *NEW_REQUIRED_ONBOARDING_TASKS,
+            *REQUIRED_ONBOARDING_TASKS,
             OnboardingTask.SOURCEMAPS,
         ]
     )
 
-    NEW_SKIPPABLE_TASKS = frozenset(
+    SKIPPABLE_TASKS = frozenset(
         [
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,

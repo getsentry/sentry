@@ -33,8 +33,8 @@ function getHorizontalDelta(x: number, y: number): number {
 }
 
 type ViewColumn = {
-  column_nodes: TraceTreeNode<TraceTree.NodeValue>[];
-  column_refs: (HTMLElement | undefined)[];
+  column_nodes: Array<TraceTreeNode<TraceTree.NodeValue>>;
+  column_refs: Array<HTMLElement | undefined>;
   translate: [number, number];
   width: number;
 };
@@ -71,22 +71,25 @@ export class VirtualizedViewManager {
   horizontal_scrollbar_container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
-  intervals: (number | undefined)[] = [];
+  intervals: Array<number | undefined> = [];
   // We want to render an indicator every 100px, but because we dont track resizing
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
   // original size.
   interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
-  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
-    [];
-  timeline_indicators: (HTMLElement | undefined)[] = [];
+  indicators: Array<
+    {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
+  > = [];
+  timeline_indicators: Array<HTMLElement | undefined> = [];
   vertical_indicators: {[key: string]: VerticalIndicator} = {};
   vertical_indicator_labels: {[key: string]: HTMLElement | undefined} = {};
-  span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
+  span_bars: Array<
+    {color: string; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
+  span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
     [];
-  span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
-  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
-  span_arrows: (
+  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  span_arrows: Array<
     | {
         position: 0 | 1;
         ref: HTMLElement;
@@ -94,9 +97,10 @@ export class VirtualizedViewManager {
         visible: boolean;
       }
     | undefined
-  )[] = [];
-  span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
-    [];
+  > = [];
+  span_text: Array<
+    {ref: HTMLElement; space: [number, number]; text: string} | undefined
+  > = [];
 
   row_depth_padding: number = 22;
 
@@ -331,7 +335,7 @@ export class VirtualizedViewManager {
   ) {
     if (ref) {
       this.span_text[index] = {ref, text, space};
-      this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
+      this.drawSpanText(this.span_text[index], this.columns.list.column_nodes[index]);
     }
   }
 
@@ -348,7 +352,7 @@ export class VirtualizedViewManager {
       const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
       ref.style.setProperty(
         '--inverse-span-scale',
-        // @ts-expect-error this is a number
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         isNaN(inverseScale) ? 1 : inverseScale
       );
     }
@@ -365,7 +369,7 @@ export class VirtualizedViewManager {
 
       if (scrollableElement) {
         scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-        this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
+        this.row_measurer.enqueueMeasure(node, scrollableElement);
         ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
       }
     }
@@ -375,7 +379,9 @@ export class VirtualizedViewManager {
     }
 
     if (ref && node) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.columns[column].column_refs[index] = ref;
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.columns[column].column_nodes[index] = node;
     }
   }
@@ -637,8 +643,7 @@ export class VirtualizedViewManager {
       }
     }
 
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'none';
       }
@@ -659,8 +664,7 @@ export class VirtualizedViewManager {
         span_text.ref.style.pointerEvents = 'auto';
       }
     }
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'auto';
       }
@@ -701,7 +705,7 @@ export class VirtualizedViewManager {
       this.timers.onFovChange = null;
     }, 500);
   }
-  onNewMaxRowWidth(max) {
+  onNewMaxRowWidth(max: any) {
     this.syncHorizontalScrollbar(max);
   }
 
@@ -767,8 +771,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -826,8 +830,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = newTransform;
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1002,8 +1006,8 @@ export class VirtualizedViewManager {
       this.columns.list.translate[0] = x;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1028,8 +1032,8 @@ export class VirtualizedViewManager {
       const pos = startPosition + distance * eased;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1405,8 +1409,12 @@ export class VirtualizedViewManager {
   // DRAW METHODS
 
   hideSpanBar(span_bar: this['span_bars'][0], span_text: this['span_text'][0]) {
-    span_bar && (span_bar.ref.style.transform = 'translate(-10000px, -10000px)');
-    span_text && (span_text.ref.style.transform = 'translate(-10000px, -10000px)');
+    if (span_bar) {
+      span_bar.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
+    if (span_text) {
+      span_text.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
   }
 
   hideSpanArrow(span_arrow: this['span_arrows'][0]) {
@@ -1428,7 +1436,7 @@ export class VirtualizedViewManager {
     const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
     span_bar.ref.style.setProperty(
       '--inverse-span-scale',
-      // @ts-expect-error we set number value type on purpose
+      // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
       isNaN(inverseScale) ? 1 : inverseScale
     );
   }
@@ -1574,7 +1582,7 @@ export class VirtualizedViewManager {
     if (this.last_list_column_width !== options.list_width) {
       container.style.setProperty(
         '--list-column-width',
-        // @ts-expect-error we set number value type on purpose
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         options.list_width
       );
       this.last_list_column_width = options.list_width;
@@ -1582,7 +1590,7 @@ export class VirtualizedViewManager {
     if (this.last_span_column_width !== options.span_list_width) {
       container.style.setProperty(
         '--span-column-width',
-        // @ts-expect-error we set number value type on purpose
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         options.span_list_width
       );
       this.last_span_column_width = options.span_list_width;
@@ -1634,7 +1642,7 @@ export class VirtualizedViewManager {
         const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
         invisible_bar.ref.style.setProperty(
           '--inverse-span-scale',
-          // @ts-expect-error we set number value type on purpose
+          // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
           isNaN(inverseScale) ? 1 : inverseScale
         );
       }
@@ -1719,7 +1727,7 @@ function getIconTimestamps(
 function computeTimelineIntervals(
   view: TraceView,
   targetInterval: number,
-  results: (number | undefined)[]
+  results: Array<number | undefined>
 ): void {
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
   let interval = minInterval;

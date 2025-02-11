@@ -16,7 +16,7 @@ import {categorizeDuration} from './categorizeDuration';
 
 describe('tooltipFormatter()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // function, input, expected
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
@@ -36,7 +36,7 @@ describe('tooltipFormatter()', () => {
 
 describe('tooltipFormatterUsingAggregateOutputType()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // function, input, expected
       ['number', 0.1, '0.1'],
       ['integer', 0.125, '0.125'],
@@ -55,7 +55,7 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
 
 describe('axisLabelFormatter()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // type, input, expected
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
@@ -106,7 +106,7 @@ describe('axisLabelFormatter()', () => {
 
 describe('axisLabelFormatterUsingAggregateOutputType()', () => {
   it('formats values', () => {
-    const cases: [string, number, string][] = [
+    const cases: Array<[string, number, string]> = [
       // type, input, expected
       ['number', 0.1, '0.1'],
       ['integer', 0.125, '0.125'],

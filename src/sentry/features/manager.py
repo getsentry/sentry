@@ -13,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
+from sentry.options.rollout import in_random_rollout
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.flag import flag_pole_hook
@@ -20,7 +21,6 @@ from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
-from .rollout import in_random_rollout
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -77,7 +77,7 @@ class RegisteredFeatureManager:
         name: str,
         organization: Organization,
         objects: Sequence[Project],
-        actor: User | None = None,
+        actor: User | RpcUser | AnonymousUser | None = None,
     ) -> dict[Project, bool | None]:
         """
         Determine if a feature is enabled for a batch of objects.
@@ -409,7 +409,7 @@ class FeatureCheckBatch:
         name: str,
         organization: Organization,
         objects: Iterable[Project],
-        actor: User | None,
+        actor: User | RpcUser | AnonymousUser | None,
     ) -> None:
         self._manager = manager
         self.feature_name = name
@@ -429,5 +429,5 @@ class FeatureCheckBatch:
         return {obj: cls(self.feature_name, obj) for obj in self.objects}
 
     @property
-    def subject(self) -> Organization | User | None:
+    def subject(self) -> Organization | User | RpcUser | AnonymousUser | None:
         return self.organization or self.actor

@@ -369,7 +369,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       return {tableStats: [], hasStoredOutcome: false};
     }
 
-    const stats: Record<number, object> = {};
+    const stats: Record<string | number, any> = {};
 
     try {
       const baseStat: Partial<TableStat> = {
@@ -415,7 +415,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome!] += group.totals['sum(quantity)']!;
+          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
         }
 
         if (

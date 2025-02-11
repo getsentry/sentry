@@ -1,3 +1,6 @@
+import pytest
+from jsonschema import ValidationError
+
 from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.workflow_engine.models.data_condition import Condition
@@ -7,7 +10,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestAssignedToCondition(ConditionTestCase):
     condition = Condition.ASSIGNED_TO
-    rule_cls = AssignedToFilter
     payload = {
         "id": AssignedToFilter.id,
         "targetType": "Member",
@@ -24,8 +26,8 @@ class TestAssignedToCondition(ConditionTestCase):
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "targetType": "Member",
-                "targetIdentifier": 0,
+                "target_type": "Member",
+                "target_identifier": 0,
             },
             condition_result=True,
         )
@@ -41,6 +43,22 @@ class TestAssignedToCondition(ConditionTestCase):
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        self.dc.comparison.update({"target_type": "Team"})
+        self.dc.save()
+
+        self.dc.comparison.update({"target_type": "asdf"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"target_identifier": False})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"hello": "there"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
     def test_assigned_to_member_passes(self):
         GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)

@@ -15,23 +15,26 @@ export function ConfidenceFooter({sampleCount, confidence}: Props) {
   return (
     <Container>
       {!defined(sampleCount)
-        ? t('* Extrapolated from \u2026')
+        ? t('* Chart extrapolated from \u2026')
         : confidence === 'low'
-          ? tct('* Extrapolated from [sampleCount] samples ([insufficientSamples])', {
-              sampleCount: <Count value={sampleCount} />,
-              insufficientSamples: (
-                <Tooltip
-                  title={t(
-                    'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
-                  )}
-                >
-                  <InsufficientSamples>
-                    {t('insufficient for accuracy')}
-                  </InsufficientSamples>
-                </Tooltip>
-              ),
-            })
-          : tct('* Extrapolated from [sampleCount] samples', {
+          ? tct(
+              '* Chart extrapolated from [sampleCount] samples ([insufficientSamples])',
+              {
+                sampleCount: <Count value={sampleCount} />,
+                insufficientSamples: (
+                  <Tooltip
+                    title={t(
+                      'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
+                    )}
+                  >
+                    <InsufficientSamples>
+                      {t('insufficient for accuracy')}
+                    </InsufficientSamples>
+                  </Tooltip>
+                ),
+              }
+            )
+          : tct('* Chart extrapolated from [sampleCount] samples', {
               sampleCount: <Count value={sampleCount} />,
             })}
     </Container>

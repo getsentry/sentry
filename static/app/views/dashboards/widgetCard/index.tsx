@@ -14,15 +14,17 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -30,8 +32,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
-import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
@@ -69,6 +70,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -76,6 +78,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -94,6 +97,7 @@ type Props = WithRouterProps & {
 };
 
 type Data = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -110,7 +114,7 @@ function WidgetCard(props: Props) {
       props.onDataFetched(newData.tableResults);
     }
 
-    setData(newData);
+    setData(prevData => ({...prevData, ...newData}));
   };
 
   const {
@@ -133,6 +137,7 @@ function WidgetCard(props: Props) {
     widgetLegendState,
     disableFullscreen,
     showConfidenceWarning,
+    minTableColumnWidth,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -157,26 +162,7 @@ function WidgetCard(props: Props) {
   const onDemandWarning = useOnDemandWarning({widget});
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
-
-  if (widget.widgetType === WidgetType.METRICS) {
-    return (
-      <MetricWidgetCard
-        index={props.index}
-        isEditingDashboard={props.isEditingDashboard}
-        onEdit={props.onEdit}
-        onDelete={props.onDelete}
-        onDuplicate={props.onDuplicate}
-        router={props.router}
-        location={props.location}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        dashboardFilters={dashboardFilters}
-        renderErrorMessage={renderErrorMessage}
-        showContextMenu={props.showContextMenu}
-      />
-    );
-  }
+  const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -186,6 +172,7 @@ function WidgetCard(props: Props) {
         tableData: data?.tableResults,
         seriesResultsType: data?.timeseriesResultsTypes,
         totalIssuesCount: data?.totalIssuesCount,
+        confidence: data?.confidence,
       });
 
       props.router.push({
@@ -218,9 +205,12 @@ function WidgetCard(props: Props) {
     Boolean
   ) as BadgeProps[];
 
-  const warnings = [onDemandWarning, discoverSplitAlert, sessionDurationWarning].filter(
-    Boolean
-  ) as string[];
+  const warnings = [
+    onDemandWarning,
+    discoverSplitAlert,
+    sessionDurationWarning,
+    spanTimeRangeWarning,
+  ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
   const actionsMessage = actionsDisabled
@@ -247,7 +237,7 @@ function WidgetCard(props: Props) {
 
   return (
     <ErrorBoundary
-      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
@@ -304,6 +294,7 @@ function WidgetCard(props: Props) {
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
                   borderless={props.borderless}
+                  revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
                 />
               );
             }}
@@ -320,6 +311,8 @@ function WidgetCard(props: Props) {
             actions={actions}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
+            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+            noVisualizationPadding
           >
             <WidgetCardChartContainer
               location={location}
@@ -340,6 +333,7 @@ function WidgetCard(props: Props) {
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
+              minTableColumnWidth={minTableColumnWidth}
             />
           </WidgetFrame>
         )}
@@ -380,6 +374,26 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   if (widgetReachedSpecLimit) {
     return t(
       "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
+    );
+  }
+
+  return null;
+}
+
+function useTimeRangeWarning(props: {widget: Widget}) {
+  const {
+    selection: {datetime},
+  } = usePageFilters();
+
+  if (props.widget.widgetType !== WidgetType.SPANS) {
+    return null;
+  }
+
+  if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
+    // This message applies if the user has selected a time range >30d because we truncate the
+    // snuba response to 30 days to reduce load on the system.
+    return t(
+      "Spans-based widgets have been truncated to 30 days of data. We're working on ramping this up."
     );
   }
 

@@ -181,7 +181,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            SEER_SIMILAR_ISSUES_URL + "?",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params),
             headers={"content-type": "application/json;charset=utf-8"},
         )
@@ -602,7 +602,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            SEER_SIMILAR_ISSUES_URL + "?",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -628,7 +628,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            SEER_SIMILAR_ISSUES_URL + "?",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -657,7 +657,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            SEER_SIMILAR_ISSUES_URL + "?",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -685,7 +685,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
             mock_seer_request.reset_mock()
 
-    def test_too_many_system_frames(self) -> None:
+    def test_too_many_frames(self) -> None:
         error_type = "FailedToFetchError"
         error_value = "Charlie didn't bring the ball back"
         context_line = f"raise {error_type}('{error_value}')"

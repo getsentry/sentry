@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -234,11 +234,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             <ScreensBarChart
               chartOptions={[
                 {
-                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]!]!),
+                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]!]),
                   yAxis: YAXIS_COLUMNS[yAxes[0]!],
                   xAxisLabel: topTransactions,
                   series: Object.values(
-                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]!]!]!
+                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]!]]!
                   ),
                   subtitle: primaryRelease
                     ? t(
@@ -266,11 +266,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
               <ScreensBarChart
                 chartOptions={[
                   {
-                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]!]!),
+                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]!]),
                     yAxis: YAXIS_COLUMNS[yAxes[1]!],
                     xAxisLabel: topTransactions,
                     series: Object.values(
-                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]!]!]!
+                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]!]]!
                     ),
                     subtitle: primaryRelease
                       ? t(

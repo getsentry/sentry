@@ -18,7 +18,7 @@ type Props = ModalRenderProps & {
   label: string;
   onSelected: (statusDetails: IgnoredStatusDetails) => void;
   windowName: WindowNames;
-  windowOptions: SelectValue<number>[];
+  windowOptions: Array<SelectValue<number>>;
 };
 
 export default function CustomIgnoreCountModal(props: Props) {

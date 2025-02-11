@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
@@ -18,7 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {generateOrgSlugUrl} from 'sentry/utils';
+import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -393,6 +392,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
+            // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
             onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}

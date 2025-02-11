@@ -41,7 +41,6 @@ import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
@@ -146,8 +145,11 @@ export function getKnownData<Data, DataType>({
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
     if (
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       typeof data[knownDataType] !== 'number' &&
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       typeof data[knownDataType] !== 'boolean' &&
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       !data[knownDataType]
     ) {
       return !!meta?.[knownDataType];
@@ -359,10 +361,11 @@ export function getContextIcon({
     case 'browser':
       iconName = generateIconName(value?.name, value?.version);
       break;
-    case 'user':
+    case 'user': {
       const user = userContextToActor(value);
       const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user as AvatarUser} size={iconSize} gravatar={false} />;
+      return <UserAvatar user={user} size={iconSize} gravatar={false} />;
+    }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;

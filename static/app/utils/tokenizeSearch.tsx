@@ -5,7 +5,7 @@ export const ALLOWED_WILDCARD_FIELDS = [
   'span.domain',
   'span.status_code',
 ];
-export const EMPTY_OPTION_VALUE = '(empty)' as const;
+export const EMPTY_OPTION_VALUE = '(empty)';
 
 export enum TokenType {
   OPERATOR = 0,
@@ -305,7 +305,7 @@ export class MutableSearch {
     // to see if that open paren corresponds to a closed paren with one or fewer items inside.
     // If it does, delete those parens, and loop again until there are no more parens to delete.
     let parensToDelete: number[] = [];
-    const cleanParens = (_, idx: number) => !parensToDelete.includes(idx);
+    const cleanParens = (_: any, idx: number) => !parensToDelete.includes(idx);
     do {
       if (parensToDelete.length) {
         this.tokens = this.tokens.filter(cleanParens);

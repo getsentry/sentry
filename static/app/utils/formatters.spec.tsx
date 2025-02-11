@@ -182,7 +182,7 @@ describe('userDisplayName', function () {
   });
 
   it('should show unknown author, if user object is either not an object or incomplete', function () {
-    // @ts-expect-error
+    // @ts-expect-error TS2554: Expected 1-2 arguments, but got 0
     expect(userDisplayName()).toBe('Unknown author');
     expect(userDisplayName({})).toBe('Unknown author');
   });

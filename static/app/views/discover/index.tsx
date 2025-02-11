@@ -1,7 +1,9 @@
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -12,6 +14,15 @@ type Props = {
 };
 
 function DiscoverContainer({organization, children}: Props) {
+  const redirectPath = useRedirectNavV2Routes({
+    oldPathPrefix: '/discover/',
+    newPathPrefix: '/explore/discover/',
+  });
+
+  if (redirectPath) {
+    return <Redirect to={redirectPath} />;
+  }
+
   function renderNoAccess() {
     return (
       <Layout.Page withPadding>

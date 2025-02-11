@@ -15,12 +15,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0815_add_action_cols_to_threads_model
+sentry: 0829_add_additional_timestamps_to_checkins
 
 social_auth: 0002_default_auto_field
 
 tempest: 0001_create_tempest_credentials_model
 
-uptime: 0021_drop_region_table_col
+uptime: 0025_uptime_migrate_constraint
 
-workflow_engine: 0022_add_action_group_status_model
+workflow_engine: 0029_ds_query_id_to_pending

@@ -28,7 +28,7 @@ function mockSpanTags({
   type,
   mockedTags,
 }: {
-  mockedTags: {key: string; name: string}[];
+  mockedTags: Array<{key: string; name: string}>;
   type: 'string' | 'number';
 }) {
   MockApiClient.addMockResponse({

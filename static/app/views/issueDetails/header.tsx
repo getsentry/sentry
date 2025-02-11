@@ -35,7 +35,7 @@ import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import {GroupActions} from './actions';
-import {Tab} from './types';
+import {Tab, TabPaths} from './types';
 import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
@@ -115,7 +115,7 @@ export function GroupHeaderTabs({
       <TabList.Item
         key={Tab.USER_FEEDBACK}
         textValue={t('User Feedback')}
-        hidden={!issueTypeConfig.userFeedback.enabled}
+        hidden={!issueTypeConfig.pages.userFeedback.enabled}
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
@@ -123,7 +123,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.ATTACHMENTS}
-        hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
+        hidden={!hasEventAttachments || !issueTypeConfig.pages.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
         to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
       >
@@ -131,7 +131,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
-        hidden={!issueTypeConfig.tagsTab.enabled}
+        hidden={!issueTypeConfig.pages.tagsTab.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >
@@ -139,7 +139,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
-        hidden={!issueTypeConfig.events.enabled}
+        hidden={!issueTypeConfig.pages.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
@@ -166,11 +166,19 @@ export function GroupHeaderTabs({
       <TabList.Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
-        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
+        hidden={!hasReplaySupport || !issueTypeConfig.pages.replays.enabled}
         to={{pathname: `${baseUrl}replays/`, query: queryParams}}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
+      </TabList.Item>
+      <TabList.Item
+        key={Tab.UPTIME_CHECKS}
+        textValue={t('Uptime Checks')}
+        hidden={!issueTypeConfig.pages.checkIns.enabled}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`, query: queryParams}}
+      >
+        {t('Uptime Checks')}
       </TabList.Item>
     </StyledTabList>
   );

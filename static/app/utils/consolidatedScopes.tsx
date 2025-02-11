@@ -45,12 +45,14 @@ type PermissionLevelResources = {
  */
 const permissionLevel = (scope: string): number => {
   const permission = scope.split(':')[1]!;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return PERMISSION_LEVELS[permission];
 };
 
 const compareScopes = (a: string, b: string) => permissionLevel(a) - permissionLevel(b);
 
 const comparePermissionLevels = (a: string, b: string) =>
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   PERMISSION_LEVELS[a] - PERMISSION_LEVELS[b];
 
 /**
@@ -105,6 +107,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
       const [resource, permission] = scope.split(':') as [string, string];
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
     }
   });

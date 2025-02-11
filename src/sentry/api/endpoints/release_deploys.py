@@ -124,13 +124,12 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             # Logic here copied from `has_release_permission` (lightly edited for results to be more
             # human-readable)
-            auth = None
-            if getattr(request, "user", None) and request.user.id:
+            if request.user.is_authenticated:
                 auth = f"user.id: {request.user.id}"
-            elif getattr(request, "auth", None) and getattr(request.auth, "id", None):
-                auth = f"auth.id: {request.auth.id}"  # type: ignore[union-attr]
-            elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-                auth = f"auth.entity_id: {request.auth.entity_id}"  # type: ignore[union-attr]
+            elif request.auth is not None:
+                auth = f"auth.entity_id: {request.auth.entity_id}"
+            else:
+                auth = None
             if auth is not None:
                 logging_info.update({"auth": auth})
                 logger.info(

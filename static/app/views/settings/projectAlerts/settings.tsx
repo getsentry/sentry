@@ -20,7 +20,7 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}, {}> {
   canEditRule: boolean;
@@ -61,8 +61,12 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     return (
       <LoadingError
         onRetry={() => {
-          isProjectError && refetchProject();
-          isPluginListError && refetchPluginList();
+          if (isProjectError) {
+            refetchProject();
+          }
+          if (isPluginListError) {
+            refetchPluginList();
+          }
         }}
       />
     );
@@ -112,7 +116,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
           </LinkButton>
         }
       />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
         {t(
           'Looking to fine-tune your personal notification preferences? Visit your Account Settings'

@@ -23,12 +23,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Queries'), value: 'myqueries'},
   {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('Query Name (A-Z)'), value: 'name'},
@@ -272,7 +273,10 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const to = `/organizations/${organization.slug}/discover/homepage/`;
+    const to = makeDiscoverPathname({
+      path: `/homepage/`,
+      organization,
+    });
 
     return (
       <Feature

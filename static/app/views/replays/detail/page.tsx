@@ -76,11 +76,11 @@ export default function Page({
 
   const header = replayRecord?.is_archived ? (
     <Header>
-      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+      <DetailsPageBreadcrumbs replayRecord={replayRecord} />
     </Header>
   ) : (
     <Header>
-      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+      <DetailsPageBreadcrumbs replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
         {isLoading ? (
@@ -112,7 +112,9 @@ export default function Page({
           avatarSize={24}
           displayName={
             <DisplayHeader>
-              <Title>{replayRecord.user.display_name || t('Anonymous User')}</Title>
+              <Layout.Title>
+                {replayRecord.user.display_name || t('Anonymous User')}
+              </Layout.Title>
               {replayRecord && (
                 <TimeContainer>
                   <IconCalendar color="gray300" size="xs" />
@@ -180,15 +182,6 @@ const ItemSpacer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const Title = styled('h1')`
-  ${p => p.theme.overflowEllipsis};
-  ${p => p.theme.text.pageTitle};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.headingColor};
-  margin: 0;
-  line-height: 1.4;
 `;
 
 const TimeContainer = styled('div')`

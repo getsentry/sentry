@@ -10,7 +10,7 @@ import {PriorityLevel} from 'sentry/types/group';
 
 const PRIORITIES = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 
-export const Badge = storyBook(GroupPriorityBadge, story => {
+export const Badge = storyBook('GroupPriorityBadge', story => {
   story('Default', () => (
     <SideBySide>
       {PRIORITIES.map(priority => (
@@ -20,7 +20,7 @@ export const Badge = storyBook(GroupPriorityBadge, story => {
   ));
 });
 
-export const Dropdown = storyBook(GroupPriorityDropdown, story => {
+export const Dropdown = storyBook('GroupPriorityDropdown', story => {
   story('Default', () => {
     const [value, setValue] = useState(PriorityLevel.MEDIUM);
 

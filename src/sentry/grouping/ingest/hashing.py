@@ -9,7 +9,6 @@ import sentry_sdk
 
 from sentry import features, options
 from sentry.exceptions import HashDiscarded
-from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
@@ -28,6 +27,7 @@ from sentry.grouping.ingest.grouphash_metadata import (
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -216,7 +216,7 @@ def get_or_create_grouphashes(
     hashes: Sequence[str],
     grouping_config: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    is_secondary = grouping_config == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
     # The only utility of secondary hashes is to link new primary hashes to an existing group.
@@ -241,7 +241,7 @@ def get_or_create_grouphashes(
                 sentry_sdk.capture_exception(exc)
 
         if grouphash.metadata:
-            record_grouphash_metadata_metrics(grouphash.metadata)
+            record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
         else:
             # Collect a temporary metric to get a sense of how often we would be adding metadata to an
             # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given

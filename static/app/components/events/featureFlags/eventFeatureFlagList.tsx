@@ -99,7 +99,7 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = Boolean(event.contexts?.flags?.values);
 
-  const eventFlags: Required<FeatureFlag>[] = useMemo(() => {
+  const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
     // explicitly validate against SDK developer error or user-provided contexts.
     const rawFlags = event.contexts?.flags?.values ?? [];
@@ -112,7 +112,7 @@ export function EventFeatureFlagList({
     );
   }, [event]);
 
-  const hasFlags = hasFlagContext && eventFlags.length > 0;
+  const hasFlags = eventFlags.length > 0;
 
   const showCTA =
     !project.hasFlags &&
@@ -123,7 +123,7 @@ export function EventFeatureFlagList({
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
-    return eventFlags.toReversed().map(f => {
+    return eventFlags.toReversed().map((f: any) => {
       return {
         item: {
           key: f.flag,
@@ -222,7 +222,11 @@ export function EventFeatureFlagList({
               ref={viewAllButtonRef}
               title={t('View All Flags')}
               onClick={() => {
-                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+                if (isDrawerOpen) {
+                  closeDrawer();
+                } else {
+                  onViewAllFlags();
+                }
               }}
             >
               {t('View All')}

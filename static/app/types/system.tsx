@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
+import type {ApiResult} from 'sentry/api';
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
 import type {ParntershipAgreementType} from './hooks';
@@ -77,7 +78,15 @@ declare global {
     /**
      * Is populated with promises/strings of commonly used data.
      */
-    __sentry_preload: Record<string, any>;
+    __sentry_preload: {
+      orgSlug?: string;
+      organization?: Promise<ApiResult>;
+      organization_fallback?: Promise<ApiResult>;
+      projects?: Promise<ApiResult>;
+      projects_fallback?: Promise<ApiResult>;
+      teams?: Promise<ApiResult>;
+      teams_fallback?: Promise<ApiResult>;
+    };
 
     // typing currently used for demo add on
     // TODO: improve typing
@@ -164,7 +173,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: {level: keyof Theme['alert']; message: string}[];
+  messages: Array<{level: keyof Theme['alert']; message: string}>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
   // The list of regions the user has has access to.
@@ -208,7 +217,7 @@ export interface Config {
     upgradeAvailable: boolean;
   };
   partnershipAgreementPrompt?: {
-    agreements: Array<ParntershipAgreementType>;
+    agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   relocationConfig?: {

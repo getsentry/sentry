@@ -63,8 +63,8 @@ export type ColResizeMetadata = {
 };
 
 type GridEditableProps<DataRow, ColumnKey> = {
-  columnOrder: GridColumnOrder<ColumnKey>[];
-  columnSortBy: GridColumnSortBy<ColumnKey>[];
+  columnOrder: Array<GridColumnOrder<ColumnKey>>;
+  columnSortBy: Array<GridColumnSortBy<ColumnKey>>;
   data: DataRow[];
 
   /**
@@ -196,7 +196,7 @@ class GridEditable<
     const onResizeColumn = this.props.grid.onResizeColumn;
     if (onResizeColumn) {
       onResizeColumn(i, {
-        ...nextColumnOrder[i]!,
+        ...nextColumnOrder[i],
         width: COL_WIDTH_UNDEFINED,
       });
     }
@@ -211,7 +211,7 @@ class GridEditable<
     }
 
     // <GridResizer> is nested 1 level down from <GridHeadCell>
-    const cell = e.currentTarget!.parentElement;
+    const cell = e.currentTarget.parentElement;
     if (!cell) {
       return;
     }

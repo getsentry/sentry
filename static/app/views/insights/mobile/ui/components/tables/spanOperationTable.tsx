@@ -57,7 +57,7 @@ export function SpanOperationTable({
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   // TODO: These filters seem to be too aggressive, check that they are ingesting properly
   const searchQuery = new MutableSearch([
@@ -158,7 +158,7 @@ export function SpanOperationTable({
       ),
   };
 
-  function renderBodyCell(column, row) {
+  function renderBodyCell(column: any, row: any) {
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 

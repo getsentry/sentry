@@ -28,7 +28,7 @@ type Props = DeprecatedAsyncComponent['props'] &
 
 type State = DeprecatedAsyncComponent['state'] & {
   initialResults: Member[];
-  members: (Member & {externalUsers: ExternalUser[]})[];
+  members: Array<Member & {externalUsers: ExternalUser[]}>;
 };
 
 class IntegrationExternalUserMappings extends DeprecatedAsyncComponent<Props, State> {
@@ -136,14 +136,13 @@ class IntegrationExternalUserMappings extends DeprecatedAsyncComponent<Props, St
   };
 
   renderBody() {
-    const {integration, organization} = this.props;
+    const {integration} = this.props;
     const {membersPageLinks} = this.state;
     return (
       <Fragment>
         <IntegrationExternalMappings
           type="user"
           integration={integration}
-          organization={organization}
           mappings={this.mappings}
           dataEndpoint={this.dataEndpoint}
           getBaseFormEndpoint={() => this.baseFormEndpoint}

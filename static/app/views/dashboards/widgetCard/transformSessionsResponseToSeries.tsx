@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
@@ -23,7 +22,7 @@ export function getSeriesName(
 }
 
 export function transformSessionsResponseToSeries(
-  response: SessionApiResponse | MetricsApiResponse | null,
+  response: SessionApiResponse | null,
   requestedStatusMetrics: string[],
   injectedFields: string[],
   queryAlias?: string
@@ -58,7 +57,7 @@ export function transformSessionsResponseToSeries(
           seriesName: getSeriesName(field, group, queryAlias),
           data: response.intervals.map((interval, index) => ({
             name: interval,
-            value: group.series[field][index] ?? 0,
+            value: group.series[field]?.[index] ?? 0,
           })),
         });
       }
@@ -82,7 +81,7 @@ export function transformSessionsResponseToSeries(
             seriesName: getSeriesName(status, group, queryAlias),
             data: response.intervals.map((interval, index) => ({
               name: interval,
-              value: metricField ? group.series[metricField][index] ?? 0 : 0,
+              value: metricField ? group.series[metricField]?.[index] ?? 0 : 0,
             })),
           });
         }

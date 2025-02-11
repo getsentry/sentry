@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 import urllib3
 
+from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -629,6 +630,63 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["meta"]["units"] == {"count()": None}
         assert response.data["data"] == [{"count()": 0}]
 
+    def _test_simple_measurements(self, keys):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
+                    },
+                    measurements={k: {"value": (i + 1) / 10} for i, (k, _, _) in enumerate(keys)},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for i, (k, type, unit) in enumerate(keys):
+            key = f"measurements.{k}"
+            response = self.do_request(
+                {
+                    "field": [key],
+                    "query": "description:foo",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            expected = {
+                "dataset": mock.ANY,
+                "datasetReason": "unchanged",
+                "fields": {
+                    key: type,
+                    "id": "string",
+                    "project.name": "string",
+                },
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {
+                    key: unit,
+                    "id": None,
+                    "project.name": None,
+                },
+            }
+            if self.use_rpc:
+                expected["accuracy"] = {
+                    "confidence": [{}],
+                }
+            assert response.data["meta"] == expected
+            assert response.data["data"] == [
+                {
+                    key: pytest.approx((i + 1) / 10),
+                    "id": mock.ANY,
+                    "project.name": self.project.slug,
+                }
+            ]
+
     def test_simple_measurements(self):
         keys = [
             ("app_start_cold", "duration", "millisecond"),
@@ -665,62 +723,14 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             ("score.weight.inp", "number", None),
             ("score.weight.lcp", "number", None),
             ("score.weight.ttfb", "number", None),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+            # size fields aren't property support pre-RPC
             ("cache.item_size", "number", None),
             ("messaging.message.body.size", "number", None),
-            ("messaging.message.receive.latency", "number", None),
-            ("messaging.message.retry.count", "number", None),
         ]
 
-        self.store_spans(
-            [
-                self.create_span(
-                    {
-                        "description": "foo",
-                        "sentry_tags": {"status": "success"},
-                        "tags": {"bar": "bar2"},
-                    },
-                    measurements={k: {"value": (i + 1) / 10} for i, (k, _, _) in enumerate(keys)},
-                    start_ts=self.ten_mins_ago,
-                ),
-            ],
-            is_eap=self.is_eap,
-        )
-
-        for i, (k, type, unit) in enumerate(keys):
-            key = f"measurements.{k}"
-            response = self.do_request(
-                {
-                    "field": [key],
-                    "query": "description:foo",
-                    "project": self.project.id,
-                    "dataset": self.dataset,
-                }
-            )
-            assert response.status_code == 200, response.content
-            assert response.data["meta"] == {
-                "dataset": mock.ANY,
-                "datasetReason": "unchanged",
-                "fields": {
-                    key: type,
-                    "id": "string",
-                    "project.name": "string",
-                },
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {},
-                "units": {
-                    key: unit,
-                    "id": None,
-                    "project.name": None,
-                },
-            }
-            assert response.data["data"] == [
-                {
-                    key: pytest.approx((i + 1) / 10),
-                    "id": mock.ANY,
-                    "project.name": self.project.slug,
-                }
-            ]
+        self._test_simple_measurements(keys)
 
     def test_environment(self):
         self.create_environment(self.project, name="prod")
@@ -743,12 +753,28 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "field": ["environment", "count()"],
                 "project": self.project.id,
                 "environment": "prod",
+                "orderby": "environment",
                 "dataset": self.dataset,
             }
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {"environment": "prod", "count()": 1},
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["environment", "count()"],
+                "project": self.project.id,
+                "environment": ["prod", "test"],
+                "orderby": "environment",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"environment": "prod", "count()": 1},
+            {"environment": "test", "count()": 1},
         ]
 
     def test_transaction(self):
@@ -969,6 +995,270 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def _test_aggregate_filter(self, queries):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    measurements={
+                        "lcp": {"value": 5000},
+                        "http.response_content_length": {"value": 5000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    measurements={
+                        "lcp": {"value": 5000},
+                        "http.response_content_length": {"value": 5000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar"}},
+                    measurements={
+                        "lcp": {"value": 1000},
+                        "http.response_content_length": {"value": 1000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for query in queries:
+            response = self.do_request(
+                {
+                    "field": ["transaction", "count()"],
+                    "query": query,
+                    "orderby": "transaction",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 1
+            assert data[0]["transaction"] == "foo"
+            assert data[0]["count()"] == 2
+            assert meta["dataset"] == self.dataset
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+            ]
+        )
+
+    def test_pagination_samples(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "a"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "b"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 1,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "a",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        assert links["next"]["href"] is not None
+        response = self.client.get(links["next"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "b",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+        assert links["previous"]["href"] is not None
+        response = self.client.get(links["previous"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "description": "a",
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+    def test_precise_timestamps(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["precise.start_ts", "precise.finish_ts"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        start = self.ten_mins_ago.timestamp()
+        finish = start + 1
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "precise.start_ts": start,
+                "precise.finish_ts": finish,
+            },
+        ]
+
+    def test_replay_id(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"replay_id": "123"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "tags": {"replayId": "321"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["replay"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "replay",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "replay": "123",
+            },
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "replay": "321",
+            },
+        ]
+
+    def test_user_display(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"user.username": "test"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["user.display"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "user.display",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "user.display": "test",
+            },
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "user.display": "test@test.com",
+            },
+        ]
+
+    def test_query_with_asterisk(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "select * from database"},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description"],
+                "query": 'span.description:"select \\* from database"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["span.description"] == "select * from database"
 
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
@@ -1437,6 +1727,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                     "http.response_content_length",
                     "http.response_transfer_size",
                 ],
+                "query": "http.decoded_response_content_length:>0 http.response_content_length:>0 http.response_transfer_size:>0",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "allowAggregateConditions": "0",
@@ -1452,7 +1743,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "id": mock.ANY,
             },
         ]
-        assert response.data["meta"] == {
+        expected = {
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {
@@ -1473,6 +1764,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "project.name": None,
             },
         }
+        if self.use_rpc:
+            expected["accuracy"] = {
+                "confidence": [{}],
+            }
+        assert response.data["meta"] == expected
 
     def test_filtering_numeric_attr(self):
         span_1 = self.create_span(
@@ -1505,10 +1801,63 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
 
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+                "(count():>1 AND avg(http.response_content_length):>3000) OR (count():>1 AND avg(measurements.lcp):>3000)",
+            ]
+        )
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
-    """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
-
     is_eap = True
     use_rpc = True
 
@@ -1564,7 +1913,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 2
         assert len(confidence) == 2
         assert data[0]["count()"] == 10
@@ -1655,7 +2005,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        confidence = response.data["confidence"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 1
         assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
         assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)
@@ -1929,3 +2280,247 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+        assert response.data["meta"]["fields"] == {
+            "id": "string",
+            "project.name": "string",
+            "cache.item_size": "size",
+            "measurements.cache.item_size": "size",
+            "measurements.messaging.message.body.size": "size",
+            "messaging.message.body.size": "size",
+        }
+
+        assert response.data["meta"]["units"] == {
+            "id": None,
+            "project.name": None,
+            "cache.item_size": "byte",
+            "measurements.cache.item_size": "byte",
+            "measurements.messaging.message.body.size": "byte",
+            "messaging.message.body.size": "byte",
+        }
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("cache.item_size", "size", "byte"),
+            ("messaging.message.body.size", "size", "byte"),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)
+
+    def test_explore_sample_query(self):
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.nine_mins_ago,
+            ),
+        ]
+        self.store_spans(
+            spans,
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "id",
+                    "project",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "timestamp",
+                    "trace",
+                    "transaction.span_id",
+                ],
+                # This is to skip INP spans
+                "query": "!transaction.span_id:00",
+                "orderby": "timestamp",
+                "statsPeriod": "1h",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for source, result in zip(spans, data):
+            assert result["id"] == source["span_id"], "id"
+            assert result["span.duration"] == 1000.0, "duration"
+            # TODO: once the snuba change to return Nones has merged remove the or
+            assert result["span.op"] is None or result["span.op"] == "", "op"
+            assert result["span.description"] == source["description"], "description"
+            ts = datetime.fromisoformat(result["timestamp"])
+            assert ts.tzinfo == timezone.utc
+            assert ts.timestamp() == pytest.approx(
+                source["end_timestamp_precise"], abs=5
+            ), "timestamp"
+            assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
+            assert result["project"] == result["project.name"] == self.project.slug, "project"
+        assert meta["dataset"] == self.dataset
+
+    def test_query_for_missing_tag(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": "has:foo",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"foo": "bar", "count()": 1}]
+
+    def test_query_for_missing_tag_negated(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": "!has:foo",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["foo"] == "" or data[0]["foo"] is None
+        assert data[0]["count()"] == 1
+
+    def test_device_class_filter_unknown(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "device.class:Unknown",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "Unknown"
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.skip(reason="replay id alias not migrated over")
+    def test_replay_id(self):
+        super().test_replay_id()
+
+    @pytest.mark.skip(reason="user display alias not migrated over")
+    def test_user_display(self):
+        super().test_user_display()

@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Optional, Protocol, TypedDict
 
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import (
@@ -131,28 +132,33 @@ def _query_params_for_error(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
-    organization_id: int,
+    organization: Organization,
     project_ids: Sequence[int],
     environments: Sequence[Environment] | None,
     group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
     actor: Any | None = None,
-) -> SnubaQueryParams | None:
+) -> SnubaQueryParams:
     if group_ids:
         filters = {"group_id": sorted(group_ids), **filters}
     error_conditions = _updated_conditions(
         "event.type",
         "!=",
         "transaction",
-        organization_id,
+        organization.id,
         project_ids,
         environments,
         conditions,
     )
 
+    if features.has("organizations:feature-flag-autocomplete", organization):
+        dataset = Dataset.Events
+    else:
+        dataset = Dataset.Discover
+
     params = query_partial(
-        dataset=Dataset.Discover,
+        dataset=dataset,
         selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
@@ -167,7 +173,7 @@ def _query_params_for_generic(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
-    organization_id: int,
+    organization: Organization,
     project_ids: Sequence[int],
     environments: Sequence[Environment] | None,
     group_ids: Sequence[int] | None,
@@ -176,7 +182,7 @@ def _query_params_for_generic(
     actor: Any | None = None,
     categories: Sequence[GroupCategory] | None = None,
 ) -> SnubaQueryParams | None:
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.filter(id=organization.id).first()
     if organization:
         if categories is None:
             logging.error("Category is required in _query_params_for_generic")
@@ -210,8 +216,8 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
-    strategies = {}
+def get_search_strategies() -> dict[int, GroupSearchStrategy]:
+    strategies: dict[int, GroupSearchStrategy] = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error

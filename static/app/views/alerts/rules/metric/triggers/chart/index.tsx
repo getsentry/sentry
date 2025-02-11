@@ -42,7 +42,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -348,7 +347,6 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -448,10 +446,11 @@ class TriggersChart extends PureComponent<Props, State> {
 
     const showExtrapolatedChartData =
       shouldShowOnDemandMetricAlertUI(organization) &&
-      seriesAdditionalInfo?.[timeseriesData[0]!?.seriesName]?.isExtrapolatedData;
+      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName!]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
-      ? SESSION_AGGREGATE_TO_HEADING[aggregate]
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
         ? t('Estimated Transactions')
         : t('Total');
@@ -513,6 +512,7 @@ class TriggersChart extends PureComponent<Props, State> {
               size="sm"
               options={statsPeriodOptions.map(timePeriod => ({
                 value: timePeriod,
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 label: TIME_PERIOD_MAP[timePeriod],
               }))}
               value={period}
@@ -564,7 +564,6 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
       ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
@@ -599,8 +598,10 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                  : HISTORICAL_TIME_PERIOD_MAP[period]!
+                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    HISTORICAL_TIME_PERIOD_MAP[period]!
               }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -652,7 +653,9 @@ class TriggersChart extends PureComponent<Props, State> {
         environment: environment ? [environment] : undefined,
         statsPeriod: period,
         query,
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         interval: TIME_WINDOW_TO_INTERVAL[timeWindow],
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         groupBy: ['session.status'],
         children: noop,
@@ -673,6 +676,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 data: getCrashFreeRateSeries(
                   groups,
                   intervals,
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SESSION_AGGREGATE_TO_FIELD[aggregate]
                 ),
               },
@@ -721,8 +725,10 @@ class TriggersChart extends PureComponent<Props, State> {
             api={this.historicalAPI}
             period={
               timeWindow === 5
-                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                : HISTORICAL_TIME_PERIOD_MAP[period]!
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
@@ -801,7 +807,7 @@ const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props}) {
+export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props}: any) {
   return (
     <ChartErrorWrapper {...props}>
       <PanelAlert type="error">

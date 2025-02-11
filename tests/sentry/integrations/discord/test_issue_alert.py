@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
-from sentry.integrations.discord.client import MESSAGE_URL
+from sentry.integrations.discord.client import DISCORD_BASE_URL, MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.messaging.message_builder import (
@@ -19,7 +19,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
-from sentry.shared_integrations.exceptions import ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -64,8 +64,9 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         responses.add(
             method=responses.POST,
-            url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
+            url=f"{DISCORD_BASE_URL}{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
+            json={"message_id": "12345678910"},
         )
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -80,6 +81,38 @@ class DiscordIssueAlertTest(RuleTestCase):
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_failure(self, mock_record_event, mock_send_message):
+        self.rule.after(self.event)
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
+
+    @mock.patch(
+        "sentry.integrations.discord.client.DiscordClient.send_message",
+        side_effect=ApiRateLimitedError(text="Rate limited"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def assert_lifecycle_metrics_halt_for_rate_limit(self, mock_record_event, mock_send_message):
+        self.rule.after(self.event)
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
+
+    @mock.patch(
+        "sentry.integrations.discord.client.DiscordClient.send_message",
+        side_effect=ApiError(code=50001, text="Missing access"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def assert_lifecycle_metrics_halt_for_missing_access(
+        self, mock_record_event, mock_send_message
+    ):
+        self.rule.after(self.event)
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
+
+    @mock.patch(
+        "sentry.integrations.discord.client.DiscordClient.send_message",
+        side_effect=ApiError(code=400, text="Bad request"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def assert_lifecycle_metrics_failure_for_other_api_error(
+        self, mock_record_event, mock_send_message
+    ):
+        self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @responses.activate

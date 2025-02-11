@@ -4,7 +4,6 @@ import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-fre
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
 import diagramCrons from 'sentry-images/spot/alerts-wizard-crons.svg';
 import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
-import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
@@ -131,18 +130,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the average TTFB of a page is longer than 600 millliseconds.'),
     ],
     illustration: diagramCustomTransaction,
-  },
-  custom_metrics: {
-    description: t(
-      'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
-    ),
-    examples: [
-      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
-      t(
-        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
-      ),
-    ],
-    illustration: diagramCustomMetrics,
   },
   crash_free_sessions: {
     description: t(

@@ -45,7 +45,7 @@ export class VideoReplayer {
   private _currentIndex: number | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
-  private _trackList: [ts: number, index: number][];
+  private _trackList: Array<[ts: number, index: number]>;
   private _isPlaying: boolean = false;
   private _listeners: RemoveListener[] = [];
   /**
@@ -137,7 +137,7 @@ export class VideoReplayer {
   private addListeners(el: HTMLVideoElement, index: number): void {
     const handleEnded = () => this.handleSegmentEnd(index);
 
-    const handleLoadedData = event => {
+    const handleLoadedData = (event: any) => {
       // Used to correctly set the dimensions of the first frame
       if (index === 0) {
         this._callbacks.onLoaded!(event);
@@ -156,13 +156,13 @@ export class VideoReplayer {
       }
     };
 
-    const handlePlay = event => {
+    const handlePlay = (event: any) => {
       if (index === this._currentIndex) {
         this._callbacks.onLoaded!(event);
       }
     };
 
-    const handleLoadedMetaData = event => {
+    const handleLoadedMetaData = (event: any) => {
       // Only call this for current segment?
       if (index === this._currentIndex) {
         // Theoretically we could have different orientations and they should
@@ -171,9 +171,12 @@ export class VideoReplayer {
       }
     };
 
-    const handleSeeking = event => {
+    const handleSeeking = (event: any) => {
       // Centers the video when seeking (and video is not playing)
-      this._callbacks.onLoaded!(event);
+      // Only call this for the segment that's being seeked to
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded!(event);
+      }
     };
 
     el.addEventListener('ended', handleEnded);
@@ -408,7 +411,12 @@ export class VideoReplayer {
 
     for (const [index, videoElem] of this._videos) {
       // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
-      if (index === (this._currentIndex || 0) - 1) {
+      // Edge case: Don't show previous video if size is different (eg. orientation changes)
+      if (
+        index === (this._currentIndex || 0) - 1 &&
+        videoElem.videoHeight === nextVideo.videoHeight &&
+        videoElem.videoWidth === nextVideo.videoWidth
+      ) {
         if (videoElem.duration) {
           // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
           // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends
@@ -682,6 +690,7 @@ export class VideoReplayer {
     Object.entries(config)
       .filter(([, value]) => value !== undefined)
       .forEach(([key, value]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         this.config[key] = value;
       });
 

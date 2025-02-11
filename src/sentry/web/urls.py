@@ -795,6 +795,12 @@ urlpatterns += [
         react_page_view,
         name="insights",
     ),
+    # Explore
+    re_path(
+        r"^explore/",
+        react_page_view,
+        name="explore",
+    ),
     # Traces
     re_path(
         r"^traces/",
@@ -834,18 +840,6 @@ urlpatterns += [
         r"^discover/",
         react_page_view,
         name="discover",
-    ),
-    # DDM new
-    re_path(
-        r"^metrics/",
-        react_page_view,
-        name="metrics",
-    ),
-    # TODO(metrics): fade this out
-    re_path(
-        r"^ddm/",
-        react_page_view,
-        name="ddm",
     ),
     # Request to join an organization
     re_path(

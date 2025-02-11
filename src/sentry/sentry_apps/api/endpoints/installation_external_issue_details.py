@@ -8,6 +8,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.utils.errors import SentryAppError
 
 
 @region_silo_endpoint
@@ -24,7 +25,10 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
                 service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
-            return Response(status=404)
+            raise SentryAppError(
+                message="Could not find the corresponding external issue from given external_issue_id",
+                status_code=404,
+            )
 
         deletions.exec_sync(platform_external_issue)
 

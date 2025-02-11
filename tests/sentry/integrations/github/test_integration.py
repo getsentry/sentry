@@ -30,7 +30,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.utils.code_mapping import Repo, RepoTree
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -139,6 +139,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         repositories: dict[str, Any] = {
             "xyz": {
+                "name": "xyz",
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",
             },
@@ -538,7 +539,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories(fetch_max_pages=True)
+            result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
                 {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
@@ -556,7 +557,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
+        with (
+            patch.object(
+                sentry.integrations.github.client.GitHubBaseClient, "page_number_limit", 1
+            ),
+            patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1),
+        ):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -826,7 +832,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
         ]
         for repo, branch, files in list:
-            result[f"{self.gh_org}/{repo}"] = RepoTree(Repo(f"{self.gh_org}/{repo}", branch), files)
+            result[f"{self.gh_org}/{repo}"] = RepoTree(
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch), files
+            )
         return result
 
     def _expected_cached_repos(self):
@@ -844,7 +852,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
         self.set_rate_limit()
         expected_trees = self._expected_trees()
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
@@ -863,7 +871,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
         """Some repos will hit the network but the rest will grab from the cache."""
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         cache.clear()
         installation = self.get_installation_helper()
         expected_trees = self._expected_trees(
@@ -876,7 +884,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ]
         )
 
-        with patch("sentry.integrations.github.client.MINIMUM_REQUESTS", new=5, autospec=False):
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MINIMUM_REQUESTS_REMAINING",
+            new=5,
+            autospec=False,
+        ):
             # We start with one request left before reaching the minimum remaining requests floor
             self.set_rate_limit(remaining=6)
             assert cache.get(repos_key) is None
@@ -965,7 +977,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
 
@@ -999,7 +1011,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
 

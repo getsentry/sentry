@@ -40,8 +40,8 @@ interface FormatProps {
  * %c is ignored for now
  */
 export default function Format({onExpand, expandPaths, args}: FormatProps) {
-  const onToggleExpand = (expandedPaths, path) => {
-    onExpand(path, Object.fromEntries(expandedPaths.map(item => [item, true])));
+  const onToggleExpand = (expandedPaths: any, path: any) => {
+    onExpand(path, Object.fromEntries(expandedPaths.map((item: any) => [item, true])));
   };
   const f = args[0];
 
@@ -78,13 +78,14 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       case '%c':
         styling = args[i++];
         return '';
-      case '%s':
+      case '%s': {
         const val = args[i++];
         try {
           return String(val);
         } catch {
           return 'toString' in val ? val.toString : JSON.stringify(val);
         }
+      }
       case '%d':
         return Number(args[i++]);
       case '%j':

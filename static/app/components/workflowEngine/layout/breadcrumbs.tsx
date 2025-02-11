@@ -5,7 +5,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 
 export interface BreadcrumbsContextValue {
-  crumbs: (Crumb | CrumbDropdown)[];
+  crumbs: Array<Crumb | CrumbDropdown>;
 }
 export const BreadcrumbsContext = createContext<BreadcrumbsContextValue>({
   crumbs: [],

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -28,7 +29,7 @@ class Action(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
     __repr__ = sane_repr("id", "type")
 
-    class Type(models.TextChoices):
+    class Type(StrEnum):
         SLACK = "slack"
         MSTEAMS = "msteams"
         DISCORD = "discord"
@@ -49,11 +50,8 @@ class Action(DefaultFieldsModel):
         WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
-    type = models.TextField(choices=Type.choices)
+    type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)
-
-    # TODO - finish removing this field
-    required = models.BooleanField(default=False, null=True)
 
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
     # This allows us to map the way we're saving the notification channels to the action.

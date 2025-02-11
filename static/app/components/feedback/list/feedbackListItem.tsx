@@ -19,10 +19,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssueListItem;
@@ -61,7 +61,10 @@ export default function FeedbackListItem({
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
-          pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+          pathname: makeFeedbackPathname({
+            path: '/',
+            organization,
+          }),
           query: {
             ...location.query,
             referrer: 'feedback_list_page',
@@ -117,6 +120,7 @@ export default function FeedbackListItem({
           <Row justify="flex-start" gap={space(0.75)}>
             {feedbackItem.project ? (
               <StyledProjectBadge
+                disableLink
                 project={feedbackItem.project}
                 avatarSize={14}
                 hideName

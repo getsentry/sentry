@@ -29,7 +29,7 @@ class TempestTasksTest(TestCase):
     def test_fetch_latest_item_id_error(self, mock_fetch):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
-            "error": {"type": "Invalid credentials", "message": "..."}
+            "error": {"type": "invalid_credentials", "message": "..."}
         }
 
         fetch_latest_item_id(self.credentials.id)
@@ -44,7 +44,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
-                "type": "IP address not allow-listed",
+                "type": "ip_not_allowlisted",
                 "message": "...",
             }
         }
@@ -61,7 +61,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
-                "type": "Internal error",
+                "type": "internal_error",
                 "message": "...",
             }
         }
@@ -143,9 +143,12 @@ class TempestTasksTest(TestCase):
 
         poll_tempest()
 
-        # Should call fetch_latest_item_id.delay() and not poll_tempest_crashes
-        mock_fetch_latest.delay.assert_called_once_with(self.credentials.id)
-        mock_poll_crashes.delay.assert_not_called()
+        # Should call fetch_latest_item_id and not poll_tempest_crashes
+        mock_fetch_latest.apply_async.assert_called_once_with(
+            kwargs={"credentials_id": self.credentials.id},
+            headers={"sentry-propagate-traces": False},
+        )
+        mock_poll_crashes.apply_async.assert_not_called()
 
     @patch("sentry.tempest.tasks.fetch_latest_item_id")
     @patch("sentry.tempest.tasks.poll_tempest_crashes")
@@ -156,9 +159,12 @@ class TempestTasksTest(TestCase):
 
         poll_tempest()
 
-        # Should call poll_tempest_crashes.delay() and not fetch_latest_item_id
-        mock_poll_crashes.delay.assert_called_once_with(self.credentials.id)
-        mock_fetch_latest.delay.assert_not_called()
+        # Should call poll_tempest_crashes and not fetch_latest_item_id
+        mock_poll_crashes.apply_async.assert_called_once_with(
+            kwargs={"credentials_id": self.credentials.id},
+            headers={"sentry-propagate-traces": False},
+        )
+        mock_fetch_latest.apply_async.assert_not_called()
 
     def test_tempest_project_key(self):
         project = self.create_project()

@@ -143,7 +143,7 @@ class SpanChart {
     const transactionStart = tree.root.span.start_timestamp;
 
     // We only want to collect the root most node once
-    const queue: [SpanChartNode | null, SpanTreeNode][] =
+    const queue: Array<[SpanChartNode | null, SpanTreeNode]> =
       depthOffset === 0
         ? [[null, tree.root]]
         : tree.root.children.map(child => [null, child] as [null, SpanTreeNode]);
@@ -206,8 +206,8 @@ class SpanChart {
       nodes.push(node);
     };
 
-    for (let i = 0; i < this.spanTrees.length; i++) {
-      depth += this.forEachSpanOfTree(this.spanTrees[i]!, depth, visit);
+    for (const tree of this.spanTrees) {
+      depth += this.forEachSpanOfTree(tree, depth, visit);
     }
 
     return nodes;

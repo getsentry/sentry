@@ -11,11 +11,11 @@ type TFeedbackIds = 'all' | string[];
 
 export type ListCache = {
   pageParams: unknown[];
-  pages: ApiResult<FeedbackIssueListItem[]>[];
+  pages: Array<ApiResult<FeedbackIssueListItem[]>>;
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
-function isIssueEndpointUrl(query) {
+function isIssueEndpointUrl(query: any) {
   const url = query.queryKey[0] ?? '';
   return issueApiEndpointRegexp.test(String(url));
 }

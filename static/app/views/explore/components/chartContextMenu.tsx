@@ -1,6 +1,10 @@
+import styled from '@emotion/styled';
+
+import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -29,24 +33,28 @@ function ChartContextMenu({
     projects.length === 1
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
-  const singleProject =
-    (pageFilters.selection.projects.length === 1 || projects.length === 1) && project;
 
-  const alertsUrls = singleProject
-    ? visualizeYAxes.map(yAxis => ({
-        key: yAxis,
-        label: yAxis,
-        to: getAlertsUrl({
-          project,
-          query,
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
-          orgSlug: organization.slug,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-        }),
-      }))
-    : undefined;
+  const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
+    key: `${yAxis}-${index}`,
+    label: yAxis,
+    to: getAlertsUrl({
+      project,
+      query,
+      pageFilters: pageFilters.selection,
+      aggregate: yAxis,
+      orgSlug: organization.slug,
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      interval,
+    }),
+    onAction: () => {
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'alert',
+        ui_source: 'chart',
+        organization,
+      });
+      return undefined;
+    },
+  }));
 
   const items: MenuItemProps[] = [];
 
@@ -55,19 +63,37 @@ function ChartContextMenu({
       key: 'create-alert',
       label: t('Create an alert for'),
       children: alertsUrls ?? [],
-      tooltip: !singleProject
-        ? t('Cannot create an alert when multiple projects are selected')
-        : undefined,
-      disabled: !alertsUrls || alertsUrls.length === 0 || !singleProject,
+      disabled: !alertsUrls || alertsUrls.length === 0,
       isSubmenu: true,
     });
   }
 
   if (organization.features.includes('dashboards-eap')) {
+    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     items.push({
       key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      onAction: () => addToDashboard(visualizeIndex),
+      textValue: t('Add to Dashboard'),
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features="organizations:dashboards-edit"
+          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+        >
+          {t('Add to Dashboard')}
+        </Feature>
+      ),
+      disabled: disableAddToDashboard,
+      onAction: () => {
+        if (disableAddToDashboard) {
+          return undefined;
+        }
+        trackAnalytics('trace_explorer.save_as', {
+          save_type: 'dashboard',
+          ui_source: 'chart',
+          organization,
+        });
+        return addToDashboard(visualizeIndex);
+      },
     });
   }
 
@@ -78,7 +104,7 @@ function ChartContextMenu({
   return (
     <DropdownMenu
       triggerProps={{
-        size: 'sm',
+        size: 'xs',
         borderless: true,
         showChevron: false,
         icon: <IconEllipsis />,
@@ -90,3 +116,7 @@ function ChartContextMenu({
 }
 
 export default ChartContextMenu;
+
+const DisabledText = styled('span')`
+  color: ${p => p.theme.disabled};
+`;

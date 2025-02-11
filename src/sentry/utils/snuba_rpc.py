@@ -22,6 +22,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeValuesRequest,
     TraceItemAttributeValuesResponse,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    TraceItemStatsRequest,
+    TraceItemStatsResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -148,6 +152,13 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
     return response
 
 
+def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
+    resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
+    response = TraceItemStatsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
 def rpc(
     req: SnubaRPCRequest,
     resp_type: type[RPCResponseType],
@@ -167,6 +178,7 @@ def rpc(
             project_ids=[project.id for project in projects],
             start_timestamp=start_time_proto,
             end_timestamp=end_time_proto,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         ),
         aggregate=AggregateBucketRequest.FUNCTION_SUM,
         filter=TraceItemFilter(

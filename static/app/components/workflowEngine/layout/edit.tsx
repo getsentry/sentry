@@ -41,6 +41,7 @@ const Body = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
+  flex-grow: 1;
 `;
 
 const ChartContainer = styled('div')`
@@ -63,11 +64,11 @@ const PanelsContainer = styled('div')`
   flex-grow: 1;
 `;
 
-function Chart({children}) {
+function Chart({children}: any) {
   return <ChartContainer>{children}</ChartContainer>;
 }
 
-function Panels({children}) {
+function Panels({children}: any) {
   return <PanelsContainer>{children}</PanelsContainer>;
 }
 

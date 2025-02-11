@@ -1,11 +1,11 @@
-import {generateSentryTraceHeader} from '@sentry/utils';
+import {generateSentryTraceHeader} from '@sentry/core';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
 
-jest.mock('@sentry/utils', () => ({
-  ...jest.requireActual('@sentry/utils'),
+jest.mock('@sentry/core', () => ({
+  ...jest.requireActual('@sentry/core'),
   generateSentryTraceHeader: jest.fn(() => 'sentry-trace-value'),
 }));
 
@@ -31,7 +31,7 @@ describe('HTTPSnippet', function () {
       'POST /test?query=value HTTP/1.1',
       'Host: example.com',
       'X-Something: Header Value',
-      'User-Agent: SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
+      'User-Agent: SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)',
       'Sentry-Trace: sentry-trace-value',
       'Content-Size: 18',
       ``,

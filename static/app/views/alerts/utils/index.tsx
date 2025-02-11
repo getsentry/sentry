@@ -8,18 +8,13 @@ import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {
-  formatMetricUsingFixedUnit,
-  formatMetricUsingUnit,
-} from 'sentry/utils/metrics/formatters';
-import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {
   Dataset,
   Datasource,
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
 import type {CombinedAlerts, Incident, IncidentStats} from '../types';
 import {AlertRuleStatus, CombinedAlertType} from '../types';
@@ -115,8 +110,10 @@ export function getQueryDatasource(
   }
 
   match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (match && Datasource[match[2]!.toUpperCase()]) {
     return {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       source: Datasource[match[2]!.toUpperCase()],
       query: query.replace(match[0], '').trim(),
     };
@@ -139,12 +136,6 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
-  if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
-  }
-
   const type = aggregateOutputType(seriesName);
 
   if (type === 'duration') {
@@ -161,12 +152,6 @@ export function alertTooltipValueFormatter(
 ) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${value}%` : '\u2015';
-  }
-
-  if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
-    const {unit} = parseMRI(mri)!;
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));
@@ -215,4 +200,21 @@ export function getTeamParams(team?: string | string[]): string[] {
   }
 
   return toArray(team);
+}
+
+/**
+ * Normalize an alert type string
+ */
+export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
+  if (alertType === undefined) {
+    return [];
+  }
+
+  if (alertType === '') {
+    return [];
+  }
+
+  const validTypes = new Set(Object.values(CombinedAlertType));
+
+  return [...validTypes.intersection(new Set(toArray(alertType)))];
 }

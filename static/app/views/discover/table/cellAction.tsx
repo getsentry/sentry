@@ -115,9 +115,6 @@ export function excludeFromFilter(
   key: string,
   value: React.ReactText | string[]
 ) {
-  // Remove positive if it exists.
-  oldFilter.removeFilter(key);
-
   // Negations should stack up.
   const negation = `!${key}`;
 
@@ -129,7 +126,7 @@ export function excludeFromFilter(
   // existing conditions have already been set an verified by the user
   oldFilter.addFilterValues(
     negation,
-    currentNegations.filter(filterValue => !(value as string[]).includes(filterValue)),
+    currentNegations.filter(filterValue => !value.includes(filterValue)),
     false
   );
 
@@ -228,6 +225,7 @@ function makeCellActions({
     addMenuItem(
       Actions.EDIT_THRESHOLD,
       tct('Edit threshold ([threshold]ms)', {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         threshold: dataRow.project_threshold_config[1],
       }),
       t('Edit threshold')

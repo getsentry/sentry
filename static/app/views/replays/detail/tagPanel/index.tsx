@@ -9,13 +9,13 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function TagPanel() {
   const organization = useOrganization();
@@ -41,6 +41,7 @@ function TagPanel() {
     const sortedTags = Object.keys(unorderedTags)
       .sort()
       .reduce((acc, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[key] = unorderedTags[key];
         return acc;
       }, {});
@@ -53,13 +54,16 @@ function TagPanel() {
 
   const generateUrl = useCallback(
     (name: string, value: ReactNode): LocationDescriptor => ({
-      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+      pathname: makeReplaysPathname({
+        path: '/',
+        organization,
+      }),
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
         query: `${name}:"${value}"`,
       },
     }),
-    [organization.slug]
+    [organization]
   );
 
   if (!replayRecord) {

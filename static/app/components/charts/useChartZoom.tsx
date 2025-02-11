@@ -199,8 +199,7 @@ export function useChartZoom({
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      // @ts-expect-error weirdly evt.startValue and evt.endValue do not exist
-      const {startValue, endValue} = evt.batch[0] as {
+      const {startValue, endValue} = (evt as any).batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
@@ -231,8 +230,7 @@ export function useChartZoom({
     }
 
     // This attempts to activate the area zoom toolbox feature
-    // @ts-expect-error _componentsViews is private
-    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
+    const zoom = (chart as any)._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({

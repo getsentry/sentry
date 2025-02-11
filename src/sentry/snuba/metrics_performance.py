@@ -84,7 +84,9 @@ def query(
         if referrer is None:
             referrer = ""
         metrics_referrer = referrer + ".metrics-enhanced"
-        results = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
+        results = metrics_query.run_query(
+            referrer=metrics_referrer, query_source=query_source, use_cache=True
+        )
     with sentry_sdk.start_span(op="mep", name="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
@@ -413,6 +415,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult | dict[str, Any]:
 
     if top_events is None:
@@ -445,6 +448,7 @@ def top_events_timeseries(
             functions_acl=functions_acl,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -527,9 +531,12 @@ def top_events_timeseries(
                     else item["data"]
                 ),
                 "order": item["order"],
-                # One of the queries in the builder has required, thus, we mark all of them
-                # This could mislead downstream consumers of the meta data
-                "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
+                "meta": {
+                    # One of the queries in the builder has required, thus, we mark all of them
+                    # This could mislead downstream consumers of the meta data
+                    "isMetricsExtractedData": top_events_builder.use_on_demand,
+                    **result["meta"],
+                },
             },
             snuba_params.start_date,
             snuba_params.end_date,

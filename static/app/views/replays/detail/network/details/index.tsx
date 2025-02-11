@@ -9,6 +9,7 @@ import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 import NetworkDetailsTabs from 'sentry/views/replays/detail/network/details/tabs';
 
 type Props = {
+  isCaptureBodySetup: boolean;
   isSetup: boolean;
   item: null | SpanFrame;
   onClose: () => void;
@@ -19,6 +20,7 @@ type Props = {
 function NetworkDetails({
   isHeld,
   isSetup,
+  isCaptureBodySetup,
   item,
   onClose,
   onDoubleClick,
@@ -47,6 +49,7 @@ function NetworkDetails({
 
       <NetworkDetailsContent
         isSetup={isSetup}
+        isCaptureBodySetup={isCaptureBodySetup}
         item={item}
         projectId={projectId}
         startTimestampMs={startTimestampMs}

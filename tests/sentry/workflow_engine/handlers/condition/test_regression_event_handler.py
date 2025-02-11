@@ -1,3 +1,6 @@
+import pytest
+from jsonschema import ValidationError
+
 from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
@@ -7,7 +10,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestRegressionEventCondition(ConditionTestCase):
     condition = Condition.REGRESSION_EVENT
-    rule_cls = RegressionEventCondition
     payload = {"id": RegressionEventCondition.id}
 
     def test_dual_write(self):
@@ -18,6 +20,24 @@ class TestRegressionEventCondition(ConditionTestCase):
         assert dc.comparison is True
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison=True,
+            condition_result=True,
+        )
+
+        dc.comparison = False
+        dc.save()
+
+        dc.comparison = {"time": "asdf"}
+        with pytest.raises(ValidationError):
+            dc.save()
+
+        dc.comparison = "hello"
+        with pytest.raises(ValidationError):
+            dc.save()
 
     def test(self):
         job = WorkflowJob(

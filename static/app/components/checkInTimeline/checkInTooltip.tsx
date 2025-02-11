@@ -38,7 +38,7 @@ export function CheckInTooltip<Status extends string>({
   const {startTs, endTs, stats} = jobTick;
   const {dateLabelFormat} = timeWindowConfig;
   const representsSingleJob =
-    (Object.values(stats) as number[]).reduce((sum, count) => sum + count, 0) === 1;
+    Object.values<number>(stats).reduce((sum, count) => sum + count, 0) === 1;
 
   const tooltipTitle = (
     <Fragment>
@@ -52,14 +52,12 @@ export function CheckInTooltip<Status extends string>({
         )}
       </TooltipTimeLabel>
       <StatusCountContainer>
-        {/* Visually hidden but kept here for accessibility */}
-        <HiddenHeader>
+        <thead>
           <tr>
             <td>{t('Status')}</td>
-            <td>{t('Environment')}</td>
             <td>{t('Count')}</td>
           </tr>
-        </HiddenHeader>
+        </thead>
         <tbody>
           {(Object.entries(stats) as Array<[Status, number]>).map(
             ([status, count]) =>
@@ -87,19 +85,32 @@ export function CheckInTooltip<Status extends string>({
 const StatusCountContainer = styled('table')`
   width: 100%;
   margin: 0;
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(1)};
+
+  /* Visually hide the tooltip headers but keep them for accessability */
+  thead {
+    overflow: hidden;
+    height: 0;
+    gap: 0;
+    td {
+      width: 0;
+    }
+  }
+
+  tbody,
+  thead,
+  tr {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
 `;
 
 const TooltipTimeLabel = styled('div')`
   display: flex;
-  margin-bottom: ${space(0.5)};
   justify-content: center;
-`;
-
-const HiddenHeader = styled('thead')`
-  display: block;
-  overflow: hidden;
-  height: 0;
-  width: 0;
 `;
 
 const StatusLabel = styled('td')<{labelColor: ColorOrAlias}>`
@@ -109,4 +120,5 @@ const StatusLabel = styled('td')<{labelColor: ColorOrAlias}>`
 
 const StatusCount = styled('td')`
   font-variant-numeric: tabular-nums;
+  text-align: left;
 `;

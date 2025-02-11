@@ -236,7 +236,7 @@ function modifyFilterValueDate(
 // Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
@@ -289,7 +289,7 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 // and cleans up any extra whitespace
 export function replaceTokensWithPadding(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
@@ -326,7 +326,8 @@ function replaceTokensWithText(
     (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
-    token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
   const focusOverride =
@@ -380,7 +381,7 @@ function multiSelectTokenValue(
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const values = tokenValue.items.map(item => item.value?.text ?? '');
       const containsValue = values.includes(action.value);
       const newValues = containsValue
@@ -388,7 +389,8 @@ function multiSelectTokenValue(
         : [...values, action.value];
 
       return updateFilterMultipleValues(state, action.token, newValues);
-    default:
+    }
+    default: {
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
@@ -396,6 +398,7 @@ function multiSelectTokenValue(
         ? [tokenValue.text, action.value]
         : [action.value];
       return updateFilterMultipleValues(state, action.token, newValue);
+    }
   }
 }
 
@@ -407,10 +410,11 @@ function deleteLastMultiSelectTokenValue(
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const newValues = tokenValue.items.slice(0, -1).map(item => item.value?.text ?? '');
 
       return updateFilterMultipleValues(state, action.token, newValues);
+    }
     default:
       return updateFilterMultipleValues(state, action.token, ['']);
   }

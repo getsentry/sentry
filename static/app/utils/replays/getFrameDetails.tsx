@@ -42,6 +42,7 @@ import type {
   NavFrame,
   RawBreadcrumbFrame,
   ReplayFrame,
+  ScrollFrame,
   SlowClickFrame,
   SwipeFrame,
   TapFrame,
@@ -74,7 +75,7 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
-const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
+const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     color: 'gray300',
     description: stripURLOrigin(frame.message ?? ''),
@@ -84,7 +85,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   navigation: (frame: NavFrame) => ({
     color: 'green400',
-    description: stripURLOrigin((frame as NavFrame).data.to),
+    description: stripURLOrigin(frame.data.to),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -209,6 +210,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     description: frame.data,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Swipe',
+    icon: <IconTap size="xs" />,
+  }),
+  'ui.scroll': (frame: ScrollFrame) => ({
+    color: 'blue400',
+    description: frame.data,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Scroll',
     icon: <IconTap size="xs" />,
   }),
   'ui.tap': (frame: TapFrame) => ({
@@ -437,7 +445,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = (frame): Details => ({
+const MAPPER_DEFAULT = (frame: any): Details => ({
   color: 'gray300',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
@@ -465,7 +473,7 @@ export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
     return `${type} ${action || ''}`.trim();
   }
   if ('message' in frame && frame.message) {
-    return frame.message as string; // TODO(replay): Included for backwards compat
+    return frame.message; // TODO(replay): Included for backwards compat
   }
   return 'description' in frame ? frame.description ?? '' : '';
 }

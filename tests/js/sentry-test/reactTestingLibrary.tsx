@@ -20,7 +20,10 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
+import {
+  DANGEROUS_SET_REACT_ROUTER_6_HISTORY,
+  DANGEROUS_SET_TEST_HISTORY,
+} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
@@ -59,11 +62,34 @@ interface BaseRenderOptions<T extends boolean = boolean>
   disableRouterMocks?: T;
 }
 
-type LocationConfig = string | {pathname: string; query?: Record<string, string>};
+type LocationConfig =
+  | string
+  | {pathname: string; query?: Record<string, string | number | string[]>};
 
 type RouterConfig = {
+  /**
+   * Sets the initial location for the router.
+   */
   location?: LocationConfig;
+  /**
+   * Defines a single route for the router. Necessary for testing useParams();
+   *
+   * Example:
+   *
+   * route: '/issues/:issueId/'
+   */
   route?: string;
+  /**
+   * Sets the initial routes for the router.
+   *
+   * Defines multiple valid routes for the router. Necessary for testing
+   * useParams() if you have multiple routes that render the same component.
+   *
+   * Example:
+   *
+   * routes: ['/issues/:issueId/', '/issues/:issueId/events/:eventId/']
+   */
+  routes?: string[];
 };
 
 type RenderOptions<T extends boolean = false> = T extends true
@@ -73,6 +99,45 @@ type RenderOptions<T extends boolean = false> = T extends true
 type RenderReturn<T extends boolean = boolean> = T extends true
   ? rtl.RenderResult & {router: TestRouter}
   : rtl.RenderResult;
+
+// Inject legacy react-router 3 style router mocked navigation functions
+// into the memory history used in react router 6
+function patchBrowserHistoryMocksEnabled(
+  history: MemoryHistory,
+  router: InjectedRouter<Record<string, string>, any>
+) {
+  Object.defineProperty(history, 'location', {get: () => router.location});
+  history.replace = router.replace;
+  history.push = (path: any) => {
+    if (typeof path === 'object' && path.search) {
+      path.query = qs.parse(path.search);
+      delete path.search;
+      delete path.hash;
+      delete path.state;
+      delete path.key;
+    }
+
+    // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
+    // 6 will not convert objects into strings before pushing. We can detect
+    // this by looking for an empty hash, which we normally do not set for
+    // our browserHistory.push calls
+    if (typeof path === 'object' && path.hash === '') {
+      const queryString = path.query ? qs.stringify(path.query) : null;
+      path = `${path.pathname}${queryString ? `?${queryString}` : ''}`;
+    }
+
+    router.push(path);
+  };
+
+  DANGEROUS_SET_TEST_HISTORY({
+    goBack: router.goBack,
+    push: router.push,
+    replace: router.replace,
+    listen: jest.fn(() => {}),
+    listenBefore: jest.fn(),
+    getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
+  });
+}
 
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization, router} = initializeOrg({
@@ -106,46 +171,9 @@ function makeAllTheProviders(options: ProviderOptions) {
       </TestRouteContext.Provider>
     );
 
-    const history = options.history ?? createMemoryHistory();
-
-    // Inject legacy react-router 3 style router mocked navigation functions
-    // into the memory history used in react router 6
-    //
-    // TODO(epurkhiser): In a world without react-router 3 we should figure out
-    // how to write our tests in a simpler way without all these shims
     if (!options.disableRouterMocks) {
-      Object.defineProperty(history, 'location', {get: () => router.location});
-      history.replace = router.replace;
-      history.push = (path: any) => {
-        if (typeof path === 'object' && path.search) {
-          path.query = qs.parse(path.search);
-          delete path.search;
-          delete path.hash;
-          delete path.state;
-          delete path.key;
-        }
-
-        // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
-        // 6 will not convert objects into strings before pushing. We can detect
-        // this by looking for an empty hash, which we normally do not set for
-        // our browserHistory.push calls
-        if (typeof path === 'object' && path.hash === '') {
-          const queryString = path.query ? qs.stringify(path.query) : null;
-          path = `${path.pathname}${queryString ? `?${queryString}` : ''}`;
-        }
-
-        router.push(path);
-      };
+      patchBrowserHistoryMocksEnabled(options.history ?? createMemoryHistory(), router);
     }
-
-    DANGEROUS_SET_TEST_HISTORY({
-      goBack: router.goBack,
-      push: router.push,
-      replace: router.replace,
-      listen: jest.fn(() => {}),
-      listenBefore: jest.fn(),
-      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-    });
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
@@ -159,28 +187,49 @@ function makeAllTheProviders(options: ProviderOptions) {
   };
 }
 
-function makeRouter({
-  children,
-  history,
-  route,
-}: {
-  history: MemoryHistory;
-  children?: React.ReactNode;
-  route?: string;
-}) {
+function createRoutesFromConfig(
+  children: React.ReactNode,
+  config: RouterConfig | undefined
+): RouteObject[] {
   // By default react-router 6 catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
   function ErrorBoundary(): React.ReactNode {
     throw useRouteError();
   }
 
-  const routes: RouteObject[] = [
-    {
-      path: route ?? '*',
-      element: children,
-      errorElement: <ErrorBoundary />,
-    },
-  ];
+  const fallbackRoute = {path: '*', element: children, errorElement: <ErrorBoundary />};
+
+  if (config?.route) {
+    return [
+      {path: config.route, element: children, errorElement: <ErrorBoundary />},
+      fallbackRoute,
+    ];
+  }
+
+  if (config?.routes) {
+    return [
+      ...config.routes.map(route => ({
+        path: route,
+        element: children,
+        errorElement: <ErrorBoundary />,
+      })),
+      fallbackRoute,
+    ];
+  }
+
+  return [{path: '*', element: children, errorElement: <ErrorBoundary />}];
+}
+
+function makeRouter({
+  children,
+  history,
+  config,
+}: {
+  children: React.ReactNode;
+  config: RouterConfig | undefined;
+  history: MemoryHistory;
+}) {
+  const routes = createRoutesFromConfig(children, config);
 
   const router = createRouter({
     future: {v7_prependBasename: true},
@@ -232,7 +281,7 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     const queryString = qs.stringify(location.query);
     return {
       pathname: location.pathname,
-      search: queryString,
+      search: queryString ? `?${queryString}` : '',
     };
   }
 
@@ -276,8 +325,12 @@ function render<T extends boolean = false>(
   const memoryRouter = makeRouter({
     children: <AllTheProviders>{ui}</AllTheProviders>,
     history,
-    route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
+    config: options.disableRouterMocks ? options.initialRouterConfig : undefined,
   });
+
+  if (options.disableRouterMocks) {
+    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
+  }
 
   const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
@@ -285,7 +338,7 @@ function render<T extends boolean = false>(
     const newRouter = makeRouter({
       children: <AllTheProviders>{newUi}</AllTheProviders>,
       history,
-      route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
+      config: options.disableRouterMocks ? options.initialRouterConfig : undefined,
     });
 
     renderResult.rerender(<RouterProvider router={newRouter} />);

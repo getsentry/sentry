@@ -4,7 +4,7 @@ import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import storyBook from 'sentry/stories/storyBook';
 import type {TimeseriesValue} from 'sentry/types/core';
 
-const stats: ReadonlyArray<TimeseriesValue> = [
+const stats: readonly TimeseriesValue[] = [
   [1715554800, 126],
   [1715558400, 112],
   [1715562000, 126],
@@ -31,7 +31,7 @@ const stats: ReadonlyArray<TimeseriesValue> = [
   [1715637600, 82],
 ];
 
-export default storyBook(GroupStatusChart, story => {
+export default storyBook('GroupStatusChart', story => {
   story('Default', () => {
     return (
       <GraphContainer>

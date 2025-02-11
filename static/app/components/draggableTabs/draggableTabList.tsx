@@ -59,12 +59,15 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
     const availableWidth = outerWidth - addViewTempTabWidth;
 
     let totalWidth = 0;
-    const overflowing: Node<DraggableTabListItemProps>[] = [];
+    const overflowing: Array<Node<DraggableTabListItemProps>> = [];
 
     for (let i = 0; i < tabsDimensions.length; i++) {
-      totalWidth += tabsDimensions[i]!.width + 1; // 1 extra pixel for the divider
-      if (totalWidth > availableWidth + 1) {
-        overflowing.push(persistentTabs[i]!);
+      totalWidth += (tabsDimensions[i]?.width ?? 0) + 1; // 1 extra pixel for the divider
+
+      const tab = persistentTabs[i];
+
+      if (totalWidth > availableWidth + 1 && tab) {
+        overflowing.push(tab);
       }
     }
 
@@ -84,7 +87,7 @@ function OverflowMenu({
   state,
   overflowTabs,
 }: {
-  overflowTabs: Node<DraggableTabListItemProps>[];
+  overflowTabs: Array<Node<DraggableTabListItemProps>>;
   state: TabListState<any>;
 }) {
   const options = useMemo(() => {
@@ -138,13 +141,13 @@ function Tabs({
 }: {
   ariaProps: AriaTabListOptions<DraggableTabListItemProps>;
   hoveringKey: Key | 'addView' | null;
-  onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
+  onReorder: (newOrder: Array<Node<DraggableTabListItemProps>>) => void;
   orientation: 'horizontal' | 'vertical';
-  overflowingTabs: Node<DraggableTabListItemProps>[];
+  overflowingTabs: Array<Node<DraggableTabListItemProps>>;
   setHoveringKey: (key: Key | 'addView' | null) => void;
   setTabRefs: Dispatch<SetStateAction<Array<HTMLDivElement | null>>>;
   state: TabListState<DraggableTabListItemProps>;
-  tabs: Node<DraggableTabListItemProps>[];
+  tabs: Array<Node<DraggableTabListItemProps>>;
   tempTabActive: boolean;
   className?: string;
   disabled?: boolean;
@@ -165,6 +168,7 @@ function Tabs({
   // which we do not want (we hide tabs once they overflow
   const dragConstraints = isDragging ? tabListRef : undefined;
 
+  // @ts-expect-error TS(7006): Parameter 'tabKey' implicitly has an 'any' type.
   const isTabDividerVisible = tabKey => {
     // If the tab divider is succeeding or preceding the selected tab key
     if (
@@ -289,6 +293,7 @@ function BaseDraggableTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
+    // @ts-expect-error TS(7006): Parameter 'key' implicitly has an 'any' type.
     onSelectionChange: key => {
       onChange?.(key);
 
@@ -400,7 +405,7 @@ const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nod
 export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
-  onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
+  onReorder: (newOrder: Array<Node<DraggableTabListItemProps>>) => void;
   className?: string;
   editingTabKey?: string;
   hideBorder?: boolean;

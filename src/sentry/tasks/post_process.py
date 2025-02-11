@@ -994,15 +994,20 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES, derive_code_mappings
+    from sentry.issues.auto_source_code_config.stacktraces import identify_stacktrace_paths
+    from sentry.issues.auto_source_code_config.task import supported_platform
+    from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:
         event = job["event"]
         project = event.project
         group_id = event.group_id
 
-        # Supported platforms
-        if event.data.get("platform") not in SUPPORTED_LANGUAGES:
+        if not supported_platform(event.platform):
+            return
+
+        stacktrace_paths = identify_stacktrace_paths(event.data)
+        if not stacktrace_paths:
             return
 
         # To limit the overall number of tasks, only process one issue per project per hour. In
@@ -1016,10 +1021,10 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        derive_code_mappings.delay(project.id, event.data)
+        auto_source_code_config.delay(project.id, event_id=event.event_id, group_id=group_id)
 
     except Exception:
-        logger.exception("derive_code_mappings: Failed to process code mappings")
+        logger.exception("Failed to process automatic source code config")
 
 
 def process_commits(job: PostProcessJob) -> None:

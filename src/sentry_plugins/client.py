@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Literal, overload
+from typing import Any, Literal, overload
 
 from requests import PreparedRequest, Response
 
-from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
+from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.client.internal import BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -78,7 +78,7 @@ class AuthApiClient(ApiClient):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
-    ) -> BaseApiResponseX: ...
+    ) -> Any: ...
 
     def _request(self, method, path, **kwargs):
         headers = kwargs.setdefault("headers", {})

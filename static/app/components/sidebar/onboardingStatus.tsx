@@ -1,8 +1,9 @@
-import {Fragment, useCallback, useContext, useEffect} from 'react';
+import {useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
@@ -45,7 +46,7 @@ export function OnboardingStatus({
   );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const walkthrough = isDemoModeEnabled();
+  const demoMode = isDemoModeEnabled();
 
   const supportedTasks = getMergedTasks({
     organization,
@@ -68,25 +69,30 @@ export function OnboardingStatus({
       isActive,
   });
 
-  const label = walkthrough ? t('Guided Tours') : t('Onboarding');
+  const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
   const allTasksCompleted = allTasks.length === completeTasks.length;
 
   const skipQuickStart =
-    !organization.features?.includes('onboarding') || (allTasksCompleted && !isActive);
+    (!demoMode && !organization.features?.includes('onboarding')) ||
+    (allTasksCompleted && !isActive);
 
   const handleShowPanel = useCallback(() => {
-    if (!walkthrough && !isActive === true) {
+    if (!demoMode && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization,
       });
     }
 
     onShowPanel();
-  }, [onShowPanel, isActive, walkthrough, organization]);
+  }, [onShowPanel, isActive, demoMode, organization]);
 
   useEffect(() => {
     if (!allTasksCompleted || skipQuickStart || quickStartCompleted) {
+      return;
+    }
+
+    if (demoMode) {
       return;
     }
 
@@ -97,6 +103,7 @@ export function OnboardingStatus({
 
     setQuickStartCompleted(true);
   }, [
+    demoMode,
     organization,
     skipQuickStart,
     quickStartCompleted,
@@ -109,7 +116,7 @@ export function OnboardingStatus({
   }
 
   return (
-    <Fragment>
+    <GuideAnchor target="onboarding_sidebar" position="right">
       <Container
         role="button"
         aria-label={label}
@@ -121,7 +128,7 @@ export function OnboardingStatus({
         }}
       >
         <ProgressRing
-          animateText
+          animate
           textCss={() => css`
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
@@ -137,8 +144,12 @@ export function OnboardingStatus({
           <div>
             <Heading>{label}</Heading>
             <Remaining role="status">
-              {walkthrough
-                ? tn('%s completed tour', '%s completed tours', doneTasks.length)
+              {demoMode
+                ? tn(
+                    '%s remaining tour',
+                    '%s remaining tours',
+                    allTasks.length - doneTasks.length
+                  )
                 : tn('%s completed task', '%s completed tasks', doneTasks.length)}
               {pendingCompletionSeen && (
                 <PendingSeenIndicator data-test-id="pending-seen-indicator" />
@@ -156,7 +167,7 @@ export function OnboardingStatus({
           beyondBasicsTasks={beyondBasicsTasks}
         />
       )}
-    </Fragment>
+    </GuideAnchor>
   );
 }
 

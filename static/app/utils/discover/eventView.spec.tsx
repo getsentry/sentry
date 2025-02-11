@@ -24,16 +24,19 @@ import {AggregationKey, WebVital} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
-const generateFields = fields =>
+const generateFields = (fields: string[]) =>
   fields.map(field => ({
     field,
   }));
 
-const generateSorts = sorts =>
-  sorts.map(sortName => ({
-    field: sortName,
-    kind: 'desc',
-  }));
+const generateSorts = (sorts: string[]) =>
+  sorts.map(
+    sortName =>
+      ({
+        field: sortName,
+        kind: 'desc',
+      }) as const
+  );
 
 const REQUIRED_CONSTRUCTOR_PROPS = {
   createdBy: undefined,
@@ -1345,7 +1348,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1380,7 +1382,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1403,7 +1404,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1436,7 +1436,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1458,7 +1457,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1647,7 +1645,6 @@ describe('EventView.getFacetsAPIPayload()', function () {
     expect(eventView.getFacetsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
-      utc: 'true',
       statsPeriod: '14d',
 
       query: 'event.type:csp',
@@ -2928,7 +2925,10 @@ describe('EventView.isEqualTo()', function () {
     const eventView = new EventView(state);
 
     for (const key in differences) {
-      const eventView2 = new EventView({...state, [key]: differences[key]});
+      const eventView2 = new EventView({
+        ...state,
+        [key]: differences[key as keyof typeof differences],
+      });
       expect(eventView.isEqualTo(eventView2)).toBe(false);
     }
   });
@@ -2993,7 +2993,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   it('generates a URL with non-customer domain context', function () {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
-    const result = view.getResultsViewUrlTarget(organization.slug);
+    const result = view.getResultsViewUrlTarget(organization);
     expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toBe('42');
@@ -3002,7 +3002,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getResultsViewUrlTarget(organization.slug);
+    const result = view.getResultsViewUrlTarget(organization);
     expect(result.pathname).toBe('/discover/results/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toBe('42');
@@ -3050,7 +3050,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     ConfigStore.set('customerDomain', null);
 
     const view = new EventView(state);
-    const result = view.getResultsViewShortUrlTarget(organization.slug);
+    const result = view.getResultsViewShortUrlTarget(organization);
     expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
@@ -3063,7 +3063,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getResultsViewShortUrlTarget(organization.slug);
+    const result = view.getResultsViewShortUrlTarget(organization);
     expect(result.pathname).toBe('/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
@@ -3117,7 +3117,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   it('generates a URL with non-customer domain context', function () {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
       webVital,
@@ -3134,7 +3134,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
       webVital,
@@ -3275,7 +3275,7 @@ describe('EventView.getYAxisOptions()', function () {
     environment: [],
   };
 
-  function generateYaxis(value) {
+  function generateYaxis(value: any) {
     return {
       value,
       label: value,

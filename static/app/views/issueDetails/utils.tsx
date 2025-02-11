@@ -1,7 +1,11 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {
+  bulkUpdate,
+  useFetchIssueTag,
+  useFetchIssueTagValues,
+} from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -127,6 +131,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SUBSCRIPTION_REASONS[reason];
     }
   }
@@ -304,4 +309,65 @@ export function useIsSampleEvent(): boolean {
     {enabled: defined(group)}
   );
   return data?.some(tag => tag.key === 'sample_event') ?? false;
+}
+
+type TagSort = 'date' | 'count';
+const DEFAULT_SORT: TagSort = 'count';
+
+export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const sort: TagSort =
+    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  useFetchIssueTagValues(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+      sort,
+      cursor: location.query.tagDrawerCursor as string | undefined,
+    },
+    {enabled}
+  );
+  useFetchIssueTag(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+    },
+    {enabled}
+  );
+}
+
+export function getUserTagValue(tagValue: TagValue): {
+  subtitle: string | null;
+  subtitleType: string | null;
+  title: string | null;
+} {
+  let title: string | null = null;
+  let subtitle: string | null = null;
+  let subtitleType: string | null = null;
+  if (defined(tagValue?.name)) {
+    title = tagValue?.name;
+  } else if (defined(tagValue?.email)) {
+    title = tagValue?.email;
+  } else if (defined(tagValue?.username)) {
+    title = title ? title : tagValue?.username;
+  } else if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
+    title = tagValue?.ip_address ?? tagValue?.ipAddress;
+  }
+
+  if (defined(tagValue?.id)) {
+    title = title ? title : tagValue?.id;
+    if (tagValue?.id && tagValue?.id !== 'None') {
+      subtitle = tagValue?.id;
+      subtitleType = t('ID');
+    }
+  }
+
+  if (title === subtitle) {
+    subtitle = null;
+  }
+
+  return {title, subtitle, subtitleType};
 }

@@ -27,7 +27,7 @@ describe('DatabaseSpanSummaryPage', function () {
         period: '10d',
         start: null,
         end: null,
-        utc: false,
+        utc: null,
       },
       environments: [],
       projects: [],
@@ -230,6 +230,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -256,6 +257,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -311,7 +313,6 @@ describe('DatabaseSpanSummaryPage', function () {
           shortIdLookup: 1,
           project: [],
           statsPeriod: '10d',
-          utc: 'false',
         },
       })
     );

@@ -207,8 +207,6 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    assert subscription.snuba_query is not None
-
     with sentry_sdk.start_span(op="snuba.tasks", name="create_in_snuba") as span:
         span.set_tag(
             "uses_metrics_layer",

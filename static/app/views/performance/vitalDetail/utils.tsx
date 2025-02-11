@@ -101,6 +101,7 @@ export function getVitalChartTitle(webVital: WebVital): string {
 }
 
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
+  // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
   const vitalThreshold = webVitalPoor[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
     `p75(${vitalName})`
@@ -109,6 +110,7 @@ export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): stri
 }
 
 export function getVitalDetailTableMehStatusFunction(vitalName: WebVital): string {
+  // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
   const vitalThreshold = webVitalMeh[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
     `p75(${vitalName})`
@@ -210,7 +212,9 @@ export function getVitalChartDefinitions({
 }) {
   const utc = decodeScalar(location.query.utc) !== 'false';
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const vitalPoor = webVitalPoor[vital];
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const vitalMeh = webVitalMeh[vital];
 
   const legend = {

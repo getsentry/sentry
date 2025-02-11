@@ -193,13 +193,13 @@ class AlertRule(Model):
     objects: ClassVar[AlertRuleManager] = AlertRuleManager()
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    organization = FlexibleForeignKey("sentry.Organization")
     # NOTE: for now AlertRules and Projects should be 1:1
     # We do not have multi-project alert rules yet
     projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
-    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", unique=True)
 
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)

@@ -39,7 +39,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: undefined,
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -59,7 +60,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -87,7 +89,32 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
         }),
-      })
+      }),
+      {replace: true}
     );
+  });
+
+  it('displays error', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds
+          dataType="duration"
+          dataUnit="millisecond"
+          error={{thresholds: {max1: 'error on max 1', max2: 'error on max 2'}}}
+        />
+      </WidgetBuilderProvider>,
+      {
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              thresholds: '{"max_values":{"max1":-200,"max2":100},"unit":"millisecond"}',
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('error on max 1')).toBeInTheDocument();
+    expect(await screen.findByText('error on max 2')).toBeInTheDocument();
   });
 });

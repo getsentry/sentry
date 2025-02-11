@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
-import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
+import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
@@ -264,9 +264,9 @@ export default function GroupSidebar({
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
-        <SolutionsSectionContainer>
+        <ErrorBoundary mini>
           <SolutionsSection group={group} project={project} event={event} />
-        </SolutionsSectionContainer>
+        </ErrorBoundary>
       )}
 
       {hasStreamlinedUI && event && (
@@ -293,7 +293,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tagsTab.enabled && (
+      {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
@@ -318,12 +318,6 @@ export default function GroupSidebar({
     </Container>
   );
 }
-
-const SolutionsSectionContainer = styled('div')`
-  margin-bottom: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(2)};
-`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

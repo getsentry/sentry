@@ -33,10 +33,10 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
     def test_simple(self):
         detector = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
         )
         detector_2 = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector 2", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector 2", type=MetricAlertFire.slug
         )
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert response.data == serialize([detector, detector_2])
@@ -54,17 +54,17 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.slug,
-            "data_source": {
-                "query_type": SnubaQuery.Type.ERROR.value,
+            "groupType": MetricAlertFire.slug,
+            "dataSource": {
+                "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
                 "query": "test query",
                 "aggregate": "count()",
-                "time_window": 60,
+                "timeWindow": 60,
                 "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.value],
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
-            "data_conditions": [
+            "dataConditions": [
                 {
                     "type": Condition.GREATER,
                     "comparison": 100,
@@ -75,7 +75,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
 
     def test_missing_group_type(self):
         data = {**self.valid_data}
-        del data["group_type"]
+        del data["groupType"]
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -85,7 +85,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == {"groupType": ["This field is required."]}
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": "invalid_type"}
+        data = {**self.valid_data, "groupType": "invalid_type"}
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -97,7 +97,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
-            data = {**self.valid_data, "group_type": "incompatible_type"}
+            data = {**self.valid_data, "groupType": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
@@ -106,7 +106,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             )
             assert response.data == {"groupType": ["Group type not compatible with detectors"]}
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
             response = self.get_success_response(
@@ -120,7 +120,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == serialize([detector])[0]
         assert detector.name == "Test Detector"
         assert detector.type == MetricAlertFire.slug
-        assert detector.organization_id == self.organization.id
+        assert detector.project_id == self.project.id
 
         # Verify data source
         data_source = DataSource.objects.get(detector=detector)
@@ -130,9 +130,8 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert data_source.organization_id == self.organization.id
 
         # Verify query subscription
-        query_sub = QuerySubscription.objects.get(id=data_source.query_id)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
         assert query_sub.project == self.project
-        assert query_sub.snuba_query
         assert query_sub.snuba_query.type == SnubaQuery.Type.ERROR.value
         assert query_sub.snuba_query.dataset == Dataset.Events.value
         assert query_sub.snuba_query.query == "test query"

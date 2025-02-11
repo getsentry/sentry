@@ -1,5 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,7 +14,7 @@ import {
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
-  const {organization, project, routerProps} = initializeOrg();
+  const {organization, project} = initializeOrg();
   const projectKeys = ProjectKeysFixture();
   let deleteMock: jest.Mock;
 
@@ -30,55 +31,37 @@ describe('ProjectKeys', function () {
     });
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: [],
     });
+    const router = RouterFixture({projectId: project.slug});
 
-    render(
-      <ProjectKeys
-        {...routerProps}
-        project={project}
-        params={{projectId: project.slug}}
-        organization={organization}
-      />
-    );
+    render(<ProjectKeys project={project} />, {router});
 
     expect(
-      screen.getByText('There are no keys active for this project.')
+      await screen.findByText('There are no keys active for this project.')
     ).toBeInTheDocument();
   });
 
   it('has clippable box', async function () {
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture()}
-      />
-    );
+    const router = RouterFixture({projectId: project.slug});
+    render(<ProjectKeys project={ProjectFixture()} />, {router});
 
-    const expandButton = screen.getByRole('button', {name: 'Expand'});
+    const expandButton = await screen.findByRole('button', {name: 'Expand'});
     await userEvent.click(expandButton);
 
     expect(expandButton).not.toBeInTheDocument();
   });
 
-  it('renders for default project', function () {
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture({platform: 'other'})}
-      />
-    );
+  it('renders for default project', async function () {
+    const router = RouterFixture({projectId: project.slug});
+    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {router});
 
-    const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
+    const allDsn = await screen.findAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn).toHaveLength(1);
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
@@ -101,18 +84,12 @@ describe('ProjectKeys', function () {
     expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
   });
 
-  it('renders for javascript project', function () {
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture({platform: 'javascript'})}
-      />
-    );
+  it('renders for javascript project', async function () {
+    const router = RouterFixture({projectId: project.slug});
+    render(<ProjectKeys project={ProjectFixture({platform: 'javascript'})} />, {router});
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
+    const dsn = await screen.findByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
@@ -139,18 +116,14 @@ describe('ProjectKeys', function () {
     );
   });
 
-  it('renders for javascript-react project', function () {
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture({platform: 'javascript-react'})}
-      />
-    );
+  it('renders for javascript-react project', async function () {
+    const router = RouterFixture({projectId: project.slug});
+    render(<ProjectKeys project={ProjectFixture({platform: 'javascript-react'})} />, {
+      router,
+    });
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
+    const dsn = await screen.findByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
@@ -169,7 +142,7 @@ describe('ProjectKeys', function () {
     expect(screen.queryByText('Loader Script')).not.toBeInTheDocument();
   });
 
-  it('renders multiple keys', function () {
+  it('renders multiple keys', async function () {
     const multipleProjectKeys = ProjectKeysFixture([
       {
         dsn: {
@@ -218,30 +191,19 @@ describe('ProjectKeys', function () {
       body: multipleProjectKeys,
     });
 
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture({platform: 'other'})}
-      />
-    );
+    const router = RouterFixture({projectId: project.slug});
 
-    const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
+    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {router});
+
+    const allDsn = await screen.findAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn).toHaveLength(2);
   });
 
   it('deletes key', async function () {
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture()}
-      />
-    );
+    const router = RouterFixture({projectId: project.slug});
+    render(<ProjectKeys project={ProjectFixture()} />, {router});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
 
@@ -249,14 +211,8 @@ describe('ProjectKeys', function () {
   });
 
   it('disable and enables key', async function () {
-    render(
-      <ProjectKeys
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug}}
-        project={ProjectFixture()}
-      />
-    );
+    const router = RouterFixture({projectId: project.slug});
+    render(<ProjectKeys project={ProjectFixture()} />, {router});
 
     const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
@@ -265,7 +221,7 @@ describe('ProjectKeys', function () {
 
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Disable'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => {

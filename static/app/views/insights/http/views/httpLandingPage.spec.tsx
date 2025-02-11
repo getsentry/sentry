@@ -21,6 +21,7 @@ describe('HTTPLandingPage', function () {
 
   let spanListRequestMock!: jest.Mock;
   let spanChartsRequestMock!: jest.Mock;
+  let regionFilterRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
@@ -77,6 +78,25 @@ describe('HTTPLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture({name: 'frontend'}), ProjectFixture({name: 'backend'})],
+    });
+
+    regionFilterRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -188,6 +208,25 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
+        },
+      })
+    );
+
+    expect(regionFilterRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['user.geo.subregion', 'count()'],
+          per_page: 50,
+          project: [],
+          query: 'has:user.geo.subregion',
+          sort: '-count()',
+          referrer: 'api.insights.user-geo-subregion-selector',
+          statsPeriod: '10d',
         },
       })
     );
@@ -213,6 +252,7 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -242,6 +282,7 @@ describe('HTTPLandingPage', function () {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          transformAliasToInputFormat: '1',
         },
       })
     );

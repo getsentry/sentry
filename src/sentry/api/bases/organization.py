@@ -661,12 +661,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         actor_id = None
         has_perms = None
         key = None
-        if getattr(request, "user", None) and request.user.id:
+        if request.user.is_authenticated:
             actor_id = "user:%s" % request.user.id
-        if getattr(request, "auth", None) and getattr(request.auth, "id", None):
-            actor_id = "apikey:%s" % request.auth.id  # type: ignore[union-attr]
-        elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore[union-attr]
+        elif request.auth is not None:
+            actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             requested_project_ids = project_ids
             if requested_project_ids is None:

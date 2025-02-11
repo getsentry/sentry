@@ -51,7 +51,15 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
+from sentry.monitors.models import (
+    MONITOR_ENVIRONMENT_ORDERING,
+    Monitor,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorStatus,
+)
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
@@ -116,7 +124,11 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        try:
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        except SentryAppBaseError as e:
+            return e.response_from_exception()
+
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
@@ -148,7 +160,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         """
-        Fetches metric, issue and uptime alert rules for an organization
+        Fetches metric, issue, crons, and uptime alert rules for an organization
         """
         project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
@@ -195,6 +207,17 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ),
         )
+        crons_rules = Monitor.objects.filter(
+            project_id__in=[p.id for p in projects], status=ObjectStatus.ACTIVE
+        ).annotate(
+            # Since monitors have multiple environment's which can each have
+            # their own status, find the 'worst' status among all of the
+            # environments and use that as the status of this monitor.
+            resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
+            .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
+            .order_by("ordering")
+            .values("status")[:1]
+        )
 
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
@@ -211,9 +234,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(name__icontains=name)
             issue_rules = issue_rules.filter(label__icontains=name)
             uptime_rules = uptime_rules.filter(name__icontains=name)
+            crons_rules = crons_rules.filter(name__icontains=name)
 
         if teams_query is not None:
-            team_ids = teams_query.values_list("id", flat=True)
+            # XXX(epurkhiser): We need to resolve teams now since some queries
+            # (crons) do not exist in the same database as the teams table
+            team_ids = list(teams_query.values_list("id", flat=True))
+
             team_rule_condition = Q(owner_team_id__in=team_ids)
             team_alert_condition = Q(team_id__in=team_ids)
             if unassigned:
@@ -222,6 +249,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(team_alert_condition)
             issue_rules = issue_rules.filter(team_rule_condition)
             uptime_rules = uptime_rules.filter(team_rule_condition)
+            crons_rules = crons_rules.filter(team_rule_condition)
 
         expand = request.GET.getlist("expand", [])
         if "latestIncident" in expand:
@@ -265,6 +293,14 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     default=-2,
                 )
             )
+            crons_rules = crons_rules.annotate(
+                incident_status=Case(
+                    # If a cron monitor is failing we want to treat it the same
+                    # as if an alert is failing, so sort by the critical status
+                    When(resolved_status=MonitorStatus.ERROR, then=IncidentStatus.CRITICAL.value),
+                    default=-2,
+                )
+            )
 
         if "date_triggered" in sort_key:
             far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
@@ -280,15 +316,39 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
             issue_rules = issue_rules.annotate(date_triggered=far_past_date)
             uptime_rules = uptime_rules.annotate(date_triggered=far_past_date)
-        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
-        rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
-        uptime_intermediary = CombinedQuerysetIntermediary(uptime_rules, sort_key)
+            crons_rules = crons_rules.annotate(
+                date_triggered=Coalesce(
+                    Subquery(
+                        MonitorIncident.objects.filter(monitor_id=OuterRef("pk"))
+                        .order_by("-starting_timestamp")
+                        .values("starting_timestamp")[:1]
+                    ),
+                    far_past_date,
+                ),
+            )
+
+        type_filter = request.GET.getlist("alertType", [])
+
+        def has_type(type: str) -> bool:
+            return not type_filter or type in type_filter
+
+        intermediaries: list[CombinedQuerysetIntermediary] = []
+
+        if has_type("alert_rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(alert_rules, sort_key))
+        if has_type("rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(issue_rules, rule_sort_key))
+        if has_type("uptime"):
+            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
+        if has_type("monitor") and features.has("organizations:insights-crons", organization):
+            intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
+
         response = self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
             default_per_page=25,
-            intermediaries=[alert_rule_intermediary, rule_intermediary, uptime_intermediary],
+            intermediaries=intermediaries,
             desc=not is_asc,
             cursor_cls=StringCursor if case_insensitive else Cursor,
             case_insensitive=case_insensitive,

@@ -1,7 +1,7 @@
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UptimeAlertDetails from './details';
 
@@ -19,6 +19,10 @@ describe('UptimeAlertDetails', function () {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=20&project=${project.id}&query=issue.category%3Auptime%20tags%5Buptime_rule%5D%3A1&statsPeriod=14d`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/1/checks/`,
       body: [],
     });
   });
@@ -55,5 +59,58 @@ describe('UptimeAlertDetails', function () {
     expect(
       await screen.findByText('The uptime alert rule you were looking for was not found.')
     ).toBeInTheDocument();
+  });
+
+  it('disables and enables the rule', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
+      statusCode: 404,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
+    });
+
+    render(
+      <UptimeAlertDetails
+        {...routerProps}
+        params={{...routerProps.params, uptimeRuleId: '1'}}
+      />,
+      {organization}
+    );
+    await screen.findByText('Uptime Test Rule');
+
+    const disableMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      method: 'PUT',
+      body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'disabled'}),
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Disable this uptime rule and stop performing checks',
+      })
+    );
+
+    expect(disableMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {status: 'disabled'}})
+    );
+
+    const enableMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
+      method: 'PUT',
+      body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'active'}),
+    });
+
+    // Button now re-enables the monitor
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Enable this uptime rule'})
+    );
+
+    expect(enableMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {status: 'active'}})
+    );
   });
 });

@@ -30,8 +30,8 @@ export interface MetricTimeseriesRow {
   interval: number;
 }
 
-type DiscoverSeries = Series & {
-  meta?: EventsMetaType;
+export type DiscoverSeries = Series & {
+  meta: EventsMetaType;
 };
 
 interface UseMetricsSeriesOptions<Fields> {
@@ -40,6 +40,7 @@ interface UseMetricsSeriesOptions<Fields> {
   overriddenRoute?: string;
   referrer?: string;
   search?: MutableSearch;
+  transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
 
@@ -117,6 +118,7 @@ const useDiscoverSeries = <T extends string[]>(
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
     }),
     options: {
       enabled: options.enabled && pageFilters.isReady,
@@ -131,6 +133,7 @@ const useDiscoverSeries = <T extends string[]>(
   const parsedData: Record<string, DiscoverSeries> = {};
 
   yAxis.forEach(seriesName => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const dataSeries = result.data?.[seriesName] ?? result?.data ?? {};
     const convertedSeries: DiscoverSeries = {
       seriesName,

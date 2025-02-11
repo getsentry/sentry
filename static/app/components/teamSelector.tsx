@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -7,6 +6,7 @@ import debounce from 'lodash/debounce';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {
   ControlProps,
   GeneralSelectValue,
@@ -56,7 +56,7 @@ const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
 
-const filterOption = (canditate, input) =>
+const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 

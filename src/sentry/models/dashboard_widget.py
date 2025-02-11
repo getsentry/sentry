@@ -70,8 +70,7 @@ class DashboardWidgetTypes(TypesClass):
         (
             RELEASE_HEALTH,
             "metrics",
-        ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
-        (METRICS, "custom-metrics"),
+        ),
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),

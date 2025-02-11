@@ -47,7 +47,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
       throw new Error(`Unsupported reducer middleware: ${key}`);
     }
 
-    // @ts-expect-error we cant actually validate function types here
+    // @ts-expect-error TS(2345): Argument of type '((S: Readonly<ReducerState<R>>, ... Remove this comment to see the full error message
     store.add(fn);
   }
 
@@ -60,7 +60,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
       throw new Error(`Unsupported reducer middleware: ${key}`);
     }
 
-    // @ts-expect-error we cant actually validate function types here
+    // @ts-expect-error TS(2345): Argument of type '((S: Readonly<ReducerState<R>>, ... Remove this comment to see the full error message
     store.delete(listener);
   }
 
@@ -73,13 +73,14 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
       throw new Error(`Unsupported reducer middleware: ${key}`);
     }
 
+    // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
     store.forEach(fn => fn(...args));
   }
 }
 
 function update<R extends React.Reducer<any, any>>(
   state: ReducerState<R>,
-  actions: ReducerAction<R>[],
+  actions: Array<ReducerAction<R>>,
   reducer: R,
   emitter: DispatchingReducerEmitter<R>
 ) {
@@ -115,7 +116,7 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   const reducerRef = useRef(reducer);
   reducerRef.current = reducer;
 
-  const actionQueue = useRef<ReducerAction<R>[]>([]);
+  const actionQueue = useRef<Array<ReducerAction<R>>>([]);
   const updatesRef = useRef<number | null>(null);
 
   const wrappedDispatch = useCallback(

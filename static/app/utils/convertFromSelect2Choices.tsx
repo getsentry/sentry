@@ -11,7 +11,9 @@ function isStringList(maybe: string[] | Choices): maybe is string[] {
  * This contains some any hacks as this is creates type errors with the generics
  * used in SelectControl as the generics conflict with the concrete types here.
  */
-const convertFromSelect2Choices = (choices: Input): SelectValue<any>[] | undefined => {
+const convertFromSelect2Choices = (
+  choices: Input
+): Array<SelectValue<any>> | undefined => {
   // TODO(ts): This is to make sure that this function is backwards compatible, ideally,
   // this function only accepts arrays
   if (!Array.isArray(choices)) {

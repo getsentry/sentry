@@ -2591,8 +2591,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
-        assert query._on_demand_metric_spec_map[field]
-        assert query._on_demand_metric_spec_map[field_two]
+        spec_map = query._on_demand_metric_spec_map
+        assert spec_map is not None
+        assert spec_map[field]
+        assert spec_map[field_two]
 
         mep_query = TopMetricsQueryBuilder(
             Dataset.PerformanceMetrics,

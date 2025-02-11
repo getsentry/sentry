@@ -1,7 +1,3 @@
-import styled from '@emotion/styled';
-
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {defined} from 'sentry/utils';
 import {
   WidgetFrame,
@@ -12,24 +8,29 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
+import {MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';
+import {LoadingPanel} from '../widgetLayout/loadingPanel';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    Partial<TimeSeriesWidgetVisualizationProps> {}
+    Partial<TimeSeriesWidgetVisualizationProps> {
+  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
+}
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
-  const {timeseries} = props;
+  const {timeSeries: timeseries} = props;
 
   if (props.isLoading) {
     return (
-      <WidgetFrame title={props.title} description={props.description}>
-        <LoadingPlaceholder>
-          <LoadingMask visible />
-          <LoadingIndicator mini />
-        </LoadingPlaceholder>
+      <WidgetFrame
+        title={props.title}
+        description={props.description}
+        revealActions={props.revealActions}
+        revealTooltip={props.revealTooltip}
+      >
+        <LoadingPanel />
       </WidgetFrame>
     );
   }
@@ -54,38 +55,21 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       warnings={props.warnings}
       error={error}
       onRetry={props.onRetry}
+      revealActions={props.revealActions}
+      revealTooltip={props.revealTooltip}
     >
-      {defined(timeseries) && defined(props.SeriesConstructor) && (
-        <TimeSeriesWrapper>
-          <TimeSeriesWidgetVisualization
-            timeseries={timeseries}
-            releases={props.releases}
-            aliases={props.aliases}
-            dataCompletenessDelay={props.dataCompletenessDelay}
-            SeriesConstructor={props.SeriesConstructor}
-            timeseriesSelection={props.timeseriesSelection}
-            onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
-          />
-        </TimeSeriesWrapper>
+      {defined(timeseries) && (
+        <TimeSeriesWidgetVisualization
+          visualizationType={props.visualizationType}
+          timeSeries={timeseries}
+          releases={props.releases}
+          aliases={props.aliases}
+          stacked={props.stacked}
+          dataCompletenessDelay={props.dataCompletenessDelay}
+          timeseriesSelection={props.timeseriesSelection}
+          onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
+        />
       )}
     </WidgetFrame>
   );
 }
-
-const TimeSeriesWrapper = styled('div')`
-  flex-grow: 1;
-  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
-`;
-
-const LoadingPlaceholder = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
-`;

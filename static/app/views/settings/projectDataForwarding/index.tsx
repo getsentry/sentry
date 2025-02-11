@@ -1,13 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Alert} from 'sentry/components/alert';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -17,185 +18,188 @@ import {t, tct} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Plugin} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type StatProps = {
-  params: {
-    orgId: string;
-    projectId: string;
+function DataForwardingStats() {
+  const {orgId, projectId} = useParams<{orgId: string; projectId: string}>();
+
+  const until = Math.floor(new Date().getTime() / 1000);
+  const since = until - 3600 * 24 * 30;
+  const options = {
+    query: {
+      since,
+      until,
+      resolution: '1d',
+      stat: 'forwarded',
+    },
   };
-};
 
-type StatState = DeprecatedAsyncComponent['state'] & {
-  stats: TimeseriesValue[];
-};
+  const {
+    data: stats,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<TimeseriesValue[]>(
+    [`/projects/${orgId}/${projectId}/stats/`, options],
+    {staleTime: 0}
+  );
 
-class DataForwardingStats extends DeprecatedAsyncComponent<StatProps, StatState> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    const until = Math.floor(new Date().getTime() / 1000);
-    const since = until - 3600 * 24 * 30;
-
-    const options = {
-      query: {
-        since,
-        until,
-        resolution: '1d',
-        stat: 'forwarded',
-      },
-    };
-
-    return [['stats', `/projects/${orgId}/${projectId}/stats/`, options]];
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  renderBody() {
-    const {projectId} = this.props.params;
-    const {stats} = this.state;
-    const series: Series = {
-      seriesName: t('Forwarded'),
-      data: stats.map(([timestamp, value]) => ({name: timestamp * 1000, value})),
-    };
-    const forwardedAny = series.data.some(({value}) => value > 0);
-
-    return (
-      <Panel>
-        <SentryDocumentTitle title={t('Data Forwarding')} projectSlug={projectId} />
-        <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
-        <PanelBody withPadding>
-          {forwardedAny ? (
-            <MiniBarChart
-              isGroupedByDate
-              showTimeInTooltip
-              labelYAxisExtents
-              series={[series]}
-              height={150}
-            />
-          ) : (
-            <EmptyMessage
-              title={t('Nothing forwarded in the last 30 days.')}
-              description={t('Total events forwarded to third party integrations.')}
-            />
-          )}
-        </PanelBody>
-      </Panel>
-    );
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
+
+  const series: Series = {
+    seriesName: t('Forwarded'),
+    data: stats.map(([timestamp, value]) => ({name: timestamp * 1000, value})),
+  };
+  const forwardedAny = series.data.some(({value}) => value > 0);
+
+  return (
+    <Panel>
+      <SentryDocumentTitle title={t('Data Forwarding')} projectSlug={projectId} />
+      <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
+      <PanelBody withPadding>
+        {forwardedAny ? (
+          <MiniBarChart
+            isGroupedByDate
+            showTimeInTooltip
+            labelYAxisExtents
+            series={[series]}
+            height={150}
+          />
+        ) : (
+          <EmptyMessage
+            title={t('Nothing forwarded in the last 30 days.')}
+            description={t('Total events forwarded to third party integrations.')}
+          />
+        )}
+      </PanelBody>
+    </Panel>
+  );
 }
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
-  organization: Organization;
+type Props = {
   project: Project;
 };
 
-type State = DeprecatedAsyncComponent['state'] & {
-  plugins: Plugin[];
-};
+function ProjectDataForwarding({project}: Props) {
+  const organization = useOrganization();
+  const {projectId} = useParams<{projectId: string}>();
+  const [pluginState, setPluginState] = useState<Plugin[]>([]);
 
-class ProjectDataForwarding extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
+  const {
+    data: fetchedPlugins,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Plugin[]>([`/projects/${organization.slug}/${projectId}/plugins/`], {
+    staleTime: 0,
+  });
 
-    return [['plugins', `/projects/${organization.slug}/${projectId}/plugins/`]];
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  get forwardingPlugins() {
-    return this.state.plugins.filter(
-      p => p.type === 'data-forwarding' && p.hasConfiguration
-    );
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  updatePlugin(plugin: Plugin, enabled: boolean) {
-    const plugins = this.state.plugins.map(p => ({
+  const plugins = pluginState.length ? pluginState : fetchedPlugins;
+
+  const forwardingPlugins = () => {
+    return plugins.filter(p => p.type === 'data-forwarding' && p.hasConfiguration);
+  };
+
+  const updatePlugin = (plugin: Plugin, enabled: boolean) => {
+    const newPlugins = plugins.map(p => ({
       ...p,
       enabled: p.id === plugin.id ? enabled : p.enabled,
     }));
 
-    this.setState({plugins});
-  }
+    setPluginState(newPlugins);
+  };
 
-  onEnablePlugin = (plugin: Plugin) => this.updatePlugin(plugin, true);
-  onDisablePlugin = (plugin: Plugin) => this.updatePlugin(plugin, false);
+  const onEnablePlugin = (plugin: Plugin) => updatePlugin(plugin, true);
+  const onDisablePlugin = (plugin: Plugin) => updatePlugin(plugin, false);
 
-  renderBody() {
-    const {organization, project} = this.props;
-    const plugins = this.forwardingPlugins;
-    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
-    const params = {...this.props.params, orgId: organization.slug};
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
-    const pluginsPanel =
-      plugins.length > 0 ? (
-        <PluginList
-          organization={organization}
-          project={project}
-          pluginList={plugins}
-          onEnablePlugin={this.onEnablePlugin}
-          onDisablePlugin={this.onDisablePlugin}
+  const pluginsPanel =
+    plugins.length > 0 ? (
+      <PluginList
+        organization={organization}
+        project={project}
+        pluginList={forwardingPlugins()}
+        onEnablePlugin={onEnablePlugin}
+        onDisablePlugin={onDisablePlugin}
+      />
+    ) : (
+      <Panel>
+        <EmptyMessage
+          title={t('There are no integrations available for data forwarding')}
         />
-      ) : (
-        <Panel>
-          <EmptyMessage
-            title={t('There are no integrations available for data forwarding')}
-          />
-        </Panel>
-      );
+      </Panel>
+    );
 
-    return (
-      <div data-test-id="data-forwarding-settings">
-        <Feature
-          features="projects:data-forwarding"
-          hookName="feature-disabled:data-forwarding"
-        >
-          {({hasFeature, features}) => (
-            <Fragment>
-              <SettingsPageHeader title={t('Data Forwarding')} />
-              <TextBlock>
-                {tct(
-                  `Data Forwarding allows processed events to be sent to your
+  return (
+    <div data-test-id="data-forwarding-settings">
+      <Feature
+        features="projects:data-forwarding"
+        hookName="feature-disabled:data-forwarding"
+      >
+        {({hasFeature, features}) => (
+          <Fragment>
+            <SettingsPageHeader title={t('Data Forwarding')} />
+            <TextBlock>
+              {tct(
+                `Data Forwarding allows processed events to be sent to your
                 favorite business intelligence tools. The exact payload and
                 types of data depend on the integration you're using. Learn
                 more about this functionality in our [link:documentation].`,
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/data-management-settings/data-forwarding/" />
-                    ),
-                  }
-                )}
-              </TextBlock>
-              <PermissionAlert project={project} />
-
-              <Alert showIcon>
-                {tct(
-                  `Sentry forwards [em:all applicable error events] to the provider, in
-                some cases this may be a significant volume of data.`,
-                  {
-                    em: <strong />,
-                  }
-                )}
-              </Alert>
-
-              {!hasFeature && (
-                <FeatureDisabled
-                  alert
-                  featureName={t('Data Forwarding')}
-                  features={features}
-                />
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/data-management-settings/data-forwarding/" />
+                  ),
+                }
               )}
+            </TextBlock>
+            <ProjectPermissionAlert project={project} />
 
-              <DataForwardingStats params={params} />
-              {hasAccess && hasFeature && pluginsPanel}
-            </Fragment>
-          )}
-        </Feature>
-      </div>
-    );
-  }
+            <Alert showIcon type="info">
+              {tct(
+                `Sentry forwards [em:all applicable error events] to the provider, in
+                some cases this may be a significant volume of data.`,
+                {
+                  em: <strong />,
+                }
+              )}
+            </Alert>
+
+            {!hasFeature && (
+              <FeatureDisabled
+                alert
+                featureName={t('Data Forwarding')}
+                features={features}
+              />
+            )}
+
+            <DataForwardingStats />
+            {hasAccess && hasFeature && pluginsPanel}
+          </Fragment>
+        )}
+      </Feature>
+    </div>
+  );
 }
 
-export default withOrganization(ProjectDataForwarding);
+export default ProjectDataForwarding;

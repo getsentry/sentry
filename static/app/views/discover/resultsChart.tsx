@@ -182,7 +182,7 @@ type ContainerProps = {
 };
 
 type ContainerState = {
-  yAxisOptions: SelectValue<string>[];
+  yAxisOptions: Array<SelectValue<string>>;
 };
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
@@ -190,7 +190,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     yAxisOptions: this.props.eventView.getYAxisOptions(),
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: any) {
     const yAxisOptions = this.props.eventView.getYAxisOptions();
     const nextYAxisOptions = nextProps.eventView.getYAxisOptions();
 

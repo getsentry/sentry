@@ -58,7 +58,7 @@ type Props = {
  * @param actionConfig
  * @param dateCreated kept to maintain order of unsaved actions
  */
-const getCleanAction = (actionConfig, dateCreated?: string): Action => {
+const getCleanAction = (actionConfig: any, dateCreated?: string): Action => {
   return {
     unsavedId: uniqueId(),
     unsavedDateCreated: dateCreated ?? new Date().toISOString(),
@@ -402,6 +402,7 @@ class ActionsPanel extends PureComponent<Props> {
                         options={availableAction?.allowedTargetTypes?.map(
                           allowedType => ({
                             value: allowedType,
+                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             label: TargetLabel[allowedType],
                           })
                         )}
@@ -476,6 +477,7 @@ class ActionsPanel extends PureComponent<Props> {
                         isDisabled={disabled || loading}
                         value={action.priority}
                         placeholder={
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           DefaultPriorities[availableAction.type][triggerIndex]
                         }
                         options={PriorityOptions[availableAction.type].map(priority => ({

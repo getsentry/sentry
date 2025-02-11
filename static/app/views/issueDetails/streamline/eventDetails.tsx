@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -52,12 +53,13 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
       return;
     }
     const navHeight = nav.offsetHeight ?? 0;
-    const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
+    const sidebarHeight = isScreenMedium ? parseInt(SIDEBAR_MOBILE_HEIGHT, 10) : 0;
+
     dispatch({
       type: 'UPDATE_NAV_SCROLL_MARGIN',
       margin: navHeight + sidebarHeight,
     });
-  }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
+  }, [nav, isScreenMedium, dispatch]);
 
   return (
     <FloatingEventNavigation
@@ -73,11 +75,11 @@ const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
   top: 0;
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    top: ${p => p.theme.sidebar.mobileHeight};
+    top: ${SIDEBAR_MOBILE_HEIGHT};
   }
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.borderRadiusTop};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 
   &[data-stuck='true'] {
     border-radius: 0;

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import ANY, Mock, patch
 
 from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS, GroupAutofixEndpoint
@@ -446,56 +446,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg
 
-    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
-    def test_get_profile_for_event_with_profile_id(self, mock_profiling_service):
-        mock_profiling_service.return_value.status = 200
-        mock_profiling_service.return_value.data = (
-            b'{"profile": {"frames": [], "stacks": [], "samples": [], "thread_metadata": {}}}'
-        )
-
-        # Create event with profile ID
-        data = load_data("python", timestamp=before_now(minutes=1))
-        data["contexts"] = {
-            "profile": {
-                "profile_id": "12345678901234567890123456789012",
-            }
-        }
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
-
-        assert profile["profile_matches_issue"] is True
-        assert "execution_tree" in profile
-        mock_profiling_service.assert_called_once_with(
-            "GET",
-            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/12345678901234567890123456789012",
-            params={"format": "sample"},
-        )
-
-    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
-    def test_get_profile_for_event_without_profile_id(self, mock_profiling_service):
-        mock_profiling_service.return_value.status = 200
-        mock_profiling_service.return_value.data = (
-            b'{"profile": {"frames": [], "stacks": [], "samples": [], "thread_metadata": {}}}'
-        )
-
-        # Create event with transaction but no profile ID
-        data = load_data("python", timestamp=before_now(minutes=1))
-        data["transaction"] = "test_transaction"
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        # Create a transaction event with profile ID that matches the transaction name
-        transaction_data = {
-            "transaction": "test_transaction",
-            "contexts": {"profile": {"profile_id": "12345678901234567890123456789012"}},
-        }
-        self.store_event(data=transaction_data, project_id=self.project.id)
-
-        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
-
-        assert profile["profile_matches_issue"] is False
-        assert "execution_tree" in profile
-
     def test_convert_profile_to_execution_tree(self):
         profile_data = {
             "profile": {
@@ -599,3 +549,342 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Should only have one node even though frame appears in multiple samples
         assert len(execution_tree) == 1
         assert execution_tree[0]["function"] == "main"
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
+    def test_get_profile_for_event(self, mock_get_from_profiling_service):
+        # Create a test event with transaction and trace data
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "a" * 16,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Mock the profile service response
+        mock_get_from_profiling_service.return_value.status = 200
+        mock_get_from_profiling_service.return_value.data = b"""{
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main",
+                        "module": "app.main",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": true
+                    }
+                ],
+                "stacks": [[0]],
+                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "thread_metadata": {"1": {"name": "MainThread"}}
+            }
+        }"""
+
+        timestamp = before_now(minutes=1)
+        profile_id = "0" * 32
+        # Create a transaction event with profile_id
+        self.store_event(
+            data={
+                "type": "transaction",
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "b" * 16,
+                    },
+                    "profile": {"profile_id": profile_id},
+                },
+                "spans": [
+                    {
+                        "span_id": "a" * 16,
+                        "trace_id": "a" * 32,
+                        "op": "test",
+                        "description": "test span",
+                        "start_timestamp": timestamp.timestamp(),
+                        "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+                    }
+                ],
+                "start_timestamp": timestamp.timestamp(),
+                "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+            },
+            project_id=self.project.id,
+        )
+
+        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
+
+        # Verify profile was fetched and processed correctly
+        assert profile is not None
+        assert profile["profile_matches_issue"] is True
+        assert len(profile["execution_tree"]) == 1
+        assert profile["execution_tree"][0]["function"] == "main"
+        assert profile["execution_tree"][0]["module"] == "app.main"
+        assert profile["execution_tree"][0]["filename"] == "main.py"
+        assert profile["execution_tree"][0]["lineno"] == 10
+
+        # Verify profiling service was called with correct parameters
+        mock_get_from_profiling_service.assert_called_once_with(
+            "GET",
+            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
+            params={"format": "sample"},
+        )
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
+    def test_get_profile_for_event_no_matching_transaction(self, mock_get_from_profiling_service):
+        # Create a test event with transaction and trace data but no matching transaction event
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "a" * 16,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
+
+        # Verify no profile was returned when no matching transaction is found
+        assert profile is None
+        mock_get_from_profiling_service.assert_not_called()
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
+    def test_get_profile_for_event_profile_service_error(self, mock_get_from_profiling_service):
+        # Create test event and transaction
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "a" * 16,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        timestamp = before_now(minutes=1)
+        profile_id = "0" * 32
+        self.store_event(
+            data={
+                "type": "transaction",
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "b" * 16,
+                    },
+                    "profile": {"profile_id": profile_id},
+                },
+                "spans": [
+                    {
+                        "span_id": "a" * 16,
+                        "trace_id": "a" * 32,
+                        "op": "test",
+                        "description": "test span",
+                        "start_timestamp": timestamp.timestamp(),
+                        "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+                    }
+                ],
+                "start_timestamp": timestamp.timestamp(),
+                "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Mock profile service error response
+        mock_get_from_profiling_service.return_value.status = 500
+
+        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
+
+        # Verify no profile is returned on service error
+        assert profile is None
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
+    def test_get_profile_for_event_fallback_profile(self, mock_get_from_profiling_service):
+        # Create a test event with transaction and trace data
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "a" * 16,  # Different span_id than the transaction event
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Mock the profile service response
+        mock_get_from_profiling_service.return_value.status = 200
+        mock_get_from_profiling_service.return_value.data = b"""{
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main",
+                        "module": "app.main",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": true
+                    }
+                ],
+                "stacks": [[0]],
+                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "thread_metadata": {"1": {"name": "MainThread"}}
+            }
+        }"""
+
+        timestamp = before_now(minutes=1)
+        profile_id = "0" * 32
+        # Create a transaction event with profile_id but different span_id
+        self.store_event(
+            data={
+                "type": "transaction",
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,
+                        "span_id": "b" * 16,  # Different span_id than the error event
+                    },
+                    "profile": {"profile_id": profile_id},
+                },
+                "spans": [
+                    {
+                        "span_id": "c"
+                        * 16,  # Different span_id than both error event and transaction
+                        "trace_id": "a" * 32,
+                        "op": "test",
+                        "description": "test span",
+                        "start_timestamp": timestamp.timestamp(),
+                        "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+                    }
+                ],
+                "start_timestamp": timestamp.timestamp(),
+                "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+            },
+            project_id=self.project.id,
+        )
+
+        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
+
+        # Verify profile was fetched and processed correctly
+        assert profile is not None
+        # Should indicate that this is a fallback profile that doesn't exactly match the error
+        assert profile["profile_matches_issue"] is False
+        assert len(profile["execution_tree"]) == 1
+        assert profile["execution_tree"][0]["function"] == "main"
+        assert profile["execution_tree"][0]["module"] == "app.main"
+        assert profile["execution_tree"][0]["filename"] == "main.py"
+        assert profile["execution_tree"][0]["lineno"] == 10
+
+        # Verify profiling service was called with correct parameters
+        mock_get_from_profiling_service.assert_called_once_with(
+            "GET",
+            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
+            params={"format": "sample"},
+        )
+
+    @patch("sentry.api.endpoints.group_ai_autofix.get_from_profiling_service")
+    def test_get_profile_for_event_fallback_to_transaction_name(
+        self, mock_get_from_profiling_service
+    ):
+        # Create a test event with transaction and trace data
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "transaction": "test_transaction",
+                "contexts": {
+                    "trace": {
+                        "trace_id": "a" * 32,  # Different trace_id than the transaction event
+                        "span_id": "a" * 16,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Mock the profile service response
+        mock_get_from_profiling_service.return_value.status = 200
+        mock_get_from_profiling_service.return_value.data = b"""{
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main",
+                        "module": "app.main",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": true
+                    }
+                ],
+                "stacks": [[0]],
+                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "thread_metadata": {"1": {"name": "MainThread"}}
+            }
+        }"""
+
+        timestamp = before_now(minutes=1)
+        profile_id = "0" * 32
+        # Create a transaction event with profile_id but different trace_id
+        self.store_event(
+            data={
+                "type": "transaction",
+                "transaction": "test_transaction",  # Same transaction name
+                "contexts": {
+                    "trace": {
+                        "trace_id": "b" * 32,  # Different trace_id than the error event
+                        "span_id": "b" * 16,
+                    },
+                    "profile": {"profile_id": profile_id},
+                },
+                "spans": [
+                    {
+                        "span_id": "c" * 16,
+                        "trace_id": "b" * 32,
+                        "op": "test",
+                        "description": "test span",
+                        "start_timestamp": timestamp.timestamp(),
+                        "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+                    }
+                ],
+                "start_timestamp": timestamp.timestamp(),
+                "timestamp": (timestamp + timedelta(seconds=1)).timestamp(),
+            },
+            project_id=self.project.id,
+        )
+
+        profile = GroupAutofixEndpoint()._get_profile_for_event(event, self.project)
+
+        # Verify profile was fetched and processed correctly
+        assert profile is not None
+        # Should indicate that this is a fallback profile that doesn't exactly match the error
+        assert profile["profile_matches_issue"] is False
+        assert len(profile["execution_tree"]) == 1
+        assert profile["execution_tree"][0]["function"] == "main"
+        assert profile["execution_tree"][0]["module"] == "app.main"
+        assert profile["execution_tree"][0]["filename"] == "main.py"
+        assert profile["execution_tree"][0]["lineno"] == 10
+
+        # Verify profiling service was called with correct parameters
+        mock_get_from_profiling_service.assert_called_once_with(
+            "GET",
+            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
+            params={"format": "sample"},
+        )

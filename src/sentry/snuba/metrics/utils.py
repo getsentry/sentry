@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Literal, NotRequired, TypedDict, overload
+from typing import Literal, NotRequired, TypedDict, TypeIs, overload
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -27,7 +27,6 @@ __all__ = (
     "Tag",
     "TagValue",
     "MetricMeta",
-    "MetricMetaWithTagKeys",
     "OPERATIONS",
     "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
@@ -140,6 +139,19 @@ MetricEntity = Literal[
     "generic_metrics_distributions",
     "generic_metrics_gauges",
 ]
+
+
+def is_metric_entity(s: str) -> TypeIs[MetricEntity]:
+    return s in {
+        "metrics_counters",
+        "metrics_sets",
+        "metrics_distributions",
+        "generic_metrics_counters",
+        "generic_metrics_sets",
+        "generic_metrics_distributions",
+        "generic_metrics_gauges",
+    }
+
 
 OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {
     "metrics_counters": {
@@ -328,12 +340,6 @@ class TagValue(TypedDict):
     value: str
 
 
-class BlockedMetric(TypedDict):
-    isBlocked: bool
-    blockedTags: Sequence[str]
-    projectId: int
-
-
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
@@ -342,11 +348,6 @@ class MetricMeta(TypedDict):
     metric_id: NotRequired[int]
     mri: str
     projectIds: Sequence[int]
-    blockingStatus: Sequence[BlockedMetric] | None
-
-
-class MetricMetaWithTagKeys(MetricMeta):
-    tags: Sequence[Tag]
 
 
 OPERATIONS_PERCENTILES = (
@@ -399,7 +400,7 @@ DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] =
     "percentage": None,
     "last": None,
 }
-UNIT_TO_TYPE = {
+UNIT_TO_TYPE: dict[str, MetricOperationType] = {
     "sessions": "count",
     "percentage": "percentage",
     "users": "count",

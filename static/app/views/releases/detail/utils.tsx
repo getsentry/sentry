@@ -36,6 +36,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
@@ -43,9 +44,11 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (author.email) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filesByRepository[repoName]![filename].authors[author.email] = author;
     }
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     filesByRepository[repoName]![filename].types.add(type);
 
     return filesByRepository;
@@ -99,7 +102,7 @@ export function getQuery({location, perPage = 40, activeRepository}: GetQueryPro
 /**
  * Get repositories to render according to the activeRepository
  */
-export function getReposToRender(repos: Array<string>, activeRepository?: Repository) {
+export function getReposToRender(repos: string[], activeRepository?: Repository) {
   if (!activeRepository) {
     return repos;
   }
@@ -142,7 +145,9 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.FAILURE_RATE]: t('Failure Rate'),
 };
 
-export const releaseComparisonChartHelp = {
+export const releaseComparisonChartHelp: Partial<
+  Record<ReleaseComparisonChartType, string>
+> = {
   [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]:
     commonTermsDescription[SessionTerm.CRASH_FREE_SESSIONS],
   [ReleaseComparisonChartType.CRASH_FREE_USERS]:
@@ -179,7 +184,7 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-expect-error weird echart types
+        // @ts-expect-error TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
         font: 'Rubik',
         fontSize: 14,
         color: theme.chartLabel,

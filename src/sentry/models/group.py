@@ -21,7 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, options, tagstore
+from sentry import eventstore, eventtypes, features, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -42,6 +42,7 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
@@ -60,6 +61,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
+    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
@@ -178,7 +180,7 @@ STATUS_WITHOUT_SUBSTATUS = {
 }
 
 # Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES: Mapping[str, int] = {
+STATUS_QUERY_CHOICES: dict[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
@@ -1050,3 +1052,104 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                 "No substatus allowed for group",
                 extra={"status": instance.status, "substatus": instance.substatus},
             )
+
+
+def get_last_checked_for_open_period(group: Group) -> datetime:
+    from sentry.incidents.models.alert_rule import AlertRule
+    from sentry.issues.grouptype import MetricIssuePOC
+
+    event = group.get_latest_event()
+    last_checked = group.last_seen
+    if event and group.type == MetricIssuePOC.type_id:
+        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
+        if alert_rule_id:
+            try:
+                alert_rule = AlertRule.objects.get(id=alert_rule_id)
+                now = timezone.now()
+                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
+            except AlertRule.DoesNotExist:
+                pass
+
+    return last_checked
+
+
+def get_open_periods_for_group(
+    group: Group,
+    query_start: datetime | None = None,
+    query_end: datetime | None = None,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[OpenPeriod]:
+    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
+
+    if not features.has("organizations:issue-open-periods", group.organization):
+        return []
+
+    if query_start is None or query_end is None:
+        query_start = timezone.now() - timedelta(days=90)
+        query_end = timezone.now()
+
+    query_limit = limit * 2 if limit else None
+    # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
+    # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
+    # but we don't create an entry for that .
+    activities = Activity.objects.filter(
+        group=group,
+        type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
+        datetime__gte=query_start,
+        datetime__lte=query_end,
+    ).order_by("-datetime")[:query_limit]
+
+    open_periods = []
+    start: datetime | None = None
+    end: datetime | None = None
+    last_checked = get_last_checked_for_open_period(group)
+
+    # Handle currently open period
+    if group.status == GroupStatus.UNRESOLVED and len(activities) > 0:
+        open_periods.append(
+            OpenPeriod(
+                start=activities[0].datetime,
+                end=None,
+                duration=None,
+                is_open=True,
+                last_checked=last_checked,
+            )
+        )
+        activities = activities[1:]
+
+    for activity in activities:
+        if activity.type == ActivityType.SET_RESOLVED.value:
+            end = activity.datetime
+        elif activity.type == ActivityType.SET_REGRESSION.value:
+            start = activity.datetime
+            if end is not None:
+                open_periods.append(
+                    OpenPeriod(
+                        start=start,
+                        end=end,
+                        duration=end - start,
+                        is_open=False,
+                        last_checked=end,
+                    )
+                )
+                end = None
+
+    # Add the very first open period, which has no UNRESOLVED activity for the group creation
+    open_periods.append(
+        OpenPeriod(
+            start=group.first_seen,
+            end=end if end else None,
+            duration=end - group.first_seen if end else None,
+            is_open=False if end else True,
+            last_checked=end if end else last_checked,
+        )
+    )
+
+    if offset and limit:
+        return open_periods[offset : offset + limit]
+
+    if limit:
+        return open_periods[:limit]
+
+    return open_periods

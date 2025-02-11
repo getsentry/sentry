@@ -20,7 +20,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -95,7 +94,7 @@ const result = client.getBooleanValue('my-flag', false);`,
   },
   [IntegrationOptions.UNLEASH]: {
     importStatement: `import { UnleashClient } from 'unleash-proxy-client';`,
-    integration: 'unleashIntegration(UnleashClient)',
+    integration: 'unleashIntegration({unleashClientClass: UnleashClient})',
     sdkInit: `const unleash = new UnleashClient({
   url: "https://<your-unleash-instance>/api/frontend",
   clientKey: "<your-client-side-token>",
@@ -683,7 +682,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         'Add [name] to your integrations list, and then register with your feature flag SDK.',
         {
           name: (
-            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration].integration}`}</code>
+            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration}`}</code>
           ),
         }
       ),
@@ -691,18 +690,18 @@ export const featureFlagOnboarding: OnboardingConfig = {
         {
           language: 'JavaScript',
           code: `
-${FLAG_OPTIONS[featureFlagOptions.integration].importStatement}
+${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].importStatement}
 
 // Register with Sentry
 Sentry.init({
   dsn: "${dsn.public}",
   integrations: [
-    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration].integration},
+    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration},
   ],
 });
 
 // Register with your feature flag SDK
-${FLAG_OPTIONS[featureFlagOptions.integration].sdkInit}
+${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].sdkInit}
 `,
         },
       ],
@@ -719,7 +718,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,

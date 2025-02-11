@@ -38,6 +38,7 @@ type Props = {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onDataFetched?: (results: {
     pageLinks?: string;
@@ -80,6 +81,7 @@ export function WidgetCardChartContainer({
   shouldResize,
   widgetLegendState,
   showConfidenceWarning,
+  minTableColumnWidth,
 }: Props) {
   const location = useLocation();
 
@@ -165,6 +167,7 @@ export function WidgetCardChartContainer({
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
+              minTableColumnWidth={minTableColumnWidth}
             />
           </Fragment>
         );
@@ -175,7 +178,7 @@ export function WidgetCardChartContainer({
 
 export default WidgetCardChartContainer;
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;

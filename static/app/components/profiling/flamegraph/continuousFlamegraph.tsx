@@ -143,13 +143,19 @@ function getProfileOffset(
 
 function getTransactionOffset(
   transaction: EventTransaction | null,
+  profileTimestamp: number,
   startedAtMs: number | null
 ): Rect {
   if (!transaction || !startedAtMs) {
     return Rect.Empty();
   }
 
-  return new Rect(transaction.startTimestamp * 1e3 - startedAtMs, 0, 0, 0);
+  return new Rect(
+    transaction.startTimestamp * 1e3 - profileTimestamp - startedAtMs,
+    0,
+    0,
+    0
+  );
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
@@ -208,8 +214,8 @@ function findLongestMatchingFrame(
       longestFrame = frame;
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]!);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 
@@ -250,7 +256,16 @@ export function ContinuousFlamegraph(): ReactElement {
   const profileGroup = useProfileGroup();
   const segment = useProfileTransaction();
 
-  const configSpaceQueryParam = useMemo(() => decodeConfigSpace(), []);
+  const profileTimestamp = useMemo(() => {
+    return (
+      Math.min(...profileGroup.profiles.map(p => p.timestamp).filter(defined)) * 1000
+    );
+  }, [profileGroup]);
+
+  const configSpaceQueryParam: [number, number] = useMemo(() => {
+    const [startedAtMs, endedAtMs] = decodeConfigSpace();
+    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
+  }, [profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
@@ -857,6 +872,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
           configSpaceTransform: getTransactionOffset(
             segment.type === 'resolved' ? segment.data : null,
+            profileTimestamp,
             configSpaceQueryParam[0]
           ),
         },
@@ -875,6 +891,7 @@ export function ContinuousFlamegraph(): ReactElement {
       spansCanvas,
       flamegraphView,
       flamegraphTheme.SIZES,
+      profileTimestamp,
       configSpaceQueryParam,
       segment,
     ]
@@ -1447,7 +1464,7 @@ export function ContinuousFlamegraph(): ReactElement {
         batteryChart={
           hasBatteryChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
@@ -1469,7 +1486,7 @@ export function ContinuousFlamegraph(): ReactElement {
         memoryChart={
           hasMemoryChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
@@ -1495,7 +1512,7 @@ export function ContinuousFlamegraph(): ReactElement {
         cpuChart={
           hasCPUChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
@@ -1602,7 +1619,7 @@ function formatProfileSeriesMeasurement({
   let offset = 0;
   for (let i = 0; i < measurement.values.length; i++) {
     const value = measurement.values[i]!;
-    const next = measurement.values[i + 1]! ?? value;
+    const next = measurement.values[i + 1] ?? value;
     const offsetNanoseconds = next.elapsed_since_start_ns - value.elapsed_since_start_ns;
     offset += offsetNanoseconds / 1e6;
 

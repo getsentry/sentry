@@ -19,6 +19,10 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
+  # Disables sentry reporting for devservices
+  DEVSERVICES_DISABLE_SENTRY: 1
+  CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   files-changed:
@@ -96,8 +100,6 @@ jobs:
 
       - name: webpack
         env:
-          # this is fine to not have for forks, it shouldn't fail
-          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           # should set value either as `true` or `false`
           CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
@@ -113,16 +115,21 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
-          chartcuterie: true
-          pg-version: ${{ matrix.pg-version }}
+          mode: acceptance-ci
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
+        if: ${{ !cancelled() }}
         with:
           artifact_path: .artifacts/pytest.acceptance.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}

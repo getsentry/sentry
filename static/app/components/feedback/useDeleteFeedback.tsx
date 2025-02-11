@@ -9,8 +9,9 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
-export const useDeleteFeedback = (feedbackIds, projectId) => {
+export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
   const api = useApi({
     persistInFlight: false,
@@ -33,7 +34,10 @@ export const useDeleteFeedback = (feedbackIds, projectId) => {
             complete: () => {
               navigate(
                 normalizeUrl({
-                  pathname: `/organizations/${organization.slug}/feedback/`,
+                  pathname: makeFeedbackPathname({
+                    path: '/',
+                    organization,
+                  }),
                   query: {
                     mailbox: locationQuery.mailbox,
                     project: locationQuery.project,
@@ -49,5 +53,15 @@ export const useDeleteFeedback = (feedbackIds, projectId) => {
       message: t('Deleting feedbacks is permanent. Are you sure you wish to continue?'),
       confirmText: t('Delete'),
     });
-  }, [api, feedbackIds, locationQuery, navigate, organization.slug, projectId]);
+  }, [
+    api,
+    feedbackIds,
+    locationQuery.mailbox,
+    locationQuery.project,
+    locationQuery.query,
+    locationQuery.statsPeriod,
+    navigate,
+    organization,
+    projectId,
+  ]);
 };

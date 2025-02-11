@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -20,7 +19,6 @@ import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
@@ -37,23 +35,18 @@ import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
-import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
-import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
 import type {TimePeriodType} from './constants';
-import {
-  API_INTERVAL_POINTS_LIMIT,
-  SELECTOR_RELATIVE_PERIODS,
-  TIME_WINDOWS,
-} from './constants';
+import {SELECTOR_RELATIVE_PERIODS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
+import {getFilter, getPeriodInterval} from './utils';
 
-interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
+export interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   api: Client;
   location: Location;
   organization: Organization;
@@ -77,43 +70,6 @@ export default function MetricDetailsBody({
   router,
   anomalies,
 }: MetricDetailsBodyProps) {
-  function getPeriodInterval() {
-    const startDate = moment.utc(timePeriod.start);
-    const endDate = moment.utc(timePeriod.end);
-    const timeWindow = rule?.timeWindow;
-    const startEndDifferenceMs = endDate.diff(startDate);
-
-    if (
-      timeWindow &&
-      (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
-        // Special case 7 days * 1m interval over the api limit
-        startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
-    ) {
-      return `${timeWindow}m`;
-    }
-
-    return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
-  }
-
-  function getFilter(): string[] | null {
-    if (!rule) {
-      return null;
-    }
-
-    const {aggregate, dataset, query} = rule;
-
-    if (
-      isCrashFreeAlert(dataset) ||
-      isCustomMetricAlert(aggregate) ||
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-    ) {
-      return query.trim().split(' ');
-    }
-
-    const eventType = extractEventTypeFilterFromRule(rule);
-    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
-  }
-
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
@@ -175,18 +131,10 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  let formattedAggregate = aggregate;
-  if (isCustomMetricAlert(aggregate)) {
-    formattedAggregate = formatMRIField(aggregate);
-  }
+  const formattedAggregate = aggregate;
 
   return (
     <Fragment>
-      {isCustomMetricAlert(rule.aggregate) && (
-        <StyledLayoutBody>
-          <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
-        </StyledLayoutBody>
-      )}
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>
@@ -197,7 +145,7 @@ export default function MetricDetailsBody({
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert showIcon>
+            <Alert type="warning" showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                 ? tct(
                     "[creator] muted this alert so these notifications won't be sent in the future.",
@@ -224,7 +172,8 @@ export default function MetricDetailsBody({
               triggerLabel={
                 timePeriod.custom
                   ? timePeriod.label
-                  : relativeOptions[timePeriod.period ?? '']
+                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    relativeOptions[timePeriod.period ?? '']
               }
             />
             {selectedIncident && (
@@ -266,9 +215,9 @@ export default function MetricDetailsBody({
             formattedAggregate={formattedAggregate}
             organization={organization}
             project={project}
-            interval={getPeriodInterval()}
+            interval={getPeriodInterval(timePeriod, rule)}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
-            filter={getFilter()}
+            filter={getFilter(rule)}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
           <DetailWrapper>

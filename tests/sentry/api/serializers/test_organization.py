@@ -61,14 +61,14 @@ class OrganizationSerializerTest(TestCase):
         result = serialize(organization, user)
 
         assert result["id"] == str(organization.id)
-        assert result["features"] == {
+        assert result["features"] == [
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
             "custom-symbol-sources",
-            "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
+            "data-forwarding",
             "discover-basic",
             "discover-query",
             "event-attachments",
@@ -84,21 +84,21 @@ class OrganizationSerializerTest(TestCase):
             "integrations-issue-sync",
             "integrations-stacktrace-link",
             "integrations-ticket-rules",
-            "performance-tracing-without-performance",
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
-            "quick-start-updates",
+            "performance-tracing-without-performance",
             "relay",
-            "shared-issues",
             "session-replay-ui",
+            "shared-issues",
             "sso-basic",
             "sso-saml2",
             "symbol-sources",
             "team-insights",
             "team-roles",
-        }
+            "uptime",
+        ]
 
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch):

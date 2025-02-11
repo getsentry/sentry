@@ -5,13 +5,12 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Literal, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
-from typing_extensions import TypeIs
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
@@ -505,13 +504,26 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-class AggregateFilter(NamedTuple):
-    key: AggregateKey
-    operator: str
-    value: SearchValue
+# https://github.com/python/mypy/issues/18520
+# without this mypy thinks that AggregateFilter and SearchFilter are
+# structurally equivalent and will refuse to narrow them
+if TYPE_CHECKING:
 
-    def __str__(self):
-        return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    class AggregateFilter(NamedTuple):
+        key: AggregateKey
+        operator: str
+        value: SearchValue
+        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+
+else:  # real implementation here!
+
+    class AggregateFilter(NamedTuple):
+        key: AggregateKey
+        operator: str
+        value: SearchValue
+
+        def __str__(self) -> str:
+            return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass
@@ -528,10 +540,6 @@ class SearchConfig:
 
     # Keys which are considered valid for duration filters
     duration_keys: set[str] = field(default_factory=set)
-
-    # Keys considered valid for the percentage aggregate and may have
-    # percentage search values
-    percentage_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for numeric filter types
     numeric_keys: set[str] = field(default_factory=set)
@@ -622,6 +630,7 @@ class SearchVisitor(NodeVisitor):
             or is_span_op_breakdown(key)
             or self.get_field_type(key) in ["number", "integer"]
             or self.is_duration_key(key)
+            or self.is_size_key(key)
         )
 
     def is_duration_key(self, key):
@@ -641,9 +650,6 @@ class SearchVisitor(NodeVisitor):
 
     def is_boolean_key(self, key):
         return key in self.config.boolean_keys
-
-    def is_percentage_key(self, key):
-        return key in self.config.percentage_keys
 
     def visit_search(self, node, children):
         return flatten(remove_space(children[1]))
@@ -1222,7 +1228,6 @@ class SearchVisitor(NodeVisitor):
 
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
-    percentage_keys={"percentage"},
     text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     # do not put aggregate functions in this list
     numeric_keys={

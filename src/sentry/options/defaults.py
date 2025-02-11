@@ -490,6 +490,13 @@ register(
     default=5000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Disables viewed by queries for a list of project ids.
+register(
+    "replay.viewed-by.project-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -513,6 +520,21 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
+#
+# NOTE: Any value below 1.0 will break the product. Do not override in production.
+register(
+    "relay.ourlogs-breadcrumb-extraction.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Control number of breadcrumbs converted to OurLogs
+register(
+    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -527,6 +549,14 @@ register(
 register(
     "relay.span-normalization.allowed_hosts",
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Drop attachments in transaction envelopes in Relay.
+register(
+    "relay.drop-transaction-attachments",
+    type=Bool,
+    default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -758,10 +788,6 @@ register(
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-register(
-    "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 
 # Enable calling the severity modeling API on group creation
 register(
@@ -1184,6 +1210,11 @@ register("symbolicate.symx-os-description-list", default=[], flags=FLAG_AUTOMATO
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# The poll limit for the tempest service.
+#
+# 348 every 5 min ~ 100k per day
+register("tempest.poll-limit", default=348, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -2807,6 +2838,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_processing.emit_logs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2823,12 +2860,6 @@ register(
     "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# Controls the rate of using the sentry api shared secret for communicating to sentry.
-register(
-    "seer.api.use-nonce-signature",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -2960,6 +2991,28 @@ register(
 
 register(
     "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.grpc_service_config",
+    type=String,
+    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.date_cutoff_epoch_seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Increases event title character limit
+register(
+    "sentry.save-event.title-char-limit-256.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

@@ -8,11 +8,24 @@ from sentry.rules.conditions.event_attribute import attribute_registry
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
 class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
+    type = DataConditionHandlerType.ACTION_FILTER
+
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "attribute": {"type": "string"},
+            "match": {"type": "string", "enum": [*MatchType]},
+            "value": {"type": "string"},
+        },
+        "required": ["attribute", "match", "value"],
+        "additionalProperties": False,
+    }
+
     @staticmethod
     def get_attribute_values(event: GroupEvent, attribute: str) -> list[str]:
         path = attribute.split(".")

@@ -17,7 +17,7 @@ interface Props {
   isDataAvailable?: boolean;
 }
 
-function DivWrapper(props) {
+function DivWrapper(props: any) {
   return <div {...props} />;
 }
 

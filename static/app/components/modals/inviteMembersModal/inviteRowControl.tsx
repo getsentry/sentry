@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
@@ -92,7 +92,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     }
   };
 
-  const handleInput = input => {
+  const handleInput = (input: string) => {
     const newEmails = input.trim() ? input.trim().split(/[\s,]+/) : [];
     if (newEmails.length > 0) {
       onChangeEmails([

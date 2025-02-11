@@ -128,7 +128,7 @@ describe('ColumnEditorModal', function () {
       expect(column).toHaveTextContent(columns2[i]!);
     });
 
-    const options: [string, 'string' | 'number'][] = [
+    const options: Array<[string, 'string' | 'number']> = [
       ['id', 'string'],
       ['project', 'string'],
       ['span.duration', 'number'],
@@ -176,7 +176,7 @@ describe('ColumnEditorModal', function () {
       expect(column).toHaveTextContent(columns1[i]!);
     });
 
-    const options: [string, 'string' | 'number'][] = [
+    const options: Array<[string, 'string' | 'number']> = [
       ['id', 'string'],
       ['project', 'string'],
       ['span.duration', 'number'],

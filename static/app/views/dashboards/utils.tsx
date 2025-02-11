@@ -47,9 +47,6 @@ import {
 } from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
-import {parseField} from 'sentry/utils/metrics/mri';
-import type {MetricsWidget} from 'sentry/utils/metrics/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
@@ -112,7 +109,7 @@ export function eventViewFromWidget(
 
 export function getThresholdUnitSelectOptions(
   dataType: string
-): {label: string; value: string}[] {
+): Array<{label: string; value: string}> {
   if (dataType === 'duration') {
     return Object.keys(DURATION_UNITS)
       .map(unit => ({label: unit, value: unit}))
@@ -136,9 +133,11 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
 export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
-      ? RATE_UNIT_MULTIPLIERS[unit]
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-        ? DURATION_UNITS[unit]
+        ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          DURATION_UNITS[unit]
         : 1;
   return value * multiplier;
 }
@@ -266,10 +265,11 @@ export function getWidgetDiscoverUrl(
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) && widget.widgetType
-      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
       : undefined
   );
 
@@ -286,7 +286,7 @@ export function getWidgetDiscoverUrl(
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;
-    case DisplayType.TOP_N:
+    case DisplayType.TOP_N: {
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
       const aggregates = widget.queries[0]!.aggregates;
@@ -295,6 +295,7 @@ export function getWidgetDiscoverUrl(
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
+    }
     default:
       break;
   }
@@ -365,40 +366,6 @@ export function getWidgetReleasesUrl(
     environment: selection.environments,
   })}`;
   return releasesLocation;
-}
-
-export function getWidgetMetricsUrl(
-  _widget: Widget,
-  selection: PageFilters,
-  organization: Organization
-) {
-  const {start, end, utc, period} = selection.datetime;
-  const datetime =
-    start && end
-      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-      : {statsPeriod: period};
-
-  // ensures that My Projects selection is properly handled
-  const project = selection.projects.length ? selection.projects : [0];
-
-  const metricsLocation = getMetricsUrl(organization.slug, {
-    ...datetime,
-    project,
-    environment: selection.environments,
-    widgets: _widget.queries.map(query => {
-      const parsed = parseField(query.aggregates[0]!);
-
-      return {
-        mri: parsed?.mri,
-        aggregation: parsed?.aggregation,
-        groupBy: query.columns,
-        query: query.conditions ?? '',
-        displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies Partial<MetricsWidget>;
-    }),
-  });
-
-  return metricsLocation;
 }
 
 export function flattenErrors(

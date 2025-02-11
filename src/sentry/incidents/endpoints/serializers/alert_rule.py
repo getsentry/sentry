@@ -23,6 +23,7 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.monitors.models import Monitor
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -249,13 +250,8 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
-        assert obj.snuba_query is not None
         env = obj.snuba_query.environment
         allow_mri = features.has(
-            "organizations:custom-metrics",
-            obj.organization,
-            actor=user,
-        ) or features.has(
             "organizations:insights-alerts",
             obj.organization,
             actor=user,
@@ -376,6 +372,14 @@ class CombinedRuleSerializer(Serializer):
             item["id"]: item for item in serialized_uptime_monitors
         }
 
+        serialized_cron_monitors = serialize(
+            [x for x in item_list if isinstance(x, Monitor)],
+            user=user,
+        )
+        serialized_cron_monitor_map_by_guid = {
+            item["id"]: item for item in serialized_cron_monitors
+        }
+
         for item in item_list:
             item_id = str(item.id)
             if isinstance(item, AlertRule) and item_id in serialized_alert_rule_map_by_id:
@@ -405,6 +409,13 @@ class CombinedRuleSerializer(Serializer):
             ):
                 # This is an uptime monitor
                 results[item] = serialized_uptime_monitor_map_by_id[item_id]
+            elif (
+                # XXX(epurkhiser): Monitors use their GUID as their IDs
+                isinstance(item, Monitor)
+                and str(item.guid) in serialized_cron_monitor_map_by_guid
+            ):
+                # This is a cron monitor
+                results[item] = serialized_cron_monitor_map_by_guid[str(item.guid)]
             else:
                 logger.error(
                     "Alert Rule found but dropped during serialization",
@@ -412,6 +423,8 @@ class CombinedRuleSerializer(Serializer):
                         "id": item_id,
                         "issue_rule": isinstance(item, Rule),
                         "metric_rule": isinstance(item, AlertRule),
+                        "uptime_rule": isinstance(item, ProjectUptimeSubscription),
+                        "crons_rule": isinstance(item, Monitor),
                     },
                 )
 
@@ -419,7 +432,7 @@ class CombinedRuleSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Rule | AlertRule | ProjectUptimeSubscription,
+        obj: Rule | AlertRule | ProjectUptimeSubscription | Monitor,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -431,6 +444,8 @@ class CombinedRuleSerializer(Serializer):
             updated_attrs["type"] = "rule"
         elif isinstance(obj, ProjectUptimeSubscription):
             updated_attrs["type"] = "uptime"
+        elif isinstance(obj, Monitor):
+            updated_attrs["type"] = "monitor"
         else:
             raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
         return updated_attrs

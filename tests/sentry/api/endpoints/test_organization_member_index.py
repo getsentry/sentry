@@ -517,6 +517,26 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
             == "The role 'admin' is deprecated and may no longer be assigned."
         )
 
+    def test_does_not_include_secondary_emails(self):
+        # Create a user with multiple email addresses
+        user3 = self.create_user("primary@example.com", username="multi_email_user")
+        self.create_useremail(user3, "secondary1@example.com")
+        self.create_useremail(user3, "secondary2@example.com")
+
+        # Add user to organization
+        self.create_member(organization=self.organization, user=user3)
+
+        response = self.get_success_response(self.organization.slug)
+
+        # Find the member in the response
+        member_data = next(m for m in response.data if m["email"] == "primary@example.com")
+
+        # Check that only primary email is present and no other email addresses are exposed
+        assert member_data["email"] == "primary@example.com"
+        assert "emails" not in member_data["user"]
+        assert all("email" not in team for team in member_data.get("teams", []))
+        assert all("email" not in role for role in member_data.get("teamRoles", []))
+
 
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
@@ -571,17 +591,18 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
         other_team = self.create_team(organization=self.organization, name="Moo Deng's Team")
 
-        def get_data(email: str, other_team_invite: bool = False):
-            data = {
+        def get_data(email: str, other_team_invite: bool = False, use_team_roles: bool = True):
+            team_slug = other_team.slug if other_team_invite else self.team.slug
+            data: dict[str, str | list] = {
                 "email": f"{email}@localhost",
                 "role": "member",
-                "teamRoles": [
-                    {
-                        "teamSlug": other_team.slug if other_team_invite else self.team.slug,
-                        "role": "contributor",
-                    },
-                ],
             }
+
+            if use_team_roles:
+                data["teamRoles"] = [{"teamSlug": team_slug, "role": "contributor"}]
+            else:
+                data["teams"] = [team_slug]
+
             return data
 
         # members can never invite members if disable_member_invite = True
@@ -613,13 +634,35 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
             response.data.get("detail")
             == "You cannot assign members to teams you are not a member of."
         )
+        # also test with teams instead of teamRoles
+        self.get_success_response(
+            self.organization.slug, **get_data("foo5", use_team_roles=False), status_code=201
+        )
+        response = self.get_error_response(
+            self.organization.slug,
+            **get_data("foo6", other_team_invite=True, use_team_roles=False),
+            status_code=400,
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot assign members to teams you are not a member of."
+        )
 
         # members can invite member to any team if allow_joinleave = True
         self.organization.flags.allow_joinleave = True
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_success_response(self.organization.slug, **get_data("foo5"), status_code=201)
-        self.get_success_response(self.organization.slug, **get_data("foo6", True), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo7"), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo8", True), status_code=201)
+        # also test with teams instead of teamRoles
+        self.get_success_response(
+            self.organization.slug, **get_data("foo9", use_team_roles=False), status_code=201
+        )
+        self.get_success_response(
+            self.organization.slug,
+            **get_data("foo10", other_team_invite=True, use_team_roles=False),
+            status_code=201,
+        )
 
     def test_owner_invites(self):
         self.invite_all_helper("owner")

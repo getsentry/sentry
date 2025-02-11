@@ -119,7 +119,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       const thresholds = [
         resolveThreshold || null,
         ...triggers.map(t => t.alertThreshold || null),
-      ].filter(threshold => threshold !== null) as number[];
+      ].filter(threshold => threshold !== null);
       this.updateChartAxis(Math.min(...thresholds), Math.max(...thresholds));
     }
   };
@@ -374,15 +374,18 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ? seriesParamsOrParam
             : [seriesParamsOrParam];
 
-          const pointY = (
-            seriesParams.length > 1 ? seriesParams[0]!.data[1] : undefined
-          ) as number | undefined;
+          const pointY =
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            (seriesParams.length > 1 ? seriesParams[0]!.data[1] : undefined) as
+              | number
+              | undefined;
 
           const comparisonSeries =
             seriesParams.length > 1
               ? seriesParams.find(({seriesName: _sn}) => _sn === comparisonSeriesName)
               : undefined;
 
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
 
           if (

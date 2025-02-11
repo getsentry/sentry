@@ -99,7 +99,7 @@ function SuspectSpansHeader(props: HeaderProps) {
   const navigate = useNavigate();
 
   const viewAllTarget = spansRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     transaction: transactionName,
     projectID: projectId,
     query: location.query,

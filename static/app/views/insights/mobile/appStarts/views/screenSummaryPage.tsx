@@ -21,6 +21,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
@@ -52,7 +53,7 @@ export function ScreenSummary() {
   const {transaction: transactionName} = location.query;
   const organization = useOrganization();
 
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
@@ -60,7 +61,7 @@ export function ScreenSummary() {
         <MobileHeader
           hideDefaultTabs={isMobileScreensEnabled}
           module={
-            isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+            isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
           }
           headerTitle={transactionName}
           breadcrumbs={[
@@ -85,12 +86,12 @@ export function ScreenSummaryContentPage() {
   const location = useLocation<Query>();
 
   const {
-    primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanGroup,
     [SpanMetricsField.APP_START_TYPE]: appStartType,
   } = location.query;
+
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   useEffect(() => {
     // Default the start type to cold start if not present
@@ -109,27 +110,7 @@ export function ScreenSummaryContentPage() {
   }, [location, appStartType, navigate]);
 
   useSamplesDrawer({
-    Component: (
-      <SpanSamplesPanel
-        groupId={spanGroup}
-        moduleName={ModuleName.APP_START}
-        onClose={() => {
-          navigate(
-            {
-              pathname: location.pathname,
-              query: omit(
-                location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            },
-            {replace: true}
-          );
-        }}
-      />
-    ),
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.APP_START} />,
     moduleName: ModuleName.APP_START,
     requiredParams: [
       'transaction',
@@ -137,6 +118,21 @@ export function ScreenSummaryContentPage() {
       'spanOp',
       SpanMetricsField.APP_START_TYPE,
     ],
+    onClose: () => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: omit(
+            location.query,
+            'spanGroup',
+            'transactionMethod',
+            'spanDescription',
+            'spanOp'
+          ),
+        },
+        {replace: true}
+      );
+    },
   });
 
   return (

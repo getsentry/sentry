@@ -23,7 +23,6 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 type Props = {
   groupId: string;
   moduleName: ModuleName;
-  onClose?: () => void;
   transactionRoute?: string;
 };
 
@@ -57,7 +56,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
     ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
   };
 
-  transactionRoute ??= getTransactionSummaryBaseUrl(organization.slug, view);
+  transactionRoute ??= getTransactionSummaryBaseUrl(organization, view);
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 

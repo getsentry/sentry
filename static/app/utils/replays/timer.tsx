@@ -8,7 +8,7 @@ export class Timer extends EventTarget {
   private _time: number = 0;
   private _pausedAt: number = 0;
   private _additionalTime: number = 0;
-  private _callbacks: Map<number, (() => void)[]> = new Map();
+  private _callbacks: Map<number, Array<() => void>> = new Map();
   private _speed: number = 1;
 
   step = () => {

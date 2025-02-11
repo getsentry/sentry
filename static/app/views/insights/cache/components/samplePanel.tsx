@@ -76,6 +76,7 @@ export function CacheSamplePanel() {
     10
   );
 
+  // @ts-expect-error TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
   const handleStatusClassChange = newStatusClass => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
       filter: 'status',
@@ -102,6 +103,7 @@ export function CacheSamplePanel() {
     {
       search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
+      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_CACHE_HIT_MISS_CHART
   );
@@ -283,7 +285,7 @@ export function CacheSamplePanel() {
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  cacheTransactionMetrics?.[0]!?.['time_spent_percentage()']
+                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()']!
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
@@ -309,9 +311,9 @@ export function CacheSamplePanel() {
             <TransactionDurationChart
               samples={spansWithDuration}
               averageTransactionDuration={
-                transactionDurationData?.[0]!?.[
+                transactionDurationData?.[0]?.[
                   `avg(${MetricsFields.TRANSACTION_DURATION})`
-                ]
+                ]!
               }
               highlightedSpanId={highlightedSpanId}
               onHighlight={highlights => {

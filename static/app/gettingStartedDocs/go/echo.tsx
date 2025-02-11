@@ -113,7 +113,7 @@ app.GET("/foo", func(ctx echo.Context) error {
 
 app.Logger.Fatal(app.Start(":3000"))`;
 
-const getBeforeSendSnippet = params => `
+const getBeforeSendSnippet = (params: any) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
@@ -186,7 +186,7 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <AlertWithoutMarginBottom>
+          <AlertWithoutMarginBottom type="info">
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryecho]!",
               {code: <code />}

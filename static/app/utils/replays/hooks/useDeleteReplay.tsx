@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface DeleteButtonProps {
   projectSlug: string | null;
@@ -30,7 +31,13 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
           method: 'DELETE',
         }
       );
-      navigate(`/organizations/${organization.slug}/replays/`, {replace: true});
+      navigate(
+        makeReplaysPathname({
+          path: '/',
+          organization,
+        }),
+        {replace: true}
+      );
     } catch (err) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);

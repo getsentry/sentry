@@ -22,6 +22,7 @@ const MIN_SCORE = 0.6;
 // @param score: {[key: string]: number}
 const checkBelowThreshold = (scores = {}) => {
   const scoreKeys = Object.keys(scores);
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
@@ -32,7 +33,7 @@ type State = {
   filteredSimilarItems: SimilarItem[];
   loading: boolean;
   mergeDisabled: boolean;
-  mergeList: Array<string>;
+  mergeList: string[];
   mergeState: Map<any, Readonly<{busy?: boolean; checked?: boolean}>>;
   // List of fingerprints that belong to issue
   mergedItems: Fingerprint[];
@@ -75,7 +76,7 @@ type ChildFingerprint = {
 };
 
 export type Fingerprint = {
-  children: Array<ChildFingerprint>;
+  children: ChildFingerprint[];
   eventCount: number;
   id: string;
   latestEvent: Event;
@@ -176,7 +177,7 @@ interface GroupingStoreDefinition extends StrictStoreDefinition<State> {
    */
   setStateForId(
     stateProperty: 'mergeState' | 'unmergeState',
-    idOrIds: Array<string> | string,
+    idOrIds: string[] | string,
     newState: IdState
   ): void;
   triggerFetchState(): Readonly<
@@ -251,7 +252,7 @@ const storeConfig: GroupingStoreDefinition = {
 
   isAllUnmergedSelected() {
     const lockedItems =
-      (Array.from(this.state.unmergeState.values()) as Array<IdState>).filter(
+      (Array.from(this.state.unmergeState.values()) as IdState[]).filter(
         ({busy}) => busy
       ) || [];
     return (
@@ -352,9 +353,12 @@ const storeConfig: GroupingStoreDefinition = {
             // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':') as [string];
 
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (!acc[interfaceName]) {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               acc[interfaceName] = [];
             }
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName].push([scoreKey, score]);
 
             return acc;
@@ -362,13 +366,17 @@ const storeConfig: GroupingStoreDefinition = {
 
         // Aggregate score by interface
         const aggregate = Object.keys(scoresByInterface)
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
           .reduce((acc, [interfaceName, allScores]) => {
             // `null` scores means feature was not present in both issues, do not
             // include in aggregate
+            // @ts-expect-error TS(7031): Binding element 'score' implicitly has an 'any' ty... Remove this comment to see the full error message
             const scores = allScores.filter(([, score]) => score !== null);
 
-            const avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
+            const avg =
+              scores.reduce((sum: any, [, score]: any) => sum + score, 0) / scores.length;
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName] = hasSimilarityEmbeddingsFeature ? scores[0][1] : avg;
             return acc;
           }, {});
@@ -474,7 +482,7 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   onUnmerge({groupId, loadingMessage, orgSlug, successMessage, errorMessage}) {
-    const grouphashIds = Array.from(this.state.unmergeList.keys()) as Array<string>;
+    const grouphashIds = Array.from(this.state.unmergeList.keys()) as string[];
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {

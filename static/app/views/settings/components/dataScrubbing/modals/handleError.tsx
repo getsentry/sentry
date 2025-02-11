@@ -14,7 +14,7 @@ type Error = {
 type ResponseFields = 'relayPiiConfig';
 
 type ResponseError = {
-  responseJSON?: Record<ResponseFields, Array<string>>;
+  responseJSON?: Record<ResponseFields, string[]>;
 };
 
 function handleError(error: ResponseError): Error {

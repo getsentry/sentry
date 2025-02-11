@@ -42,6 +42,10 @@ describe('EventGraph', () => {
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {

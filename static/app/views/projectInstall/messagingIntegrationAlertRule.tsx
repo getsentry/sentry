@@ -23,7 +23,7 @@ export default function MessagingIntegrationAlertRule({
     () =>
       Object.keys(providersToIntegrations).map(p => ({
         value: p,
-        label: providerDetails[p].name,
+        label: providerDetails[p as keyof typeof providerDetails].name,
       })),
     [providersToIntegrations]
   );
@@ -44,16 +44,16 @@ export default function MessagingIntegrationAlertRule({
 
   return (
     <Rule>
-      {providerDetails[provider]?.makeSentence({
+      {providerDetails[provider as keyof typeof providerDetails]?.makeSentence({
         providerName: (
           <InlineSelectControl
             aria-label={t('provider')}
             disabled={Object.keys(providersToIntegrations).length === 1}
             value={provider}
             options={providerOptions}
-            onChange={p => {
+            onChange={(p: any) => {
               setProvider(p.value);
-              setIntegration(providersToIntegrations[p.value]![0]!);
+              setIntegration(providersToIntegrations[p.value]![0]);
               setChannel('');
             }}
           />
@@ -64,7 +64,7 @@ export default function MessagingIntegrationAlertRule({
             disabled={integrationOptions.length === 1}
             value={integration}
             options={integrationOptions}
-            onChange={i => setIntegration(i.value)}
+            onChange={(i: any) => setIntegration(i.value)}
           />
         ),
         target: (
@@ -72,7 +72,9 @@ export default function MessagingIntegrationAlertRule({
             aria-label={t('channel')}
             type="text"
             value={channel || ''}
-            placeholder={providerDetails[provider]?.placeholder}
+            placeholder={
+              providerDetails[provider as keyof typeof providerDetails]?.placeholder
+            }
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setChannel(e.target.value)
             }

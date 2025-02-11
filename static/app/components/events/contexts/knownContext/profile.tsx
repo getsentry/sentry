@@ -36,7 +36,9 @@ export function getProfileContextData({
           return {
             key: ctxKey,
             subject: ctxKey,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             value: data[ctxKey],
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             meta: meta?.[ctxKey]?.[''],
           };
       }
@@ -100,7 +102,7 @@ function getProfilerIdEntry(
   };
 }
 
-function getStartEnd(event): [string | null, string | null] {
+function getStartEnd(event: any): [string | null, string | null] {
   if (!isTransaction(event)) {
     return [null, null];
   }

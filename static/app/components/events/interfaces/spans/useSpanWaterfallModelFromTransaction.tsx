@@ -13,7 +13,7 @@ export function useSpanWaterfallModelFromTransaction(
   httpMethod?: string
 ) {
   const {data, isPending} = useAggregateSpans({transaction, httpMethod});
-  function formatSpan(span, total) {
+  function formatSpan(span: any, total: any) {
     const {
       node_fingerprint: span_id,
       parent_node_fingerprint: parent_span_id,
@@ -47,9 +47,9 @@ export function useSpanWaterfallModelFromTransaction(
   const totalCount: number = useMemo(() => {
     if (defined(data)) {
       const spans = Object.values(data);
-      for (let index = 0; index < spans.length; index++) {
-        if (spans[index].is_segment) {
-          return spans[index]['count()'];
+      for (const span of spans) {
+        if (span.is_segment) {
+          return span['count()'];
         }
       }
     }
@@ -60,8 +60,8 @@ export function useSpanWaterfallModelFromTransaction(
     const spanList_: AggregateSpanType[] = [];
     if (defined(data)) {
       const spans = Object.values(data);
-      for (let index = 0; index < spans.length; index++) {
-        const node = formatSpan(spans[index], totalCount);
+      for (const span of spans) {
+        const node = formatSpan(span, totalCount);
         if (node.is_segment === 1) {
           spanList_.unshift(node);
         } else {

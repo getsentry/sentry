@@ -40,9 +40,6 @@ describe('WidgetBuilderSortBySelector', function () {
   });
 
   it('renders', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
@@ -112,7 +109,8 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({sort: ['-count()']}),
-      })
+      }),
+      {replace: true}
     );
 
     await userEvent.click(sortDirectionSelector);
@@ -121,7 +119,8 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({sort: ['count()']}),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -180,7 +179,10 @@ describe('WidgetBuilderSortBySelector', function () {
     await userEvent.click(await screen.findByText('Limit to 3 results'));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({query: expect.objectContaining({limit: 3})})
+      expect.objectContaining({
+        query: expect.objectContaining({limit: 3}),
+      }),
+      {replace: true}
     );
   });
 });

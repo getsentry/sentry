@@ -21,6 +21,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams import MsTeamsClient
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import (
     IntegrationService,
@@ -42,6 +43,7 @@ from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
@@ -82,29 +84,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 organizationintegration__organization_id=organization_id,
                 provider__in=provider_keys,
             ),
-        )
-
-    def page_organization_integrations_ids(
-        self,
-        *,
-        organization_id: int,
-        statuses: list[int],
-        provider_key: str | None = None,
-        args: RpcPaginationArgs,
-    ) -> RpcPaginationResult:
-        queryset = OrganizationIntegration.objects.filter(
-            organization_id=organization_id,
-            status__in=statuses,
-        )
-
-        if provider_key:
-            queryset = queryset.filter(integration__provider=provider_key.lower())
-
-        return args.do_hybrid_cloud_pagination(
-            description="page_organization_integrations_ids",
-            paginator_cls=OffsetPaginator,
-            order_by="integration__name",
-            queryset=queryset,
         )
 
     def get_integrations(
@@ -459,6 +438,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             try:
                 client.send_card(channel, attachment)
                 return True
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle, e)
             except Exception as e:
                 lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
                 lifecycle.record_failure(e)

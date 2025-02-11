@@ -198,7 +198,7 @@ describe('Performance > Landing > Index', function () {
 
     expect(columnHeaders).toHaveLength(REACT_NATIVE_COLUMN_TITLES.length);
     for (const [index, title] of columnHeaders.entries()) {
-      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]!.title!);
+      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]!.title);
     }
   });
 

@@ -48,7 +48,7 @@ export default function ExternalIssueList({group, event, project}: Props) {
     );
   }
 
-  const renderers: Record<ExternalIssueType, (props) => ReactNode> = {
+  const renderers: Record<ExternalIssueType, (props: any) => ReactNode> = {
     'sentry-app-issue': ({sentryApp, ...props}: SentryAppIssueComponent['props']) => (
       <ErrorBoundary key={sentryApp.slug} mini>
         <SentryAppExternalIssueActions {...props} />

@@ -147,7 +147,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
 export function useApiQueries<TResponseData, TError = RequestError>(
   queryKeys: ApiQueryKey[],
   options: UseApiQueryOptions<TResponseData, TError>
-): UseApiQueryResult<TResponseData, TError>[] {
+): Array<UseApiQueryResult<TResponseData, TError>> {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 

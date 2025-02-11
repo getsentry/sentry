@@ -93,7 +93,7 @@ export enum ChartDataTransform {
   PERIODIC = 'periodic',
 }
 
-export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
+export const CHART_OPTIONS_DATA_TRANSFORM: Array<SelectValue<ChartDataTransform>> = [
   {
     label: t('Cumulative'),
     value: ChartDataTransform.CUMULATIVE,
@@ -193,7 +193,7 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
   Object.keys(stats).forEach(k => {
     let count = 0;
 
-    chartData[k] = stats[k].map((stat: any) => {
+    (chartData as any)[k] = (stats as any)[k].map((stat: any) => {
       const [x, y] = stat.value;
       count = isCumulative ? count + y : y;
 
@@ -272,7 +272,7 @@ function chartMetadata({
     const isProjected = k === SeriesTypes.PROJECTED;
 
     // Map the array and destructure elements to avoid side-effects
-    chartData[k] = chartData[k]?.map((stat: any) => {
+    (chartData as any)[k] = (chartData as any)[k]?.map((stat: any) => {
       return {
         ...stat,
         tooltip: {show: false},
@@ -418,11 +418,11 @@ function UsageChartBody({
   const colors = categoryColors?.length
     ? categoryColors
     : [
-        theme.outcome[Outcome.ACCEPTED]!,
-        theme.outcome[Outcome.FILTERED]!,
-        theme.outcome[Outcome.RATE_LIMITED]!,
-        theme.outcome[Outcome.INVALID]!,
-        theme.outcome[Outcome.CLIENT_DISCARD]!,
+        theme.outcome[Outcome.ACCEPTED],
+        theme.outcome[Outcome.FILTERED],
+        theme.outcome[Outcome.RATE_LIMITED],
+        theme.outcome[Outcome.INVALID],
+        theme.outcome[Outcome.CLIENT_DISCARD],
         theme.chartOther, // Projected
       ];
 

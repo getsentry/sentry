@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 type RenderProps = {};
 
 export type PropMatrix<P extends RenderProps> = Partial<{
-  [Prop in keyof P]: P[Prop][];
+  [Prop in keyof P]: Array<P[Prop]>;
 }>;
 
 interface Props<P extends RenderProps> {
@@ -58,14 +58,14 @@ export default function Matrix<P extends RenderProps>({
   return (
     <div>
       {selectedProps.length === 2 ? (
-        <h4 style={{margin: 0}}>
+        <Title>
           <samp>{selectedProps[0] as string | number}</samp> vs{' '}
           <samp>{selectedProps[1] as string | number}</samp>
-        </h4>
+        </Title>
       ) : (
-        <h4 style={{margin: 0}}>
+        <Title>
           <samp>{selectedProps[0] as string | number}</samp>
-        </h4>
+        </Title>
       )}
       <Grid
         style={{
@@ -84,6 +84,11 @@ export default function Matrix<P extends RenderProps>({
   );
 }
 
+const Title = styled('h4')`
+  margin: 0;
+  scroll-margin-top: ${space(2)};
+`;
+
 // ((this: any, key: string, value: any) => any)
 function replacer(this: any, _key: string, value: any) {
   if (isValidElement(value)) {
@@ -92,7 +97,7 @@ function replacer(this: any, _key: string, value: any) {
   return value;
 }
 
-function item(Component, props, sizingWindowProps) {
+function item(Component: any, props: any, sizingWindowProps: any) {
   const hasChildren = 'children' in props;
 
   if (hasChildren) {

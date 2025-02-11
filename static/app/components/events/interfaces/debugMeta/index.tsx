@@ -51,8 +51,8 @@ interface DebugMetaProps {
 
 interface FilterState {
   allImages: ImageWithCombinedStatus[];
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
 }
 
 const cache = new CellMeasurerCache({
@@ -62,7 +62,7 @@ const cache = new CellMeasurerCache({
 
 function applyImageFilters(
   images: ImageWithCombinedStatus[],
-  filterSelections: SelectOption<string>[],
+  filterSelections: Array<SelectOption<string>>,
   searchTerm: string
 ) {
   const selections = new Set(filterSelections.map(option => option.value));
@@ -338,7 +338,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
+            rowRenderer={(listRowProps: any) => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />

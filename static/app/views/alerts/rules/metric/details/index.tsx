@@ -154,6 +154,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const timeOption =
       TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1]!;
     const start = getUtcDateString(
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
     );
     const end = getUtcDateString(moment.utc());
@@ -227,7 +228,7 @@ class MetricAlertDetails extends Component<Props, State> {
       // NOTE: 'anomaly-detection-alerts-charts' flag does not exist
       // Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
       // For now, we defer to incident lines as indicators for anomalies
-      let warning;
+      let warning: any;
       if (rule.status === ALERT_RULE_STATUS.NOT_ENOUGH_DATA) {
         warning =
           'Insufficient data for anomaly detection. This feature will enable automatically when more data is available.';
@@ -269,9 +270,7 @@ class MetricAlertDetails extends Component<Props, State> {
       return this.renderError();
     }
 
-    const project = projects.find(({slug}) => slug === rule?.projects[0]) as
-      | Project
-      | undefined;
+    const project = projects.find(({slug}) => slug === rule?.projects[0]);
     const isGlobalSelectionReady = project !== undefined && !loadingProjects;
 
     return (

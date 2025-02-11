@@ -25,7 +25,6 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -46,7 +45,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -382,9 +380,10 @@ class MetricChart extends PureComponent<Props, State> {
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
+                        // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
                         const {marker, data: pointData} = pointSeries[0];
                         const seriesName =
-                          formattedAggregate ?? pointSeries[0].seriesName ?? '';
+                          formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(
                           pointY,
@@ -401,10 +400,7 @@ class MetricChart extends PureComponent<Props, State> {
                           period: `${timeWindow}`,
                         };
                         const endTime = formatTooltipDate(
-                          moment(pointX).add(
-                            parseInt(period!, 10),
-                            periodLength as StatsPeriodType
-                          ),
+                          moment(pointX).add(parseInt(period!, 10), periodLength),
                           'MMM D LT'
                         );
 
@@ -415,6 +411,7 @@ class MetricChart extends PureComponent<Props, State> {
                               )
                             : undefined;
 
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         const comparisonPointY = comparisonSeries?.data[1] as
                           | number
                           | undefined;
@@ -550,12 +547,26 @@ class MetricChart extends PureComponent<Props, State> {
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData dataset
-    const viableStartDate = getUtcDateString(
+    let viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
         moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
+
+    // Events Analytics Platform Span queries only support up to 2016 buckets.
+    // 14 day 10m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
+    // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
+    if (
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.FOURTEEN_DAYS &&
+      interval === '10m'
+    ) {
+      viableStartDate = getUtcDateString(
+        moment.utc(viableStartDate).add(timeWindow, 'minutes')
+      );
+    }
 
     const viableEndDate = getUtcDateString(
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
@@ -569,7 +580,6 @@ class MetricChart extends PureComponent<Props, State> {
         newAlertOrQuery: false,
         useOnDemandMetrics: isOnDemandAlert,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
     };
 
     if (shouldUseErrorsDataset(dataset, query)) {
@@ -586,6 +596,7 @@ class MetricChart extends PureComponent<Props, State> {
         end={viableEndDate}
         query={query}
         interval={interval}
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >

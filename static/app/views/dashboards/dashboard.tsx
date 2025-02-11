@@ -26,7 +26,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -48,7 +47,6 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
-  isValidLayout,
   METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
 } from './layoutUtils';
@@ -127,7 +125,7 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
-  static getDerivedStateFromProps(props, state) {
+  static getDerivedStateFromProps(props: any, state: any) {
     if (state.isMobile) {
       // Don't need to recalculate any layout state from props in the mobile view
       // because we want to force different positions (i.e. new widgets added
@@ -466,10 +464,10 @@ class Dashboard extends Component<Props, State> {
     );
   }
 
-  handleLayoutChange = (_, allLayouts: Layouts) => {
+  handleLayoutChange = (_: any, allLayouts: Layouts) => {
     const {isMobile} = this.state;
     const {dashboard, onUpdate} = this.props;
-    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+    const isNotAddButton = ({i}: any) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP]!.filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE]!.filter(isNotAddButton),
@@ -571,7 +569,6 @@ class Dashboard extends Component<Props, State> {
       isEditingDashboard,
       dashboard,
       widgetLimitReached,
-      organization,
       isPreview,
       onAddWidgetFromNewWidgetBuilder,
     } = this.props;
@@ -582,10 +579,6 @@ class Dashboard extends Component<Props, State> {
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditingDashboard;
-
-    const displayInlineAddWidget =
-      hasCustomMetrics(organization) &&
-      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
       <GridLayout
@@ -614,19 +607,17 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || displayInlineAddWidget) &&
-          !widgetLimitReached &&
-          !isPreview && (
-            <AddWidgetWrapper
-              key={ADD_WIDGET_BUTTON_DRAG_ID}
-              data-grid={this.addWidgetLayout}
-            >
-              <AddWidget
-                onAddWidget={this.handleStartAdd}
-                onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
-              />
-            </AddWidgetWrapper>
-          )}
+        {isEditingDashboard && !widgetLimitReached && !isPreview && (
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
+            <AddWidget
+              onAddWidget={this.handleStartAdd}
+              onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
+            />
+          </AddWidgetWrapper>
+        )}
       </GridLayout>
     );
   }

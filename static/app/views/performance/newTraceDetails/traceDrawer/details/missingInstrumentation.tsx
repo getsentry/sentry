@@ -21,6 +21,7 @@ import {getTraceTabTitle} from '../../traceState/traceTabs';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
+import {getProfileMeta} from './utils';
 
 export function MissingInstrumentationNodeDetails(
   props: TraceTreeNodeDetailsProps<MissingInstrumentationNode>
@@ -35,7 +36,9 @@ export function MissingInstrumentationNodeDetails(
   const {node, organization, onTabScrollToNode} = props;
   const event = node.previous.event ?? node.next.event ?? null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
+  const profileMeta = getProfileMeta(event) || '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -46,8 +49,8 @@ export function MissingInstrumentationNodeDetails(
               {t('No Instrumentation')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              hideCopyButton
-              text={t('How Awkward')}
+              clipboardText=""
+              subTitle={t('How Awkward')}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
@@ -73,7 +76,7 @@ export function MissingInstrumentationNodeDetails(
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={event?.projectSlug ?? ''}
-            profileMeta={profileId || ''}
+            profileMeta={profileMeta}
           >
             <ProfileContext.Consumer>
               {profiles => (
@@ -82,7 +85,7 @@ export function MissingInstrumentationNodeDetails(
                   input={profiles?.type === 'resolved' ? profiles.data : null}
                   traceID={profileId || ''}
                 >
-                  <ProfilePreview event={event!} node={node} />
+                  <ProfilePreview event={event} node={node} />
                 </ProfileGroupProvider>
               )}
             </ProfileContext.Consumer>

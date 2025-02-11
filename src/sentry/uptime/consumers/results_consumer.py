@@ -17,6 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.constants import ObjectStatus
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -160,7 +161,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         self.check_and_update_regions(subscription)
 
-        project_subscriptions = list(subscription.projectuptimesubscription_set.all())
+        project_subscriptions = list(
+            subscription.projectuptimesubscription_set.select_related(
+                "project", "project__organization"
+            ).all()
+        )
 
         cluster = _get_cluster()
         last_updates: list[str | None] = cluster.mget(
@@ -177,6 +182,21 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         result: CheckResult,
         last_update_ms: int,
     ):
+        if features.has(
+            "organizations:uptime-detailed-logging", project_subscription.project.organization
+        ):
+            logger.info("handle_result_for_project.before_dedupe", extra=result)
+
+        # Nothing to do if this subscription is disabled. Should mean there are
+        # other ProjectUptimeSubscription's that are not disabled that will use
+        # this result.
+        if project_subscription.status == ObjectStatus.DISABLED:
+            return
+
+        if not features.has("organizations:uptime", project_subscription.project.organization):
+            metrics.incr("uptime.result_processor.dropped_no_feature")
+            return
+
         metric_tags = {
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
@@ -204,6 +224,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     sample_rate=1.0,
                 )
                 return
+
+            if features.has(
+                "organizations:uptime-detailed-logging", project_subscription.project.organization
+            ):
+                logger.info("handle_result_for_project.after_dedupe", extra=result)
 
             if result["status"] == CHECKSTATUS_MISSED_WINDOW:
                 logger.info(
@@ -256,6 +281,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # After processing the result and updating Redis, produce message to Kafka
         if options.get("uptime.snuba_uptime_results.enabled"):
             self._produce_snuba_uptime_result(project_subscription, result)
+
+        # The amount of time it took for a check result to get from the checker to this consumer and be processed
+        metrics.distribution(
+            "uptime.result_processor.completion_time",
+            datetime.now().timestamp()
+            - (
+                result["actual_check_time_ms"] + result["duration_ms"]
+                if result["duration_ms"]
+                else 0
+            ),
+            sample_rate=1.0,
+            unit="millisecond",
+            tags=metric_tags,
+        )
 
     def handle_result_for_project_auto_onboarding_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult

@@ -45,7 +45,7 @@ function LimitExceededMessage({
   }
 
   const target = traceEventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

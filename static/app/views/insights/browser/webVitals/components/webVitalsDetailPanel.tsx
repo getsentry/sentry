@@ -96,11 +96,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     return data
       .map(row => ({
         ...row,
-        opportunity:
-          Math.round(
-            (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
-              sumWeights
-          ) / 100,
+        opportunity: Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -188,7 +184,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     if (key === 'score') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row[`${webVital}Score`]} />
+          <PerformanceBadge score={row[`${webVital!}Score`]} />
         </AlignCenter>
       );
     }
@@ -223,12 +219,15 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
     }
     if (key === 'count') {
       const count =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
       return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
     | number

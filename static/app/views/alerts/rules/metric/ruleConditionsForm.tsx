@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -8,7 +7,7 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
@@ -22,12 +21,12 @@ import {
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -55,8 +54,6 @@ import {
   getMeasurements,
   type MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -103,7 +100,7 @@ type Props = {
   disabled: boolean;
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string, isQueryValid) => void;
+  onFilterSearch: (query: string, isQueryValid: any) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -157,6 +154,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const {measurements} = this.state;
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         measurement_tags[key] = {
           ...measurements[key],
           kind: FieldKind.MEASUREMENT,
@@ -221,7 +219,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     }
   }
 
-  getEventFieldValues = async (tag, query): Promise<string[]> => {
+  getEventFieldValues = async (tag: any, query: any): Promise<string[]> => {
     const {api, organization, project, dataset, router} = this.props;
 
     if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -253,12 +251,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
-    const {alertType} = this.props;
-
-    if (alertType === 'custom_metrics') {
-      // Do not show ONE MINUTE interval as an option for custom_metrics alert
-      options = omit(options, TimeWindow.ONE_MINUTE.toString());
-    }
 
     if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
@@ -350,7 +342,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (
       organization.features.includes('performance-view') &&
-      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+      alertType === 'custom_transactions'
     ) {
       dataSourceOptions.push({
         label: t('Transactions'),
@@ -374,7 +366,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         }}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const formDataset = model.getValue('dataset');
           const formEventTypes = model.getValue('eventTypes');
           const aggregate = model.getValue('aggregate');
@@ -386,7 +378,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <SelectControl
               value={mappedValue}
               inFieldLabel={t('Events: ')}
-              onChange={({value}) => {
+              onChange={({value}: any) => {
                 onChange(value, {});
                 onBlur(value, {});
                 // Reset the aggregate to the default (which works across
@@ -402,6 +394,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
 
                 model.setValue('dataset', datasetFromDataSource);
@@ -441,7 +434,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         }}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const selectedProject =
             projects.find(({id}) => id === model.getValue('projectId')) ||
             _selectedProject;
@@ -470,7 +463,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 onBlur(value, {});
               }}
               components={{
-                SingleValue: containerProps => (
+                SingleValue: (containerProps: any) => (
                   <components.ValueContainer {...containerProps}>
                     <IdBadge
                       project={selectedProject}
@@ -531,7 +524,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             options={this.timeWindowOptions}
             isDisabled={disabled}
             value={timeWindow}
-            onChange={({value}) => onTimeWindowChange(value)}
+            onChange={({value}: any) => onTimeWindowChange(value)}
             inline={false}
             flexibleControlStateSize
           />
@@ -551,14 +544,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isExtrapolatedChartData,
       isTransactionMigration,
       isErrorMigration,
-      aggregate,
       project,
       comparisonType,
       isLowConfidenceChartData,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
-    const environmentOptions: SelectValue<string | null>[] = [
+    const environmentOptions: Array<SelectValue<string | null>> = [
       {
         value: null,
         label: t('All Environments'),
@@ -643,23 +635,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                   flexibleControlStateSize
                 >
-                  {({onChange, onBlur, initialData, value}) => {
-                    return hasCustomMetrics(organization) &&
-                      alertType === 'custom_metrics' ? (
-                      <MetricSearchBar
-                        mri={getMRI(aggregate)}
-                        projectIds={[project.id]}
-                        placeholder={this.searchPlaceholder}
-                        query={initialData.query}
-                        defaultQuery={initialData?.query ?? ''}
-                        useFormWrapper={false}
-                        searchSource="alert_builder"
-                        onChange={query => {
-                          onFilterSearch(query, true);
-                          onChange(query, {});
-                        }}
-                      />
-                    ) : alertType === 'eap_metrics' ? (
+                  {({onChange, onBlur, initialData, value}: any) => {
+                    return alertType === 'eap_metrics' ? (
                       <SpanTagsContext.Consumer>
                         {tags => (
                           <EAPSpanSearchQueryBuilder
@@ -744,7 +721,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                   flexibleControlStateSize
                 >
-                  {args => {
+                  {(args: any) => {
                     if (
                       args.value?.includes('is:unresolved') &&
                       comparisonType === AlertRuleComparisonType.DYNAMIC

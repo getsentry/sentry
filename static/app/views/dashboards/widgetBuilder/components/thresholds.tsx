@@ -11,7 +11,19 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-function ThresholdsSection({dataType, dataUnit}: {dataType?: string; dataUnit?: string}) {
+type ThresholdsSectionProps = {
+  dataType?: string;
+  dataUnit?: string;
+  error?: Record<string, any>;
+  setError?: (error: Record<string, any>) => void;
+};
+
+function ThresholdsSection({
+  dataType,
+  dataUnit,
+  error,
+  setError,
+}: ThresholdsSectionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   return (
     <Fragment>
@@ -55,6 +67,8 @@ function ThresholdsSection({dataType, dataUnit}: {dataType?: string; dataUnit?: 
             newThresholds = undefined;
           }
 
+          setError?.({...error, thresholds: {[maxKey]: ''}});
+
           dispatch({
             type: BuilderStateAction.SET_THRESHOLDS,
             payload: newThresholds,
@@ -71,8 +85,7 @@ function ThresholdsSection({dataType, dataUnit}: {dataType?: string; dataUnit?: 
         }}
         dataType={dataType}
         dataUnit={dataUnit}
-        // TODO: Add errors
-        errors={{}}
+        errors={error?.thresholds}
       />
     </Fragment>
   );
