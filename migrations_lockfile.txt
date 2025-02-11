@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0829_add_external_id_to_project
+sentry: 0830_add_index_external_id_organization_to_project
 
 social_auth: 0002_default_auto_field
 
