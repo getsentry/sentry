@@ -18,12 +18,12 @@ class SentryAppOperationEvent(EventLifecycleMetric):
     """An event under the Sentry App umbrella"""
 
     operation_type: SentryAppOperationType
-    integration_name: str | None = None
+    sentry_app_name: str | None = None
     organization: Organization | None = None
     region: str | None = None
 
-    def get_integration_name(self) -> str:
-        return self.integration_name or ""
+    def get_sentry_app_name(self) -> str:
+        return self.sentry_app_name or ""
 
     def get_region(self) -> str:
         return self.region or ""
@@ -35,6 +35,6 @@ class SentryAppOperationEvent(EventLifecycleMetric):
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
             "operation_type": self.operation_type,
-            "integration_name": self.get_integration_name(),
+            "integration_name": self.get_sentry_app_name(),
             "region": self.get_region(),
         }
