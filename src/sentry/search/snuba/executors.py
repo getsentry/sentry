@@ -397,7 +397,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization,
+            organization.id,
             project_ids,
             environments,
             group_ids,
