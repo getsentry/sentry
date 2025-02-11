@@ -273,7 +273,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: 4px;
   height: 24px;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
