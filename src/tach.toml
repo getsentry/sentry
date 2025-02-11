@@ -1,7 +1,6 @@
-
 exclude = [
-    ".*__pycache__",
-    ".*egg-info",
+    "**/*__pycache__",
+    "**/*egg-info",
     "docs",
     "tests",
 ]
@@ -24,12 +23,12 @@ depends_on = []
 [[modules]]
 path = "sentry"
 depends_on = [
-    { path = "bitfield" },
-    { path = "django_picklefield" },
-    { path = "flagpole" },
-    { path = "sentry_plugins" },
-    { path = "social_auth" },
-    { path = "sudo" },
+    "bitfield",
+    "django_picklefield",
+    "flagpole",
+    "sentry_plugins",
+    "social_auth",
+    "sudo",
 ]
 
 [[modules]]
@@ -60,37 +59,48 @@ expose = [
 expose = [
     "django_picklefield",
 ]
-from = ["django_picklefield"]
+from = [
+    "django_picklefield",
+]
 
 [[interfaces]]
 expose = [
     ".*plugin.*",
 ]
-from = ["sentry_plugins"]
-
+from = [
+    "sentry_plugins",
+]
 
 [[interfaces]]
 expose = [
     ".*Bit.*",
     ".*bit.*",
 ]
-from = ["bitfield"]
+from = [
+    "bitfield",
+]
 
 [[interfaces]]
 expose = [
     "backends.BaseAuth",
 ]
-from = ["social_auth"]
+from = [
+    "social_auth",
+]
 
 [[interfaces]]
 expose = [
     "evaluation.*",
-    "conditions.*"
+    "conditions.*",
 ]
-from = ["flagpole"]
+from = [
+    "flagpole",
+]
 
 [[interfaces]]
 expose = [
     ".*",
 ]
-from = ["sudo"]
+from = [
+    "sudo",
+]
