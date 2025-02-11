@@ -68,7 +68,7 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
-        return False
+        return
 
     try:
         installation = get_installation(org)
@@ -80,8 +80,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
         pass
 
 
-def supported_platform(platform: str) -> bool:
-    return platform in SUPPORTED_LANGUAGES
+def supported_platform(platform: str | None) -> bool:
+    return (platform or "") in SUPPORTED_LANGUAGES
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
