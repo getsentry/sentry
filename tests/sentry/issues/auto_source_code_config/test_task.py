@@ -35,10 +35,17 @@ class BaseDeriveCodeMappings(TestCase):
             external_id=self.organization.id,
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
+        # Makes sure the children classes set the platform and the stacktrace
+        self.event = self.create_event(self.frames, self.platform)
 
     @property
     def platform(self) -> str:
         raise NotImplementedError
+
+    # # XXX: Change the return type to be a typed dict
+    # @property
+    # def stacktrace(self) -> list[dict[str, str | bool]]:
+    #     raise NotImplementedError
 
     def create_event(
         self, frames: Sequence[Mapping[str, str | bool]], platform: str | None = None
@@ -64,7 +71,8 @@ class BaseDeriveCodeMappings(TestCase):
 class TestTaskBehavior(BaseDeriveCodeMappings):
     """Test task behavior that is not language specific."""
 
-    platform = "foo-platform"
+    platform = "python"  # Platform is not relevant for these tests
+    frames = [{"filename": "foo/bar.baz", "in_app": True}]
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
@@ -157,21 +165,16 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "javascript"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.event = self.create_event(
-            [
-                # Starts with ../
-                {"filename": "../node_modules/@sentry/foo/esm/hub.js", "in_app": False},
-                # Starts with ./
-                {"filename": "./app/utils/handle.tsx", "in_app": True},
-                # Starts with no special characters
-                {"filename": "some/path/Test.tsx", "in_app": True},
-                # Starts with sentry/
-                {"filename": "sentry/test_app.tsx", "in_app": True},
-            ]
-        )
+    frames = [
+        # Not in-app
+        {"filename": "../node_modules/@sentry/foo/esm/hub.js", "in_app": False},
+        # Starts with ./
+        {"filename": "./app/utils/handle.tsx", "in_app": True},
+        # Does not start with special characters
+        {"filename": "some/path/Test.tsx", "in_app": True},
+        # Starts with sentry/
+        {"filename": "sentry/test_app.tsx", "in_app": True},
+    ]
 
     def test_starts_with_period_slash(self) -> None:
         # ./app/utils/handle.tsx -> app/utils/handle.tsx -> static/app/utils/handle.tsx
@@ -188,15 +191,11 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self) -> None:
-        super().setUp()
-        self.platform = "ruby"
-        self.event = self.create_event(
-            [
-                {"filename": "some/path/test.rb", "in_app": True},
-                {"filename": "lib/tasks/crontask.rake", "in_app": True},
-            ]
-        )
+    platform = "ruby"
+    frames = [
+        {"filename": "some/path/test.rb", "in_app": True},
+        {"filename": "lib/tasks/crontask.rake", "in_app": True},
+    ]
 
     def test_rb(self) -> None:
         self._process_and_assert_code_mapping(["some/path/test.rb"], "", "")
@@ -206,19 +205,15 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
 
 
 class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
-    def setUp(self) -> None:
-        super().setUp()
-        self.platform = "node"
-        self.event = self.create_event(
-            [
-                # It can handle app:// urls
-                {"filename": "app:///utils/errors.js", "in_app": True},
-                # It can handle relative paths
-                {"filename": "../../packages/api/src/response.ts", "in_app": True},
-                # It can handle app:// urls with dot dot slashes
-                {"filename": "app:///../services/event/index.js", "in_app": True},
-            ]
-        )
+    platform = "node"
+    frames = [
+        # It can handle app:// urls
+        {"filename": "app:///utils/errors.js", "in_app": True},
+        # It can handle relative paths
+        {"filename": "../../packages/api/src/response.ts", "in_app": True},
+        # It can handle app:// urls with dot dot slashes
+        {"filename": "app:///../services/event/index.js", "in_app": True},
+    ]
 
     def test_starts_with_app(self) -> None:
         self._process_and_assert_code_mapping(["utils/errors.js"], "app:///", "")
@@ -235,17 +230,12 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
 
 class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "go"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.event = self.create_event(
-            [
-                {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
-                {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/kangaroo.go"},
-                {"in_app": True, "filename": "/src/cmd/vroom/profile.go"},
-                {"in_app": True, "filename": "Users/JohnDoe/src/sentry/main.go"},
-            ]
-        )
+    frames = [
+        {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
+        {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/kangaroo.go"},
+        {"in_app": True, "filename": "/src/cmd/vroom/profile.go"},
+        {"in_app": True, "filename": "Users/JohnDoe/src/sentry/main.go"},
+    ]
 
     def test_go_abs_filename(self) -> None:
         self._process_and_assert_code_mapping(["sentry/capybara.go"], "/Users/JohnDoe/code/", "")
@@ -259,16 +249,11 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
 
 class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "php"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.event = self.create_event(
-            [
-                {"in_app": True, "filename": "/sentry/capybara.php"},
-                {"in_app": True, "filename": "/sentry/p/kanga.php"},
-                {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.php"},
-            ]
-        )
+    frames = [
+        {"in_app": True, "filename": "/sentry/capybara.php"},
+        {"in_app": True, "filename": "/sentry/p/kanga.php"},
+        {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.php"},
+    ]
 
     def test_basic_php(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.php"], "/sentry/", "")
@@ -279,23 +264,18 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
 
 class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "csharp"
+    frames = [
+        {"in_app": True, "filename": "/sentry/capybara.cs"},
+        {"in_app": True, "filename": "/sentry/p/kanga.cs"},
+        {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.cs"},
+    ]
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.event = self.create_event(
-            [
-                {"in_app": True, "filename": "/sentry/capybara.cs"},
-                {"in_app": True, "filename": "/sentry/p/kanga.cs"},
-                {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.cs"},
-            ]
-        )
-
-        self.event_data_backslashes = self.create_event(
-            [
-                {"in_app": True, "filename": "\\sentry\\capybara.cs"},
-                {"in_app": True, "filename": "\\sentry\\potato\\kangaroo.cs"},
-            ]
-        )
+    # self.event_data_backslashes = self.create_event(
+    #     [
+    #         {"in_app": True, "filename": "\\sentry\\capybara.cs"},
+    #         {"in_app": True, "filename": "\\sentry\\potato\\kangaroo.cs"},
+    #     ]
+    # )
 
     def test_csharp_trivial(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.cs"], "/", "")
@@ -309,15 +289,10 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
 
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "python"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.event = self.create_event(
-            [
-                {"in_app": True, "filename": "sentry/tasks.py"},
-                {"in_app": True, "filename": "sentry/foo/bar.py"},
-            ]
-        )
+    frames = [
+        {"in_app": True, "filename": "sentry/tasks.py"},
+        {"in_app": True, "filename": "sentry/foo/bar.py"},
+    ]
 
     def test_stack_and_source_root_do_not_match(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/foo/bar.py"], "sentry/", "src/sentry/")
