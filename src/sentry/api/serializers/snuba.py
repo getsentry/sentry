@@ -122,7 +122,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             ):
                 result_row = []
                 for confidence_row in group:
-                    item = {"count": confidence_row.get(column, None)}
+                    item = {column: confidence_row.get(column, None)}
                     if extra_columns is not None:
                         for extra_column in extra_columns:
                             item[extra_column] = confidence_row.get(extra_column, 0)

@@ -764,12 +764,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 assert actual["value"] is None
 
         # Check old confidence format, TODO: remove this once frontend is updated
-        confidence = response.data["confidence"]
-        for expected, actual in zip(event_counts, confidence[0:6]):
+        old_confidence = response.data["confidence"]
+        for expected, actual in zip(event_counts, old_confidence[0:6]):
             if expected != 0:
-                assert actual[1][0]["count"] == "low"
+                assert actual[1][0]["count()"] == "low"
             else:
-                assert actual[1][0]["count"] is None
+                assert actual[1][0]["count()"] is None
 
         for expected, actual in zip(event_counts, sample_count[0:6]):
             assert actual["value"] == expected
@@ -846,6 +846,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 else:
                     assert actual["value"] is None
 
+            old_confidence = response.data["confidence"]
+            for expected, actual in zip(event_counts, old_confidence[0:6]):
+                if expected != 0:
+                    assert actual[1][0][y_axis] == "low"
+                else:
+                    assert actual[1][0][y_axis] is None
+
             for expected, actual in zip(event_counts, sample_count[0:6]):
                 assert actual["value"] == expected
 
@@ -904,6 +911,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                     assert actual["value"] == "low"
                 else:
                     assert actual["value"] is None
+
+            old_confidence = response.data[column]["confidence"]
+            for expected, actual in zip(event_counts, old_confidence[0:6]):
+                if expected != 0:
+                    assert actual[1][0][column] == "low"
+                else:
+                    assert actual[1][0][column] is None
 
             for expected, actual in zip(event_counts, sample_count[0:6]):
                 assert actual["value"] == expected
