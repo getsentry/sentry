@@ -811,6 +811,38 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
 
+    @patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
+    @patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger_action")
+    def test_dual_delete_trigger_comprehensive(
+        self, mock_dual_delete_trigger_action, mock_dual_delete_trigger
+    ):
+        """
+        Test that we delete the ACI objects for dual written trigger actions when they're cascade deleted.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        trigger_action_1 = AlertRuleTriggerAction.objects.get(
+            id=serialized_alert_rule["triggers"][1]["actions"][0]["id"]
+        )
+        trigger_action_2 = AlertRuleTriggerAction.objects.get(
+            id=serialized_alert_rule["triggers"][1]["actions"][1]["id"]
+        )
+        serialized_alert_rule["triggers"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert mock_dual_delete_trigger.call_count == 1
+        assert mock_dual_delete_trigger_action.call_count == 2
+        assert mock_dual_delete_trigger_action.call_args_list[0][0][0] == trigger_action_1
+        assert mock_dual_delete_trigger_action.call_args_list[1][0][0] == trigger_action_2
+
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_delete_trigger_dual_update_resolve(self):
         """
@@ -1862,6 +1894,66 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
 
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+    @patch(
+        "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule"
+    )
+    @patch(
+        "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule_trigger"
+    )
+    @patch(
+        "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule_trigger_action"
+    )
+    def test_dual_delete_comprehensive(
+        self, mock_dual_delete_trigger_action, mock_dual_delete_trigger, mock_dual_delete_rule
+    ):
+        """
+        Test that we delete the ACI objects for dual written triggers/trigger actions when they're
+        cascade deleted.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # keep this simple
+        alert_rule_dict = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "oolong",
+        }
+        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+        trigger = AlertRuleTrigger.objects.get(alert_rule=alert_rule)
+        trigger_action = AlertRuleTriggerAction.objects.get(alert_rule_trigger=trigger)
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
+
+        assert mock_dual_delete_rule.call_count == 1
+        kwargs = mock_dual_delete_rule.call_args_list[0][1]
+        assert kwargs["alert_rule"] == alert_rule
+
+        assert mock_dual_delete_trigger.call_count == 1
+        args = mock_dual_delete_trigger.call_args_list[0][0]
+        assert args[0] == trigger
+
+        assert mock_dual_delete_trigger_action.call_count == 1
+        args = mock_dual_delete_trigger_action.call_args_list[0][0]
+        assert args[0] == trigger_action
 
     def test_no_feature(self):
         self.create_member(
