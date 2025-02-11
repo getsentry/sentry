@@ -111,7 +111,7 @@ const restrictedImportPaths = [
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
-const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
+const ecmaVersion = 'latest';
 
 export default typescript.config([
   {

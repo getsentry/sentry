@@ -5,8 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueDetailsContext} from 'sentry/views/issueDetails/streamline/context';
 import {
   DetectorSection,
