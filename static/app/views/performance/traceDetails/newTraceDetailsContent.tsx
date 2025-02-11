@@ -320,10 +320,7 @@ function NewTraceDetailsContent(props: Props) {
           <div style={{flex: 1}}>
             <Tags
               generateUrl={(key: string, value: string) => {
-                const url = traceEventView.getResultsViewUrlTarget(
-                  organization.slug,
-                  false
-                );
+                const url = traceEventView.getResultsViewUrlTarget(organization, false);
                 url.query = generateQueryWithTag(url.query, {
                   key: formatTagKey(key),
                   value,
@@ -442,7 +439,7 @@ function NewTraceDetailsContent(props: Props) {
           <ButtonBar gap={1}>
             <DiscoverButton
               size="sm"
-              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              to={traceEventView.getResultsViewUrlTarget(organization)}
               onClick={() => {
                 trackAnalytics('performance_views.trace_view.open_in_discover', {
                   organization,

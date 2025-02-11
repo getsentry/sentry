@@ -39,7 +39,7 @@ function DiscoverBreadcrumb({
   crumbs.push({
     to:
       isHomepage && eventView
-        ? eventView.getResultsViewUrlTarget(organization.slug, isHomepage)
+        ? eventView.getResultsViewUrlTarget(organization, isHomepage)
         : discoverTarget,
     label: t('Discover'),
   });
@@ -50,7 +50,7 @@ function DiscoverBreadcrumb({
       label: t('Saved Queries'),
     });
     crumbs.push({
-      to: eventView.getResultsViewUrlTarget(organization.slug, isHomepage),
+      to: eventView.getResultsViewUrlTarget(organization, isHomepage),
       label: eventView.name || '',
     });
   }
