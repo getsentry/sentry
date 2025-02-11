@@ -138,7 +138,11 @@ export type PullRequest = {
 /**
  * Sentry Apps
  */
-export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
+export type SentryAppStatus =
+  | 'unpublished'
+  | 'published'
+  | 'internal'
+  | 'publish_request_inprogress';
 
 export type SentryAppSchemaIssueLink = {
   create: {

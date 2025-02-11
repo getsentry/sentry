@@ -13,6 +13,31 @@ type Props = {
   onClickPublish?: () => void;
 };
 
+// const shouldDisablePublishButton = (app: SentryApp): boolean => {
+//   // has_ui_component and upload icon
+//   // is_published or   // is internal   // publish_request_in_progress
+//   return hasInvalidStatus(app);
+
+//   // upload logo
+// };
+
+// const hasInvalidStatus = (app: SentryApp) => {
+//   return (
+//     app.status === 'published' ||
+//     app.status === 'internal' ||
+//     app.status === 'publish_request_inprogress'
+//   );
+// };
+
+// const hasLogo = (app: SentryApp): boolean => {
+//   if (app.avatars) {
+//     return app.avatars.some(avatar => {
+//       return avatar.avatarType === 'upload' && avatar.color;
+//     });
+//   }
+//   return false;
+// };
+
 function SentryApplicationRowButtons({
   organization,
   app,
