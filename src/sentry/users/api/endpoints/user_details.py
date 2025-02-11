@@ -68,6 +68,12 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
 
+    quickStartDisplay = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        help_text="Tracks whether the quick start guide was already automatically shown to the user during their second visit.",
+    )
+
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
     def validate_username(self, value: str) -> str:
@@ -230,6 +236,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
+            "quickStartDisplay": "quick_start_display",
         }
 
         options_result = serializer_options.validated_data
