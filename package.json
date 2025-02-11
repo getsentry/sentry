@@ -87,6 +87,7 @@
     "@types/react-virtualized": "^9.21.22",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
+    "@types/stripe-v3": "^3.1.20",
     "@types/webpack-env": "^1.18.5",
     "ansi-to-react": "^6.1.6",
     "babel-loader": "^9.2.1",
