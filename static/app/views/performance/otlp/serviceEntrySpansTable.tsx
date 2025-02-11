@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
@@ -107,6 +107,8 @@ type Props = {
   handleDropdownChange: (k: string) => void;
   options: DropdownOption[];
   selected: DropdownOption;
+  transactionName: string;
+  showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
 };
 
@@ -115,7 +117,9 @@ export function ServiceEntrySpansTable({
   options,
   selected,
   handleDropdownChange,
+  transactionName,
   supportsInvestigationRule,
+  showViewSampledEventsButton,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -123,7 +127,7 @@ export function ServiceEntrySpansTable({
   const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const cursorUrlParam = decodeScalar(location.query?.[CURSOR_NAME]);
+  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
 
   const {
     data: tableData,
@@ -152,7 +156,7 @@ export function ServiceEntrySpansTable({
       ],
       sorts: [selected.sort],
       limit: LIMIT,
-      cursor: cursorUrlParam,
+      cursor,
     },
     'api.performance.service-entry-spans-table',
     true
@@ -167,15 +171,30 @@ export function ServiceEntrySpansTable({
     };
   });
 
-  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
+      query: {...query, [CURSOR_NAME]: _cursor},
     });
   };
 
-  const cursorOffset = parseCursor(cursorUrlParam)?.offset ?? 0;
+  const cursorOffset = parseCursor(cursor)?.offset ?? 0;
   const totalNumSamples = cursorOffset;
+
+  const handleViewSampledEvents = () => {
+    if (!projectSlug) {
+      return;
+    }
+
+    navigate({
+      pathname: `${location.pathname}events/`,
+      query: {
+        ...location.query,
+        transaction: transactionName,
+        project: `${eventView.project}`,
+      },
+    });
+  };
 
   return (
     <Fragment>
@@ -186,15 +205,26 @@ export function ServiceEntrySpansTable({
           options={options}
           onChange={opt => handleDropdownChange(opt.value)}
         />
-        {supportsInvestigationRule && (
-          <InvestigationRuleWrapper>
-            <InvestigationRuleCreation
-              buttonProps={{size: 'xs'}}
-              eventView={eventView}
-              numSamples={totalNumSamples}
-            />
-          </InvestigationRuleWrapper>
-        )}
+        <HeaderButtonWrapper>
+          {supportsInvestigationRule && (
+            <InvestigationRuleWrapper>
+              <InvestigationRuleCreation
+                buttonProps={{size: 'xs'}}
+                eventView={eventView}
+                numSamples={totalNumSamples}
+              />
+            </InvestigationRuleWrapper>
+          )}
+          {showViewSampledEventsButton && (
+            <Button
+              size="xs"
+              data-test-id="transaction-events-open"
+              onClick={handleViewSampledEvents}
+            >
+              {t('View Sampled Events')}
+            </Button>
+          )}
+        </HeaderButtonWrapper>
         <CustomPagination
           pageLinks={pageLinks}
           onCursor={handleCursor}
@@ -336,6 +366,10 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const HeaderButtonWrapper = styled('div')`
+  display: flex;
 `;
 
 const InvestigationRuleWrapper = styled('div')`

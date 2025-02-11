@@ -343,7 +343,9 @@ function OTelSummaryContentInner({
               p95: totalValues?.['p95()'] ?? 0,
               spanOperationBreakdownFilter,
             })}
+            transactionName={transactionName}
             supportsInvestigationRule
+            showViewSampledEventsButton
           />
           <TransactionsList
             location={location}
