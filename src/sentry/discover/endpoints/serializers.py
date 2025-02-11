@@ -38,12 +38,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         help_text="The saved projects filter for this query.",
     )
     queryDataset = serializers.ChoiceField(
-        choices=DiscoverSavedQueryTypes.as_text_choices(),
+        choices=[
+            (DiscoverSavedQueryTypes.ERROR_EVENTS, "error-events"),
+            (DiscoverSavedQueryTypes.TRANSACTION_LIKE, "transaction-like"),
+        ],
         default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS),
-        help_text="""The dataset you would like to query. Allowed values are:
-- error-events
-- transaction-like
-""",
+        help_text="The dataset you would like to query. Note: `discover` is a deprecated value.",
     )
     start = serializers.DateTimeField(
         required=False, allow_null=True, help_text="The saved start time for this saved query."
