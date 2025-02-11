@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Iterable
 
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,6 +21,15 @@ from sentry.utils import email
 from sentry.utils.email.message_builder import MessageBuilder
 
 logger = logging.getLogger("sentry.sentry_apps.sentry_app_publish_request")
+
+
+class SentryAppPublishQuestionnaireSerializer(serializers.Serializer):
+    question = serializers.CharField(required=True, allow_null=False)
+    answer = serializers.CharField(required=True, allow_null=False)
+
+
+class SentryAppPublishRequestSerializer(serializers.Serializer):
+    questionnaire = SentryAppPublishQuestionnaireSerializer(many=True)
 
 
 @control_silo_endpoint
@@ -81,6 +91,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             )
         organization = organization_service.get_organization_by_id(id=org_mapping.organization_id)
         message = f"User {request.user.email} of organization {org_mapping.slug} wants to publish {sentry_app.slug}\n"
+
+        questionnaire_serializer = SentryAppPublishRequestSerializer(data=request.data)
+        if not questionnaire_serializer.is_valid():
+            return Response(questionnaire_serializer.errors, status=400)
 
         questionnaire: Iterable[dict[str, str]] = request.data.get("questionnaire", [])
         for question_pair in questionnaire:
