@@ -4,7 +4,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeIs, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeIs, TypeVar, Union, get_args
 
 from sentry.utils.services import Service
 
@@ -110,10 +110,11 @@ StatsPeriod = Literal[
 ]
 
 OverviewStat = Literal["users", "sessions"]
+_OverviewStat_vals: frozenset[OverviewStat] = frozenset(get_args(OverviewStat))
 
 
 def is_overview_stat(s: str) -> TypeIs[OverviewStat]:
-    return s in ("users", "sessions")
+    return s in _OverviewStat_vals
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):

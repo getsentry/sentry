@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Literal, NotRequired, TypedDict, TypeIs, overload
+from typing import Literal, NotRequired, TypedDict, TypeIs, get_args, overload
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -116,8 +116,16 @@ MetricUnit = Literal[
     "terabyte",
     "petabyte",
     "exabyte",
+    "ratio",
     "none",
 ]
+_MetricUnit_vals: frozenset[MetricUnit] = frozenset(get_args(MetricUnit))
+
+
+def is_metric_unit(s: str) -> TypeIs[MetricUnit]:
+    return s in _MetricUnit_vals
+
+
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal[
     "counter",
@@ -139,18 +147,11 @@ MetricEntity = Literal[
     "generic_metrics_distributions",
     "generic_metrics_gauges",
 ]
+_MetricEntity_vals: frozenset[MetricEntity] = frozenset(get_args(MetricEntity))
 
 
 def is_metric_entity(s: str) -> TypeIs[MetricEntity]:
-    return s in {
-        "metrics_counters",
-        "metrics_sets",
-        "metrics_distributions",
-        "generic_metrics_counters",
-        "generic_metrics_sets",
-        "generic_metrics_distributions",
-        "generic_metrics_gauges",
-    }
+    return s in _MetricEntity_vals
 
 
 OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {

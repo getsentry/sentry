@@ -60,12 +60,8 @@ def test_invalid_public_name_regex(name):
             ParsedMRI("s", "sessions", "error", "none"),
         ),
         (
-            "dist:my_namespace/organizations/v1/my endpoint@{none}",
-            ParsedMRI("dist", "my_namespace", "organizations/v1/my endpoint", "{none}"),
-        ),
-        (
-            "d:transactions/measurements.disk_io@byte/second",
-            ParsedMRI("d", "transactions", "measurements.disk_io", "byte/second"),
+            "dist:my_namespace/organizations/v1/my endpoint@none",
+            ParsedMRI("dist", "my_namespace", "organizations/v1/my endpoint", "none"),
         ),
     ],
 )

@@ -17,21 +17,6 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 metric that is queryable by the API.
 """
 
-__all__ = (
-    "SessionMRI",
-    "TransactionMRI",
-    "SpanMRI",
-    "MRI_SCHEMA_REGEX",
-    "MRI_EXPRESSION_REGEX",
-    "ErrorsMRI",
-    "parse_mri",
-    "get_available_operations",
-    "is_mri_field",
-    "parse_mri_field",
-    "format_mri_field",
-    "format_mri_field_value",
-)
-
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -49,6 +34,22 @@ from sentry.snuba.metrics.utils import (
     MetricEntity,
     MetricOperationType,
     MetricUnit,
+    is_metric_unit,
+)
+
+__all__ = (
+    "SessionMRI",
+    "TransactionMRI",
+    "SpanMRI",
+    "MRI_SCHEMA_REGEX",
+    "MRI_EXPRESSION_REGEX",
+    "ErrorsMRI",
+    "parse_mri",
+    "get_available_operations",
+    "is_mri_field",
+    "parse_mri_field",
+    "format_mri_field",
+    "format_mri_field_value",
 )
 
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
@@ -201,7 +202,7 @@ class ParsedMRI:
     entity: str
     namespace: str
     name: str
-    unit: str
+    unit: MetricUnit
 
     @property
     def mri_string(self) -> str:
@@ -228,7 +229,10 @@ def parse_mri_field(field: str | None) -> ParsedMRIField | None:
 
     try:
         op = cast(MetricOperationType, matches[1])
-        mri = ParsedMRI(**matches.groupdict())
+        params = matches.groupdict()
+        unit = params.pop("unit")
+        assert is_metric_unit(unit), unit
+        mri = ParsedMRI(unit=unit, **params)
     except (IndexError, TypeError):
         return None
 
@@ -274,8 +278,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+        return format_value_using_unit_and_op(
+            float(value), parsed_mri_field.mri.unit, parsed_mri_field.op
+        )
 
     except InvalidParams:
         return value
@@ -292,7 +297,10 @@ def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     if match is None:
         return None
 
-    return ParsedMRI(**match.groupdict())
+    params = match.groupdict()
+    unit = params.pop("unit")
+    assert is_metric_unit(unit), unit
+    return ParsedMRI(unit=unit, **params)
 
 
 def is_mri(mri_string: str | None) -> bool:
