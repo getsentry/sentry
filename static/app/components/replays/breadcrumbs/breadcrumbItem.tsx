@@ -40,6 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -315,7 +316,10 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
         to={
           isFeedbackFrame(frame)
             ? {
-                pathname: `/organizations/${organization.slug}/feedback/`,
+                pathname: makeFeedbackPathname({
+                  path: '/',
+                  organization,
+                }),
                 query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
               }
             : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
