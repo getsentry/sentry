@@ -6,13 +6,12 @@ from functools import wraps
 from typing import Any
 
 import sentry_sdk
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import SentryIsAuthenticated, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
@@ -74,7 +73,7 @@ def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | N
     return any(request.access.has_scope(s) for s in set(allowed_scopes))
 
 
-class SentryAppsPermission(SentryPermission):
+class SentryAppsPermission(SentryIsAuthenticated):
     scope_map = {
         "GET": PARANOID_GET,
         "POST": ("org:write", "org:admin"),
@@ -136,7 +135,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
+    permission_classes: tuple[type[SentryIsAuthenticated], ...] = (SentryAppsAndStaffPermission,)
 
     def _get_organization_slug(self, request: Request):
         organization_slug = request.data.get("organization")
@@ -208,7 +207,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
-class SentryAppPermission(SentryPermission):
+class SentryAppPermission(SentryIsAuthenticated):
     unpublished_scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         "PUT": ("org:write", "org:admin"),
@@ -282,7 +281,7 @@ class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
 
 
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
+    permission_classes: tuple[type[SentryIsAuthenticated], ...] = (SentryAppPermission,)
 
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
@@ -319,7 +318,7 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
-class SentryAppInstallationsPermission(SentryPermission):
+class SentryAppInstallationsPermission(SentryIsAuthenticated):
     scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         "POST": ("org:integrations", "org:write", "org:admin"),
@@ -375,7 +374,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
-class SentryAppInstallationPermission(SentryPermission):
+class SentryAppInstallationPermission(SentryIsAuthenticated):
     scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         "DELETE": ("org:integrations", "org:write", "org:admin"),
@@ -431,7 +430,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
 
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (SentryAppInstallationPermission,)
+    permission_classes: tuple[type[SentryIsAuthenticated], ...] = (SentryAppInstallationPermission,)
 
     def convert_args(self, request: Request, uuid, *args, **kwargs):
         installations = app_service.get_many(filter=dict(uuids=[uuid]))
@@ -461,7 +460,7 @@ class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEn
     permission_classes = (SentryAppInstallationExternalIssuePermission,)
 
 
-class SentryAppAuthorizationsPermission(SentryPermission):
+class SentryAppAuthorizationsPermission(SentryIsAuthenticated):
     def has_object_permission(self, request: Request, view, installation):
         if not hasattr(request, "user") or not request.user:
             return False
@@ -482,10 +481,12 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
     authentication_classes = (ClientIdSecretAuthentication,)
-    permission_classes = (SentryAppAuthorizationsPermission,)
+    permission_classes: tuple[type[SentryIsAuthenticated], ...] = (
+        SentryAppAuthorizationsPermission,
+    )
 
 
-class SentryInternalAppTokenPermission(SentryPermission):
+class SentryInternalAppTokenPermission(SentryIsAuthenticated):
     scope_map = {
         "GET": ("org:write", "org:admin"),
         "POST": ("org:write", "org:admin"),
@@ -510,7 +511,7 @@ class SentryInternalAppTokenPermission(SentryPermission):
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
-class SentryAppStatsPermission(SentryPermission):
+class SentryAppStatsPermission(SentryIsAuthenticated):
     scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         # Anyone logged in can increment the stats, so leave the scopes empty

@@ -29,41 +29,6 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class RelayPermission(BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        return getattr(request, "relay", None) is not None
-
-
-class SystemPermission(BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        return is_system_auth(request.auth)
-
-
-class NoPermission(BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        return False
-
-
-class SuperuserPermission(BasePermission):
-    """
-    This permission class is used for endpoints that should ONLY be accessible
-    by superuser.
-    """
-
-    def has_permission(self, request: Request, view: object) -> bool:
-        return is_active_superuser(request)
-
-
-class StaffPermission(BasePermission):
-    """
-    This permission class is used for endpoints that should ONLY be accessible
-    by staff.
-    """
-
-    def has_permission(self, request: Request, view: object) -> bool:
-        return is_active_staff(request)
-
-
 class StaffPermissionMixin:
     """
     Sentry endpoints that should be accessible by staff but have an existing permission
@@ -112,22 +77,6 @@ class StaffPermissionMixin:
         return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
             request
         )
-
-
-# NOTE(schew2381): This is a temporary permission that does NOT perform an OR
-# between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
-# if the option is enabled for the user, and otherwise checks SuperuserPermission. We
-# need this to handle the transition for endpoints that will only be accessible to
-# staff but not superuser, that currently use SuperuserPermission. Once staff is
-# released to the everyone, we can delete this permission and use StaffPermission
-class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        enforce_staff_permission = has_staff_option(request.user)
-
-        if enforce_staff_permission:
-            return StaffPermission().has_permission(request, view)
-
-        return SuperuserPermission().has_permission(request, view)
 
 
 class ScopedPermission(BasePermission):
@@ -314,6 +263,57 @@ class ReadOnlyPermission(SentryPermission):
             return False
 
         return super().has_object_permission(request, view, obj)
+
+
+class RelayPermission(ReadOnlyPermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return getattr(request, "relay", None) is not None
+
+
+class SystemPermission(ReadOnlyPermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_system_auth(request.auth)
+
+
+class NoPermission(ReadOnlyPermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return False
+
+
+class SuperuserPermission(ReadOnlyPermission):
+    """
+    This permission class is used for endpoints that should ONLY be accessible
+    by superuser.
+    """
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_active_superuser(request)
+
+
+class StaffPermission(ReadOnlyPermission):
+    """
+    This permission class is used for endpoints that should ONLY be accessible
+    by staff.
+    """
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_active_staff(request)
+
+
+# NOTE(schew2381): This is a temporary permission that does NOT perform an OR
+# between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
+# if the option is enabled for the user, and otherwise checks SuperuserPermission. We
+# need this to handle the transition for endpoints that will only be accessible to
+# staff but not superuser, that currently use SuperuserPermission. Once staff is
+# released to the everyone, we can delete this permission and use StaffPermission
+class SuperuserOrStaffFeatureFlaggedPermission(ReadOnlyPermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        enforce_staff_permission = has_staff_option(request.user)
+
+        if enforce_staff_permission:
+            return StaffPermission().has_permission(request, view)
+
+        return SuperuserPermission().has_permission(request, view)
 
 
 class SentryIsAuthenticated(IsAuthenticated, ReadOnlyPermission):

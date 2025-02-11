@@ -7,7 +7,6 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -174,7 +173,7 @@ class CustomerDomainMiddlewareTest(TestCase):
 
 
 class OrganizationTestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     def get(self, request, organization_id_or_slug):
         return Response(
@@ -197,7 +196,7 @@ class OrganizationTestEndpoint(Endpoint):
 
 
 class OrganizationIdOrSlugTestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     def get(self, request, organization_id_or_slug):
         return Response(

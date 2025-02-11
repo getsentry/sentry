@@ -8,7 +8,6 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -68,7 +67,7 @@ class SubdomainMiddlewareTest(TestCase):
 
 
 class APITestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     def get(self, request):
         # return HttpResponse(status=status.HTTP_200_OK)

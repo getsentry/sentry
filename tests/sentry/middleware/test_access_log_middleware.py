@@ -4,7 +4,6 @@ from urllib.parse import unquote
 import pytest
 from django.test import override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -19,21 +18,21 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = ()
 
     def get(self, request):
         return Response({"ok": True})
 
 
 class DummyFailEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
 
     def get(self, request):
         raise Exception("this is bad yo")
 
 
 class RateLimitedEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         group="foo",
@@ -51,7 +50,7 @@ class RateLimitedEndpoint(Endpoint):
 
 
 class ConcurrentRateLimitedEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = ()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         group="foo",

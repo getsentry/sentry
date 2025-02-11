@@ -37,7 +37,7 @@ class PermissionsTest(DRFPermissionTestCase):
         assert self.superuser_staff_flagged_permission.has_permission(self.superuser_request, None)
 
 
-class ReadonlyPermissionsTest(DRFPermissionTestCase):
+class SentryIsAuthenticatedsTest(DRFPermissionTestCase):
     user_permission = SentryPermission()
 
     def setUp(self):

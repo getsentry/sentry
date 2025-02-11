@@ -1,4 +1,3 @@
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
@@ -33,7 +32,7 @@ class TeamPermission(OrganizationPermission):
 
 
 class TeamEndpoint(Endpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (TeamPermission,)
+    permission_classes = (TeamPermission,)
 
     def convert_args(
         self, request: Request, organization_id_or_slug, team_id_or_slug, *args, **kwargs

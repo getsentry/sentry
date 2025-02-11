@@ -7,7 +7,6 @@ from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.test import override_settings
 from django.urls import re_path
-from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 
 import sentry.api.urls as api_urls
@@ -20,7 +19,6 @@ from sentry.utils import json
 
 @control_silo_endpoint
 class ControlEndpoint(ControlSiloOrganizationEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
     def get(self, request, organization, **kwargs):
         return Response({"proxy": False})
@@ -28,7 +26,6 @@ class ControlEndpoint(ControlSiloOrganizationEndpoint):
 
 @region_silo_endpoint
 class RegionEndpoint(OrganizationEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
     def get(self, request, organization):
         return Response({"proxy": False})
@@ -39,7 +36,6 @@ class RegionEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class NoOrgRegionEndpoint(Endpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
     def get(self, request):
         return Response({"proxy": False})

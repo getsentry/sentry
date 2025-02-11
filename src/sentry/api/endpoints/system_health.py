@@ -1,4 +1,5 @@
 import itertools
+from typing import Any
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -20,7 +21,7 @@ class SystemHealthEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.OPEN_SOURCE
-    permission_classes = (IsAuthenticated,)
+    permission_classes: Any = (IsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:

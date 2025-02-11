@@ -6,7 +6,6 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -63,7 +62,7 @@ class DataSecrecyWaiverSerializer(CamelSnakeSerializer, serializers.Serializer, 
 
 @region_silo_endpoint
 class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (WaiveDataSecrecyPermission,)
+    permission_classes = (WaiveDataSecrecyPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
