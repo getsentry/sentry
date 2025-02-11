@@ -1,17 +1,22 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
+
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.db import models
 from sentry.models.project import Project
+from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
-    BaseEventFrequencyConditionHandler,
+from sentry.utils.safe import safe_execute
+from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+    BaseEventFrequencyQueryHandler,
+    slow_condition_query_handler_registry,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import (
@@ -20,20 +25,26 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
-from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandlerType
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
+
+COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
+
+DataConditionGroupGroups = dict[int, set[int]]
+WorkflowMapping = dict[int, Workflow]
+WorkflowEnvMapping = dict[int, int | None]
 
 
 @dataclass(frozen=True)
 class UniqueConditionQuery:
     """
-    Represents all the data that uniquely identifies a condition class and its
+    Represents all the data that uniquely identifies a condition and its
     single respective Snuba query that must be made. Multiple instances of the
-    same condition class can share the single query.
+    same condition can share a single query.
     """
 
-    handler: BaseEventFrequencyConditionHandler
+    handler: type[BaseEventFrequencyQueryHandler]
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
@@ -64,38 +75,40 @@ def fetch_group_to_event_data(
     return buffer.backend.get_hash(model=model, field=field)
 
 
-def get_dcg_group_workflow_data(
-    worklow_event_dcg_data: dict[str, str]
-) -> tuple[dict[int, set[int]], dict[int, int], list[Any]]:
+def get_dcg_group_workflow_detector_data(
+    workflow_event_dcg_data: dict[str, str]
+) -> tuple[DataConditionGroupGroups, dict[DataConditionHandlerType, dict[int, int]]]:
     """
-    Parse the data in the buffer hash, which is in the form of {workflow_id}:{event_id}:{dcg_id, ..., dcg_id}:{dcg_type}
+    Parse the data in the buffer hash, which is in the form of {workflow/detector_id}:{event_id}:{dcg_id, ..., dcg_id}:{dcg_type}
     """
 
-    dcg_to_groups: dict[int, set[int]] = defaultdict(set)
-    dcg_to_workflow: dict[int, int] = {}
-    all_event_data = []
+    dcg_to_groups: DataConditionGroupGroups = defaultdict(set)
+    trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]] = defaultdict(dict)
 
-    for workflow_event_dcg, instance_data in worklow_event_dcg_data.items():
+    for workflow_event_dcg, _ in workflow_event_dcg_data.items():
         data = workflow_event_dcg.split(":")
-        workflow_id = int(data[0])
+        try:
+            dcg_type = DataConditionHandlerType(data[3])
+        except ValueError:
+            continue
+
         event_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
-        # TODO: use dcg_type = data[3] to split WHEN and IF DCGs
-        event_data = json.loads(instance_data)
 
         for dcg_id in dcg_ids:
             dcg_to_groups[dcg_id].add(event_id)
-            dcg_to_workflow[dcg_id] = workflow_id
-            all_event_data.append(event_data)  # used in bulk fetching events from Snuba
 
-    return dcg_to_groups, dcg_to_workflow, all_event_data
+            trigger_type_to_dcg_model[dcg_type][dcg_id] = int(data[0])
+
+    return dcg_to_groups, trigger_type_to_dcg_model
 
 
-def fetch_workflows_and_environments(
+def fetch_workflows_envs(
     workflow_ids: list[int],
-) -> tuple[dict[int, Workflow], dict[int, int | None]]:
-    workflows_to_envs: dict[int, int | None] = {}
-    workflow_ids_to_workflows: dict[int, Workflow] = {}
+) -> tuple[WorkflowMapping, WorkflowEnvMapping]:
+    workflows_to_envs: WorkflowEnvMapping = {}
+    workflow_ids_to_workflows: WorkflowMapping = {}
+
     workflows = list(Workflow.objects.filter(id__in=workflow_ids))
 
     for workflow in workflows:
@@ -105,23 +118,14 @@ def fetch_workflows_and_environments(
     return workflow_ids_to_workflows, workflows_to_envs
 
 
-def fetch_active_data_condition_groups(
+def fetch_data_condition_groups(
     dcg_ids: list[int],
-    dcg_to_workflow: dict[int, int],
-    workflow_ids_to_workflows: dict[int, Workflow],
 ) -> list[DataConditionGroup]:
     """
-    Fetch DataConditionGroups with enabled workflows
+    Fetch DataConditionGroups with enabled detectors/workflows
     """
 
-    data_condition_groups = DataConditionGroup.objects.filter(id__in=dcg_ids)
-    active_dcgs: list[DataConditionGroup] = []
-
-    for dcg in data_condition_groups:
-        if workflow_ids_to_workflows[dcg_to_workflow[dcg.id]].enabled:
-            active_dcgs.append(dcg)
-
-    return active_dcgs
+    return list(DataConditionGroup.objects.filter(id__in=dcg_ids))
 
 
 def generate_unique_queries(
@@ -147,7 +151,7 @@ def generate_unique_queries(
         return []
 
     try:
-        handler = condition_handler_registry.get(condition_type)
+        handler = slow_condition_query_handler_registry.get(condition_type)
     except NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
@@ -155,14 +159,9 @@ def generate_unique_queries(
         )
         return []
 
-    if not (isinstance(handler, type) and issubclass(handler, BaseEventFrequencyConditionHandler)):
-        return []
-
-    base_handler = handler.base_handler  # type: ignore[attr-defined]
-
     unique_queries = [
         UniqueConditionQuery(
-            handler=base_handler,
+            handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
         )
@@ -170,7 +169,7 @@ def generate_unique_queries(
     if condition_type in PERCENT_CONDITIONS:
         unique_queries.append(
             UniqueConditionQuery(
-                handler=base_handler,
+                handler=handler,
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
@@ -181,9 +180,9 @@ def generate_unique_queries(
 
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
-    dcg_to_groups: dict[int, set[int]],
+    dcg_to_groups: DataConditionGroupGroups,
     dcg_to_workflow: dict[int, int],
-    workflows_to_envs: dict[int, int | None],
+    workflows_to_envs: WorkflowEnvMapping,
 ) -> dict[UniqueConditionQuery, set[int]]:
     """
     Map unique condition queries to the group IDs that need to checked for that query.
@@ -192,11 +191,41 @@ def get_condition_query_groups(
     for dcg in data_condition_groups:
         slow_conditions = get_slow_conditions(dcg)
         for condition in slow_conditions:
-            for condition_query in generate_unique_queries(
-                condition, workflows_to_envs[dcg_to_workflow[dcg.id]]
-            ):
+            workflow_id = dcg_to_workflow.get(dcg.id)
+            workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
+            for condition_query in generate_unique_queries(condition, workflow_env):
                 condition_groups[condition_query].update(dcg_to_groups[dcg.id])
     return condition_groups
+
+
+def get_condition_group_results(
+    queries_to_groups: dict[UniqueConditionQuery, set[int]]
+) -> dict[UniqueConditionQuery, dict[int, int]]:
+    condition_group_results = {}
+    current_time = timezone.now()
+
+    for unique_condition, group_ids in queries_to_groups.items():
+        handler = unique_condition.handler()
+
+        _, duration = handler.intervals[unique_condition.interval]
+
+        comparison_interval: timedelta | None = None
+        if unique_condition.comparison_interval is not None:
+            comparison_interval = COMPARISON_INTERVALS_VALUES.get(
+                unique_condition.comparison_interval
+            )
+
+        result = safe_execute(
+            handler.get_rate_bulk,
+            duration=duration,
+            group_ids=group_ids,
+            environment_id=unique_condition.environment_id,
+            current_time=current_time,
+            comparison_interval=comparison_interval,
+        )
+        condition_group_results[unique_condition] = result or {}
+
+    return condition_group_results
 
 
 @instrumented_task(
@@ -221,13 +250,14 @@ def process_delayed_workflows(
     workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
     # Get mappings from DataConditionGroups to other info
-    dcg_to_groups, dcg_to_workflow, _ = get_dcg_group_workflow_data(workflow_event_dcg_data)
-    workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_and_environments(
-        list(dcg_to_workflow.values())
+    dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
+        workflow_event_dcg_data
     )
-    data_condition_groups = fetch_active_data_condition_groups(
-        list(dcg_to_groups.keys()), dcg_to_workflow, workflow_ids_to_workflows
-    )
+    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]
+    dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
+
+    _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
+    data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
     _ = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs

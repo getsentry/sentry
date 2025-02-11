@@ -1,11 +1,10 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import split_conditions_and_filters
-from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition,
 )
@@ -24,8 +23,11 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 
 logger = logging.getLogger(__name__)
+
+SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
 
 
 def migrate_issue_alert(rule: Rule, user_id: int | None = None):
@@ -49,6 +51,7 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
         when_condition_group=when_dcg,
         user_id=user_id,
         environment_id=rule.environment_id,
+        frequency=data.get("frequency"),
     )
     AlertRuleWorkflow.objects.create(rule=rule, workflow=workflow)
 
@@ -58,6 +61,15 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
 
+def bulk_create_data_conditions(conditions: list[dict[str, Any]], dcg: DataConditionGroup):
+    dcg_conditions: list[DataCondition] = []
+    for condition in conditions:
+        dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
+
+    filtered_data_conditions = [dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS]
+    DataCondition.objects.bulk_create(filtered_data_conditions)
+
+
 def create_when_dcg(
     organization: Organization, conditions: list[dict[str, Any]], action_match: str
 ):
@@ -65,8 +77,8 @@ def create_when_dcg(
         action_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
     when_dcg = DataConditionGroup.objects.create(logic_type=action_match, organization=organization)
-    for condition in conditions:
-        translate_to_data_condition(dict(condition), dcg=when_dcg)
+
+    bulk_create_data_conditions(conditions=conditions, dcg=when_dcg)
 
     return when_dcg
 
@@ -110,8 +122,7 @@ def create_if_dcg(
     )
     WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
 
-    for filter in filters:
-        translate_to_data_condition(dict(filter), dcg=if_dcg)
+    bulk_create_data_conditions(conditions=filters, dcg=if_dcg)
 
     return if_dcg
 
@@ -125,18 +136,9 @@ def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, 
     DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
 
-class UpdatedIssueAlertData(TypedDict):
-    name: str
-    conditions: list[dict[str, Any]]
-    action_match: str
-    filter_match: str | None
-    actions: list[dict[str, Any]]
-    environment: int | None
-    owner: Actor | None
-    frequency: int | None
+def update_migrated_issue_alert(rule: Rule):
+    data = rule.data
 
-
-def update_migrated_issue_alert(rule: Rule, data: UpdatedIssueAlertData):
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
@@ -175,21 +177,17 @@ def update_migrated_issue_alert(rule: Rule, data: UpdatedIssueAlertData):
     delete_workflow_actions(if_dcg=if_dcg)
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
-    updated_data: dict[str, Any] = {
-        "name": data["name"],
-        "environment_id": data["environment"],
-        "enabled": True,
-        "owner_team_id": None,
-        "owner_user_id": None,
-        "config": {"frequency": data["frequency"] or Workflow.DEFAULT_FREQUENCY},
-    }
-    owner = data["owner"]
-    if owner:
-        if owner and owner.is_user:
-            updated_data["owner_user_id"] = owner.id
-        if owner and owner.is_team:
-            updated_data["owner_team_id"] = owner.id
-    workflow.update(**updated_data)
+    workflow.environment_id = rule.environment_id
+    if frequency := data["frequency"]:
+        workflow.config["frequency"] = frequency
+
+    workflow.owner_user_id = rule.owner_user_id
+    workflow.owner_team_id = rule.owner_team_id
+
+    workflow.name = rule.label
+
+    workflow.enabled = True
+    workflow.save()
 
 
 def update_dcg(
@@ -205,8 +203,7 @@ def update_dcg(
 
         dcg.update(logic_type=match)
 
-    for condition in conditions:
-        translate_to_data_condition(dict(condition), dcg=dcg)
+    bulk_create_data_conditions(conditions=conditions, dcg=dcg)
 
     return dcg
 

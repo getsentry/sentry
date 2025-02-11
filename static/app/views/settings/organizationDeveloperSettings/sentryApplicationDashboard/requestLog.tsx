@@ -328,7 +328,7 @@ const RequestLogFilters = styled('div')`
   padding-bottom: ${space(1)};
 
   > :first-child ${StyledButton} {
-    border-radius: ${p => p.theme.borderRadiusLeft};
+    border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   }
 `;
 

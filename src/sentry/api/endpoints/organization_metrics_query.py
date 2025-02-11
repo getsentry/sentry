@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -35,7 +35,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    snuba_methods = ["POST"]
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationMetricsPermission,)
 
@@ -149,10 +148,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization) -> Response:
         try:
-            if organization.id in (options.get("custom-metrics-querying-disabled-orgs") or ()):
-                return Response(
-                    status=401, data={"detail": "The organization is not allowed to query metrics"}
-                )
 
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)

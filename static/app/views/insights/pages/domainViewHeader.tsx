@@ -107,7 +107,11 @@ export function DomainViewHeader({
   );
 }
 
-function TabLabel({moduleName}: {moduleName: ModuleName}) {
+interface TabLabelProps {
+  moduleName: ModuleName;
+}
+
+function TabLabel({moduleName}: TabLabelProps) {
   const moduleTitles = useModuleTitles();
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
@@ -119,6 +123,7 @@ function TabLabel({moduleName}: {moduleName: ModuleName}) {
       </TabWithIconContainer>
     );
   }
+
   return <Fragment>{moduleTitles[moduleName]}</Fragment>;
 }
 

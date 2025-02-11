@@ -5,6 +5,7 @@ from jsonschema import ValidationError
 
 from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.event_attribute import EventAttributeCondition, attribute_registry
+from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.match import MatchType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
@@ -14,7 +15,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestEventAttributeCondition(ConditionTestCase):
     condition = Condition.EVENT_ATTRIBUTE
-    rule_cls = EventAttributeCondition
     payload = {
         "id": EventAttributeCondition.id,
         "match": MatchType.EQUAL,
@@ -127,6 +127,20 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
 
     def test_dual_write(self):
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.EQUAL,
+            "value": "php",
+            "attribute": "platform",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_filter(self):
+        self.payload["id"] = EventAttributeFilter.id
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 

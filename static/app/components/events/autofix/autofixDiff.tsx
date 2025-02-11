@@ -14,6 +14,7 @@ import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -518,7 +519,7 @@ function FileDiff({
           <FileAdded>+{file.added}</FileAdded>
           <FileRemoved>-{file.removed}</FileRemoved>
         </FileAddedRemoved>
-        <FileName>{file.path}</FileName>
+        <FileName title={file.path}>{file.path}</FileName>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
           aria-label={t('Toggle file diff')}
@@ -636,7 +637,13 @@ const FileRemoved = styled('div')`
   color: ${p => p.theme.errorText};
 `;
 
-const FileName = styled('div')``;
+const FileName = styled('div')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+`;
 
 const DiffContainer = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
@@ -667,10 +674,10 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${p.theme.diff.added}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.textColor}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${p.theme.diff.removed}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.textColor}`};
 
   & + & {
     padding-left: 0;
@@ -687,10 +694,10 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${p.theme.diff.addedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.textColor}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${p.theme.diff.removedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.textColor}`};
 
   &::before {
     content: ${p =>
@@ -707,8 +714,8 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
 const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
   vertical-align: middle;
-  ${p => p.added && `background-color: ${p.theme.diff.added};`};
-  ${p => p.removed && `background-color: ${p.theme.diff.removed};`};
+  ${p => p.added && `background-color: ${DIFF_COLORS.added};`};
+  ${p => p.removed && `background-color: ${DIFF_COLORS.removed};`};
 `;
 
 const ButtonGroup = styled('div')`
@@ -779,7 +786,7 @@ const RemovedLines = styled('div')`
 `;
 
 const RemovedLine = styled('div')`
-  background-color: ${p => p.theme.diff.removedRow};
+  background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
 `;
@@ -787,7 +794,7 @@ const RemovedLine = styled('div')`
 const StyledTextArea = styled(TextArea)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.diff.addedRow};
+  background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.border};
   position: relative;
 

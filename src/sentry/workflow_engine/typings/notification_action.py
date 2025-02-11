@@ -26,7 +26,11 @@ class FieldMapping:
 
 
 class BaseActionTranslator(ABC):
-    action_type: ClassVar[Action.Type]
+    @property
+    @abstractmethod
+    def action_type(self) -> Action.Type:
+        pass
+
     # Represents the mapping of a target field to a source field {target_field: FieldMapping}
     field_mappings: ClassVar[dict[str, FieldMapping]] = {}
 
@@ -114,7 +118,9 @@ issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]](
     "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
 )
 class SlackActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.SLACK
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.SLACK
 
     @property
     def required_fields(self) -> list[str]:
@@ -145,7 +151,9 @@ class SlackActionTranslator(BaseActionTranslator):
     "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
 )
 class DiscordActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.DISCORD
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.DISCORD
 
     @property
     def required_fields(self) -> list[str]:
@@ -172,7 +180,9 @@ class DiscordActionTranslator(BaseActionTranslator):
     "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
 )
 class MSTeamsActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.MSTEAMS
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.MSTEAMS
 
     @property
     def required_fields(self) -> list[str]:
@@ -194,12 +204,19 @@ class MSTeamsActionTranslator(BaseActionTranslator):
     def target_display(self) -> str | None:
         return self.action.get("channel")
 
+    @property
+    def blob_type(self) -> type[DataBlob]:
+        return OnCallDataBlob
+
 
 @issue_alert_action_translator_registry.register(
     "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
 )
 class PagerDutyActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.PAGERDUTY
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.PAGERDUTY
+
     field_mappings = {
         "priority": FieldMapping(
             source_field="severity", default_value=str(PAGERDUTY_DEFAULT_SEVERITY)
@@ -231,7 +248,10 @@ class PagerDutyActionTranslator(BaseActionTranslator):
     "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction"
 )
 class OpsgenieActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.OPSGENIE
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.OPSGENIE
+
     field_mappings = {
         "priority": FieldMapping(
             source_field="priority", default_value=str(OPSGENIE_DEFAULT_PRIORITY)
@@ -284,21 +304,27 @@ class GitHubActionTranslatorBase(TicketActionTranslator):
     "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
 )
 class GitHubActionTranslator(GitHubActionTranslatorBase):
-    action_type = Action.Type.GITHUB
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.GITHUB
 
 
 @issue_alert_action_translator_registry.register(
     "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction"
 )
 class GitHubEnterpriseActionTranslator(GitHubActionTranslatorBase):
-    action_type = Action.Type.GITHUB_ENTERPRISE
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.GITHUB_ENTERPRISE
 
 
 @issue_alert_action_translator_registry.register(
     "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction"
 )
 class AzureDevOpsActionTranslator(TicketActionTranslator):
-    action_type = Action.Type.AZURE_DEVOPS
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.AZURE_DEVOPS
 
     @property
     def blob_type(self) -> type[DataBlob]:
@@ -307,7 +333,9 @@ class AzureDevOpsActionTranslator(TicketActionTranslator):
 
 @issue_alert_action_translator_registry.register("sentry.mail.actions.NotifyEmailAction")
 class EmailActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.EMAIL
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.EMAIL
 
     @property
     def required_fields(self) -> list[str]:
@@ -363,7 +391,9 @@ class EmailActionTranslator(BaseActionTranslator):
     "sentry.rules.actions.notify_event.NotifyEventAction"
 )
 class PluginActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.PLUGIN
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.PLUGIN
 
     @property
     def required_fields(self) -> list[str]:
@@ -392,15 +422,32 @@ class PluginActionTranslator(BaseActionTranslator):
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 )
 class WebhookActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.WEBHOOK
+    def __init__(self, action: dict[str, Any]):
+        super().__init__(action)
+        # Fetch the sentry app id using app_service
+        # If the app exists, we should heal this action as a SentryAppAction
+        # Based on sentry/rules/actions/notify_event_service.py
+        if service := self.action.get("service"):
+            self.sentry_app = app_service.get_sentry_app_by_slug(slug=service)
+        else:
+            self.sentry_app = None
+
+    @property
+    def action_type(self) -> Action.Type:
+        if self.sentry_app:
+            return Action.Type.SENTRY_APP
+        else:
+            return Action.Type.WEBHOOK
+
+    @property
+    def target_type(self) -> ActionTarget | None:
+        if self.sentry_app:
+            return ActionTarget.SENTRY_APP
+        return None
 
     @property
     def required_fields(self) -> list[str]:
         return ["service"]
-
-    @property
-    def target_type(self) -> ActionTarget | None:
-        return None
 
     @property
     def integration_id(self) -> int | None:
@@ -409,14 +456,69 @@ class WebhookActionTranslator(BaseActionTranslator):
     @property
     def target_identifier(self) -> str | None:
         # The service field identifies the webhook
+        # If the webhook goes to a sentry app, then we should identify the sentry app by id
+        if self.sentry_app:
+            return str(self.sentry_app.id)
         return self.action.get("service")
+
+
+class JiraActionTranslatorBase(TicketActionTranslator):
+    @property
+    def required_fields(self) -> list[str]:
+        return ["integration"]
+
+    @property
+    def blob_type(self) -> type[DataBlob]:
+        return JiraDataBlob
+
+    def get_sanitized_data(self) -> dict[str, Any]:
+        """
+        Override to handle custom fields and additional fields that aren't part of the standard fields.
+        """
+        data = super().get_sanitized_data()
+        if self.blob_type:
+            # Get all fields that aren't part of the standard JiraDataBlob fields
+            standard_fields = {
+                f.name for f in dataclasses.fields(JiraDataBlob) if f.name != "additional_fields"
+            }
+            additional_fields = {
+                k: v
+                for k, v in self.action.items()
+                if k not in standard_fields
+                and k not in EXCLUDED_ACTION_DATA_KEYS
+                and k not in self.required_fields
+                and k != "dynamic_form_fields"
+                and v  # Only include non-empty values
+            }
+            data["additional_fields"] = additional_fields
+        return data
+
+    @staticmethod
+    def standard_fields() -> list[str]:
+        return [f.name for f in dataclasses.fields(JiraDataBlob) if f.name != "additional_fields"]
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+)
+class JiraActionTranslator(JiraActionTranslatorBase):
+    action_type = Action.Type.JIRA
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
+)
+class JiraServerActionTranslator(JiraActionTranslatorBase):
+    action_type = Action.Type.JIRA_SERVER
 
 
 @issue_alert_action_translator_registry.register(
     "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 )
 class SentryAppActionTranslator(BaseActionTranslator):
-    action_type = Action.Type.SENTRY_APP
+    @property
+    def action_type(self) -> Action.Type:
+        return Action.Type.SENTRY_APP
 
     @property
     def required_fields(self) -> list[str]:
@@ -530,6 +632,12 @@ class SentryAppFormConfigDataBlob(DataBlob):
     name is the name of the form field, and value is the value of the form field.
     """
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]):
+        if not isinstance(data.get("name"), str) or not isinstance(data.get("value"), str):
+            raise ValueError("Sentry app config must contain name and value keys")
+        return cls(name=data["name"], value=data["value"])
+
     name: str = ""
     value: str = ""
 
@@ -542,6 +650,12 @@ class SentryAppDataBlob(DataBlob):
 
     settings: list[SentryAppFormConfigDataBlob] = field(default_factory=list)
 
+    @classmethod
+    def from_list(cls, data: list[dict[str, Any]] | None):
+        if data is None:
+            return cls()
+        return cls(settings=[SentryAppFormConfigDataBlob.from_dict(setting) for setting in data])
+
 
 @dataclass
 class EmailDataBlob(DataBlob):
@@ -550,3 +664,19 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
+
+
+@dataclass
+class JiraDataBlob(TicketDataBlob):
+    """
+    JiraDataBlob represents the data blob for a Jira ticket creation action.
+    Includes required fields and supports dynamic custom fields.
+    """
+
+    project: str = ""
+    issuetype: str = ""
+    priority: str = ""
+    labels: str = ""
+    reporter: str = ""
+    # Store any custom fields (customfield_*) or additional fields
+    additional_fields: dict[str, Any] = field(default_factory=dict)

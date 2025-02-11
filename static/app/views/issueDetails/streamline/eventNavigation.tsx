@@ -229,7 +229,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         )}
         {isListView && (
           <ButtonBar gap={1}>
-            {issueTypeConfig.discover.enabled && (
+            {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
               <LinkButton
                 to={discoverUrl}
                 aria-label={t('Open in Discover')}

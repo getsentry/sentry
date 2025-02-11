@@ -36,7 +36,6 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
-import {AI_SIDEBAR_LABEL} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
@@ -92,7 +91,7 @@ export function PerformanceLanding(props: Props) {
     handleTrendsClick,
     onboardingProject,
   } = props;
-  const {setPageInfo, pageAlert} = usePageAlert();
+  const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
 
@@ -112,12 +111,10 @@ export function PerformanceLanding(props: Props) {
         <Link to={`${getPerformanceBaseUrl(slug, 'backend')}/`}>
           {BACKEND_SIDEBAR_LABEL}
         </Link>
-        {`, `}
+        {t(', and ')}
         <Link to={`${getPerformanceBaseUrl(slug, 'mobile')}/`}>
           {MOBILE_SIDEBAR_LABEL}
         </Link>
-        {t(', and ')}
-        <Link to={`${getPerformanceBaseUrl(slug, 'ai')}/`}>{AI_SIDEBAR_LABEL}</Link>
         {t(' performance pages. They can all be found in the Insights tab.')}
       </Fragment>
     );
@@ -134,9 +131,9 @@ export function PerformanceLanding(props: Props) {
 
   useEffect(() => {
     if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
-      setPageInfo(performanceMovingAlert);
+      setPageError(performanceMovingAlert);
     }
-  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
+  }, [pageAlert?.message, performanceMovingAlert, setPageError]);
 
   useEffect(() => {
     if (hasMounted.current) {

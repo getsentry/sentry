@@ -22,6 +22,7 @@ from tests.sentry.grouping import (
 )
 
 
+@django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
@@ -106,6 +107,7 @@ def _assert_and_snapshot_results(
     )
 
 
+@django_db_all
 # TODO: This can be deleted after Jan 2025, when affected events have aged out
 def test_old_event_with_no_fingerprint_rule_text():
     variant = CustomFingerprintVariant(

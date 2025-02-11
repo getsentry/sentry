@@ -269,7 +269,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert showIcon>
+                  <StyledAlert type="info" showIcon>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar

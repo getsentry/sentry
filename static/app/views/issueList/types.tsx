@@ -17,16 +17,20 @@ export type IssueUpdateData =
   | GroupStatusResolution;
 
 export type GroupSearchView = {
+  environments: string[];
   id: string;
+  isAllProjects: boolean;
   name: string;
+  projects: number[];
   query: string;
   querySort: IssueSortOptions;
+  timeFilters: PageFilters['datetime'];
 };
 
 export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
-  environments?: string[];
+  environments: string[];
+  isAllProjects: boolean;
+  projects: number[];
+  timeFilters: PageFilters['datetime'];
   id?: string;
-  isAllProjects?: boolean;
-  projects?: number[];
-  timeFilters?: PageFilters['datetime'];
 }

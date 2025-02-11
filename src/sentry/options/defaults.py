@@ -529,6 +529,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Control number of breadcrumbs converted to OurLogs
+register(
+    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -576,11 +582,6 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register(
-    "github-app.get-trees-refactored-code",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Github Enterprise Integration
 register(
@@ -3006,5 +3007,13 @@ register(
     "uptime.date_cutoff_epoch_seconds",
     type=Int,
     default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Increases event title character limit
+register(
+    "sentry.save-event.title-char-limit-256.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

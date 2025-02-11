@@ -338,3 +338,36 @@ export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: b
     {enabled}
   );
 }
+
+export function getUserTagValue(tagValue: TagValue): {
+  subtitle: string | null;
+  subtitleType: string | null;
+  title: string | null;
+} {
+  let title: string | null = null;
+  let subtitle: string | null = null;
+  let subtitleType: string | null = null;
+  if (defined(tagValue?.name)) {
+    title = tagValue?.name;
+  } else if (defined(tagValue?.email)) {
+    title = tagValue?.email;
+  } else if (defined(tagValue?.username)) {
+    title = title ? title : tagValue?.username;
+  } else if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
+    title = tagValue?.ip_address ?? tagValue?.ipAddress;
+  }
+
+  if (defined(tagValue?.id)) {
+    title = title ? title : tagValue?.id;
+    if (tagValue?.id && tagValue?.id !== 'None') {
+      subtitle = tagValue?.id;
+      subtitleType = t('ID');
+    }
+  }
+
+  if (title === subtitle) {
+    subtitle = null;
+  }
+
+  return {title, subtitle, subtitleType};
+}

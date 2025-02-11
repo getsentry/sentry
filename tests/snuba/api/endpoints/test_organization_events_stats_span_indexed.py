@@ -1214,38 +1214,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
-
-    def test_device_class_filter_unknown(self):
-        event_counts = [6, 0, 6, 3, 0, 3]
-        spans = []
-        for hour, count in enumerate(event_counts):
-            spans.extend(
-                [
-                    self.create_span(
-                        {"description": "foo", "sentry_tags": {"status": "success"}},
-                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
-                    )
-                    for minute in range(count)
-                ],
-            )
-        self.store_spans(spans, is_eap=self.is_eap)
-
-        response = self._do_request(
-            data={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=6),
-                "interval": "1h",
-                "yAxis": "count()",
-                "query": "device.class:Unknown",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
-
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0]

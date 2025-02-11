@@ -17,28 +17,28 @@ import {
   isASizeUnit,
   isAUnitConvertibleFieldType,
 } from '../common/typePredicates';
-import type {TimeseriesData} from '../common/types';
+import type {TimeSeries} from '../common/types';
 
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 export function scaleTimeSeriesData(
-  timeserie: Readonly<TimeseriesData>,
+  timeSeries: Readonly<TimeSeries>,
   destinationUnit: DurationUnit | SizeUnit | RateUnit | null
-): TimeseriesData {
+): TimeSeries {
   // TODO: Instead of a fallback, allow this to be `null`, which might happen
   const sourceType =
-    (timeserie.meta?.fields[timeserie.field] as AggregationOutputType) ??
+    (timeSeries.meta?.fields[timeSeries.field] as AggregationOutputType) ??
     (FALLBACK_TYPE as AggregationOutputType);
 
   // Don't bother trying to convert numbers, dates, etc.
   if (!isAUnitConvertibleFieldType(sourceType)) {
-    return timeserie;
+    return timeSeries;
   }
 
-  const sourceUnit = timeserie.meta?.units?.[timeserie.field] ?? null;
+  const sourceUnit = timeSeries.meta?.units?.[timeSeries.field] ?? null;
 
   if (!destinationUnit || sourceUnit === destinationUnit) {
-    return timeserie;
+    return timeSeries;
   }
 
   // Don't bother with invalid conversions
@@ -51,7 +51,7 @@ export function scaleTimeSeriesData(
       `Attempted invalid timeseries conversion from ${sourceType} in ${sourceUnit} to ${destinationUnit}`
     );
 
-    return timeserie;
+    return timeSeries;
   }
 
   let scaler: (value: number) => number;
@@ -76,8 +76,8 @@ export function scaleTimeSeriesData(
   }
 
   return {
-    ...timeserie,
-    data: timeserie.data.map(datum => {
+    ...timeSeries,
+    data: timeSeries.data.map(datum => {
       const {value} = datum;
       return {
         ...datum,
@@ -85,12 +85,12 @@ export function scaleTimeSeriesData(
       };
     }),
     meta: {
-      ...timeserie.meta,
+      ...timeSeries.meta,
       fields: {
-        [timeserie.field]: sourceType,
+        [timeSeries.field]: sourceType,
       },
       units: {
-        [timeserie.field]: destinationUnit,
+        [timeSeries.field]: destinationUnit,
       },
     },
   };

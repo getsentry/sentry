@@ -630,6 +630,7 @@ class SearchVisitor(NodeVisitor):
             or is_span_op_breakdown(key)
             or self.get_field_type(key) in ["number", "integer"]
             or self.is_duration_key(key)
+            or self.is_size_key(key)
         )
 
     def is_duration_key(self, key):

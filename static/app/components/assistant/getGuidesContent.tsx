@@ -5,7 +5,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
-import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 
 export default function getGuidesContent(
   organization: Organization | null
@@ -192,69 +191,36 @@ export default function getGuidesContent(
       ],
     },
     {
-      guide: 'metrics_onboarding',
-      requiredTargets: ['metrics_onboarding'],
+      guide: 'crons_backend_insights',
+      requiredTargets: ['crons_backend_insights'],
       steps: [
         {
-          title: t('Metrics Selector'),
-          target: 'metrics_selector',
-          description: t('Your metrics are available here.'),
-        },
-        {
-          title: t('Aggregate Metrics'),
-          target: 'metrics_aggregate',
-          description: t('See different facets of your metric through aggregations.'),
-        },
-        ...(organization && hasMetricsNewInputs(organization)
-          ? [
-              {
-                title: t('Grouping'),
-                target: 'metrics_groupby',
-                description: t('Segment your data by the tags you’ve attached.'),
-              },
-              {
-                title: t('Filtering'),
-                target: 'metrics_filterby',
-                description: t('Filter your data by the tags you’ve attached.'),
-              },
-            ]
-          : [
-              {
-                title: t('Grouping & Filtering'),
-                target: 'metrics_groupby',
-                description: t(
-                  'Segment or filter your data by the tags you’ve attached.'
-                ),
-              },
-            ]),
-        {
-          title: t('Multiple Metrics'),
-          target: 'add_metric_query',
-          description: t('Plot a second metric to see correlations.'),
-        },
-        {
-          title: t('Visualization'),
-          target: 'metrics_chart',
-          description: t(
-            'View plotted metrics, dots on the chart represent associated sample spans.'
-          ),
-        },
-        {
-          title: t('Span Samples'),
-          target: 'metrics_table',
+          title: t('Crons are now Alerts'),
+          target: 'crons_backend_insights',
           description: tct(
-            'See sample spans summarized in a table format. [openInTraces]',
+            'Crons are now a type of Sentry Alert and can be managed there. The detailed timeline is now here under Insights\u00A0→\u00A0Backend. [link:Learn more].',
             {
-              openInTraces:
-                organization?.features.includes(
-                  'performance-trace-explorer-with-metrics'
-                ) && organization?.features.includes('performance-trace-explorer')
-                  ? t('To filter by tags found only on spans, click "Open in Traces".')
-                  : '',
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/crons/alerts-backend-insights-migration/" />
+              ),
             }
           ),
         },
       ],
+    },
+    {
+      guide: 'issue_views_page_filters_persistence',
+      requiredTargets: ['issue_views_page_filters_persistence'],
+      steps: [
+        {
+          title: t('Save Filters to Issue Views'),
+          target: 'issue_views_page_filters_persistence',
+          description: t(
+            'We heard your feedback — Issue Views now save project, environment, and time range filters.'
+          ),
+        },
+      ],
+      dateThreshold: new Date('2025-02-11'),
     },
   ];
 }

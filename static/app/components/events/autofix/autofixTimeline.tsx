@@ -2,41 +2,38 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {ColorConfig} from 'sentry/components/timeline';
 import Timeline from 'sentry/components/timeline';
-import {
-  IconBroadcast,
-  IconChevron,
-  IconCode,
-  IconTable,
-  IconTerminal,
-  IconUser,
-} from 'sentry/icons';
+import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import type {Color} from 'sentry/utils/theme';
 
 import type {AutofixTimelineEvent} from './types';
 
+type ExtendedTimelineEvent = AutofixTimelineEvent & {
+  isTruncated?: boolean;
+};
+
 type Props = {
-  events: AutofixTimelineEvent[];
+  events: ExtendedTimelineEvent[];
+  activeColor?: Color;
+  getCustomIcon?: (event: ExtendedTimelineEvent) => React.ReactNode;
 };
 
 function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   const iconProps = {
     style: {
-      marginLeft: 3,
+      margin: 3,
     },
   };
 
   switch (eventType) {
-    case 'environment':
-      return <IconTerminal {...iconProps} />;
-    case 'database':
-      return <IconTable {...iconProps} />;
-    case 'code':
-      return <IconCode {...iconProps} />;
-    case 'api_request':
+    case 'external_system':
       return <IconBroadcast {...iconProps} />;
+    case 'internal_code':
+      return <IconCode {...iconProps} />;
     case 'human_action':
       return <IconUser {...iconProps} />;
     default:
@@ -44,15 +41,15 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive: boolean): ColorConfig {
+function getEventColor(isActive: boolean, activeColor?: Color): ColorConfig {
   return {
     title: 'gray400',
-    icon: isActive ? 'pink400' : 'gray400',
-    iconBorder: isActive ? 'pink400' : 'gray400',
+    icon: isActive ? activeColor ?? 'pink400' : 'gray400',
+    iconBorder: isActive ? activeColor ?? 'pink400' : 'gray400',
   };
 }
 
-export function AutofixTimeline({events}: Props) {
+export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
   if (!events?.length) {
@@ -69,27 +66,37 @@ export function AutofixTimeline({events}: Props) {
     <Timeline.Container>
       {events.map((event, index) => {
         const isActive = event.is_most_important_event && index !== events.length - 1;
+        const isTruncated = event.isTruncated;
+
         return (
           <Timeline.Item
             key={index}
             title={
               <StyledTimelineHeader
-                onClick={() => toggleItem(index)}
+                onClick={isTruncated ? undefined : () => toggleItem(index)}
                 isActive={isActive}
+                isTruncated={isTruncated}
                 data-test-id={`autofix-root-cause-timeline-item-${index}`}
               >
-                {event.title}
-                <StyledIconChevron
-                  direction={expandedItems.includes(index) ? 'down' : 'right'}
-                  size="xs"
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: singleLineRenderer(event.title),
+                  }}
                 />
+                {!isTruncated && (
+                  <StyledIconChevron
+                    direction={expandedItems.includes(index) ? 'down' : 'right'}
+                    size="xs"
+                  />
+                )}
               </StyledTimelineHeader>
             }
-            icon={getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive)}
+            isActive={isActive}
+            icon={getCustomIcon?.(event) ?? getEventIcon(event.timeline_item_type)}
+            colorConfig={getEventColor(isActive, activeColor)}
           >
             <AnimatePresence>
-              {expandedItems.includes(index) && (
+              {!isTruncated && expandedItems.includes(index) && (
                 <AnimatedContent
                   initial={{height: 0, opacity: 0}}
                   animate={{height: 'auto', opacity: 1}}
@@ -99,7 +106,9 @@ export function AutofixTimeline({events}: Props) {
                   <Timeline.Text>
                     <StyledSpan
                       dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(event.code_snippet_and_analysis),
+                        __html: singleLineRenderer(
+                          replaceHeadersWithBold(event.code_snippet_and_analysis)
+                        ),
                       }}
                     />
                   </Timeline.Text>
@@ -124,14 +133,14 @@ const StyledSpan = styled('span')`
   }
 `;
 
-const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
+const StyledTimelineHeader = styled('div')<{isActive?: boolean; isTruncated?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   padding: ${space(0.25)};
   border-radius: ${p => p.theme.borderRadius};
-  cursor: pointer;
+  cursor: ${p => (p.isTruncated ? 'default' : 'pointer')};
   font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   gap: ${space(1)};
 
@@ -142,7 +151,8 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.isTruncated ? 'transparent' : p.theme.backgroundSecondary};
   }
 `;
 

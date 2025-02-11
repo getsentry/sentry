@@ -38,7 +38,7 @@ import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 
-interface TraceMetadataHeaderProps {
+export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -76,7 +76,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
   const location = useLocation();
 
   return (
-    <Layout.Header>
+    <HeaderLayout>
       <HeaderContent>
         <HeaderRow>
           <Breadcrumbs
@@ -109,7 +109,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
           <StyledPlaceholder _width={50} _height={28} />
         </HeaderRow>
       </HeaderContent>
-    </Layout.Header>
+    </HeaderLayout>
   );
 }
 
@@ -270,6 +270,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         </HeaderRow>
         <HeaderRow>
           <Title
+            tree={props.tree}
             traceSlug={props.traceSlug}
             representativeTransaction={representativeTransaction}
           />
@@ -310,9 +311,10 @@ const ProjectsRendererWrapper = styled('div')`
   }
 `;
 
-const HeaderLayout = styled(Layout.Header)`
+const HeaderLayout = styled('div')`
   background-color: ${p => p.theme.background};
-  padding: ${space(2)} ${space(4)} 0 !important;
+  padding: ${space(1)} ${space(3)} ${space(1)} ${space(3)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const HeaderRow = styled('div')`
@@ -320,10 +322,6 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   gap: ${space(2)};
   align-items: center;
-
-  &:not(:first-child) {
-    margin: ${space(1)} 0;
-  }
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     gap: ${space(1)};
@@ -337,7 +335,7 @@ const HeaderContent = styled('div')`
 `;
 
 const StyledBreak = styled('hr')`
-  margin: 0;
+  margin: ${space(1)} 0;
   border-color: ${p => p.theme.border};
 `;
 

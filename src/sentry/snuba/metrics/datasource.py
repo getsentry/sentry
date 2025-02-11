@@ -32,7 +32,6 @@ from sentry.sentry_metrics.utils import (
     bulk_reverse_resolve_tag_value,
     resolve_tag_key,
 )
-from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import (
@@ -148,21 +147,6 @@ def get_available_derived_metrics(
 
     all_derived_metrics = set(get_derived_metrics().keys())
     return found_derived_metrics.intersection(all_derived_metrics)
-
-
-def get_metrics_blocking_state_of_projects(
-    projects: Sequence[Project],
-) -> dict[str, Sequence[tuple[bool, Sequence[str], int]]]:
-    metrics_blocking_state_by_project = get_metrics_blocking_state(projects)
-    metrics_blocking_state_by_mri = {}
-
-    for project_id, metrics_blocking_state in metrics_blocking_state_by_project.items():
-        for metric_blocking in metrics_blocking_state.metrics.values():
-            metrics_blocking_state_by_mri.setdefault(metric_blocking.metric_mri, []).append(
-                (metric_blocking.is_blocked, list(metric_blocking.blocked_tags), project_id)
-            )
-
-    return metrics_blocking_state_by_mri
 
 
 def get_custom_measurements(

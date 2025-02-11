@@ -12,6 +12,8 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    JiraActionTranslator,
+    JiraDataBlob,
     issue_alert_action_translator_registry,
 )
 
@@ -20,6 +22,27 @@ class TestNotificationActionMigrationUtils(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
+
+    def assert_jira_action_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+        # Get standard fields from JiraDataBlob, excluding additional_fields
+        standard_fields = JiraActionTranslator.standard_fields()
+
+        # Check standard fields
+        for field in standard_fields:
+            assert action.data.get(field, "") == compare_dict.get(field, "")
+
+        # Check that additional_fields contains all other non-excluded fields
+        additional_fields = action.data.get("additional_fields", {})
+        for key, value in compare_dict.items():
+            if (
+                key not in exclude_keys
+                and key not in standard_fields
+                and key != "id"
+                and value  # Only check non-empty values
+            ):
+                assert additional_fields.get(key) == value
 
     def assert_action_data_blob(
         self,
@@ -50,23 +73,30 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # If we have a blob type, verify the data matches the blob structure
         if translator.blob_type:
-            for field in translator.blob_type.__dataclass_fields__:
-                mapping = translator.field_mappings.get(field)
-                if mapping:
-                    # For mapped fields, check against the source field with default value
-                    source_value = compare_dict.get(mapping.source_field, mapping.default_value)
-                    assert action.data.get(field) == source_value
-                else:
-                    # For unmapped fields, check directly with empty string default
-                    if action.type == Action.Type.EMAIL and field == "fallthroughType":
-                        # for email actions, the default value for fallthroughType should be "ActiveMembers"
-                        assert action.data.get(field) == compare_dict.get(field, "ActiveMembers")
+            # Special handling for JiraDataBlob which has additional_fields
+            if translator.blob_type == JiraDataBlob:
+                self.assert_jira_action_data_blob(action, compare_dict, exclude_keys)
+            else:
+                # Original logic for other blob types
+                for field in translator.blob_type.__dataclass_fields__:
+                    mapping = translator.field_mappings.get(field)
+                    if mapping:
+                        # For mapped fields, check against the source field with default value
+                        source_value = compare_dict.get(mapping.source_field, mapping.default_value)
+                        assert action.data.get(field) == source_value
                     else:
-                        assert action.data.get(field) == compare_dict.get(field, "")
-            # Ensure no extra fields
-            assert set(action.data.keys()) == {
-                f.name for f in translator.blob_type.__dataclass_fields__.values()
-            }
+                        # For unmapped fields, check directly with empty string default
+                        if action.type == Action.Type.EMAIL and field == "fallthroughType":
+                            # for email actions, the default value for fallthroughType should be "ActiveMembers"
+                            assert action.data.get(field) == compare_dict.get(
+                                field, "ActiveMembers"
+                            )
+                        else:
+                            assert action.data.get(field) == compare_dict.get(field, "")
+                # Ensure no extra fields
+                assert set(action.data.keys()) == {
+                    f.name for f in translator.blob_type.__dataclass_fields__.values()
+                }
         else:
             # Assert the rest of the data is the same
             for key in compare_dict:
@@ -1058,6 +1088,27 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
 
+    def test_webhook_action_migration_to_sentry_app(self):
+        app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+        )
+
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": app.slug,
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        assert actions[0].type == Action.Type.SENTRY_APP
+        assert actions[0].target_identifier == str(app.id)
+        assert actions[0].target_type == ActionTarget.SENTRY_APP
+        assert actions[0].data == {}
+
     def test_webhook_action_migration_malformed(self):
         action_data = [
             {
@@ -1120,9 +1171,11 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         for registry_id, expected_type in test_cases:
             translator_class = issue_alert_action_translator_registry.get(registry_id)
-            assert translator_class.action_type == expected_type, (
+            # Create an instance with empty action data
+            translator = translator_class({"id": registry_id})
+            assert translator.action_type == expected_type, (
                 f"Action translator {registry_id} has incorrect action type. "
-                f"Expected {expected_type}, got {translator_class.action_type}"
+                f"Expected {expected_type}, got {translator.action_type}"
             )
 
     def test_action_type_in_migration(self):
@@ -1242,6 +1295,428 @@ class TestNotificationActionMigrationUtils(TestCase):
                 f"Action {action_data['id']} has incorrect type after migration. "
                 f"Expected {expected_type}, got {actions[0].type}"
             )
+
+    def test_jira_action_migration(self):
+        action_data = [
+            {
+                "integration": "12345",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "label": "Jira Project",
+                        "choices": [["10001", "PROJ1"], ["10002", "PROJ2"], ["10003", "PROJ3"]],
+                        "default": "10001",
+                        "type": "select",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "issuetype",
+                        "label": "Issue Type",
+                        "default": "10001",
+                        "type": "select",
+                        "choices": [["10001", "Story"], ["10002", "Bug"], ["10003", "Task"]],
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "label": "Fix versions",
+                        "required": False,
+                        "multiple": True,
+                        "choices": [],
+                        "default": "",
+                        "type": "select",
+                        "name": "fixVersions",
+                    },
+                    {
+                        "label": "Assignee",
+                        "required": False,
+                        "url": "/extensions/jira/search/example/12345/",
+                        "choices": [["user123", "John Doe"]],
+                        "type": "select",
+                        "name": "assignee",
+                    },
+                ],
+                "description": "This will be generated from the Sentry Issue details.",
+                "project": "10001",
+                "issuetype": "10001",
+                "assignee": "user123",
+                "reporter": "user123",
+                "parent": "PROJ-123",
+                "labels": "Sentry",
+                "uuid": "11111111-1111-1111-1111-111111111111",
+            },
+            {
+                "integration": "12345",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "label": "Jira Project",
+                        "choices": [["10001", "PROJ1"], ["10002", "PROJ2"], ["10003", "PROJ3"]],
+                        "default": "10001",
+                        "type": "select",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "issuetype",
+                        "label": "Issue Type",
+                        "default": "10001",
+                        "type": "select",
+                        "choices": [["10001", "Task"], ["10002", "Bug"], ["10003", "Story"]],
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "label": "Priority",
+                        "required": False,
+                        "choices": [
+                            ["1", "Highest"],
+                            ["2", "High"],
+                            ["3", "Medium"],
+                            ["4", "Low"],
+                            ["5", "Lowest"],
+                        ],
+                        "type": "select",
+                        "name": "priority",
+                        "default": "",
+                    },
+                    {
+                        "label": "Team",
+                        "required": False,
+                        "choices": [
+                            ["Team A", "Team A"],
+                            ["Team B", "Team B"],
+                            ["Team C", "Team C"],
+                        ],
+                        "type": "select",
+                        "name": "customfield_10253",
+                    },
+                    {
+                        "label": "Platform",
+                        "required": False,
+                        "multiple": True,
+                        "choices": [
+                            ["iOS", "iOS"],
+                            ["Android", "Android"],
+                            ["Backend", "Backend"],
+                            ["Frontend", "Frontend"],
+                        ],
+                        "default": "",
+                        "type": "select",
+                        "name": "customfield_10285",
+                    },
+                ],
+                "description": "This will be generated from the Sentry Issue details.",
+                "project": "10001",
+                "issuetype": "10001",
+                "priority": "",
+                "labels": "",
+                "reporter": "user123",
+                "customfield_10253": "Team A",
+                "customfield_10285": ["Backend"],
+                "customfield_10290": "",
+                "customfield_10301": "",
+                "customfield_10315": "",
+                "versions": "",
+                "uuid": "12345678-1234-5678-1234-567812345678",
+            },
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "label": "Jira Project",
+                        "choices": [["10000", "PROJ1"], ["10003", "PROJ2"]],
+                        "default": "10000",
+                        "type": "select",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "issuetype",
+                        "label": "Issue Type",
+                        "default": "10031",
+                        "type": "select",
+                        "choices": [
+                            ["10001", "Task"],
+                            ["10002", "Epic"],
+                            ["10003", "Subtask"],
+                            ["10005", "Question"],
+                            ["10018", "Wireframe"],
+                            ["10028", "Folder"],
+                            ["10029", "Story"],
+                            ["10031", "Bug"],
+                        ],
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "label": "Assignee",
+                        "required": False,
+                        "url": "/extensions/jira/search/organization/123456/",
+                        "choices": [],
+                        "type": "select",
+                        "name": "assignee",
+                    },
+                    {
+                        "label": "Development",
+                        "required": False,
+                        "type": "text",
+                        "name": "customfield_10000",
+                    },
+                    {
+                        "label": "Team",
+                        "required": False,
+                        "type": "text",
+                        "name": "customfield_10001",
+                    },
+                    {
+                        "label": "Story point estimate",
+                        "required": False,
+                        "type": "text",
+                        "name": "customfield_10016",
+                    },
+                    {
+                        "label": "Rank",
+                        "required": False,
+                        "type": "text",
+                        "name": "customfield_10019",
+                    },
+                    {
+                        "label": "Flagged",
+                        "required": False,
+                        "multiple": True,
+                        "choices": [["Impediment", "Impediment"]],
+                        "default": "",
+                        "type": "select",
+                        "name": "customfield_10021",
+                    },
+                    {
+                        "label": "Design",
+                        "required": False,
+                        "multiple": True,
+                        "choices": [],
+                        "default": "",
+                        "type": "select",
+                        "name": "customfield_10036",
+                    },
+                    {
+                        "label": "Description",
+                        "required": False,
+                        "type": "text",
+                        "name": "description",
+                    },
+                    {
+                        "label": "Restrict to",
+                        "required": False,
+                        "type": "text",
+                        "name": "issuerestriction",
+                    },
+                    {
+                        "label": "Labels",
+                        "required": False,
+                        "type": "text",
+                        "name": "labels",
+                        "default": "",
+                    },
+                    {
+                        "label": "Parent",
+                        "required": False,
+                        "url": "/extensions/jira/search/organization/123456/",
+                        "choices": [],
+                        "type": "select",
+                        "name": "parent",
+                    },
+                    {
+                        "label": "Reporter",
+                        "required": True,
+                        "url": "/extensions/jira/search/organization/123456/",
+                        "choices": [["user123", "Test User"]],
+                        "type": "select",
+                        "name": "reporter",
+                    },
+                ],
+                "description": "This will be generated from the Sentry Issue details.",
+                "project": "10000",
+                "issuetype": "10031",
+                "reporter": "user123",
+                "uuid": "00000000-0000-0000-0000-000000000000",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_jira_action_migration_malformed(self):
+        action_data: list[dict[str, Any]] = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+            },
+            # Empty additional fields
+            {
+                "integration": "12345",
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                "project": "10001",
+                "issuetype": "10001",
+                "reporter": "user123",
+                "uuid": "11111111-1111-1111-1111-111111111111",
+                "customfield_10253": "",
+                "customfield_10285": [],
+                "customfield_10290": "",
+                "customfield_10301": "",
+                "customfield_10315": "",
+            },
+        ]
+
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
+
+    def test_jira_server_action_migration(self):
+        action_data = [
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "label": "Jira Project",
+                        "choices": [["10001", "PROJ1"], ["10002", "PROJ2"], ["10003", "PROJ3"]],
+                        "default": "10001",
+                        "type": "select",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "issuetype",
+                        "label": "Issue Type",
+                        "default": "1",
+                        "type": "select",
+                        "choices": [["1", "Defect"], ["3", "Task"], ["7", "Epic"], ["8", "Story"]],
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                    {
+                        "label": "Priority",
+                        "required": False,
+                        "choices": [["2", "Blocker"], ["3", "High"], ["6", "Medium"], ["4", "Low"]],
+                        "type": "select",
+                        "name": "priority",
+                        "default": "",
+                    },
+                    {
+                        "label": "Fix Version/s",
+                        "required": False,
+                        "multiple": True,
+                        "choices": [
+                            ["81527", "Version 1.0"],
+                            ["81529", "Version 1.1"],
+                            ["82011", "Version 2.0"],
+                        ],
+                        "default": "",
+                        "type": "select",
+                        "name": "fixVersions",
+                    },
+                    {
+                        "label": "Component/s",
+                        "required": False,
+                        "multiple": True,
+                        "choices": [
+                            ["11841", "Backend"],
+                            ["12385", "Frontend"],
+                            ["12422", "Mobile"],
+                        ],
+                        "default": "",
+                        "type": "select",
+                        "name": "components",
+                    },
+                    {
+                        "label": "Description",
+                        "required": True,
+                        "type": "text",
+                        "name": "description",
+                    },
+                    {
+                        "label": "Labels",
+                        "required": False,
+                        "type": "text",
+                        "name": "labels",
+                        "default": "",
+                    },
+                    {
+                        "label": "Reporter",
+                        "required": True,
+                        "url": "/extensions/jira-server/search/org/123456/",
+                        "choices": [["user123", "Test User"]],
+                        "type": "select",
+                        "name": "reporter",
+                    },
+                ],
+                "description": "This will be generated from the Sentry Issue details.",
+                "project": "10001",
+                "issuetype": "1",
+                "priority": "3",
+                "components": ["11841"],
+                "reporter": "user123",
+                "uuid": "11111111-1111-1111-1111-111111111111",
+            },
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "label": "Jira Project",
+                        "choices": [["20001", "TEAM1"], ["20002", "TEAM2"]],
+                        "default": "20001",
+                        "type": "select",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "issuetype",
+                        "label": "Issue Type",
+                        "default": "8",
+                        "type": "select",
+                        "choices": [["1", "Defect"], ["8", "Story"]],
+                        "updatesForm": True,
+                        "required": True,
+                    },
+                ],
+                "description": "This will be generated from the Sentry Issue details.",
+                "project": "20001",
+                "issuetype": "8",
+                "reporter": "user123",
+                "uuid": "22222222-2222-2222-2222-222222222222",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        self.assert_actions_migrated_correctly(actions, action_data, "integration", None, None)
+
+    def test_jira_server_action_migration_malformed(self):
+        action_data: list[dict[str, Any]] = [
+            # Missing required fields
+            {
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+            },
+            # Empty additional fields
+            {
+                "integration": "123456",
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                "project": "10001",
+                "issuetype": "1",
+                "reporter": "user123",
+                "uuid": "11111111-1111-1111-1111-111111111111",
+                "priority": "",
+                "components": [],
+                "fixVersions": [],
+            },
+        ]
+
+        with pytest.raises(ValueError):
+            build_notification_actions_from_rule_data_actions(action_data)
 
     def test_sentry_app_action_migration(self):
         app = self.create_sentry_app(

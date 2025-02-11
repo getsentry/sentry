@@ -24,7 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 function DataForwardingStats() {
   const {orgId, projectId} = useParams<{orgId: string; projectId: string}>();
@@ -173,9 +173,9 @@ function ProjectDataForwarding({project}: Props) {
                 }
               )}
             </TextBlock>
-            <PermissionAlert project={project} />
+            <ProjectPermissionAlert project={project} />
 
-            <Alert showIcon>
+            <Alert showIcon type="info">
               {tct(
                 `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,

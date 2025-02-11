@@ -390,7 +390,7 @@ class SubscriptionProcessor:
             self.subscription.project.organization,
         ):
             data_packet = DataPacket[QuerySubscriptionUpdate](
-                query_id=str(self.subscription.id), packet=subscription_update
+                source_id=str(self.subscription.id), packet=subscription_update
             )
             process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 

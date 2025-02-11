@@ -267,6 +267,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(schedule_data)
 
+        runner.log_startup()
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
@@ -282,6 +283,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
 )
 @click.option("--concurrency", help="Number of child worker processes to create.", default=1)
+@click.option(
+    "--prefetch-multiplier",
+    help="How many tasks to keep in the child worker Queue. Multiplied by --concurrency",
+    default=3,
+)
 @click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
 )
@@ -303,6 +309,7 @@ def run_taskworker(
     max_task_count: int,
     namespace: str | None,
     concurrency: int,
+    prefetch_multiplier: int,
     **options: Any,
 ) -> None:
     """
@@ -317,6 +324,7 @@ def run_taskworker(
             max_task_count=max_task_count,
             namespace=namespace,
             concurrency=concurrency,
+            prefetch_multiplier=prefetch_multiplier,
             **options,
         )
         exitcode = worker.start()
@@ -492,14 +500,14 @@ def cron(**options: Any) -> None:
 )
 @click.option(
     "--enable-dlq/--disable-dlq",
-    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    help="Enable dlq to route invalid messages to the dlq topic. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
     default=True,
 )
 @click.option(
     "--stale-threshold-sec",
-    type=click.IntRange(min=60),
-    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+    type=click.IntRange(min=120),
+    help="Enable backlog queue to route stale messages to the blq topic.",
 )
 @click.option(
     "--log-level",

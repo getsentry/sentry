@@ -10,7 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
-from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
+from sentry.sentry_apps.alert_rule_action_creator import SentryAppAlertRuleActionCreator
 from sentry.sentry_apps.api.serializers.sentry_app_component import (
     SentryAppAlertRuleActionSerializer,
 )
@@ -38,6 +38,7 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -254,9 +255,21 @@ class DatabaseBackedAppService(AppService):
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
-        result = AlertRuleActionCreator(install=install, fields=fields).run()
-        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
+            return RpcAlertRuleActionResult(
+                success=False,
+                message="Installation does not exist",
+                error_type=SentryAppErrorType.SENTRY,
+                webhook_type={"installation_uuid": install_uuid},
+            )
+        result = SentryAppAlertRuleActionCreator(install=install, fields=fields).run()
+        return RpcAlertRuleActionResult(
+            success=result["success"],
+            message=result["message"],
+            error_type=result.get("error_type"),
+            webhook_context=result.get("webhook_context"),
+            public_context=result.get("public_context"),
+            status_code=result.get("status_code"),
+        )
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         try:

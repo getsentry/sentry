@@ -27,16 +27,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {AreaChartWidgetSeries} from '../areaChartWidget/areaChartWidgetSeries';
-import {BarChartWidgetSeries} from '../barChartWidget/barChartWidgetSeries';
-import type {
-  Aliases,
-  Release,
-  TimeseriesData,
-  TimeseriesSelection,
-} from '../common/types';
-import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
+import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
+import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
+import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
+import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
+import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
+import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
 import {markDelayedData} from './markDelayedData';
@@ -47,18 +44,14 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 
 type VisualizationType = 'area' | 'line' | 'bar';
 
-type SeriesConstructor = (
-  timeserie: TimeseriesData,
-  complete?: boolean
-) => LineSeriesOption | BarSeriesOption;
-
 export interface TimeSeriesWidgetVisualizationProps {
-  timeseries: TimeseriesData[];
+  timeSeries: TimeSeries[];
   visualizationType: VisualizationType;
   aliases?: Aliases;
   dataCompletenessDelay?: number;
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
   releases?: Release[];
+  stacked?: boolean;
   timeseriesSelection?: TimeseriesSelection;
 }
 
@@ -103,7 +96,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisFieldType: AggregationOutputType;
 
   const types = uniq(
-    props.timeseries.map(timeserie => {
+    props.timeSeries.map(timeserie => {
       return timeserie?.meta?.fields?.[timeserie.field];
     })
   ).filter(Boolean) as AggregationOutputType[];
@@ -119,7 +112,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
 
   const units = uniq(
-    props.timeseries.map(timeserie => {
+    props.timeSeries.map(timeserie => {
       return timeserie?.meta?.units?.[timeserie.field];
     })
   ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
@@ -135,38 +128,51 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
   }
 
-  const scaledSeries = props.timeseries.map(timeserie => {
+  // Apply unit scaling to all series
+  const scaledSeries = props.timeSeries.map(timeserie => {
     return scaleTimeSeriesData(timeserie, yAxisUnit);
   });
 
-  let completeSeries: TimeseriesData[] = scaledSeries;
-  const incompleteSeries: TimeseriesData[] = [];
+  // Mark which points in the series are incomplete according to delay
+  const markedSeries = scaledSeries.map(timeSeries =>
+    markDelayedData(timeSeries, dataCompletenessDelay)
+  );
 
-  if (dataCompletenessDelay > 0 && ['line', 'area'].includes(props.visualizationType)) {
-    // In order to show incomplete data for line and area series, we have to do
-    // a shenanigan in which we split the series into two, style the
-    // "incomplete" series differently, and show both series on the chart
-    completeSeries = [];
+  // Convert time series into plottable ECharts series
+  const plottableSeries: Array<LineSeriesOption | BarSeriesOption> = [];
 
-    scaledSeries.forEach(timeserie => {
-      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
-        timeserie,
-        dataCompletenessDelay
+  // TODO: This is a little heavy, and probably worth memoizing
+  if (props.visualizationType === 'bar') {
+    // For bar charts, convert straight from time series to series, which will
+    // automatically mark "delayed" bars
+    markedSeries.forEach(timeSeries => {
+      plottableSeries.push(
+        BarChartWidgetSeries(timeSeries, props.stacked ? GLOBAL_STACK_NAME : undefined)
       );
-
-      if (completeSerie && completeSerie.data.length > 0) {
-        completeSeries.push(completeSerie);
-      }
-
-      if (incompleteSerie && incompleteSerie.data.length > 0) {
-        incompleteSeries.push(incompleteSerie);
-      }
     });
-  } else if (dataCompletenessDelay > 0 && props.visualizationType === 'bar') {
-    // Bar charts are not continuous (there are gaps between the bars) so no
-    // shenanigan is needed. Simply mark the "incomplete" bars
-    completeSeries = props.timeseries.map(timeserie => {
-      return markDelayedData(timeserie, dataCompletenessDelay);
+  } else {
+    // For line and area charts, split each time series into two series, each
+    // with corresponding styling. In an upcoming version of ECharts it'll be
+    // possible to avoid this, and construct a single series
+    markedSeries.forEach(timeSeries => {
+      const [completeTimeSeries, incompleteTimeSeries] =
+        splitSeriesIntoCompleteAndIncomplete(timeSeries, dataCompletenessDelay);
+
+      if (completeTimeSeries) {
+        plottableSeries.push(
+          (props.visualizationType === 'area'
+            ? CompleteAreaChartWidgetSeries
+            : CompleteLineChartWidgetSeries)(completeTimeSeries)
+        );
+      }
+
+      if (incompleteTimeSeries) {
+        plottableSeries.push(
+          (props.visualizationType === 'area'
+            ? IncompleteAreaChartWidgetSeries
+            : IncompleteLineChartWidgetSeries)(incompleteTimeSeries)
+        );
+      }
     });
   }
 
@@ -236,8 +242,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const showLegend = visibleSeriesCount > 1;
 
-  const SeriesConstructor = SeriesConstructors[props.visualizationType];
-
   return (
     <BaseChart
       ref={e => {
@@ -249,12 +253,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       autoHeightResize
       series={[
-        ...completeSeries.map(timeserie => {
-          return SeriesConstructor(timeserie, true);
-        }),
-        ...incompleteSeries.map(timeserie => {
-          return SeriesConstructor(timeserie, false);
-        }),
+        ...plottableSeries,
         releaseSeries &&
           LineSeries({
             ...releaseSeries,
@@ -263,7 +262,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           }),
       ].filter(defined)}
       grid={{
-        left: 0,
+        // NOTE: Adding a few pixels of left padding prevents ECharts from
+        // incorrectly truncating long labels. See
+        // https://github.com/apache/echarts/issues/15562
+        left: 2,
         top: showLegend ? 25 : 10,
         right: 4,
         bottom: 0,
@@ -329,8 +331,4 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 }
 
-const SeriesConstructors: Record<VisualizationType, SeriesConstructor> = {
-  area: AreaChartWidgetSeries,
-  line: LineChartWidgetSeries,
-  bar: BarChartWidgetSeries,
-};
+const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

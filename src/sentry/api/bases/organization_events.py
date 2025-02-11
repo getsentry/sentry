@@ -92,9 +92,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
 
-    def get_team_ids(self, request: Request, organization: Organization) -> list[int]:
-        return [team.id for team in self.get_teams(request, organization)]
-
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
             return []

@@ -10,7 +10,10 @@ interface UptimeChecksParameters {
   projectSlug: string;
   uptimeAlertId: string;
   cursor?: string;
+  end?: string;
   limit?: number;
+  start?: string;
+  statsPeriod?: string;
 }
 
 export function makeUptimeChecksQueryKey({
@@ -19,10 +22,13 @@ export function makeUptimeChecksQueryKey({
   uptimeAlertId,
   cursor,
   limit,
+  start,
+  end,
+  statsPeriod,
 }: UptimeChecksParameters): ApiQueryKey {
   return [
     `/projects/${orgSlug}/${projectSlug}/uptime/${uptimeAlertId}/checks/`,
-    {query: {per_page: limit, cursor}},
+    {query: {per_page: limit, cursor, start, end, statsPeriod}},
   ];
 }
 
@@ -33,7 +39,7 @@ export function useUptimeChecks(
   // TODO(Leander): Add querying and sorting, when the endpoint supports it
   return useApiQuery<UptimeCheck[]>(makeUptimeChecksQueryKey(params), {
     staleTime: 10000,
-    retry: false,
+    retry: true,
     ...options,
   });
 }

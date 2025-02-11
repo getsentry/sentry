@@ -35,7 +35,7 @@ export default function DynamicSamplingSettings() {
         action={
           <LinkButton
             external
-            href="https://docs.sentry.io/product/performance/retention-priorities/"
+            href="https://docs.sentry.io/organization/dynamic-sampling/"
           >
             {t('Read the docs')}
           </LinkButton>

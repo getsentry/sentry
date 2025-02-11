@@ -54,6 +54,9 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
+from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
+    assert_dual_written_resolution_threshold_equals,
+)
 
 pytestmark = [requires_snuba]
 
@@ -807,6 +810,128 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_delete_trigger_dual_update_resolve(self):
+        """
+        If there is no explicit resolve threshold on an alert rule, then we need to dual update the
+        comparison on the DataCondition corresponding to alert resolution.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict.update({"resolveThreshold": None})
+        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        # the new resolution threshold should be the critical alert threshold
+        new_threshold = serialized_alert_rule["triggers"][0]["alertThreshold"]
+        old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        serialized_alert_rule["triggers"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"]) == 1
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_update_trigger_threshold_dual_update_resolve(self):
+        """
+        If there is no explicit resolve threshold on an alert rule, then we need to dual update the
+        comparison on the DataCondition corresponding to alert resolution if trigger thresholds
+        are updated.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict.update({"resolveThreshold": None})
+        alert_rule = self.new_alert_rule(data=alert_rule_dict)
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        # the new resolution threshold should be the critical alert threshold
+        # original thresholds: critical = 200, warning = 150
+        old_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        # TEST 1: if we update the critical trigger threshold, the resolve threshold shouldn't change
+        serialized_alert_rule["triggers"][0]["alertThreshold"] = 300
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert_dual_written_resolution_threshold_equals(alert_rule, old_threshold)
+
+        # TEST 2: if we update the warning trigger threshold, the resolve threshold also changes
+        new_threshold = 100
+        serialized_alert_rule["triggers"][1]["alertThreshold"] = new_threshold
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_update_trigger_threshold_dual_update_resolve_noop(self):
+        """
+        If there is an explicit resolve threshold on an alert rule, then updating triggers should
+        not affect the resolve action filter.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        resolve_threshold = alert_rule.resolve_threshold
+        assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
+
+        new_threshold = 125
+        serialized_alert_rule["triggers"][1]["alertThreshold"] = new_threshold
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        # remains unchanged
+        assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_remove_resolve_threshold_dual_update_resolve(self):
+        """
+        If we set the remove the resolve threshold from an alert rule, then we need to update the
+        resolve action filter according to the triggers.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        resolve_threshold = alert_rule.resolve_threshold
+        assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
+
+        serialized_alert_rule["resolveThreshold"] = None
+        new_threshold = serialized_alert_rule["triggers"][1]["alertThreshold"]
+        with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        # resolve threshold changes to the warning threshold
+        assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")
@@ -1673,9 +1798,8 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
-
-        assert resp.status_code == 400
-        assert error_message in resp.data["sentry_app"]
+        assert resp.status_code == 500
+        assert error_message in resp.data["detail"]
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):

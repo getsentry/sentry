@@ -83,6 +83,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             StatusChangeMessage, "__eq__", status_change_comparator
         )
         self.sm_comp_patcher.__enter__()
+        project_id = self.project.id
 
         class NoHandlerGroupType(GroupType):
             type_id = 1
@@ -95,6 +96,23 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 self, data_packet: DataPacket[dict]
             ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
                 return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
+
+        class MockDetectorWithUpdateHandler(DetectorHandler[dict]):
+            def evaluate(
+                self, data_packet: DataPacket[dict]
+            ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+                status_change = StatusChangeMessage(
+                    "test_update",
+                    project_id,
+                    DetectorPriorityLevel.HIGH,
+                    None,
+                )
+
+                return {
+                    None: DetectorEvaluationResult(
+                        None, True, DetectorPriorityLevel.HIGH, status_change
+                    )
+                }
 
         class HandlerGroupType(GroupType):
             type_id = 2
@@ -110,9 +128,17 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category = GroupCategory.METRIC_ALERT.value
             detector_handler = MockDetectorStateHandler
 
+        class HandlerUpdateGroupType(GroupType):
+            type_id = 4
+            slug = "handler_update"
+            description = "handler update"
+            category = GroupCategory.METRIC_ALERT.value
+            detector_handler = MockDetectorWithUpdateHandler
+
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType
         self.handler_state_type = HandlerStateGroupType
+        self.update_handler_type = HandlerUpdateGroupType
 
     def tearDown(self):
         super().tearDown()

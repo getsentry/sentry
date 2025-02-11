@@ -103,8 +103,14 @@ export enum IssueType {
   REPLAY_RAGE_CLICK = 'replay_click_rage',
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'monitor_check_in_failure',
+
   // Uptime
   UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
+
+  // Metric Issues
+  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -822,7 +828,7 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: TitledPlugin[];
+  pluginActions: Array<[title: string, actionLink: string]>;
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;

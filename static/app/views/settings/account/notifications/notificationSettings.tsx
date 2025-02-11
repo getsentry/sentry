@@ -15,6 +15,7 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
@@ -143,7 +144,7 @@ const FieldHelp = styled('div')`
 const FieldWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-  padding: ${p => p.theme.grid * 2}px;
+  padding: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

@@ -170,12 +170,11 @@ function satisfiesFunctionCondition(frame: Frame, suspect: SuspectFrame) {
   if (frame.function === null || frame.function === undefined) {
     return false;
   }
-  for (let index = 0; index < suspect.functions.length; index++) {
-    const matchFuction = suspect.functions[index]!;
+  for (const matchFunction of suspect.functions) {
     const match =
-      typeof matchFuction === 'string'
-        ? frame.function === matchFuction
-        : matchFuction.test(frame.function);
+      typeof matchFunction === 'string'
+        ? frame.function === matchFunction
+        : matchFunction.test(frame.function);
     if (match) {
       return true;
     }

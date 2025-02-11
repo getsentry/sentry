@@ -104,7 +104,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'dotnet-maui',
-    name: 'Multi-platform App UI (MAUI)',
+    name: '.NET MAUI',
     type: 'framework',
     language: 'dotnet',
     link: 'https://docs.sentry.io/platforms/dotnet/guides/maui/',

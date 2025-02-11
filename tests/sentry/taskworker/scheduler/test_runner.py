@@ -66,6 +66,14 @@ def test_schedulerunner_add_invalid(taskregistry) -> None:
     assert "microseconds" in str(err)
 
 
+def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: RunStorage) -> None:
+    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+
+    with freeze_time("2025-01-24 14:25:00"):
+        sleep_time = schedule_set.tick()
+        assert sleep_time == 60
+
+
 def test_schedulerunner_tick_one_task_time_remaining(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -245,3 +253,76 @@ def test_schedulerunner_tick_multiple_tasks(
             assert sleep_time == 120
 
         assert mock_send.call_count == 3
+
+
+def test_schedulerunner_tick_fast_and_slow(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
+    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set.add(
+        {
+            "task": "test:valid",
+            "schedule": timedelta(seconds=30),
+        }
+    )
+    schedule_set.add(
+        {
+            "task": "test:second",
+            "schedule": crontab(minute="*/2"),
+        }
+    )
+
+    namespace = taskregistry.get("test")
+    with patch.object(namespace, "send_task") as mock_send:
+        with freeze_time("2025-01-24 14:25:00"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 30
+
+        called = extract_sent_tasks(mock_send)
+        assert called == ["second", "valid"]
+
+        run_storage.delete("test:valid")
+        with freeze_time("2025-01-24 14:25:30"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 30
+
+        called = extract_sent_tasks(mock_send)
+        assert called == ["second", "valid", "valid"]
+
+        run_storage.delete("test:valid")
+        run_storage.delete("test:second")
+        with freeze_time("2025-01-24 14:26:01"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 30
+
+        called = extract_sent_tasks(mock_send)
+        assert called == ["second", "valid", "valid", "second", "valid"]
+
+        run_storage.delete("test:valid")
+        with freeze_time("2025-01-24 14:26:31"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 30
+
+        called = extract_sent_tasks(mock_send)
+        assert called == ["second", "valid", "valid", "second", "valid", "valid"]
+
+        run_storage.delete("test:valid")
+        with freeze_time("2025-01-24 14:27:01"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 30
+
+        assert run_storage.read("test:valid")
+        called = extract_sent_tasks(mock_send)
+        assert called == [
+            "second",
+            "valid",
+            "valid",
+            "second",
+            "valid",
+            "valid",
+            "valid",
+        ]
+
+
+def extract_sent_tasks(mock: Mock) -> list[str]:
+    return [call[0][0].taskname for call in mock.call_args_list]

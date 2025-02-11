@@ -127,16 +127,34 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                 };
 
                 if (integration.actions.length === 1) {
+                  const action = integration.actions[0]!;
                   return (
                     <ErrorBoundary key={integration.key} mini>
-                      <IssueActionButton
-                        {...sharedButtonProps}
-                        disabled={integration.disabled}
-                        title={
-                          integration.disabled ? integration.disabledText : undefined
-                        }
-                        onClick={integration.actions[0]!.onClick}
-                      />
+                      {action.href ? (
+                        // Exclusively used for group.pluginActions
+                        <IssueActionLinkButton
+                          size="zero"
+                          icon={integration.displayIcon}
+                          disabled={integration.disabled}
+                          title={
+                            integration.disabled ? integration.disabledText : undefined
+                          }
+                          onClick={action.onClick}
+                          href={action.href}
+                          external
+                        >
+                          <IssueActionName>{integration.displayName}</IssueActionName>
+                        </IssueActionLinkButton>
+                      ) : (
+                        <IssueActionButton
+                          {...sharedButtonProps}
+                          disabled={integration.disabled}
+                          title={
+                            integration.disabled ? integration.disabledText : undefined
+                          }
+                          onClick={action.onClick}
+                        />
+                      )}
                     </ErrorBoundary>
                   );
                 }
@@ -201,6 +219,15 @@ const LinkedIssue = styled(LinkButton)`
 `;
 
 const IssueActionButton = styled(Button)`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(0.75)};
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-weight: normal;
+`;
+
+const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};

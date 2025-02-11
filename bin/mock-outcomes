@@ -61,9 +61,5 @@ def generate_outcomes():
                 )
 
 
-def drop_outcomes():
-    assert requests.post(settings.SENTRY_SNUBA + "/tests/entities/outcomes/drop").status_code == 200
-
-
 if __name__ == "__main__":
     generate_outcomes()

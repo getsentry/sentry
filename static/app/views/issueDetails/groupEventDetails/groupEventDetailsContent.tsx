@@ -140,7 +140,7 @@ export function EventDetailsContent({
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
-        <ActionableItems event={event} project={project} isShare={false} />
+        <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
@@ -516,11 +516,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>

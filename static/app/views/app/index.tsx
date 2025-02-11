@@ -39,7 +39,7 @@ import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextPro
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
-import SystemAlerts from './systemAlerts';
+import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
 
 type Props = {
   children: React.ReactNode;
@@ -278,7 +278,6 @@ function App({children, params}: Props) {
                   <GlobalDrawer>
                     <MainContainer tabIndex={-1} ref={mainContainerRef}>
                       <GlobalModal onClose={handleModalClose} />
-                      <SystemAlerts className="messages-container" />
                       <Indicators className="indicators-container" />
                       <ErrorBoundary>{renderBody()}</ErrorBoundary>
                     </MainContainer>
@@ -316,5 +315,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  padding-top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
 `;

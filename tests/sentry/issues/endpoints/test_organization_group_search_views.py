@@ -3,6 +3,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
+from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
@@ -366,7 +367,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             query_sort="date",
             position=0,
             time_filters={"period": "14d"},
-            environments=["production"],
+            environments=[],
         )
         first_custom_view_user_one.projects.set([self.project1])
 
@@ -378,7 +379,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             query_sort="new",
             position=1,
             time_filters={"period": "7d"},
-            environments=["staging"],
+            environments=["staging", "production"],
         )
         second_custom_view_user_one.projects.set([self.project1, self.project2, self.project3])
 
@@ -413,7 +414,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         # Original Page filters
         assert views[0]["timeFilters"] == {"period": "14d"}
         assert views[0]["projects"] == [self.project1.id]
-        assert views[0]["environments"] == ["production"]
+        assert views[0]["environments"] == []
 
         view = views[0]
         # Change nothing but the name
@@ -428,7 +429,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         # Ensure these have not been changed
         assert views[0]["timeFilters"] == {"period": "14d"}
         assert views[0]["projects"] == [self.project1.id]
-        assert views[0]["environments"] == ["production"]
+        assert views[0]["environments"] == []
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -582,6 +583,209 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
         )
         assert response.status_code == 400
         assert response.content == b'{"detail":"One or more projects do not exist"}'
+
+
+class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
+    def create_base_data_with_page_filters(self) -> None:
+        self.team_1 = self.create_team(organization=self.organization, slug="team-1")
+        self.team_2 = self.create_team(organization=self.organization, slug="team-2")
+
+        # User 1 is on team 1 only
+        user_1 = self.user
+        self.create_team_membership(user=user_1, team=self.team_1)
+        # User 2 is on team 1 and team 2
+        self.user_2 = self.create_user()
+        self.create_member(
+            organization=self.organization, user=self.user_2, teams=[self.team_1, self.team_2]
+        )
+        # User 3 has no views and should get the default views
+        self.user_3 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_3, teams=[self.team_1])
+        # User 4 is part of no teams, should error out
+        self.user_4 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_4)
+
+        # This project should NEVER get chosen as a default since it does not belong to any teams
+        self.project1 = self.create_project(
+            organization=self.organization, slug="project-a", teams=[]
+        )
+        # This project should be User 2's default project since it's the alphabetically the first one
+        self.project2 = self.create_project(
+            organization=self.organization, slug="project-b", teams=[self.team_2]
+        )
+        # This should be User 1's default project since it's the only one that the user has access to
+        self.project3 = self.create_project(
+            organization=self.organization, slug="project-c", teams=[self.team_1, self.team_2]
+        )
+
+        first_issue_view_user_one = GroupSearchView.objects.create(
+            name="Issue View One",
+            organization=self.organization,
+            user_id=user_1.id,
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+            is_all_projects=False,
+            time_filters={"period": "14d"},
+            environments=[],
+        )
+        first_issue_view_user_one.projects.set([self.project3])
+
+        second_issue_view_user_one = GroupSearchView.objects.create(
+            name="Issue View Two",
+            organization=self.organization,
+            user_id=user_1.id,
+            query="is:resolved",
+            query_sort="new",
+            position=1,
+            is_all_projects=False,
+            time_filters={"period": "7d"},
+            environments=["staging", "production"],
+        )
+        second_issue_view_user_one.projects.set([])
+
+        third_issue_view_user_one = GroupSearchView.objects.create(
+            name="Issue View Three",
+            organization=self.organization,
+            user_id=user_1.id,
+            query="is:ignored",
+            query_sort="freq",
+            position=2,
+            is_all_projects=True,
+            time_filters={"period": "30d"},
+            environments=["development"],
+        )
+        third_issue_view_user_one.projects.set([])
+
+        first_issue_view_user_two = GroupSearchView.objects.create(
+            name="Issue View One",
+            organization=self.organization,
+            user_id=self.user_2.id,
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+            is_all_projects=False,
+            time_filters={"period": "14d"},
+            environments=[],
+        )
+        first_issue_view_user_two.projects.set([])
+
+        first_issue_view_user_four = GroupSearchView.objects.create(
+            name="Issue View One",
+            organization=self.organization,
+            user_id=self.user_4.id,
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+            is_all_projects=False,
+            time_filters={"period": "14d"},
+            environments=[],
+        )
+        first_issue_view_user_four.projects.set([])
+
+    def setUp(self) -> None:
+        self.create_base_data_with_page_filters()
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_basic_get_page_filters_with_global_filters(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.get(self.url)
+
+        assert response.data[0]["timeFilters"] == {"period": "14d"}
+        assert response.data[0]["projects"] == [self.project3.id]
+        assert response.data[0]["environments"] == []
+        assert response.data[0]["isAllProjects"] is False
+
+        assert response.data[1]["timeFilters"] == {"period": "7d"}
+        assert response.data[1]["projects"] == []
+        assert response.data[1]["environments"] == ["staging", "production"]
+        assert response.data[1]["isAllProjects"] is False
+
+        assert response.data[2]["timeFilters"] == {"period": "30d"}
+        assert response.data[2]["projects"] == []
+        assert response.data[2]["environments"] == ["development"]
+        assert response.data[2]["isAllProjects"] is True
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": False})
+    def test_get_page_filters_without_global_filters(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.get(self.url)
+
+        assert response.data[0]["timeFilters"] == {"period": "14d"}
+        assert response.data[0]["projects"] == [self.project3.id]
+        assert response.data[0]["environments"] == []
+        assert response.data[0]["isAllProjects"] is False
+
+        assert response.data[1]["timeFilters"] == {"period": "7d"}
+        assert response.data[1]["projects"] == [self.project3.id]
+        assert response.data[1]["environments"] == ["staging", "production"]
+        assert response.data[1]["isAllProjects"] is False
+
+        assert response.data[2]["timeFilters"] == {"period": "30d"}
+        assert response.data[2]["projects"] == [self.project3.id]
+        assert response.data[2]["environments"] == ["development"]
+        assert response.data[2]["isAllProjects"] is False
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": False})
+    def test_get_page_filters_without_global_filters_user_2(self) -> None:
+        self.login_as(user=self.user_2)
+        response = self.client.get(self.url)
+
+        assert response.data[0]["timeFilters"] == {"period": "14d"}
+        assert response.data[0]["projects"] == [self.project2.id]
+        assert response.data[0]["environments"] == []
+        assert response.data[0]["isAllProjects"] is False
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_default_page_filters_with_global_views(self) -> None:
+        self.login_as(user=self.user_3)
+        response = self.client.get(self.url)
+
+        default_view_queries = {view["query"] for view in DEFAULT_VIEWS}
+        received_queries = {view["query"] for view in response.data}
+
+        assert default_view_queries == received_queries
+
+        for view in response.data:
+            assert view["timeFilters"] == {"period": "14d"}
+            # Global views means default project should be "My Projects"
+            assert view["projects"] == []
+            assert view["environments"] == []
+            assert view["isAllProjects"] is False
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": False})
+    def test_default_page_filters_without_global_views(self) -> None:
+        self.login_as(user=self.user_3)
+        response = self.client.get(self.url)
+
+        default_view_queries = {view["query"] for view in DEFAULT_VIEWS}
+        received_queries = {view["query"] for view in response.data}
+
+        assert default_view_queries == received_queries
+
+        for view in response.data:
+            assert view["timeFilters"] == {"period": "14d"}
+            # No global views means default project should be a single project
+            assert view["projects"] == [self.project3.id]
+            assert view["environments"] == []
+            assert view["isAllProjects"] is False
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": False})
+    def test_error_when_no_projects_found(self) -> None:
+        self.login_as(user=self.user_4)
+        response = self.client.get(self.url)
+        assert response.status_code == 400
+        assert response.data == {"detail": "You do not have access to any projects."}
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):

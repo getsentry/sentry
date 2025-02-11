@@ -28,6 +28,6 @@ GUIDES = {
     "explain_new_default_event_issue_detail": 31,
     "new_project_filter": 32,
     "explain_archive_button_issue_stream": 33,
-    "ddm_view": 34,
-    "metrics_onboarding": 37,
+    "crons_backend_insights": 38,
+    "issue_views_page_filters_persistence": 39,
 }

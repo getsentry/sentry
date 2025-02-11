@@ -12,7 +12,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueCategoryCondition(ConditionTestCase):
     condition = Condition.ISSUE_CATEGORY
-    rule_cls = IssueCategoryFilter
     payload = {
         "id": IssueCategoryFilter.id,
         "value": 1,

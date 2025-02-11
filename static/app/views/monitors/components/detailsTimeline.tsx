@@ -144,6 +144,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
+  z-index: 1;
 `;
 
 const TimelineWidthTracker = styled('div')`

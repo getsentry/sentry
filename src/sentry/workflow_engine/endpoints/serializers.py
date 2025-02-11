@@ -65,7 +65,7 @@ class DataSourceSerializer(Serializer):
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "type": obj.type,
-            "queryId": str(obj.query_id),
+            "sourceId": str(obj.source_id),
             "queryObj": attrs["query_obj"],
         }
 

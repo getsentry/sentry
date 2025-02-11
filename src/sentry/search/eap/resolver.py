@@ -25,6 +25,8 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
     OrFilter,
     TraceItemFilter,
 )
@@ -375,27 +377,27 @@ class SearchResolver:
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
 
-        raw_value = term.value.raw_value
+        value = term.value.value
 
         if context_definition:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
                 raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
             if (
-                isinstance(raw_value, str)
-                or isinstance(raw_value, list)
-                and all(isinstance(value, str) for value in raw_value)
+                isinstance(value, str)
+                or isinstance(value, list)
+                and all(isinstance(iter_value, str) for iter_value in value)
             ):
-                raw_value = self.resolve_virtual_context_term(
+                value = self.resolve_virtual_context_term(
                     term.key.name,
-                    raw_value,
+                    value,
                     resolved_column,
                     context_definition,
                 )
             else:
-                raise InvalidSearchQuery(f"{raw_value} not a valid term for {term.key.name}")
+                raise InvalidSearchQuery(f"{value} not a valid term for {term.key.name}")
             if context_definition.term_resolver:
-                raw_value = context_definition.term_resolver(raw_value)
+                value = context_definition.term_resolver(value)
             if context_definition.filter_column is not None:
                 resolved_column, _ = self.resolve_attribute(context_definition.filter_column)
 
@@ -408,7 +410,7 @@ class SearchResolver:
                 raise InvalidSearchQuery(f"Cannot use a wildcard with a {term.operator} filter")
             # Slashes have to be double escaped so they are
             # interpreted as a string literal.
-            raw_value = (
+            value = (
                 str(term.value.raw_value)
                 .replace("\\", "\\\\")
                 .replace("%", "\\%")
@@ -420,12 +422,25 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        if value == "" and context_definition is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                return (
+                    TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                ), context_definition
+            else:
+                return exists_filter, context_definition
+
         return (
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=resolved_column.proto_definition,
                     op=operator,
-                    value=self._resolve_search_value(resolved_column, term.operator, raw_value),
+                    value=self._resolve_search_value(resolved_column, term.operator, value),
                 )
             ),
             context_definition,

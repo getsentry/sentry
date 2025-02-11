@@ -20,7 +20,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry.conf.types import kafka_definition
-from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import UptimeDomainCheckFailure
@@ -435,7 +434,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     )
                 ]
             )
-            self.assert_config_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
+            self.assert_redis_config(
+                "default", UptimeSubscription(subscription_id=subscription_id), "delete"
+            )
 
     def test_multiple_project_subscriptions_with_disabled(self):
         """
@@ -849,15 +850,15 @@ class ProcessResultTest(ConfigPusherTestMixin):
             UptimeRegionConfig(
                 slug="region1",
                 name="Region 1",
-                config_topic=KafkaTopic.UPTIME_CONFIGS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
-                config_topic=KafkaTopic.UPTIME_RESULTS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
                 enabled=True,
             ),
         ]
@@ -876,10 +877,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
             self.send_result(result)
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
-            self.assert_config_calls(
-                (sub, kafka_definition.Topic.UPTIME_CONFIGS),
-                (sub, kafka_definition.Topic.UPTIME_RESULTS),
-            )
+            self.assert_redis_config("region1", sub, "upsert")
+            self.assert_redis_config("region2", sub, "upsert")
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
     @mock.patch("random.random")
@@ -892,15 +891,15 @@ class ProcessResultTest(ConfigPusherTestMixin):
             UptimeRegionConfig(
                 slug="region1",
                 name="Region 1",
-                config_topic=KafkaTopic.UPTIME_CONFIGS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
-                config_topic=KafkaTopic.UPTIME_RESULTS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
                 enabled=False,
             ),
         ]
@@ -915,11 +914,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == {"region1"}
             assert sub.subscription_id
-            self.assert_config_calls(
-                (sub.subscription_id, kafka_definition.Topic.UPTIME_RESULTS),
-                (sub, kafka_definition.Topic.UPTIME_CONFIGS),
-                check_redis=False,
-            )
+            self.assert_redis_config("region1", sub, "upsert")
+            self.assert_redis_config("region2", sub, "delete")
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
     @mock.patch("random.random")
@@ -931,7 +927,6 @@ class ProcessResultTest(ConfigPusherTestMixin):
             UptimeRegionConfig(
                 slug="region1",
                 name="Region 1",
-                config_topic=KafkaTopic.UPTIME_CONFIGS,
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 enabled=True,
             ),
@@ -947,4 +942,4 @@ class ProcessResultTest(ConfigPusherTestMixin):
             self.send_result(result)
             sub.refresh_from_db()
             assert {r.region_slug for r in sub.regions.all()} == set()
-            self.assert_config_calls()
+            self.assert_redis_config("region1", sub, None)

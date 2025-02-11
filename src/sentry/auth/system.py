@@ -79,9 +79,7 @@ class SystemToken:
 
     @cached_property
     def user(self) -> AnonymousUser:
-        user = AnonymousUser()
-        user.is_active = True
-        return user
+        return AnonymousUser()
 
     def get_allowed_origins(self) -> list[str]:
         return []
