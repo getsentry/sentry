@@ -39,8 +39,14 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     )
     queryDataset = serializers.ChoiceField(
         choices=[
-            (DiscoverSavedQueryTypes.ERROR_EVENTS, "error-events"),
-            (DiscoverSavedQueryTypes.TRANSACTION_LIKE, "transaction-like"),
+            (
+                DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS),
+                "error-events",
+            ),
+            (
+                DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.TRANSACTION_LIKE),
+                "transaction-like",
+            ),
         ],
         default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS),
         help_text="The dataset you would like to query. Note: `discover` is a deprecated value.",
