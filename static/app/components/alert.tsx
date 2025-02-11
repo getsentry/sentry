@@ -8,7 +8,6 @@ import classNames from 'classnames';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
@@ -77,34 +76,32 @@ export function Alert({
       {...hoverProps}
       {...props}
     >
-      <PanelProvider>
-        {showIcon && (
-          <IconWrapper onClick={handleClick}>
-            {icon ?? <AlertIcon type={type} />}
-          </IconWrapper>
-        )}
-        <Message>{children}</Message>
-        {!!trailingItems && (
-          <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
-            {trailingItems}
-          </TrailingItems>
-        )}
-        {showExpand && (
-          <ExpandIconWrap>
-            <IconChevron direction={isExpanded ? 'up' : 'down'} />
-          </ExpandIconWrap>
-        )}
-        {isExpanded && (
-          <ExpandContainer
-            ref={expandRef}
-            showIcon={!!showIcon}
-            showTrailingItems={!!trailingItems}
-            {...expandHoverProps}
-          >
-            {Array.isArray(expand) ? expand.map(item => item) : expand}
-          </ExpandContainer>
-        )}
-      </PanelProvider>
+      {showIcon && (
+        <IconWrapper onClick={handleClick}>
+          {icon ?? <AlertIcon type={type} />}
+        </IconWrapper>
+      )}
+      <Message>{children}</Message>
+      {!!trailingItems && (
+        <TrailingItems showIcon={!!showIcon} onClick={e => e.stopPropagation()}>
+          {trailingItems}
+        </TrailingItems>
+      )}
+      {showExpand && (
+        <ExpandIconWrap>
+          <IconChevron direction={isExpanded ? 'up' : 'down'} />
+        </ExpandIconWrap>
+      )}
+      {isExpanded && (
+        <ExpandContainer
+          ref={expandRef}
+          showIcon={!!showIcon}
+          showTrailingItems={!!trailingItems}
+          {...expandHoverProps}
+        >
+          {Array.isArray(expand) ? expand.map(item => item) : expand}
+        </ExpandContainer>
+      )}
     </AlertContainer>
   );
 }

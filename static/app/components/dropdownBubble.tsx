@@ -5,7 +5,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import PanelProvider from 'sentry/utils/panelProvider';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
 interface DropdownBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -68,7 +67,7 @@ const DropdownBubble = styled(
   forwardRef<HTMLDivElement, DropdownBubbleProps>(
     ({children, ...props}, forwardedRef) => (
       <div ref={forwardedRef} {...props}>
-        <PanelProvider>{children}</PanelProvider>
+        {children}
       </div>
     )
   ),
