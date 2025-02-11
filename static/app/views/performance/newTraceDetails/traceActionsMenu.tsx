@@ -50,7 +50,7 @@ function TraceActionsMenu({
               organization,
             });
             const target = traceEventView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS

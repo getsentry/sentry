@@ -46,7 +46,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     !issueTypeConfig.pages.replays.enabled;
 
   const discoverUrl = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

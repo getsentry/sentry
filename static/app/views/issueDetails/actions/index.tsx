@@ -129,7 +129,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
     return discoverView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       false,
       hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
     );

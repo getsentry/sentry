@@ -138,7 +138,7 @@ export function DatasetSelectorTabs(props: Props) {
             : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage
         );
         navigate({

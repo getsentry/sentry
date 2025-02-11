@@ -41,6 +41,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -1231,7 +1232,7 @@ class EventView {
   }
 
   getResultsViewUrlTarget(
-    slug: string,
+    organization: Organization,
     isHomepage: boolean = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
@@ -1241,12 +1242,18 @@ class EventView {
       query.queryDataset = queryDataset;
     }
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
+      pathname: makeDiscoverPathname({
+        path: `/${target}/`,
+        organization,
+      }),
       query,
     };
   }
 
-  getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewShortUrlTarget(organization: Organization): {
+    pathname: string;
+    query: Query;
+  } {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1259,7 +1266,10 @@ class EventView {
     stringifyQueryParams(output);
 
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
       query: cloneDeep(output),
     };
   }

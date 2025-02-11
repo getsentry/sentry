@@ -336,7 +336,7 @@ class _TransactionsList extends Component<Props> {
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   false,
                   hasDatasetSelector(organization)
                     ? SavedQueryDatasets.TRANSACTIONS

@@ -387,7 +387,7 @@ export class Results extends Component<Props, State> {
     browserHistory.replace(
       normalizeUrl(
         nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage,
           hasDatasetSelector(organization) ? savedQueryDataset : undefined
         )
@@ -561,7 +561,7 @@ export class Results extends Component<Props, State> {
     const {eventView, savedQueryDataset} = this.state;
 
     const url = eventView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       isHomepage,
       hasDatasetSelector(organization) ? savedQueryDataset : undefined
     );

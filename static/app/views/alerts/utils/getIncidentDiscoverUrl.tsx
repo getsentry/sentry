@@ -1,4 +1,4 @@
-import type {NewQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -17,13 +17,13 @@ import {getStartEndFromStats} from 'sentry/views/alerts/utils';
  * - Start and end are scoped to the same period as the alert rule
  */
 export function getIncidentDiscoverUrl(opts: {
-  orgSlug: string;
+  organization: Organization;
   projects: Project[];
   extraQueryParams?: Partial<NewQuery>;
   incident?: Incident;
   stats?: IncidentStats;
 }) {
-  const {orgSlug, projects, incident, stats, extraQueryParams} = opts;
+  const {organization, projects, incident, stats, extraQueryParams} = opts;
 
   if (!projects || !projects.length || !incident || !stats) {
     return '';
@@ -52,7 +52,7 @@ export function getIncidentDiscoverUrl(opts: {
   };
 
   const discoverView = EventView.fromSavedQuery(discoverQuery);
-  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgSlug);
+  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(organization);
 
   return {
     query: {...query, interval: timeWindowString},

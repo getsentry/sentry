@@ -46,7 +46,7 @@ describe('Alert utils', function () {
       });
 
       const to = getIncidentDiscoverUrl({
-        orgSlug: organization.slug,
+        organization,
         projects,
         incident,
         stats: mockStats,
@@ -80,7 +80,7 @@ describe('Alert utils', function () {
       });
 
       const to = getIncidentDiscoverUrl({
-        orgSlug: organization.slug,
+        organization,
         projects,
         incident,
         stats: mockStats,

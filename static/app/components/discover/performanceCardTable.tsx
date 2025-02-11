@@ -122,7 +122,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -144,7 +144,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -332,7 +332,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS

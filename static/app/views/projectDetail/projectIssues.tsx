@@ -25,6 +25,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
@@ -148,7 +149,10 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
   function getDiscoverUrl() {
     return {
-      pathname: `/organizations/${organization.slug}/discover/results/`,
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],

@@ -23,7 +23,7 @@ export function getWidgetExploreUrl(
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const {query: locationQueryParams} = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     undefined
   );

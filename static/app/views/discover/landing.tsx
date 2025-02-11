@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import QueryList from './queryList';
@@ -272,7 +273,10 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const to = `/organizations/${organization.slug}/discover/homepage/`;
+    const to = makeDiscoverPathname({
+      path: `/homepage/`,
+      organization,
+    });
 
     return (
       <Feature
