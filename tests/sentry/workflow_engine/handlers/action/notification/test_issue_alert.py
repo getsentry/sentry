@@ -29,9 +29,13 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
 
         class TestHandler(BaseIssueAlertHandler):
-            @staticmethod
-            def get_additional_fields(action: Action, mapping: ActionFieldMapping):
+            @classmethod
+            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
                 return {"tags": "environment,user,my_tag"}
+
+            @classmethod
+            def get_target_display(cls, action: Action, mapping: ActionFieldMapping):
+                return {}
 
         self.handler = TestHandler()
 

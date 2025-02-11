@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
@@ -23,6 +24,14 @@ class FieldMapping:
 
     source_field: str
     default_value: Any = None
+
+
+class ActionFieldMappingKeys(StrEnum):
+    """ActionFieldMappingKeys is an enum that represents the keys of an action field mapping."""
+
+    INTEGRATION_ID_KEY = "integration_id_key"
+    TARGET_IDENTIFIER_KEY = "target_identifier_key"
+    TARGET_DISPLAY_KEY = "target_display_key"
 
 
 class ActionFieldMapping(TypedDict):
@@ -134,24 +143,24 @@ class BaseActionTranslator(ABC):
     def integration_id(self) -> int | None:
         """Return the integration ID for this action, if any"""
         if mapping := ACTION_FIELD_MAPPINGS.get(self.action_type):
-            if "integration_id_key" in mapping:
-                return self.action.get(mapping["integration_id_key"])
+            if ActionFieldMappingKeys.INTEGRATION_ID_KEY.value in mapping:
+                return self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
         return None
 
     @property
     def target_identifier(self) -> str | None:
         """Return the target identifier for this action, if any"""
         if mapping := ACTION_FIELD_MAPPINGS.get(self.action_type):
-            if "target_identifier_key" in mapping:
-                return self.action.get(mapping["target_identifier_key"])
+            if ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value in mapping:
+                return self.action.get(mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value])
         return None
 
     @property
     def target_display(self) -> str | None:
         """Return the display name for the target, if any"""
         if mapping := ACTION_FIELD_MAPPINGS.get(self.action_type):
-            if "target_display_key" in mapping:
-                return self.action.get(mapping["target_display_key"])
+            if ActionFieldMappingKeys.TARGET_DISPLAY_KEY in mapping:
+                return self.action.get(mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value])
         return None
 
     @property
@@ -207,9 +216,15 @@ class SlackActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["integration_id_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["target_identifier_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["target_display_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.SLACK][
+                ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.SLACK][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.SLACK][
+                ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
+            ],
         ]
 
     @property
@@ -230,8 +245,12 @@ class DiscordActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD]["integration_id_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD]["target_identifier_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD][
+                ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ],
         ]
 
     @property
@@ -252,9 +271,15 @@ class MSTeamsActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["integration_id_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["target_identifier_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["target_display_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS][
+                ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS][
+                ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
+            ],
         ]
 
     @property
@@ -281,8 +306,12 @@ class PagerDutyActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["integration_id_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["target_identifier_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY][
+                ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ],
         ]
 
     @property
@@ -309,8 +338,12 @@ class OpsgenieActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE]["integration_id_key"],
-            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE]["target_identifier_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE][
+                ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
+            ],
+            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ],
         ]
 
     @property
@@ -325,7 +358,9 @@ class OpsgenieActionTranslator(BaseActionTranslator):
 class TicketActionTranslator(BaseActionTranslator, ABC):
     @property
     def required_fields(self) -> list[str]:
-        return [ACTION_FIELD_MAPPINGS[Action.Type.JIRA]["integration_id_key"]]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.JIRA][ActionFieldMappingKeys.INTEGRATION_ID_KEY.value]
+        ]
 
     @property
     def integration_id(self) -> Any | None:
@@ -400,7 +435,9 @@ class EmailActionTranslator(BaseActionTranslator):
         target_type = self.action.get("targetType")
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
             return self.action.get(
-                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL]["target_identifier_key"]
+                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
+                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                ]
             )
         return None
 
@@ -453,7 +490,9 @@ class WebhookActionTranslator(BaseActionTranslator):
         # If the app exists, we should heal this action as a SentryAppAction
         # Based on sentry/rules/actions/notify_event_service.py
         if service := self.action.get(
-            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["target_identifier_key"]
+            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ]
         ):
             self.sentry_app = app_service.get_sentry_app_by_slug(slug=service)
         else:
@@ -474,7 +513,11 @@ class WebhookActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return [ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["target_identifier_key"]]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ]
+        ]
 
     @property
     def target_identifier(self) -> str | None:
@@ -482,7 +525,11 @@ class WebhookActionTranslator(BaseActionTranslator):
         # If the webhook goes to a sentry app, then we should identify the sentry app by id
         if self.sentry_app:
             return str(self.sentry_app.id)
-        return self.action.get(ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["target_identifier_key"])
+        return self.action.get(
+            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ]
+        )
 
 
 class JiraActionTranslatorBase(TicketActionTranslator):
@@ -539,7 +586,11 @@ class SentryAppActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return [ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["target_identifier_key"]]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP][
+                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+            ]
+        ]
 
     @property
     def target_type(self) -> ActionTarget | None:
