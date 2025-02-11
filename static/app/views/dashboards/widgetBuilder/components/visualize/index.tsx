@@ -583,10 +583,15 @@ function Visualize({error, setError}: VisualizeProps) {
                                     );
                                     // Update the current field's aggregate with the new aggregate
                                     if (!selectedAggregate && !isNone) {
+                                      const functionFields = newFields.filter(
+                                        newField =>
+                                          newField.kind === FieldValueKind.FUNCTION
+                                      );
                                       // Handles selection of release tags from aggregate dropdown
                                       if (
                                         state.dataset === WidgetType.RELEASE &&
-                                        state.displayType === DisplayType.TABLE
+                                        state.displayType === DisplayType.TABLE &&
+                                        functionFields.length === 1
                                       ) {
                                         newFields = [
                                           {
