@@ -657,7 +657,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             self.tasks(),
         ):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
-            assert mock_identify_stacktraces.call_count == 2
+            assert mock_identify_stacktraces.call_count == 1
             code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
             assert code_mapping.automatically_generated is False
 

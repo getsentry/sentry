@@ -7,7 +7,6 @@ from typing import Any
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.metrics import (
@@ -64,10 +63,12 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
         logger.error("Event not found.", extra=extra)
         return
 
-    if not event_can_be_processed(event):
+    if not supported_platform(event.platform):
         return
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
+    if not stacktrace_paths:
+        return False
 
     try:
         installation = get_installation(org)
@@ -79,15 +80,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
         pass
 
 
-def event_can_be_processed(event: Event | GroupEvent) -> bool:
-    if event.data.get("platform") not in SUPPORTED_LANGUAGES:
-        return False
-
-    stacktrace_paths = identify_stacktrace_paths(event.data)
-    if not stacktrace_paths:
-        return False
-
-    return True
+def supported_platform(platform: str) -> bool:
+    return platform in SUPPORTED_LANGUAGES
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
