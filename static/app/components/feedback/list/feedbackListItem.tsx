@@ -1,4 +1,5 @@
 import type {CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -39,12 +40,10 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-export default function FeedbackListItem({
-  feedbackItem,
-  isSelected,
-  onSelect,
-  style,
-}: Props) {
+const FeedbackListItem = forwardRef<HTMLDivElement, Props>(function FeedbackListItem(
+  {feedbackItem, isSelected, onSelect, style},
+  ref
+) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -57,7 +56,7 @@ export default function FeedbackListItem({
   const hasComments = feedbackItem.numComments > 0;
 
   return (
-    <CardSpacing style={style}>
+    <CardSpacing ref={ref} style={style}>
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
@@ -169,7 +168,9 @@ export default function FeedbackListItem({
       </LinkedFeedbackCard>
     </CardSpacing>
   );
-}
+});
+
+export default FeedbackListItem;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
