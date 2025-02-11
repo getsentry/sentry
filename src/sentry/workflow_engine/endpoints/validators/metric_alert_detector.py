@@ -81,15 +81,15 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             )
         return data_condition_group
 
-    def update_data_source(self, instance, data_source):
-        for source in data_source:
+    def update_data_sources(self, instance, data_sources):
+        for source in data_sources:
             try:
                 source_instance = DataSource.objects.get(detector=instance)
             except DataSource.DoesNotExist:
                 continue
             if source_instance:
                 try:
-                    snuba_query = SnubaQuery.objects.get(id=source_instance.query_id)
+                    snuba_query = SnubaQuery.objects.get(id=source_instance.source_id)
                 except SnubaQuery.DoesNotExist:
                     raise serializers.ValidationError("SnubaQuery not found, can't update")
 
@@ -100,12 +100,11 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
                 dataset=source.get("dataset", snuba_query.dataset),
                 query=source.get("query", snuba_query.query),
                 aggregate=source.get("aggregate", snuba_query.aggregate),
-                time_window=source.get("time_window", timedelta(seconds=snuba_query.time_window)),
+                time_window=timedelta(minutes=source.get("time_window", snuba_query.time_window)),
                 resolution=timedelta(seconds=source.get("resolution", snuba_query.resolution)),
                 environment=source.get("environment", snuba_query.environment),
                 event_types=source.get("event_types", [event_types]),
             )
-            # TODO handle adding an additional DataSource
 
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
@@ -115,12 +114,9 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             instance.workflow_condition_group = self.update_data_conditions(
                 instance, data_conditions
             )
-
-        data_source = validated_data.pop(
-            "data_source"
-        )  # TODO this IS a m2m, should be updated to data_sources plural
-        if data_source:
-            self.update_data_source(instance, data_source)
+        data_sources = validated_data.pop("data_sources")
+        if data_sources:
+            self.update_data_sources(instance, data_sources)
 
         instance.save()
         return instance

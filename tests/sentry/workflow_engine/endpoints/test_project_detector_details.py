@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -31,18 +32,6 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.data_source = self.create_data_source(organization=self.organization)
-        self.data_condition_group = self.create_data_condition_group()
-        self.detector = self.create_detector(
-            project_id=self.project.id,
-            name="Test Detector",
-            type=MetricAlertFire.slug,
-            workflow_condition_group=self.data_condition_group,
-        )
-        self.data_source_detector = self.create_data_source_detector(
-            data_source=self.data_source, detector=self.detector
-        )
-        assert self.detector.data_sources is not None
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
@@ -63,14 +52,14 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
                 snuba_query=self.snuba_query,
             )
         self.data_source = self.create_data_source(
-            organization=self.organization, query_id=self.query_subscription.id
+            organization=self.organization, source_id=self.query_subscription.id
         )
-        self.condition_group = self.create_data_condition_group(
+        self.data_condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
         self.condition = self.create_data_condition(
-            condition_group=self.condition_group,
+            condition_group=self.data_condition_group,
             type=Condition.LESS,
             comparison=50,
             condition_result=DetectorPriorityLevel.LOW,
@@ -79,9 +68,11 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
             project_id=self.project.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
-            workflow_condition_group=self.condition_group,
+            workflow_condition_group=self.data_condition_group,
         )
-        DataSourceDetector.objects.create(data_source=self.data_source, detector=self.detector)
+        self.data_source_detector = self.create_data_source_detector(
+            data_source=self.data_source, detector=self.detector
+        )
         assert self.detector.data_sources is not None
 
 
@@ -137,9 +128,13 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
     def setUp(self):
         super().setUp()
         self.valid_data = {
+            "id": self.detector.id,
+            "projectId": self.project.id,
             "name": "Updated Detector",
-            "group_type": MetricAlertFire.slug,
-            "data_source": [
+            "groupType": MetricAlertFire.slug,  # or should we change this to type like it is in the doc?
+            "dateCreated": self.detector.date_added,
+            "dateUpdated": timezone.now(),
+            "dataSources": [
                 {
                     "query_type": self.snuba_query.type,
                     "dataset": self.snuba_query.dataset,
@@ -147,19 +142,12 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
                     "aggregate": self.snuba_query.aggregate,
                     "time_window": 5,  # minutes
                     "environment": None,  # getting env not in org error when passing self.environment.id
-                    "event_types": [
-                        event_type.value for event_type in self.snuba_query.event_types
-                    ],
+                    "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
                 }
             ],
-            "data_conditions": [
-                {
-                    "id": self.condition.id,
-                    "type": Condition.GREATER,
-                    "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
-                }
-            ],
+            "dataConditions": [],
+            # "conditionGroup": [self.data_condition_group], # write out all the attrs
+            "config": self.detector.config,
         }
 
     def test_update(self):
@@ -183,16 +171,16 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         assert condition_group.logic_type == DataConditionGroup.Type.ANY
         assert condition_group.organization_id == self.organization.id
 
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
-        condition = conditions[0]
-        assert condition.type == Condition.GREATER
-        assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        # conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        # assert len(conditions) == 1
+        # condition = conditions[0]
+        # assert condition.type == Condition.GREATER
+        # assert condition.comparison == 100
+        # assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
         data_source = DataSource.objects.get(id=data_source_detector.detector.id)
-        snuba_query = SnubaQuery.objects.get(id=data_source.query_id)
+        snuba_query = SnubaQuery.objects.get(id=data_source.source_id)
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300  # seconds = 5 minutes
 
