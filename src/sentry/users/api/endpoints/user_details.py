@@ -6,6 +6,7 @@ from django.contrib.auth import logout
 from django.db import router, transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -36,6 +37,18 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 TIMEZONE_CHOICES = get_timezone_choices()
+
+
+def validate_quick_start_display(value: dict[str, int]):
+    if value is not None:
+        for display_value in value.values():
+            if not isinstance(display_value, int):
+                raise ValidationError("The value shall be an integer.")
+            if display_value <= 0:
+                raise ValidationError("The value cannot be less than or equal to 0.")
+            if display_value > 2:
+                raise ValidationError("The value cannot exceed 2.")
+    return value
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
@@ -71,6 +84,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     quickStartDisplay = serializers.JSONField(
         required=False,
         allow_null=True,
+        validators=[validate_quick_start_display],
         help_text="Tracks whether the quick start guide was already automatically shown to the user during their second visit.",
     )
 

@@ -208,6 +208,58 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
 
+    def test_saving_quick_start_display_option(self):
+        org_id = str(self.organization.id)
+
+        # 1 = Shown once (on the second visit)
+        self.get_success_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: 1}},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org_id) == 1
+        )
+
+        # 2 = Hidden automatically after the second visit
+        self.get_success_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: 2}},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="quick_start_display").get(org_id) == 2
+        )
+
+        # Invalid values
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: None}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: -1}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: 0}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: 3}},
+            status_code=400,
+        )
+
+        self.get_error_response(
+            "me",
+            options={"quickStartDisplay": {self.organization.id: "invalid"}},
+            status_code=400,
+        )
+
 
 @control_silo_test
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
