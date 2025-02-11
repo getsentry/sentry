@@ -846,6 +846,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         hideBottomBorder={hasTraceNewUi}
       >
         <Trace
+          metaQueryResults={props.meta}
           trace={props.tree}
           rerender={rerender}
           trace_id={props.traceSlug}

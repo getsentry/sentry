@@ -70,7 +70,9 @@ async function fetchTraceMetaInBatches(
     performance_issues: 0,
     projects: 0,
     transactions: 0,
-    transactiontoSpanChildrenCount: {},
+    transaction_child_count_map: {},
+    span_count: 0,
+    span_count_map: {},
   };
 
   const apiErrors: Error[] = [];
@@ -95,9 +97,14 @@ async function fetchTraceMetaInBatches(
         // for more efficient lookups.
         result.value.transaction_child_count_map.forEach(
           ({'transaction.id': id, count}: any) => {
-            acc.transactiontoSpanChildrenCount[id] = count;
+            acc.transaction_child_count_map[id] = count;
           }
         );
+
+        acc.span_count += result.value.span_count;
+        Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
+          acc.span_count_map[span_op] = count;
+        });
       } else {
         apiErrors.push(new Error(result?.reason));
       }
@@ -171,7 +178,9 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         performance_issues: 0,
         projects: 1,
         transactions: 1,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       },
       errors: [],
       status: 'success' as QueryStatus,

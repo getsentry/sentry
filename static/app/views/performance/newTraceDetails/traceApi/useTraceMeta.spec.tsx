@@ -89,7 +89,7 @@ describe('useTraceMeta', () => {
         performance_issues: 3,
         projects: 1,
         transactions: 3,
-        transactiontoSpanChildrenCount: {
+        transaction_child_count_map: {
           '1': 1,
           '2': 2,
         },
@@ -136,7 +136,7 @@ describe('useTraceMeta', () => {
         performance_issues: 0,
         projects: 0,
         transactions: 0,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
       status: 'error',
@@ -196,7 +196,7 @@ describe('useTraceMeta', () => {
         performance_issues: 2,
         projects: 1,
         transactions: 2,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
       },
       errors: [expect.any(Error)],
       status: 'success',
