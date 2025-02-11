@@ -124,29 +124,24 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
     return {series, releases, isPending, error};
   }
 
-  // Get the healthy sessions series data
-  const healthySessionsSeries =
-    sessionsData.groups.find(group => group.by['session.status'] === 'healthy')?.series[
+  // For series data not grouped by release
+  const getStatusSeries = (status: string) =>
+    sessionsData.groups.find(group => group.by['session.status'] === status)?.series[
       'sum(session)'
     ] ?? [];
 
-  // Calculate total sessions for each interval
-  const totalSessionsByInterval = sessionsData.groups[0]?.series['sum(session)']?.map(
-    (_, intervalIndex) =>
-      sessionsData.groups.reduce(
-        (acc, group) => acc + (group.series['sum(session)']?.[intervalIndex] ?? 0),
-        0
-      )
-  );
+  // Calculate healthy session percentage for each interval
+  const healthySeries = getStatusSeries('healthy');
+  const seriesData = healthySeries.map((healthy, idx) => {
+    const totalInInterval = sessionsData.groups.reduce(
+      (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),
+      0
+    );
 
-  // Calculate percentage for each interval
-  const healthySessionsPercentageData = healthySessionsSeries.map((healthyCount, idx) => {
-    const total = totalSessionsByInterval?.[idx] ?? 1;
-    return total > 0 ? healthyCount / total : 1;
-  });
-
-  const seriesData = healthySessionsPercentageData.map((val, idx) => {
-    return {name: sessionsData.intervals[idx] ?? '', value: val};
+    return {
+      name: sessionsData.intervals[idx] ?? '',
+      value: totalInInterval > 0 ? healthy / totalInInterval : 1,
+    };
   });
 
   const series = [
