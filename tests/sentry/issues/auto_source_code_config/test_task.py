@@ -24,7 +24,6 @@ ISSUES_ROOT = "sentry.issues.auto_source_code_config"
 
 class BaseDeriveCodeMappings(TestCase):
     platform: str
-    repo_name: str = "foo/bar"
     # We may only want to change this for TestTaskBehavior when we add support
     # for other providers
     provider = "github"
@@ -35,7 +34,7 @@ class BaseDeriveCodeMappings(TestCase):
             organization=self.organization,
             provider=self.provider,
             external_id=self.organization.id,
-            metadata={"domain_name": f"{self.domain_name}/Test-Org"},
+            metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
 
     def create_event(
@@ -45,8 +44,8 @@ class BaseDeriveCodeMappings(TestCase):
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id)
 
-    def _get_trees_for_org(self, files: Sequence[str], branch: str = "master") -> RepoTree:
-        return {self.repo_name: RepoTree(RepoAndBranch(self.repo_name, branch), files)}
+    def _get_trees_for_org(self, files: Sequence[str]) -> dict[str, RepoTree]:
+        return {"test-org/repo": RepoTree(RepoAndBranch("test-org/repo", "master"), files)}
 
     def _process_and_assert_code_mapping(
         self, files: Sequence[str], stack_root: str, source_root: str
