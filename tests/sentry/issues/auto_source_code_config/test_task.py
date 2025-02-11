@@ -140,7 +140,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         # The platform is irrelevant for this test
         event = self.create_event([{"filename": "foo/bar/baz.py", "in_app": True}], "python")
         assert event.group_id is not None
-
         process_event(self.project.id, event.group_id, event.event_id)
         all_cm = RepositoryProjectPathConfig.objects.all()
         assert len(all_cm) == 1
