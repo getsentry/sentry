@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from copy import copy
 from logging import Logger, getLogger
 from typing import Any
@@ -21,6 +21,10 @@ from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
+)
+from sentry.integrations.repository.notification_action import (
+    NotificationActionNotificationMessage,
+    NotificationActionNotificationMessageRepository,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
@@ -103,11 +107,13 @@ class SlackService:
     def __init__(
         self,
         issue_alert_repository: IssueAlertNotificationMessageRepository,
+        notification_action_repository: NotificationActionNotificationMessageRepository,
         message_block_builder: BlockSlackMessageBuilder,
         activity_thread_notification_handlers: dict[ActivityType, type[ActivityNotification]],
         logger: Logger,
     ) -> None:
         self._issue_alert_repository = issue_alert_repository
+        self._notification_action_repository = notification_action_repository
         self._slack_block_builder = message_block_builder
         self._activity_thread_notification_handlers = activity_thread_notification_handlers
         self._logger = logger
@@ -116,6 +122,7 @@ class SlackService:
     def default(cls) -> SlackService:
         return SlackService(
             issue_alert_repository=get_default_issue_alert_repository(),
+            notification_action_repository=NotificationActionNotificationMessageRepository.default(),
             message_block_builder=BlockSlackMessageBuilder(),
             activity_thread_notification_handlers=DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS,
             logger=_default_logger,
@@ -206,7 +213,6 @@ class SlackService:
         notification_to_send: str,
         client: SlackSdkClient,
     ) -> None:
-        # Get all parent notifications, which will have the message identifier to use to reply in a thread
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
             spec=SlackMessagingSpec(),
@@ -221,6 +227,9 @@ class SlackService:
             )
 
             use_open_period_start = False
+            parent_notifications: Generator[
+                NotificationActionNotificationMessage | IssueAlertNotificationMessage
+            ]
             if (
                 features.has(
                     "organizations:slack-threads-refactor-uptime",
@@ -230,20 +239,33 @@ class SlackService:
             ):
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
-                parent_notifications = (
-                    self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
+                if features.has(
+                    "organizations:workflow-engine-notification-action",
+                    group.organization,
+                ):
+                    parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
+                        group_ids=[group.id],
+                        open_period_start=open_period_start,
+                    )
+                else:
+                    parent_notifications = self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                         project_ids=[activity.project.id],
                         open_period_start=open_period_start,
                     )
-                )
             else:
-                parent_notifications = (
-                    self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
+                if features.has(
+                    "organizations:workflow-engine-notification-action",
+                    group.organization,
+                ):
+                    parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
+                        group_ids=[group.id],
+                    )
+                else:
+                    parent_notifications = self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
                         group_ids=[group.id],
                         project_ids=[activity.project.id],
                     )
-                )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         parent_notification_count = 0
@@ -275,7 +297,16 @@ class SlackService:
                             "parent notification does not have a message identifier, skipping"
                         )
                         continue
-                    channel_id = self._get_channel_id_from_parent_notification(parent_notification)
+                    if isinstance(parent_notification, NotificationActionNotificationMessage):
+                        channel_id = (
+                            self._get_channel_id_from_parent_notification_notification_action(
+                                parent_notification
+                            )
+                        )
+                    else:
+                        channel_id = self._get_channel_id_from_parent_notification(
+                            parent_notification
+                        )
                     self._send_notification_to_slack_channel(
                         channel_id=channel_id,
                         message_identifier=parent_notification.message_identifier,
@@ -299,6 +330,23 @@ class SlackService:
                     "parent_notification_count": parent_notification_count,
                 },
             )
+
+    def _get_channel_id_from_parent_notification_notification_action(
+        self,
+        parent_notification: NotificationActionNotificationMessage,
+    ) -> str:
+        """Get the channel ID from a parent notification by looking up the rule action details."""
+        if not parent_notification.action:
+            raise ActionDataError(
+                f"parent notification {parent_notification.id} does not have an action"
+            )
+
+        if not parent_notification.action.target_identifier:
+            raise ActionDataError(
+                f"parent notification {parent_notification.id} does not have a target_identifier"
+            )
+
+        return str(parent_notification.action.target_identifier)
 
     def _get_channel_id_from_parent_notification(
         self,
