@@ -103,7 +103,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
     platform = "not-used"
-    frames = []
+    frames = [{}]
 
     def test_skips_not_supported_platforms(self) -> None:
         event = self.create_event([{}], platform="elixir")
