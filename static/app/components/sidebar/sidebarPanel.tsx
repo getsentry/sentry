@@ -3,6 +3,11 @@ import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
@@ -29,16 +34,14 @@ const PanelContainer = styled('div')<PositionProps>`
   ${p =>
     p.orientation === 'top'
       ? css`
-          top: ${p.theme.sidebar.mobileHeight};
+          top: ${SIDEBAR_MOBILE_HEIGHT};
           left: 0;
           right: 0;
         `
       : css`
           width: 460px;
           top: 0;
-          left: ${p.collapsed
-            ? p.theme.sidebar.collapsedWidth
-            : p.theme.sidebar.expandedWidth};
+          left: ${p.collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH};
         `};
 `;
 
@@ -61,7 +64,7 @@ const getSidebarPortal = () => {
   return portal as HTMLDivElement;
 };
 
-function SidebarPanel({
+export default function SidebarPanel({
   orientation,
   collapsed,
   hidePanel,
@@ -119,8 +122,6 @@ function SidebarPanel({
     portalEl.current
   );
 }
-
-export default SidebarPanel;
 
 const SidebarPanelHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
