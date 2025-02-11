@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -147,7 +148,7 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
   /**
    * Similar to `href`, but for internal links within the app.
    */
-  to: string | Record<PropertyKey, unknown>;
+  to: string | LocationDescriptor;
   external?: never;
 }
 
