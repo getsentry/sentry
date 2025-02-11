@@ -2,6 +2,7 @@ import hashlib
 import logging
 from collections.abc import Sequence
 
+from django.db import IntegrityError
 from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
@@ -89,6 +90,83 @@ def retrieve_uptime_subscription(
         )
     except UptimeSubscription.DoesNotExist:
         subscription = None
+    return subscription
+
+
+def get_or_create_uptime_subscription(
+    url: str,
+    interval_seconds: int,
+    timeout_ms: int,
+    method: str = "GET",
+    headers: Sequence[tuple[str, str]] | None = None,
+    body: str | None = None,
+    trace_sampling: bool = False,
+) -> UptimeSubscription:
+    # XXX: Remove this, keeping it around for getsentry backwards compat
+    if headers is None:
+        headers = []
+    # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
+    # domain.
+    result = extract_domain_parts(url)
+
+    subscription = retrieve_uptime_subscription(
+        url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
+    )
+    created = False
+
+    if subscription is None:
+        try:
+            subscription = UptimeSubscription.objects.create(
+                url=url,
+                url_domain=result.domain,
+                url_domain_suffix=result.suffix,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                status=UptimeSubscription.Status.CREATING.value,
+                type=UPTIME_SUBSCRIPTION_TYPE,
+                method=method,
+                headers=headers,  # type: ignore[misc]
+                body=body,
+                trace_sampling=trace_sampling,
+            )
+            created = True
+        except IntegrityError:
+            # Handle race condition where we tried to retrieve an existing subscription while it was being created
+            subscription = retrieve_uptime_subscription(
+                url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
+            )
+
+    if subscription is None:
+        # This shouldn't happen, since we should always be able to fetch or create the subscription.
+        logger.error(
+            "Unable to create uptime subscription",
+            extra={
+                "url": url,
+                "interval_seconds": interval_seconds,
+                "timeout_ms": timeout_ms,
+                "method": method,
+                "headers": headers,
+                "body": body,
+            },
+        )
+        raise ValueError("Unable to create uptime subscription")
+
+    if subscription.status == UptimeSubscription.Status.DELETING.value:
+        # This is pretty unlikely to happen, but we should avoid deleting the subscription here and just confirm it
+        # exists in the checker.
+        subscription.update(status=UptimeSubscription.Status.CREATING.value)
+        created = True
+
+    # Associate active regions with this subscription
+    for region_config in get_active_region_configs():
+        # If we add a region here we need to resend the subscriptions
+        created |= UptimeSubscriptionRegion.objects.get_or_create(
+            uptime_subscription=subscription, region_slug=region_config.slug
+        )[1]
+
+    if created:
+        create_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
     return subscription
 
 
