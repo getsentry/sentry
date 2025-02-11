@@ -46,6 +46,8 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
+const PER_PAGE = 10;
+
 export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   const user = useUser();
   const location = useLocation();
@@ -54,7 +56,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
     `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
-        per_page: '10',
+        per_page: PER_PAGE,
         environment: monitorEnvs.map(e => e.name),
         expand: 'groups',
         ...location.query,
@@ -98,7 +100,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
         emptyMessage={t('No check-ins have been recorded for this time period.')}
       >
         {isPending
-          ? [...new Array(headers.length)].map((_, i) => (
+          ? [...new Array(PER_PAGE)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
               </RowPlaceholder>
