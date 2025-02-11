@@ -48,7 +48,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
                 # no workflow_condition_group
-                type=validated_data["group_type"].slug,
+                type=validated_data["detector_type"].slug,
                 config={},
             )
 
