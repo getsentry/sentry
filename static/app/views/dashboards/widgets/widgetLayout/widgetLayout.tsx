@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -80,12 +81,14 @@ const Frame = styled('div')<{forceShowActions?: boolean; height?: number}>`
 
   ${p =>
     !p.forceShowActions &&
-    `&:not(:hover):not(:focus-within) {
-    ${TitleHoverItems} {
-      opacity: 0;
-      ${p.theme.visuallyHidden}
-    }
-  }`}
+    css`
+      &:not(:hover):not(:focus-within) {
+        ${TitleHoverItems} {
+          opacity: 0;
+          ${p.theme.visuallyHidden}
+        }
+      }
+    `}
 `;
 
 const Header = styled('div')<{noPadding?: boolean}>`
