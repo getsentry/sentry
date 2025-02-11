@@ -26,7 +26,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
