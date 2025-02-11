@@ -103,6 +103,12 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         process_event(self.project.id, event.group_id, event.event_id)
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
+    def test_skip_tests_folder(self) -> None:
+        event = self.create_event([{"filename": "tests/foo.tsx", "in_app": True}], "javascript")
+        assert event.group_id is not None
+        process_event(self.project.id, event.group_id, event.event_id)
+        assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
+
     def test_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
@@ -166,14 +172,9 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     platform = "javascript"
     frames = [
-        # Not in-app
-        {"filename": "../node_modules/@sentry/foo/esm/hub.js", "in_app": False},
-        # Starts with ./
-        {"filename": "./app/utils/handle.tsx", "in_app": True},
-        # Does not start with special characters
-        {"filename": "some/path/Test.tsx", "in_app": True},
-        # Starts with sentry/
-        {"filename": "sentry/test_app.tsx", "in_app": True},
+        {"filename": "../node_modules/@sentry/foo/esm/hub.js", "in_app": False},  # Not in-app
+        {"filename": "./app/utils/handle.tsx", "in_app": True},  # Starts with ./
+        {"filename": "some/path/Test.tsx", "in_app": True},  # No special characters
     ]
 
     def test_starts_with_period_slash(self) -> None:
@@ -185,9 +186,6 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
 
     def test_one_to_one_match(self) -> None:
         self._process_and_assert_code_mapping(["some/path/Test.tsx"], "", "")
-
-    def test_same_trailing_substring(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/app.tsx"], "", "")
 
 
 class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
