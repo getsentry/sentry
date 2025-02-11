@@ -51,7 +51,6 @@ class SentryAppPublishRequestTest(APITestCase):
             "\n\n\n>First question\nFirst response"
             "\n\n>Second question\nSecond response"
         )
-
         send_mail.assert_called_with(
             "Sentry Integration Publication Request from my-org",
             message,
@@ -60,7 +59,7 @@ class SentryAppPublishRequestTest(APITestCase):
             reply_to=[self.user.email],
         )
 
-    @mock.patch("sentry.utils.email.MessageBuilder.send")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_request_new_format(self, send):
         self.upload_logo()
         self.upload_issue_link_logo()
@@ -79,7 +78,7 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.status_code == 201
         send.assert_called_with(to=["partners@sentry.io", self.user.email])
 
-    @mock.patch("sentry.utils.email.MessageBuilder.send")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_request_email_fails(self, send):
         send.return_value = 0
         self.upload_logo()

@@ -16,7 +16,8 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.email import MessageBuilder, send_mail
+from sentry.utils import email
+from sentry.utils.email.message_builder import MessageBuilder
 
 logger = logging.getLogger("sentry.sentry_apps.sentry_app_publish_request")
 
@@ -88,16 +89,17 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             )
 
         subject = "Sentry Integration Publication Request from %s" % org_mapping.slug
-
         if features.has(
-            "organizations:streamlined-publishing-flow", organization, actor=request.user
+            "organizations:streamlined-publishing-flow",
+            organization,
+            actor=request.user,
         ):
             new_subject = f"We've received your integration submission for {sentry_app.slug}"
             new_context = {
                 "questionnaire": questionnaire,
                 "actor": request.user,
                 "sentry_app": sentry_app,
-                "organization": organization,
+                "organization": org_mapping,
             }
 
             template = "sentry/emails/sentry-app-publish-confirmation.txt"
@@ -112,7 +114,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             )
 
             # Must send to user & partners so that the reply-to email will be each other
-            recipients = ["christina.long@sentry.io", request.user.email]
+            recipients = ["partners@sentry.io", request.user.email]
             sent_messages = message.send(
                 to=recipients,
             )
@@ -126,7 +128,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                     status=500,
                 )
         else:
-            send_mail(
+            email.send_mail(
                 subject,
                 message,
                 options.get("mail.from"),
