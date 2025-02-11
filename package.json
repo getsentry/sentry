@@ -69,6 +69,7 @@
     "@types/color": "^3.0.3",
     "@types/diff": "5.2.1",
     "@types/dompurify": "^3.0.5",
+    "@types/gtag.js": "^0.0.12",
     "@types/history": "^3.2.5",
     "@types/invariant": "^2.2.35",
     "@types/jest": "29.5.12",
