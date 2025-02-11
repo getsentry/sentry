@@ -52,7 +52,10 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
     def setUp(self) -> None:
         super().setUp()
-        self.event = self.create_event([{"filename": "foo.py", "in_app": True}], "foo-platform")
+        self.event = self.create_event(
+            [{"filename": "foo.py", "in_app": True}],
+            platform="python",  # The platform is irrelevant for this test
+        )
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
@@ -105,16 +108,15 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        with (
-            patch(
-                "sentry.issues.auto_source_code_config.task.identify_stacktrace_paths",
-                return_value=["sentry/models/release.py", "sentry/tasks.py"],
-            ) as mock_identify_stacktraces,
-            self.tasks(),
-        ):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
-
-        assert mock_identify_stacktraces.call_count == 1
+        event = self.create_event(
+            [
+                {"in_app": True, "filename": "sentry/models/release.py"},
+                {"in_app": True, "filename": "sentry/tasks.py"},
+            ],
+            platform="python",  # The platform is irrelevant for this test
+        )
+        assert event.group_id is not None
+        process_event(self.project.id, event.group_id, event.event_id)
         code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
         assert code_mapping.automatically_generated is False
 
