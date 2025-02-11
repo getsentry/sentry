@@ -30,7 +30,7 @@ const getPadding = (p: FieldWrapperProps) =>
         padding: ${space(2)};
       `;
 
-const FieldWrapper = styled('div')<FieldWrapperProps>`
+export const FieldWrapper = styled('div')<FieldWrapperProps>`
   ${getPadding}
   ${inlineStyle}
   display: flex;
@@ -72,5 +72,3 @@ const FieldWrapper = styled('div')<FieldWrapperProps>`
     ${p => (p.stacked ? 'padding-bottom: 0' : '')};
   }
 `;
-
-export default FieldWrapper;

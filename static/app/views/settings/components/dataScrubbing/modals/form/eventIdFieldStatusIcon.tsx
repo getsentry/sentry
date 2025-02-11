@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ControlState from 'sentry/components/forms/fieldGroup/controlState';
+import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';

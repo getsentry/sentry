@@ -6,11 +6,9 @@ import type {FieldGroupProps} from './types';
 
 interface FieldHelpProps extends Pick<FieldGroupProps, 'inline' | 'stacked'> {}
 
-const FieldHelp = styled('div')<FieldHelpProps>`
+export const FieldHelp = styled('div')<FieldHelpProps>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   margin-top: ${p => (p.stacked && !p.inline ? 0 : space(0.5))};
   line-height: 1.4;
 `;
-
-export default FieldHelp;

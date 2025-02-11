@@ -17,7 +17,7 @@ interface ControlWrapperProps
   children?: React.ReactNode;
 }
 
-function ControlWrapper({
+export function ControlWrapper({
   inline,
   alignRight,
   controlState,
@@ -37,8 +37,6 @@ function ControlWrapper({
     </FieldControlWrapper>
   );
 }
-
-export default ControlWrapper;
 
 const FieldControlWrapper = styled('div')<{inline?: boolean}>`
   display: flex;

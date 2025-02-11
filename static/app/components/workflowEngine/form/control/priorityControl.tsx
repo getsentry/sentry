@@ -5,7 +5,7 @@ import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {Chevron} from 'sentry/components/chevron';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {Flex} from 'sentry/components/container/flex';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconArrow} from 'sentry/icons';
