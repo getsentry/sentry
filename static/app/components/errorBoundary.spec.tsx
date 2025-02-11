@@ -35,7 +35,7 @@ describe('ErrorBoundary', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
-      <ErrorBoundary CustomComponent={ErrorMessage}>
+      <ErrorBoundary customComponent={({error}) => <ErrorMessage error={error} />}>
         <HelloComponent />
         <ErrorComponent />
       </ErrorBoundary>
@@ -68,7 +68,7 @@ describe('ErrorBoundary', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
-      <ErrorBoundary CustomComponent={null}>
+      <ErrorBoundary customComponent={null}>
         <HelloComponent />
         <ErrorComponent />
       </ErrorBoundary>

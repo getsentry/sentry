@@ -37,7 +37,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
           <IconStar isSolid color="yellow400" />
         </IconWrapper>
       )}
-      <ErrorBoundary CustomComponent={EventTitleError} mini>
+      <ErrorBoundary customComponent={EventTitleError} mini>
         <StyledEventOrGroupTitle
           data={props.data}
           // hasSeen is undefined for GroupTombstone

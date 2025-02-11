@@ -113,7 +113,7 @@ export default function ContextCard({
         <Title>
           <div>{getContextTitle({alias, type, value})}</div>
           <div style={{minWidth: 14}}>
-            <ErrorBoundary CustomComponent={null}>
+            <ErrorBoundary customComponent={null}>
               {getContextIcon({
                 alias,
                 type,

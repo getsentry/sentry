@@ -154,7 +154,7 @@ function EventEntryContent({
 export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
-      CustomComponent={() => (
+      customComponent={() => (
         <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
         </InterimSection>

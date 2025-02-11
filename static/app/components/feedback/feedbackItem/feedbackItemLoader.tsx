@@ -46,7 +46,7 @@ export default function FeedbackItemLoader() {
     <FeedbackErrorDetails error={t('Unable to load feedback')} />
   ) : issueData ? (
     <ErrorBoundary
-      CustomComponent={() => (
+      customComponent={() => (
         <FeedbackErrorDetails error={t('Unable to load feedback')} />
       )}
     >

@@ -237,7 +237,7 @@ function WidgetCard(props: Props) {
 
   return (
     <ErrorBoundary
-      CustomComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
