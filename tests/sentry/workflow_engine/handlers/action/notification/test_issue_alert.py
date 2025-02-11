@@ -1,6 +1,8 @@
 import uuid
 from unittest import mock
 
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
@@ -38,6 +40,16 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 return {}
 
         self.handler = TestHandler()
+
+    def test_create_rule_instance_from_action_missing_properties_raises_value_error(self):
+        class TestHandler(BaseIssueAlertHandler):
+            @classmethod
+            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
+                return {"tags": "environment,user,my_tag"}
+
+        self.handler = TestHandler()
+        with pytest.raises(ValueError):
+            self.handler.create_rule_instance_from_action(self.action, self.detector, self.job)
 
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
