@@ -507,7 +507,7 @@ def cron(**options: Any) -> None:
 @click.option(
     "--stale-threshold-sec",
     type=click.IntRange(min=120),
-    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+    help="Routes stale messages to stale topic if provided. See Kafka Router documentation to enable. https://www.notion.so/sentry/Kafka-Router-18f8b10e4b5d80679e98cc6d4d7a5eca",
 )
 @click.option(
     "--log-level",
