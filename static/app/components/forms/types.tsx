@@ -153,7 +153,7 @@ export interface TableType {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels: Record<PropertyKey, unknown>;
+  columnLabels: Record<PropertyKey, React.ReactNode>;
   type: 'table';
   /**
    * The confirmation message before a a row is deleted
