@@ -231,7 +231,7 @@ def get_condition_group_results(
 
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
-    workflows_to_envs: WorkflowMapping,
+    workflows_to_envs: WorkflowEnvMapping,
     dcg_to_workflow: dict[int, int],
     dcg_to_groups: DataConditionGroupGroups,
     condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
@@ -239,7 +239,7 @@ def get_groups_to_fire(
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
     for dcg in data_condition_groups:
         slow_conditions = get_slow_conditions(dcg)
-        action_match = dcg.logic_type
+        action_match = DataConditionGroup.Type(dcg.logic_type)
         for group_id in dcg_to_groups[dcg.id]:
             conditions_to_evaluate = []
             for condition in slow_conditions:
