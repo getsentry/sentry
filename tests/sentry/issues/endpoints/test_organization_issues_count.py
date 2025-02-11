@@ -28,7 +28,6 @@ class OrganizationIssuesCountTest(APITestCase, SnubaTestCase, SearchIssueTestMix
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
-            response = self.client.get(self.url + '?query=flags["test:flag"]:true')
-            assert response.status_code == 200
-            assert response.json() == {'flags["test:flag"]:true': 1}
+        response = self.client.get(self.url + '?query=flags["test:flag"]:true')
+        assert response.status_code == 200
+        assert response.json() == {'flags["test:flag"]:true': 1}
