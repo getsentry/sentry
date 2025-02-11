@@ -156,7 +156,7 @@
     "react-select": "4.3.1",
     "react-sparklines": "1.7.0",
     "react-textarea-autosize": "8.5.7",
-    "react-virtualized": "^9.22.5",
+    "react-virtualized": "^9.22.6",
     "reflux": "0.4.1",
     "screenfull": "^6.0.2",
     "scroll-to-element": "^2.0.0",
