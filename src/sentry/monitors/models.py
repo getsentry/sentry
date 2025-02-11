@@ -517,7 +517,7 @@ class MonitorCheckIn(Model):
 
     date_created = models.DateTimeField(default=timezone.now, null=True)
     """
-    Represnts when the check-in was actually recorded into the database. This
+    Represents when the check-in was actually recorded into the database. This
     is a real wall-clock time and is not tied to the "clock" time that
     check-ins are processed in the contenxt of.
     """
