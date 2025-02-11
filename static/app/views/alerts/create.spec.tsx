@@ -140,7 +140,7 @@ describe('ProjectAlertsCreate', function () {
     await waitFor(() => {
       expect(wrapper.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/alerts/new/metric',
+          pathname: '/organizations/org-slug/alerts/new/metric/',
           query: {
             aggregate: 'count()',
             dataset: 'events',
@@ -364,9 +364,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -419,9 +419,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -468,9 +468,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -514,9 +514,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
     });
