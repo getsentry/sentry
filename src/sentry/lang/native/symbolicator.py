@@ -21,6 +21,7 @@ from sentry.lang.native.sources import (
     get_scraping_config,
     sources_for_symbolication,
 )
+from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.utils import metrics
@@ -114,7 +115,7 @@ class Symbolicator:
         task_id: str | None = None
         json_response = None
 
-        backoff = _Backoff(BACKOFF_INITIAL, BACKOFF_MAX)
+        backoff = Backoff(BACKOFF_INITIAL, BACKOFF_MAX)
 
         with session:
             while True:
@@ -133,6 +134,7 @@ class Symbolicator:
                     # in a staggered fashion, we do not want to create a new `session`, being assigned a different
                     # Symbolicator instance just to it restarted next.
                     task_id = None
+                    backoff.reset()
                     continue
                 except ServiceUnavailable:
                     # This error means that the Symbolicator instance bound to our `session` is not healthy.
@@ -428,32 +430,3 @@ class SymbolicatorSession:
 
     def reset_worker_id(self):
         self.worker_id = uuid.uuid4().hex
-
-
-class _Backoff:
-    """
-    Creates a new exponential backoff.
-    """
-
-    def __init__(self, initial, max):
-        """
-        :param initial: The initial backoff time in seconds.
-        :param max: The maximum backoff time in seconds.
-        """
-        self.initial = initial
-        self.max = max
-        self._current = 0
-
-    def reset(self):
-        """
-        Resets the backoff time zero.
-        """
-        self._current = 0
-
-    def sleep_failure(self):
-        """
-        Sleeps until the next retry attempt and increases the backoff time for the next failure.
-        """
-        if self._current > 0:
-            time.sleep(self._current)
-        self._current = min(max(self._current * 2, self.initial), self.max)
