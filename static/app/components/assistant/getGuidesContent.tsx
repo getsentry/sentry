@@ -216,7 +216,7 @@ export default function getGuidesContent(
           title: t('Save Filters to Issue Views'),
           target: 'issue_views_page_filters_persistence',
           description: t(
-            'We heard your feedback — you can now save specific projects, environments, and time filters to individual Issue Views.'
+            'We heard your feedback — Issue Views now save project, environment, and time range filters.'
           ),
         },
       ],
