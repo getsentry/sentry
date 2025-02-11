@@ -100,7 +100,7 @@ export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>
       title={t('This feature is available for early adopters and the UX may change')}
     />
   ),
-  uptime_monitor: <FeatureBadge type="beta" />,
+  uptime_monitor: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
