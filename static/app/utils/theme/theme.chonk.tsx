@@ -104,7 +104,7 @@ const _chonkLightColors = {
   },
 };
 
-const _chonkDarkColors: typeof chonkLightColors = {
+const _chonkDarkColors: typeof _chonkLightColors = {
   static: {
     black: '#181225',
     white: '#FFFFFF',
