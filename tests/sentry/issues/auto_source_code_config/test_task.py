@@ -17,9 +17,9 @@ from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
-INTEGRATIONS_ROOT = "sentry.integrations.source_code_management"
-GET_TREES_FOR_ORG = f"{INTEGRATIONS_ROOT}.repo_trees.RepoTreesIntegration.get_trees_for_org"
-ISSUES_ROOT = "sentry.issues.auto_source_code_config"
+GET_TREES_FOR_ORG = (
+    "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
+)
 
 
 class BaseDeriveCodeMappings(TestCase):
@@ -123,7 +123,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
 
 class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
-    platform = "foo-platform"
+    platform = "python"
 
     def setUp(self) -> None:
         super().setUp()
