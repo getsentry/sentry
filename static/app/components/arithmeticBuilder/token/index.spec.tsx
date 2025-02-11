@@ -1,91 +1,156 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
+import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import {
-  TokenFreeText,
-  TokenOperator,
-  TokenParenthesis,
+  Operator,
+  Parenthesis,
+  TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {
-  tokenizeExpression,
-  toOperator,
-  toParenthesis,
-} from 'sentry/components/arithmeticBuilder/tokenizer';
-
-function k<T extends Token>(token: T): T {
-  token.key = expect.any(String);
-  return token;
-}
-
-function s(value: string): TokenFreeText {
-  return k(new TokenFreeText(expect.any(Object), value));
-}
-
-function o(value: string): TokenOperator {
-  return k(new TokenOperator(expect.any(Object), toOperator(value)));
-}
-
-function p(value: string): TokenParenthesis {
-  return k(new TokenParenthesis(expect.any(Object), toParenthesis(value)));
-}
+import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 describe('token', function () {
-  describe('ArithmeticTokenFreeText', function () {});
-
-  describe('ArithmeticTokenFunction', function () {});
-
   describe('ArithmeticTokenOperator', function () {
-    it('renders addition operator', function () {
+    it('renders addition operator', async function () {
+      const dispatch = jest.fn();
       const tokens = tokenizeExpression('+');
-      expect(tokens).toEqual([s(''), o('+'), s('')]);
-      render(<TokenGrid tokens={tokens} />);
+
+      render(
+        <ArithmeticBuilderContext.Provider value={{dispatch, focusOverride: null}}>
+          <TokenGrid tokens={tokens} />
+        </ArithmeticBuilderContext.Provider>
+      );
+
       const operator = screen.getByTestId('icon-add');
       expect(operator).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete +'}));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'DELETE_TOKEN',
+        token: expect.objectContaining({
+          kind: TokenKind.OPERATOR,
+          operator: Operator.PLUS,
+        }),
+      });
     });
 
-    it('renders subtract operator', function () {
+    it('renders subtract operator', async function () {
+      const dispatch = jest.fn();
       const tokens = tokenizeExpression('-');
-      expect(tokens).toEqual([s(''), o('-'), s('')]);
-      render(<TokenGrid tokens={tokens} />);
+
+      render(
+        <ArithmeticBuilderContext.Provider value={{dispatch, focusOverride: null}}>
+          <TokenGrid tokens={tokens} />
+        </ArithmeticBuilderContext.Provider>
+      );
+
       const operator = screen.getByTestId('icon-subtract');
       expect(operator).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete -'}));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'DELETE_TOKEN',
+        token: expect.objectContaining({
+          kind: TokenKind.OPERATOR,
+          operator: Operator.MINUS,
+        }),
+      });
     });
 
-    it('renders multiply operator', function () {
+    it('renders multiply operator', async function () {
+      const dispatch = jest.fn();
       const tokens = tokenizeExpression('*');
-      expect(tokens).toEqual([s(''), o('*'), s('')]);
-      render(<TokenGrid tokens={tokens} />);
+
+      render(
+        <ArithmeticBuilderContext.Provider value={{dispatch, focusOverride: null}}>
+          <TokenGrid tokens={tokens} />
+        </ArithmeticBuilderContext.Provider>
+      );
+
       const operator = screen.getByTestId('icon-multiply');
       expect(operator).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete *'}));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'DELETE_TOKEN',
+        token: expect.objectContaining({
+          kind: TokenKind.OPERATOR,
+          operator: Operator.MULTIPLY,
+        }),
+      });
     });
 
-    it('renders divide operator', function () {
+    it('renders divide operator', async function () {
+      const dispatch = jest.fn();
       const tokens = tokenizeExpression('/');
-      expect(tokens).toEqual([s(''), o('/'), s('')]);
-      render(<TokenGrid tokens={tokens} />);
+
+      render(
+        <ArithmeticBuilderContext.Provider value={{dispatch, focusOverride: null}}>
+          <TokenGrid tokens={tokens} />
+        </ArithmeticBuilderContext.Provider>
+      );
+
       const operator = screen.getByTestId('icon-divide');
       expect(operator).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete /'}));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'DELETE_TOKEN',
+        token: expect.objectContaining({
+          kind: TokenKind.OPERATOR,
+          operator: Operator.DIVIDE,
+        }),
+      });
     });
   });
 
   describe('ArithmeticTokenParenthesis', function () {
-    it('renders left parenthesis', function () {
+    it('renders left parenthesis', async function () {
+      const dispatch = jest.fn();
       const tokens = tokenizeExpression('(');
-      expect(tokens).toEqual([s(''), p('('), s('')]);
-      render(<TokenGrid tokens={tokens} />);
+
+      render(
+        <ArithmeticBuilderContext.Provider value={{dispatch, focusOverride: null}}>
+          <TokenGrid tokens={tokens} />
+        </ArithmeticBuilderContext.Provider>
+      );
+
       const parenthesis = screen.getByTestId('icon-parenthesis');
       expect(parenthesis).toBeInTheDocument();
       expect(parenthesis).toHaveAttribute('data-paren-side', 'left');
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete left'}));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'DELETE_TOKEN',
+        token: expect.objectContaining({
+          kind: TokenKind.PARENTHESIS,
+          parenthesis: Parenthesis.OPEN,
+        }),
+      });
     });
 
-    it('renders right parenthesis', function () {
+    it('renders right parenthesis', async function () {
+      const dispatch = jest.fn();
       const tokens = tokenizeExpression(')');
-      expect(tokens).toEqual([s(''), p(')'), s('')]);
-      render(<TokenGrid tokens={tokens} />);
+
+      render(
+        <ArithmeticBuilderContext.Provider value={{dispatch, focusOverride: null}}>
+          <TokenGrid tokens={tokens} />
+        </ArithmeticBuilderContext.Provider>
+      );
+
       const parenthesis = screen.getByTestId('icon-parenthesis');
       expect(parenthesis).toBeInTheDocument();
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete right'}));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'DELETE_TOKEN',
+        token: expect.objectContaining({
+          kind: TokenKind.PARENTHESIS,
+          parenthesis: Parenthesis.CLOSE,
+        }),
+      });
     });
   });
 });
