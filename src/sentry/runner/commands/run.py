@@ -500,14 +500,14 @@ def cron(**options: Any) -> None:
 )
 @click.option(
     "--enable-dlq/--disable-dlq",
-    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    help="Enable dlq to route invalid messages to the dlq topic. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
     default=True,
 )
 @click.option(
     "--stale-threshold-sec",
     type=click.IntRange(min=120),
-    help="Routes stale messages to stale topic if provided. See Kafka Router documentation to enable. https://www.notion.so/sentry/Kafka-Router-18f8b10e4b5d80679e98cc6d4d7a5eca",
+    help="Enable backlog queue to route stale messages to the blq topic.",
 )
 @click.option(
     "--log-level",
