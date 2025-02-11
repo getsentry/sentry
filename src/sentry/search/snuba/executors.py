@@ -32,6 +32,7 @@ from snuba_sdk import (
     OrderBy,
     Request,
 )
+from snuba_sdk.conditions import Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
@@ -69,12 +70,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import (
-    SnubaQueryParams,
-    aliased_query_params,
-    bulk_raw_query_with_override,
-    substitute_conditions,
-)
+from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query_with_override
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -1816,13 +1812,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
-                        where_conditions.append(condition)
+                        if features.has(
+                            "organizations:feature-flag-autocomplete", organization
+                        ) and has_tags_filter(condition.lhs):
+                            feature_condition = Condition(
+                                lhs=substitute_tags_filter(condition.lhs),
+                                op=condition.op,
+                                rhs=condition.rhs,
+                            )
+                            condition = Or(conditions=[condition, feature_condition])
 
-            if (
-                features.has("organizations:feature-flag-autocomplete", organization)
-                and is_errors is True
-            ):
-                where_conditions = list(substitute_conditions(where_conditions))
+                        where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
             if not is_errors:
@@ -1952,3 +1952,33 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
+
+
+def has_tags_filter(condition: Column | Function) -> bool:
+    if isinstance(condition, Column):
+        if (
+            condition.entity
+            and condition.entity.name == "events"
+            and condition.name.startswith("tags[")
+            and condition.name.endswith("]")
+        ):
+            return True
+    elif isinstance(condition, Function):
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return has_tags_filter(parameter)
+    return False
+
+
+def substitute_tags_filter(condition: Column | Function) -> bool:
+    if isinstance(condition, Column):
+        if condition.name.startswith("tags[") and condition.name.endswith("]"):
+            return Column(
+                name=f"flags[{condition.name[5:-1]}]",
+                entity=condition.entity,
+            )
+    elif isinstance(condition, Function):
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return substitute_tags_filter(parameter)
+    return condition
