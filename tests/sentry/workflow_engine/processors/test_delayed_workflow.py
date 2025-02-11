@@ -32,6 +32,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_condition_group_results,
     get_condition_query_groups,
     get_dcg_group_workflow_detector_data,
+    get_groups_to_fire,
 )
 from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.types import DataConditionHandlerType
@@ -109,6 +110,13 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.trigger_type_to_dcg_model[DataConditionHandlerType.DETECTOR_TRIGGER][
             self.detector_dcg.id
         ] = self.detector.id
+
+        self.dcg_to_workflow = self.trigger_type_to_dcg_model[
+            DataConditionHandlerType.WORKFLOW_TRIGGER
+        ].copy()
+        self.dcg_to_workflow.update(
+            self.trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER]
+        )
 
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -254,13 +262,8 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         assert trigger_type_to_dcg_model == self.trigger_type_to_dcg_model
 
     def test_fetch_workflows_envs(self):
-        dcg_to_workflow = self.trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]
-        dcg_to_workflow.update(
-            self.trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER]
-        )
-
         workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_envs(
-            list(dcg_to_workflow.values())
+            list(self.dcg_to_workflow.values())
         )
         assert workflows_to_envs == {
             self.workflow1.id: self.environment.id,

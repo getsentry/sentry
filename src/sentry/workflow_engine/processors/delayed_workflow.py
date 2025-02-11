@@ -252,7 +252,8 @@ def get_groups_to_fire(
                 ]
                 conditions_to_evaluate.append((condition, query_values))
 
-            if evaluate_data_conditions(conditions_to_evaluate, action_match)[0]:
+            passes, _ = evaluate_data_conditions(conditions_to_evaluate, action_match)
+            if passes:
                 groups_to_fire[group_id].add(dcg)
 
     return groups_to_fire
@@ -283,7 +284,7 @@ def process_delayed_workflows(
     dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
-    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]
+    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER].copy()
     dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
 
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
