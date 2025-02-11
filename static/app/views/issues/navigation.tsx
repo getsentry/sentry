@@ -23,6 +23,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
   return (
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+        <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>

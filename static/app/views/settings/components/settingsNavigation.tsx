@@ -2,6 +2,7 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {space} from 'sentry/styles/space';
@@ -42,6 +43,9 @@ function SettingsSecondaryNavigation({
 
   return (
     <SecondaryNav group={PrimaryNavGroup.SETTINGS}>
+      <SecondaryNav.Header>
+        {NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+      </SecondaryNav.Header>
       <SecondaryNav.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />

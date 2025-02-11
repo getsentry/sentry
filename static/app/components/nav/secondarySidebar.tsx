@@ -19,10 +19,8 @@ const SecondarySidebarWrapper = styled('div')`
   position: relative;
   border-right: 1px solid ${p => p.theme.translucentGray200};
   background: ${p => p.theme.surface300};
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   width: ${SECONDARY_SIDEBAR_WIDTH}px;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   height: 100%;

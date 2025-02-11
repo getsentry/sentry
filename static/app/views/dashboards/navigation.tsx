@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -22,6 +23,9 @@ export default function DashboardsNavigation({children}: DashboardsNavigationPro
   return (
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.DASHBOARDS}>
+        <SecondaryNav.Header>
+          {NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+        </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/`} end>

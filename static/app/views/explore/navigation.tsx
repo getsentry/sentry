@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -24,6 +25,9 @@ export default function ExploreNavigation({children}: Props) {
   return (
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.EXPLORE}>
+        <SecondaryNav.Header>
+          {NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+        </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <Feature features="performance-trace-explorer">
