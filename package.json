@@ -8,7 +8,6 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "^1.5.3",
     "@acemarke/react-prod-sourcemaps": "^0.2.1",
     "@amplitude/analytics-browser": "^1.5.3",
     "@babel/core": "~7.25.9",
@@ -158,7 +157,6 @@
     "react-sparklines": "1.7.0",
     "react-textarea-autosize": "8.5.7",
     "react-virtualized": "^9.22.5",
-    "@react-google-maps/api": "^2.12.0",
     "reflux": "0.4.1",
     "screenfull": "^6.0.2",
     "scroll-to-element": "^2.0.0",
