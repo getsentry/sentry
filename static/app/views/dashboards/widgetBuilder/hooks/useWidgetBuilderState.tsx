@@ -310,8 +310,11 @@ function useWidgetBuilderState(): {
               return;
             }
 
-            const firstActionPayloadNotEquation = action.payload.filter(
-              field => field.kind !== FieldValueKind.EQUATION
+            const firstActionPayloadNotEquation = action.payload.filter(field =>
+              dataset === WidgetType.RELEASE && displayType === DisplayType.TABLE
+                ? field.kind !== FieldValueKind.FIELD &&
+                  field.kind !== FieldValueKind.EQUATION
+                : field.kind !== FieldValueKind.EQUATION
             )[0];
 
             if (isRemoved) {

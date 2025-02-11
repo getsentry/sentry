@@ -49,6 +49,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
@@ -449,6 +450,27 @@ function Visualize({error, setError}: VisualizeProps) {
                   }
                 }
 
+                if (
+                  state.dataset === WidgetType.RELEASE &&
+                  state.displayType === DisplayType.TABLE
+                ) {
+                  // add the additional session tags to the aggregate options
+                  aggregateOptions = [
+                    ...aggregateOptions,
+                    ...Object.values(fieldOptions)
+                      .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
+                      .map(option => ({
+                        label: option.value.meta.name,
+                        value: option.value.meta.name,
+                        textValue: option.value.meta.name,
+                        trailingItems: renderTag(
+                          option.value.kind,
+                          option.value.meta.name
+                        ),
+                      })),
+                  ];
+                }
+
                 let matchingAggregate: any;
                 if (
                   fields[index]!.kind === FieldValueKind.FUNCTION &&
@@ -564,7 +586,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                   position="bottom-start"
                                   onChange={dropdownSelection => {
                                     const isNone = dropdownSelection.value === NONE;
-                                    const newFields = cloneDeep(fields);
+                                    let newFields = cloneDeep(fields);
                                     const currentField = newFields[index]!;
                                     const selectedAggregate = aggregates.find(
                                       option =>
@@ -572,11 +594,39 @@ function Visualize({error, setError}: VisualizeProps) {
                                     );
                                     // Update the current field's aggregate with the new aggregate
                                     if (!selectedAggregate && !isNone) {
-                                      // Handles new selection of a field from the aggregate dropdown
-                                      newFields[index] = {
-                                        kind: FieldValueKind.FIELD,
-                                        field: dropdownSelection.value as string,
-                                      };
+                                      // Handles selection of release tags from aggregate dropdown
+                                      if (
+                                        state.dataset === WidgetType.RELEASE &&
+                                        state.displayType === DisplayType.TABLE
+                                      ) {
+                                        newFields = [
+                                          {
+                                            kind: FieldValueKind.FIELD,
+                                            field: dropdownSelection.value as string,
+                                          },
+                                          ...newFields,
+                                        ];
+
+                                        const atLeastOneFunction = newFields.some(
+                                          newField =>
+                                            newField.kind === FieldValueKind.FUNCTION
+                                        );
+
+                                        // add a function in the off chance the user gets into a state where
+                                        // they don't already have a function there
+                                        if (!atLeastOneFunction) {
+                                          newFields = [
+                                            ...newFields,
+                                            datasetConfig.defaultField,
+                                          ];
+                                        }
+                                      } else {
+                                        // Handles new selection of a field from the aggregate dropdown
+                                        newFields[index] = {
+                                          kind: FieldValueKind.FIELD,
+                                          field: dropdownSelection.value as string,
+                                        };
+                                      }
                                       trackAnalytics(
                                         'dashboards_views.widget_builder.change',
                                         {
