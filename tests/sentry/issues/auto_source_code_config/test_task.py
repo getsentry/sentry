@@ -87,13 +87,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
     def test_handle_existing_code_mapping(self) -> None:
-        self.event = self.create_event(
-            [
-                {"in_app": True, "filename": "sentry/models/release.py"},
-                {"in_app": True, "filename": "sentry/tasks.py"},
-            ],
-            platform="python",  # The platform is irrelevant for this test
-        )
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration=self.integration
@@ -115,7 +108,15 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        process_event(self.project.id, self.event.group_id, self.event.event_id)
+        event = self.create_event(
+            [
+                {"in_app": True, "filename": "sentry/models/release.py"},
+                {"in_app": True, "filename": "sentry/tasks.py"},
+            ],
+            platform="python",  # The platform is irrelevant for this test
+        )
+        assert event.group_id is not None
+        process_event(self.project.id, event.group_id, event.event_id)
         code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
         assert code_mapping.automatically_generated is False
 
