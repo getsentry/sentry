@@ -6,6 +6,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 export default function useRedirectToFeedbackFromEvent() {
   const organization = useOrganization();
@@ -29,9 +30,17 @@ export default function useRedirectToFeedbackFromEvent() {
   useEffect(() => {
     if (projectSlug && event?.groupID) {
       navigate(
-        `/organizations/${organization.slug}/feedback/?feedbackSlug=${projectSlug}:${event.groupID}`,
+        {
+          pathname: makeFeedbackPathname({
+            path: '/',
+            organization,
+          }),
+          query: {
+            feedbackSlug: `${projectSlug}:${event.groupID}`,
+          },
+        },
         {replace: true}
       );
     }
-  }, [navigate, organization.slug, projectSlug, event]);
+  }, [navigate, projectSlug, event, organization]);
 }

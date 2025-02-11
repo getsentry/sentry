@@ -25,8 +25,8 @@ import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
@@ -127,9 +127,10 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                     size="sm"
                     priority="default"
                     to={{
-                      pathname: normalizeUrl(
-                        `/organizations/${organization.slug}/feedback/`
-                      ),
+                      pathname: makeFeedbackPathname({
+                        path: '/',
+                        organization,
+                      }),
                       query: {
                         ...query,
                         query: undefined,
