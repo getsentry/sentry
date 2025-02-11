@@ -12,7 +12,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {isChartHovered} from 'sentry/components/charts/utils';
+import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -277,7 +277,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               top: 0,
               left: 0,
               formatter(name: string) {
-                return props.aliases?.[name] ?? formatSeriesName(name);
+                return truncationFormatter(
+                  props.aliases?.[name] ?? formatSeriesName(name),
+                  true,
+                  // Escaping the legend string will cause some special
+                  // characters to render as their HTML equivalents.
+                  // So disable it here.
+                  false
+                );
               },
               selected: props.timeseriesSelection,
             }
