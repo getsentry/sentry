@@ -39,7 +39,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 TIMEZONE_CHOICES = get_timezone_choices()
 
 
-def validate_quick_start_display(value: dict[str, int]):
+def validate_quick_start_display(value: dict[str, int] | None) -> None:
     if value is not None:
         for display_value in value.values():
             if not isinstance(display_value, int):
@@ -48,7 +48,6 @@ def validate_quick_start_display(value: dict[str, int]):
                 raise ValidationError("The value cannot be less than or equal to 0.")
             if display_value > 2:
                 raise ValidationError("The value cannot exceed 2.")
-    return value
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
