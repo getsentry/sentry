@@ -553,6 +553,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
+                    confidence_column=column,
                 )
                 meta = self.handle_results_with_meta(
                     request,

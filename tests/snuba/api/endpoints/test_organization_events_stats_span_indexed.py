@@ -915,9 +915,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             old_confidence = response.data[column]["confidence"]
             for expected, actual in zip(event_counts, old_confidence[0:6]):
                 if expected != 0:
-                    assert actual[1][0][column] == "low"
+                    assert actual[1][0]["count"] == "low"
                 else:
-                    assert actual[1][0][column] is None
+                    assert actual[1][0]["count"] is None
 
             for expected, actual in zip(event_counts, sample_count[0:6]):
                 assert actual["value"] == expected
