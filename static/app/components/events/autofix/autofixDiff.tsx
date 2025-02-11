@@ -14,13 +14,12 @@ import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-
-import {DIFF_COLORS} from '../../splitDiff';
 
 type AutofixDiffProps = {
   diff: FilePatch[];
