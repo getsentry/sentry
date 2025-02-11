@@ -31,14 +31,15 @@ export interface ExternalIssueAction {
   disabled?: boolean;
   disabledText?: string;
   /**
+   * Used with pluginActions to link to specific url
+   * This is an external link
+   */
+  href?: string;
+  /**
    * Optional subtext to display in the dropdown
    * Helps differentiate between actions with the same name
    */
   nameSubText?: string;
-  /**
-   * Used with pluginActions to link to specific url
-   */
-  to?: string;
 }
 
 /**

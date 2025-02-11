@@ -105,7 +105,7 @@ export function usePluginExternalIssues({
         {
           id: `${title}-${action}`,
           name: action,
-          to: action,
+          href: action,
           onClick: () => {
             // Do nothing
           },
