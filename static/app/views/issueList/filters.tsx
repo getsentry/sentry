@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -21,14 +22,22 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+  const hasPageFiltersPersistence = organization.features.includes(
+    'issue-views-page-filter'
+  );
 
   return (
     <FiltersContainer hasNewLayout={hasNewLayout}>
-      <StyledPageFilterBar>
-        <ProjectPageFilter />
-        <EnvironmentPageFilter />
-        <DatePageFilter />
-      </StyledPageFilterBar>
+      <GuideAnchor
+        target="issue_views_page_filters_persistence"
+        disabled={!hasPageFiltersPersistence}
+      >
+        <StyledPageFilterBar>
+          <ProjectPageFilter />
+          <EnvironmentPageFilter />
+          <DatePageFilter />
+        </StyledPageFilterBar>
+      </GuideAnchor>
 
       <Search {...{query, onSearch}} />
 
