@@ -324,7 +324,7 @@ def get_seer_similar_issues(
                 result = "fingerprint_match"
 
             metrics.incr(
-                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                "grouping.similarity.hybrid_fingerprint_seer_result",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": event.platform, "result": result},
             )

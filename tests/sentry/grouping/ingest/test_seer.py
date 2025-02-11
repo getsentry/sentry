@@ -416,7 +416,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 existing_grouphash,
             )
             mock_metrics_incr.assert_called_with(
-                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                "grouping.similarity.hybrid_fingerprint_seer_result",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": "python", "result": "fingerprint_match"},
             )
@@ -456,7 +456,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 None,
             )
             mock_metrics_incr.assert_called_with(
-                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                "grouping.similarity.hybrid_fingerprint_seer_result",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": "python", "result": "no_fingerprint_match"},
             )
@@ -496,7 +496,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 None,
             )
             mock_metrics_incr.assert_called_with(
-                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                "grouping.similarity.hybrid_fingerprint_seer_result",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": "python", "result": "only_event_hybrid"},
             )
@@ -534,7 +534,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 None,
             )
             mock_metrics_incr.assert_called_with(
-                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                "grouping.similarity.hybrid_fingerprint_seer_result",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": "python", "result": "only_parent_hybrid"},
             )
@@ -587,7 +587,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 None,
             )
             mock_metrics_incr.assert_called_with(
-                "grouping.similarity.hybrid_fingerprint_seer_result_check",
+                "grouping.similarity.hybrid_fingerprint_seer_result",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": "python", "result": "no_parent_metadata"},
             )
