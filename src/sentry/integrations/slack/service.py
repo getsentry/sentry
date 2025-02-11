@@ -297,7 +297,16 @@ class SlackService:
                             "parent notification does not have a message identifier, skipping"
                         )
                         continue
-                    channel_id = self._get_channel_id_from_parent_notification(parent_notification)
+                    if isinstance(parent_notification, NotificationActionNotificationMessage):
+                        channel_id = (
+                            self._get_channel_id_from_parent_notification_notification_action(
+                                parent_notification
+                            )
+                        )
+                    else:
+                        channel_id = self._get_channel_id_from_parent_notification(
+                            parent_notification
+                        )
                     self._send_notification_to_slack_channel(
                         channel_id=channel_id,
                         message_identifier=parent_notification.message_identifier,
@@ -341,12 +350,8 @@ class SlackService:
 
     def _get_channel_id_from_parent_notification(
         self,
-        parent_notification: NotificationActionNotificationMessage | IssueAlertNotificationMessage,
+        parent_notification: IssueAlertNotificationMessage,
     ) -> str:
-        if isinstance(parent_notification, NotificationActionNotificationMessage):
-            return self._get_channel_id_from_parent_notification_notification_action(
-                parent_notification
-            )
         """Get the channel ID from a parent notification by looking up the rule action details."""
         if not parent_notification.rule_fire_history:
             raise RuleDataError(
