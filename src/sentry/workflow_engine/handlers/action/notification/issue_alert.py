@@ -1,6 +1,6 @@
 import logging
 import uuid
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Callable, Collection, Sequence
 from typing import Any
 
@@ -20,6 +20,8 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     DiscordDataBlob,
+    OnCallDataBlob,
+    SlackDataBlob,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,12 +35,16 @@ class BaseIssueAlertHandler(ABC):
     @staticmethod
     def get_integration_id(action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.INTEGRATION_ID_KEY.value):
+            if action.integration_id is None:
+                raise ValueError(f"No integration id found for action type: {action.type}")
             return {mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value]: action.integration_id}
         raise ValueError(f"No integration id key found for action type: {action.type}")
 
     @classmethod
     def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
+            if action.target_identifier is None:
+                raise ValueError(f"No target identifier found for action type: {action.type}")
             return {
                 mapping[
                     ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
@@ -49,16 +55,15 @@ class BaseIssueAlertHandler(ABC):
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value):
+            if action.target_display is None:
+                raise ValueError(f"No target display found for action type: {action.type}")
             return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: action.target_display}
         raise ValueError(f"No target display key found for action type: {action.type}")
 
     @classmethod
-    @abstractmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         """Add additional fields to the blob"""
-        raise NotImplementedError(
-            f"get_additional_fields not implemented for action type: {action.type}"
-        )
+        return {}
 
     @classmethod
     def build_rule_action_blob(
@@ -186,3 +191,43 @@ class DiscordIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         return {}
+
+
+@issue_alert_handler_registry.register(Action.Type.MSTEAMS)
+class MSTeamsIssueAlertHandler(BaseIssueAlertHandler):
+    pass
+
+
+@issue_alert_handler_registry.register(Action.Type.SLACK)
+class SlackIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        blob = SlackDataBlob(**action.data)
+        return {
+            "tags": blob.tags,
+            "notes": blob.notes,
+        }
+
+
+@issue_alert_handler_registry.register(Action.Type.PAGERDUTY)
+class PagerDutyIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        blob = OnCallDataBlob(**action.data)
+        return {"severity": blob.priority}
+
+
+@issue_alert_handler_registry.register(Action.Type.OPSGENIE)
+class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        blob = OnCallDataBlob(**action.data)
+        return {"priority": blob.priority}
