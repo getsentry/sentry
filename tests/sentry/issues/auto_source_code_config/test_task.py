@@ -35,23 +35,12 @@ class BaseDeriveCodeMappings(TestCase):
             external_id=self.organization.id,
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
-        # Makes sure the children classes set the platform and the stacktrace
-        self.event = self.create_event(self.frames, self.platform)
-
-    @property
-    def platform(self) -> str:
-        raise NotImplementedError
-
-    # XXX: Change the return type to be a typed dict
-    @property
-    def frames(self) -> list[dict[str, str | bool]]:
-        raise NotImplementedError
 
     def create_event(
         self, frames: Sequence[Mapping[str, str | bool]], platform: str | None = None
     ) -> Event:
         """Helper function to prevent creating an event without a platform."""
-        test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
+        test_data = {"platform": platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id)
 
     def _get_trees_for_org(self, files: Sequence[str]) -> dict[str, RepoTree]:
@@ -76,8 +65,10 @@ class BaseDeriveCodeMappings(TestCase):
 class TestTaskBehavior(BaseDeriveCodeMappings):
     """Test task behavior that is not language specific."""
 
-    platform = "python"  # Platform is not relevant for these tests
-    frames = [{"filename": "foo/bar.baz", "in_app": True}]
+    def setUp(self) -> None:
+        super().setUp()
+        # The platform and event are not relevant for these tests
+        self.event = self.create_event([{"filename": "foo/bar.baz", "in_app": True}], "python")
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
@@ -102,17 +93,8 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
-    platform = "not-used"
-    frames = [{}]
-
     def test_skips_not_supported_platforms(self) -> None:
         event = self.create_event([{}], platform="elixir")
-        assert event.group_id is not None
-        process_event(self.project.id, event.group_id, event.event_id)
-        assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
-
-    def test_skip_tests_folder(self) -> None:
-        event = self.create_event([{"filename": "tests/foo.tsx", "in_app": True}], "javascript")
         assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
@@ -137,7 +119,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             organization_id=organization_integration.organization_id,
         )
 
-        # The platform is irrelevant for this test
+        # The platform & frames are irrelevant for this test
         event = self.create_event([{"filename": "foo/bar/baz.py", "in_app": True}], "python")
         assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
@@ -146,7 +128,21 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         assert all_cm[0].automatically_generated is False
 
 
-class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
+class LanguageSpecificDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self) -> None:
+        super().setUp()
+        self.event = self.create_event(self.frames, self.platform)
+
+    @property
+    def platform(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def frames(self) -> list[dict[str, str | bool]]:
+        raise NotImplementedError
+
+
+class TestBackSlashDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "python"
     # The lack of a \ after the drive letter in the third frame signals that
     # this is a relative path. This may be unlikely to occur in practice,
@@ -171,7 +167,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["sentry/models/release.py"], "D:\\Users\\code\\", "")
 
 
-class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestJavascriptDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "javascript"
     frames = [
         {"filename": "../node_modules/@sentry/foo/esm/hub.js", "in_app": False},  # Not in-app
@@ -190,7 +186,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["some/path/Test.tsx"], "", "")
 
 
-class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestRubyDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "ruby"
     frames = [
         {"filename": "some/path/test.rb", "in_app": True},
@@ -204,7 +200,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["lib/tasks/crontask.rake"], "", "")
 
 
-class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "node"
     frames = [
         # It can handle app:// urls
@@ -228,7 +224,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["services/event/index.js"], "app:///../", "")
 
 
-class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "go"
     frames = [
         {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
@@ -247,7 +243,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_no_code_mapping(["notsentry/main.go"])
 
 
-class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "php"
     frames = [
         {"in_app": True, "filename": "/sentry/capybara.php"},
@@ -262,7 +258,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.php"], "/sentry/", "src/sentry/")
 
 
-class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "csharp"
     frames = [
         {"in_app": True, "filename": "/sentry/capybara.cs"},
@@ -287,7 +283,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_no_code_mapping(["sentry/src/functions.cs"])
 
 
-class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
+class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "python"
     frames = [
         {"in_app": True, "filename": "sentry/tasks.py"},
