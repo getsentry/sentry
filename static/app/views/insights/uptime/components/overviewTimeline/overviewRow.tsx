@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import Tag from 'sentry/components/badge/tag';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
@@ -73,6 +74,9 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
             <IconTimer size="xs" />
             {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
           </ScheduleDetails>
+          <MonitorStatuses>
+            {uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}
+          </MonitorStatuses>
         </DetailsContainer>
       </DetailsLink>
     </DetailsArea>
@@ -156,6 +160,11 @@ const ScheduleDetails = styled('small')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const MonitorStatuses = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;
 
 interface TimelineRowProps {
