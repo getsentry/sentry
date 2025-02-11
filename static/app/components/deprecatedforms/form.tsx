@@ -35,7 +35,7 @@ type FormClassState = {
   data: any;
   errors: {non_field_errors?: Array<Record<PropertyKey, unknown>>} & Record<
     PropertyKey,
-    unknown
+    string
   >;
   initialData: Record<PropertyKey, unknown>;
   state: FormState;
