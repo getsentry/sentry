@@ -70,6 +70,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
@@ -468,8 +469,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+      makeAlertsPathname({
+        path: `/rules/${project.slug}/${rule.id}/details/`,
+        organization,
       })
     );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
@@ -909,9 +911,10 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         openInNewTab
         priority="error"
         icon={<IconNot color="red300" />}
-        href={normalizeUrl(
-          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
-        )}
+        href={makeAlertsPathname({
+          path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
+          organization,
+        })}
       >
         {tct(
           'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',

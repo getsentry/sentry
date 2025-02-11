@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -47,12 +48,18 @@ type Options = {
 
 function getIssueAlertUrl({projects, organization}: Options) {
   if (!projects || !projects.length) {
-    return `/organizations/${organization.slug}/alerts/rules/`;
+    return makeAlertsPathname({
+      path: '/rules/',
+      organization,
+    });
   }
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
   const project = firstProjectWithEvents ?? projects[0]!;
-  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
+  return makeAlertsPathname({
+    path: `/${project.slug}/wizard/`,
+    organization,
+  });
 }
 
 function getOnboardingInstructionsUrl({projects, organization}: Options) {
