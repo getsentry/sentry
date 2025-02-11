@@ -170,6 +170,77 @@ def get_or_create_uptime_subscription(
     return subscription
 
 
+def get_or_create_project_uptime_subscription(
+    project: Project,
+    environment: Environment | None,
+    url: str,
+    interval_seconds: int,
+    timeout_ms: int,
+    method: str = "GET",
+    headers: Sequence[tuple[str, str]] | None = None,
+    body: str | None = None,
+    mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    status: int = ObjectStatus.ACTIVE,
+    name: str = "",
+    owner: Actor | None = None,
+    trace_sampling: bool = False,
+    override_manual_org_limit: bool = False,
+) -> tuple[ProjectUptimeSubscription, bool]:
+    # XXX: Remove this function after getsentry is compat
+    if mode == ProjectUptimeSubscriptionMode.MANUAL:
+        manual_subscription_count = ProjectUptimeSubscription.objects.filter(
+            project__organization=project.organization, mode=ProjectUptimeSubscriptionMode.MANUAL
+        ).count()
+        if (
+            not override_manual_org_limit
+            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
+        ):
+            raise MaxManualUptimeSubscriptionsReached
+
+    uptime_subscription = get_or_create_uptime_subscription(
+        url=url,
+        interval_seconds=interval_seconds,
+        timeout_ms=timeout_ms,
+        method=method,
+        headers=headers,
+        body=body,
+        trace_sampling=trace_sampling,
+    )
+    owner_user_id = None
+    owner_team_id = None
+    if owner:
+        if owner.is_user:
+            owner_user_id = owner.id
+        if owner.is_team:
+            owner_team_id = owner.id
+    uptime_monitor, created = ProjectUptimeSubscription.objects.get_or_create(
+        project=project,
+        environment=environment,
+        uptime_subscription=uptime_subscription,
+        mode=mode.value,
+        name=name,
+        owner_user_id=owner_user_id,
+        owner_team_id=owner_team_id,
+    )
+
+    # Update status. This may have the side effect of removing or creating a
+    # remote subscription. When a new monitor is created we will ensure seat
+    # assignment, which may cause the monitor to be disabled if there are no
+    # available seat assignments.
+    match status:
+        case ObjectStatus.ACTIVE:
+            try:
+                enable_project_uptime_subscription(uptime_monitor, ensure_assignment=created)
+            except UptimeMonitorNoSeatAvailable:
+                # No need to do anything if we failed to handle seat
+                # assignment. The monitor will be created, but not enabled
+                pass
+        case ObjectStatus.DISABLED:
+            disable_project_uptime_subscription(uptime_monitor)
+
+    return uptime_monitor, created
+
+
 def create_uptime_subscription(
     url: str,
     interval_seconds: int,
