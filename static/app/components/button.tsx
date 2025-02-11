@@ -123,7 +123,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    *
    * @deprecated Use LinkButton instead
    */
-  to?: string | Record<PropertyKey, unknown>;
+  to?: string | LocationDescriptor;
 }
 
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
