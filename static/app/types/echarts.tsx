@@ -11,7 +11,8 @@ import type {Confidence} from 'sentry/types/organization';
 export type SeriesDataUnit = {
   // number because we sometimes use timestamps
   name: string | number;
-  value: number;
+  // '-' will be ignored by echarts and can be used to render discontinuous lines
+  value: number | '-';
   itemStyle?: {
     color?: string;
   };

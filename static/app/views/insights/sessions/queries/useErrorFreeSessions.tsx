@@ -104,7 +104,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
 
         return {
           name: sessionData.intervals[idx] ?? '',
-          value: intervalTotal > 0 ? healthyCount / intervalTotal : 1,
+          value: intervalTotal > 0 ? healthyCount / intervalTotal : ('-' as const),
         };
       });
 
