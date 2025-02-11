@@ -27,7 +27,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
+import {
+  useCurrentEventMarklineSeries,
+  useHoveredActivityMarklineSeries,
+} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -177,6 +180,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     event,
     group,
   });
+
+  const hoveredActivitySeries = useHoveredActivityMarklineSeries({group});
   const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
@@ -249,6 +254,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
+    if (hoveredActivitySeries.markLine) {
+      seriesData.push(hoveredActivitySeries as BarChartSeries);
+    }
+
     if (releaseSeries.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
@@ -270,6 +279,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     unfilteredEventSeries,
     unfilteredUserSeries,
     currentTab,
+    hoveredActivitySeries,
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;

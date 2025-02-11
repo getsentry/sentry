@@ -9,6 +9,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
 function useEventMarklineSeries({
@@ -115,5 +116,62 @@ export function useCurrentEventMarklineSeries({
   return {
     ...result,
     seriesName: t('Current Event'),
+  };
+}
+
+export function useHoveredActivityMarklineSeries({group}: {group: Group}) {
+  const theme = useTheme();
+
+  const eventView = useIssueDetailsEventView({group});
+  const [hoveredActivity, _] = useSyncedLocalStorageState<string | null>(
+    `streamlined-activity-section-hovered-activity`,
+    null
+  );
+
+  const markLine = hoveredActivity
+    ? MarkLine({
+        animation: false,
+        lineStyle: {
+          color: theme.purple300,
+          type: 'solid',
+        },
+        label: {
+          show: false,
+        },
+        data: [
+          {
+            xAxis: +new Date(hoveredActivity),
+            name: 'Activity',
+            label: {
+              formatter: () => 'Activity',
+            },
+          },
+        ],
+        tooltip: {
+          trigger: 'item',
+          formatter: ({data}: any) => {
+            const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+              local: !eventView.utc,
+            });
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label"><strong>${t(
+                'Current Activity'
+              )}</strong></span></div>`,
+              '</div>',
+              `<div class="tooltip-footer">${time}</div>`,
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
+          },
+        },
+      })
+    : undefined;
+
+  return {
+    seriesName: t('Specific Events'),
+    data: [],
+    markLine,
+    color: theme.pink200,
+    type: 'line',
   };
 }

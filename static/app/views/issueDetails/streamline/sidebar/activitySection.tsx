@@ -25,6 +25,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
@@ -50,6 +51,10 @@ function TimelineItem({
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
+  const [_, setHoveredActivity] = useSyncedLocalStorageState<string | null>(
+    `streamlined-activity-section-hovered-activity`,
+    null
+  );
   const authorName = item.user ? item.user.name : 'Sentry';
   const {title, message} = getGroupActivityItem(
     item,
@@ -66,6 +71,8 @@ function TimelineItem({
 
   return (
     <ActivityTimelineItem
+      onMouseEnter={() => setHoveredActivity(item.dateCreated)}
+      onMouseLeave={() => setHoveredActivity(null)}
       title={
         <Flex gap={space(0.5)} align="center" justify="flex-start">
           <TitleTooltip title={title} showOnlyOnOverflow>
