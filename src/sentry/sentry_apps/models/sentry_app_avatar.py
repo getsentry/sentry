@@ -15,6 +15,11 @@ if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
+class SentryAppAvatarPhotoTypes(Enum):
+    ICON = "icon"
+    LOGO = "logo"
+
+
 class SentryAppAvatarTypes(Enum):
     DEFAULT = 0
     UPLOAD = 1
@@ -67,4 +72,4 @@ class SentryAppAvatar(ControlAvatarBase):
         return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"
 
     def get_avatar_photo_type(self):
-        return "logo" if self.color else "icon"
+        return SentryAppAvatarPhotoTypes.LOGO if self.color else SentryAppAvatarPhotoTypes.ICON
