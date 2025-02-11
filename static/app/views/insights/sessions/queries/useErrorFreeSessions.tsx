@@ -124,7 +124,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
     return {series, releases, isPending, error};
   }
 
-  // For series data not grouped by release
+  // Returns series data not grouped by release
   const getStatusSeries = (status: string) =>
     sessionsData.groups.find(group => group.by['session.status'] === status)?.series[
       'sum(session)'
