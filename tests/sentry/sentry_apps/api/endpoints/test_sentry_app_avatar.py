@@ -48,10 +48,12 @@ class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
         assert color_avatar["avatarType"] == "default"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
+        assert color_avatar["photo_type"] == "logo"
 
         assert simple_avatar["avatarType"] == "default"
         assert simple_avatar["avatarUuid"] is not None
         assert simple_avatar["color"] is False
+        assert simple_avatar["photo_type"] == "icon"
         assert response.data["uuid"] == str(self.unpublished_app.uuid)
 
     def test_get_upload_control_file(self):
@@ -70,6 +72,7 @@ class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
         upload = uploads[0]
         assert upload["avatarType"] == "upload"
         assert upload["avatarUuid"]
+        assert upload["photo_type"] == "logo"
 
         avatar = SentryAppAvatar.objects.filter(sentry_app_id=self.unpublished_app.id).first()
         assert avatar
@@ -94,6 +97,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
+        assert color_avatar["photo_type"] == "logo"
 
     def test_upload_control_file(self):
         resp = self.create_avatar(is_color=True)
@@ -107,6 +111,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
+        assert color_avatar["photo_type"] == "logo"
 
     def test_upload_control_with_storage_options(self):
         with self.options(
@@ -125,6 +130,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             assert color_avatar["avatarType"] == "upload"
             assert color_avatar["avatarUuid"] is not None
             assert color_avatar["color"] is True
+            assert color_avatar["photo_type"] == "logo"
 
     def test_upload_both(self):
         self.create_avatar(is_color=True)
@@ -140,6 +146,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["color"] is True
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
+        assert color_avatar["photo_type"] == "logo"
 
         assert avatars[1].get_file_id()
         assert avatars[1].get_avatar_type_display() == "upload"
@@ -148,6 +155,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert simple_avatar["color"] is False
         assert simple_avatar["avatarType"] == "upload"
         assert simple_avatar["avatarUuid"] is not None
+        assert simple_avatar["photo_type"] == "icon"
 
     def test_revert_to_default(self):
         """Test that a user can go back to the default avatars after having uploaded one"""
@@ -175,11 +183,13 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["avatarType"] == "default"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
+        assert color_avatar["photo_type"] == "logo"
 
         assert simple_avatar
         assert simple_avatar["avatarType"] == "default"
         assert simple_avatar["avatarUuid"] is not None
         assert simple_avatar["color"] is False
+        assert simple_avatar["photo_type"] == "icon"
 
     def test_upload_color_for_black_white(self):
         """Test that we reject a color image meant for the black and white icon"""

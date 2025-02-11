@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
-class SentryAppAvatarPhotoTypes(Enum):
+class SentryAppAvatarPhotoTypes(StrEnum):
     ICON = "icon"
     LOGO = "logo"
 
