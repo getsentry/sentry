@@ -99,7 +99,6 @@ function OTelSummaryContentInner({
   transactionName,
   onChangeFilter,
 }: Props) {
-  const routes = useRoutes();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
   const domainViewFilters = useDomainViewFilters();
@@ -131,23 +130,6 @@ function OTelSummaryContentInner({
     };
   }
 
-  function handleCellAction(column: TableColumn<React.ReactText>) {
-    return (action: Actions, value: React.ReactText) => {
-      const searchConditions = normalizeSearchConditions(eventView.query);
-
-      updateQuery(searchConditions, action, column, value);
-
-      navigate({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchConditions.formatString(),
-        },
-      });
-    };
-  }
-
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
@@ -155,36 +137,6 @@ function OTelSummaryContentInner({
     };
 
     navigate(target);
-  }
-
-  function handleAllEventsViewClick() {
-    trackAnalytics('performance_views.summary.view_in_transaction_events', {
-      organization,
-    });
-  }
-
-  function generateEventView(
-    transactionsListEventView: EventView,
-    transactionsListTitles: string[]
-  ) {
-    const {selected} = getTransactionsListSort(location, {
-      p95: totalValues?.['p95()'] ?? 0,
-      spanOperationBreakdownFilter,
-    });
-    const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
-
-    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
-      const fields = [
-        // Remove the extra field columns
-        ...sortedEventView.fields.slice(0, transactionsListTitles.length),
-      ];
-
-      // omit "Operation Duration" column
-      sortedEventView.fields = fields.filter(({field}) => {
-        return !isRelativeSpanOperationBreakdownField(field);
-      });
-    }
-    return sortedEventView;
   }
 
   const trailingItems = useMemo(() => {
@@ -279,18 +231,6 @@ function OTelSummaryContentInner({
 
   transactionsListEventView.fields = fields;
 
-  const openAllEventsProps = {
-    generatePerformanceTransactionEventsView: () => {
-      const performanceTransactionEventsView = generateEventView(
-        transactionsListEventView,
-        transactionsListTitles
-      );
-      performanceTransactionEventsView.query = query;
-      return performanceTransactionEventsView;
-    },
-    handleOpenAllEventsClick: handleAllEventsViewClick,
-  };
-
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
     organization.features.includes('insights-initial-modules');
@@ -346,39 +286,6 @@ function OTelSummaryContentInner({
             transactionName={transactionName}
             supportsInvestigationRule
             showViewSampledEventsButton
-          />
-          <TransactionsList
-            location={location}
-            organization={organization}
-            eventView={transactionsListEventView}
-            {...openAllEventsProps}
-            showTransactions={
-              decodeScalar(
-                location.query.showTransactions,
-                TransactionFilterOptions.SLOW
-              ) as TransactionFilterOptions
-            }
-            breakdown={decodeFilterFromLocation(location)}
-            titles={transactionsListTitles}
-            handleDropdownChange={handleTransactionsListSortChange}
-            generateLink={{
-              id: generateTransactionIdLink(transactionName, domainViewFilters.view),
-              trace: generateTraceLink(
-                eventView.normalizeDateSelection(location),
-                domainViewFilters.view
-              ),
-              replayId: generateReplayLink(routes),
-              'profile.id': generateProfileLink(),
-            }}
-            handleCellAction={handleCellAction}
-            {...getOTelTransactionsListSort(location, {
-              p95: totalValues?.['p95()'] ?? 0,
-              spanOperationBreakdownFilter,
-            })}
-            domainViewFilters={domainViewFilters}
-            forceLoading={isLoading}
-            referrer="performance.transactions_summary"
-            supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
 
