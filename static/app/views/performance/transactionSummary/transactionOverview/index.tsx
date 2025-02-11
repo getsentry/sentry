@@ -69,7 +69,7 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
-  const isOTel = organization.features.includes('performance-core-otel-support');
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
 
   return (
     <MEPSettingProvider>
@@ -80,9 +80,7 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={
-          isOTel ? OTelCardinalityLoadingWrapper : CardinalityLoadingWrapper
-        }
+        childComponent={isEAP ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper}
       />
     </MEPSettingProvider>
   );
@@ -98,7 +96,7 @@ function CardinalityLoadingWrapper(props: ChildProps) {
   return <OverviewContentWrapper {...props} />;
 }
 
-function OTelCardinalityLoadingWrapper(props: ChildProps) {
+function EAPCardinalityLoadingWrapper(props: ChildProps) {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
   if (mepCardinalityContext.isLoading) {
