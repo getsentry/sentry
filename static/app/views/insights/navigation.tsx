@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -39,6 +40,9 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
   return (
     <Fragment>
       <SecondaryNav group={PrimaryNavGroup.INSIGHTS}>
+        <SecondaryNav.Header>
+          {NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+        </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/projects/`}>
