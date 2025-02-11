@@ -50,7 +50,10 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
 
   // Returns series data for each release
   if (groupByRelease) {
+    // Maps release to its API response groups
     const releaseGroups = new Map<string, typeof sessionsData.groups>();
+
+    // Maps release to its adoption rate calculation
     const releaseAdoption = new Map<string, number>();
 
     sessionsData.groups.forEach(group => {
@@ -60,16 +63,18 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
         const groups = sessionsData.groups.filter(
           g => g.by.release?.toString() === release
         );
+
+        // Calculate total sessions for entire time period
         const totalSessions = groups.reduce(
           (acc, g) => acc + (g.totals['sum(session)'] ?? 0),
           0
         );
-        // Only add releases with sessions > 0
+
+        // Only consider releases with total sessions > 0
         if (totalSessions > 0) {
           releaseAdoption.set(release, percent(totalSessions, projTotal));
         }
       }
-      // Only collect groups for releases with sessions
       if (releaseAdoption.has(release)) {
         releaseGroups.get(release)!.push(group);
       }
@@ -86,7 +91,7 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
       const getStatusSeries = (status: string) =>
         groups.find(g => g.by['session.status'] === status)?.series['sum(session)'] ?? [];
 
-      // Get all status series at once
+      // Get all status series at once and calculate healthy session percentage for each interval
       const seriesData = getStatusSeries('healthy').map((healthy, idx) => {
         const total = [
           healthy,
