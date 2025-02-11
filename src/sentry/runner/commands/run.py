@@ -500,14 +500,14 @@ def cron(**options: Any) -> None:
 )
 @click.option(
     "--enable-dlq/--disable-dlq",
-    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    help="Enable dlq to route invalid messages to the dlq topic. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
     default=True,
 )
 @click.option(
     "--stale-threshold-sec",
-    type=click.IntRange(min=60),
-    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+    type=click.IntRange(min=120),
+    help="Enable backlog queue to route stale messages to the blq topic.",
 )
 @click.option(
     "--log-level",
