@@ -60,13 +60,13 @@ import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
 <WidgetLayout
-  Title={<WidgetTitle "epm() : /insights/frontend/assets" />}
+  Title={<WidgetTitle title="epm() : /insights/frontend/assets" />}
   Actions={
     <Fragment>
       <WidgetButton>Say More</WidgetButton>
       <WidgetButton>Say Less</WidgetButton>
       <WidgetDescription
-        title="Data"
+        title="epm()"
         description="Events received, tracked per minute"
       />
     </Fragment>
@@ -88,7 +88,7 @@ import {WidgetTitle} from './widgetTitle';
                 <WidgetButton>Say More</WidgetButton>
                 <WidgetButton>Say Less</WidgetButton>
                 <WidgetDescription
-                  title="Data"
+                  title="epm() : /insights/frontend/assets"
                   description="Events received, tracked per minute"
                 />
               </Fragment>
