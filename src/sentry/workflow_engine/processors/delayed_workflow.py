@@ -231,9 +231,9 @@ def get_condition_group_results(
 
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
-    workflows_to_envs: dict[int, int | None],
+    workflows_to_envs: WorkflowMapping,
     dcg_to_workflow: dict[int, int],
-    dcg_to_groups: dict[int, set[int]],
+    dcg_to_groups: DataConditionGroupGroups,
     condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
 ) -> dict[int, set[DataConditionGroup]]:
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
