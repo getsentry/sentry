@@ -5,10 +5,18 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 
 function renderMockRequests(organization: Organization) {
+  const userMock = UserFixture();
+  ConfigStore.set(
+    'user',
+    UserFixture({
+      options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
+    })
+  );
   const getOnboardingTasksMock = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/onboarding-tasks/`,
     method: 'GET',
