@@ -328,6 +328,15 @@ def get_seer_similar_issues(
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"platform": event.platform, "result": result},
             )
+    # For convenience and ease of graph creation in DD, we collect the no-match case as part of this
+    # metric in addition to collecting it as part of the overall seer request metric
+    else:
+        if event_has_hybrid_fingerprint:
+            metrics.incr(
+                "grouping.similarity.hybrid_fingerprint_seer_result",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": event.platform, "result": "no_seer_match"},
+            )
 
     similar_issues_metadata = {
         "results": seer_results_json,
