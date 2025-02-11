@@ -12,6 +12,7 @@ export interface WidgetLayoutProps {
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
+  borderless?: boolean;
   height?: number;
   noFooterPadding?: boolean;
   noHeaderPadding?: boolean;
@@ -26,6 +27,7 @@ export function WidgetLayout(props: WidgetLayoutProps) {
     <Frame
       aria-label={props.ariaLabel}
       height={props.height}
+      borderless={props.borderless}
       revealActions={revealActions}
     >
       <Header noPadding={props.noHeaderPadding}>
@@ -58,7 +60,11 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'}>`
+const Frame = styled('div')<{
+  borderless?: boolean;
+  height?: number;
+  revealActions?: 'always' | 'hover';
+}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -69,7 +75,7 @@ const Frame = styled('div')<{height?: number; revealActions?: 'always' | 'hover'
   min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.border}`)};
 
   background: ${p => p.theme.background};
 

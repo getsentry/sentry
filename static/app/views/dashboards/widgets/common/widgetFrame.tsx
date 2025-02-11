@@ -63,6 +63,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   return (
     <WidgetLayout
       ariaLabel="Widget panel"
+      borderless={props.borderless}
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
