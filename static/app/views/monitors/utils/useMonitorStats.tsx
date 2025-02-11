@@ -16,12 +16,16 @@ interface Options {
    * The window configuration object
    */
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * Do not query stats when set to false
+   */
+  enabled?: boolean;
 }
 
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats({monitors, timeWindowConfig}: Options) {
+export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
   const [now] = useState(() => new Date().getTime() / 1000);
 
@@ -58,7 +62,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
     ],
     {
       staleTime: 0,
-      enabled: rollupConfig.totalBuckets > 0,
+      enabled: enabled && rollupConfig.totalBuckets > 0,
     }
   );
 }
