@@ -547,12 +547,26 @@ class MetricChart extends PureComponent<Props, State> {
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData dataset
-    const viableStartDate = getUtcDateString(
+    let viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
         moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
+
+    // Events Analytics Platform Span queries only support up to 2016 buckets.
+    // 14 day 10m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
+    // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
+    if (
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.FOURTEEN_DAYS &&
+      interval === '10m'
+    ) {
+      viableStartDate = getUtcDateString(
+        moment.utc(viableStartDate).add(timeWindow, 'minutes')
+      );
+    }
 
     const viableEndDate = getUtcDateString(
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
