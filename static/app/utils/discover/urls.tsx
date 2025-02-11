@@ -113,8 +113,7 @@ export function generateLinkToEventInTraceView({
       eventSlug,
       transactionName,
       location.query,
-      spanId,
-      view
+      spanId
     );
   }
 
