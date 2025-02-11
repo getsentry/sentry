@@ -10,9 +10,11 @@ from sentry.features.flagpole_context import (
     user_context_transformer,
 )
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
 
 
@@ -96,6 +98,20 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_name": "Foo Bar",
             "organization_is-early-adopter": False,
         }
+
+    def test_with_organization_mapping(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org = self.create_organization(slug="foobar", name="Foo Bar")
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+            context_data = organization_context_transformer(
+                SentryContextData(organization=org_mapping)
+            )
+            assert context_data == {
+                "organization_slug": "foobar",
+                "organization_id": org.id,
+                "organization_name": "Foo Bar",
+                "organization_is-early-adopter": False,
+            }
 
 
 class TestProjectContextTransformer(TestCase):
