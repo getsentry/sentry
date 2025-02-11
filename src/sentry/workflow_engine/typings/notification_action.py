@@ -206,7 +206,11 @@ class SlackActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["channel_id", "workspace", "channel"]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["integration_id_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["target_identifier_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["target_display_key"],
+        ]
 
     @property
     def target_type(self) -> ActionTarget:
@@ -225,7 +229,10 @@ class DiscordActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["server", "channel_id"]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD]["integration_id_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD]["target_identifier_key"],
+        ]
 
     @property
     def target_type(self) -> ActionTarget:
@@ -244,7 +251,11 @@ class MSTeamsActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["team", "channel_id", "channel"]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["integration_id_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["target_identifier_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["target_display_key"],
+        ]
 
     @property
     def target_type(self) -> ActionTarget:
@@ -269,7 +280,10 @@ class PagerDutyActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["account", "service"]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["integration_id_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["target_identifier_key"],
+        ]
 
     @property
     def target_type(self) -> ActionTarget:
@@ -294,7 +308,10 @@ class OpsgenieActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["account", "team"]
+        return [
+            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE]["integration_id_key"],
+            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE]["target_identifier_key"],
+        ]
 
     @property
     def target_type(self) -> ActionTarget:
@@ -308,7 +325,7 @@ class OpsgenieActionTranslator(BaseActionTranslator):
 class TicketActionTranslator(BaseActionTranslator, ABC):
     @property
     def required_fields(self) -> list[str]:
-        return ["integration"]
+        return [ACTION_FIELD_MAPPINGS[Action.Type.JIRA]["integration_id_key"]]
 
     @property
     def integration_id(self) -> Any | None:
@@ -382,7 +399,9 @@ class EmailActionTranslator(BaseActionTranslator):
     def target_identifier(self) -> str | None:
         target_type = self.action.get("targetType")
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
-            return self.action.get("targetIdentifier")
+            return self.action.get(
+                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL]["target_identifier_key"]
+            )
         return None
 
     @property
@@ -433,7 +452,9 @@ class WebhookActionTranslator(BaseActionTranslator):
         # Fetch the sentry app id using app_service
         # If the app exists, we should heal this action as a SentryAppAction
         # Based on sentry/rules/actions/notify_event_service.py
-        if service := self.action.get("service"):
+        if service := self.action.get(
+            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["target_identifier_key"]
+        ):
             self.sentry_app = app_service.get_sentry_app_by_slug(slug=service)
         else:
             self.sentry_app = None
@@ -453,7 +474,7 @@ class WebhookActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["service"]
+        return [ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["target_identifier_key"]]
 
     @property
     def target_identifier(self) -> str | None:
@@ -461,14 +482,10 @@ class WebhookActionTranslator(BaseActionTranslator):
         # If the webhook goes to a sentry app, then we should identify the sentry app by id
         if self.sentry_app:
             return str(self.sentry_app.id)
-        return self.action.get("service")
+        return self.action.get(ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["target_identifier_key"])
 
 
 class JiraActionTranslatorBase(TicketActionTranslator):
-    @property
-    def required_fields(self) -> list[str]:
-        return ["integration"]
-
     @property
     def blob_type(self) -> type[DataBlob]:
         return JiraDataBlob
@@ -522,7 +539,7 @@ class SentryAppActionTranslator(BaseActionTranslator):
 
     @property
     def required_fields(self) -> list[str]:
-        return ["sentryAppInstallationUuid"]
+        return [ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["target_identifier_key"]]
 
     @property
     def target_type(self) -> ActionTarget | None:
@@ -533,7 +550,13 @@ class SentryAppActionTranslator(BaseActionTranslator):
         # Fetch the sentry app id using app_service
         # Based on sentry/rules/actions/sentry_apps/notify_event.py
         sentry_app_installation = app_service.get_many(
-            filter=dict(uuids=[self.action.get("sentryAppInstallationUuid")])
+            filter=dict(
+                uuids=[
+                    self.action.get(
+                        ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["target_identifier_key"]
+                    )
+                ]
+            )
         )
 
         if sentry_app_installation:
