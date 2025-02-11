@@ -11,6 +11,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -91,7 +92,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
 
     query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
     data_source = DataSource.objects.get(
-        organization_id=alert_rule.organization_id, query_id=query_subscription.id
+        organization_id=alert_rule.organization_id, source_id=str(query_subscription.id)
     )
     assert data_source.type == "snuba_query_subscription"
     detector_state = DetectorState.objects.get(detector=detector)
@@ -241,7 +242,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         query_subscription = QuerySubscription.objects.get(snuba_query=metric_alert.snuba_query)
         data_source = self.create_data_source(
             organization=self.organization,
-            query_id=query_subscription.id,
+            source_id=str(query_subscription.id),
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
         detector_data_condition_group = self.create_data_condition_group(
@@ -394,6 +395,15 @@ class DualWriteAlertRuleTest(APITestCase):
         """
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         assert_alert_rule_migrated(self.metric_alert, self.project.id)
+
+    def test_dual_write_metric_alert_open_incident(self):
+        """
+        Test that the detector_state object is correctly created when the alert has an active incident
+        """
+        self.create_incident(alert_rule=self.metric_alert, status=IncidentStatus.CRITICAL.value)
+        aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
+        detector_state = aci_objects[4]
+        assert detector_state.state == DetectorPriorityLevel.HIGH
 
 
 class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
@@ -803,8 +813,8 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         with assume_test_silo_mode_of(Integration, OrganizationIntegration):
             self.integration.update(provider="hellboy")
             self.integration.save()
-        migrated = migrate_metric_action(self.alert_rule_trigger_action_integration)
-        assert migrated is None
+        with pytest.raises(InvalidActionType):
+            migrate_metric_action(self.alert_rule_trigger_action_integration)
         mock_logger.warning.assert_called_with(
             "Could not find a matching Action.Type for the trigger action",
             extra={
@@ -931,7 +941,7 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_trigger_action_legacy_fields(self):
         updated_fields = {
-            "integration_id": self.integration.id,  # TODO: set up the integration properly and stuff
+            "integration_id": self.integration.id,
             "target_display": "freddy frog",
             "target_identifier": "freddy_frog",
             "target_type": ActionTarget.USER,

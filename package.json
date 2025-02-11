@@ -106,7 +106,7 @@
     "downsample": "1.4.0",
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
-    "esbuild": "^0.23.0",
+    "esbuild": "^0.25.0",
     "focus-trap": "^7.3.1",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "framer-motion": "^11.3.21",

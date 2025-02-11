@@ -14,9 +14,6 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.action',
   'ui.load',
   'app.lifecycle',
-  // navigation and pageload are seen in react-native
-  'navigation',
-  'pageload',
 ];
 
 export const MODULES = [

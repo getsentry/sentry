@@ -3,7 +3,6 @@ import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -13,6 +12,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+
+import type {TimeSeries} from '../dashboards/widgets/common/types';
 
 export function getExploreUrl({
   orgSlug,
@@ -58,7 +59,9 @@ export function getExploreUrl({
   );
 }
 
-export function combineConfidenceForSeries(series: Series[]): Confidence {
+export function combineConfidenceForSeries(
+  series: Array<Pick<TimeSeries, 'confidence'>>
+): Confidence {
   let lows = 0;
   let highs = 0;
   let nulls = 0;

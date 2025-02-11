@@ -43,9 +43,7 @@ import {space} from 'sentry/styles/space';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -72,7 +70,6 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
@@ -357,23 +354,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-
-  const metrics = hasOrganization && hasCustomMetrics(organization) && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<SubitemDot collapsed />}
-      label={t('Metrics')}
-      to={metricsPath}
-      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
-      id="metrics"
-      badgeTitle={t(
-        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
-      )}
-      isBeta
-    />
-  );
-
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -489,7 +469,6 @@ function Sidebar() {
     >
       {traces}
       {logs}
-      {metrics}
       {profiling}
       {replays}
       {discover}
@@ -597,12 +576,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <MetricsOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
+
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}

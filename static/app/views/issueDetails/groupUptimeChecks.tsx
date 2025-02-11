@@ -94,12 +94,12 @@ export default function GroupUptimeChecks() {
     >
       <GridEditable
         isLoading={isGroupPending}
+        emptyMessage={t('No matching uptime checks found')}
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
           {key: 'checkStatus', width: 115, name: t('Status')},
           {key: 'durationMs', width: 110, name: t('Duration')},
-          {key: 'environment', width: 115, name: t('Environment')},
           {key: 'traceId', width: 100, name: t('Trace')},
           {key: 'region', width: 100, name: t('Region')},
           {key: 'uptimeCheckId', width: 100, name: t('ID')},
@@ -221,7 +221,7 @@ function CheckInBodyCell({
         return <Cell />;
       }
       return (
-        <LinkCell to={`/performance/trace/${cellData}`}>
+        <LinkCell to={`/performance/trace/${cellData}/`}>
           {getShortEventId(String(cellData))}
         </LinkCell>
       );

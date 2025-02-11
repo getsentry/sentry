@@ -6,8 +6,6 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {
-  customMetricOnboardingPlatforms,
-  customMetricPlatforms,
   feedbackOnboardingPlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
@@ -89,9 +87,9 @@ describe('useCurrentProjectState', () => {
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        onboardingPlatforms: customMetricOnboardingPlatforms,
-        allPlatforms: customMetricPlatforms,
+        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayOnboardingPlatforms,
       },
       wrapper: createWrapper(angular.id),
     });
@@ -103,10 +101,10 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        onboardingPlatforms: customMetricOnboardingPlatforms,
-        allPlatforms: customMetricPlatforms,
+        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayOnboardingPlatforms,
       },
       wrapper: createWrapper(),
     });
@@ -118,10 +116,10 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript, angular]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        onboardingPlatforms: customMetricOnboardingPlatforms,
-        allPlatforms: customMetricPlatforms,
+        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayOnboardingPlatforms,
       },
       wrapper: createWrapper(javascript.id),
     });

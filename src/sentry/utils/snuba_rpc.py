@@ -22,6 +22,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeValuesRequest,
     TraceItemAttributeValuesResponse,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    TraceItemStatsRequest,
+    TraceItemStatsResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -144,6 +148,13 @@ def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttribu
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
+    resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
+    response = TraceItemStatsResponse()
     response.ParseFromString(resp.data)
     return response
 
