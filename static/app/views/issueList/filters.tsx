@@ -22,13 +22,15 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
-  const hasIssueViews = organization.features.includes('issue-stream-custom-views');
+  const hasPageFiltersPersistence = organization.features.includes(
+    'issue-views-page-filter'
+  );
 
   return (
     <FiltersContainer hasNewLayout={hasNewLayout}>
       <GuideAnchor
         target="issue_views_page_filters_persistence"
-        disabled={!hasIssueViews}
+        disabled={!hasPageFiltersPersistence}
       >
         <StyledPageFilterBar>
           <ProjectPageFilter />
