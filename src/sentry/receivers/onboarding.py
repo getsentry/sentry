@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
@@ -58,6 +59,11 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 @project_created.connect(weak=False)
 def record_new_project(project, user=None, user_id=None, **kwargs):
+
+    scope = sentry_sdk.get_current_scope()
+    scope.set_extra("project_id", project.id)
+    scope.set_extra("source", "record_new_project")
+
     if user_id is not None:
         default_user_id = user_id
     elif user.is_authenticated:
@@ -71,6 +77,10 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
+            )
+            sentry_sdk.capture_message(
+                f"Cannot initiate onboarding for organization ({project.organization_id}) due to missing owners",
+                level="warning",
             )
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
@@ -95,6 +105,17 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         project_id=project.id,
     )
     if not success:
+        # Check if the "first project" task already exists and log an error if needed
+        first_project_task_exists = OrganizationOnboardingTask.objects.filter(
+            organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
+        ).exists()
+
+        if not first_project_task_exists:
+            sentry_sdk.capture_message(
+                f"An error occurred while trying to record the first project for organization ({project.organization_id})",
+                level="warning",
+            )
+
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
