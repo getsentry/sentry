@@ -19,14 +19,15 @@ export type Item = {
 export type ConnectionCellProps = {
   items: Item[];
   renderText: (count: number) => string;
+  className?: string;
 };
 
-export function ConnectionCell({items, renderText}: ConnectionCellProps) {
+export function ConnectionCell({items, renderText, className}: ConnectionCellProps) {
   if (items.length === 0) {
-    return <EmptyCell />;
+    return <EmptyCell className={className} />;
   }
   return (
-    <div>
+    <div className={className}>
       <Hovercard
         body={items.map(({name, project, description, link}, index) => (
           <Fragment key={link}>

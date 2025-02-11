@@ -11,19 +11,21 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 
 export type IssueCellProps = {
+  className?: string;
   disabled?: boolean;
   group?: Group;
 };
 
-export function IssueCell({group, disabled = false}: IssueCellProps) {
+export function IssueCell({group, disabled = false, className}: IssueCellProps) {
   if (!group) {
     return <EmptyCell />;
   }
   return (
-    <IssueWrapper to={'/issues/' + group.id} disabled={disabled}>
+    <IssueWrapper to={'/issues/' + group.id} disabled={disabled} className={className}>
       <ShortId
         shortId={group.shortId}
         avatar={<ProjectAvatar project={group.project} />}
+        className="shortId"
       />
 
       <LastSeenWrapper gap={space(0.5)}>
@@ -40,14 +42,21 @@ export function IssueCell({group, disabled = false}: IssueCellProps) {
 }
 
 const IssueWrapper = styled(Link)<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+
+  .shortId {
+    color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
 
   ${p =>
     !p.disabled &&
     `
-    &:hover {
+    &:hover .shortId {
       color: ${p.theme.textColor};
+      text-decoration: underline;
     }
   `}
 `;
