@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.utils.demo_mode import is_readonly_user
 
 logger = logging.getLogger("sentry.api")
 SETUP_WIZARD_CACHE_KEY = "setup-wizard-keys:v1:"
@@ -42,6 +43,9 @@ class SetupWizard(Endpoint):
         This tries to retrieve and return the cache content if possible
         otherwise creates new cache
         """
+        if is_readonly_user(request.user):
+            return Response(status=403)
+
         if wizard_hash is not None:
             key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
             wizard_data = default_cache.get(key)
