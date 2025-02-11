@@ -1166,6 +1166,78 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             },
         ]
 
+    def test_replay_id(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"replay_id": "123"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "tags": {"replayId": "321"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["replay"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "replay",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "replay": "123",
+            },
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "replay": "321",
+            },
+        ]
+
+    def test_user_display(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"user.username": "test"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["user.display"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "user.display",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "user.display": "test",
+            },
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "user.display": "test@test.com",
+            },
+        ]
+
     def test_query_with_asterisk(self):
         self.store_spans(
             [
@@ -2444,3 +2516,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data[0]["device.class"] == "Unknown"
         assert meta["dataset"] == self.dataset
+
+    @pytest.mark.skip(reason="replay id alias not migrated over")
+    def test_replay_id(self):
+        super().test_replay_id()
+
+    @pytest.mark.skip(reason="user display alias not migrated over")
+    def test_user_display(self):
+        super().test_user_display()
