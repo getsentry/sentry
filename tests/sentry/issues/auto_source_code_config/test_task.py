@@ -52,7 +52,10 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
     def setUp(self) -> None:
         super().setUp()
-        self.event = self.create_event([{"filename": "foo.py", "in_app": True}], "foo-platform")
+        self.event = self.create_event(
+            [{"filename": "foo.py", "in_app": True}],
+            platform="python",  # The platform is irrelevant for this test
+        )
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
