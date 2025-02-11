@@ -33,6 +33,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {
   CheckStatus,
@@ -119,7 +120,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             crumbs={[
               {
                 label: t('Alerts'),
-                to: `/organizations/${organization.slug}/alerts/rules/`,
+                to: makeAlertsPathname({
+                  path: `/rules/`,
+                  organization,
+                }),
               },
               {
                 label: t('Uptime Monitor'),
@@ -146,7 +150,10 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <LinkButton
               size="sm"
               icon={<IconEdit />}
-              to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
+              to={makeAlertsPathname({
+                path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
+                organization,
+              })}
             >
               {t('Edit Rule')}
             </LinkButton>

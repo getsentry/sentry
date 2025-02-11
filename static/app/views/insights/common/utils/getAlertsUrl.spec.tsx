@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,7 +17,7 @@ describe('getAlertsUrl', function () {
       project,
       aggregate,
       query,
-      orgSlug,
+      organization: OrganizationFixture({slug: orgSlug}),
       pageFilters,
     });
     expect(url).toBe(
