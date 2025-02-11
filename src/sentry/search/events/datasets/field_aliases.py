@@ -141,7 +141,7 @@ def resolve_precise_timestamp(timestamp_column: str, ms_column: str, alias: str)
     )
 
 
-def _resolve_user_display_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+def resolve_user_display_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
     columns = ["user.email", "user.username", "user.id", "user.ip"]
     return Function(
         "coalesce",
@@ -150,7 +150,8 @@ def _resolve_user_display_alias(builder: BaseQueryBuilder, alias: str) -> Select
     )
 
 
-def _resolve_replay_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+def resolve_replay_alias(builder: BaseQueryBuilder, alias: str) -> SelectType:
+    # pageload spans have `replayId` while standalone spans have `replay.id`
     columns = ["replay.id", "replayId"]
     return Function(
         "coalesce",
