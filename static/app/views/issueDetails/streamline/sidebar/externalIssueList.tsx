@@ -130,7 +130,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                   const action = integration.actions[0]!;
                   return (
                     <ErrorBoundary key={integration.key} mini>
-                      {action.to ? (
+                      {action.href ? (
                         // Exclusively used for group.pluginActions
                         <IssueActionLinkButton
                           size="zero"
@@ -140,7 +140,8 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                             integration.disabled ? integration.disabledText : undefined
                           }
                           onClick={action.onClick}
-                          to={action.to}
+                          href={action.href}
+                          external
                         >
                           <IssueActionName>{integration.displayName}</IssueActionName>
                         </IssueActionLinkButton>
