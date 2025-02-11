@@ -35,6 +35,7 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
+  forceLabel?: boolean;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
@@ -43,6 +44,7 @@ interface SidebarItemDropdownProps {
   items: MenuItemProps[];
   label: string;
   children?: React.ReactNode;
+  forceLabel?: boolean;
 }
 
 function SidebarBody({children}: {children: React.ReactNode}) {
@@ -56,7 +58,12 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
     <SidebarFooterWrapper>
-      <SidebarItemList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarItemList>
+      <SidebarItemList
+        isMobile={layout === NavLayout.MOBILE}
+        compact={layout === NavLayout.SIDEBAR}
+      >
+        {children}
+      </SidebarItemList>
     </SidebarFooterWrapper>
   );
 }
@@ -70,7 +77,13 @@ function SidebarItem({children}: {children: React.ReactNode}) {
   );
 }
 
-function SidebarMenu({items, children, analyticsKey, label}: SidebarItemDropdownProps) {
+function SidebarMenu({
+  items,
+  children,
+  analyticsKey,
+  label,
+  forceLabel,
+}: SidebarItemDropdownProps) {
   const organization = useOrganization();
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
@@ -78,7 +91,7 @@ function SidebarMenu({items, children, analyticsKey, label}: SidebarItemDropdown
   );
   const {layout} = useNavContext();
 
-  const showLabel = layout === NavLayout.MOBILE;
+  const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
     <SidebarItem>
@@ -112,6 +125,7 @@ function SidebarLink({
   activeTo = to,
   analyticsKey,
   label,
+  forceLabel = false,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -119,7 +133,7 @@ function SidebarLink({
   const linkProps = makeLinkPropsFromTo(to);
 
   const {layout} = useNavContext();
-  const showLabel = layout === NavLayout.MOBILE;
+  const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
@@ -174,6 +188,7 @@ export function PrimaryNavigationItems() {
           to={`/${prefix}/issues/`}
           analyticsKey="issues"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
+          forceLabel
         >
           <IconIssues />
         </SidebarLink>
@@ -182,6 +197,7 @@ export function PrimaryNavigationItems() {
           to={`/${prefix}/explore/traces/`}
           analyticsKey="explore"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+          forceLabel
         >
           <IconSearch />
         </SidebarLink>
@@ -195,6 +211,7 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/dashboards/`}
             analyticsKey="customizable-dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+            forceLabel
           >
             <IconDashboard />
           </SidebarLink>
@@ -205,6 +222,7 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/insights/frontend/`}
             analyticsKey="insights-domains"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+            forceLabel
           >
             <IconGraph />
           </SidebarLink>
@@ -258,7 +276,7 @@ export function PrimaryNavigationItems() {
   );
 }
 
-const SidebarItemList = styled('ul')<{isMobile: boolean}>`
+const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   position: relative;
   list-style: none;
   margin: 0;
@@ -277,6 +295,12 @@ const SidebarItemList = styled('ul')<{isMobile: boolean}>`
       align-items: center;
       gap: ${space(1)};
     `}
+
+  ${p =>
+    p.compact &&
+    css`
+      gap: ${space(0.5)};
+    `}
 `;
 
 const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
@@ -288,7 +312,7 @@ const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
     ${p =>
       !p.isMobile &&
       css`
-        --size: 18px;
+        --size: 16px;
       `}
   }
   > a,
@@ -318,7 +342,9 @@ const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
         gap: ${space(0.75)};
         padding: ${space(1.5)} 0;
         min-height: 44px;
-        width: ${PRIMARY_SIDEBAR_WIDTH - 16}px;
+        width: ${PRIMARY_SIDEBAR_WIDTH - 10}px;
+        letter-spacing: -0.02em;
+        font-size: 10px;
       `}
   }
 `;
@@ -329,7 +355,6 @@ const SidebarFooterWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  padding-bottom: ${space(0.5)};
   margin-top: auto;
 `;
 

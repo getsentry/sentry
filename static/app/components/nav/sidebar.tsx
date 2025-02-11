@@ -50,7 +50,7 @@ export function Sidebar({isHovered}: SidebarProps) {
 
 const SidebarWrapper = styled('div')`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${space(2)} 0;
+  padding: ${space(2)} 0 ${space(1)} 0;
   border-right: 1px solid ${p => p.theme.translucentGray100};
   background: #3e2648;
   background: linear-gradient(180deg, #3e2648 0%, #442c4e 100%);
