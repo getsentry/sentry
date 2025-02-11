@@ -264,7 +264,7 @@ function TagValueActionsMenu({
           key: 'open-in-discover',
           label: t('Open in Discover'),
           to: eventView.getResultsViewUrlTarget(
-            organization.slug,
+            organization,
             false,
             hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
           ),

@@ -349,7 +349,7 @@ const getEventViewDiscoverPath = (
   eventView: EventView
 ): string => {
   const discoverUrlTarget = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );

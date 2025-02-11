@@ -269,9 +269,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         Banner.dismiss('discover');
         this.setState({queryName: ''});
-        browserHistory.push(
-          normalizeUrl(view.getResultsViewUrlTarget(organization.slug))
-        );
+        browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
       }
     );
   };
@@ -288,7 +286,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
         setSavedQuery(savedQuery);
         this.setState({queryName: ''});
-        browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
+        browserHistory.push(view.getResultsViewShortUrlTarget(organization));
         updateCallback();
       }
     );

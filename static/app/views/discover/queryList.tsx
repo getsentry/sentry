@@ -174,7 +174,7 @@ class QueryList extends Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? view.queryDataset : undefined
       );
@@ -270,7 +270,7 @@ class QueryList extends Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getResultsViewShortUrlTarget(organization.slug);
+      const to = eventView.getResultsViewShortUrlTarget(organization);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 

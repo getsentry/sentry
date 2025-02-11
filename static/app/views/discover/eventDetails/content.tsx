@@ -100,7 +100,7 @@ function EventDetailsContent(props: Props) {
     }
     const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
-    return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
+    return nextView.getResultsViewUrlTarget(organization, isHomepage);
   };
 
   function renderContent() {
@@ -204,7 +204,7 @@ function EventDetailsContent(props: Props) {
                         getViewChildTransactionTarget: childTransactionProps => {
                           const childTransactionLink = eventDetailsRoute({
                             eventSlug: childTransactionProps.eventSlug,
-                            orgSlug: organization.slug,
+                            organization,
                           });
 
                           return {

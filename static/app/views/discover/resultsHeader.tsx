@@ -132,7 +132,7 @@ class ResultsHeader extends Component<Props, State> {
   renderBanner() {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const to = eventView.getResultsViewUrlTarget(organization);
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
     return (

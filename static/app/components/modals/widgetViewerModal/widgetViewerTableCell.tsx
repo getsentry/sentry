@@ -295,7 +295,7 @@ export const renderPrependColumns =
     const eventSlug = generateEventSlug(dataRow);
 
     const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
+      organization,
       eventSlug,
       eventView,
     });

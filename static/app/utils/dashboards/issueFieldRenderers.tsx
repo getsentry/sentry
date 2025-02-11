@@ -228,7 +228,7 @@ const getDiscoverUrl = (
     version: 2,
   });
   return discoverView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );

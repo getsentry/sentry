@@ -316,7 +316,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
             hidden: !organization.features.includes('discover-basic'),
             to: eventDetailsRoute({
               eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              orgSlug: organization.slug,
+              organization,
             }),
             onAction: () => {
               trackAnalytics('issue_details.event_details_clicked', {

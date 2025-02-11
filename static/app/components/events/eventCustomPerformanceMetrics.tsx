@@ -142,7 +142,7 @@ export function EventCustomPerformanceMetric({
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+        return eventView.getResultsViewUrlTarget(organization, isHomepage);
     }
   }
 
@@ -238,7 +238,7 @@ export function TraceEventCustomPerformanceMetric({
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+        return eventView.getResultsViewUrlTarget(organization, isHomepage);
     }
   }
 
