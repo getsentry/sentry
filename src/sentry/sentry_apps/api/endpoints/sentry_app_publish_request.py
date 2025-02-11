@@ -105,17 +105,17 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             template = "sentry/emails/sentry-app-publish-confirmation.txt"
             html_template = "sentry/emails/sentry-app-publish-confirmation.html"
 
-            message = MessageBuilder(
+            new_message = MessageBuilder(
                 subject=new_subject,
                 context=new_context,
                 template=template,
                 html_template=html_template,
-                type=type,
+                type="sentry-app-publish-request",
             )
 
             # Must send to user & partners so that the reply-to email will be each other
             recipients = ["partners@sentry.io", request.user.email]
-            sent_messages = message.send(
+            sent_messages = new_message.send(
                 to=recipients,
             )
             # We sent an email to each person in the recip. list so anything less means we had a failure
