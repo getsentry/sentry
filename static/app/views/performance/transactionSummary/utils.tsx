@@ -259,7 +259,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
       : undefined;
 
     return {
-      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
+      pathname: makeReplaysPathname({
+        path: `/${replayId}/`,
+        organization,
+      }),
       query: {
         event_t: transactionStartTimestamp,
         referrer,
