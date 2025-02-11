@@ -10,6 +10,8 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -25,6 +27,7 @@ export function SessionsOverview() {
     <React.Fragment>
       {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
       {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
+      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -36,9 +39,15 @@ export function SessionsOverview() {
                 />
               </ToolRibbon>
             </ModuleLayout.Full>
-            <ModuleLayout.Third>
-              <ErrorFreeSessionsChart />
-            </ModuleLayout.Third>
+            {view === MOBILE_LANDING_SUB_PATH ? (
+              <ModuleLayout.Half>
+                <ErrorFreeSessionsChart groupByRelease />
+              </ModuleLayout.Half>
+            ) : (
+              <ModuleLayout.Third>
+                <ErrorFreeSessionsChart />
+              </ModuleLayout.Third>
+            )}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

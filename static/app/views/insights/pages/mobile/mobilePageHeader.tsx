@@ -39,7 +39,7 @@ export function MobileHeader({
   const hasMobileUi = isModuleEnabled(ModuleName.MOBILE_UI, organization);
 
   const modules = hasMobileScreens
-    ? [ModuleName.MOBILE_VITALS, ModuleName.HTTP]
+    ? [ModuleName.MOBILE_VITALS, ModuleName.HTTP, ModuleName.SESSIONS]
     : [
         ModuleName.APP_START,
         ModuleName.SCREEN_LOAD,
