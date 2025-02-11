@@ -3,6 +3,7 @@ from rest_framework.fields import Field
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 

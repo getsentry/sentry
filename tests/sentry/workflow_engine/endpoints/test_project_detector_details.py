@@ -145,8 +145,18 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
                     "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
                 }
             ],
-            "dataConditions": [],
-            # "conditionGroup": [self.data_condition_group], # write out all the attrs
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "comparison": 100,
+                        "type": Condition.GREATER,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                ],
+            },
             "config": self.detector.config,
         }
 
@@ -171,15 +181,15 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         assert condition_group.logic_type == DataConditionGroup.Type.ANY
         assert condition_group.organization_id == self.organization.id
 
-        # conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        # assert len(conditions) == 1
-        # condition = conditions[0]
-        # assert condition.type == Condition.GREATER
-        # assert condition.comparison == 100
-        # assert condition.condition_result == DetectorPriorityLevel.HIGH
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER.value
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        data_source = DataSource.objects.get(id=data_source_detector.detector.id)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
         snuba_query = SnubaQuery.objects.get(id=data_source.source_id)
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300  # seconds = 5 minutes
