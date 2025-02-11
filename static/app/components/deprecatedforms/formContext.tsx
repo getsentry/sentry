@@ -9,7 +9,7 @@ import {createContext} from 'react';
 export type FormContextData = {
   form?: {
     data: Record<PropertyKey, unknown>;
-    errors: Record<PropertyKey, unknown>;
+    errors: Record<PropertyKey, string>;
     onFieldChange: (name: string, value: string | number) => void;
   };
 };

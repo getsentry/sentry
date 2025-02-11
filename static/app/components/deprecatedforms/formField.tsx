@@ -76,7 +76,6 @@ export default abstract class FormField<
       return props.value;
     }
     if (form?.data.hasOwnProperty(props.name)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
     return defined(props.defaultValue) ? props.defaultValue : '';
@@ -88,7 +87,6 @@ export default abstract class FormField<
     if (defined(props.error)) {
       return props.error;
     }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return form?.errors[props.name] || null;
   }
 
