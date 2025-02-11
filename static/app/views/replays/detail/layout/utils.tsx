@@ -1,4 +1,7 @@
-import {SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH} from 'sentry/components/sidebar';
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+} from 'sentry/components/sidebar/constants';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import theme from 'sentry/utils/theme';
 

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar';
+import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';

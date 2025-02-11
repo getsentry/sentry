@@ -7,7 +7,7 @@ import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
   SIDEBAR_MOBILE_HEIGHT,
-} from 'sentry/components/sidebar';
+} from 'sentry/components/sidebar/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
