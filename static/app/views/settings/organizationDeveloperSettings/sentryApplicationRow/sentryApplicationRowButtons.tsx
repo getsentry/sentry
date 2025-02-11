@@ -1,6 +1,11 @@
 import Access from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import type {SentryApp} from 'sentry/types/integrations';
+import type {
+  SentryApp,
+  SentryAppAvatar,
+  SentryAppSchemaElement,
+} from 'sentry/types/integrations';
+import {SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import ActionButtons from './actionButtons';
@@ -13,30 +18,22 @@ type Props = {
   onClickPublish?: () => void;
 };
 
-// const shouldDisablePublishButton = (app: SentryApp): boolean => {
-//   // has_ui_component and upload icon
-//   // is_published or   // is internal   // publish_request_in_progress
-//   return hasInvalidStatus(app);
+const UI_COMPONENT_TYPES = ['stacktrace-link', 'issue-link'];
 
-//   // upload logo
-// };
+const hasUploadedSentryAppPhoto = (
+  avatars: SentryAppAvatar[] | undefined,
+  photo_type: SentryAppAvatarPhotoType
+): boolean => {
+  return avatars
+    ? avatars.some(
+        avatar => avatar.avatarType === 'upload' && avatar.photo_type === photo_type
+      )
+    : false;
+};
 
-// const hasInvalidStatus = (app: SentryApp) => {
-//   return (
-//     app.status === 'published' ||
-//     app.status === 'internal' ||
-//     app.status === 'publish_request_inprogress'
-//   );
-// };
-
-// const hasLogo = (app: SentryApp): boolean => {
-//   if (app.avatars) {
-//     return app.avatars.some(avatar => {
-//       return avatar.avatarType === 'upload' && avatar.color;
-//     });
-//   }
-//   return false;
-// };
+const hasUIComponent = (elements: SentryAppSchemaElement[] | undefined): boolean => {
+  return elements ? elements.some(element => element.type in UI_COMPONENT_TYPES) : false;
+};
 
 function SentryApplicationRowButtons({
   organization,
@@ -63,6 +60,19 @@ function SentryApplicationRowButtons({
           disableDeleteReason = t(
             'Organization owner permissions are required for this action.'
           );
+        } else if (app.status === 'publish_request_inprogress') {
+          disablePublishReason = t(
+            'This integration is already in progress for publishing'
+          );
+        } else if (
+          !hasUploadedSentryAppPhoto(app.avatars, SentryAppAvatarPhotoType.LOGO)
+        ) {
+          disablePublishReason = t('A logo is required to publish an integration');
+        } else if (
+          hasUIComponent(app.schema.elements) &&
+          !hasUploadedSentryAppPhoto(app.avatars, SentryAppAvatarPhotoType.ICON)
+        ) {
+          disablePublishReason = t('Integrations with a UI component must have an icon');
         }
 
         return (
