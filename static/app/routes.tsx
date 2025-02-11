@@ -33,6 +33,7 @@ import {IssueNavigation} from 'sentry/views/issues/navigation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
+import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
@@ -684,6 +685,39 @@ function buildRoutes() {
     </Route>
   );
 
+  const statsChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
+      <Route
+        component={make(() => import('sentry/views/organizationStats/teamInsights'))}
+      >
+        <Route
+          path="issues/"
+          component={make(
+            () => import('sentry/views/organizationStats/teamInsights/issues')
+          )}
+        />
+        <Route
+          path="health/"
+          component={make(
+            () => import('sentry/views/organizationStats/teamInsights/health')
+          )}
+        />
+      </Route>
+    </Fragment>
+  );
+  const statsRoutes = (
+    <Fragment>
+      <Route path="/stats/" withOrgPath component={OrganizationStatsWrapper}>
+        {statsChildRoutes}
+      </Route>
+      <Redirect
+        from="/organizations/:orgId/stats/team/"
+        to="/organizations/:orgId/stats/issues/"
+      />
+    </Fragment>
+  );
+
   const orgSettingsRoutes = (
     <Route
       component={make(
@@ -987,6 +1021,9 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path="stats/" name={t('Stats')}>
+        {statsChildRoutes}
+      </Route>
     </Route>
   );
 
@@ -1260,6 +1297,12 @@ function buildRoutes() {
               path=":projectId/:uptimeRuleId/details/"
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
+            <Route
+              path="existing-or-create/"
+              component={make(
+                () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
+              )}
+            />
           </Route>
           <Route
             path="crons/"
@@ -1470,34 +1513,6 @@ function buildRoutes() {
       <Redirect
         from="/releases/all-events/"
         to="/organizations/:orgId/releases/:release/"
-      />
-    </Fragment>
-  );
-
-  const statsRoutes = (
-    <Fragment>
-      <Route path="/stats/" withOrgPath>
-        <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
-        <Route
-          component={make(() => import('sentry/views/organizationStats/teamInsights'))}
-        >
-          <Route
-            path="issues/"
-            component={make(
-              () => import('sentry/views/organizationStats/teamInsights/issues')
-            )}
-          />
-          <Route
-            path="health/"
-            component={make(
-              () => import('sentry/views/organizationStats/teamInsights/health')
-            )}
-          />
-        </Route>
-      </Route>
-      <Redirect
-        from="/organizations/:orgId/stats/team/"
-        to="/organizations/:orgId/stats/issues/"
       />
     </Fragment>
   );

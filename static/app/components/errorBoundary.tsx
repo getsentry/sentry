@@ -137,7 +137,7 @@ Anyway, we apologize for the inconvenience.`
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  padding: ${space(3)}px;
+  padding: ${space(3)};
   max-width: 1000px;
   margin: auto;
 `;
