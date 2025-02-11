@@ -39,7 +39,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
-    AlertRuleTriggerAction,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -50,7 +49,6 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
-    dual_delete_migrated_alert_rule_trigger_action,
     dual_update_resolve_condition,
     migrate_alert_rule,
     migrate_resolve_threshold_data_conditions,
@@ -560,13 +558,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
-                # because the trigger actions will be cascade deleted, we need to manually
-                # delete the ACI objects for any dual written trigger actions
-                actions_to_dual_delete = AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger=trigger
-                )
-                for action in actions_to_dual_delete:
-                    dual_delete_migrated_alert_rule_trigger_action(action)
                 dual_delete_migrated_alert_rule_trigger(trigger)
                 delete_alert_rule_trigger(trigger)
 

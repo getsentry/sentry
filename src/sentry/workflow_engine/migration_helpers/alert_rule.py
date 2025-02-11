@@ -762,6 +762,28 @@ def dual_delete_migrated_alert_rule(
             "DataSource does not exist",
             extra={"alert_rule_id": alert_rule.id},
         )
+
+    triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+    for trigger in triggers_to_dual_delete:
+        dual_delete_migrated_alert_rule_trigger(trigger)
+
+    if data_condition_group:
+        # we need to delete the "resolve" dataconditions here as well
+        data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
+        resolve_detector_trigger = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+        resolve_action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=DetectorPriorityLevel.OK,
+        )
+        resolve_action_filter_dcg = resolve_action_filter.condition_group
+
+        resolve_detector_trigger.delete()
+        resolve_action_filter.delete()
+        resolve_action_filter_dcg.delete()
+
     # NOTE: for migrated alert rules, each workflow is associated with a single detector
     # make sure there are no other detectors associated with the workflow, then delete it if so
     if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
@@ -786,9 +808,19 @@ def dual_delete_migrated_alert_rule_trigger(
     if detector_trigger is None:
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
+    action_filter_dcg = action_filter.condition_group
+    # also dual delete the ACI objects for the trigger's associated trigger actions
+    actions_to_dual_delete = AlertRuleTriggerAction.objects.filter(
+        alert_rule_trigger=alert_rule_trigger
+    )
+    for trigger_action in actions_to_dual_delete:
+        aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+        action = aarta.action
+        action.delete()
 
     detector_trigger.delete()
     action_filter.delete()
+    action_filter_dcg.delete()
 
     return None
 
