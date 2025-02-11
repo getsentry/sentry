@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
@@ -60,11 +59,6 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
-        scope = sentry_sdk.get_current_scope()
-
-        scope.set_extra("user_id", kwargs.get("user_id", None))
-        scope.set_extra("project_id", kwargs.get("project_id", None))
-
         if cache.get(cache_key) is None:
             try:
                 with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
@@ -75,10 +69,6 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                     )
                     return True
             except IntegrityError:
-                sentry_sdk.capture_message(
-                    f"Integrity error while creating task {task} for organization {organization_id}",
-                    level="warning",
-                )
                 pass
 
             # Store marker to prevent running all the time
