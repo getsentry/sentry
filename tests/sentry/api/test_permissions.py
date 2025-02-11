@@ -1,5 +1,5 @@
 from sentry.api.permissions import (
-    SentryPermission,
+    ReadOnlyPermission,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
@@ -38,14 +38,14 @@ class PermissionsTest(DRFPermissionTestCase):
 
 
 class ReadonlyPermissionsTest(DRFPermissionTestCase):
-    user_permission = SentryPermission()
+    user_permission = ReadOnlyPermission()
 
     def setUp(self):
         super().setUp()
-        self.normal_user = self.create_user()
-        self.readonly_user = self.create_user("readonly@example.com")
+        self.normal_user = self.create_user(id=1)
+        self.readonly_user = self.create_user(id=2)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_readonly_user_has_permission(self):
         assert self.user_permission.has_permission(self.make_request(self.readonly_user), None)
 
@@ -54,7 +54,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
             self.make_request(self.readonly_user), None, None
         )
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_get_method(self):
         assert self.user_permission.has_permission(
             self.make_request(self.readonly_user, method="GET"), None
@@ -63,7 +63,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
             self.make_request(self.normal_user, method="GET"), None
         )
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_post_method(self):
         assert not self.user_permission.has_permission(
             self.make_request(self.readonly_user, method="POST"), None
@@ -73,7 +73,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
             self.make_request(self.normal_user, method="GET"), None
         )
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_put_method(self):
         assert not self.user_permission.has_permission(
             self.make_request(self.readonly_user, method="PUT"), None
@@ -83,7 +83,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
             self.make_request(self.normal_user, method="GET"), None
         )
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_delete_method(self):
         assert not self.user_permission.has_permission(
             self.make_request(self.readonly_user, method="DELETE"), None
