@@ -413,13 +413,7 @@ function Visualize({error, setError}: VisualizeProps) {
                     renderTag(option.value.kind, option.value.meta.name) ?? null,
                 }));
 
-                // TODO: These options should be exposing other Release health options such as
-                // environment, project, release, session.status
-                if (
-                  !isChartWidget &&
-                  !isBigNumberWidget &&
-                  !(state.dataset === WidgetType.RELEASE && !canDelete)
-                ) {
+                if (!isChartWidget && !isBigNumberWidget) {
                   const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
 
                   if (state.dataset === WidgetType.ISSUE) {
@@ -428,6 +422,22 @@ function Visualize({error, setError}: VisualizeProps) {
                   } else if (state.dataset === WidgetType.SPANS) {
                     // Add span column options for Spans dataset
                     aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                  } else if (state.dataset === WidgetType.RELEASE) {
+                    aggregateOptions = [
+                      ...(canDelete ? baseOptions : aggregateOptions),
+                      ...Object.values(fieldOptions)
+                        // release dataset tables only use specific fields "SESSION_TAGS"
+                        .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
+                        .map(option => ({
+                          label: option.value.meta.name,
+                          value: option.value.meta.name,
+                          textValue: option.value.meta.name,
+                          trailingItems: renderTag(
+                            option.value.kind,
+                            option.value.meta.name
+                          ),
+                        })),
+                    ];
                   } else {
                     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
                     aggregateOptions = [
@@ -448,27 +458,6 @@ function Visualize({error, setError}: VisualizeProps) {
                         })),
                     ];
                   }
-                }
-
-                if (
-                  state.dataset === WidgetType.RELEASE &&
-                  state.displayType === DisplayType.TABLE
-                ) {
-                  // add the additional session tags to the aggregate options
-                  aggregateOptions = [
-                    ...aggregateOptions,
-                    ...Object.values(fieldOptions)
-                      .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
-                      .map(option => ({
-                        label: option.value.meta.name,
-                        value: option.value.meta.name,
-                        textValue: option.value.meta.name,
-                        trailingItems: renderTag(
-                          option.value.kind,
-                          option.value.meta.name
-                        ),
-                      })),
-                  ];
                 }
 
                 let matchingAggregate: any;
