@@ -163,10 +163,12 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <UptimeChecksTable uptimeRule={uptimeRule} />
         </Layout.Main>
         <Layout.Side>
-          <SectionHeading>{t('Checked URL')}</SectionHeading>
-          <CodeSnippet
-            hideCopyButton
-          >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          <MonitorUrlContainer>
+            <SectionHeading>{t('Checked URL')}</SectionHeading>
+            <CodeSnippet
+              hideCopyButton
+            >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          </MonitorUrlContainer>
           <SectionHeading>{t('Legend')}</SectionHeading>
           <CheckLegend>
             <CheckLegendItem>
@@ -277,4 +279,12 @@ const LegendText = styled(Text)`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const MonitorUrlContainer = styled('div')`
+  margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
 `;

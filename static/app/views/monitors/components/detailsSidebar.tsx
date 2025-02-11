@@ -155,6 +155,10 @@ const CheckIns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const Schedule = styled('div')`

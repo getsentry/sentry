@@ -106,7 +106,7 @@ function RelatedIssues({
     <Fragment>
       {!skipHeader && (
         <ControlsWrapper>
-          <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
+          <SectionHeading>{t('Related Issues')}</SectionHeading>
           <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
             {t('Open in Issues')}
           </LinkButton>
@@ -132,11 +132,6 @@ function RelatedIssues({
     </Fragment>
   );
 }
-
-const StyledSectionHeading = styled(SectionHeading)`
-  display: flex;
-  align-items: center;
-`;
 
 const ControlsWrapper = styled('div')`
   display: flex;
