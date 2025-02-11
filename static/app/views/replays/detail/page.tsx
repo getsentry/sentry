@@ -76,11 +76,11 @@ export default function Page({
 
   const header = replayRecord?.is_archived ? (
     <Header>
-      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+      <DetailsPageBreadcrumbs replayRecord={replayRecord} />
     </Header>
   ) : (
     <Header>
-      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+      <DetailsPageBreadcrumbs replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
         {isLoading ? (
