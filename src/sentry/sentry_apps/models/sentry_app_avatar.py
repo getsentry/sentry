@@ -53,8 +53,8 @@ class SentryAppAvatar(ControlAvatarBase):
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
+    # color: True = Logo, False = Icon
     color = models.BooleanField(default=False)
-    # e.g. issue linking logos will not have color
 
     class Meta:
         app_label = "sentry"
@@ -65,3 +65,6 @@ class SentryAppAvatar(ControlAvatarBase):
     def get_cache_key(self, size):
         color_identifier = "color" if self.color else "simple"
         return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"
+
+    def get_avatar_photo_type(self):
+        return "logo" if self.color else "icon"
