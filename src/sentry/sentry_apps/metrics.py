@@ -35,6 +35,6 @@ class SentryAppOperationEvent(EventLifecycleMetric):
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
             "operation_type": self.operation_type,
-            "integration_name": self.get_sentry_app_name(),
+            "sentry_app_name": self.get_sentry_app_name(),
             "region": self.get_region(),
         }
