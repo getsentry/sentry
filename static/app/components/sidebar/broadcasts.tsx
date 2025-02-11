@@ -47,7 +47,8 @@ export function Broadcasts({
   const {isPending, data: broadcasts = []} = useApiQuery<Broadcast[]>(
     [`/organizations/${organization.slug}/broadcasts/`],
     {
-      staleTime: 0,
+      // Five minute stale time prevents window focus frequent refetches
+      staleTime: 1000 * 60 * 5,
       refetchInterval: POLLER_DELAY,
       refetchOnWindowFocus: true,
     }
