@@ -23,11 +23,9 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import Column, Condition, DeleteQuery, Function, MetricsQuery, Query, Request
-from snuba_sdk.conditions import Or
+from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
-from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -2016,100 +2014,3 @@ def process_value(value: None | str | int | float | list[str] | list[int] | list
         return value
 
     return value
-
-
-# FLAGS/TAGS QUERY REWRITES.
-#
-# This is legacy code that I've overridden to rewrite tags queries. Flags are queried
-# identically to tags but they live on a different column. So we "OR" conditions where
-# a tag is present with a flag query.
-#
-# There is a more modern version of this code when the "organizations:issue-search-snuba"
-# flag is enabled. Everything below this comment can be removed when its permanently on.
-# No one else should be depending on these functions.
-
-
-def bulk_raw_query_with_override(
-    snuba_param_list: Sequence[SnubaQueryParams],
-    organization: Organization,
-    referrer: str | None = None,
-    use_cache: bool | None = False,
-) -> ResultSet:
-    """
-    Duplicate of bulk_raw_query except we re-write tags conditions on the events dataset. If the
-    search-issues-snuba flag is ever flipped to true then this can be removed.
-    """
-    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    snuba_requests = [
-        SnubaRequest(
-            request=json_to_snql(query, query["dataset"]),
-            referrer=referrer,
-            forward=forward,
-            reverse=reverse,
-        )
-        for query, forward, reverse in params
-    ]
-
-    for req in snuba_requests:
-        # Only requests to the errors table (events dataset) are re-written.
-        if req.request.dataset == "events":
-            old_query = req.request.query
-            new_conditions = []
-            for condition in old_query.where:
-                if features.has(
-                    "organizations:feature-flag-autocomplete", organization
-                ) and _has_tags_filter(condition.lhs):
-                    feature_condition = Condition(
-                        lhs=_substitute_tags_filter(condition.lhs),
-                        op=condition.op,
-                        rhs=condition.rhs,
-                    )
-                    condition = Or(conditions=[condition, feature_condition])
-                new_conditions.append(condition)
-
-            # A new query needs to be instatiated because the old-query is immutable.
-            new_query = Query(
-                match=old_query.match,
-                select=old_query.select,
-                groupby=old_query.groupby,
-                array_join=old_query.array_join,
-                where=new_conditions,
-                having=old_query.having,
-                orderby=old_query.orderby,
-                limitby=old_query.limitby,
-                limit=old_query.limit,
-                offset=old_query.offset,
-                granularity=old_query.granularity,
-                totals=old_query.totals,
-            )
-            req.request.query = new_query
-
-    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
-
-
-def _has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column) and condition.name.startswith("tags["):
-        return True
-    elif isinstance(condition, Function):
-        for param in condition.parameters:
-            if isinstance(param, (Column, Function)):
-                return _has_tags_filter(param)
-        return False
-    else:
-        return False
-
-
-def _substitute_tags_filter(condition: Any) -> Any:
-    if isinstance(condition, Column) and condition.name.startswith("tags["):
-        return Column(
-            name=condition.name.replace("tags[", "flags["),
-            entity=condition.entity,
-        )
-    elif isinstance(condition, Function):
-        return Function(
-            condition.function,
-            [_substitute_tags_filter(param) for param in condition.parameters],
-            condition.alias,
-        )
-    else:
-        return condition

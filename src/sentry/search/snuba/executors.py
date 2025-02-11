@@ -70,7 +70,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query_with_override
+from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -500,10 +500,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     query_params_for_categories[gc] = query_params
 
         try:
-            bulk_query_results = bulk_raw_query_with_override(
-                list(query_params_for_categories.values()),
-                referrer=referrer,
-                organization=organization,
+            bulk_query_results = bulk_raw_query(
+                list(query_params_for_categories.values()), referrer=referrer
             )
         except Exception:
             metrics.incr(
@@ -516,10 +514,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
             # we'll fallback to querying for errors only
             if GroupCategory.ERROR.value in query_params_for_categories.keys():
-                bulk_query_results = bulk_raw_query_with_override(
-                    [query_params_for_categories[GroupCategory.ERROR.value]],
-                    referrer=referrer,
-                    organization=organization,
+                bulk_query_results = bulk_raw_query(
+                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
                 )
             else:
                 raise
@@ -1954,11 +1950,12 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         return cast(CursorResult[Group], paginator_results)
 
 
+# This should update the search box so we can fetch the correct
+# issues.
 def has_tags_filter(condition: Column | Function) -> bool:
     if isinstance(condition, Column):
         if (
-            condition.entity
-            and condition.entity.name == "events"
+            condition.entity.name == "events"
             and condition.name.startswith("tags[")
             and condition.name.endswith("]")
         ):
