@@ -8,7 +8,9 @@ import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import type {Monitor} from '../types';
 
@@ -26,6 +28,7 @@ type Props = {
 
 function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
   const api = useApi();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const endpointOptions = {
@@ -81,8 +84,14 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
         icon={<IconEdit />}
         to={{
           pathname: linkToAlerts
-            ? `/organizations/${orgSlug}/alerts/crons-rules/${monitor.project.slug}/${monitor.slug}/`
-            : `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
+            ? makeAlertsPathname({
+                path: `/crons-rules/${monitor.project.slug}/${monitor.slug}/`,
+                organization,
+              })
+            : makeAlertsPathname({
+                path: `/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
+                organization,
+              }),
           // TODO(davidenwang): Right now we have to pass the environment
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend

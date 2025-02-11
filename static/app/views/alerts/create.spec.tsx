@@ -17,6 +17,7 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 jest.unmock('sentry/utils/recreateRoute');
 // updateOnboardingTask triggers an out of band state update
@@ -111,7 +112,10 @@ describe('ProjectAlertsCreate', function () {
             organization={organization}
             project={project}
             location={LocationFixture({
-              pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
+              pathname: makeAlertsPathname({
+                path: `/rules/${project.slug}/new/`,
+                organization: OrganizationFixture({slug: 'org-slug'}),
+              }),
               query: {createFromWizard: 'true'},
               ...location,
             })}
