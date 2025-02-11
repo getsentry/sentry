@@ -350,7 +350,7 @@ class Project(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_project"
-        unique_together = (("organization", "slug"), ("organization", "external_id"))
+        unique_together = (("organization", "slug"),)
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
