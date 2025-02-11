@@ -85,7 +85,7 @@ export function NewIssueExperienceButton() {
           onClick={handleToggle}
         >
           {text ? <span>{text}</span> : null}
-          <ToggleBorder />
+          {!hasStreamlinedUI && <ToggleBorder />}
         </ToggleButton>
       </ToggleButtonWrapper>
     );
