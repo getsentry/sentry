@@ -2,7 +2,7 @@ import type {ReactElement} from 'react';
 import * as Sentry from '@sentry/react';
 import {jsonrepair} from 'jsonrepair';
 
-type JSONValue = string | number | object | boolean | null;
+type JSONValue = string | number | Record<PropertyKey, unknown> | boolean | null;
 
 /**
  * Takes in a MongoDB query JSON string and outputs it as HTML tokens.

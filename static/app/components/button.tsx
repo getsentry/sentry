@@ -122,7 +122,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    *
    * @deprecated Use LinkButton instead
    */
-  to?: string | object;
+  to?: string | Record<PropertyKey, unknown>;
 }
 
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
@@ -147,7 +147,7 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
   /**
    * Similar to `href`, but for internal links within the app.
    */
-  to: string | object;
+  to: string | Record<PropertyKey, unknown>;
   external?: never;
 }
 

@@ -92,12 +92,12 @@ export type MenuListItemProps = {
 
 interface OtherProps {
   as?: React.ElementType;
-  detailsProps?: object;
-  innerWrapProps?: object;
+  detailsProps?: Record<PropertyKey, unknown>;
+  innerWrapProps?: Record<PropertyKey, unknown>;
   isFocused?: boolean;
   isPressed?: boolean;
   isSelected?: boolean;
-  labelProps?: object;
+  labelProps?: Record<PropertyKey, unknown>;
   showDivider?: boolean;
 }
 

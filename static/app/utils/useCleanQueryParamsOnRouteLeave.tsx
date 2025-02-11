@@ -9,7 +9,7 @@ type Opts<Q> = {
   shouldClean?: (newLocation: Location<Q>) => boolean;
 };
 
-export function handleRouteLeave<Q extends object>({
+export function handleRouteLeave<Q extends Record<PropertyKey, unknown>>({
   fieldsToClean,
   newLocation,
   oldPathname,

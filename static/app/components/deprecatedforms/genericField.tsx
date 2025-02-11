@@ -55,7 +55,7 @@ type Props = {
   formData: FormData;
   formState: (typeof FormState)[keyof typeof FormState];
   onChange: FormField['props']['onChange'];
-  formErrors?: object;
+  formErrors?: Record<PropertyKey, unknown>;
 };
 
 function GenericField({

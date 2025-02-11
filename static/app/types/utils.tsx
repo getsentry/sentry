@@ -18,8 +18,9 @@ export function isNotSharedOrganization(
   return typeof (maybe as Organization).id !== 'undefined';
 }
 
-export type DeepPartial<T> = T extends object
-  ? {
-      [P in keyof T]?: DeepPartial<T[P]>;
-    }
-  : T;
+export type DeepPartial<T> =
+  T extends Record<PropertyKey, unknown>
+    ? {
+        [P in keyof T]?: DeepPartial<T[P]>;
+      }
+    : T;
