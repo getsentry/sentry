@@ -144,15 +144,17 @@ function getColumnOptions(
     if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
       return formatColumnOptions(
         dataset,
-        fieldValues.filter(
-          ({value}) =>
-            (value.kind === FieldValueKind.FIELD ||
+        fieldValues.filter(({value}) =>
+          dataset === WidgetType.RELEASE
+            ? value.kind === FieldValueKind.METRICS &&
+              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
+            : value.kind === FieldValueKind.FIELD ||
               value.kind === FieldValueKind.TAG ||
               value.kind === FieldValueKind.MEASUREMENT ||
               value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
               value.kind === FieldValueKind.METRICS ||
-              value.kind === FieldValueKind.BREAKDOWN) &&
-            validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
+              (value.kind === FieldValueKind.BREAKDOWN &&
+                validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value))
         ),
         columnFilterMethod
       );
