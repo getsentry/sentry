@@ -1,17 +1,20 @@
 import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import Any, Type
 
 import sentry_sdk
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
@@ -385,3 +388,76 @@ def _process_all_timeseries(
             confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
 
     return result, confidence
+
+
+@dataclass
+class RPCSpan:
+    id: str
+    parent_span: None | str = None
+    description: None | str = None
+    op: None | str = None
+    is_transaction: bool = False
+    transaction_id: None | str = None
+    timestamp: None | str = None
+    end_timestamp: None | str = None
+    project_slug: None | str = None
+    project_id: None | int = None
+    children: list[type["RPCSpan"]] = field(default_factory=list)
+
+
+def run_trace_query(
+    trace: str,
+    params: SnubaParams,
+    referrer: str,
+    config: SearchResolverConfig,
+):
+    trace_attributes = [
+        "parent_span",
+        "description",
+        "op",
+        "is_transaction",
+        "transaction.span_id",
+        "timestamp",
+        "end_timestamp",
+        "project.slug",
+        "project.id",
+    ]
+    resolver = get_resolver(params=params, config=SearchResolverConfig())
+    columns, _ = resolver.resolve_attributes(trace_attributes)
+    meta = resolver.resolve_meta(referrer=referrer)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=trace,
+        items=[
+            {
+                "item_type": TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                "attributes": [col.proto_definition for col in columns],
+            }
+        ],
+    )
+    response = snuba_rpc.get_trace_rpc(request)
+    spans = []
+    columns_by_name = {col.proto_definition.name: col for col in columns}
+    for item_group in response.item_groups:
+        for span_item in item_group.items:
+            span = RPCSpan(span_item.id)
+            for attribute in span_item.attributes:
+                if attribute.key.name not in columns_by_name:
+                    raise Exception(f"no idea what {attribute.key.name} is")
+                resolved_column = columns_by_name[attribute.key.name]
+                if resolved_column.proto_definition.type == STRING:
+                    if resolved_column.public_alias == "transaction.span_id":
+                        span.transaction_id = attribute.value.val_str
+                    elif resolved_column.public_alias == "project.slug":
+                        span.project_slug = attribute.value.val_str
+                    else:
+                        setattr(span, resolved_column.public_alias, attribute.value.val_str)
+                if resolved_column.proto_definition.type == DOUBLE:
+                    if resolved_column.public_alias == "project.id":
+                        span.project_id = attribute.value.val_double
+                    else:
+                        setattr(span, resolved_column.public_alias, attribute.value.val_double)
+                elif resolved_column.search_type == "boolean":
+                    setattr(span, resolved_column.public_alias, attribute.value.val_int == 1)
+            spans.append(span)
+    return spans

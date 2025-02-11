@@ -1234,7 +1234,7 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span, is_eap=False):
+    def store_span(self, span, is_eap=True):
         span["ingest_in_eap"] = is_eap
         assert (
             requests.post(
@@ -1244,7 +1244,7 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_spans(self, spans, is_eap=False):
+    def store_spans(self, spans, is_eap=True):
         for span in spans:
             span["ingest_in_eap"] = is_eap
         assert (
@@ -3275,13 +3275,11 @@ class SpanTestCase(BaseTestCase):
         # Load some defaults
         span.update(
             {
-                "event_id": uuid4().hex,
                 "organization_id": organization.id,
                 "project_id": project.id,
                 "trace_id": uuid4().hex,
                 "span_id": uuid4().hex[:16],
                 "parent_span_id": uuid4().hex[:16],
-                "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
@@ -3390,19 +3388,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
-                spans = []
+                spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"event_id": event.event_id})
-                        spans.append(
+                        span.update({"segment_id": event.event_id[:16]})
+                        spans_to_store.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                spans.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans)
+                spans_to_store.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans_to_store, is_eap=True)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3411,14 +3409,13 @@ class TraceTestCase(SpanTestCase):
         end_ts = event.data["timestamp"]
         span_data = self.create_span(
             {
-                "event_id": event.event_id,
+                "segment_id": event.event_id[:16],
                 "organization_id": event.organization.id,
                 "project_id": event.project.id,
                 "trace_id": trace_context["trace_id"],
                 "span_id": trace_context["span_id"],
                 "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
-                "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 "is_segment": True,

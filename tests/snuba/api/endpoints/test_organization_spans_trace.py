@@ -102,5 +102,5 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert len(data) == 21
-        assert len([row for row in data if row["is_transaction"] == 1]) == 8
+        assert len(data) == 1
+        self.assert_trace_data(data[0])

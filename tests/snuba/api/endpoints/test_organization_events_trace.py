@@ -120,6 +120,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                         "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
                         "span_id": gen2_span_id,
                         "trace_id": self.trace_id,
+                        "parent_span_id": self.gen2_span_id,
                     }
                 ],
                 parent_span_id=gen1_span_id,
@@ -740,6 +741,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
+        breakpoint()
         self.assert_trace_data(trace_transaction)
         # We shouldn't have detailed fields here
         assert "transaction.status" not in trace_transaction

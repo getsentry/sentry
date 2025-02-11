@@ -206,7 +206,7 @@ def load_data(
         data["contexts"]["trace"]["span_id"] = span_id
         if trace_context is not None:
             data["contexts"]["trace"].update(trace_context)
-        if spans:
+        if spans is not None:
             data["spans"] = spans
 
         for span in data.get("spans", []):
