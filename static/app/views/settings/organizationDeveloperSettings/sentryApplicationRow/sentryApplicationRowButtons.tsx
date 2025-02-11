@@ -20,6 +20,10 @@ type Props = {
 
 const UI_COMPONENT_TYPES = ['stacktrace-link', 'issue-link'];
 
+const hasInvalidStatus = (app: SentryApp): boolean => {
+  return app.status !== 'unpublished';
+};
+
 const hasUploadedSentryAppPhoto = (
   avatars: SentryAppAvatar[] | undefined,
   photo_type: SentryAppAvatarPhotoType
@@ -60,10 +64,8 @@ function SentryApplicationRowButtons({
           disableDeleteReason = t(
             'Organization owner permissions are required for this action.'
           );
-        } else if (app.status === 'publish_request_inprogress') {
-          disablePublishReason = t(
-            'This integration is already in progress for publishing'
-          );
+        } else if (hasInvalidStatus(app)) {
+          disablePublishReason = t('Only unpublished integrations can be published');
         } else if (
           !hasUploadedSentryAppPhoto(app.avatars, SentryAppAvatarPhotoType.LOGO)
         ) {
