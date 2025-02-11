@@ -66,6 +66,11 @@ class BaseDeriveCodeMappings(TestCase):
             assert code_mapping.stack_root == stack_root
             assert code_mapping.source_root == source_root
 
+    def _process_and_assert_no_code_mapping(self, files: Sequence[str]) -> None:
+        with patch(GET_TREES_FOR_ORG, return_value=self._get_trees_for_org(files)):
+            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            assert not RepositoryProjectPathConfig.objects.exists()
+
 
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class TestTaskBehavior(BaseDeriveCodeMappings):
@@ -223,7 +228,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["packages/api/src/response.ts"], "../../", "")
 
     def test_starts_with_app_dot_dot_slash(self) -> None:
-        self._process_and_assert_code_mapping(["services/event/index.js"], "../../", "")
+        self._process_and_assert_code_mapping(["services/event/index.js"], "app:///../", "")
 
 
 class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
@@ -242,7 +247,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["sentry/kangaroo.go"], "/Users/JohnDoe/code/", "")
 
     def test_similar_but_incorrect_file(self) -> None:
-        self._process_and_assert_code_mapping(["notsentry/main.go"], "/Users/JohnDoe/code/", "")
+        self._process_and_assert_no_code_mapping(["notsentry/main.go"])
 
 
 class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
@@ -254,7 +259,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
     ]
 
     def test_basic_php(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/p/kanga.php"], "/sentry/", "")
+        self._process_and_assert_code_mapping(["sentry/p/kanga.php"], "/", "")
 
     def test_different_roots_php(self) -> None:
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.php"], "/sentry/", "src/sentry/")
@@ -282,7 +287,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
         self._process_and_assert_code_mapping(["src/sentry/p/kanga.cs"], "/sentry/", "src/sentry/")
 
     def test_non_in_app_frame(self) -> None:
-        self._process_and_assert_code_mapping(["sentry/src/functions.cs"], "/", "")
+        self._process_and_assert_no_code_mapping(["sentry/src/functions.cs"])
 
 
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
