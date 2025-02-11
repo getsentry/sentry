@@ -15,7 +15,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -650,18 +649,15 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        for refactored_code_enabled in [True, False]:
-            with (
-                override_options({"github-app.get-trees-refactored-code": refactored_code_enabled}),
-                patch(
-                    "sentry.issues.auto_source_code_config.task.identify_stacktrace_paths",
-                    return_value=["sentry/models/release.py", "sentry/tasks.py"],
-                ) as mock_identify_stacktraces,
-                self.tasks(),
-            ):
-                process_event(self.project.id, self.event.group_id, self.event.event_id)
-
-            assert mock_identify_stacktraces.call_count == 1
+        with (
+            patch(
+                "sentry.issues.auto_source_code_config.task.identify_stacktrace_paths",
+                return_value=["sentry/models/release.py", "sentry/tasks.py"],
+            ) as mock_identify_stacktraces,
+            self.tasks(),
+        ):
+            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            assert mock_identify_stacktraces.call_count == 2
             code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
             assert code_mapping.automatically_generated is False
 
