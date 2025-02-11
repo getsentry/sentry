@@ -106,6 +106,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         done probabilistically, so that the check is performed roughly once an hour for each uptime
         monitor.
         """
+        if not subscription.subscription_id:
+            # Edge case where we can have no subscription_id here
+            return
         # Run region checks and updates once an hour
         runs_per_hour = UptimeSubscription.IntervalSeconds.ONE_HOUR / subscription.interval_seconds
         subscription_run = UUID(subscription.subscription_id).int % runs_per_hour
