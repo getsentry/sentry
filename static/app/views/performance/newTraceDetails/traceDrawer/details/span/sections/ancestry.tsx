@@ -147,7 +147,7 @@ function SpanChildrenTraversalButton({
       data-test-id="view-child-transactions"
       size="xs"
       to={childrenEventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
       )}
