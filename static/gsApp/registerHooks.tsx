@@ -367,7 +367,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
 
 // NOTE(ts): We modify the signature of Object.entries here so that we can
 // obtain the proper type tuples while iterating our hooks list.
-const entries = Object.entries as <T>(o: T) => [Extract<keyof T, string>, T[keyof T]][];
+const entries = Object.entries as <T>(
+  o: T
+) => Array<[Extract<keyof T, string>, T[keyof T]]>;
 
 const registerHooks = () =>
   entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));

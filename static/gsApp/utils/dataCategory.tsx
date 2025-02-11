@@ -136,7 +136,7 @@ export function sortCategories(categories?: {
 
 export function sortCategoriesWithKeys(categories?: {
   [key: string]: BillingMetricHistory;
-}): [string, BillingMetricHistory][] {
+}): Array<[string, BillingMetricHistory]> {
   return Object.entries(categories || {}).sort((a, b) =>
     a[1].order > b[1].order ? 1 : -1
   );

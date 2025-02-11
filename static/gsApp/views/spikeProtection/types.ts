@@ -22,19 +22,19 @@ export interface Spike {
 
 export interface SpikesList {
   end: string;
-  groups: {
+  groups: Array<{
     billing_metric: DataCategoryInfo['uid'];
     spikes: Spike[];
-  }[];
+  }>;
   start: string;
 }
 
 export type SpikeThresholds = {
   end: string;
-  groups: {
+  groups: Array<{
     billing_metric: DataCategoryInfo['uid'];
     threshold: number[];
-  }[];
+  }>;
   intervals: string[];
   start: string;
 };

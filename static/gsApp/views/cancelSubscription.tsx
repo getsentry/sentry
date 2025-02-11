@@ -33,7 +33,7 @@ import withPromotions from 'getsentry/utils/withPromotions';
 
 type CancelReason = [string, React.ReactNode];
 
-const CANCEL_STEPS: {followup: React.ReactNode; reason: CancelReason}[] = [
+const CANCEL_STEPS: Array<{followup: React.ReactNode; reason: CancelReason}> = [
   {
     reason: ['shutting_down', t('The project/product/company is shutting down.')],
     followup: t('Sorry to hear that! Anything more we should know?'),

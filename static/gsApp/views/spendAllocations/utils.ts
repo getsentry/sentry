@@ -1,8 +1,8 @@
 import {BILLION, MILLION} from 'getsentry/constants';
 
 export enum BigNumUnits {
-  NUMBERS,
-  KILO_BYTES,
+  NUMBERS = 0,
+  KILO_BYTES = 1,
 }
 
 const fixDecimals = (num: number, decimals: number) => {

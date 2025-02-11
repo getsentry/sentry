@@ -39,8 +39,8 @@ interface SubscriptionNotificationsProps extends RouteComponentProps<{}, {}> {
 }
 
 type ThresholdsType = {
-  perProductOndemandPercent: Array<number>;
-  reservedPercent: Array<number>;
+  perProductOndemandPercent: number[];
+  reservedPercent: number[];
 };
 
 const OPTIONS = [
@@ -246,7 +246,7 @@ type GenericConsumptionGroupProps = {
   help: string;
   label: string;
   removeThreshold: (index: number) => void;
-  thresholds: Array<number>;
+  thresholds: number[];
   updateThreshold: (index: number, value: number) => void;
 };
 

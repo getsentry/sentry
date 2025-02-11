@@ -6,7 +6,7 @@ import {getSpikeDetailsFromSeries} from 'getsentry/views/spikeProtection/utils';
 describe('getSpikeDetailsFromSeries', function () {
   function validateResults(
     actual: any,
-    expectedStoredSpikes: Partial<SpikeDetails>[] = []
+    expectedStoredSpikes: Array<Partial<SpikeDetails>> = []
   ) {
     // required for the case where the actual is longer than the expected
     expect(actual).toHaveLength(expectedStoredSpikes.length);
