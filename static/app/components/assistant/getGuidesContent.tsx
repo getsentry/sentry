@@ -208,5 +208,19 @@ export default function getGuidesContent(
         },
       ],
     },
+    {
+      guide: 'issue_views_page_filters_persistence',
+      requiredTargets: ['issue_views_page_filters_persistence'],
+      steps: [
+        {
+          title: t('Save Filters to Issue Views'),
+          target: 'issue_views_page_filters_persistence',
+          description: t(
+            'We heard your feedback — Issue Views now save project, environment, and time range filters.'
+          ),
+        },
+      ],
+      dateThreshold: new Date('2025-02-11'),
+    },
   ];
 }

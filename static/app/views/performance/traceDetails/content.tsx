@@ -405,7 +405,7 @@ class TraceDetailsContent extends Component<Props, State> {
               <DiscoverButton
                 size="sm"
                 to={traceEventView.getResultsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   false,
                   hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
                 )}

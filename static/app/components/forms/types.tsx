@@ -1,6 +1,5 @@
-import type {createFilter} from 'react-select';
-
 import type {AlertProps} from 'sentry/components/alert';
+import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type FormModel from 'sentry/components/forms/model';

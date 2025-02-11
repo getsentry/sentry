@@ -62,7 +62,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
                 "aggregate": "count()",
                 "timeWindow": 60,
                 "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.value],
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "dataConditions": [
                 {

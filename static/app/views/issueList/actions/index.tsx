@@ -533,7 +533,7 @@ const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
   padding-bottom: ${p => (p.narrowHeader ? space(0.5) : space(1))};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: 6px 6px 0 0;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
