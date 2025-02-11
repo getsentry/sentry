@@ -236,7 +236,7 @@ function AutofixHighlightPopup(props: Props) {
       const rect = referenceElement.getBoundingClientRect();
       startTransition(() => {
         setPosition({
-          left: rect.left - 320,
+          left: rect.left - 340,
           top: rect.top,
         });
       });

@@ -1,10 +1,8 @@
+from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
-from django.utils import timezone
-
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.rules.base import RuleBase
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -23,11 +21,6 @@ class ConditionTestCase(BaseWorkflowTest):
 
     @property
     def condition(self) -> Condition:
-        raise NotImplementedError
-
-    @property
-    def rule_cls(self) -> type[RuleBase]:
-        # for mapping purposes, can delete later
         raise NotImplementedError
 
     @property
@@ -53,8 +46,8 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
     def setUp(self):
         super().setUp()
 
-        self.start = before_now(minutes=1)
-        self.end = timezone.now()
+        self.start = before_now(minutes=5)
+        self.end = self.start + timedelta(minutes=5)
 
         self.event = self.store_event(
             data={

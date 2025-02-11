@@ -11,12 +11,12 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {Release, TimeseriesData, TimeseriesSelection} from '../common/types';
+import type {Release, TimeSeries, TimeseriesSelection} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -65,13 +65,13 @@ export default storyBook('LineChartWidget', story => {
     };
 
     const throughputTimeSeries = toTimeSeriesSelection(
-      sampleThroughputTimeSeries as unknown as TimeseriesData,
+      sampleThroughputTimeSeries,
       start,
       end
     );
 
     const durationTimeSeries1 = toTimeSeriesSelection(
-      sampleDurationTimeSeries as unknown as TimeseriesData,
+      sampleDurationTimeSeries,
       start,
       end
     );
@@ -93,7 +93,7 @@ export default storyBook('LineChartWidget', story => {
           <LineChartWidget
             title="eps()"
             description="Number of events per second"
-            timeseries={[throughputTimeSeries]}
+            timeSeries={[throughputTimeSeries]}
           />
         </SmallSizingWindow>
 
@@ -115,7 +115,7 @@ export default storyBook('LineChartWidget', story => {
             <LineChartWidget
               title="span.duration"
               dataCompletenessDelay={60 * 60 * 3}
-              timeseries={[
+              timeSeries={[
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
@@ -157,7 +157,7 @@ export default storyBook('LineChartWidget', story => {
         <MediumWidget>
           <LineChartWidget
             title="span.duration"
-            timeseries={[
+            timeSeries={[
               {
                 ...durationTimeSeries1,
                 meta: {
@@ -235,7 +235,7 @@ export default storyBook('LineChartWidget', story => {
           <LineChartWidget
             title="error_rate()"
             description="Rate of Errors"
-            timeseries={[
+            timeSeries={[
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
@@ -248,7 +248,7 @@ export default storyBook('LineChartWidget', story => {
                   },
                 },
                 color: theme.error,
-              } as unknown as TimeseriesData,
+              },
             ]}
           />
         </MediumWidget>
@@ -279,7 +279,7 @@ export default storyBook('LineChartWidget', story => {
         <MediumWidget>
           <LineChartWidget
             title="error_rate()"
-            timeseries={[
+            timeSeries={[
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
@@ -291,7 +291,7 @@ export default storyBook('LineChartWidget', story => {
                     'error_rate()': '1/second',
                   },
                 },
-              } as unknown as TimeseriesData,
+              },
             ]}
             releases={releases}
           />
@@ -317,10 +317,10 @@ const SmallSizingWindow = styled(SizingWindow)`
 `;
 
 function toTimeSeriesSelection(
-  timeSeries: TimeseriesData,
+  timeSeries: TimeSeries,
   start: DateString | null,
   end: DateString | null
-): TimeseriesData {
+): TimeSeries {
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {

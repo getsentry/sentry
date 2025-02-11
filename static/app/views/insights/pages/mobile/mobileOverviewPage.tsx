@@ -9,6 +9,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -16,10 +17,12 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -30,6 +33,7 @@ import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOve
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
   MOBILE_LANDING_TITLE,
+  MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {
@@ -83,6 +87,7 @@ function MobileOverviewPage() {
   const navigate = useNavigate();
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
+  const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
 
@@ -93,6 +98,7 @@ function MobileOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   let columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
@@ -100,8 +106,23 @@ function MobileOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
+  const selectedMobileProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
+  );
+
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  if (selectedMobileProjects.length > 0) {
+    existingQuery.addOp('OR');
+    existingQuery.addFilterValue(
+      'project.id',
+      `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
+    );
+  }
+
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -206,7 +227,7 @@ function MobileOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}

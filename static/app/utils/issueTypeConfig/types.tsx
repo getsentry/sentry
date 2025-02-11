@@ -69,10 +69,10 @@ export type IssueTypeConfig = {
       fixedEnvironment?: boolean;
     };
     graph: DisabledWithReasonConfig & {
-      type: 'discover-events' | 'checkin-timeline' | 'detector-history';
+      type?: 'discover-events' | 'uptime-checks' | 'detector-history';
     };
     occurrenceSummary: DisabledWithReasonConfig & {
-      duration?: boolean;
+      downtime?: boolean;
     };
     tagDistribution: DisabledWithReasonConfig;
   };

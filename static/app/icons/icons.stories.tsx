@@ -271,12 +271,14 @@ const SECTIONS: TSection[] = [
           'expand',
           'collapse',
           'arrow',
+          'double',
         ],
-        additionalProps: ['isCircled', 'direction'],
+        additionalProps: ['isCircled', 'direction', 'isDouble'],
         name: 'Chevron',
         defaultProps: {
           isCircled: false,
           direction: 'left',
+          isDouble: false,
         },
       },
       {
@@ -332,6 +334,38 @@ const SECTIONS: TSection[] = [
         name: 'Chevron',
         defaultProps: {
           isCircled: true,
+          direction: 'down',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-left',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'left',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-right',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'right',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-up',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
+          direction: 'up',
+        },
+      },
+      {
+        id: 'chevron-isDouble-direction-down',
+        name: 'Chevron',
+        defaultProps: {
+          isDouble: true,
           direction: 'down',
         },
       },
@@ -584,6 +618,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {
           isCircled: true,
         },
+      },
+      {
+        id: 'divide',
+        groups: ['action'],
+        keywords: ['divided', 'math'],
+        name: 'Divide',
+        defaultProps: {},
       },
       {
         id: 'upload',

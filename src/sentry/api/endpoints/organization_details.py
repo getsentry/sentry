@@ -52,8 +52,6 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -65,6 +63,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
+    ObjectStatus,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -90,6 +89,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -214,18 +214,6 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
-    (
-        "metricsActivatePercentiles",
-        "sentry:metrics_activate_percentiles",
-        bool,
-        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
-    ),
-    (
-        "metricsActivateLastForGauges",
-        "sentry:metrics_activate_last_for_gauges",
-        bool,
-        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
@@ -281,8 +269,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
@@ -638,8 +624,6 @@ def post_org_pending_deletion(
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
-        "metricsActivatePercentiles",
-        "metricsActivateLastForGauges",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -840,10 +824,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     )
     apdexThreshold = serializers.IntegerField(required=False)
 
-    # TODO: publish when GA'd
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
-
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
@@ -971,7 +951,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if "samplingMode" in changed_data:
                     with transaction.atomic(router.db_for_write(ProjectOption)):
                         if is_project_mode_sampling(organization):
-                            self._compute_project_target_sample_rates(organization)
+                            self._compute_project_target_sample_rates(request, organization)
                             organization.delete_option("sentry:target_sample_rate")
 
                         elif is_org_mode:
@@ -1030,7 +1010,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _compute_project_target_sample_rates(self, organization: Organization):
+    def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
@@ -1051,13 +1031,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             org_id, projects_with_tx_count_and_rates
         )
 
+        project_ids = set(
+            Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).values_list(
+                "id", flat=True
+            )
+        )
+
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
-                ProjectOption.objects.create_or_update(
-                    project_id=rebalanced_item.id,
-                    key="sentry:target_sample_rate",
-                    values={"value": round(rebalanced_item.new_sample_rate, 4)},
-                )
+                if int(rebalanced_item.id) in project_ids:
+                    ProjectOption.objects.create_or_update(
+                        project_id=rebalanced_item.id,
+                        key="sentry:target_sample_rate",
+                        values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                    )
 
     def handle_delete(self, request: Request, organization: Organization):
         """

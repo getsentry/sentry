@@ -128,6 +128,7 @@ export default storyBook('BigNumberWidget', story => {
                 fields: {
                   'count()': 'integer',
                 },
+                units: {},
               }}
             />
           </SmallWidget>
@@ -228,6 +229,7 @@ export default storyBook('BigNumberWidget', story => {
                 fields: {
                   'http_rate(500)': 'percentage',
                 },
+                units: {},
               }}
             />
           </SmallWidget>
@@ -242,6 +244,7 @@ export default storyBook('BigNumberWidget', story => {
                 fields: {
                   'http_rate(200)': 'percentage',
                 },
+                units: {},
               }}
             />
           </SmallWidget>

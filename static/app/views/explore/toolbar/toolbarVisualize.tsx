@@ -10,7 +10,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
   useExploreVisualizes,
@@ -22,7 +22,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
@@ -44,8 +44,6 @@ export function ToolbarVisualize() {
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
 
-  const numberTags = useSpanTags('number');
-
   const parsedVisualizeGroups: ParsedVisualize[][] = useMemo(() => {
     return visualizes.map(visualize =>
       visualize.yAxes
@@ -60,46 +58,11 @@ export function ToolbarVisualize() {
     );
   }, [visualizes]);
 
-  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
-    const unknownOptions = parsedVisualizeGroups
-      .flatMap(group =>
-        group.flatMap(entry => {
-          return entry.func.arguments;
-        })
-      )
-      .filter(option => {
-        return !numberTags.hasOwnProperty(option);
-      });
+  const yAxes: string[] = useMemo(() => {
+    return visualizes.flatMap(visualize => visualize.yAxes);
+  }, [visualizes]);
 
-    const options = [
-      ...unknownOptions.map(option => ({
-        label: prettifyTagKey(option),
-        value: option,
-        textValue: option,
-      })),
-      ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-        };
-      }),
-    ];
-
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return options;
-  }, [numberTags, parsedVisualizeGroups]);
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {

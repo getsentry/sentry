@@ -6,9 +6,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.api.exceptions import (
-    DataSecrecyError,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -211,18 +209,7 @@ class SentryPermission(ScopedPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
-        # TODO(iamrajjoshi): Remove this check once we have fully migrated to the new data secrecy logic
         organization = org_context.organization
-
-        if (
-            request.user
-            and request.user.is_superuser
-            and features.has(
-                "organizations:enterprise-data-secrecy-legacy", org_context.organization
-            )
-        ):
-            raise DataSecrecyError()
-
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
                 request=request,

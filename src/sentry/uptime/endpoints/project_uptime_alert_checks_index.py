@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -14,12 +14,13 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, Tr
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.models import ProjectUptimeSubscription
@@ -40,10 +41,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         project: Project,
         uptime_subscription: ProjectUptimeSubscription,
     ) -> Response:
+        start, end = get_date_range_from_params(request.GET)
 
         def data_fn(offset: int, limit: int) -> Any:
             rpc_response = self._make_eap_request(
-                project, uptime_subscription, offset=offset, limit=limit
+                project, uptime_subscription, offset=offset, limit=limit, start=start, end=end
             )
             return self._format_response(rpc_response, uptime_subscription)
 
@@ -61,11 +63,20 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         uptime_subscription: ProjectUptimeSubscription,
         offset: int,
         limit: int,
+        start: datetime,
+        end: datetime,
     ) -> TraceItemTableResponse:
+        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
+        epoch_cutoff = (
+            datetime.fromtimestamp(maybe_cutoff, tz=timezone.utc) if maybe_cutoff else None
+        )
+        if epoch_cutoff and epoch_cutoff > start:
+            start = epoch_cutoff
+
         start_timestamp = Timestamp()
-        start_timestamp.FromDatetime(datetime.now() - timedelta(days=90))
+        start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
-        end_timestamp.FromDatetime(datetime.now())
+        end_timestamp.FromDatetime(end)
         rpc_request = TraceItemTableRequest(
             meta=RequestMeta(
                 referrer="uptime_alert_checks_index",
@@ -105,12 +116,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                 Column(
                     label="scheduled_check_time",
                     key=AttributeKey(
-                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_FLOAT
+                        name="scheduled_check_time", type=AttributeKey.Type.TYPE_DOUBLE
                     ),
                 ),
                 Column(
                     label="timestamp",
-                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_FLOAT),
+                    key=AttributeKey(name="timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
                 ),
                 Column(
                     label="duration_ms",
@@ -134,7 +145,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
                     label="trace_id",
                     key=AttributeKey(name="trace_id", type=AttributeKey.Type.TYPE_STRING),
                 ),
-                # TODO: Add http_status_code once nullable problem figured out
+                Column(
+                    label="http_status_code",
+                    key=AttributeKey(name="http_status_code", type=AttributeKey.Type.TYPE_INT),
+                ),
             ],
             order_by=[
                 TraceItemTableRequest.OrderBy(
@@ -188,8 +202,8 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             return self._handle_string_field(result.val_str, col_name, uptime_subscription)
         elif result.HasField("val_int"):
             return {col_name: int(result.val_int)}
-        elif result.HasField("val_float"):
-            return self._handle_float_field(result.val_float, col_name)
+        elif result.HasField("val_double"):
+            return self._handle_double_field(result.val_double, col_name)
         return {}
 
     def _handle_string_field(
@@ -203,7 +217,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             }
         return {col_name: value}
 
-    def _handle_float_field(self, value: float, col_name: str) -> Mapping[str, int | str | float]:
+    def _handle_double_field(self, value: float, col_name: str) -> Mapping[str, int | str | float]:
         if col_name in ("scheduled_check_time", "timestamp"):
             return {col_name: datetime.fromtimestamp(value).strftime("%Y-%m-%dT%H:%M:%SZ")}
         return {col_name: value}
+
+    def _get_date_cutoff_epoch_seconds(self) -> float | None:
+        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
+        return None if value == 0 else value

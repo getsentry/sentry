@@ -114,7 +114,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "safeFields",
         "storeCrashReports",
         "relayPiiConfig",
-        "relayCustomMetricCardinalityLimit",
         "builtinSymbolSources",
         "symbolSources",
         "scrubIPAddresses",
@@ -206,7 +205,6 @@ E.g. `['release', 'environment']`""",
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    relayCustomMetricCardinalityLimit = serializers.IntegerField(required=False, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
@@ -281,22 +279,6 @@ E.g. `['release', 'environment']`""",
     def validate_relayPiiConfig(self, value):
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
-
-    def validate_relayCustomMetricCardinalityLimit(self, value):
-        if value is None:
-            return value
-
-        if value < 0:
-            raise serializers.ValidationError("Cardinality limit must be a non-negative integer.")
-
-        # Value is stored as uint32 in relay
-        # TODO: find a way to share this constant between relay and sentry
-        if value > 4_294_967_295:
-            raise serializers.ValidationError(
-                "Cardinality limit must be smaller or equal to 4,294,967,295."
-            )
-
-        return value
 
     def validate_builtinSymbolSources(self, value):
         if not value:
@@ -709,25 +691,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:relay_pii_config"] = (
                     result["relayPiiConfig"].strip() or None
                 )
-        if "relayCustomMetricCardinalityLimit" in result:
-            limit = result.get("relayCustomMetricCardinalityLimit")
-            cardinality_limits = []
-            if limit is not None:
-                # For now we only allow setting a single limit
-                # TODO: validate this with rust validator
-                cardinality_limits = [
-                    {
-                        "limit": {
-                            "id": "project-override-custom",
-                            "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                            "limit": limit,
-                            "namespace": "custom",
-                            "scope": "name",
-                        }
-                    }
-                ]
-            if project.update_option("relay.cardinality-limiter.limits", cardinality_limits):
-                changed_proj_settings["relay.cardinality-limiter.limits"] = cardinality_limits
         if result.get("builtinSymbolSources") is not None:
             if project.update_option(
                 "sentry:builtin_symbol_sources", result["builtinSymbolSources"]

@@ -3,8 +3,6 @@ from collections.abc import Callable
 from typing import Any, Literal, cast
 from unittest.mock import patch
 
-import pytest
-
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import CustomFingerprintVariant
@@ -12,11 +10,9 @@ from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
     ReferrerOptions,
-    TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     filter_null_from_string,
     get_stacktrace_string,
-    get_stacktrace_string_with_metrics,
     has_too_many_contributing_frames,
 )
 from sentry.testutils.cases import TestCase
@@ -561,7 +557,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
 
         # The stacktrace string should be:
         #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
@@ -613,7 +609,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
 
         # The stacktrace string should be:
         #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
@@ -667,7 +663,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
+            stacktrace_str = get_stacktrace_string(data_chained_exception)
 
             assert (
                 stacktrace_str.count("outer line")
@@ -687,7 +683,7 @@ class GetStacktraceStringTest(TestCase):
             )
             for i in range(1, MAX_FRAME_COUNT + 2)
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
         for i in range(2, MAX_FRAME_COUNT + 2):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
@@ -717,54 +713,6 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_stacktrace_length_filter_single_exception(self):
-        data_system = copy.deepcopy(self.BASE_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        data_system["system"]["component"]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
-
-        with pytest.raises(TooManyOnlySystemFramesException):
-            get_stacktrace_string(data_system, platform="java")
-
-    def test_stacktrace_length_filter_single_exception_invalid_platform(self):
-        data_system = copy.deepcopy(self.BASE_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        data_system["system"]["component"]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
-
-        stacktrace_string = get_stacktrace_string(data_system, "python")
-        assert stacktrace_string is not None and stacktrace_string != ""
-
-    def test_stacktrace_length_filter_chained_exception(self):
-        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        # Split MAX_FRAME_COUNT across the two exceptions
-        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-
-        with pytest.raises(TooManyOnlySystemFramesException):
-            get_stacktrace_string(data_system, platform="java")
-
-    def test_stacktrace_length_filter_chained_exception_invalid_platform(self):
-        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        # Split MAX_FRAME_COUNT across the two exceptions
-        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-
-        stacktrace_string = get_stacktrace_string(data_system, "python")
-        assert stacktrace_string is not None and stacktrace_string != ""
-
     def test_stacktrace_truncation_uses_in_app_contributing_frames(self):
         """
         Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
@@ -783,7 +731,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
+        stacktrace_str = get_stacktrace_string(data_frames)
 
         num_frames = 0
         for i in range(1, 11):
@@ -811,7 +759,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
+            stacktrace_str = get_stacktrace_string(data_frames)
 
             assert stacktrace_str.count("context line") == expected_frame_count
 
@@ -845,9 +793,7 @@ class GetStacktraceStringTest(TestCase):
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete filename from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
-        stacktrace_string = get_stacktrace_string_with_metrics(
-            exception, "python", ReferrerOptions.INGEST
-        )
+        stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
             == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'

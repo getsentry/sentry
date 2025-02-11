@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCircleFill} from 'sentry/icons/iconCircleFill';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -13,13 +11,15 @@ import type {Color} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useHasTraceNewUi} from './useHasTraceNewUi';
 import {useTraceEventView} from './useTraceEventView';
 import {type TraceViewQueryParams, useTraceQueryParams} from './useTraceQueryParams';
 
 function useTraceLevelOpsQuery(
   traceSlug: string,
   params: TraceViewQueryParams,
-  partialSavedQuery: Partial<NewQuery>
+  partialSavedQuery: Partial<NewQuery>,
+  enabled: boolean
 ) {
   const location = useLocation();
   const organization = useOrganization();
@@ -32,6 +32,9 @@ function useTraceLevelOpsQuery(
     eventView,
     orgSlug: organization.slug,
     location,
+    options: {
+      enabled,
+    },
   });
 }
 
@@ -51,30 +54,40 @@ type Props = {
 };
 
 export function TraceLevelOpsBreakdown({traceSlug, isTraceLoading}: Props) {
+  const hasNewTraceUi = useHasTraceNewUi();
   const urlParams = useTraceQueryParams();
   const {
     data: opsCountsResult,
     isPending: isOpsCountsLoading,
     isError: isOpsCountsError,
-  } = useTraceLevelOpsQuery(traceSlug ?? '', urlParams, {
-    fields: ['span.op', 'count()'],
-    orderby: '-count',
-  });
+  } = useTraceLevelOpsQuery(
+    traceSlug ?? '',
+    urlParams,
+    {
+      fields: ['span.op', 'count()'],
+      orderby: '-count',
+    },
+    hasNewTraceUi
+  );
   const {
     data: totalCountResult,
     isPending: isTotalCountLoading,
     isError: isTotalCountError,
-  } = useTraceLevelOpsQuery(traceSlug ?? '', urlParams, {
-    fields: ['count()'],
-  });
+  } = useTraceLevelOpsQuery(
+    traceSlug ?? '',
+    urlParams,
+    {
+      fields: ['count()'],
+    },
+    hasNewTraceUi
+  );
+
+  if (!hasNewTraceUi || isOpsCountsError || isTotalCountError) {
+    return null;
+  }
 
   if (isOpsCountsLoading || isTotalCountLoading || isTraceLoading) {
     return <LoadingPlaceHolder />;
-  }
-
-  if (isOpsCountsError || isTotalCountError) {
-    addErrorMessage(t('Failed to load trace level ops breakdown'));
-    return null;
   }
 
   const totalCount = totalCountResult?.data[0]?.['count()'] ?? 0;

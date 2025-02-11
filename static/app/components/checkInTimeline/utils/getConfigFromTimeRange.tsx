@@ -91,6 +91,14 @@ const WEIGHTS = {
   bucketPixels: 1.5,
 } as const;
 
+const EMPTY_ROLLUP: RollupConfig = {
+  interval: 0,
+  bucketPixels: 0,
+  totalBuckets: 0,
+  timelineUnderscanWidth: 0,
+  underscanPeriod: 0,
+};
+
 /**
  * Compute the "ideal" rollup interval given the size of the timeline and the
  * period of time we want to represent within the timeline.
@@ -100,6 +108,10 @@ const WEIGHTS = {
  * may not take the entire size of the timeline in pixels
  */
 function computeRollup(elapsedSeconds: number, timelineWidth: number) {
+  if (timelineWidth === 0) {
+    return EMPTY_ROLLUP;
+  }
+
   // For all candidate intervals compute a underscan size. We'll pick the
   // interval that produces the best ratio of `underscanWidth / interval`
   const candidateIntervals = BUCKET_INTERVALS.map(interval => {
@@ -127,16 +139,23 @@ function computeRollup(elapsedSeconds: number, timelineWidth: number) {
     // fractional pixels (0.5, 0.25, 0.125 etc)
     const bucketPixels = clampedTimelineWidth / totalBuckets;
 
+    const underscanBuckets = Math.floor(timelineUnderscanWidth / bucketPixels);
+    const underscanPeriod = underscanBuckets * interval;
+
     return {
       interval,
       bucketPixels,
       totalBuckets,
       timelineUnderscanWidth,
       underscanPct,
+      underscanPeriod,
+      underscanBuckets,
     };
   })
     // There is a maximum number of bucekts we can request.
-    .filter(candidate => candidate.totalBuckets < MAXIMUM_BUCKETS);
+    .filter(
+      candidate => candidate.totalBuckets + candidate.underscanBuckets < MAXIMUM_BUCKETS
+    );
 
   const maxBuckets = Math.max(...candidateIntervals.map(o => o.totalBuckets));
   const maxBucketPixels = Math.max(...candidateIntervals.map(o => o.bucketPixels));

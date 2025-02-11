@@ -9,7 +9,6 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,7 +24,6 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
 const MetricChart = lazy(
   () => import('sentry/views/alerts/rules/metric/details/metricChart')
@@ -91,10 +89,7 @@ export function MetricIssueChart({
   }
 
   const {dataset, aggregate, query} = rule;
-  let formattedAggregate = aggregate;
-  if (isCustomMetricAlert(aggregate)) {
-    formattedAggregate = formatMRIField(aggregate);
-  }
+  const formattedAggregate = aggregate;
   const eventType = extractEventTypeFilterFromRule(rule);
   const queryWithTypeFilter =
     dataset === Dataset.EVENTS_ANALYTICS_PLATFORM

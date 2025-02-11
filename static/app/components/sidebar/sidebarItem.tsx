@@ -315,9 +315,12 @@ function SidebarItem({
 SidebarItem.displayName = 'SidebarItem';
 
 export function isItemActive(
-  item: Pick<SidebarItemProps, 'to' | 'label'>,
+  item: Pick<SidebarItemProps, 'to' | 'label' | 'active'>,
   exact?: boolean
 ): boolean {
+  if (typeof item.active === 'boolean') {
+    return item.active;
+  }
   // take off the query params for matching
   const toPathWithoutReferrer = item?.to?.split('?')[0];
   if (!toPathWithoutReferrer) {

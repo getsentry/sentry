@@ -13,15 +13,15 @@ import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import type {UptimeAlert} from 'sentry/views/alerts/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {OverviewRow} from './overviewRow';
 
 interface Props {
-  uptimeAlerts: UptimeAlert[];
+  uptimeRules: UptimeRule[];
 }
 
-export function OverviewTimeline({uptimeAlerts}: Props) {
+export function OverviewTimeline({uptimeRules}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
@@ -58,11 +58,11 @@ export function OverviewTimeline({uptimeAlerts}: Props) {
         timeWindowConfig={timeWindowConfig}
       />
       <UptimeAlertRow>
-        {uptimeAlerts.map(uptimeAlert => (
+        {uptimeRules.map(uptimeRule => (
           <OverviewRow
-            key={uptimeAlert.id}
+            key={uptimeRule.id}
             timeWindowConfig={timeWindowConfig}
-            uptimeAlert={uptimeAlert}
+            uptimeRule={uptimeRule}
           />
         ))}
       </UptimeAlertRow>
@@ -77,8 +77,8 @@ const Header = styled(Sticky)`
 
   z-index: 1;
   background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {

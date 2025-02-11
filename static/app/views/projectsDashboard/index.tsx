@@ -20,6 +20,7 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
+import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {
   onRenderCallback,
@@ -71,6 +72,13 @@ function ProjectCardList({projects}: {projects: Project[]}) {
   );
 }
 
+function addProjectsToTeams(teams: Team[], projects: Project[]): TeamWithProjects[] {
+  return teams.map(team => ({
+    ...team,
+    projects: projects.filter(project => project.teams.some(tm => tm.id === team.id)),
+  }));
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -112,24 +120,23 @@ function Dashboard() {
 
   const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
   const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
-  const myTeams = includeMyTeams ? (userTeams as TeamWithProjects[]) : [];
+  const myTeams = includeMyTeams ? userTeams : [];
   const otherTeams = isAllTeams
     ? allTeams
     : hasOtherTeams
       ? allTeams.filter(team => selectedTeams.includes(`${team.id}`))
       : [];
-  const filteredTeams = ([...myTeams, ...otherTeams] as TeamWithProjects[]).filter(
-    team => {
-      if (showNonMemberProjects) {
-        return true;
-      }
-
-      return team.isMember;
+  const filteredTeams = [...myTeams, ...otherTeams].filter(team => {
+    if (showNonMemberProjects) {
+      return true;
     }
-  );
+
+    return team.isMember;
+  });
+  const filteredTeamsWithProjects = addProjectsToTeams(filteredTeams, projects);
 
   const currentProjects = uniqBy(
-    filteredTeams.flatMap(team => team.projects),
+    filteredTeamsWithProjects.flatMap(team => team.projects),
     'id'
   );
   setGroupedEntityTag('projects.total', 1000, projects.length);

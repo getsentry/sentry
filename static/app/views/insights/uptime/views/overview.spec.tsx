@@ -85,7 +85,7 @@ describe('Uptime Overview', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Uptime Monitors');
     const tab = screen.getByRole('tab', {name: 'Uptime Monitors'});
     expect(tab).toBeInTheDocument();
     expect(tab).toHaveAttribute('aria-selected', 'true');

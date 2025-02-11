@@ -96,7 +96,7 @@ class GroupOpenPeriodsTest(APITestCase):
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=unresolved_time,
         )
 
@@ -147,7 +147,7 @@ class GroupOpenPeriodsTest(APITestCase):
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=unresolved_time,
         )
 

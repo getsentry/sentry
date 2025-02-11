@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {Alert} from 'sentry/components/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -128,7 +129,7 @@ Anyway, we apologize for the inconvenience.`
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  padding: ${p => p.theme.grid * 3}px;
+  padding: ${space(3)};
   max-width: 1000px;
   margin: auto;
 `;

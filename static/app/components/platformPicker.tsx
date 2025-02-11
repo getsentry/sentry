@@ -114,20 +114,24 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       return [otherPlatform];
     }
 
-    if (category !== 'popular') {
-      // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
-      return filtered.sort((a, b) => {
-        if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
-          return 1;
-        }
-        if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
-          return -1;
-        }
-        return a.name.localeCompare(b.name);
-      });
+    if (category === 'popular') {
+      const popularPlatformList = Array.from(currentCategory?.platforms ?? []);
+      // We keep the order of the platforms defined in the set
+      return filtered.sort(
+        (a, b) => popularPlatformList.indexOf(a.id) - popularPlatformList.indexOf(b.id)
+      );
     }
 
-    return filtered;
+    // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
+    return filtered.sort((a, b) => {
+      if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
+        return 1;
+      }
+      if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
+        return -1;
+      }
+      return a.name.localeCompare(b.name);
+    });
   }
 
   logSearch = debounce(() => {

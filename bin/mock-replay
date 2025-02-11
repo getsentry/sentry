@@ -6,7 +6,6 @@ from sentry.runner import configure
 from sentry.utils.json import dumps_htmlsafe
 
 configure()
-import pathlib
 import uuid
 from datetime import datetime, timedelta
 
@@ -86,11 +85,6 @@ def store_replay_segments(replay_id: str, project_id: int, segment_id: int, segm
         segment_id=segment_id,
         file_id=f.id,
     )
-
-
-def make_filename(filename: str) -> str:
-    parent_dir = pathlib.Path(__file__).parent.resolve()
-    return f"{parent_dir}/rrweb-output/{filename}"
 
 
 def main():

@@ -92,7 +92,7 @@ export function PerformanceLanding(props: Props) {
     handleTrendsClick,
     onboardingProject,
   } = props;
-  const {setPageInfo, pageAlert} = usePageAlert();
+  const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
 
@@ -134,9 +134,9 @@ export function PerformanceLanding(props: Props) {
 
   useEffect(() => {
     if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
-      setPageInfo(performanceMovingAlert);
+      setPageError(performanceMovingAlert);
     }
-  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
+  }, [pageAlert?.message, performanceMovingAlert, setPageError]);
 
   useEffect(() => {
     if (hasMounted.current) {

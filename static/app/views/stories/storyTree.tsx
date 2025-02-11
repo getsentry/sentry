@@ -108,9 +108,16 @@ export function useStoryTree(files: string[], query: string) {
       const parts = file.split('/');
       let parent = root;
 
-      for (const part of parts) {
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!part) {
+          continue;
+        }
         if (!(part in parent.children)) {
-          parent.children[part] = new StoryTreeNode(part, file);
+          parent.children[part] = new StoryTreeNode(
+            part,
+            parts.slice(0, i + 1).join('/')
+          );
         }
 
         parent = parent.children[part]!;
@@ -124,7 +131,6 @@ export function useStoryTree(files: string[], query: string) {
           for (const p of path) {
             p.expanded = true;
           }
-          initialName.current = null;
           break;
         }
       }
@@ -139,6 +145,7 @@ export function useStoryTree(files: string[], query: string) {
 
     if (!query) {
       if (initialName.current) {
+        initialName.current = null;
         return Object.values(root.children);
       }
 

@@ -1,14 +1,20 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
 )
 
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
+
 
 @region_silo_test
+@freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpoint(
     OrganizationUptimeAlertIndexBaseEndpointTest, UptimeCheckSnubaTestCase
 ):
@@ -51,9 +57,34 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             "checkStatus",
             "checkStatusReason",
             "traceId",
+            "httpStatusCode",
         ]:
             assert key in first, f"{key} not in {first}"
         assert first["uptimeSubscriptionId"] == self.project_uptime_subscription.id
+
+    def test_datetime_range(self):
+        # all of our checks are stored in the last 5 minutes, so query for 10 days ago and expect 0 results
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={
+                "start": datetime.now() - timedelta(days=10),
+                "end": datetime.now() - timedelta(days=9),
+            },
+        )
+        assert len(response.data) == 0
+        # query for the last 3 days and expect 6 results
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
+            qs_params={
+                "start": datetime.now() - timedelta(days=3),
+                "end": datetime.now(),
+            },
+        )
+        assert len(response.data) == 6
 
     # TODO: fix this test once snuba is fixed
     def test_get_paginated(self):
@@ -89,6 +120,18 @@ class ProjectUptimeAlertCheckIndexEndpoint(
             self.project.slug,
             self.project_uptime_subscription.id,
             qs_params={"cursor": Cursor(0, 20), "per_page": 2},
+        )
+        assert response.data is not None
+        assert len(response.data) == 0
+
+    @override_options(
+        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
+    )
+    def test_get_with_date_cutoff(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.project_uptime_subscription.id,
         )
         assert response.data is not None
         assert len(response.data) == 0

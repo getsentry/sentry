@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -36,6 +36,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.team import Team
@@ -61,7 +62,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import aliased_query, raw_query
+from sentry.utils.snuba import aliased_query, error_stats_query_with_override, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -1056,6 +1057,22 @@ class GroupSerializerSnuba(GroupSerializerBase):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
+
+        organization_id = item_list[0].project.organization_id
+        if organization_id:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:feature-flag-autocomplete", organization, actor=None):
+                return error_stats_query_with_override(
+                    start=start,
+                    end=end,
+                    groupby=["group_id"],
+                    conditions=conditions,
+                    filter_keys=filters,
+                    aggregations=aggregations,
+                    referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
+                    tenant_ids={"organization_id": organization_id},
+                    organization=organization,
+                )
 
         return aliased_query(
             dataset=Dataset.Events,

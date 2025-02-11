@@ -193,6 +193,7 @@ function EventTagsTreeRowDropdown({
       to: getSearchInExploreTarget(
         organization,
         location,
+        project.id,
         originalTag.key,
         originalTag.value,
         TraceDrawerActionKind.INCLUDE

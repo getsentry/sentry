@@ -187,7 +187,7 @@ function AddToDashboardModal({
     const title =
       // Metric widgets have their default title derived from the query
       widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('All Events')
+        ? t('Custom Widget')
         : widget.title;
 
     const newWidget = {

@@ -32,7 +32,6 @@ import {statusToText} from 'sentry/views/monitors/utils';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgSlug: string;
 };
 
 export const checkStatusToIndicatorStatus: Record<
@@ -47,12 +46,12 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-export function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',

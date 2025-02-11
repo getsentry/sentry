@@ -140,7 +140,7 @@ export function EventDetailsContent({
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
-        <ActionableItems event={event} project={project} isShare={false} />
+        <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />

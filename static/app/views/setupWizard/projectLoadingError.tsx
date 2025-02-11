@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';

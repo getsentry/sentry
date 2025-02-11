@@ -2363,9 +2363,17 @@ class UptimeCheckSnubaTestCase(TestCase):
         )
         assert response.status_code == 200
 
-    def store_snuba_uptime_check(self, subscription_id: str | None, check_status: str):
-        scheduled_time = datetime.now() - timedelta(minutes=5)
-        timestamp = scheduled_time + timedelta(seconds=1)
+    def store_snuba_uptime_check(
+        self,
+        subscription_id: str | None,
+        check_status: str,
+        scheduled_check_time: datetime | None = None,
+    ):
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now() - timedelta(minutes=5)
+
+        timestamp = scheduled_check_time + timedelta(seconds=1)
+
         http_status = 200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])
 
         self.store_uptime_check(
@@ -2377,14 +2385,14 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "environment": "production",
                 "subscription_id": subscription_id,
                 "guid": str(uuid.uuid4()),
-                "scheduled_check_time_ms": int(scheduled_time.timestamp() * 1000),
+                "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
                 "actual_check_time_ms": int(timestamp.timestamp() * 1000),
                 "duration_ms": random.randint(1, 1000),
                 "status": check_status,
                 "status_reason": None,
                 "trace_id": str(uuid.uuid4()),
                 "request_info": {
-                    "status_code": http_status,
+                    "http_status_code": http_status,
                 },
             }
         )
@@ -3382,17 +3390,19 @@ class TraceTestCase(SpanTestCase):
                 ),
             ):
                 event = self.store_event(data, project_id=project_id, **store_event_kwargs)
+                spans = []
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(
+                        spans.append(
                             self.create_span(
                                 span,
                                 start_ts=datetime.fromtimestamp(span["start_timestamp"]),
                                 duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
-                self.store_span(self.convert_event_data_to_span(event))
+                spans.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:
@@ -3423,6 +3433,11 @@ class TraceTestCase(SpanTestCase):
             span_data["parent_span_id"] = trace_context["parent_span_id"]
         else:
             del span_data["parent_span_id"]
+
+        if "sentry_tags" in span_data:
+            span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
+        else:
+            span_data["sentry_tags"] = {"op": event.data["contexts"]["trace"]["op"]}
 
         return span_data
 

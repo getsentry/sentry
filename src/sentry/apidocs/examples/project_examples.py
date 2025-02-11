@@ -1,5 +1,7 @@
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+
 KEY_RATE_LIMIT = {
     "id": "60120449b6b1d5e45f75561e6dabd80b",
     "name": "Liked Pegasus",
@@ -82,7 +84,6 @@ BASE_PROJECT = {
     ],
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
-    "hasCustomMetrics": False,
     "hasFeedbacks": False,
     "hasMonitors": False,
     "hasNewFeedbacks": False,
@@ -129,11 +130,11 @@ DETAILED_PROJECT = {
         "sentry:scrub_data": False,
         "sentry:token": "e84c8c0fb1c121e988558785885f9cde",
         "sentry:resolve_age": 168,
-        "sentry:grouping_config": "newstyle:2023-01-11",
+        "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
         "quotas:spike-protection-disabled": False,
         "sentry:store_crash_reports": 5,
         "digests:mail:minimum_delay": 180,
-        "sentry:secondary_grouping_config": "newstyle:2019-10-29",
+        "sentry:secondary_grouping_config": LEGACY_GROUPING_CONFIG,
         "sentry:secondary_grouping_expiry": 147555024,
         "sentry:builtin_symbol_sources": ["ios", "android", "chromium"],
         "sentry:origins": ["getsentry.com", "app.getsentry.com", "www.getsentry.com", "sentry.io"],
@@ -166,11 +167,11 @@ DETAILED_PROJECT = {
     "verifySSL": True,
     "scrubIPAddresses": False,
     "scrapeJavaScript": True,
-    "groupingConfig": "newstyle:2023-01-11",
+    "groupingConfig": DEFAULT_GROUPING_CONFIG,
     "groupingEnhancements": "",
     "groupingEnhancementsBase": None,
     "secondaryGroupingExpiry": 1687010243,
-    "secondaryGroupingConfig": "newstyle:2019-10-29",
+    "secondaryGroupingConfig": LEGACY_GROUPING_CONFIG,
     "fingerprintingRules": "",
     "uptimeAutodetection": True,
     "organization": {
@@ -370,7 +371,6 @@ DETAILED_PROJECT = {
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
-    "relayCustomMetricCardinalityLimit": 5,
     "isDynamicallySampled": True,
     "highlightTags": [],
     "highlightContext": {},

@@ -441,7 +441,7 @@ export default Menu;
 const StyledInput = styled(Input)`
   flex: 1;
   border: 1px solid transparent;
-  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
+  border-radius: calc(${p => p.theme.borderRadius} - 1px);
   &,
   &:focus,
   &:active,
@@ -497,7 +497,7 @@ const InputWrapper = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p =>
-    `calc(${p.theme.panelBorderRadius} - 1px) calc(${p.theme.panelBorderRadius} - 1px) 0 0`};
+    `calc(${p.theme.borderRadius} - 1px) calc(${p.theme.borderRadius} - 1px) 0 0`};
   align-items: center;
 `;
 

@@ -134,6 +134,7 @@ export function SpanDescription({
             ? getSearchInExploreTarget(
                 organization,
                 location,
+                node.event?.projectID,
                 SpanIndexedField.SPAN_DESCRIPTION,
                 span.description!,
                 TraceDrawerActionKind.INCLUDE

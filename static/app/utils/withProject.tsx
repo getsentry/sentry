@@ -16,7 +16,8 @@ function withProject<P extends InjectedProjectProps>(
   function Wrapper(props: Props) {
     const project = useContext(ProjectContext);
 
-    return <WrappedComponent project={project} {...(props as P)} />;
+    // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+    return <WrappedComponent project={project} {...(props as P as any)} />;
   }
 
   Wrapper.displayName = `withProject(${getDisplayName(WrappedComponent)})`;

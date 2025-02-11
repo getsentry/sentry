@@ -43,14 +43,13 @@ import {space} from 'sentry/styles/space';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -71,12 +70,12 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../demo/demoHeader';
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
@@ -276,6 +275,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
+        active={hasPerfLandingRemovalFlag ? false : undefined}
         to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
         id="performance"
       />
@@ -354,23 +354,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-
-  const metrics = hasOrganization && hasCustomMetrics(organization) && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<SubitemDot collapsed />}
-      label={t('Metrics')}
-      to={metricsPath}
-      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
-      id="metrics"
-      badgeTitle={t(
-        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
-      )}
-      isBeta
-    />
-  );
-
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -435,6 +418,11 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
+        active={
+          hasPerfLandingRemovalFlag
+            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
+            : undefined
+        }
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
@@ -461,7 +449,7 @@ function Sidebar() {
         <SidebarItem
           {...sidebarItemProps}
           label={AI_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
           id="performance-domains-ai"
           icon={<SubitemDot collapsed />}
         />
@@ -481,7 +469,6 @@ function Sidebar() {
     >
       {traces}
       {logs}
-      {metrics}
       {profiling}
       {replays}
       {discover}
@@ -589,12 +576,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <MetricsOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
+
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}
@@ -678,7 +660,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
           : 'expandedWidth'
     ]};
   position: fixed;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;
@@ -729,8 +711,8 @@ const PrimaryItems = styled('div')`
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
 
-  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
-    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-color: ${p =>
+    `${p.theme.sidebar.scrollbarThumbColor} ${p.theme.sidebar.scrollbarColorTrack}`};
   scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
 
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {

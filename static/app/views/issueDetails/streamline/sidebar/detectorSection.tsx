@@ -8,12 +8,14 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
-interface DetectorDetails {
+export interface DetectorDetails {
   description?: string;
+  detectorId?: string;
   detectorPath?: string;
+  detectorType?: 'metric_alert' | 'cron_monitor' | 'uptime_monitor';
 }
 
 export function getDetectorDetails({
@@ -33,6 +35,8 @@ export function getDetectorDetails({
   const metricAlertRuleId = event?.contexts?.metric_alert?.alert_rule_id;
   if (metricAlertRuleId) {
     return {
+      detectorType: 'metric_alert',
+      detectorId: metricAlertRuleId,
       detectorPath: `/organizations/${organization.slug}/alerts/rules/details/${metricAlertRuleId}/`,
       // TODO(issues): We can probably enrich this description with details from the alert itself.
       description: t(
@@ -44,6 +48,8 @@ export function getDetectorDetails({
   const cronSlug = event?.tags?.find(({key}) => key === 'monitor.slug')?.value;
   if (cronSlug) {
     return {
+      detectorType: 'cron_monitor',
+      detectorId: cronSlug,
       detectorPath: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${cronSlug}/details/`,
       description: t(
         'This issue was created by a cron monitor. View the monitor details to learn more.'
@@ -54,31 +60,22 @@ export function getDetectorDetails({
   const uptimeAlertRuleId = event?.tags?.find(tag => tag?.key === 'uptime_rule')?.value;
   if (uptimeAlertRuleId) {
     return {
+      detectorType: 'uptime_monitor',
+      detectorId: uptimeAlertRuleId,
       detectorPath: `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${uptimeAlertRuleId}/details/`,
       // TODO(issues): Update this to mention detectors when that language is user-facing
       description: t(
-        'This issue was created by an uptime alert rule. After 2 consecutive failed check-ins, an open period will be created.'
+        'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
       ),
     };
   }
-  return {
-    detectorPath: undefined,
-    description: undefined,
-  };
+  return {};
 }
 
-export function DetectorSection({
-  event,
-  group,
-  project,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
-  const organization = useOrganization();
-  const {detectorPath, description} = getDetectorDetails({event, organization, project});
+export function DetectorSection({group, project}: {group: Group; project: Project}) {
   const issueConfig = getConfigForIssueType(group, project);
+  const {detectorDetails} = useIssueDetails();
+  const {detectorPath, description} = detectorDetails;
 
   if (!detectorPath) {
     return null;

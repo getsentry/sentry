@@ -2,6 +2,7 @@ import type {InitializeDataSettings} from 'sentry-test/performance/initializePer
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -69,6 +70,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   let issuesListMock: jest.Mock;
 
   beforeEach(function () {
+    ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
@@ -869,7 +871,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/backend/database/'
+      '/organizations/org-slug/insights/backend/database/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -915,7 +917,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/backend/http/'
+      '/organizations/org-slug/insights/backend/http/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -959,7 +961,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/frontend/assets/'
+      '/organizations/org-slug/insights/frontend/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -989,6 +991,27 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('should not contain org in link with customer domain', async function () {
+    const data = initializeData();
+    ConfigStore.set('customerDomain', {
+      subdomain: 'sentry',
+      organizationUrl: 'https://sentry.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/insights/frontend/assets/'
+    );
+  });
+
   it('Highest cache miss rate transactions widget', async function () {
     const data = initializeData();
 
@@ -1008,7 +1031,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/backend/caches/'
+      '/organizations/org-slug/insights/backend/caches/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(

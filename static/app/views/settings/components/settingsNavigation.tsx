@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {space} from 'sentry/styles/space';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
@@ -40,7 +41,7 @@ function SettingsSecondaryNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <SecondaryNav>
+    <SecondaryNav group={PrimaryNavGroup.SETTINGS}>
       <SecondaryNav.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />

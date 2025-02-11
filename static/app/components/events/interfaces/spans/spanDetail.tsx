@@ -321,7 +321,7 @@ function SpanDetail(props: Props) {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
+      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'} system>
         <ErrorMessageTitle>
           {tn(
             '%s error event or performance issue is associated with this span.',

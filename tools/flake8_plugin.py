@@ -25,6 +25,8 @@ S006_msg = "S006 Do not use force_bytes / force_str -- test the types directly"
 
 S007_msg = "S007 Do not import sentry.testutils into production code."
 
+S008_msg = "S008 Use datetime.fromisoformat rather than guessing at date formats"
+
 S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
 
 S010_msg = "S010 Except handler does nothing and should be removed"
@@ -51,6 +53,10 @@ class SentryVisitor(ast.NodeVisitor):
                 and any(x.name in {"force_bytes", "force_str"} for x in node.names)
             ):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
+            elif (
+                "tests/" in self.filename or "testutils/" in self.filename
+            ) and node.module == "dateutil.parser":
+                self.errors.append((node.lineno, node.col_offset, S008_msg))
             elif (
                 "tests/" not in self.filename
                 and "fixtures/" not in self.filename

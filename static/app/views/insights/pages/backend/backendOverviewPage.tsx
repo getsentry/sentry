@@ -12,6 +12,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -19,10 +20,12 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -32,8 +35,14 @@ import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  FRONTEND_PLATFORMS,
+  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  MOBILE_PLATFORMS,
+  OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -83,6 +92,7 @@ function BackendOverviewPage() {
   const navigate = useNavigate();
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
+  const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(
@@ -90,6 +100,7 @@ function BackendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -113,8 +124,33 @@ function BackendOverviewPage() {
     ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
   ];
 
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
+  );
+
+  const selectedMobileProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
+  );
+
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
+
+  if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
+    existingQuery.addFilterValue(
+      '!project.id',
+      `[${[
+        ...selectedFrontendProjects.map(project => project.id),
+        ...selectedMobileProjects.map(project => project.id),
+      ]}]`
+    );
+  }
+
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -201,7 +237,7 @@ function BackendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}

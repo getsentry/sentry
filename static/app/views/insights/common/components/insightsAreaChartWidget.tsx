@@ -31,7 +31,7 @@ export function InsightsAreaChartWidget(props: InsightsAreaChartWidgetProps) {
   const {projects, environments} = pageFilters.selection;
 
   const visualizationProps: AreaChartWidgetVisualizationProps = {
-    timeseries: (props.series.filter(Boolean) ?? [])?.map(serie => {
+    timeSeries: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeserie = convertSeriesToTimeseries(serie);
 
       return {

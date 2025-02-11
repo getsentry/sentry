@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -20,22 +22,20 @@ interface Options {
  * Fetches Monitor stats
  */
 export function useMonitorStats({monitors, timeWindowConfig}: Options) {
-  const {start, end, timelineWidth, rollupConfig} = timeWindowConfig;
+  const {start, end, rollupConfig} = timeWindowConfig;
+  const [now] = useState(() => new Date().getTime() / 1000);
 
-  // Add the underscan to our selection time
-  const additionalInterval =
-    (rollupConfig.timelineUnderscanWidth / rollupConfig.bucketPixels) *
-    rollupConfig.interval;
-
-  // XXX(epurkhiser): We are dropping 1 bucket worth of data on the right side
-  // to account for the fact that this bucket is actually over-scan becauase
-  // the query on the backend is inclusive.
   const until =
-    Math.floor(end.getTime() / 1000) + additionalInterval - rollupConfig.interval;
+    Math.floor(end.getTime() / 1000) +
+    rollupConfig.underscanPeriod -
+    // XXX(epurkhiser): We are dropping 1 bucket worth of data on the right
+    // side to account for the fact that this bucket is actually over-scan
+    // becauase the query on the backend is inclusive.
+    rollupConfig.interval;
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
-    until,
+    until: Math.min(until, now),
     resolution: `${rollupConfig.interval}s`,
   };
 
@@ -58,7 +58,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
     ],
     {
       staleTime: 0,
-      enabled: timelineWidth > 0,
+      enabled: rollupConfig.totalBuckets > 0,
     }
   );
 }

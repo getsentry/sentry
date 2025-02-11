@@ -12,7 +12,7 @@ export function AutofixRootCauseData(
           file_path: 'src/file.py',
           repo_name: 'owner/repo',
         },
-        timeline_item_type: 'code',
+        timeline_item_type: 'internal_code',
         title: 'This is the title of a root cause.',
         is_most_important_event: true,
       },
