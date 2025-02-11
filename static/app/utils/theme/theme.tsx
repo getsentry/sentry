@@ -1163,7 +1163,7 @@ export const darkTheme = {
 } satisfies SentryTheme;
 
 // Theme type exports
-export type SentryTheme = typeof lightTheme;
+type SentryTheme = typeof lightTheme;
 
 export type Color = keyof typeof lightColors;
 export type IconSize = Size;
