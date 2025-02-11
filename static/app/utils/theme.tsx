@@ -1121,12 +1121,6 @@ const commonTheme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
   },
-
-  // Similarity spectrum used in "Similar Issues" in group details
-  similarity: {
-    empty: '#e2dee6',
-    colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
-  },
 };
 
 // Light and dark theme definitions

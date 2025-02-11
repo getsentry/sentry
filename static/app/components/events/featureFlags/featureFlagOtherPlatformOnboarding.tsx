@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';

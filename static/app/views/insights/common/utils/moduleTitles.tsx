@@ -16,6 +16,7 @@ import {MODULE_TITLE as MOBILE_VITALS_MODULE_TITLE} from 'sentry/views/insights/
 import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/insights/mobile/ui/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/insights/queues/settings';
+import {MODULE_TITLE as SESSIONS_MODULE_TITLE} from 'sentry/views/insights/sessions/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {MODULE_TITLE as UPTIME_MODULE_TITLE} from 'sentry/views/insights/uptime/settings';
 
@@ -34,6 +35,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
   [ModuleName.CRONS]: CRONS_MODULE_TITLE,
   [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
+  [ModuleName.SESSIONS]: SESSIONS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 

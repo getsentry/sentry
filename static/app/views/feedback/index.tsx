@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';

@@ -25,6 +25,7 @@ export {IconDashboard} from './iconDashboard';
 export {IconDelete} from './iconDelete';
 export {IconDiamond} from './iconDiamond';
 export {IconDiscord} from './iconDiscord';
+export {IconDivide} from './iconDivide';
 export {IconDocs} from './iconDocs';
 export {IconDownload} from './iconDownload';
 export {IconEdit} from './iconEdit';

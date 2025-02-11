@@ -1,6 +1,5 @@
 import omit from 'lodash/omit';
 
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
@@ -62,7 +61,7 @@ export function getDerivedMetrics(
 }
 
 export function transformSessionsResponseToTable(
-  response: SessionApiResponse | MetricsApiResponse | null,
+  response: SessionApiResponse | null,
   requestedStatusMetrics: string[],
   injectedFields: string[]
 ): TableData {

@@ -39,7 +39,6 @@ class AgeComparisonForm(forms.Form):
 
 class AgeComparisonFilter(EventFilter):
     id = "sentry.rules.filters.age_comparison.AgeComparisonFilter"
-    form_cls = AgeComparisonForm
     form_fields = {
         "comparison_type": {"type": "choice", "choices": age_comparison_choices},
         "value": {"type": "number", "placeholder": 10},
@@ -89,3 +88,6 @@ class AgeComparisonFilter(EventFilter):
             return False
 
         return self._passes(group.first_seen, condition_activity.timestamp)
+
+    def get_form_instance(self) -> AgeComparisonForm:
+        return AgeComparisonForm(self.data)

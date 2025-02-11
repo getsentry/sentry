@@ -66,6 +66,14 @@ def test_schedulerunner_add_invalid(taskregistry) -> None:
     assert "microseconds" in str(err)
 
 
+def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: RunStorage) -> None:
+    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+
+    with freeze_time("2025-01-24 14:25:00"):
+        sleep_time = schedule_set.tick()
+        assert sleep_time == 60
+
+
 def test_schedulerunner_tick_one_task_time_remaining(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:

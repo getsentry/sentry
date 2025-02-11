@@ -1,6 +1,7 @@
+import {useState} from 'react';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {CheckStatusBucket} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -21,6 +22,7 @@ interface Options {
  */
 export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
+  const [now] = useState(() => new Date().getTime() / 1000);
 
   const until =
     Math.floor(end.getTime() / 1000) +
@@ -32,13 +34,11 @@ export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
-    until,
+    until: Math.min(until, now),
     resolution: `${rollupConfig.interval}s`,
   };
 
   const organization = useOrganization();
-  const location = useLocation();
-
   const monitorStatsQueryKey = `/organizations/${organization.slug}/uptime-stats/`;
 
   return useApiQuery<Record<string, CheckStatusBucket[]>>(
@@ -48,7 +48,6 @@ export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
         query: {
           projectUptimeSubscriptionId: ruleIds,
           ...selectionQuery,
-          ...location.query,
         },
       },
     ],

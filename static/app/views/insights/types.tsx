@@ -19,6 +19,7 @@ export enum ModuleName {
   SCREEN_RENDERING = 'screen-rendering',
   CRONS = 'crons',
   UPTIME = 'uptime',
+  SESSIONS = 'sessions',
   OTHER = 'other',
 }
 

@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -23,19 +24,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus, type UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {statusToText, tickStyle} from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
-import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import {useUptimeIssueAlertId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+
+/**
+ * This value is used when a trace was not recorded since the field is required.
+ * It will never link to trace, so omit the row to avoid confusion.
+ */
+const EMPTY_TRACE = '00000000000000000000000000000000';
 
 export default function GroupUptimeChecks() {
   const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
   const user = useUser();
-  const {detectorDetails} = useIssueDetails();
+  const {since, until} = usePageFilterDates();
+  const uptimeAlertId = useUptimeIssueAlertId({groupId});
 
   const {
     data: group,
@@ -43,20 +51,6 @@ export default function GroupUptimeChecks() {
     isError: isGroupError,
     refetch: refetchGroup,
   } = useGroup({groupId});
-
-  const {
-    data: event,
-    isError: isEventError,
-    refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId: user.options.defaultIssueEvent,
-  });
-
-  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
-  const uptimeAlertId =
-    detectorDetails.detectorId ??
-    event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
 
   const canFetchUptimeChecks =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(uptimeAlertId);
@@ -68,17 +62,14 @@ export default function GroupUptimeChecks() {
       uptimeAlertId: uptimeAlertId ?? '',
       cursor: decodeScalar(location.query.cursor),
       limit: 50,
+      start: since.toISOString(),
+      end: until.toISOString(),
     },
     {enabled: canFetchUptimeChecks}
   );
 
   if (isGroupError) {
     return <LoadingError onRetry={refetchGroup} />;
-  }
-
-  // If the event query failed, only show an error if we don't already have the detector details
-  if (!canFetchUptimeChecks && isEventError) {
-    return <LoadingError onRetry={refetchEvent} />;
   }
 
   if (isGroupPending || !uptimeData) {
@@ -103,12 +94,12 @@ export default function GroupUptimeChecks() {
     >
       <GridEditable
         isLoading={isGroupPending}
+        emptyMessage={t('No matching uptime checks found')}
         data={uptimeData}
         columnOrder={[
           {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
           {key: 'checkStatus', width: 115, name: t('Status')},
           {key: 'durationMs', width: 110, name: t('Duration')},
-          {key: 'environment', width: 115, name: t('Environment')},
           {key: 'traceId', width: 100, name: t('Trace')},
           {key: 'region', width: 100, name: t('Region')},
           {key: 'uptimeCheckId', width: 100, name: t('ID')},
@@ -203,21 +194,12 @@ function CheckInBodyCell({
     }
     case 'checkStatus': {
       let checkResult = <Cell>{cellData}</Cell>;
-      switch (cellData) {
-        case 'success':
-          checkResult = <Cell style={{color: theme.successText}}>{t('Success')}</Cell>;
-          break;
-        case 'missed_window':
-          checkResult = (
-            <Cell style={{color: theme.warningText}}>{t('Missed Window')}</Cell>
-          );
-          break;
-        case 'failure':
-          checkResult = <Cell style={{color: theme.errorText}}>{t('Failure')}</Cell>;
-          break;
-        default:
-          checkResult = <Cell>{cellData}</Cell>;
-          break;
+      const status = cellData as CheckStatus;
+      if (Object.values(CheckStatus).includes(status)) {
+        const colorKey = tickStyle[status].labelColor ?? 'textColor';
+        checkResult = (
+          <Cell style={{color: theme[colorKey] as string}}>{statusToText[status]}</Cell>
+        );
       }
       return dataRow.checkStatusReason ? (
         <Tooltip
@@ -235,8 +217,11 @@ function CheckInBodyCell({
       );
     }
     case 'traceId':
+      if (cellData === EMPTY_TRACE) {
+        return <Cell />;
+      }
       return (
-        <LinkCell to={`/performance/trace/${cellData}`}>
+        <LinkCell to={`/performance/trace/${cellData}/`}>
           {getShortEventId(String(cellData))}
         </LinkCell>
       );

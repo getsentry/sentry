@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {TimeseriesData} from '../common/types';
+import type {TimeSeries} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {sampleLatencyTimeSeries} from './fixtures/sampleLatencyTimeSeries';
@@ -21,9 +22,8 @@ export default storyBook('BarChartWidget', story => {
       <Fragment>
         <p>
           <JSXNode name="BarChartWidget" /> is a Dashboard Widget Component. It displays a
-          timeseries chart with multiple timeseries, and the timeseries are stacked and
-          discontinuous. In all other ways, it behaves like{' '}
-          <JSXNode name="AreaChartWidget" />
+          timeseries chart with multiple timeseries, and the timeseries and discontinuous.
+          In all other ways, it behaves like <JSXNode name="AreaChartWidget" />
         </p>
         <p>
           <em>NOTE:</em> Prefer <JSXNode name="LineChartWidget" /> and{' '}
@@ -50,21 +50,38 @@ export default storyBook('BarChartWidget', story => {
     return (
       <Fragment>
         <p>
-          The visualization of <JSXNode name="BarChartWidget" /> is a stacked bar chart.
-          It has some bells and whistles including automatic axes labels, and a hover
-          tooltip. Like other widgets, it automatically fills the parent element.
+          The visualization of <JSXNode name="BarChartWidget" /> is a bar chart. It has
+          some bells and whistles including automatic axes labels, and a hover tooltip.
+          Like other widgets, it automatically fills the parent element.
         </p>
-        <SmallSizingWindow>
-          <BarChartWidget
-            title="Duration Breakdown"
-            description="Explains what proportion of total duration is taken up by latency vs. span duration"
-            timeseries={[
-              shiftTimeserieToNow(latencyTimeSeries),
-              shiftTimeserieToNow(spanDurationTimeSeries),
-            ]}
-            dataCompletenessDelay={600}
-          />
-        </SmallSizingWindow>
+        <p>
+          The <code>stacked</code> boolean prop controls stacking. Bar charts are not
+          stacked by default.
+        </p>
+        <SideBySide>
+          <SmallSizingWindow>
+            <BarChartWidget
+              title="Duration Breakdown"
+              description="Explains what proportion of total duration is taken up by latency vs. span duration"
+              timeSeries={[
+                shiftTimeserieToNow(latencyTimeSeries),
+                shiftTimeserieToNow(spanDurationTimeSeries),
+              ]}
+              dataCompletenessDelay={600}
+            />
+          </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BarChartWidget
+              title="Duration Breakdown"
+              description="Explains what proportion of total duration is taken up by latency vs. span duration"
+              timeSeries={[
+                shiftTimeserieToNow(latencyTimeSeries),
+                shiftTimeserieToNow(spanDurationTimeSeries),
+              ]}
+              stacked
+            />
+          </SmallSizingWindow>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -76,10 +93,10 @@ const SmallSizingWindow = styled(SizingWindow)`
 `;
 
 function toTimeSeriesSelection(
-  timeSeries: TimeseriesData,
+  timeSeries: TimeSeries,
   start: DateString | null,
   end: DateString | null
-): TimeseriesData {
+): TimeSeries {
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {

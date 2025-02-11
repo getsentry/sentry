@@ -1,4 +1,5 @@
 import {Fragment, type MouseEventHandler, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
@@ -7,8 +8,9 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {NAV_GROUP_LABELS, PRIMARY_SIDEBAR_WIDTH} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {NavLayout} from 'sentry/components/nav/types';
+import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
 import {
   IconChevron,
@@ -18,7 +20,6 @@ import {
   IconQuestion,
   IconSearch,
   IconSettings,
-  IconStats,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -30,45 +31,77 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
+  label: string;
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
+  forceLabel?: boolean;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
 interface SidebarItemDropdownProps {
   analyticsKey: string;
   items: MenuItemProps[];
+  label: string;
   children?: React.ReactNode;
+  forceLabel?: boolean;
 }
 
 function SidebarBody({children}: {children: React.ReactNode}) {
-  return <SidebarItemList>{children}</SidebarItemList>;
+  const {layout} = useNavContext();
+  return (
+    <SidebarItemList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarItemList>
+  );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
+  const {layout} = useNavContext();
   return (
     <SidebarFooterWrapper>
-      <SidebarItemList>{children}</SidebarItemList>
+      <SidebarItemList
+        isMobile={layout === NavLayout.MOBILE}
+        compact={layout === NavLayout.SIDEBAR}
+      >
+        {children}
+      </SidebarItemList>
     </SidebarFooterWrapper>
   );
 }
 
-function SidebarMenu({items, children, analyticsKey}: SidebarItemDropdownProps) {
+function SidebarItem({children}: {children: React.ReactNode}) {
+  const {layout} = useNavContext();
+  return (
+    <SidebarItemWrapper isMobile={layout === NavLayout.MOBILE}>
+      {children}
+    </SidebarItemWrapper>
+  );
+}
+
+function SidebarMenu({
+  items,
+  children,
+  analyticsKey,
+  label,
+  forceLabel,
+}: SidebarItemDropdownProps) {
   const organization = useOrganization();
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
     [organization, analyticsKey]
   );
+  const {layout} = useNavContext();
+
+  const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItemWrapper>
+    <SidebarItem>
       <DropdownMenu
         position="right-end"
         trigger={(props, isOpen) => {
           return (
             <NavButton
               {...props}
+              aria-label={!showLabel ? label : undefined}
               onClick={event => {
                 recordAnalytics();
                 props.onClick?.(event);
@@ -76,20 +109,31 @@ function SidebarMenu({items, children, analyticsKey}: SidebarItemDropdownProps) 
             >
               <InteractionStateLayer hasSelectedBackground={isOpen} />
               {children}
+              {showLabel ? label : null}
             </NavButton>
           );
         }}
         items={items}
       />
-    </SidebarItemWrapper>
+    </SidebarItem>
   );
 }
 
-function SidebarLink({children, to, activeTo = to, analyticsKey}: SidebarItemLinkProps) {
+function SidebarLink({
+  children,
+  to,
+  activeTo = to,
+  analyticsKey,
+  label,
+  forceLabel = false,
+}: SidebarItemLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const linkProps = makeLinkPropsFromTo(to);
+
+  const {layout} = useNavContext();
+  const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   const recordAnalytics = useCallback(
     () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
@@ -97,17 +141,19 @@ function SidebarLink({children, to, activeTo = to, analyticsKey}: SidebarItemLin
   );
 
   return (
-    <SidebarItemWrapper>
+    <SidebarItem>
       <NavLink
         {...linkProps}
         onClick={recordAnalytics}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
+        aria-label={!showLabel ? label : undefined}
       >
         <InteractionStateLayer hasSelectedBackground={isActive} />
         {children}
+        {showLabel ? label : null}
       </NavLink>
-    </SidebarItemWrapper>
+    </SidebarItem>
   );
 }
 
@@ -119,13 +165,15 @@ function CollapseButton() {
   }
 
   return (
-    <SidebarItemWrapper>
-      <NavButton onClick={() => setIsCollapsed(!isCollapsed)}>
+    <SidebarItem>
+      <NavButton
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      >
         <InteractionStateLayer />
         <IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />
-        {isCollapsed ? t('Expand') : t('Collapse')}
       </NavButton>
-    </SidebarItemWrapper>
+    </SidebarItem>
   );
 }
 
@@ -136,14 +184,22 @@ export function PrimaryNavigationItems() {
   return (
     <Fragment>
       <SidebarBody>
-        <SidebarLink to={`/${prefix}/issues/`} analyticsKey="issues">
+        <SidebarLink
+          to={`/${prefix}/issues/`}
+          analyticsKey="issues"
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
+          forceLabel
+        >
           <IconIssues />
-          <span>{t('Issues')}</span>
         </SidebarLink>
 
-        <SidebarLink to={`/${prefix}/explore/traces/`} analyticsKey="explore">
+        <SidebarLink
+          to={`/${prefix}/explore/traces/`}
+          analyticsKey="explore"
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+          forceLabel
+        >
           <IconSearch />
-          <span>{t('Explore')}</span>
         </SidebarLink>
 
         <Feature
@@ -154,9 +210,10 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/dashboards/`}
             analyticsKey="customizable-dashboards"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+            forceLabel
           >
             <IconDashboard />
-            <span>{t('Boards')}</span>
           </SidebarLink>
         </Feature>
 
@@ -164,9 +221,10 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
             analyticsKey="insights-domains"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+            forceLabel
           >
             <IconGraph />
-            <span>{t('Insights')}</span>
           </SidebarLink>
         </Feature>
       </SidebarBody>
@@ -198,23 +256,18 @@ export function PrimaryNavigationItems() {
             },
           ]}
           analyticsKey="help"
+          label={t('Help')}
         >
           <IconQuestion />
-          <span>{t('Help')}</span>
         </SidebarMenu>
 
-        <SidebarLink to={`/${prefix}/stats/`} analyticsKey="stats">
-          <IconStats />
-          <span>{t('Stats')}</span>
-        </SidebarLink>
-
         <SidebarLink
-          to={`/${prefix}/settings/`}
+          to={`/${prefix}/settings/${organization.slug}/`}
           activeTo={`/${prefix}/settings/`}
           analyticsKey="settings"
+          label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
         >
           <IconSettings />
-          <span>{t('Settings')}</span>
         </SidebarLink>
 
         <CollapseButton />
@@ -223,7 +276,7 @@ export function PrimaryNavigationItems() {
   );
 }
 
-const SidebarItemList = styled('ul')`
+const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   position: relative;
   list-style: none;
   margin: 0;
@@ -231,51 +284,68 @@ const SidebarItemList = styled('ul')`
   padding-top: ${space(1)};
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: ${space(0.5)};
   width: 100%;
   color: rgba(255, 255, 255, 0.85);
 
-  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: ${space(1)};
-  }
+  ${p =>
+    !p.isMobile &&
+    css`
+      align-items: center;
+      gap: ${space(1)};
+    `}
+
+  ${p =>
+    p.compact &&
+    css`
+      gap: ${space(0.5)};
+    `}
 `;
 
-const SidebarItemWrapper = styled('li')`
+const SidebarItemWrapper = styled('li')<{isMobile: boolean}>`
   svg {
     --size: 14px;
     width: var(--size);
     height: var(--size);
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      --size: 16px;
-    }
+    ${p =>
+      !p.isMobile &&
+      css`
+        --size: 16px;
+      `}
   }
   > a,
   button {
     display: flex;
     flex-direction: row;
-    height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: 0 ${space(1.5)};
+    padding: ${space(1.5)} ${space(3)};
     color: var(--color, currentColor);
     font-size: ${p => p.theme.fontSizeMedium};
     font-weight: ${p => p.theme.fontWeightNormal};
     line-height: 1;
+    width: 100%;
 
     & > * {
       pointer-events: none;
     }
 
-    @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      flex-direction: column;
-      justify-content: center;
-      height: 52px;
-      padding: ${space(0.5)} ${space(0.75)};
-      border-radius: ${p => p.theme.borderRadius};
-      font-size: ${p => p.theme.fontSizeExtraSmall};
-      margin-inline: ${space(1)};
-      gap: ${space(0.75)};
-    }
+    ${p =>
+      !p.isMobile &&
+      css`
+        flex-direction: column;
+        justify-content: center;
+        border-radius: ${p.theme.borderRadius};
+        margin-inline: 0 auto;
+        gap: ${space(0.75)};
+        padding: ${space(1.5)} 0;
+        min-height: 44px;
+        width: ${PRIMARY_SIDEBAR_WIDTH - 10}px;
+        letter-spacing: -0.02em;
+        font-size: 10px;
+      `}
   }
 `;
 
@@ -285,7 +355,6 @@ const SidebarFooterWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  padding-bottom: ${space(0.5)};
   margin-top: auto;
 `;
 
@@ -297,7 +366,6 @@ const NavButton = styled('button')`
   border: none;
   position: relative;
   background: transparent;
-  min-width: 58px;
 
   ${linkStyles}
 `;

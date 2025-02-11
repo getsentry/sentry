@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Color from 'color';
 import moment, {type Moment} from 'moment-timezone';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';

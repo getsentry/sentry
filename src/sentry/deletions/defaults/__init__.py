@@ -5,6 +5,8 @@ from .apiapplication import *  # noqa: F401,F403
 from .artifactbundle import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403
 from .commitauthor import *  # noqa: F401,F403
+from .data_source import *  # noqa: F401,F403
+from .detector import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .grouphash import *  # noqa: F401,F403

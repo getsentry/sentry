@@ -119,6 +119,7 @@ def create_or_update_grouphash_metadata_if_needed(
             latest_grouping_config=grouping_config,
             hash_basis=hash_basis,
             hashing_metadata=hashing_metadata,
+            platform=event.platform,
         )
     elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
         # Keep track of the most recent config which computed this hash, so that once a
@@ -203,7 +204,9 @@ def get_hash_basis_and_metadata(
     return hash_basis, hashing_metadata
 
 
-def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> None:
+def record_grouphash_metadata_metrics(
+    grouphash_metadata: GroupHashMetadata, platform: str | None
+) -> None:
     # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but theoretically on
     # track for 3.14), we can mark the various hashing metadata types as closed and that should
     # narrow the types for the tag values such that we can stop stringifying everything
@@ -222,7 +225,7 @@ def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> 
     hashing_metadata = grouphash_metadata.hashing_metadata
 
     if hash_basis:
-        hash_basis_tags: dict[str, str] = {"hash_basis": hash_basis}
+        hash_basis_tags: dict[str, str | None] = {"hash_basis": hash_basis, "platform": platform}
         if hashing_metadata:
             hash_basis_tags["is_hybrid_fingerprint"] = str(
                 hashing_metadata.get("is_hybrid_fingerprint", False)
@@ -244,7 +247,12 @@ def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> 
                 metrics.incr(
                     f"grouping.grouphashmetadata.event_hashing_metadata.{hash_basis}",
                     sample_rate=1.0,
-                    tags=hashing_metadata_tags,
+                    tags={
+                        **hashing_metadata_tags,
+                        # Add this in at the end so it's not the reason we log the metric if it's
+                        # the only tag we have
+                        "platform": platform,
+                    },
                 )
 
 
@@ -335,7 +343,7 @@ def _get_fingerprint_hashing_metadata(
     if matched_rule:
         metadata["matched_fingerprinting_rule"] = matched_rule["text"]
     if client_fingerprint:
-        metadata["client_fingerprint"] = str(client_fingerprint)
+        metadata["client_fingerprint"] = json.dumps(client_fingerprint)
 
     return metadata
 

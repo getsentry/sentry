@@ -408,7 +408,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
-                    type={saveMessageAlertType}
+                    type={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>
                         <Button onClick={handleCancelField} size="xs">

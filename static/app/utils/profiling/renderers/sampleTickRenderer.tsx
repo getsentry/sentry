@@ -66,9 +66,7 @@ class SampleTickRenderer {
     context.strokeStyle = `rgba(${this.theme.COLORS.SAMPLE_TICK_COLOR.join(',')})`;
     context.lineWidth = this.theme.SIZES.INTERNAL_SAMPLE_TICK_LINE_WIDTH;
 
-    for (let i = 0; i < this.intervals.length; i++) {
-      const interval = this.intervals[i]!; // iterating over a non empty array
-
+    for (const interval of this.intervals) {
       if (interval < configView.left) {
         continue;
       }

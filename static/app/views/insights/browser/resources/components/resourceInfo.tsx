@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';

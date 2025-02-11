@@ -148,13 +148,9 @@ def test_backpressure_not_enabled(process_profile_task):
 
 def process_one_message(consumer_type: str, topic: str, payload: str):
     if consumer_type == "profiles":
-        processing_strategy = ProcessProfileStrategyFactory(
-            num_processes=1,
-            max_batch_size=10,
-            max_batch_time=10,
-            input_block_size=None,
-            output_block_size=None,
-        ).create_with_partitions(commit=Mock(), partitions={})
+        processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
+            commit=Mock(), partitions={}
+        )
     elif consumer_type == "ingest":
         processing_strategy = IngestStrategyFactory(
             consumer_type=ConsumerType.Events,

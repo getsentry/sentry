@@ -51,7 +51,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -82,7 +81,6 @@ import {
   assignDefaultLayout,
   assignTempId,
   calculateColumnDepths,
-  generateWidgetsAfterCompaction,
   getDashboardLayout,
 } from './layoutUtils';
 import DashboardTitle from './title';
@@ -668,27 +666,6 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const widgetCopy = assignTempId({
-      layout,
-      ...defaultMetricWidget(),
-    });
-
-    const currentWidgets =
-      this.state.modifiedDashboard?.widgets ?? this.props.dashboard.widgets;
-
-    openWidgetViewerModal({
-      organization: this.props.organization,
-      widget: widgetCopy,
-      widgetLegendState: this.state.widgetLegendState,
-      onMetricWidgetEdit: widget => {
-        const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
-        this.onUpdateWidget(nextList);
-        this.handleUpdateWidgetList(nextList);
-      },
-    });
-  };
-
   onAddWidget = (dataset?: DataSet) => {
     const {
       organization,
@@ -697,11 +674,6 @@ class DashboardDetail extends Component<Props, State> {
       location,
       params: {dashboardId},
     } = this.props;
-
-    if (dataset === DataSet.METRICS) {
-      this.handleAddMetricWidget();
-      return;
-    }
 
     if (organization.features.includes('dashboards-widget-builder-redesign')) {
       this.onAddWidgetFromNewWidgetBuilder(dataset ?? DataSet.ERRORS);
@@ -1112,7 +1084,6 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
-                          handleAddMetricWidget={this.handleAddMetricWidget}
                           onAddWidgetFromNewWidgetBuilder={
                             this.onAddWidgetFromNewWidgetBuilder
                           }
@@ -1354,7 +1325,6 @@ class DashboardDetail extends Component<Props, State> {
                                     onUpdate={this.onUpdateWidget}
                                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                                     handleAddCustomWidget={this.handleAddCustomWidget}
-                                    handleAddMetricWidget={this.handleAddMetricWidget}
                                     onAddWidgetFromNewWidgetBuilder={
                                       this.onAddWidgetFromNewWidgetBuilder
                                     }
