@@ -47,9 +47,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
                 return {"tags": "environment,user,my_tag"}
 
-        self.handler = TestHandler()
+        handler = TestHandler()
         with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(self.action, self.detector, self.job)
+            handler.create_rule_instance_from_action(self.action, self.detector, self.job)
 
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
