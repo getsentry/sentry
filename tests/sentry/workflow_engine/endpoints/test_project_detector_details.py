@@ -131,7 +131,7 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
             "id": self.detector.id,
             "projectId": self.project.id,
             "name": "Updated Detector",
-            "groupType": MetricAlertFire.slug,  # or should we change this to type like it is in the doc?
+            "detectorType": MetricAlertFire.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
             "dataSources": [

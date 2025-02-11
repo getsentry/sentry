@@ -1,8 +1,8 @@
-
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework import status
+
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,11 +19,12 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues import grouptype
 from sentry.models.project import Project
+from sentry.workflow_engine.endpoints.project_detector_index import get_validator
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
-from sentry.issues import grouptype
-from sentry.workflow_engine.endpoints.project_detector_index import get_validator
+
 
 @region_silo_endpoint
 @extend_schema(tags=["Workflows"])
@@ -76,7 +77,6 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         )
         return Response(serialized_detector)
 
-
     @extend_schema(
         operation_id="Update a Detector",
         parameters=[
@@ -105,7 +105,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         ````````````````
         Update an existing detector for a project.
         """
-        group_type = request.data.get("group_type") or detector.group_type.slug
+        group_type = request.data.get("detector_type") or detector.group_type.slug
         validator = get_validator(request, project, group_type, detector)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
