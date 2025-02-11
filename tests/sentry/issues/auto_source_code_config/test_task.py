@@ -93,13 +93,13 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
-    def test_auto_source_code_config_skips_not_supported_platforms(self) -> None:
+    def test_skips_not_supported_platforms(self) -> None:
         event = self.create_event([{}], platform="elixir")
         assert event.group_id is not None
         process_event(self.project.id, event.group_id, event.event_id)
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
-    def test_auto_source_code_config_handle_existing_code_mapping(self) -> None:
+    def test_handle_existing_code_mapping(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration=self.integration
@@ -265,13 +265,6 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         {"in_app": True, "filename": "/sentry/p/kanga.cs"},
         {"in_app": False, "filename": "/sentry/p/vendor/sentry/src/functions.cs"},
     ]
-
-    # self.event_data_backslashes = self.create_event(
-    #     [
-    #         {"in_app": True, "filename": "\\sentry\\capybara.cs"},
-    #         {"in_app": True, "filename": "\\sentry\\potato\\kangaroo.cs"},
-    #     ]
-    # )
 
     def test_auto_source_code_config_csharp_trivial(self) -> None:
         self._process_and_assert_code_mapping(["sentry/p/kanga.cs"], "/", "")
