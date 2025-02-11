@@ -3,11 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import LogoSentry from 'sentry/components/logoSentry';
-import {
-  SIDEBAR_COLLAPSED_WIDTH,
-  SIDEBAR_EXPANDED_WIDTH,
-  SIDEBAR_MOBILE_HEIGHT,
-} from 'sentry/components/sidebar';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -107,7 +102,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   gap: ${space(4)};
 
   margin-left: calc(
-    -1 * ${p => (p.collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH)}
+    -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}
   );
 
   position: fixed;
@@ -116,7 +111,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    height: ${SIDEBAR_MOBILE_HEIGHT};
+    height: ${p => p.theme.sidebar.mobileHeight};
     margin-left: 0;
   }
 `;

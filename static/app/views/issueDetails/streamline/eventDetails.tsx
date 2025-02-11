@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -53,13 +52,12 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
       return;
     }
     const navHeight = nav.offsetHeight ?? 0;
-    const sidebarHeight = isScreenMedium ? parseInt(SIDEBAR_MOBILE_HEIGHT, 10) : 0;
-
+    const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
     dispatch({
       type: 'UPDATE_NAV_SCROLL_MARGIN',
       margin: navHeight + sidebarHeight,
     });
-  }, [nav, isScreenMedium, dispatch]);
+  }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
   return (
     <FloatingEventNavigation
@@ -75,7 +73,7 @@ const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
   top: 0;
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    top: ${SIDEBAR_MOBILE_HEIGHT};
+    top: ${p => p.theme.sidebar.mobileHeight};
   }
   background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.header};

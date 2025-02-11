@@ -167,9 +167,8 @@ const SwitchOrganizationMenuActor = styled('span')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */
-  margin: 0 -15px;
-  padding: 0 15px;
+  margin: 0 -${p => p.theme.sidebar.menuSpacing};
+  padding: 0 ${p => p.theme.sidebar.menuSpacing};
 `;
 
 const SwitchOrganizationMenu = styled('div')`

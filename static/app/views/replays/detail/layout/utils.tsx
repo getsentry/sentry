@@ -1,4 +1,3 @@
-import {SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH} from 'sentry/components/sidebar';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import theme from 'sentry/utils/theme';
 
@@ -6,7 +5,7 @@ export const getDefaultLayout = (collapsed: boolean): LayoutKey => {
   const {innerWidth, innerHeight} = window;
 
   const sidebarWidth = parseInt(
-    collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
+    collapsed ? theme.sidebar.collapsedWidth : theme.sidebar.expandedWidth,
     10
   );
 
