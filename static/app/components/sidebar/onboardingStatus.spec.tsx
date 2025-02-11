@@ -8,15 +8,11 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
+import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSidebar';
+
+const userMock = UserFixture();
 
 function renderMockRequests(organization: Organization) {
-  const userMock = UserFixture();
-  ConfigStore.set(
-    'user',
-    UserFixture({
-      options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
-    })
-  );
   const getOnboardingTasksMock = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/onboarding-tasks/`,
     method: 'GET',
@@ -25,12 +21,29 @@ function renderMockRequests(organization: Organization) {
     },
   });
 
-  return {getOnboardingTasksMock};
+  const mutateUserOptionsMock = MockApiClient.addMockResponse({
+    url: `/users/me/`,
+    method: 'PUT',
+  });
+
+  return {getOnboardingTasksMock, mutateUserOptionsMock};
 }
 
 describe('Onboarding Status', function () {
+  const organizationId = OrganizationFixture().id;
+
+  beforeEach(function () {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {...userMock.options, quickStartDisplay: {[organizationId]: 2}},
+      })
+    );
+  });
+
   it('panel is collapsed and has pending tasks to be seen', async function () {
     const organization = OrganizationFixture({
+      id: organizationId,
       features: ['onboarding'],
       onboardingTasks: [
         {
@@ -43,7 +56,8 @@ describe('Onboarding Status', function () {
       ],
     });
 
-    const {getOnboardingTasksMock} = renderMockRequests(organization);
+    const {mutateUserOptionsMock, getOnboardingTasksMock} =
+      renderMockRequests(organization);
 
     const handleShowPanel = jest.fn();
 
@@ -63,6 +77,8 @@ describe('Onboarding Status', function () {
     expect(screen.getByText('1 completed task')).toBeInTheDocument();
     expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
 
+    expect(mutateUserOptionsMock).not.toHaveBeenCalled();
+
     // By hovering over the button, we should refetch the data
     await userEvent.hover(screen.getByRole('button', {name: 'Onboarding'}));
     await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
@@ -75,6 +91,7 @@ describe('Onboarding Status', function () {
 
   it('panel is expanded and has no pending tasks to be seen', async function () {
     const organization = OrganizationFixture({
+      id: organizationId,
       features: ['onboarding'],
       onboardingTasks: [
         {
@@ -118,5 +135,101 @@ describe('Onboarding Status', function () {
     // Hide Panel
     await userEvent.click(screen.getByLabelText('Close Panel'));
     await waitFor(() => expect(handleHidePanel).toHaveBeenCalled());
+  });
+
+  it("panel is not automatically expanded because the user option 'quickStartDisplay' is not set", async function () {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {...userMock.options, quickStartDisplay: {}},
+      })
+    );
+
+    const organization = OrganizationFixture({
+      id: organizationId,
+      features: ['onboarding'],
+    });
+
+    const {mutateUserOptionsMock} = renderMockRequests(organization);
+
+    const mockActivateSidebar = jest.fn();
+
+    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
+      activateSidebar: mockActivateSidebar,
+    });
+
+    render(
+      <OnboardingStatus
+        currentPanel=""
+        onShowPanel={jest.fn()}
+        hidePanel={jest.fn()}
+        collapsed
+        orientation="left"
+      />,
+      {
+        organization,
+      }
+    );
+
+    await waitFor(() =>
+      expect(mutateUserOptionsMock).toHaveBeenCalledWith(
+        '/users/me/',
+        expect.objectContaining({
+          data: {
+            options: {quickStartDisplay: {[organizationId]: 1}},
+          },
+        })
+      )
+    );
+
+    expect(mockActivateSidebar).not.toHaveBeenCalled();
+  });
+
+  it("panel is automatically expanded because the user option 'quickStartDisplay' is set to 1", async function () {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {...userMock.options, quickStartDisplay: {[organizationId]: 1}},
+      })
+    );
+
+    const organization = OrganizationFixture({
+      id: organizationId,
+      features: ['onboarding'],
+    });
+
+    const {mutateUserOptionsMock} = renderMockRequests(organization);
+
+    const mockActivateSidebar = jest.fn();
+
+    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
+      activateSidebar: mockActivateSidebar,
+    });
+
+    render(
+      <OnboardingStatus
+        currentPanel=""
+        onShowPanel={jest.fn()}
+        hidePanel={jest.fn()}
+        collapsed
+        orientation="left"
+      />,
+      {
+        organization,
+      }
+    );
+
+    await waitFor(() =>
+      expect(mutateUserOptionsMock).toHaveBeenCalledWith(
+        '/users/me/',
+        expect.objectContaining({
+          data: {
+            options: {quickStartDisplay: {[organizationId]: 2}},
+          },
+        })
+      )
+    );
+
+    expect(mockActivateSidebar).toHaveBeenCalled();
   });
 });
