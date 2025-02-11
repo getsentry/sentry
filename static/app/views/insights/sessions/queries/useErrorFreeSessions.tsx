@@ -1,7 +1,9 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
+import {percent} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 
 interface Props {
   groupByRelease?: boolean;
@@ -28,6 +30,8 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
     {staleTime: 0}
   );
 
+  const projTotal = useSessionAdoptionRate();
+
   if (isPending) {
     return {
       series: [],
@@ -44,80 +48,75 @@ export default function useErrorFreeSessions({groupByRelease}: Props) {
     };
   }
 
+  // Returns series data for each release
   if (groupByRelease) {
-    // Group the data by release first
     const releaseGroups = new Map<string, typeof sessionsData.groups>();
+    const releaseAdoption = new Map<string, number>();
 
     sessionsData.groups.forEach(group => {
       const release = group.by.release?.toString() ?? '';
       if (!releaseGroups.has(release)) {
         releaseGroups.set(release, []);
+        const groups = sessionsData.groups.filter(
+          g => g.by.release?.toString() === release
+        );
+        const totalSessions = groups.reduce(
+          (acc, g) => acc + (g.totals['sum(session)'] ?? 0),
+          0
+        );
+        // Only add releases with sessions > 0
+        if (totalSessions > 0) {
+          releaseAdoption.set(release, percent(totalSessions, projTotal));
+        }
       }
-      releaseGroups.get(release)!.push(group);
+      // Only collect groups for releases with sessions
+      if (releaseAdoption.has(release)) {
+        releaseGroups.get(release)!.push(group);
+      }
     });
 
-    // Calculate healthy percentage for each release
-    const healthySessionsPercentageData: number[][] = [];
-    const releases: string[] = [];
+    // Get top 5 releases and calculate their healthy session percentages
+    const releases = Array.from(releaseAdoption.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([release]) => release);
 
-    releaseGroups.forEach((groups, release) => {
-      releases.push(release);
+    const series = releases.map(release => {
+      const groups = releaseGroups.get(release)!;
+      const getStatusSeries = (status: string) =>
+        groups.find(g => g.by['session.status'] === status)?.series['sum(session)'] ?? [];
 
-      // Get series data for each session status
-      const healthySeries =
-        groups.find(g => g.by['session.status'] === 'healthy')?.series['sum(session)'] ??
-        [];
-      const abnormalSeries =
-        groups.find(g => g.by['session.status'] === 'abnormal')?.series['sum(session)'] ??
-        [];
-      const crashedSeries =
-        groups.find(g => g.by['session.status'] === 'crashed')?.series['sum(session)'] ??
-        [];
-      const erroredSeries =
-        groups.find(g => g.by['session.status'] === 'errored')?.series['sum(session)'] ??
-        [];
+      // Get all status series at once
+      const seriesData = getStatusSeries('healthy').map((healthy, idx) => {
+        const total = [
+          healthy,
+          getStatusSeries('abnormal')[idx] || 0,
+          getStatusSeries('crashed')[idx] || 0,
+          getStatusSeries('errored')[idx] || 0,
+        ].reduce((sum, val) => sum + val, 0);
 
-      // Calculate percentage for each point in time
-      const percentages = healthySeries.map((healthy, idx) => {
-        const total =
-          healthy +
-          (abnormalSeries[idx] || 0) +
-          (crashedSeries[idx] || 0) +
-          (erroredSeries[idx] || 0);
-        return total > 0 ? healthy / total : 1;
+        return {
+          name: sessionsData.intervals[idx] ?? '',
+          value: total > 0 ? healthy / total : 1,
+        };
       });
 
-      healthySessionsPercentageData.push(percentages);
-    });
-
-    const seriesData = healthySessionsPercentageData.map(releaseData =>
-      releaseData.map((val, idx) => ({
-        name: sessionsData.intervals[idx] ?? '',
-        value: val,
-      }))
-    );
-
-    const series =
-      seriesData?.map((s, index) => ({
-        data: s,
-        seriesName: `successful_session_rate_${releases[index]}`,
+      return {
+        data: seriesData,
+        seriesName: `successful_session_rate_${release}`,
         meta: {
           fields: {
-            [`successful_session_rate_${releases[index]}`]: 'percentage' as const,
+            [`successful_session_rate_${release}`]: 'percentage' as const,
             time: 'date' as const,
           },
           units: {
-            [`successful_session_rate_${releases[index]}`]: '%',
+            [`successful_session_rate_${release}`]: '%',
           },
         },
-      })) ?? [];
+      };
+    });
 
-    return {
-      series,
-      releases,
-      isPending,
-      error,
-    };
+    return {series, releases, isPending, error};
   }
 
   // Get the healthy sessions series data
