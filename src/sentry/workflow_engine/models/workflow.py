@@ -37,7 +37,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
 
     created_by_id = HybridCloudForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL", blank=True
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
     )
 
     DEFAULT_FREQUENCY = 30

@@ -1,3 +1,4 @@
+from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -42,3 +43,27 @@ class WorkflowTest(BaseWorkflowTest):
 
         assert evaluation is True
         assert remaining_conditions == [slow_condition]
+
+    def test_full_clean(self):
+        self.create_workflow(
+            organization_id=self.organization.id,
+            name="test",
+            environment_id=None,
+            when_condition_group=self.create_data_condition_group(),
+            created_by_id=None,
+            owner_user_id=None,
+            owner_team=None,
+            config={"frequency": 5},
+        )
+
+        workflow2 = Workflow(
+            organization_id=self.organization.id,
+            name="test2",
+            environment_id=None,
+            when_condition_group=self.create_data_condition_group(),
+            created_by_id=None,
+            owner_user_id=None,
+            owner_team=None,
+            config={"frequency": 5},
+        )
+        workflow2.full_clean()
