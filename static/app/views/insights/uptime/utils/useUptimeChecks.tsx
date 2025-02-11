@@ -13,6 +13,7 @@ interface UptimeChecksParameters {
   end?: string;
   limit?: number;
   start?: string;
+  statsPeriod?: string;
 }
 
 export function makeUptimeChecksQueryKey({
@@ -23,10 +24,11 @@ export function makeUptimeChecksQueryKey({
   limit,
   start,
   end,
+  statsPeriod,
 }: UptimeChecksParameters): ApiQueryKey {
   return [
     `/projects/${orgSlug}/${projectSlug}/uptime/${uptimeAlertId}/checks/`,
-    {query: {per_page: limit, cursor, start, end}},
+    {query: {per_page: limit, cursor, start, end, statsPeriod}},
   ];
 }
 
