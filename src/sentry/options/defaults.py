@@ -529,6 +529,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Control number of breadcrumbs converted to OurLogs
+register(
+    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
