@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@acemarke/react-prod-sourcemaps": "^0.2.1",
+    "@amplitude/analytics-browser": "^1.5.3",
     "@babel/core": "~7.25.9",
     "@babel/plugin-transform-runtime": "~7.25.9",
     "@babel/preset-env": "~7.25.9",
@@ -39,6 +40,7 @@
     "@react-aria/tabs": "^3.9.5",
     "@react-aria/utils": "^3.25.2",
     "@react-aria/visually-hidden": "^3.8.15",
+    "@react-google-maps/api": "^2.12.0",
     "@react-stately/collections": "^3.10.9",
     "@react-stately/combobox": "^3.9.2",
     "@react-stately/dnd": "^3.4.2",
@@ -67,6 +69,7 @@
     "@types/color": "^3.0.3",
     "@types/diff": "5.2.1",
     "@types/dompurify": "^3.0.5",
+    "@types/gtag.js": "^0.0.12",
     "@types/history": "^3.2.5",
     "@types/invariant": "^2.2.35",
     "@types/jest": "29.5.12",
