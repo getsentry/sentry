@@ -1,6 +1,8 @@
 import uuid
 from unittest import mock
 
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
@@ -9,6 +11,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.typings.notification_action import ActionFieldMapping
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -28,16 +31,25 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
 
         class TestHandler(BaseIssueAlertHandler):
-            @staticmethod
-            def build_rule_action_blob(action: Action) -> dict:
-                return {
-                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-                    "server": "1234567890",
-                    "channel_id": "channel456",
-                    "tags": "environment,user,my_tag",
-                }
+            @classmethod
+            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
+                return {"tags": "environment,user,my_tag"}
+
+            @classmethod
+            def get_target_display(cls, action: Action, mapping: ActionFieldMapping):
+                return {}
 
         self.handler = TestHandler()
+
+    def test_create_rule_instance_from_action_missing_properties_raises_value_error(self):
+        class TestHandler(BaseIssueAlertHandler):
+            @classmethod
+            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
+                return {"tags": "environment,user,my_tag"}
+
+        handler = TestHandler()
+        with pytest.raises(ValueError):
+            handler.create_rule_instance_from_action(self.action, self.detector, self.job)
 
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
