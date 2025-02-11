@@ -204,7 +204,7 @@ function EventDetailsContent(props: Props) {
                         getViewChildTransactionTarget: childTransactionProps => {
                           const childTransactionLink = eventDetailsRoute({
                             eventSlug: childTransactionProps.eventSlug,
-                            orgSlug: organization.slug,
+                            organization,
                           });
 
                           return {

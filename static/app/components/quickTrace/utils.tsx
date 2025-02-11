@@ -61,7 +61,7 @@ function generateDiscoverEventTarget(
     },
   };
   return eventDetailsRouteWithEventView({
-    orgSlug: organization.slug,
+    organization,
     eventSlug,
     eventView: EventView.fromLocation(newLocation),
     isHomepage: location.query.homepage === 'true' || undefined,
