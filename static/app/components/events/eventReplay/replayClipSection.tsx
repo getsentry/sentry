@@ -51,7 +51,6 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       size="xs"
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-        replace: true,
       }}
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
