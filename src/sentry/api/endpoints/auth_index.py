@@ -26,6 +26,7 @@ from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
+from sentry.utils.demo_mode import is_readonly_user
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -296,6 +297,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
+        if is_readonly_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         # If there is an SLO URL, return it to frontend so the browser can redirect
         # the user back to the IdP site to delete the IdP session cookie
         slo_url = handle_saml_single_logout(request)

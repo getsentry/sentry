@@ -22,6 +22,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
+from sentry.utils.demo_mode import is_readonly_user
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +227,9 @@ class AcceptOrganizationInvite(Endpoint):
         )
         if invite_context is None:
             return self.respond_invalid()
+
+        if is_readonly_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         helper = self.get_helper(request, token, invite_context)
 
