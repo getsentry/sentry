@@ -13,7 +13,7 @@ class OrganizationIssuesCountTest(APITestCase, SnubaTestCase, SearchIssueTestMix
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_issue_count_with_flag_query(self):
+    def test_issue_count_flag_query(self):
         # Found event.
         self.store_event(
             data={
@@ -29,6 +29,6 @@ class OrganizationIssuesCountTest(APITestCase, SnubaTestCase, SearchIssueTestMix
         )
 
         with self.feature({"organizations:feature-flag-autocomplete": True}):
-            response = self.client.get(self.url + '?query="test:flag":true')
+            response = self.client.get(self.url + '?query=flags["test:flag"]:true')
             assert response.status_code == 200
-            assert response.json() == {'"test:flag":true': 1}
+            assert response.json() == {'flags["test:flag"]:true': 1}

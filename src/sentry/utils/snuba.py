@@ -565,6 +565,13 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
+    # Flag search is only supported in the events dataset.
+    if name.startswith("flags["):
+        if dataset == Dataset.Events:
+            return name
+        else:
+            return None
+
     measurement_name = get_measurement_name(name)
     span_op_breakdown_name = get_span_op_breakdown_name(name)
     if "measurements_key" in DATASETS[dataset] and measurement_name:
@@ -1484,6 +1491,15 @@ def resolve_column(dataset) -> Callable:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
         if dataset == Dataset.EventsAnalyticsPlatform:
             return f"attr_str[{col}]"
+
+        # Flags only apply to the events dataset. For other datasets we wrap with quotes and
+        # silently query the tags dataset.
+        if col.startswith("flags["):
+            if dataset == Dataset.Events:
+                return col
+            else:
+                return None
+
         return f"tags[{col}]"
 
     return _resolve_column
