@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
+import {Alert} from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
@@ -158,6 +159,23 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <StyledPageFilterBar condensed>
             <DatePageFilter />
           </StyledPageFilterBar>
+          {uptimeRule.status === 'disabled' && (
+            <Alert
+              type="muted"
+              showIcon
+              trailingItems={
+                <StatusToggleButton
+                  uptimeRule={uptimeRule}
+                  size="xs"
+                  onToggleStatus={status => handleUpdate({status})}
+                >
+                  {t('Enable')}
+                </StatusToggleButton>
+              }
+            >
+              {t('This monitor is disabled and not recording uptime checks.')}
+            </Alert>
+          )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
           <UptimeChecksTable uptimeRule={uptimeRule} />
