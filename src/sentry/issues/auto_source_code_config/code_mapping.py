@@ -7,6 +7,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
+    RepoTreesIntegration,
     get_extension,
 )
 from sentry.models.organization import Organization
@@ -49,7 +50,9 @@ def derive_code_mappings(
     stacktrace_filename: str,
 ) -> list[dict[str, str]]:
     installation = get_installation(organization)
-    trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
+    if not isinstance(installation, RepoTreesIntegration):
+        return []
+    trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     frame_filename = FrameFilename(stacktrace_filename)
     return trees_helper.list_file_matches(frame_filename)
