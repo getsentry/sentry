@@ -22,8 +22,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -302,12 +302,13 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'action',
       action: router => {
-        router.push(
-          normalizeUrl({
-            pathname: `/organizations/${organization.slug}/replays/`,
-            query: {referrer: 'onboarding_task'},
-          })
-        );
+        router.push({
+          pathname: makeReplaysPathname({
+            path: '/',
+            organization,
+          }),
+          query: {referrer: 'onboarding_task'},
+        });
         // Since the quick start panel is already open and closes on route change
         // Wait for the next tick to open the replay onboarding panel
         setTimeout(() => {

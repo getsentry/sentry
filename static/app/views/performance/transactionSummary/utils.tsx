@@ -18,6 +18,7 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
@@ -242,9 +243,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: normalizeUrl(
-          `/organizations/${organization.slug}/replays/${replayId}/`
-        ),
+        pathname: makeReplaysPathname({
+          path: `/${replayId}/`,
+          organization,
+        }),
         query: {
           referrer,
         },
