@@ -28,6 +28,7 @@ from sentry.incidents.logic import (
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
+from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
@@ -38,7 +39,11 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule,
+    dual_delete_migrated_alert_rule_trigger,
+    dual_delete_migrated_alert_rule_trigger_action,
+)
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):
@@ -114,6 +119,16 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
         # the user could be removed from the dual write flag for whatever reason, and we need to make sure
         # that the extra table data is deleted. If the rows don't exist, we'll exit early.
+        # Because the triggers and trigger actions will be cascade deleted, we need to manually delete the ACI objects
+        # for any dual written triggers and trigger actions
+        triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        for trigger in triggers_to_dual_delete:
+            actions_to_dual_delete = AlertRuleTriggerAction.objects.filter(
+                alert_rule_trigger=trigger
+            )
+            for action in actions_to_dual_delete:
+                dual_delete_migrated_alert_rule_trigger_action(action)
+            dual_delete_migrated_alert_rule_trigger(trigger)
         dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=request.user)
         delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
         return Response(status=status.HTTP_204_NO_CONTENT)
