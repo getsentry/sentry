@@ -15,6 +15,8 @@ import {
   isTokenOperator,
   isTokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
+import {ArithmeticTokenOperator} from 'sentry/components/arithmeticBuilder/token/operator';
+import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/token/parenthesis';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,11 +103,25 @@ function GridList(props: GridListProps) {
         }
 
         if (isTokenParenthesis(token)) {
-          return null;
+          return (
+            <ArithmeticTokenParenthesis
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
         }
 
         if (isTokenOperator(token)) {
-          return null;
+          return (
+            <ArithmeticTokenOperator
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
         }
 
         if (isTokenFreeText(token)) {
