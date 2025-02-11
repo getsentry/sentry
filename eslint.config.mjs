@@ -413,6 +413,8 @@ export default typescript.config([
       'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
+      '@typescript-eslint/no-unused-expressions': 'off', // TODO(ryan953): Fix violations and delete this line
+
       // Recommended overrides
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off',
