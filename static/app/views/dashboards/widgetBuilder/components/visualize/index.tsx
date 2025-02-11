@@ -325,10 +325,14 @@ function Visualize({error, setError}: VisualizeProps) {
   return (
     <Fragment>
       <SectionHeader
-        title={t('Visualize')}
-        tooltipText={t(
-          'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
-        )}
+        title={isChartWidget ? t('Visualize') : t('Columns')}
+        tooltipText={
+          isChartWidget
+            ? t(
+                'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+              )
+            : t('Columns to display in your table. You can also add equations.')
+        }
       />
       <StyledFieldGroup
         error={isChartWidget ? aggregateErrors : fieldErrors}
@@ -1009,7 +1013,13 @@ function Visualize({error, setError}: VisualizeProps) {
       <AddButtons>
         <AddButton
           priority="link"
-          aria-label={isChartWidget ? t('Add Series') : t('Add Field')}
+          aria-label={
+            isChartWidget
+              ? t('Add Series')
+              : isBigNumberWidget
+                ? t('Add Field')
+                : t('Add Column')
+          }
           onClick={() => {
             dispatch({
               type: updateAction,
@@ -1027,7 +1037,11 @@ function Visualize({error, setError}: VisualizeProps) {
             });
           }}
         >
-          {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
+          {isChartWidget
+            ? t('+ Add Series')
+            : isBigNumberWidget
+              ? t('+ Add Field')
+              : t('+ Add Column')}
         </AddButton>
         {datasetConfig.enableEquations && (
           <AddButton
