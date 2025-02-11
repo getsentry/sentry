@@ -21,7 +21,7 @@ type Props = DefaultProps & {
   children?: React.ReactNode;
   // To add context for better UX
   className?: string;
-  customComponent?: ((props: CustomComponentRenderProps) => React.ReactElement) | null;
+  customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
   // To add context for better error reporting
   errorTag?: Record<string, string>;
 
