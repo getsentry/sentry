@@ -632,9 +632,9 @@ describe('Visualize', () => {
     expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
 
     // Add 3 fields
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
     expect(screen.getAllByText('count')).toHaveLength(3);
