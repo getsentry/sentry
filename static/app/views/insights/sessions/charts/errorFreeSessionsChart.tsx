@@ -2,30 +2,28 @@ import {t} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import useErrorFreeSessions from 'sentry/views/insights/sessions/queries/useErrorFreeSessions';
 
-export default function ErrorFreeSessionsChart() {
-  const {seriesData, isPending, error} = useErrorFreeSessions();
+interface Props {
+  groupByRelease?: boolean;
+}
+
+export default function ErrorFreeSessionsChart({groupByRelease}: Props) {
+  const {series, releases, isPending, error} = useErrorFreeSessions({
+    groupByRelease,
+  });
+
+  const aliases = groupByRelease
+    ? Object.fromEntries(
+        releases?.map(release => [`successful_session_rate_${release}`, release]) ?? []
+      )
+    : {
+        successful_session_rate: t('Error free session rate'),
+      };
 
   return (
     <InsightsLineChartWidget
       title={t('Error Free Session Rate')}
-      aliases={{
-        successful_session_rate: t('Error free session rate'),
-      }}
-      series={[
-        {
-          data: seriesData,
-          seriesName: 'successful_session_rate',
-          meta: {
-            fields: {
-              successful_session_rate: 'percentage',
-              time: 'date',
-            },
-            units: {
-              successful_session_rate: '%',
-            },
-          },
-        },
-      ]}
+      aliases={aliases}
+      series={series}
       isLoading={isPending}
       error={error}
     />
