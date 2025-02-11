@@ -620,6 +620,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'divide',
+        groups: ['action'],
+        keywords: ['divided', 'math'],
+        name: 'Divide',
+        defaultProps: {},
+      },
+      {
         id: 'upload',
         groups: ['action'],
         keywords: ['file', 'image', 'up'],

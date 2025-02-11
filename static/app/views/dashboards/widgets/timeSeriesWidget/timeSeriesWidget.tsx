@@ -20,7 +20,7 @@ export interface TimeSeriesWidgetProps
 }
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
-  const {timeseries} = props;
+  const {timeSeries: timeseries} = props;
 
   if (props.isLoading) {
     return (
@@ -61,7 +61,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       {defined(timeseries) && (
         <TimeSeriesWidgetVisualization
           visualizationType={props.visualizationType}
-          timeseries={timeseries}
+          timeSeries={timeseries}
           releases={props.releases}
           aliases={props.aliases}
           stacked={props.stacked}

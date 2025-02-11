@@ -62,7 +62,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
                 "aggregate": "count()",
                 "timeWindow": 60,
                 "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.value],
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "dataConditions": [
                 {
@@ -130,7 +130,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert data_source.organization_id == self.organization.id
 
         # Verify query subscription
-        query_sub = QuerySubscription.objects.get(id=data_source.query_id)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
         assert query_sub.project == self.project
         assert query_sub.snuba_query.type == SnubaQuery.Type.ERROR.value
         assert query_sub.snuba_query.dataset == Dataset.Events.value

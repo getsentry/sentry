@@ -23,8 +23,11 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 
 logger = logging.getLogger(__name__)
+
+SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
 
 
 def migrate_issue_alert(rule: Rule, user_id: int | None = None):
@@ -58,6 +61,15 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
 
+def bulk_create_data_conditions(conditions: list[dict[str, Any]], dcg: DataConditionGroup):
+    dcg_conditions: list[DataCondition] = []
+    for condition in conditions:
+        dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
+
+    filtered_data_conditions = [dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS]
+    DataCondition.objects.bulk_create(filtered_data_conditions)
+
+
 def create_when_dcg(
     organization: Organization, conditions: list[dict[str, Any]], action_match: str
 ):
@@ -65,8 +77,8 @@ def create_when_dcg(
         action_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
     when_dcg = DataConditionGroup.objects.create(logic_type=action_match, organization=organization)
-    for condition in conditions:
-        translate_to_data_condition(dict(condition), dcg=when_dcg)
+
+    bulk_create_data_conditions(conditions=conditions, dcg=when_dcg)
 
     return when_dcg
 
@@ -110,8 +122,7 @@ def create_if_dcg(
     )
     WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
 
-    for filter in filters:
-        translate_to_data_condition(dict(filter), dcg=if_dcg)
+    bulk_create_data_conditions(conditions=filters, dcg=if_dcg)
 
     return if_dcg
 
@@ -192,8 +203,7 @@ def update_dcg(
 
         dcg.update(logic_type=match)
 
-    for condition in conditions:
-        translate_to_data_condition(dict(condition), dcg=dcg)
+    bulk_create_data_conditions(conditions=conditions, dcg=dcg)
 
     return dcg
 

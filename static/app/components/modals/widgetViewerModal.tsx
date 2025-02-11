@@ -1,5 +1,4 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
-import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
@@ -16,6 +15,7 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';

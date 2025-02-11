@@ -189,6 +189,15 @@ const Content = styled('div')`
   ${Layout.Page} {
     padding: 0;
   }
+
+  /**
+   * Components which use Layout.Header will provide their own padding.
+   * TODO: Refactor existing components to use Layout.Header and Layout.Body,
+   * then remove the padding from this component.
+   */
+  &:has(${Layout.Header}) {
+    padding: 0;
+  }
 `;
 
 export default SettingsLayout;

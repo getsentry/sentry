@@ -20,7 +20,6 @@ from sentry import options
 from sentry.options import UnknownOption
 from sentry.utils.settings import is_self_hosted
 
-BROWNOUT_LENGTH = timedelta(days=30)
 GONE_MESSAGE = {"message": "This API no longer exists."}
 DEPRECATION_HEADER = "X-Sentry-Deprecation-Date"
 SUGGESTED_API_HEADER = "X-Sentry-Replacement-Endpoint"
