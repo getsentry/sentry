@@ -9,6 +9,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.typings.notification_action import ActionFieldMapping
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -29,13 +30,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         class TestHandler(BaseIssueAlertHandler):
             @staticmethod
-            def build_rule_action_blob(action: Action) -> dict:
-                return {
-                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-                    "server": "1234567890",
-                    "channel_id": "channel456",
-                    "tags": "environment,user,my_tag",
-                }
+            def get_additional_fields(action: Action, mapping: ActionFieldMapping):
+                return {"tags": "environment,user,my_tag"}
 
         self.handler = TestHandler()
 
