@@ -58,15 +58,10 @@ class OnboardingTaskStatus:
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
-
         if cache.get(cache_key) is None:
             try:
                 with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(
-                        organization_id=organization_id,
-                        task=task,
-                        **kwargs,
-                    )
+                    self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
             except IntegrityError:
                 pass
