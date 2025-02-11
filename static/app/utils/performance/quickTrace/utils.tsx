@@ -327,7 +327,7 @@ export function isTraceRoot(
 
 export function isTraceSplitResult<
   U extends Record<PropertyKey, unknown>,
-  V extends Record<PropertyKey, unknown>,
+  V extends readonly unknown[],
 >(result: U | V): result is U {
   return 'transactions' in result;
 }
