@@ -255,11 +255,14 @@ export enum SpanIndexedField {
   USER_USERNAME = 'user.username',
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
+  INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   LCP = 'measurements.lcp',
   LCP_SCORE = 'measurements.score.lcp',
+  LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
   CLS = 'measurements.cls',
   CLS_SCORE = 'measurements.score.cls',
+  CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   TTFB = 'measurements.ttfb',
   FCP = 'measurements.fcp',
   TOTAL_SCORE = 'measurements.score.total',
@@ -277,6 +280,8 @@ export enum SpanIndexedField {
 }
 
 export type SpanIndexedResponse = {
+  id: string;
+  [SpanIndexedField.ID]: string;
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
@@ -333,10 +338,13 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.INP_SCORE_RATIO]: number;
   [SpanIndexedField.LCP]: number;
   [SpanIndexedField.LCP_SCORE]: number;
+  [SpanIndexedField.LCP_SCORE_RATIO]: number;
   [SpanIndexedField.CLS]: number;
   [SpanIndexedField.CLS_SCORE]: number;
+  [SpanIndexedField.CLS_SCORE_RATIO]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
