@@ -19,7 +19,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import DataCondition
 
 
-class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
+class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
         max_length=200,
@@ -27,7 +27,7 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
     )
     detector_type = serializers.CharField()
 
-    def validate_group_type(self, value: str) -> type[GroupType]:
+    def validate_detector_type(self, value: str) -> type[GroupType]:
         detector_type = grouptype.registry.get_by_slug(value)
         if detector_type is None:
             raise serializers.ValidationError("Unknown detector type")
@@ -72,7 +72,7 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
                 workflow_condition_group=condition_group,
-                type=validated_data["detector_type"],
+                type=validated_data["detector_type"].slug,
                 config=validated_data.get("config", {}),
             )
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
