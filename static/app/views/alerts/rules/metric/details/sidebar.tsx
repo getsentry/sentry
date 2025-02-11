@@ -182,13 +182,13 @@ export function MetricDetailsSidebar({
     <Fragment>
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Alert Status')}</Heading>
+          <SectionHeading>{t('Alert Status')}</SectionHeading>
           <Status>
             <AlertBadge status={status} withText />
           </Status>
         </HeaderItem>
         <HeaderItem>
-          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <SectionHeading>{t('Last Triggered')}</SectionHeading>
           <Status>
             {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
           </Status>
@@ -222,7 +222,7 @@ export function MetricDetailsSidebar({
       </SidebarGroup>
       {showOnDemandMetricAlertUI && (
         <SidebarGroup>
-          <Heading>{t('Filters Used')}</Heading>
+          <SectionHeading>{t('Filters Used')}</SectionHeading>
           <KeyValueTable>
             {getSearchFilters(rule.query).map(({key, operator, value}) => (
               <FilterKeyValueTableRow
@@ -236,7 +236,7 @@ export function MetricDetailsSidebar({
         </SidebarGroup>
       )}
       <SidebarGroup>
-        <Heading>{t('Alert Rule Details')}</Heading>
+        <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
         <KeyValueTable>
           <KeyValueTableRow
             keyName={t('Environment')}
@@ -377,12 +377,11 @@ const Status = styled('div')`
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(1)};
-`;
+  margin-bottom: ${space(2)};
 
-const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const OverflowTableValue = styled('div')`
