@@ -7,7 +7,7 @@ import type {FieldGroupProps} from './types';
 
 interface FieldLabelProps extends Pick<FieldGroupProps, 'disabled'> {}
 
-const FieldLabel = styled('div', {
+export const FieldLabel = styled('div', {
   shouldForwardProp: p => p !== 'disabled' && isPropValid(p),
 })<FieldLabelProps>`
   color: ${p => (!p.disabled ? p.theme.textColor : p.theme.disabled)};
@@ -15,5 +15,3 @@ const FieldLabel = styled('div', {
   gap: ${space(0.5)};
   line-height: 16px;
 `;
-
-export default FieldLabel;

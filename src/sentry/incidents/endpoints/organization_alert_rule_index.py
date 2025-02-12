@@ -207,16 +207,23 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ),
         )
-        crons_rules = Monitor.objects.filter(
-            project_id__in=[p.id for p in projects], status=ObjectStatus.ACTIVE
-        ).annotate(
-            # Since monitors have multiple environment's which can each have
-            # their own status, find the 'worst' status among all of the
-            # environments and use that as the status of this monitor.
-            resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
-            .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
-            .order_by("ordering")
-            .values("status")[:1]
+        crons_rules = (
+            Monitor.objects.filter(project_id__in=[p.id for p in projects])
+            .exclude(
+                status__in=[
+                    ObjectStatus.PENDING_DELETION,
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+            .annotate(
+                # Since monitors have multiple environment's which can each have
+                # their own status, find the 'worst' status among all of the
+                # environments and use that as the status of this monitor.
+                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
+                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
+                .order_by("ordering")
+                .values("status")[:1]
+            )
         )
 
         if not features.has("organizations:performance-view", organization):
