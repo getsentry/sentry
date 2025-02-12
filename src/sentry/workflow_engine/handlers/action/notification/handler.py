@@ -36,6 +36,19 @@ group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 
 
 @action_handler_registry.register(Action.Type.DISCORD)
+@action_handler_registry.register(Action.Type.SLACK)
+@action_handler_registry.register(Action.Type.MSTEAMS)
+@action_handler_registry.register(Action.Type.PAGERDUTY)
+@action_handler_registry.register(Action.Type.OPSGENIE)
+@action_handler_registry.register(Action.Type.GITHUB)
+@action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
+@action_handler_registry.register(Action.Type.JIRA)
+@action_handler_registry.register(Action.Type.JIRA_SERVER)
+@action_handler_registry.register(Action.Type.AZURE_DEVOPS)
+@action_handler_registry.register(Action.Type.EMAIL)
+@action_handler_registry.register(Action.Type.SENTRY_APP)
+@action_handler_registry.register(Action.Type.WEBHOOK)
+@action_handler_registry.register(Action.Type.PLUGIN)
 class NotificationActionHandler(ActionHandler):
     @staticmethod
     def execute(
