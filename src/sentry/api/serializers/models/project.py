@@ -950,6 +950,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
+    tempestFetchDumps: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
