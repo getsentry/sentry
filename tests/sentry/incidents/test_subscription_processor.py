@@ -694,7 +694,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_seer_call_null_aggregation_value(self, mock_seer_request):
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         result = get_anomaly_data_from_seer(
             alert_rule=processor.alert_rule,
@@ -702,7 +703,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             last_update=processor.last_update.timestamp(),
             aggregation_value="NULL_VALUE",
         )
+        logger_extra = {
+            "subscription_id": self.sub.id,
+            "organization_id": self.sub.project.organization.id,
+            "project_id": self.sub.project_id,
+            "alert_rule_id": self.dynamic_rule.id,
+            "aggregation_value": "NULL_VALUE",
+        }
         assert result is None
+        mock_logger.info.assert_called_with(
+            "Aggregation value or snuba query is empty",
+            extra=logger_extra,
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
