@@ -1,108 +1,123 @@
-function _generateChonkTokens(colorScheme: typeof _chonkLightColors) {
+import color from 'color';
+
+import commonTheme, {
+  type ColorMapping,
+  darkTheme,
+  generateAlertTheme,
+  generateBadgeTheme,
+  generateButtonTheme,
+  generateLevelTheme,
+  generateTagTheme,
+  generateThemePrismVariables,
+  generateThemeUtils,
+  lightTheme,
+  type SentryTheme,
+} from 'sentry/utils/theme';
+
+// @TODO(jonasbadalic): eventually, we should port component usage to these values
+function generateChonkTokens(colorScheme: typeof lightColors) {
   return {
-    token: {
-      static: {
-        text: {
+    static: {
+      text: {
+        primary: colorScheme.dynamic.grayTransparent500,
+        secondary: colorScheme.dynamic.grayTransparent400,
+        accent: colorScheme.dynamic.blurple400,
+        success: colorScheme.dynamic.green400,
+        warning: colorScheme.dynamic.gold400,
+        danger: colorScheme.dynamic.red400,
+      },
+      graphic: {
+        icon: {
           primary: colorScheme.dynamic.grayTransparent500,
           secondary: colorScheme.dynamic.grayTransparent400,
-          accent: colorScheme.dynamic.blurple400,
-          success: colorScheme.dynamic.green400,
-          warning: colorScheme.dynamic.gold400,
-          danger: colorScheme.dynamic.red400,
+          tertiary: colorScheme.dynamic.grayTransparent300,
+          quaternary: colorScheme.dynamic.grayTransparent200,
+          accent: colorScheme.static.blurple400,
+          success: colorScheme.static.green100,
+          warning: colorScheme.static.gold100,
+          danger: colorScheme.static.red400,
         },
-        graphic: {
-          icon: {
-            primary: colorScheme.dynamic.grayTransparent500,
-            secondary: colorScheme.dynamic.grayTransparent400,
-            tertiary: colorScheme.dynamic.grayTransparent300,
-            quaternary: colorScheme.dynamic.grayTransparent200,
-            accent: colorScheme.static.blurple400,
-            success: colorScheme.static.green100,
-            warning: colorScheme.static.gold100,
-            danger: colorScheme.static.red400,
+        chart: {
+          annotation: {
+            axisLabel: colorScheme.dynamic.grayOpaque400,
           },
-          chart: {
-            annotation: {
-              axisLabel: colorScheme.dynamic.grayOpaque400,
-            },
-            canvas: {
-              lineGrid: colorScheme.dynamic.grayOpaque100,
-            },
+          canvas: {
+            lineGrid: colorScheme.dynamic.grayOpaque100,
           },
-        },
-        background: {
-          primary: colorScheme.dynamic.surface400,
-          secondary: colorScheme.dynamic.surface300,
-          tertiary: colorScheme.dynamic.surface200,
-        },
-        border: {
-          primary: colorScheme.dynamic.surface100,
-          secondary: colorScheme.dynamic.surface200,
         },
       },
-      interactive: {
-        outline: {
-          default: {
-            color: colorScheme.static.blurple400,
-          },
-          danger: {
-            color: colorScheme.static.red400,
+      background: {
+        primary: colorScheme.dynamic.surface400,
+        secondary: colorScheme.dynamic.surface300,
+        tertiary: colorScheme.dynamic.surface200,
+      },
+      border: {
+        primary: colorScheme.dynamic.surface100,
+        secondary: colorScheme.dynamic.surface200,
+      },
+    },
+    interactive: {
+      outline: {
+        default: {
+          color: colorScheme.static.blurple400,
+        },
+        danger: {
+          color: colorScheme.static.red400,
+        },
+      },
+      link: {
+        accent: {
+          color: {
+            default: colorScheme.dynamic.blurple400,
+            hover: colorScheme.dynamic.blurple400,
+            active: colorScheme.dynamic.blurple400,
           },
         },
-        link: {
-          accent: {
-            color: {
-              default: colorScheme.dynamic.blurple400,
-              hover: colorScheme.dynamic.blurple400,
-              active: colorScheme.dynamic.blurple400,
-            },
+      },
+      button: {
+        default: {
+          chonk: colorScheme.dynamic.surface100,
+          children: colorScheme.dynamic.grayTransparent500,
+          background: {
+            default: colorScheme.dynamic.surface400,
+            hover: colorScheme.dynamic.surface300,
+            active: colorScheme.dynamic.surface200,
           },
         },
-        button: {
-          default: {
-            chonk: colorScheme.dynamic.surface100,
-            children: colorScheme.dynamic.grayTransparent500,
-            background: {
-              default: colorScheme.dynamic.surface400,
-              hover: colorScheme.dynamic.surface300,
-              active: colorScheme.dynamic.surface200,
-            },
+        transparent: {
+          chonk: colorScheme.dynamic.surface100,
+          children: colorScheme.dynamic.grayTransparent500,
+          background: {
+            default: colorScheme.dynamic.surface400,
+            hover: colorScheme.dynamic.surface300,
+            active: colorScheme.dynamic.surface200,
           },
-          transparent: {
-            chonk: colorScheme.dynamic.surface100,
-            children: colorScheme.dynamic.grayTransparent500,
-            background: {
-              default: colorScheme.dynamic.surface400,
-              hover: colorScheme.dynamic.surface300,
-              active: colorScheme.dynamic.surface200,
-            },
+        },
+        accent: {
+          chonk: colorScheme.dynamic.blurple100,
+          children: colorScheme.static.white,
+          background: {
+            default: colorScheme.static.blurple400,
+            hover: colorScheme.static.blurple300,
+            active: colorScheme.static.blurple200,
           },
-          accent: {
-            chonk: colorScheme.dynamic.blurple100,
-            children: colorScheme.static.white,
-            background: {
-              default: colorScheme.static.blurple400,
-              hover: colorScheme.static.blurple300,
-              active: colorScheme.static.blurple200,
-            },
+        },
+        warning: {
+          chonk: colorScheme.dynamic.gold100,
+          children: colorScheme.static.black,
+          background: {
+            default: colorScheme.static.gold400,
+            hover: colorScheme.static.gold300,
+            active: colorScheme.static.gold200,
           },
-          warning: {
-            chonk: colorScheme.dynamic.gold100,
-            children: colorScheme.static.black,
-            background: {
-              default: colorScheme.static.gold400,
-              hover: colorScheme.static.gold300,
-              active: colorScheme.static.gold200,
-            },
-          },
-          danger: {
-            chonk: colorScheme.dynamic.red100,
-            children: colorScheme.static.white,
-            background: {
-              default: colorScheme.static.red400,
-              hover: colorScheme.static.red300,
-              active: colorScheme.static.red200,
-            },
+        },
+        danger: {
+          chonk: colorScheme.dynamic.red100,
+          children: colorScheme.static.white,
+          background: {
+            default: colorScheme.static.red400,
+            hover: colorScheme.static.red300,
+            active: colorScheme.static.red200,
           },
         },
       },
@@ -110,31 +125,32 @@ function _generateChonkTokens(colorScheme: typeof _chonkLightColors) {
   };
 }
 
-const _chonkShared = {
-  space: {
-    // @TODO(jonasbadalic): none doesn't need to exist
-    // none: 0,
-    subMicroscoptic: 1,
-    microscoptic: 2,
-    mini: 4,
-    small: 6,
-    medium: 8,
-    large: 12,
-    huge: 16,
-  },
-  borderRadius: {
-    // @TODO(jonasbadalic): none doesn't need to exist
-    // none: 0,
-    subMicroscoptic: 1,
-    microscoptic: 2,
-    mini: 3,
-    small: 4,
-    medium: 5,
-    large: 6,
-  },
-};
+// @TODO(jonasbadalic): keep these for future reference - they are not being used rn
+// const _chonkShared = {
+//   space: {
+//     // @TODO(jonasbadalic): none doesn't need to exist
+//     // none: 0,
+//     nano: 1,
+//     micro: 2,
+//     mini: 4,
+//     small: 6,
+//     medium: 8,
+//     large: 12,
+//     huge: 16,
+//   },
+//   borderRadius: {
+//     // @TODO(jonasbadalic): none doesn't need to exist
+//     // none: 0,
+//     nano: 1,
+//     micro: 2,
+//     mini: 3,
+//     small: 4,
+//     medium: 5,
+//     large: 6,
+//   },
+// };
 
-const _chonkLightColors = {
+const lightColors = {
   // @TODO(jonasbadalic): add explanation about static and dynamic color differences and intended usage
   static: {
     black: '#181225',
@@ -216,7 +232,7 @@ const _chonkLightColors = {
   },
 };
 
-const _chonkDarkColors: typeof _chonkLightColors = {
+const darkColors: typeof lightColors = {
   static: {
     black: '#181225',
     white: '#FFFFFF',
@@ -293,5 +309,491 @@ const _chonkDarkColors: typeof _chonkLightColors = {
     pink300: '#FFF',
     pink200: '#FFF',
     pink100: '#FFF',
+  },
+};
+
+// Prism colors
+// @TODO(jonasbadalic): are these final?
+const prismLight = {
+  /**
+   * NOTE: Missing Palette All together
+   * COMPONENTS AFFECTED: Unknown
+   * TODO: Nothing yet, Low Prio
+   */
+  '--prism-base': '#332B3B',
+  '--prism-inline-code': '#332B3B',
+  '--prism-inline-code-background': '#F5F3F7',
+  '--prism-highlight-background': '#5C78A31C',
+  '--prism-highlight-accent': '#5C78A344',
+  '--prism-comment': '#80708F',
+  '--prism-punctuation': '#332B3B',
+  '--prism-property': '#18408B',
+  '--prism-selector': '#177861',
+  '--prism-operator': '#235CC8',
+  '--prism-variable': '#332B3B',
+  '--prism-function': '#235CC8',
+  '--prism-keyword': '#BB3A3D',
+};
+
+// @TODO(jonasbadalic): are these final?
+const prismDark = {
+  /**
+   * NOTE: Missing Palette All together
+   * COMPONENTS AFFECTED: Unknown
+   * TODO: Nothing yet, Low Prio
+   */
+  '--prism-base': '#D6D0DC',
+  '--prism-inline-code': '#D6D0DC',
+  '--prism-inline-code-background': '#18121C',
+  '--prism-highlight-background': '#A8A2C31C',
+  '--prism-highlight-accent': '#A8A2C344',
+  '--prism-comment': '#998DA5',
+  '--prism-punctuation': '#D6D0DC',
+  '--prism-property': '#70A2FF',
+  '--prism-selector': '#1DCDA4',
+  '--prism-operator': '#70A2FF',
+  '--prism-variable': '#D6D0DC',
+  '--prism-function': '#70A2FF',
+  '--prism-keyword': '#F8777C',
+};
+
+// @TODO(jonasbadalic): are these final?
+const lightShadows = {
+  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
+  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
+  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
+};
+
+// @TODO(jonasbadalic): are these final?
+const darkShadows = {
+  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
+  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
+  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
+};
+
+const generateAliases = (
+  tokens: ReturnType<typeof generateChonkTokens>,
+  colors: typeof lightColors
+) => ({
+  /**
+   * Heading text color
+   */
+  headingColor: tokens.static.text.primary,
+
+  /**
+   * Primary text color
+   */
+  textColor: tokens.static.text.primary,
+
+  /**
+   * Text that should not have as much emphasis
+   */
+  subText: tokens.static.text.secondary,
+
+  /**
+   * Background for the main content area of a page?
+   */
+  bodyBackground: tokens.static.background.secondary,
+
+  /**
+   * Primary background color
+   */
+  background: tokens.static.background.primary,
+
+  /**
+   * Elevated background color
+   */
+  backgroundElevated: tokens.static.background.primary,
+
+  /**
+   * Secondary background color used as a slight contrast against primary background
+   */
+  backgroundSecondary: tokens.static.background.secondary,
+
+  /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: tokens.static.background.tertiary,
+
+  /**
+   * Background for the header of a page
+   */
+  headerBackground: tokens.static.background.primary,
+
+  /**
+   * Primary border color
+   */
+  border: tokens.static.border.primary,
+  translucentBorder: tokens.static.border.primary,
+
+  /**
+   * Inner borders, e.g. borders inside of a grid
+   */
+  innerBorder: tokens.static.border.secondary,
+  translucentInnerBorder: tokens.static.border.secondary,
+
+  /**
+   * A color that denotes a "success", or something good
+   */
+  success: tokens.static.graphic.icon.success,
+  successText: tokens.static.text.success,
+  // @TODO(jonasbadalic): should this reference a static color?
+  successFocus: colors.static.green200, // Not being used
+
+  /**
+   * A color that denotes an error, or something that is wrong
+   */
+  error: tokens.static.graphic.icon.danger,
+  errorText: tokens.static.text.danger,
+  errorFocus: tokens.interactive.outline.danger.color,
+
+  /**
+   * A color that denotes danger, for dangerous actions like deletion
+   */
+  danger: tokens.static.graphic.icon.danger,
+  dangerText: tokens.static.text.danger,
+  // @TODO(jonasbadalic): should this reference a static color?
+  dangerFocus: colors.static.red200, // Not being used
+
+  /**
+   * A color that denotes a warning
+   */
+  warning: tokens.static.graphic.icon.warning,
+  warningText: tokens.static.text.warning,
+  // @TODO(jonasbadalic): should this reference a static color?
+  warningFocus: colors.static.gold200, // Not being used
+
+  /**
+   * A color that indicates something is disabled where user can not interact or use
+   * it in the usual manner (implies that there is an "enabled" state)
+   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
+   */
+  disabled: colors.dynamic.grayTransparent300,
+  disabledBorder: colors.dynamic.grayTransparent300,
+
+  /**
+   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
+   * interaction (hover/press) states.
+   * @deprecated
+   */
+  hover: tokens.interactive.button.default.background.hover,
+
+  /**
+   * Indicates that something is "active" or "selected"
+   * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
+   */
+  active: colors.static.blurple200,
+  activeHover: colors.static.blurple300,
+  activeText: colors.static.blurple400,
+
+  /**
+   * Indicates that something has "focus", which is different than "active" state as it is more temporal
+   * and should be a bit subtler than active
+   */
+  focus: tokens.interactive.outline.default.color,
+  focusBorder: tokens.interactive.outline.default.color,
+
+  /**
+   * Inactive
+   * NOTE: Used in only a few places, but unclear how this would map to chonkUI
+   */
+  inactive: colors.dynamic.grayTransparent300,
+
+  /**
+   * Link color indicates that something is clickable
+   */
+  linkColor: tokens.interactive.link.accent.color.default,
+  linkHoverColor: tokens.interactive.link.accent.color.hover,
+  linkUnderline: tokens.interactive.link.accent.color.default,
+  linkFocus: tokens.interactive.outline.default.color,
+
+  /**
+   * Form placeholder text color
+   */
+  formPlaceholder: colors.dynamic.grayTransparent300,
+
+  /**
+   * Default form text color
+   */
+  formText: colors.dynamic.grayTransparent300,
+
+  /**
+   *
+   */
+  rowBackground: tokens.static.background.primary,
+
+  /**
+   * Color of lines that flow across the background of the chart to indicate axes levels
+   * (This should only be used for yAxis)
+   */
+  chartLineColor: tokens.static.graphic.chart.annotation.axisLabel,
+
+  /**
+   * Color for chart label text
+   */
+  chartLabel: tokens.static.graphic.chart.canvas.lineGrid,
+
+  /**
+   * Color for the 'others' series in topEvent charts
+   */
+  chartOther: colors.dynamic.grayOpaque200,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBar: colors.static.blurple400,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBackground: colors.dynamic.grayTransparent100,
+
+  /**
+   * Overlay for partial opacity
+   */
+  overlayBackgroundAlpha: colors.dynamic.grayTransparent100,
+
+  /**
+   * Tag progress bars
+   */
+  tagBarHover: colors.static.blurple300,
+  tagBar: colors.dynamic.grayTransparent200,
+
+  // @todo(jonasbadalic) should these reference static colors?
+  searchTokenBackground: {
+    valid: colors.static.blurple100,
+    validActive: color(colors.static.blurple100).opaquer(1.0).string(),
+    invalid: colors.static.red100,
+    invalidActive: color(colors.static.red100).opaquer(0.8).string(),
+    warning: colors.static.gold100,
+    warningActive: color(colors.static.gold100).opaquer(0.8).string(),
+  },
+
+  /**
+   * Search filter "token" border
+   * NOTE: Not being used anymore in the new Search UI
+   */
+  searchTokenBorder: {
+    valid: colors.static.blurple200,
+    validActive: color(colors.static.blurple200).opaquer(1).string(),
+    invalid: colors.static.red200,
+    invalidActive: color(colors.static.red200).opaquer(1).string(),
+    warning: colors.static.gold200,
+    warningActive: color(colors.static.gold200).opaquer(1).string(),
+  },
+
+  /**
+   * Count on button when active
+   */
+  buttonCountActive: colors.static.white,
+
+  /**
+   * Count on button
+   */
+  buttonCount: tokens.static.text.primary,
+
+  /**
+   * Background of alert banners at the top
+   */
+  bannerBackground: colors.dynamic.grayTransparent500,
+});
+
+// Mapping of chonk theme to sentry theme
+const chonkLightColorMapping: ColorMapping = {
+  black: lightColors.static.black,
+  white: lightColors.static.white,
+
+  // @TODO(jonasbadalic): why is this needed?
+  lightModeBlack: lightColors.static.black,
+  lightModeWhite: lightColors.static.white,
+
+  surface100: lightColors.dynamic.surface100,
+  surface200: lightColors.dynamic.surface200,
+  surface300: lightColors.dynamic.surface300,
+  surface400: lightColors.dynamic.surface400,
+
+  translucentSurface100: lightColors.dynamic.surface100,
+  translucentSurface200: lightColors.dynamic.surface200,
+
+  surface500: lightColors.dynamic.surface300,
+
+  gray500: lightColors.dynamic.grayOpaque500,
+  gray400: lightColors.dynamic.grayOpaque400,
+  gray300: lightColors.dynamic.grayOpaque300,
+  gray200: lightColors.dynamic.grayOpaque200,
+  gray100: lightColors.dynamic.grayOpaque100,
+
+  translucentGray200: lightColors.dynamic.grayTransparent200,
+  translucentGray100: lightColors.dynamic.grayTransparent100,
+
+  purple400: lightColors.dynamic.blurple400,
+  purple300: lightColors.dynamic.blurple300,
+  purple200: lightColors.dynamic.blurple200,
+  purple100: lightColors.dynamic.blurple100,
+
+  blue400: lightColors.dynamic.blurple400,
+  blue300: lightColors.dynamic.blurple300,
+  blue200: lightColors.dynamic.blurple200,
+  blue100: lightColors.dynamic.blurple100,
+
+  green400: lightColors.dynamic.green400,
+  green300: lightColors.dynamic.green300,
+  green200: lightColors.dynamic.green200,
+  green100: lightColors.dynamic.green100,
+
+  yellow400: lightColors.dynamic.gold400,
+  yellow300: lightColors.dynamic.gold300,
+  yellow200: lightColors.dynamic.gold200,
+  yellow100: lightColors.dynamic.gold100,
+
+  red400: lightColors.dynamic.red400,
+  red300: lightColors.dynamic.red300,
+  red200: lightColors.dynamic.red200,
+  red100: lightColors.dynamic.red100,
+
+  // @TODO(jonasbadalic): missing palette
+  pink400: '#D1056B',
+  pink300: '#F14499',
+  pink200: 'rgba(249, 26, 138, 0.5)',
+  pink100: 'rgba(249, 26, 138, 0.09)',
+};
+
+const chonkDarkColorMapping: ColorMapping = {
+  black: darkColors.static.black,
+  white: darkColors.static.white,
+
+  lightModeBlack: darkColors.static.black,
+  lightModeWhite: darkColors.static.white,
+
+  surface100: darkColors.dynamic.surface100,
+  surface200: darkColors.dynamic.surface200,
+  surface300: darkColors.dynamic.surface300,
+  surface400: darkColors.dynamic.surface400,
+
+  translucentSurface100: darkColors.dynamic.surface100,
+  translucentSurface200: darkColors.dynamic.surface200,
+
+  surface500: darkColors.dynamic.surface300,
+
+  gray500: darkColors.dynamic.grayOpaque500,
+  gray400: darkColors.dynamic.grayOpaque400,
+  gray300: darkColors.dynamic.grayOpaque300,
+  gray200: darkColors.dynamic.grayOpaque200,
+  gray100: darkColors.dynamic.grayOpaque100,
+
+  translucentGray200: darkColors.dynamic.grayTransparent200,
+  translucentGray100: darkColors.dynamic.grayTransparent100,
+
+  purple400: darkColors.dynamic.blurple400,
+  purple300: darkColors.dynamic.blurple300,
+  purple200: darkColors.dynamic.blurple200,
+  purple100: darkColors.dynamic.blurple100,
+
+  blue400: darkColors.dynamic.blurple400,
+  blue300: darkColors.dynamic.blurple300,
+  blue200: darkColors.dynamic.blurple200,
+  blue100: darkColors.dynamic.blurple100,
+
+  green400: darkColors.dynamic.green400,
+  green300: darkColors.dynamic.green300,
+  green200: darkColors.dynamic.green200,
+  green100: darkColors.dynamic.green100,
+
+  yellow400: darkColors.dynamic.gold400,
+  yellow300: darkColors.dynamic.gold300,
+  yellow200: darkColors.dynamic.gold200,
+  yellow100: darkColors.dynamic.gold100,
+
+  red400: darkColors.dynamic.red400,
+  red300: darkColors.dynamic.red300,
+  red200: darkColors.dynamic.red200,
+  red100: darkColors.dynamic.red100,
+
+  // @TODO(jonasbadalic): missing palette
+  pink400: '#EB8FBC',
+  pink300: '#CE3B85',
+  pink200: 'rgba(206, 59, 133, 0.25)',
+  pink100: 'rgba(206, 59, 133, 0.13)',
+};
+
+const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
+const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+
+export const lightChonkTheme: SentryTheme = {
+  isChonk: true,
+
+  // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
+  ...commonTheme,
+  ...chonkLightColorMapping,
+  ...lightAliases,
+  ...lightShadows,
+
+  inverted: {
+    ...chonkDarkColorMapping,
+    ...darkAliases,
+  },
+
+  // @TODO: these colors need to be ported
+  ...generateThemeUtils(chonkLightColorMapping, lightAliases),
+  alert: generateAlertTheme(chonkLightColorMapping, lightAliases),
+  badge: generateBadgeTheme(chonkLightColorMapping),
+  button: generateButtonTheme(chonkLightColorMapping, lightAliases),
+  tag: generateTagTheme(chonkLightColorMapping),
+  level: generateLevelTheme(chonkLightColorMapping),
+
+  prismVariables: generateThemePrismVariables(
+    prismLight,
+    lightAliases.backgroundSecondary
+  ),
+  prismDarkVariables: generateThemePrismVariables(
+    prismDark,
+    darkAliases.backgroundElevated
+  ),
+
+  stacktraceActiveBackground: lightTheme.stacktraceActiveBackground,
+  stacktraceActiveText: lightTheme.stacktraceActiveText,
+
+  sidebar: {
+    // @TODO: these colors need to be ported
+    ...lightTheme.sidebar,
+  },
+};
+
+export const darkChonkTheme: SentryTheme = {
+  isChonk: true,
+
+  // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
+  ...commonTheme,
+  ...chonkDarkColorMapping,
+  ...darkAliases,
+  ...darkShadows,
+
+  inverted: {
+    ...chonkDarkColorMapping,
+    ...darkAliases,
+  },
+
+  // @TODO: these colors need to be ported
+  ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
+  alert: generateAlertTheme(chonkDarkColorMapping, darkAliases),
+  badge: generateBadgeTheme(chonkDarkColorMapping),
+  button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
+  tag: generateTagTheme(chonkDarkColorMapping),
+  level: generateLevelTheme(chonkDarkColorMapping),
+
+  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismDarkVariables: generateThemePrismVariables(
+    prismDark,
+    darkAliases.backgroundElevated
+  ),
+
+  stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
+  stacktraceActiveText: darkTheme.stacktraceActiveText,
+
+  sidebar: {
+    // @TODO: these colors need to be ported
+    ...darkTheme.sidebar,
   },
 };
