@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -15,7 +16,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Color} from 'sentry/utils/theme';
-import theme from 'sentry/utils/theme';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   borderStyle?: 'solid' | 'dashed' | 'dotted';
@@ -73,6 +73,7 @@ function BaseTag({
   textMaxWidth = 150,
   ...props
 }: TagProps) {
+  const theme = useTheme();
   const iconsProps: SVGIconProps = {
     size: 'xs',
     color: theme.tag[type].color as Color,

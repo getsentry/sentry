@@ -1,4 +1,5 @@
 import {memo, useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -30,6 +31,7 @@ function TraceView(props: Props) {
   const traceViewHeaderRef = useRef<HTMLDivElement>(null);
   const virtualScrollBarContainerRef = useRef<HTMLDivElement>(null);
   const minimapInteractiveRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -50,6 +52,7 @@ function TraceView(props: Props) {
 
         return (
           <TraceViewHeader
+            theme={theme}
             traceViewHeaderRef={traceViewHeaderRef}
             organization={props.organization}
             minimapInteractiveRef={minimapInteractiveRef}

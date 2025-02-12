@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -12,11 +13,11 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import theme from 'sentry/utils/theme';
 
 type Props = {
   api: Client;
   organization: Organization;
+  theme: Theme;
 } & Pick<
   RouteComponentProps<
     {
@@ -118,7 +119,7 @@ class KeyStats extends Component<Props, State> {
               isGroupedByDate
               series={this.state.series}
               height={150}
-              colors={[theme.gray200, theme.red300]}
+              colors={[this.props.theme.gray200, this.props.theme.red300]}
               stacked
               labelYAxisExtents
             />

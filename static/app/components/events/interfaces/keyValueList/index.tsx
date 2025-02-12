@@ -7,7 +7,6 @@ import {ValueLink} from 'sentry/components/keyValueData';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 
 import type {ValueProps} from './value';
 import {Value} from './value';
@@ -119,7 +118,7 @@ function MultiValueContainer({values}: {values: string[]}): JSX.Element {
 export default KeyValueList;
 
 const TableSubject = styled('td')<{wide?: boolean}>`
-  @media (min-width: ${theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;

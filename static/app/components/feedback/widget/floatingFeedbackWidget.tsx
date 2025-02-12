@@ -1,13 +1,13 @@
-import {css, Global} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
-import theme from 'sentry/utils/theme';
 
 /**
  * Use this to display the Feedback widget in certain routes/components
  */
 export default function FloatingFeedbackWidget() {
   const feedback = useFeedbackWidget({});
+  const theme = useTheme();
 
   // No need for global styles if Feedback integration is not enabled
   if (!feedback) {

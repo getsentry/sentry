@@ -1,11 +1,11 @@
 import type React from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
 
 import type {ThresholdsConfig} from './thresholdsStep';
 
@@ -20,6 +20,7 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
     unit,
     max_values: {max1, max2},
   } = thresholds;
+  const theme = useTheme();
   const formattedUnit =
     unit && (type === 'duration' ? `${unit}s` : `/${unit.split('/')[1]}`);
   const title = unit ? t(`Thresholds in %s`, formattedUnit) : t('Thresholds');

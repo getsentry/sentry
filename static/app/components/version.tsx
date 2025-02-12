@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -6,7 +6,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
-import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -66,6 +65,7 @@ function Version({
 }: Props) {
   const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
+  const theme = useTheme();
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
