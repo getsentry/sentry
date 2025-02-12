@@ -1766,6 +1766,10 @@ SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
+# Flag storage backend
+SENTRY_FLAGSTORE = os.environ.get("SENTRY_FLAGSTORE", "sentry.tagstore.snuba.SnubaFlagStorage")
+SENTRY_FLAGSTORE_OPTIONS: dict[str, Any] = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"

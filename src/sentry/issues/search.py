@@ -152,7 +152,7 @@ def _query_params_for_error(
     )
 
     params = query_partial(
-        dataset=Dataset.Discover,
+        dataset=Dataset.Events,
         selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
