@@ -3,7 +3,6 @@
 import 'sentry/stores/latestContextStore';
 
 import {useLayoutEffect} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {type ApiResult, Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -76,11 +75,8 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
         if (Array.isArray(preloadResponse) && preloadResponse[0] !== null) {
           return preloadResponse[0];
         }
-      } catch (error) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['bootstrap-organization-query-error']);
-          Sentry.captureException(error);
-        });
+      } catch {
+        // Silently try again with non-preloaded data
       }
 
       const uncancelableApi = new Client();
@@ -128,11 +124,8 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
         if (preloadResponse !== null && preloadResponse[0] !== null) {
           return createTeamsObject(preloadResponse);
         }
-      } catch (error) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['bootstrap-teams-query-error']);
-          Sentry.captureException(error);
-        });
+      } catch {
+        // Silently try again with non-preloaded data
       }
 
       const uncancelableApi = new Client();
@@ -162,11 +155,8 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
         if (preloadResponse !== null && preloadResponse[0] !== null) {
           return preloadResponse[0];
         }
-      } catch (error) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['bootstrap-projects-query-error']);
-          Sentry.captureException(error);
-        });
+      } catch {
+        // Silently try again with non-preloaded data
       }
 
       const uncancelableApi = new Client();
