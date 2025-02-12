@@ -99,6 +99,7 @@ export default function TempestSettings({organization, project}: Props) {
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         initialData={{
           tempestFetchScreenshots: project?.tempestFetchScreenshots,
+          tempestFetchDumps: project?.tempestFetchDumps,
         }}
         saveOnBlur
         hideFooter
@@ -114,25 +115,6 @@ export default function TempestSettings({organization, project}: Props) {
                   label: t('Attach Screenshots'),
                   help: t('Attach screenshots to issues.'),
                 },
-              ],
-            },
-          ]}
-        />
-      </Form>
-      <Form
-        apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-        initialData={{
-          tempestFetchDumps: project?.tempestFetchDumps,
-        }}
-        saveOnBlur
-        hideFooter
-      >
-        <JsonForm
-          forms={[
-            {
-              title: t('General Settings'),
-              fields: [
                 {
                   name: 'tempestFetchDumps',
                   type: 'boolean',
