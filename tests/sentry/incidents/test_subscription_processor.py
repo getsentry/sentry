@@ -694,6 +694,21 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
+    def test_seer_call_null_aggregation_value(self, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        result = get_anomaly_data_from_seer(
+            alert_rule=processor.alert_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value="NULL_VALUE",
+        )
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
         rule = self.dynamic_rule
