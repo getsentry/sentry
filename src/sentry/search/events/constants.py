@@ -106,6 +106,7 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
 
 MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+FLAG_KEY_RE = re.compile(r"^(flags)\[(?P<flag>.*)\]$")
 
 TYPED_TAG_KEY_RE = re.compile(
     r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
