@@ -27,8 +27,9 @@ export function useGridListItem<T>({item, ref, state}: UseGridListItemOptions<T>
       rowProps: {
         ...rowProps,
         onFocus,
-        // The default behavior will capture some keys such as Enter and Space, which
+        // The default behavior will capture some keys such as
         // we want to handle ourselves.
+        // Enter, Space, Arrows, which we want to handle ourselves.
         onKeyDown: noop,
         onKeyDownCapture: noop,
         // Default behavior is for click events to select the item
