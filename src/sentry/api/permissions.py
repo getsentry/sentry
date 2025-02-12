@@ -316,7 +316,7 @@ class ReadOnlyPermission(SentryPermission):
         return super().has_object_permission(request, view, obj)
 
 
-class SentryIsAuthenticated(IsAuthenticated, ReadOnlyPermission):
+class SentryIsAuthenticated(IsAuthenticated):
     def has_permission(self, request: Request, view: object) -> bool:
         if demo_mode.is_readonly_user(request.user):
             return False
