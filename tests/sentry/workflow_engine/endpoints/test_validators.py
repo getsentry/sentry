@@ -7,6 +7,7 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
@@ -22,6 +23,7 @@ from sentry.snuba.models import (
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
+    BaseDataConditionGroupValidator,
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
     DataSourceCreator,
@@ -38,7 +40,16 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class TestNumericComparisonConditionValidator(TestCase):
+class BaseValidatorTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.data_condition_group = self.create_data_condition_group(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+
+
+class TestNumericComparisonConditionValidator(BaseValidatorTest):
     def setUp(self):
         super().setUp()
 
@@ -49,7 +60,7 @@ class TestNumericComparisonConditionValidator(TestCase):
                 return frozenset([Condition.GREATER, Condition.LESS])
 
             @property
-            def supported_results(self):
+            def supported_condition_results(self):
                 return frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
 
         self.validator_class = ConcreteNumericValidator
@@ -68,7 +79,7 @@ class TestNumericComparisonConditionValidator(TestCase):
 
     def test_validate_result_valid(self):
         validator = self.validator_class()
-        assert validator.validate_result("75") == DetectorPriorityLevel.HIGH
+        assert validator.validate_condition_result("75") == DetectorPriorityLevel.HIGH
 
     def test_validate_result_invalid(self):
         validator = self.validator_class()
@@ -76,10 +87,10 @@ class TestNumericComparisonConditionValidator(TestCase):
             ValidationError,
             match="[ErrorDetail(string='Unsupported condition result', code='invalid')]",
         ):
-            validator.validate_result("invalid_result")
+            validator.validate_condition_result("invalid_result")
 
 
-class TestBaseGroupTypeDetectorValidator(TestCase):
+class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
@@ -125,20 +136,22 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
                 validator.validate_detector_type("test_type")
 
 
-class MetricAlertComparisonConditionValidatorTest(TestCase):
+class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
     def test(self):
         validator = MetricAlertComparisonConditionValidator(
             data={
                 "type": Condition.GREATER,
                 "comparison": 100,
-                "result": DetectorPriorityLevel.HIGH,
+                "conditionResult": DetectorPriorityLevel.HIGH,
+                "conditionGroupId": self.data_condition_group.id,
             }
         )
         assert validator.is_valid()
         assert validator.validated_data == {
             "comparison": 100.0,
-            "result": DetectorPriorityLevel.HIGH,
+            "condition_result": DetectorPriorityLevel.HIGH,
             "type": Condition.GREATER,
+            "condition_group_id": self.data_condition_group.id,
         }
 
     def test_invalid_condition(self):
@@ -165,15 +178,20 @@ class MetricAlertComparisonConditionValidatorTest(TestCase):
 
     def test_invalid_result(self):
         validator = MetricAlertComparisonConditionValidator(
-            data={"type": Condition.GREATER, "comparison": 100, "result": 25}
+            data={
+                "type": Condition.GREATER,
+                "comparison": 100,
+                "condition_result": 25,
+                "condition_group_id": self.data_condition_group.id,
+            }
         )
         assert not validator.is_valid()
-        assert validator.errors.get("result") == [
+        assert validator.errors.get("conditionResult") == [
             ErrorDetail(string="Unsupported condition result", code="invalid")
         ]
 
 
-class DetectorValidatorTest(TestCase):
+class DetectorValidatorTest(BaseValidatorTest):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
@@ -184,18 +202,26 @@ class DetectorValidatorTest(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": "metric_alert_fire",
-            "data_source": {
-                "field1": "test",
-                "field2": 123,
-            },
-            "data_conditions": [
+            "detectorType": MetricAlertFire.slug,
+            "dataSources": [
                 {
-                    "type": Condition.GREATER_OR_EQUAL,
-                    "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
-                }
+                    "field1": "test",
+                    "field2": 123,
+                },
             ],
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER_OR_EQUAL,
+                        "comparison": 100,
+                        "condition_result": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    }
+                ],
+            },
             "config": {
                 "threshold_period": 1,
                 "detection_type": AlertRuleDetectionType.STATIC.value,
@@ -211,7 +237,7 @@ class DetectorValidatorTest(TestCase):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == "metric_alert_fire"
+        assert detector.type == MetricAlertFire.slug
         assert detector.project_id == self.project.id
 
         # Verify data source in DB
@@ -261,7 +287,7 @@ class DetectorValidatorTest(TestCase):
             ]
 
 
-class TestMetricAlertsDetectorValidator(TestCase):
+class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
@@ -275,23 +301,31 @@ class TestMetricAlertsDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detector_type": "metric_alert_fire",
-            "data_source": {
-                "query_type": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "time_window": 60,
-                "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
-            "data_conditions": [
+            "detectorType": MetricAlertFire.slug,
+            "dataSources": [
                 {
-                    "type": Condition.GREATER,
-                    "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
-                }
+                    "query_type": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "time_window": 60,
+                    "environment": self.environment.name,
+                    "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                },
             ],
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
@@ -308,7 +342,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == "metric_alert_fire"
+        assert detector.type == MetricAlertFire.slug
         assert detector.project_id == self.project.id
 
         # Verify data source and query subscription in DB
@@ -356,7 +390,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         )
 
     def test_invalid_detector_type(self):
-        data = {**self.valid_data, "detector_type": "invalid_type"}
+        data = {**self.valid_data, "detectorType": "invalid_type"}
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("detectorType") == [
@@ -366,23 +400,31 @@ class TestMetricAlertsDetectorValidator(TestCase):
     def test_too_many_conditions(self):
         data = {
             **self.valid_data,
-            "data_conditions": [
-                {
-                    "type": Condition.GREATER,
-                    "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
-                },
-                {
-                    "type": Condition.GREATER,
-                    "comparison": 200,
-                    "result": DetectorPriorityLevel.HIGH,
-                },
-                {
-                    "type": Condition.GREATER,
-                    "comparison": 300,
-                    "result": DetectorPriorityLevel.HIGH,
-                },
-            ],
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 200,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 300,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
         }
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
@@ -498,9 +540,13 @@ class TestBaseDataSourceValidator(TestCase):
 
 class MockDataConditionValidator(NumericComparisonConditionValidator):
     supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
-    supported_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
+    supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
+
+
+class MockConditionGroupValidator(BaseDataConditionGroupValidator):
+    conditions = MockDataConditionValidator(many=True)
 
 
 class MockDetectorValidator(BaseDetectorTypeValidator):
-    data_source = MockDataSourceValidator()
-    data_conditions = MockDataConditionValidator(many=True)
+    data_sources = MockDataSourceValidator(many=True)
+    condition_group = MockConditionGroupValidator()
