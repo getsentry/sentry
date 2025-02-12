@@ -240,19 +240,41 @@ export function PrimaryNavigationItems() {
               },
             },
             {
+              key: 'resources',
+              label: t('Resources'),
+              children: [
+                {
+                  key: 'help-center',
+                  label: t('Help Center'),
+                  to: 'https://sentry.zendesk.com/hc/en-us',
+                },
+                {
+                  key: 'docs',
+                  label: t('Documentation'),
+                  to: 'https://docs.sentry.io',
+                },
+              ],
+            },
+            {
               key: 'help',
-              label: t('Visit Help Center'),
-              to: 'https://sentry.zendesk.com/hc/en-us',
-            },
-            {
-              key: 'discord',
-              label: t('Join our Discord'),
-              to: 'https://discord.com/invite/sentry',
-            },
-            {
-              key: 'support',
-              label: t('Contact Support'),
-              to: `mailto:${ConfigStore.get('supportEmail')}`,
+              label: t('Get Help'),
+              children: [
+                {
+                  key: 'support',
+                  label: t('Contact Support'),
+                  to: `mailto:${ConfigStore.get('supportEmail')}`,
+                },
+                {
+                  key: 'github',
+                  label: t('Sentry on GitHub'),
+                  to: 'https://github.com/getsentry/sentry/issues',
+                },
+                {
+                  key: 'discord',
+                  label: t('Join our Discord'),
+                  to: 'https://discord.com/invite/sentry',
+                },
+              ],
             },
           ]}
           analyticsKey="help"
