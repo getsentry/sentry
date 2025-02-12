@@ -196,7 +196,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
-    "sentry.monitors.endpoints.organization_monitor_index",
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.notifications.activity.base",
