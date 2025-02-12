@@ -147,12 +147,8 @@ function Content({
   };
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
-    const props = {
-      className: 'frame frames-omitted',
-      key: 'omitted',
-    };
     return (
-      <li {...props}>
+      <li key="omitted" className="frame frames-omitted">
         {t(
           'Frames %d until %d were omitted and not available.',
           firstFrameOmitted,
