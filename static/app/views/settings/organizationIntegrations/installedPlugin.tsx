@@ -49,7 +49,10 @@ export class InstalledPlugin extends Component<Props> {
     );
   }
 
-  pluginUpdate = async (data: object, method: 'POST' | 'DELETE' = 'POST') => {
+  pluginUpdate = async (
+    data: Record<PropertyKey, unknown>,
+    method: 'POST' | 'DELETE' = 'POST'
+  ) => {
     const {organization, projectItem, plugin} = this.props;
     // no try/catch so the caller will have to have it
     await this.props.api.requestPromise(

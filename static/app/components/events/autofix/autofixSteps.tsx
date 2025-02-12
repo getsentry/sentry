@@ -134,7 +134,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
 
   const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-  if (!steps) {
+
+  if (!steps?.length) {
     return null;
   }
 
