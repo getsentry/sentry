@@ -281,73 +281,15 @@ class OutboxBase(Model):
         try:
             # Start an atomic transaction for a consistent snapshot of the coalesced group.
             with transaction.atomic(using=using):
-                # Select the representative message from the group, which is defined as the one
-                # with the highest id. Lock the row immediately to prevent concurrent processing.
-                coalesced: OutboxBase | None = (
-                    self.select_coalesced_messages()
-                    .select_for_update(nowait=True)
-                    .order_by("-id")
-                    .first()
-                )
-
-                # If there are no messages in the group, yield None and exit.
+                coalesced, first_coalesced = self._select_coalesced_messages()
                 if coalesced is None:
                     yield None
                     return
 
-                # For timing and metrics, we also need to determine the first (oldest) record.
-                # This is done with a second query ordering by ascending id. If no record is found,
-                # fall back to the representative record.
-                first_coalesced: OutboxBase | None = (
-                    self.select_coalesced_messages()
-                    .select_for_update(nowait=True)
-                    .order_by("id")
-                    .first()
-                ) or coalesced
-
-                # Build a tags dictionary for metrics purposes. The outbox category is included
-                # to help report timing metrics by type and to show if the flush was synchronous.
-                tags: dict[str, int | str] = {
-                    "category": OutboxCategory(self.category).name,
-                    "synchronous": int(is_synchronous_flush),
-                }
-
-                # Assert that we have a valid first record (which should always be true for a non-empty group).
-                assert (
-                    first_coalesced
-                ), "first_coalesced incorrectly set for non-empty coalesce group"
-
-                # Record the net queue time metric using the date the first message was added.
-                metrics.timing(
-                    "outbox.coalesced_net_queue_time",
-                    datetime.datetime.now(tz=datetime.UTC).timestamp()
-                    - first_coalesced.date_added.timestamp(),
-                    tags=tags,
+                tags, scheduled_from, date_added, all_ids = self._prepare_processing_metrics(
+                    coalesced, first_coalesced, is_synchronous_flush
                 )
-
-                # Store the representative (highest id) and timing values for later use.
-                coalesced_id = coalesced.id
-                # 'scheduled_from' is used for metrics and can serve as the original scheduled timestamp.
-                scheduled_from = first_coalesced.scheduled_from
-                date_added = first_coalesced.date_added
-
-                # Get a list of IDs for all messages in the group that are older than the coalesced record.
-                # This is our snapshot of messages to process (delete) in this coalesced group.
-                all_ids = list(
-                    self.select_coalesced_messages()
-                    .filter(id__lt=coalesced_id)
-                    .values_list("id", flat=True)
-                    .order_by("id")
-                )
-
-                new_scheduled_for = timezone.now() + datetime.timedelta(hours=1)
-
-                # Reserve the messages for processing. By updating scheduled_for to a point
-                # in the future (now + 1 hour), we effectively signal that these messages are
-                # being processed, thereby preventing any other drain process from picking them up.
-                self.objects.filter(id__in=all_ids + [coalesced_id]).update(
-                    scheduled_for=new_scheduled_for
-                )
+                new_scheduled_for = self._reserve_messages_for_processing(coalesced, all_ids)
 
             # End of the selection/reservation phase. The transaction is now committed, and all locks
             # are released. Yield the representative coalesced message so that remote processing (like
@@ -357,88 +299,13 @@ class OutboxBase(Model):
             except Exception:
                 # If an an exception occurs during processing (e.g. send_signal() raised an exception),
                 # we want to revert the reservation update so that these messages are eligible for reprocessing.
-                #
-                # We do this by:
-                # 1. We wrap the revert update in an atomic transaction to ensure that the checks and update are atomic.
-                # 2. We only update messages that still have our temporary scheduled_for value (new_scheduled_for)
-                #    to avoid modifying messages that may have been picked up by other processes
-                with transaction.atomic(using=using):
-                    # Attempt to revert the scheduled_for timestamps for all affected messages
-                    # to avoid modifying messages that may have been picked up by other processes
-                    affected = self.objects.filter(
-                        id__in=all_ids + [coalesced_id],
-                        scheduled_for=new_scheduled_for,
-                    ).update(scheduled_for=scheduled_from)
-
-                    # Verify that all messages were reverted. i.e. all_ids plus the coalesced message (representative)
-                    # If the count doesn't match, it could indicate that some messages were
-                    # processed by another worker.
-                    expected_count = len(all_ids) + 1
-                    if affected != expected_count:
-                        logger.info(
-                            "Revert update did not affect all messages",
-                            extra={**tags, "affected": affected, "expected": expected_count},
-                        )
-                        metrics.incr("outbox.coalesced_revert_count_mismatch", tags=tags)
-
-                metrics.incr("outbox.coalesced_yield_error", tags=tags)
+                self._revert_reserved_messages(
+                    coalesced, all_ids, new_scheduled_for, scheduled_from, tags
+                )
                 raise
 
             # After the yield, we now proceed to clean up (delete) the reserved messages.
-            try:
-                deleted_count = 0
-                batch_size = 50  # Process deletions in batches to avoid long-running transactions.
-
-                # Loop over the list of reserved IDs in chunks of batch_size.
-                for i in range(0, len(all_ids), batch_size):
-                    batch_ids = all_ids[i : i + batch_size]
-                    # Use a new atomic block for each batch to ensure short and isolated transactions.
-                    with transaction.atomic(using=using):
-                        # Lock the batch of rows to ensure consistency before deletion.
-                        batch_qs = self.objects.filter(id__in=batch_ids).select_for_update(
-                            nowait=True
-                        )
-                        if batch_qs.exists():
-                            # Delete the batch and capture the count of deleted rows.
-                            batch_count = batch_qs.delete()[0]
-                            deleted_count += batch_count
-                            metrics.incr("outbox.batch_delete_success", batch_count, tags=tags)
-
-                # Finally, process the representative message (highest id) if it should not be skipped.
-                if not self.should_skip_shard():
-                    with transaction.atomic(using=using):
-                        final_qs = self.objects.filter(id=coalesced_id).select_for_update(
-                            nowait=True
-                        )
-                        if final_qs.exists():
-                            batch_count = final_qs.delete()[0]
-                            deleted_count += batch_count
-                            metrics.incr("outbox.final_delete_success", batch_count, tags=tags)
-
-                # Record metrics indicating the total number of processed messages.
-                metrics.incr("outbox.processed", deleted_count, tags=tags)
-                # Record processing lag based on when the earliest message was scheduled.
-                metrics.timing(
-                    "outbox.processing_lag",
-                    datetime.datetime.now(tz=datetime.UTC).timestamp() - scheduled_from.timestamp(),
-                    tags=tags,
-                )
-                # Record the net processing time based on when the first message was added.
-                metrics.timing(
-                    "outbox.coalesced_net_processing_time",
-                    datetime.datetime.now(tz=datetime.UTC).timestamp() - date_added.timestamp(),
-                    tags=tags,
-                )
-
-            except OperationalError as e:
-                logger.info("outbox.delete_error", extra={"error": str(e)})
-                # If an error occurs during deletion (e.g., failure to obtain a lock), increment an error metric
-                # with details of the error and re-raise the exception.
-                metrics.incr(
-                    "outbox.delete_error",
-                    tags=tags,
-                )
-                raise
+            self._delete_reserved_messages(all_ids, coalesced, tags, scheduled_from, date_added)
 
         except OperationalError as e:
             if "could not obtain lock" in str(e).lower():
@@ -449,6 +316,166 @@ class OutboxBase(Model):
             else:
                 metrics.incr("outbox.lock_error")
                 raise
+
+    def _select_coalesced_messages(self) -> tuple[OutboxBase | None, OutboxBase | None]:
+        """Select the representative message from the group and the first (oldest) message."""
+        # Select the representative message from the group, which is defined as the one
+        # with the highest id. Lock the row immediately to prevent concurrent processing.
+        coalesced = (
+            self.select_coalesced_messages().select_for_update(nowait=True).order_by("-id").first()
+        )
+        if coalesced is None:
+            return None, None
+
+        # For timing and metrics, we also need to determine the first (oldest) record.
+        # This is done with a second query ordering by ascending id. If no record is found,
+        # fall back to the representative record.
+        first_coalesced = (
+            self.select_coalesced_messages().select_for_update(nowait=True).order_by("id").first()
+        ) or coalesced
+        return coalesced, first_coalesced
+
+    def _prepare_processing_metrics(
+        self, coalesced: OutboxBase, first_coalesced: OutboxBase, is_synchronous_flush: bool
+    ) -> tuple[dict, datetime.datetime, datetime.datetime, list[int]]:
+        """Prepare metrics and collect IDs for processing."""
+        # Build a tags dictionary for metrics purposes. The outbox category is included
+        # to help report timing metrics by type and to show if the flush was synchronous.
+        tags = {
+            "category": OutboxCategory(self.category).name,
+            "synchronous": int(is_synchronous_flush),
+        }
+
+        # Assert that we have a valid first record (which should always be true for a non-empty group).
+        assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+
+        # Record the net queue time metric using the date the first message was added.
+        metrics.timing(
+            "outbox.coalesced_net_queue_time",
+            datetime.datetime.now(tz=datetime.UTC).timestamp()
+            - first_coalesced.date_added.timestamp(),
+            tags=tags,
+        )
+
+        # Store the representative (highest id) and timing values for later use.
+        scheduled_from = first_coalesced.scheduled_from
+        date_added = first_coalesced.date_added
+
+        # Get a list of IDs for all messages in the group that are older than the coalesced record.
+        # This is our snapshot of messages to process (delete) in this coalesced group.
+        all_ids = list(
+            self.select_coalesced_messages()
+            .filter(id__lt=coalesced.id)
+            .values_list("id", flat=True)
+            .order_by("id")
+        )
+
+        return tags, scheduled_from, date_added, all_ids
+
+    def _reserve_messages_for_processing(
+        self, coalesced: OutboxBase, all_ids: list[int]
+    ) -> datetime.datetime:
+        """Reserve messages by updating their scheduled_for time."""
+        # Reserve the messages for processing. By updating scheduled_for to a point
+        # in the future (now + 1 hour), we effectively signal that these messages are
+        # being processed, thereby preventing any other drain process from picking them up.
+        new_scheduled_for = timezone.now() + datetime.timedelta(hours=1)
+        self.objects.filter(id__in=all_ids + [coalesced.id]).update(scheduled_for=new_scheduled_for)
+        return new_scheduled_for
+
+    def _revert_reserved_messages(
+        self,
+        coalesced: OutboxBase,
+        all_ids: list[int],
+        new_scheduled_for: datetime.datetime,
+        scheduled_from: datetime.datetime,
+        tags: dict,
+    ) -> None:
+        """Revert the scheduled_for timestamps for messages that failed processing."""
+        # We wrap the revert update in an atomic transaction to ensure that the checks and update are atomic.
+        # We only update messages that still have our temporary scheduled_for value (new_scheduled_for)
+        # to avoid modifying messages that may have been picked up by other processes
+        with transaction.atomic(using=router.db_for_write(type(self))):
+            # Attempt to revert the scheduled_for timestamps for all affected messages
+            # to avoid modifying messages that may have been picked up by other processes
+            affected = self.objects.filter(
+                id__in=all_ids + [coalesced.id],
+                scheduled_for=new_scheduled_for,
+            ).update(scheduled_for=scheduled_from)
+
+            # Verify that all messages were reverted. i.e. all_ids plus the coalesced message (representative)
+            # If the count doesn't match, it could indicate that some messages were
+            # processed by another worker.
+            expected_count = len(all_ids) + 1
+            if affected != expected_count:
+                logger.info(
+                    "Revert update did not affect all messages",
+                    extra={**tags, "affected": affected, "expected": expected_count},
+                )
+                metrics.incr("outbox.coalesced_revert_count_mismatch", tags=tags)
+
+        metrics.incr("outbox.coalesced_yield_error", tags=tags)
+
+    def _delete_reserved_messages(
+        self,
+        all_ids: list[int],
+        coalesced: OutboxBase,
+        tags: dict,
+        scheduled_from: datetime.datetime,
+        date_added: datetime.datetime,
+    ) -> None:
+        """Delete the reserved messages in batches and record metrics."""
+        try:
+            deleted_count = 0
+            batch_size = 50  # Process deletions in batches to avoid long-running transactions.
+
+            # Loop over the list of reserved IDs in chunks of batch_size.
+            for i in range(0, len(all_ids), batch_size):
+                batch_ids = all_ids[i : i + batch_size]
+                # Use a new atomic block for each batch to ensure short and isolated transactions.
+                with transaction.atomic(using=router.db_for_write(type(self))):
+                    # Lock the batch of rows to ensure consistency before deletion.
+                    batch_qs = self.objects.filter(id__in=batch_ids).select_for_update(nowait=True)
+                    if batch_qs.exists():
+                        # Delete the batch and capture the count of deleted rows.
+                        batch_count = batch_qs.delete()[0]
+                        deleted_count += batch_count
+                        metrics.incr("outbox.batch_delete_success", batch_count, tags=tags)
+
+            # Finally, process the representative message (highest id) if it should not be skipped.
+            if not self.should_skip_shard():
+                with transaction.atomic(using=router.db_for_write(type(self))):
+                    final_qs = self.objects.filter(id=coalesced.id).select_for_update(nowait=True)
+                    if final_qs.exists():
+                        batch_count = final_qs.delete()[0]
+                        deleted_count += batch_count
+                        metrics.incr("outbox.final_delete_success", batch_count, tags=tags)
+
+            # Record metrics indicating the total number of processed messages.
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
+            # Record processing lag based on when the earliest message was scheduled.
+            now_ts = datetime.datetime.now(tz=datetime.UTC).timestamp()
+            metrics.timing(
+                "outbox.processing_lag",
+                now_ts - scheduled_from.timestamp(),
+                tags=tags,
+            )
+            # Record the net processing time based on when the first message was added.
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                now_ts - date_added.timestamp(),
+                tags=tags,
+            )
+
+        except OperationalError as e:
+            logger.info("outbox.delete_error", extra={"error": str(e)})
+            # If an error occurs during deletion (e.g., failure to obtain a lock), increment an error metric
+            # with details of the error and re-raise the exception.
+            metrics.incr(
+                "outbox.delete_error",
+                tags=tags,
+            )
+            raise
 
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase) -> None:
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
