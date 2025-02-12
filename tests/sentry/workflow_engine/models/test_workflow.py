@@ -1,3 +1,6 @@
+import pytest
+from django.core.exceptions import ValidationError
+
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
@@ -44,7 +47,7 @@ class WorkflowTest(BaseWorkflowTest):
         assert evaluation is True
         assert remaining_conditions == [slow_condition]
 
-    def test_full_clean(self):
+    def test_full_clean__success(self):
         self.create_workflow(
             organization_id=self.organization.id,
             name="test",
@@ -67,3 +70,19 @@ class WorkflowTest(BaseWorkflowTest):
             config={"frequency": 5},
         )
         workflow2.full_clean()
+
+    def test_full_clean__fail(self):
+        workflow2 = Workflow(
+            organization_id=self.organization.id,
+            name="test2",
+            environment_id=None,
+            when_condition_group=self.create_data_condition_group(),
+            created_by_id=self.user.id,
+            owner_user_id=None,
+            owner_team=None,
+            config={"frequency": 5},
+        )
+        self.organization.delete()
+
+        with pytest.raises(ValidationError):
+            workflow2.full_clean()
