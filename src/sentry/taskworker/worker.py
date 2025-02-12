@@ -7,6 +7,7 @@ import queue
 import signal
 import sys
 import time
+from datetime import datetime
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
 from types import FrameType
@@ -27,7 +28,6 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivationStatus,
 )
 
-from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
@@ -46,6 +46,7 @@ class ProcessingResult:
 
 
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+TASKS_REMAINING = 10000
 
 
 def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
@@ -220,6 +221,50 @@ def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -
         task_func(*args, **kwargs)
 
 
+class MockTaskworkerClient:
+    def __init__(self) -> None:
+        pass
+
+    def create_simple_task_activation(self, namespace) -> TaskActivation:
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+            OnAttemptsExceeded,
+            RetryState,
+            TaskActivation,
+        )
+
+        retry_state = RetryState(
+            attempts=0,
+            max_attempts=1,
+            on_attempts_exceeded=OnAttemptsExceeded.ON_ATTEMPTS_EXCEEDED_DISCARD,
+        )
+
+        return TaskActivation(
+            id=uuid4().hex,
+            namespace=namespace,
+            taskname="examples.say_hello",
+            parameters=orjson.dumps({"args": ["world"], "kwargs": {}}),
+            retry_state=retry_state,
+            processing_deadline_duration=3000,
+            received_at=Timestamp(seconds=int(time.time())),
+        )
+
+    def get_task(self, namespace: str = "examples") -> TaskActivation:
+        return self.create_simple_task_activation(namespace)
+
+    def update_task(
+        self,
+        task_id: str,
+        status: TaskActivationStatus.ValueType,
+        fetch_next_task: FetchNextTask | None,
+    ) -> TaskActivation | None:
+        log = f"mock updating task: {task_id} to status: {status}"
+        logger.info(log)
+        if fetch_next_task:
+            return self.create_simple_task_activation(fetch_next_task.namespace)
+        return None
+
+
 class TaskWorker:
     """
     A TaskWorker fetches tasks from a taskworker RPC host and handles executing task activations.
@@ -247,7 +292,7 @@ class TaskWorker:
         self._max_task_count = max_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers)
+        self.client = MockTaskworkerClient()
         queuesize = concurrency * prefetch_multiplier
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=queuesize
@@ -258,6 +303,7 @@ class TaskWorker:
         self._children: list[ForkProcess] = []
         self._shutdown_event = mp_context.Event()
         self.backoff_sleep_seconds = 0
+        self.tasks_remaining = TASKS_REMAINING
 
     def __del__(self) -> None:
         self._shutdown()
@@ -273,6 +319,7 @@ class TaskWorker:
         Once started a Worker will loop until it is killed, or
         completes its max_task_count when it shuts down.
         """
+        self._namespace = "examples"
         self.do_imports()
         self._spawn_children()
 
@@ -332,10 +379,19 @@ class TaskWorker:
         else:
             return False
 
+    def decrement_tasks_remaining(self) -> None:
+        self.tasks_remaining -= 1
+        log = f"tasks_remaining: {self.tasks_remaining}"
+        logger.info(log)
+        if self.tasks_remaining <= 0:
+            log = f"taskworker.worker.tasks_remaining_zero: {datetime.now()}"
+            logger.info(log)
+
     def _drain_result(self, fetch: bool = True) -> bool:
         """
         Consume results from children and update taskbroker. Returns True if there are more tasks to process.
         """
+
         try:
             result = self._processed_tasks.get_nowait()
         except queue.Empty:
@@ -352,6 +408,7 @@ class TaskWorker:
                     status=result.status,
                     fetch_next_task=fetch_next,
                 )
+                self.decrement_tasks_remaining()
             except grpc.RpcError as e:
                 logger.exception(
                     "taskworker.drain_result.update_task_failed",
@@ -373,6 +430,7 @@ class TaskWorker:
             task_id=result.task_id,
             status=result.status,
         )
+        self.decrement_tasks_remaining()
         return True
 
     def _spawn_children(self) -> None:
