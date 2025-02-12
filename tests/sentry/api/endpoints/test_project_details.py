@@ -1916,3 +1916,32 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchScreenshots" not in response.data
+
+    @with_feature("organizations:tempest-access")
+    def test_put_tempest_fetch_dumps(self):
+        # assert default value is False, and that put request updates the value
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+        )
+        assert response.data["tempestFetchDumps"] is True
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
+    def test_put_tempest_fetch_dumps_without_feature_flag(self):
+        self.get_error_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+        )
+
+    @with_feature("organizations:tempest-access")
+    def test_get_tempest_fetch_dumps_options(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchDumps" in response.data
+        assert response.data["tempestFetchDumps"] is False
+
+    def test_get_tempest_fetch_dumps_options_without_feature_flag(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchDumps" not in response.data
