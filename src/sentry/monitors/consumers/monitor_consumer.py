@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -417,7 +417,10 @@ def update_existing_check_in(
 def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     params = item.payload
 
+    # XXX: The start_time is when relay recieved the original envelope store
+    # request sent by the SDK.
     start_time = to_datetime(float(item.message["start_time"]))
+
     project_id = int(item.message["project_id"])
     source_sdk = item.message["sdk"]
 
@@ -822,11 +825,21 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
+                # The "date_clock" is recorded as the "clock time" of when the
+                # check-in was processed. The clock time is derived from the
+                # kafka item timestamps (which are monotonic, thus why they
+                # drive our clock).
+                #
+                # XXX: They are NOT timezone aware date times, set the timezone
+                # to UTC
+                clock_time = item.ts.replace(tzinfo=UTC)
+
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
                         "duration": duration,
                         "status": status,
                         "date_added": date_added,
+                        "date_clock": clock_time,
                         "date_updated": start_time,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
