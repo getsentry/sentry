@@ -98,6 +98,9 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_FLAG:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
         if (token.args) {
@@ -110,6 +113,12 @@ export function treeResultLocator<T>({
         nodeVisitor(token.key);
         break;
       case Token.KEY_EXPLICIT_STRING_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_NUMBER_FLAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_STRING_FLAG:
         nodeVisitor(token.key);
         break;
       case Token.LOGIC_GROUP:
@@ -236,6 +245,9 @@ export const getKeyName = (
     | Token.KEY_AGGREGATE
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
   >,
   options: GetKeyNameOpts = {}
 ) => {
@@ -261,6 +273,12 @@ export const getKeyName = (
         return key.text;
       }
       return key.key.value;
+    case Token.KEY_EXPLICIT_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return key.text;
     default:
       return '';
   }
@@ -333,6 +351,12 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `${token.prefix}[${token.key.value},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return `${token.prefix}[${token.key.value},string]`;
+    case Token.KEY_EXPLICIT_FLAG:
+      return `flags[${token.key.value}]`;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return `flags[${token.key.value},number]`;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return `flags[${token.key.value},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
     case Token.VALUE_RELATIVE_DATE:
