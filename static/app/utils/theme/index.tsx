@@ -5,7 +5,8 @@ import CommonTheme from './theme';
  * Consuming it directly means that you won't get the correct colors in dark mode.
  * @deprecated use useTheme hook instead.
  */
-export default CommonTheme;
+const DO_NOT_USE_DIRECT_IMPORT_OF_THEME_VALUES = CommonTheme;
+export default DO_NOT_USE_DIRECT_IMPORT_OF_THEME_VALUES;
 // Previous import was from app/utils/theme.tsx
 // biome-ignore lint/performance/noBarrelFile: Remove this once imports are fixed
 export * from './theme';
