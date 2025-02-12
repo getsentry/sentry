@@ -32,6 +32,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -131,7 +132,97 @@ class JiraIntegration(IssueSyncIntegration):
         return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self) -> list[dict[str, Any]]:
-        configuration: list[dict[str, Any]] = [
+        configuration: list[dict[str, Any]] = self._get_organization_config_default_values()
+
+        client = self.get_client()
+
+        try:
+            # Query the project mappings configured for this Jira integration installation.
+            project_mappings = IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            )
+            configured_projects = [
+                {"value": p.external_id, "label": p.name} for p in project_mappings
+            ]
+            self._set_status_choices_in_organization_config(configuration, configured_projects)
+            projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
+            configuration[0]["addDropdown"]["items"] = projects
+        except ApiError:
+            configuration[0]["disabled"] = True
+            configuration[0]["disabledReason"] = _(
+                "Unable to communicate with the Jira instance. You may need to reinstall the addon."
+            )
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+        if not has_issue_sync:
+            for field in configuration:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return configuration
+
+    def _set_status_choices_in_organization_config(
+        self, configuration: dict[str, Any], projects: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Set the status choices in the provided organization config.
+        This will mutate the provided config object and replace the existing
+        mappedSelectors field with the status choices.
+
+        Optionally, if the organization has the feature flag
+        organizations:jira-per-project-statuses enabled, we will set the status
+        choices per-project for the organization.
+        """
+        client = self.get_client()
+
+        if features.has("organizations:jira-per-project-statuses", self.organization):
+            try:
+                for project in projects:
+                    project_id = project["value"]
+                    project_statuses = client.get_project_statuses(project_id).get("values", [])
+                    logger.info(
+                        "jira.get-project-statuses.success",
+                        extra={
+                            "org_id": self.organization_id,
+                            "project_id": project_id,
+                            "project_statuses": project_statuses,
+                        },
+                    )
+                    statuses = [(c["id"], c["name"]) for c in project_statuses]
+                    configuration[0]["mappedSelectors"][project_id] = {
+                        "on_resolve": {"choices": statuses},
+                        "on_unresolve": {"choices": statuses},
+                    }
+
+                configuration[0]["perItemMapping"] = True
+
+                return configuration
+            except ApiError as e:
+                if isinstance(e, ApiRateLimitedError):
+                    logger.info(
+                        "jira.get-project-statuses.rate-limited",
+                        extra={"org_id": self.organization_id},
+                    )
+                else:
+                    raise
+
+        # Fallback logic to the global statuses per project. This may occur if
+        # there are too many projects we need to fetch.
+        statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
+        configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
+        configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
+
+        return configuration
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        return [
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",
@@ -209,36 +300,6 @@ class JiraIntegration(IssueSyncIntegration):
                 "help": _("Comma-separated Jira field IDs that you want to hide."),
             },
         ]
-
-        client = self.get_client()
-
-        try:
-            statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
-            configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
-            configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
-
-            projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
-            configuration[0]["addDropdown"]["items"] = projects
-        except ApiError:
-            configuration[0]["disabled"] = True
-            configuration[0]["disabledReason"] = _(
-                "Unable to communicate with the Jira instance. You may need to reinstall the addon."
-            )
-
-        context = organization_service.get_organization_by_id(
-            id=self.organization_id, include_projects=False, include_teams=False
-        )
-        organization = context.organization
-
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
-        if not has_issue_sync:
-            for field in configuration:
-                field["disabled"] = True
-                field["disabledReason"] = _(
-                    "Your organization does not have access to this feature"
-                )
-
-        return configuration
 
     def update_organization_config(self, data):
         """
