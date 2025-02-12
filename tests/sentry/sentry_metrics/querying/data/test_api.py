@@ -948,7 +948,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_meta[0]["order"] == "DESC"
 
     def test_query_with_custom_set(self):
-        mri = "s:custom/User.Click.2@none"
+        mri = "s:transactions/User.Click.2@none"
         for user in ("marco", "marco", "john"):
             self.store_metric(
                 self.project.organization.id,
@@ -977,7 +977,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 2, None]
         assert data[0][0]["totals"] == 2
 
-        mri = "d:custom/page_size@byte"
+        mri = "d:transactions/page_size@byte"
 
         project_1 = self.create_project()
         project_2 = self.create_project()
@@ -1036,7 +1036,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             "min",
             TransactionMRI.DURATION.value,
         )
-        query_2 = self.mql("max", "d:custom/app_load@millisecond")
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1055,8 +1055,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_different_metric_types(self):
-        query_1 = self.mql("count", "c:custom/page_click@none")
-        query_2 = self.mql("max", "d:custom/app_load@millisecond")
+        query_1 = self.mql("count", "c:transactions/page_click@none")
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1075,8 +1075,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_different_group_bys(self):
-        query_1 = self.mql("min", "d:custom/page_click@none", group_by="transaction, environment")
-        query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
+        query_1 = self.mql(
+            "min", "d:transactions/page_click@none", group_by="transaction, environment"
+        )
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond", group_by="transaction")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1097,8 +1099,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_complex_group_by(self):
-        query_1 = self.mql("min", "d:custom/page_click@none", group_by="environment")
-        query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
+        query_1 = self.mql("min", "d:transactions/page_click@none", group_by="environment")
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond", group_by="transaction")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1234,8 +1236,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] == 11.0
 
     def test_query_with_basic_formula_and_coercible_units(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/image_load@microsecond"
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/image_load@microsecond"
         for mri, value in ((mri_1, 20), (mri_1, 10), (mri_2, 15), (mri_2, 5)):
             self.store_metric(
                 self.project.organization.id,
@@ -1291,8 +1293,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["scaling_factor"] is None
 
     def test_query_with_basic_formula_and_non_coercible_units(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/page_size@byte"
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/page_size@byte"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
@@ -1332,8 +1334,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     def test_query_with_basic_formula_and_unitless_aggregates(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/load_time@microsecond"
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
@@ -1373,8 +1375,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     def test_query_with_basic_formula_and_unknown_units(self):
-        mri_1 = "d:custom/cost@bananas"
-        mri_2 = "d:custom/speed@mangos"
+        mri_1 = "d:transactions/cost@bananas"
+        mri_2 = "d:transactions/speed@mangos"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
@@ -1414,8 +1416,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     def test_query_with_basic_formula_and_coefficient_operators(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/load_time@microsecond"
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
