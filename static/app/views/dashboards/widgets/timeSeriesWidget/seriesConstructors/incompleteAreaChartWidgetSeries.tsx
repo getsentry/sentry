@@ -1,6 +1,7 @@
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
 import type {TimeSeries} from '../../common/types';
+import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
 export function IncompleteAreaChartWidgetSeries(timeSeries: TimeSeries) {
   return LineSeries({
@@ -8,9 +9,7 @@ export function IncompleteAreaChartWidgetSeries(timeSeries: TimeSeries) {
     color: timeSeries.color,
     stack: 'incomplete',
     animation: false,
-    data: timeSeries.data.map(datum => {
-      return [datum.timestamp, datum.value];
-    }),
+    data: timeSeries.data.map(timeSeriesItemToEChartsDataPoint),
     lineStyle: {
       type: 'dotted',
     },

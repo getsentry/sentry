@@ -81,7 +81,7 @@ export function scaleTimeSeriesData(
       const {value} = datum;
       return {
         ...datum,
-        value: scaler(value),
+        value: value === null ? null : scaler(value),
       };
     }),
     meta: {
