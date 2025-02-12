@@ -5,7 +5,6 @@ from enum import Enum
 
 from django.conf import settings
 
-from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, type_from_value
 
@@ -294,13 +293,11 @@ class OptionsManager:
                 pass
             else:
                 if result is not None:
-                    record_option(key, result)
                     return result
 
         if not (opt.flags & FLAG_NOSTORE):
             result = self.store.get(opt, silent=silent)
             if result is not None:
-                record_option(key, result)
                 return result
 
         # Some values we don't want to allow them to be configured through
@@ -319,7 +316,6 @@ class OptionsManager:
         # options already present in store are cached by store
         # caching here to avoid database queries
         self.store.set_cache(opt, optval)
-        record_option(key, optval)
         return optval
 
     def delete(self, key: str):
