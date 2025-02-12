@@ -128,7 +128,7 @@ function VersionHoverCard({
                   <div>{parsedVersion.package}</div>
                 </div>
               )}
-              {release.commitCount > 0 && (
+              {release.commitCount > 0 ? (
                 <div>
                   <h6>
                     {release.commitCount}{' '}
@@ -143,7 +143,7 @@ function VersionHoverCard({
                     typeAvatars="authors"
                   />
                 </div>
-              )}
+              ) : null}
             </Flex>
           )}
           {release.lastCommit && <LastCommit commit={release.lastCommit} />}
