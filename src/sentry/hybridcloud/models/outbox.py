@@ -349,14 +349,14 @@ class OutboxBase(Model):
                     yield None
                     return
 
-                tags, scheduled_from, date_added, all_ids = self._prepare_processing_metrics(
+                tags, scheduled_from, date_added, all_messages = self._prepare_processing_metrics(
                     coalesced=coalesced,
                     first_coalesced=first_coalesced,
                     is_synchronous_flush=is_synchronous_flush,
                 )
                 new_scheduled_for = self._reserve_messages_for_processing(
                     coalesced=coalesced,
-                    all_ids=all_ids,
+                    all_messages=all_messages,
                     current_time=current_time,
                     tags=tags,
                 )
@@ -371,7 +371,7 @@ class OutboxBase(Model):
                 # we want to revert the reservation update so that these messages are eligible for reprocessing.
                 self._revert_reserved_messages(
                     coalesced=coalesced,
-                    all_ids=all_ids,
+                    all_messages=all_messages,
                     new_scheduled_for=new_scheduled_for,
                     scheduled_from=scheduled_from,
                     tags=tags,
@@ -380,7 +380,7 @@ class OutboxBase(Model):
 
             # After the yield, we now proceed to clean up (delete) the reserved messages.
             self._delete_reserved_messages(
-                all_ids=all_ids,
+                all_messages=all_messages,
                 coalesced=coalesced,
                 tags=tags,
                 scheduled_from=scheduled_from,
@@ -424,7 +424,7 @@ class OutboxBase(Model):
 
     def _prepare_processing_metrics(
         self, *, coalesced: OutboxBase, first_coalesced: OutboxBase, is_synchronous_flush: bool
-    ) -> tuple[dict, datetime.datetime, datetime.datetime, list[int]]:
+    ) -> tuple[dict, datetime.datetime, datetime.datetime, list[tuple[int, datetime.datetime]]]:
         """Prepare metrics and collect IDs for processing."""
         # Build a tags dictionary for metrics purposes. The outbox category is included
         # to help report timing metrics by type and to show if the flush was synchronous.
@@ -448,22 +448,22 @@ class OutboxBase(Model):
         scheduled_from = first_coalesced.scheduled_from
         date_added = first_coalesced.date_added
 
-        # Get a list of IDs for all messages in the group that are older than the coalesced record.
+        # Get a list of tuples (id, scheduled_for) for all messages in the group that are older than the coalesced record.
         # This is our snapshot of messages to process (delete) in this coalesced group.
-        all_ids = list(
+        all_messages = list(
             self.select_coalesced_messages()
             .filter(id__lt=coalesced.id)
-            .values_list("id", flat=True)
+            .values_list("id", "scheduled_for")
             .order_by("id")
         )
 
-        return tags, scheduled_from, date_added, all_ids
+        return tags, scheduled_from, date_added, all_messages
 
     def _reserve_messages_for_processing(
         self,
         *,
         coalesced: OutboxBase,
-        all_ids: list[int],
+        all_messages: list[tuple[int, datetime.datetime]],
         current_time: datetime.datetime,
         tags: dict,
     ) -> datetime.datetime:
@@ -479,7 +479,9 @@ class OutboxBase(Model):
         metrics.incr("outbox.coalesced_reservation_window", reservation_window, tags=tags)
 
         new_scheduled_for = current_time + datetime.timedelta(minutes=reservation_window)
-        self.objects.filter(id__in=all_ids + [coalesced.id]).update(scheduled_for=new_scheduled_for)
+        self.objects.filter(
+            id__in=[id for id, _ in all_messages + [(coalesced.id, coalesced.scheduled_for)]]
+        ).update(scheduled_for=new_scheduled_for)
 
         return new_scheduled_for
 
@@ -487,7 +489,7 @@ class OutboxBase(Model):
         self,
         *,
         coalesced: OutboxBase,
-        all_ids: list[int],
+        all_messages: list[tuple[int, datetime.datetime]],
         new_scheduled_for: datetime.datetime,
         scheduled_from: datetime.datetime,
         tags: dict,
@@ -497,17 +499,24 @@ class OutboxBase(Model):
         # We only update messages that still have our temporary scheduled_for value (new_scheduled_for)
         # to avoid modifying messages that may have been picked up by other processes
         with transaction.atomic(using=router.db_for_write(type(self))):
-            # Attempt to revert the scheduled_for timestamps for all affected messages
-            # to avoid modifying messages that may have been picked up by other processes
-            affected = self.objects.filter(
-                id__in=all_ids + [coalesced.id],
-                scheduled_for=new_scheduled_for,
-            ).update(scheduled_for=scheduled_from)
+            affected = 0
+            # Update each message with its original scheduled_for value
+            for msg_id, original_scheduled_for in all_messages:
+                affected += self.objects.filter(
+                    id=msg_id,
+                    scheduled_for=new_scheduled_for,
+                ).update(scheduled_for=original_scheduled_for)
 
-            # Verify that all messages were reverted. i.e. all_ids plus the coalesced message (representative)
+            # Handle the coalesced message separately since it wasn't in all_messages
+            affected += self.objects.filter(
+                id=coalesced.id,
+                scheduled_for=new_scheduled_for,
+            ).update(scheduled_for=coalesced.scheduled_for)
+
+            # Verify that all messages were reverted. i.e. all_messages plus the coalesced message (representative)
             # If the count doesn't match, it could indicate that some messages were
             # processed by another worker.
-            expected_count = len(all_ids) + 1
+            expected_count = len(all_messages) + 1
             if affected != expected_count:
                 logger.info(
                     "Revert update did not affect all messages",
@@ -520,7 +529,7 @@ class OutboxBase(Model):
     def _delete_reserved_messages(
         self,
         *,
-        all_ids: list[int],
+        all_messages: list[tuple[int, datetime.datetime]],
         coalesced: OutboxBase,
         tags: dict,
         scheduled_from: datetime.datetime,
@@ -534,8 +543,8 @@ class OutboxBase(Model):
             metrics.incr("outbox.reserved_message_deletion_batch_size", batch_size, tags=tags)
 
             # Loop over the list of reserved IDs in chunks of batch_size.
-            for i in range(0, len(all_ids), batch_size):
-                batch_ids = all_ids[i : i + batch_size]
+            for i in range(0, len(all_messages), batch_size):
+                batch_ids = [id for id, _ in all_messages[i : i + batch_size]]
                 # Use a new atomic block for each batch to ensure short and isolated transactions.
                 with transaction.atomic(using=router.db_for_write(type(self))):
                     # Lock the batch of rows to ensure consistency before deletion.

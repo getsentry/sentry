@@ -1096,7 +1096,7 @@ class RegionOutboxTest(TransactionTestCase):
         # In the current behavior, the reserved message remains in the database.
         assert remaining is not None, "Expected the reserved message to remain on error"
 
-        assert remaining.scheduled_for == outbox.scheduled_from
+        assert remaining.scheduled_for == outbox.scheduled_for
 
 
 class TestOutboxesManager(TestCase):
