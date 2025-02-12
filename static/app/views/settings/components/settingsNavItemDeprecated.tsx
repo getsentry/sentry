@@ -33,6 +33,8 @@ function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Prop
     renderedBadge = <FeatureBadge type="new" />;
   } else if (badge === 'beta') {
     renderedBadge = <FeatureBadge type="beta" />;
+  } else if (badge === 'alpha') {
+    renderedBadge = <FeatureBadge type="alpha" />;
   } else if (badge === 'warning') {
     renderedBadge = (
       <Tooltip title={t('This setting needs review')} position="right">
