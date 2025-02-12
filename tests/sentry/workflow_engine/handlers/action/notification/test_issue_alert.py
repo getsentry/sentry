@@ -26,7 +26,7 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def pop_keys_from_data_blob(data_blob: list[dict], action_type: Action.Type) -> list[dict]:
+def pop_keys_from_data_blob(data_blob: dict, action_type: Action.Type) -> dict:
     """
     Remove standard action fields from each dictionary in the data blob.
 
@@ -43,7 +43,7 @@ def pop_keys_from_data_blob(data_blob: list[dict], action_type: Action.Type) -> 
         ACTION_FIELD_MAPPINGS[action_type].get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value),
     }
 
-    return [{k: v for k, v in data.items() if k not in KEYS_TO_REMOVE} for data in data_blob]
+    return {k: v for k, v in data_blob.items() if k not in KEYS_TO_REMOVE}
 
 
 class TestBaseIssueAlertHandler(BaseWorkflowTest):
@@ -342,7 +342,7 @@ class TestGithubIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Github action data"""
         for expected in GITHUB_ACTION_DATA_BLOBS:
-            action_data = pop_keys_from_data_blob([expected], Action.Type.GITHUB)[0]
+            action_data = pop_keys_from_data_blob(expected, Action.Type.GITHUB)
 
             action = self.create_action(
                 type=Action.Type.GITHUB,

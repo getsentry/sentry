@@ -7,6 +7,7 @@ Ideally we move this into a fixture and dynamically generate the data blobs base
 """
 
 GITHUB_ACTION_DATA_BLOBS = [
+    # Small example
     {
         "integration": "123456",
         "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
@@ -20,6 +21,7 @@ GITHUB_ACTION_DATA_BLOBS = [
         "labels": ["bug", "documentation"],
         "uuid": "12345678-90ab-cdef-0123-456789abcdef",
     },
+    # Missing assignee key
     {
         "integration": "123456",
         "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
@@ -99,6 +101,7 @@ GITHUB_ACTION_DATA_BLOBS = [
         "labels": ["bug", "documentation"],
         "uuid": "12345678-90ab-cdef-0123-456789abcdef",
     },
+    # Complete example
     {
         "integration": "00000",
         "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
@@ -151,6 +154,7 @@ GITHUB_ACTION_DATA_BLOBS = [
         "labels": ["bug", "documentation"],
         "uuid": "12345678-90ab-cdef-0123-456789abcdef",
     },
+    # Assignee is empty string
     {
         "integration": "22222",
         "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
