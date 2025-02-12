@@ -51,7 +51,7 @@ function TeamMembersRow({
           hasWriteAccess={hasWriteAccess}
           isSelf={isSelf}
           onClick={() => removeMember({memberId: member.id})}
-          member={member}
+          team={team}
         />
       </div>
     </TeamRolesPanelItem>
@@ -61,10 +61,10 @@ function TeamMembersRow({
 function RemoveButton(props: {
   hasWriteAccess: boolean;
   isSelf: boolean;
-  member: TeamMember;
   onClick: () => void;
+  team: Team;
 }) {
-  const {member, hasWriteAccess, isSelf, onClick} = props;
+  const {hasWriteAccess, isSelf, onClick, team} = props;
 
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
@@ -81,7 +81,7 @@ function RemoveButton(props: {
     );
   }
 
-  const isIdpProvisioned = member.flags['idp:provisioned'];
+  const isIdpProvisioned = team.flags['idp:provisioned'];
   const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
