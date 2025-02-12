@@ -188,7 +188,7 @@ export default storyBook('LineChartWidget', story => {
                 ...durationTimeSeries2,
                 data: durationTimeSeries2.data.map(datum => ({
                   ...datum,
-                  value: datum.value / 1000,
+                  value: datum.value === null ? null : datum.value / 1000,
                 })),
                 meta: {
                   fields: durationTimeSeries2.meta?.fields!,
