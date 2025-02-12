@@ -90,6 +90,9 @@ export function PageOverviewWebVitalsDetailPanel({
   ] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
   const isInp = webVital === 'inp';
+  const useSpansWebVitals = organization.features.includes(
+    'performance-vitals-standalone-cls-lcp'
+  );
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -122,7 +125,7 @@ export function PageOverviewWebVitalsDetailPanel({
     useTransactionSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && !isSpansWebVital,
+      enabled: Boolean(webVital) && (!isInp || (!isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
@@ -131,7 +134,7 @@ export function PageOverviewWebVitalsDetailPanel({
     useSpanSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && isSpansWebVital,
+      enabled: Boolean(webVital) && (isInp || (isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
@@ -314,10 +317,11 @@ export function PageOverviewWebVitalsDetailPanel({
         {
           replayId: row.replayId,
           id: '', // id doesn't actually matter here. Just to satisfy type.
-          'transaction.duration': isSpansWebVital
-            ? row[SpanIndexedField.SPAN_SELF_TIME]
-            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              row['transaction.duration'],
+          'transaction.duration':
+            isInp || (isSpansWebVital && useSpansWebVitals)
+              ? row[SpanIndexedField.SPAN_SELF_TIME]
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                row['transaction.duration'],
           timestamp: row.timestamp,
         },
         undefined
@@ -430,7 +434,7 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderBodyCell: renderSpansBodyCell,
               }}
             />
-          ) : isSpansWebVital ? (
+          ) : isSpansWebVital && useSpansWebVitals ? (
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
