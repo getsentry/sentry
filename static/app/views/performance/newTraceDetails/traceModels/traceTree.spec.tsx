@@ -439,7 +439,7 @@ describe('TraceTree', () => {
         }),
         {
           meta: {
-            transactiontoSpanChildrenCount: {
+            transaction_child_count_map: {
               transaction: 10,
               'no-spans-transaction': 1,
               // we have no data for child transaction
@@ -448,6 +448,8 @@ describe('TraceTree', () => {
             performance_issues: 0,
             projects: 0,
             transactions: 0,
+            span_count: 0,
+            span_count_map: {},
           },
           replay: null,
         }
