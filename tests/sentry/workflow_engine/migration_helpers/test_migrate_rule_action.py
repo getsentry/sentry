@@ -12,8 +12,8 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
-    JiraActionTranslator,
-    JiraDataBlob,
+    TicketActionTranslator,
+    TicketDataBlob,
     issue_alert_action_translator_registry,
 )
 
@@ -23,11 +23,11 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
-    def assert_jira_action_data_blob(
+    def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict, exclude_keys: list[str]
     ):
         # Get standard fields from JiraDataBlob, excluding additional_fields
-        standard_fields = JiraActionTranslator.standard_fields()
+        standard_fields = TicketActionTranslator.standard_fields()
 
         # Check standard fields
         for field in standard_fields:
@@ -73,9 +73,9 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # If we have a blob type, verify the data matches the blob structure
         if translator.blob_type:
-            # Special handling for JiraDataBlob which has additional_fields
-            if translator.blob_type == JiraDataBlob:
-                self.assert_jira_action_data_blob(action, compare_dict, exclude_keys)
+            # Special handling for TicketDataBlob which has additional_fields
+            if translator.blob_type == TicketDataBlob:
+                self.assert_ticketing_action_data_blob(action, compare_dict, exclude_keys)
             else:
                 # Original logic for other blob types
                 for field in translator.blob_type.__dataclass_fields__:
