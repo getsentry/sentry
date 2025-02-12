@@ -34,7 +34,7 @@ def get_anomaly_data_from_seer(
     aggregation_value: float | None,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query = alert_rule.snuba_query
-    if not snuba_query or aggregation_value is None:
+    if not snuba_query or aggregation_value in [None, "NULL_VALUE"]:
         return None
 
     # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
