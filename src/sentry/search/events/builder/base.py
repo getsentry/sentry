@@ -695,8 +695,6 @@ class BaseQueryBuilder:
         else:
             field = raw_field
 
-        # field = tag_match.group("tag") if tag_match else raw_field
-
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
         else:
