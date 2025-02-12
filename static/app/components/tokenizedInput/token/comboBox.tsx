@@ -9,7 +9,6 @@ import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
 import {useComboBox} from '@react-aria/combobox';
 import {ariaHideOutside} from '@react-aria/overlays';
-import type {ComboBoxState} from '@react-stately/combobox';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
@@ -38,11 +37,8 @@ interface ComboBoxProps<T extends SelectOptionWithKey<string>> {
   onInputChange?: ChangeEventHandler<HTMLInputElement>;
   onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
-  onKeyDown?: (e: KeyboardEvent, extra: {state: ComboBoxState<T>}) => void;
-  onKeyDownCapture?: (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    extra: {state: ComboBoxState<T>}
-  ) => void;
+  onKeyDown?: (evt: KeyboardEvent) => void;
+  onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: T) => void;
@@ -134,7 +130,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
 
   const handleComboBoxKeyDown = useCallback(
     (evt: KeyboardEvent) => {
-      onKeyDown?.(evt, {state});
+      onKeyDown?.(evt);
       switch (evt.key) {
         case 'Escape':
           state.close();
@@ -192,13 +188,9 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
   );
 
   const handleOnInteractOutside = useCallback(() => {
-    if (state.inputValue) {
-      onInputBlur?.(inputValue);
-    } else {
-      onInputEscape?.();
-    }
+    onInputBlur?.(inputValue);
     state.close();
-  }, [inputValue, onInputBlur, onInputEscape, state]);
+  }, [inputValue, onInputBlur, state]);
 
   const {
     overlayProps,
@@ -264,7 +256,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={false}
-        onKeyDownCapture={e => onKeyDownCapture?.(e, {state})}
+        onKeyDownCapture={onKeyDownCapture}
         data-test-id={dataTestId}
       />
       <StyledPositionWrapper {...overlayProps} visible={isOpen}>
