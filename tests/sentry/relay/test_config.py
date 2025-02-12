@@ -1033,7 +1033,6 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
                 "transactions",
                 "spans",
                 "profiles",
-                "custom",
             ]
         }
 

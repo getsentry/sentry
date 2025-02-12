@@ -59,28 +59,6 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
                 timestamp.timestamp(),
                 value,
             )
-        # Use Case: CUSTOM
-        for value, release, tag_value, timestamp in (
-            (1, release_1.version, "tag_value_1", self.now()),
-            (1, release_1.version, "tag_value_1", self.now()),
-            (1, release_1.version, "tag_value_2", self.now() - timedelta(days=40)),
-            (1, release_2.version, "tag_value_3", self.now() - timedelta(days=50)),
-            (1, release_2.version, "tag_value_4", self.now() - timedelta(days=60)),
-        ):
-            self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                "d:custom/my_test_metric@percent",
-                {
-                    "transaction": "/hello",
-                    "platform": "platform",
-                    "environment": "prod",
-                    "release": release,
-                    "mytag": tag_value,
-                },
-                timestamp.timestamp(),
-                value,
-            )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
         self.dev_env = self.create_environment(name="dev", project=self.project)
@@ -204,7 +182,7 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         )
 
     def test_metric_tags_with_gauge(self):
-        mri = "g:custom/page_load@millisecond"
+        mri = "g:transactions/page_load@millisecond"
         self.store_metric(
             self.project.organization.id,
             self.project.id,
@@ -218,21 +196,21 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             self.organization.slug,
             metric=[mri],
             project=self.project.id,
-            useCase="custom",
+            useCase="transactions",
         )
         assert len(response.data) == 4
 
     def test_metric_not_in_indexer(self):
-        mri = "c:custom/sentry_metric@none"
+        mri = "c:transactions/sentry_metric@none"
         response = self.get_response(
             self.organization.slug,
             metric=[mri],
             project=self.project.id,
-            useCase="custom",
+            useCase="transactions",
         )
         assert (
             response.json()["detail"]
-            == "The specified metric was not found: c:custom/sentry_metric@none"
+            == "The specified metric was not found: c:transactions/sentry_metric@none"
         )
         assert response.status_code == 404
 

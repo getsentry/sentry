@@ -246,7 +246,7 @@ def format_mri_field(field: str) -> str:
     """
     Format a metric field to be used in a metric expression.
 
-    For example, if the field is `avg(c:custom/foo@none)`, it will be returned as `avg(foo)`.
+    For example, if the field is `avg(c:transactions/foo@none)`, it will be returned as `avg(foo)`.
     """
     try:
         parsed = parse_mri_field(field)
@@ -265,7 +265,7 @@ def format_mri_field_value(field: str, value: str) -> str:
     """
     Formats MRI field value to a human-readable format using unit.
 
-    For example, if the value of avg(c:custom/duration@second) is 60,
+    For example, if the value of avg(c:transactions/duration@second) is 60,
     it will be returned as 1 minute.
 
     """

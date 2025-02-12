@@ -68,7 +68,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "d:custom/my_test_metric@percent",
+                "d:transactions/my_test_metric@percent",
                 {
                     "transaction": "/hello",
                     "platform": "platform",
@@ -99,29 +99,13 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             {"key": "transaction", "value": "/world"},
         ]
 
-    def test_tag_details_for_custom_use_case(self):
-        response = self.get_success_response(
-            self.project.organization.slug,
-            "mytag",
-            metric=["d:custom/my_test_metric@percent"],
-            project=[self.project.id],
-            useCase="custom",
-        )
-        assert sorted(response.data, key=lambda x: x["value"]) == [
-            {"key": "mytag", "value": "my_tag_value_5"},
-            {"key": "mytag", "value": "tag_value_1"},
-            {"key": "mytag", "value": "tag_value_2"},
-            {"key": "mytag", "value": "tag_value_3"},
-            {"key": "mytag", "value": "tag_value_4"},
-        ]
-
     def test_tag_details_prefix(self):
         response = self.get_success_response(
             self.project.organization.slug,
             "mytag",
-            metric=["d:custom/my_test_metric@percent"],
+            metric=["d:transactions/my_test_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
             prefix="tag_val",
         )
         assert sorted(response.data, key=lambda x: x["value"]) == [
@@ -135,9 +119,9 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.project.organization.slug,
             "mytag",
-            metric=["d:custom/my_test_metric@percent"],
+            metric=["d:transactions/my_test_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
             prefix="this_does_not_exist",
         )
         assert len(response.data) == 0
@@ -146,39 +130,39 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
         response = self.get_response(
             self.project.organization.slug,
             "mytag",
-            metric=["d:custom/my_non_existent_metric@percent"],
+            metric=["d:transactions/my_non_existent_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
             prefix="this_does_not_exist",
         )
         assert response.status_code == 404
         assert (
             response.json()["detail"]
-            == "No data found for metric: d:custom/my_non_existent_metric@percent and tag: mytag"
+            == "No data found for metric: d:transactions/my_non_existent_metric@percent and tag: mytag"
         )
 
     def test_tag_details_prefix_non_existent_tag_key(self):
         response = self.get_response(
             self.project.organization.slug,
             "mytagkeydoesnotexist",
-            metric=["d:custom/my_non_existent_metric@percent"],
+            metric=["d:transactions/my_non_existent_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
             prefix="this_does_not_exist",
         )
         assert response.status_code == 404
         assert (
             response.json()["detail"]
-            == "No data found for metric: d:custom/my_non_existent_metric@percent and tag: mytagkeydoesnotexist"
+            == "No data found for metric: d:transactions/my_non_existent_metric@percent and tag: mytagkeydoesnotexist"
         )
 
     def test_tag_details_empty_prefix(self):
         response = self.get_success_response(
             self.project.organization.slug,
             "mytag",
-            metric=["d:custom/my_test_metric@percent"],
+            metric=["d:transactions/my_test_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
             prefix="",
         )
         assert sorted(response.data, key=lambda x: x["value"]) == [
@@ -207,28 +191,28 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
         response = self.get_error_response(
             self.project.organization.slug,
             "my_non_existent_tag",
-            metric=["d:custom/my_test_metric@percent"],
+            metric=["d:transactions/my_test_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
         )
         assert response.status_code == 404
         assert (
             response.json()["detail"]
-            == "No data found for metric: d:custom/my_test_metric@percent and tag: my_non_existent_tag"
+            == "No data found for metric: d:transactions/my_test_metric@percent and tag: my_non_existent_tag"
         )
 
     def test_tag_details_for_non_existent_metric(self):
         response = self.get_error_response(
             self.project.organization.slug,
             "my_non_existent_tag",
-            metric=["d:custom/my_non_existent_test_metric@percent"],
+            metric=["d:transactions/my_non_existent_test_metric@percent"],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
         )
         assert response.status_code == 404
         assert (
             response.json()["detail"]
-            == "No data found for metric: d:custom/my_non_existent_test_metric@percent and tag: my_non_existent_tag"
+            == "No data found for metric: d:transactions/my_non_existent_test_metric@percent and tag: my_non_existent_tag"
         )
 
     def test_tag_details_for_multiple_supplied_metrics(self):
@@ -236,11 +220,11 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             self.project.organization.slug,
             "my_non_existent_tag",
             metric=[
-                "d:custom/my_test_metric@percent",
+                "d:transactions/my_test_metric@percent",
                 "d:transactions/duration@millisecond",
             ],
             project=[self.project.id],
-            useCase="custom",
+            useCase="transactions",
         )
         assert response.status_code == 400
         assert (

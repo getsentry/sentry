@@ -1,8 +1,6 @@
 import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from typing import Any
-from unittest.mock import patch
 
 import pytest
 import sentry_kafka_schemas
@@ -703,160 +701,6 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         },
     }
     assert not batch.invalid_msg_meta
-
-
-@pytest.mark.django_db
-@patch(
-    "sentry.sentry_metrics.aggregation_option_registry.METRIC_ID_AGG_OPTION",
-    MOCK_METRIC_ID_AGG_OPTION,
-)
-@override_options({"sentry-metrics.10s-granularity": True})
-def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-    counter_metric_id = "c:custom/alert@none"
-    dist_metric_id = "d:custom/measurements.fcp@millisecond"
-    set_metric_id = "s:custom/on_demand@none"
-
-    outer_message = _construct_outer_message(
-        [
-            (
-                {
-                    **counter_payload,
-                    "name": counter_metric_id,
-                },
-                [],
-            ),
-            ({**distribution_payload, "name": dist_metric_id}, []),
-            ({**set_payload, "name": set_metric_id}, []),
-        ]
-    )
-
-    batch = IndexerBatch(
-        outer_message,
-        False,
-        False,
-        tags_validator=GenericMetricsTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == (
-        {
-            UseCaseID.CUSTOM: {
-                1: {
-                    counter_metric_id,
-                    dist_metric_id,
-                    "environment",
-                    set_metric_id,
-                    "session.status",
-                }
-            }
-        }
-    )
-    assert not batch.invalid_msg_meta
-
-    caplog.set_level(logging.ERROR)
-    snuba_payloads = batch.reconstruct_messages(
-        {
-            UseCaseID.CUSTOM: {
-                1: {
-                    counter_metric_id: 1,
-                    dist_metric_id: 2,
-                    "environment": 3,
-                    set_metric_id: 8,
-                    "session.status": 9,
-                }
-            }
-        },
-        {
-            UseCaseID.CUSTOM: {
-                1: {
-                    counter_metric_id: Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    dist_metric_id: Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    set_metric_id: Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
-            },
-        },
-    ).data
-
-    assert _get_string_indexer_log_records(caplog) == []
-
-    assert _deconstruct_messages(snuba_payloads, kafka_logical_topic="snuba-generic-metrics") == [
-        (
-            {
-                "mapping_meta": {
-                    "c": {
-                        "1": counter_metric_id,
-                        "3": "environment",
-                        "9": "session.status",
-                    },
-                },
-                "metric_id": 1,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": "production", "9": "init"},
-                "timestamp": ts,
-                "type": "c",
-                "use_case_id": "custom",
-                "value": 1.0,
-                "aggregation_option": AggregationOption.TEN_SECOND.value,
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-                "version": 2,
-            },
-            [("mapping_sources", b"c"), ("metric_type", "c")],
-        ),
-        (
-            {
-                "mapping_meta": {
-                    "c": {
-                        "2": dist_metric_id,
-                        "3": "environment",
-                        "9": "session.status",
-                    },
-                },
-                "metric_id": 2,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": "production", "9": "healthy"},
-                "timestamp": ts,
-                "type": "d",
-                "use_case_id": "custom",
-                "value": [4, 5, 6],
-                "aggregation_option": AggregationOption.TEN_SECOND.value,
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-                "version": 2,
-            },
-            [("mapping_sources", b"c"), ("metric_type", "d")],
-        ),
-        (
-            {
-                "mapping_meta": {
-                    "c": {
-                        "3": "environment",
-                        "8": set_metric_id,
-                        "9": "session.status",
-                    },
-                },
-                "metric_id": 8,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": "production", "9": "errored"},
-                "timestamp": ts,
-                "type": "s",
-                "use_case_id": "custom",
-                "value": [3],
-                "aggregation_option": AggregationOption.TEN_SECOND.value,
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-                "version": 2,
-            },
-            [("mapping_sources", b"c"), ("metric_type", "s")],
-        ),
-    ]
 
 
 @pytest.mark.django_db
@@ -1959,16 +1803,10 @@ def test_aggregation_options():
     with override_options(
         {
             "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["custom", "transactions"],
+            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
 
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1979,16 +1817,10 @@ def test_aggregation_options():
     with override_options(
         {
             "sentry-metrics.10s-granularity": True,
-            "sentry-metrics.drop-percentiles.per-use-case": ["custom", "transactions"],
+            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
 
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1999,25 +1831,17 @@ def test_aggregation_options():
     with override_options(
         {
             "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["custom", "transactions", "spans"],
+            "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
         }
     ):
 
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
         assert get_aggregation_options("c:spans/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
+
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -2045,10 +1869,6 @@ def test_aggregation_options():
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
         }
     ):
-
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
-        }
 
         assert get_aggregation_options("d:transactions/measurements.fcp@millisecond") == {
             AggregationOption.HIST: TimeWindow.NINETY_DAYS

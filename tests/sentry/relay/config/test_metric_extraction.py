@@ -176,9 +176,6 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
 def test_get_metric_extraction_config_single_alert_with_mri(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert(
-            "sum(c:custom/page_load@millisecond)", "transaction.duration:>=1000", default_project
-        )
-        create_alert(
             "count(d:transactions/measurements.fcp@millisecond)",
             "transaction.duration:>=1000",
             default_project,

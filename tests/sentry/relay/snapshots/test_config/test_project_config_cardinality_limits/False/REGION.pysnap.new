@@ -1,5 +1,5 @@
 ---
-created: '2025-02-12T13:41:13.874417+00:00'
+created: '2025-02-12T13:05:37.025213+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -7,7 +7,6 @@ cardinalityLimits:
 - id: transactions
   limit: 10
   namespace: transactions
-  passive: true
   scope: organization
   window:
     granularitySeconds: 100
@@ -15,7 +14,6 @@ cardinalityLimits:
 - id: sessions
   limit: 20
   namespace: sessions
-  passive: true
   scope: organization
   window:
     granularitySeconds: 200
@@ -23,7 +21,6 @@ cardinalityLimits:
 - id: spans
   limit: 30
   namespace: spans
-  passive: true
   scope: organization
   window:
     granularitySeconds: 300
