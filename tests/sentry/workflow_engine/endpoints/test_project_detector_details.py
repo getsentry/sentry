@@ -151,9 +151,11 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
                 "logicType": self.data_condition_group.logic_type,
                 "conditions": [
                     {
+                        "id": self.condition.id,
                         "comparison": 100,
                         "type": Condition.GREATER,
                         "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.condition.condition_group.id,
                     },
                 ],
             },
@@ -194,16 +196,29 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300  # seconds = 5 minutes
 
-    def test_update_missing_data_condition(self):
+    def test_update_add_data_condition(self):
         """
-        Edge case - ensure we raise if the DataCondition can't be found
+        Test that we can add an additional data condition
         """
-        DataCondition.objects.get(id=self.condition.id).delete()
+        data = {**self.valid_data}
+        condition_group_data = {
+            "comparison": 50,
+            "type": Condition.GREATER,
+            "conditionResult": DetectorPriorityLevel.MEDIUM,
+            "conditionGroupId": self.condition.condition_group.id,
+        }
+        data["conditionGroup"]["conditions"].append(condition_group_data)
         with self.tasks():
-            self.get_error_response(
+            response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 self.detector.id,
                 **self.valid_data,
-                status_code=400,
+                status_code=200,
             )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        condition_group = detector.workflow_condition_group
+        assert condition_group
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 2

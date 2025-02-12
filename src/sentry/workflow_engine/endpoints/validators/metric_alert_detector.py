@@ -56,30 +56,25 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
                 )
             except DataConditionGroup.DoesNotExist:
                 raise serializers.ValidationError("DataConditionGroup not found, can't update")
-        # else make one if data is passed?
+        # TODO make one if it doesn't exist and data is passed?
 
         for data_condition in data_conditions:
-            current_data_condition = DataCondition.objects.get(
-                id=data_condition.get("id"), condition_group=data_condition_group
-            )
-            # XXX: we pass 'result' rather than 'condition_result' - enforced by the NumericComparisonConditionValidator
-            updated_values = {
-                "type": data_condition.get("type", current_data_condition.type),
-                "comparison": data_condition.get("comparison", current_data_condition.comparison),
-                "condition_result": data_condition.get(
-                    "result", current_data_condition.condition_result
-                ),
-            }
-            if current_data_condition:
-                data_condition.update(**updated_values)
-            return instance.workflow_condition_group
+            try:
+                current_data_condition = DataCondition.objects.get(
+                    id=data_condition.get("id"), condition_group=data_condition_group
+                )
+            except DataCondition.DoesNotExist:
+                current_data_condition = None
 
-            DataCondition.objects.create(
-                type=data_conditions.get("type"),
-                comparison=data_conditions.get("comparison"),
-                condition_result=data_conditions.get("result"),
-                workflow_condition_group=data_condition_group,
-            )
+            if current_data_condition:
+                current_data_condition.update(**data_condition)
+            else:
+                DataCondition.objects.create(
+                    type=data_condition.get("type"),
+                    comparison=data_condition.get("comparison"),
+                    condition_result=data_condition.get("condition_result"),
+                    condition_group=data_condition_group,
+                )
         return data_condition_group
 
     def update_data_sources(self, instance, data_sources):
@@ -111,11 +106,11 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         instance.name = validated_data.get("name", instance.name)
         instance.type = validated_data.get("detector_type", instance.group_type.slug)
         condition_group = validated_data.pop("condition_group")
-        data_conditions = condition_group.get("data_conditions")
+        data_conditions = condition_group.get("conditions")
+        # import pdb; pdb.set_trace()
         if data_conditions:
-            instance.workflow_condition_group = self.update_data_conditions(
-                instance, data_conditions
-            )
+            self.update_data_conditions(instance, data_conditions)
+
         data_sources = validated_data.pop("data_sources")
         if data_sources:
             self.update_data_sources(instance, data_sources)
