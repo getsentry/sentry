@@ -10,7 +10,7 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 type Props = React.ComponentProps<typeof SettingsLayout> & {
   api: Client;
-  organization: Organization;
+  organization?: Organization;
 };
 
 class AccountSettingsLayout extends Component<Props> {

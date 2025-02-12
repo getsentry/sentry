@@ -1,37 +1,71 @@
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
 const userSettingsPathPrefix = '/settings/account';
 
-type ConfigParams = {
-  organization?: Organization;
-};
-
-export function getOrganizationNavigationConfiguration({
+export function getUserOrgNavigationConfiguration({
   organization: incomingOrganization,
-}: ConfigParams): NavigationSection[] {
-  const hasNavigationV2 = incomingOrganization?.features.includes(
-    'navigation-sidebar-v2'
-  );
-
-  if (incomingOrganization && hasNavigationV2) {
-    return getUserOrgNavigationConfiguration({organization: incomingOrganization});
-  }
-
+}: {
+  organization: Organization;
+}): NavigationSection[] {
   return [
     {
-      name: t('User Settings'),
+      name: t('Account'),
       items: [
         {
-          path: `${userSettingsPathPrefix}/`,
-          title: t('General Settings'),
-          description: t('Configure general settings for your account'),
-          id: 'user-settings',
+          path: `${userSettingsPathPrefix}/details/`,
+          title: t('Account Details'),
+          description: t(
+            'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/security/`,
+          title: t('Security'),
+          description: t('Change your account password and/or two factor authentication'),
+        },
+        {
+          path: `${userSettingsPathPrefix}/notifications/`,
+          title: t('Notifications'),
+          description: t('Configure what email notifications to receive'),
+        },
+        {
+          path: `${userSettingsPathPrefix}/emails/`,
+          title: t('Email Addresses'),
+          description: t(
+            'Add or remove secondary emails, change your primary email, verify your emails'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/subscriptions/`,
+          title: t('Subscriptions'),
+          description: t(
+            'Change Sentry marketing subscriptions you are subscribed to (GDPR)'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/authorizations/`,
+          title: t('Authorized Applications'),
+          description: t(
+            'Manage third-party applications that have access to your Sentry account'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/identities/`,
+          title: t('Identities'),
+          description: t(
+            'Manage your third-party identities that are associated to Sentry'
+          ),
+        },
+        {
+          path: `${userSettingsPathPrefix}/close-account/`,
+          title: t('Close Account'),
+          description: t('Permanently close your Sentry account'),
         },
       ],
     },
@@ -81,7 +115,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/api-keys/`,
           title: t('API Keys'),
           show: ({access, features}) =>
-            features!.has('api-keys') && access!.has('org:admin'),
+            (features?.has('api-keys') && access?.has('org:admin')) ?? false,
           id: 'api-keys',
         },
         {
@@ -93,7 +127,7 @@ export function getOrganizationNavigationConfiguration({
         {
           path: `${organizationSettingsPathPrefix}/rate-limits/`,
           title: t('Rate Limits'),
-          show: ({features}) => features!.has('legacy-rate-limits'),
+          show: ({features}) => features?.has('legacy-rate-limits') ?? false,
           description: t('Configure rate limits for all projects in the organization'),
           id: 'rate-limits',
         },
@@ -168,6 +202,26 @@ export function getOrganizationNavigationConfiguration({
           description: t('Manage custom integrations'),
           id: 'developer-settings',
         },
+      ],
+    },
+    {
+      name: t('API'),
+      items: [
+        {
+          path: `${userSettingsPathPrefix}/api/applications/`,
+          title: t('Applications'),
+          description: t('Add and configure OAuth2 applications'),
+        },
+        {
+          path: `${userSettingsPathPrefix}/api/auth-tokens/`,
+          title: t('User Auth Tokens'),
+          description: t(
+            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+          ),
+        },
+        ...HookStore.get('settings:api-navigation-config').flatMap(cb =>
+          cb(incomingOrganization)
+        ),
       ],
     },
   ];
