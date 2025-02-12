@@ -14,6 +14,7 @@ class ApiOwner(Enum):
     ENTERPRISE = "enterprise"
     FEEDBACK = "feedback-backend"
     FLAG = "replay-backend"
+    GDX = "gdx"
     HYBRID_CLOUD = "hybrid-cloud"
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issues"
@@ -27,4 +28,3 @@ class ApiOwner(Enum):
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
-    GDX = "gdx"
