@@ -10,12 +10,12 @@
   This email confirms that user {{ actor.email }} has submitted {{ sentry_app.slug }} for {{ organization.slug }}.
 </p>
 <table>
-  <div style="padding-bottom: 8px;"> Here are your responses to the submission form: <div>
+  <div style="padding-bottom: 8px; "> Here are your responses to the submission form: <div>
 	{% for question in questionnaire %}
   <tr>
     <td>
       <div style="padding-bottom: 8px;"><strong>{{ question.question }}</strong></div>
-      <div style="padding-bottom: 8px;"> > {{ question.answer }}</div>
+      <div style="padding-bottom: 8px; background-color: #f7f8f9;">{{ question.answer }}</div>
     </td>
   </tr>
   {% endfor %}
