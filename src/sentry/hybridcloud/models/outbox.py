@@ -344,9 +344,7 @@ class OutboxBase(Model):
             current_time = timezone.now()
             # Start an atomic transaction for a consistent snapshot of the coalesced group.
             with transaction.atomic(using=using):
-                coalesced, first_coalesced = self._select_coalesced_messages(
-                    current_time=current_time,
-                )
+                coalesced, first_coalesced = self._select_coalesced_messages()
                 if coalesced is None:
                     yield None
                     return
@@ -375,7 +373,6 @@ class OutboxBase(Model):
                     coalesced=coalesced,
                     all_messages=all_messages,
                     new_scheduled_for=new_scheduled_for,
-                    scheduled_from=scheduled_from,
                     tags=tags,
                 )
                 raise
@@ -399,9 +396,7 @@ class OutboxBase(Model):
                 metrics.incr("outbox.lock_error")
                 raise
 
-    def _select_coalesced_messages(
-        self, *, current_time: datetime.datetime
-    ) -> tuple[OutboxBase | None, OutboxBase | None]:
+    def _select_coalesced_messages(self) -> tuple[OutboxBase | None, OutboxBase | None]:
         """Select the representative message from the group and the first (oldest) message."""
 
         # Select the representative message from the group, which is defined as the one
@@ -490,7 +485,6 @@ class OutboxBase(Model):
         coalesced: OutboxBase,
         all_messages: list[tuple[int, datetime.datetime]],
         new_scheduled_for: datetime.datetime,
-        scheduled_from: datetime.datetime,
         tags: dict,
     ) -> None:
         """Revert the scheduled_for timestamps for messages that failed processing."""
