@@ -739,7 +739,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
         into groups by their monitor slug / environment
         """
 
-        factory = UptimeResultsStrategyFactory(mode="parallel", max_batch_size=3, max_workers=1)
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
         consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
         with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
             subscription_2 = self.create_uptime_subscription(
@@ -787,7 +791,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
         into groups by their monitor slug / environment
         """
 
-        factory = UptimeResultsStrategyFactory(mode="parallel", max_batch_size=3, max_workers=1)
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
         consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
         subscription_2 = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"

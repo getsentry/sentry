@@ -79,14 +79,14 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
     def __init__(
         self,
-        mode: Literal["parallel", "serial"] = "serial",
+        mode: Literal["batched-parallel", "parallel", "serial"] = "serial",
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
     ) -> None:
         self.mode = mode
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
-        if mode == "parallel":
+        if mode == "batched-parallel" or mode == "parallel":
             self.parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
             if max_workers is None:

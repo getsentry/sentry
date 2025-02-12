@@ -213,7 +213,7 @@ class MonitorConsumerTest(TestCase):
         into groups by their monitor slug / environment
         """
         factory = StoreMonitorCheckInStrategyFactory(
-            mode="parallel",
+            mode="batched-parallel",
             max_batch_size=4,
             max_workers=1,
         )
