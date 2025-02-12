@@ -4,7 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
+from sentry.api.exceptions import PrimaryEmailVerificationRequired, SudoRequired
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
@@ -37,11 +37,11 @@ def sudo_required(func):
     return wrapped
 
 
-def email_verification_required(func):
+def primary_email_verification_required(func):
     @wraps(func)
     def wrapped(self, request: Request, *args, **kwargs) -> Response:
-        if isinstance(request.user, AnonymousUser) or not request.user.has_verified_emails():
-            raise EmailVerificationRequired(request.user)
+        if isinstance(request.user, AnonymousUser) or not request.user.has_verified_primary_email():
+            raise PrimaryEmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 
     return wrapped

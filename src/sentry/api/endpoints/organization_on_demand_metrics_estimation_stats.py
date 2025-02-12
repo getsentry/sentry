@@ -53,12 +53,12 @@ class StatsQualityEstimation(Enum):
 
 @region_silo_endpoint
 class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
+    """Gets the estimated volume of an organization's metric events."""
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
-    """Gets the estimated volume of an organization's metric events."""
-    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
         measurement = request.GET.get("yAxis")

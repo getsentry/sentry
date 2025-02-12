@@ -29,6 +29,10 @@ type SourceMapWizardParam = {
 
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
+interface StreamlineGroupEventParams extends GroupEventParams {
+  streamline: boolean;
+}
+
 interface EventDropdownParams {
   event_id: string;
   from_event_type: string;
@@ -92,9 +96,20 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.share_from_icon': {};
   'issue.shared_publicly': {};
-  'issue_details.comment_created': {};
-  'issue_details.comment_deleted': {};
-  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.comment_created': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_deleted': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_updated': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
     is_high_priority: boolean;
@@ -124,6 +139,7 @@ export type IssueEventParameters = {
   };
   'issue_details.section_fold': {
     open: boolean;
+    org_streamline_only: boolean | undefined;
     sectionKey: string;
   };
   'issue_details.set_priority': SetPriorityParams;
@@ -149,10 +165,10 @@ export type IssueEventParameters = {
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
-  'issue_details.streamline_ui_learn_more': {};
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
+  'issue_details.view_full_trace_waterfall_clicked': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -248,6 +264,9 @@ export type IssueEventParameters = {
   'issue_views.deleted_view': {};
   'issue_views.discarded_changes': {};
   'issue_views.duplicated_view': {};
+  'issue_views.page_filters_logged': {
+    user_id: string;
+  };
   'issue_views.renamed_view': {};
   'issue_views.reordered_views': {};
   'issue_views.saved_changes': {};
@@ -376,7 +395,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
-  'issue_details.streamline_ui_learn_more': 'Issue Details: Streamline UI Learn More',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
@@ -412,6 +430,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
+  'issue_views.page_filters_logged': 'Issue Views: Page Filters Logged',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
@@ -449,6 +468,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
+  'issue_details.view_full_trace_waterfall_clicked':
+    ' Issue Details: View Full Trace Waterfall Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
@@ -459,6 +480,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.copy_event_id_clicked': 'Issue Details: Copy Event ID Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
@@ -480,5 +502,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.section_fold': 'Issue Details: Section Fold',
   'issue_details.comment_created': 'Issue Details: Comment Created',
   'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
+  'issue_details.comment_updated': 'Issue Details: Comment Updated',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };

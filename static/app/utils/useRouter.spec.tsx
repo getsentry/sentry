@@ -5,11 +5,11 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import useRouter from 'sentry/utils/useRouter';
-import {RouteContext} from 'sentry/views/routeContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useRouter', () => {
   it('returns the current router object', function () {
-    let actualRouter;
+    let actualRouter: any;
     function HomePage() {
       actualRouter = useRouter();
       return null;
@@ -23,9 +23,9 @@ describe('useRouter', () => {
     };
 
     render(
-      <RouteContext.Provider value={routeContext}>
+      <TestRouteContext.Provider value={routeContext}>
         <HomePage />
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
     expect(actualRouter).toEqual(routeContext.router);
   });

@@ -32,5 +32,5 @@ export type AvailableNotificationAction = {
     targetDisplay?: string;
     targetIdentifier?: string;
   };
-  requires: {description: string; name: string}[];
+  requires: Array<{description: string; name: string}>;
 };

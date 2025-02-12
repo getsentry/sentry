@@ -93,7 +93,7 @@ export default function ReplayOnboardingPanel() {
     <Fragment>
       <OnboardingAlertHook>
         {hasSelectedProjects && allSelectedProjectsUnsupported && (
-          <ReplayUnsupportedAlert projectSlug={selectedProjects[0].slug} />
+          <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
         )}
       </OnboardingAlertHook>
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
@@ -122,7 +122,7 @@ export function SetupReplaysCTA({
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const FAQ = [
     {
@@ -133,7 +133,7 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications and certain native mobile platforms, such as Android, iOS, and React Native. Our mobile SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
+              'Session Replay supports all browser-based applications and certain native mobile platforms, such as Android, iOS, and React Native.'
             )}
           </div>
           <div>
@@ -234,7 +234,8 @@ export function SetupReplaysCTA({
         >
           <Button
             data-test-id="setup-replays-btn"
-            onClick={activateSidebar}
+            type="button"
+            onClick={() => activateSidebar()}
             priority="primary"
             disabled={disabled}
           >

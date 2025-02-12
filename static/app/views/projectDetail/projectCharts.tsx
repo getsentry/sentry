@@ -120,7 +120,7 @@ class ProjectCharts extends Component<Props, State> {
       .map(urlKey => {
         return decodeScalar(
           location.query[urlKey],
-          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]
+          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]!
         );
       });
   }
@@ -137,7 +137,7 @@ class ProjectCharts extends Component<Props, State> {
     return displayMode;
   }
 
-  get displayModes(): SelectValue<string>[] {
+  get displayModes(): Array<SelectValue<string>> {
     const {organization, hasSessions, hasTransactions, project} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
     const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
@@ -314,17 +314,8 @@ class ProjectCharts extends Component<Props, State> {
   };
 
   render() {
-    const {
-      api,
-      router,
-      location,
-      organization,
-      theme,
-      projectId,
-      hasSessions,
-      query,
-      project,
-    } = this.props;
+    const {api, router, organization, theme, projectId, hasSessions, query, project} =
+      this.props;
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
@@ -411,9 +402,7 @@ class ProjectCharts extends Component<Props, State> {
                   />
                 ) : (
                   <ProjectErrorsBasicChart
-                    organization={organization}
                     projectId={projectId}
-                    location={location}
                     onTotalValuesChange={this.handleTotalValuesChange}
                   />
                 ))}
@@ -509,7 +498,7 @@ class ProjectCharts extends Component<Props, State> {
               <InlineContainer>
                 <OptionSelector
                   title={t('Display')}
-                  selected={displayMode}
+                  selected={displayMode!}
                   options={this.displayModes}
                   onChange={this.handleDisplayModeChange}
                 />

@@ -7,21 +7,27 @@ from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 
+from sentry import quotas
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
     headers_json_encoder,
 )
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
+from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
 )
+from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +40,24 @@ class MaxManualUptimeSubscriptionsReached(ValueError):
     pass
 
 
+class UptimeMonitorNoSeatAvailable(Exception):
+    """
+    Indicates that the quotes system is unable to allocate a seat for the new
+    uptime monitor.
+    """
+
+    result: SeatAssignmentResult | None
+    """
+    The assignment result. In rare cases may be None when there is a race
+    condition and seat assignment is not accepted after passing the assignment
+    check.
+    """
+
+    def __init__(self, result: SeatAssignmentResult | None) -> None:
+        super().__init__()
+        self.result = result
+
+
 def retrieve_uptime_subscription(
     url: str,
     interval_seconds: int,
@@ -41,6 +65,7 @@ def retrieve_uptime_subscription(
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
+    trace_sampling: bool,
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -49,6 +74,7 @@ def retrieve_uptime_subscription(
                 interval_seconds=interval_seconds,
                 timeout_ms=timeout_ms,
                 method=method,
+                trace_sampling=trace_sampling,
             )
             .annotate(
                 headers_md5=MD5("headers", output_field=TextField()),
@@ -85,7 +111,7 @@ def get_or_create_uptime_subscription(
     result = extract_domain_parts(url)
 
     subscription = retrieve_uptime_subscription(
-        url, interval_seconds, timeout_ms, method, headers, body
+        url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
     )
     created = False
 
@@ -108,7 +134,7 @@ def get_or_create_uptime_subscription(
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
             subscription = retrieve_uptime_subscription(
-                url, interval_seconds, timeout_ms, method, headers, body
+                url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
             )
 
     if subscription is None:
@@ -131,6 +157,13 @@ def get_or_create_uptime_subscription(
         # exists in the checker.
         subscription.update(status=UptimeSubscription.Status.CREATING.value)
         created = True
+
+    # Associate active regions with this subscription
+    for region_config in get_active_region_configs():
+        # If we add a region here we need to resend the subscriptions
+        created |= UptimeSubscriptionRegion.objects.get_or_create(
+            uptime_subscription=subscription, region_slug=region_config.slug
+        )[1]
 
     if created:
         create_remote_uptime_subscription.delay(subscription.id)
@@ -157,9 +190,11 @@ def get_or_create_project_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    status: int = ObjectStatus.ACTIVE,
     name: str = "",
     owner: Actor | None = None,
     trace_sampling: bool = False,
+    override_manual_org_limit: bool = False,
 ) -> tuple[ProjectUptimeSubscription, bool]:
     """
     Links a project to an uptime subscription so that it can process results.
@@ -168,7 +203,10 @@ def get_or_create_project_uptime_subscription(
         manual_subscription_count = ProjectUptimeSubscription.objects.filter(
             project__organization=project.organization, mode=ProjectUptimeSubscriptionMode.MANUAL
         ).count()
-        if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+        if (
+            not override_manual_org_limit
+            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
+        ):
             raise MaxManualUptimeSubscriptionsReached
 
     uptime_subscription = get_or_create_uptime_subscription(
@@ -187,7 +225,7 @@ def get_or_create_project_uptime_subscription(
             owner_user_id = owner.id
         if owner.is_team:
             owner_team_id = owner.id
-    return ProjectUptimeSubscription.objects.get_or_create(
+    uptime_monitor, created = ProjectUptimeSubscription.objects.get_or_create(
         project=project,
         environment=environment,
         uptime_subscription=uptime_subscription,
@@ -196,6 +234,23 @@ def get_or_create_project_uptime_subscription(
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
+
+    # Update status. This may have the side effect of removing or creating a
+    # remote subscription. When a new monitor is created we will ensure seat
+    # assignment, which may cause the monitor to be disabled if there are no
+    # available seat assignments.
+    match status:
+        case ObjectStatus.ACTIVE:
+            try:
+                enable_project_uptime_subscription(uptime_monitor, ensure_assignment=created)
+            except UptimeMonitorNoSeatAvailable:
+                # No need to do anything if we failed to handle seat
+                # assignment. The monitor will be created, but not enabled
+                pass
+        case ObjectStatus.DISABLED:
+            disable_project_uptime_subscription(uptime_monitor)
+
+    return uptime_monitor, created
 
 
 def update_project_uptime_subscription(
@@ -210,6 +265,7 @@ def update_project_uptime_subscription(
     name: str,
     owner: Actor | None,
     trace_sampling: bool,
+    status: int = ObjectStatus.ACTIVE,
 ):
     """
     Links a project to an uptime subscription so that it can process results.
@@ -224,12 +280,6 @@ def update_project_uptime_subscription(
         body=body,
         trace_sampling=trace_sampling,
     )
-    updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
-
-    mode = uptime_monitor.mode
-    if updated_subscription:
-        # If the `uptime_subscription` is updated then treat this as a manual subscription
-        mode = ProjectUptimeSubscriptionMode.MANUAL
 
     owner_user_id = uptime_monitor.owner_user_id
     owner_team_id = uptime_monitor.owner_team_id
@@ -245,14 +295,89 @@ def update_project_uptime_subscription(
         environment=environment,
         uptime_subscription=new_uptime_subscription,
         name=name,
-        mode=mode,
+        # After an update, we always convert a subscription to manual mode
+        mode=ProjectUptimeSubscriptionMode.MANUAL,
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
     # If we changed any fields on the actual subscription we created a new subscription and associated it with this
     # uptime monitor. Check if the old subscription was orphaned due to this.
-    if updated_subscription:
-        remove_uptime_subscription_if_unused(cur_uptime_subscription)
+    remove_uptime_subscription_if_unused(cur_uptime_subscription)
+
+    # Update status. This may have the side effect of removing or creating a
+    # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
+    # assignment fails.
+    match status:
+        case ObjectStatus.DISABLED:
+            disable_project_uptime_subscription(uptime_monitor)
+        case ObjectStatus.ACTIVE:
+            enable_project_uptime_subscription(uptime_monitor)
+
+
+def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
+    """
+    Disables a project uptime subscription. If the uptime subscription no
+    longer has any active project subscriptions the subscription itself will
+    also be disabled.
+    """
+    if uptime_monitor.status == ObjectStatus.DISABLED:
+        return
+
+    uptime_monitor.update(status=ObjectStatus.DISABLED)
+    quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
+
+    uptime_subscription = uptime_monitor.uptime_subscription
+
+    # Are there any other project subscriptions associated to the subscription
+    # that are NOT disabled?
+    has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
+        status=ObjectStatus.DISABLED
+    ).exists()
+
+    # All project subscriptions are disabled, we can disable the subscription
+    # and remove the remote subscription.
+    if not has_active_subscription:
+        uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+        delete_remote_uptime_subscription.delay(uptime_subscription.id)
+
+
+def enable_project_uptime_subscription(
+    uptime_monitor: ProjectUptimeSubscription, ensure_assignment: bool = False
+):
+    """
+    Enable a project uptime subscription. If the uptime subscription was
+    also disabled it will be re-activated and the remote subscription will be
+    published.
+
+    This method will attempt seat assignment via the quotas system. If There
+    are no available seats the monitor will be disabled and a
+    `UptimeMonitorNoSeatAvailable` will be raised.
+
+    By default if the monitor is already marked as ACTIVE this function is a
+    no-op. Pass `ensure_assignment=True` to force seat assignment.
+    """
+    if not ensure_assignment and uptime_monitor.status != ObjectStatus.DISABLED:
+        return
+
+    seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
+    if not seat_assignment.assignable:
+        disable_project_uptime_subscription(uptime_monitor)
+        raise UptimeMonitorNoSeatAvailable(seat_assignment)
+
+    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, uptime_monitor)
+    if outcome != Outcome.ACCEPTED:
+        # Race condition, we were unable to assign the seat even though the
+        # earlier assignment check indicated assignability
+        disable_project_uptime_subscription(uptime_monitor)
+        raise UptimeMonitorNoSeatAvailable(None)
+
+    uptime_monitor.update(status=ObjectStatus.ACTIVE)
+    uptime_subscription = uptime_monitor.uptime_subscription
+
+    # The subscription was disabled, it can be re-activated now
+    if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
+        uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
+        create_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
 def delete_uptime_subscriptions_for_project(
@@ -276,6 +401,7 @@ def delete_uptime_subscriptions_for_project(
 
 def delete_project_uptime_subscription(subscription: ProjectUptimeSubscription):
     uptime_subscription = subscription.uptime_subscription
+    quotas.backend.disable_seat(DataCategory.UPTIME, subscription)
     subscription.delete()
     remove_uptime_subscription_if_unused(uptime_subscription)
 

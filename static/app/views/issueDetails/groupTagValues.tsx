@@ -217,7 +217,7 @@ export function GroupTagValues() {
               >
                 {key === 'user' ? (
                   <UserBadge
-                    user={{...tagValue, id: tagValue.id ?? ''}}
+                    user={{...tagValue, id: tagValue.id ?? tagValue.value}}
                     avatarSize={20}
                     hideEmail
                   />
@@ -261,7 +261,7 @@ export function GroupTagValues() {
                   key: 'open-in-discover',
                   label: t('Open in Discover'),
                   to: discoverView.getResultsViewUrlTarget(
-                    orgId,
+                    organization,
                     false,
                     hasDatasetSelector(organization)
                       ? SavedQueryDatasets.ERRORS

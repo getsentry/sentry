@@ -3,7 +3,6 @@ from typing import Any
 import orjson
 from django.http import HttpResponse, HttpResponseRedirect
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,15 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.profiles.utils import (
-    get_from_profiling_service,
-    parse_profile_filters,
-    proxy_profiling_service,
-)
+from sentry.profiles.utils import get_from_profiling_service, proxy_profiling_service
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
@@ -29,16 +23,6 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-
-    def get_profiling_params(self, request: Request, project: Project) -> dict[str, Any]:
-        try:
-            params: dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
-        except InvalidSearchQuery as err:
-            raise ParseError(detail=str(err))
-
-        params.update(self.get_filter_params(request, project))
-
-        return params
 
 
 @region_silo_endpoint

@@ -3,7 +3,13 @@ import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar/constants';
 import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
@@ -28,16 +34,14 @@ const PanelContainer = styled('div')<PositionProps>`
   ${p =>
     p.orientation === 'top'
       ? css`
-          top: ${p.theme.sidebar.mobileHeight};
+          top: ${SIDEBAR_MOBILE_HEIGHT};
           left: 0;
           right: 0;
         `
       : css`
           width: 460px;
           top: 0;
-          left: ${p.collapsed
-            ? p.theme.sidebar.collapsedWidth
-            : p.theme.sidebar.expandedWidth};
+          left: ${p.collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH};
         `};
 `;
 
@@ -60,7 +64,7 @@ const getSidebarPortal = () => {
   return portal as HTMLDivElement;
 };
 
-function SidebarPanel({
+export default function SidebarPanel({
   orientation,
   collapsed,
   hidePanel,
@@ -110,7 +114,7 @@ function SidebarPanel({
       {title ? (
         <SidebarPanelHeader>
           <Title>{title}</Title>
-          <PanelClose onClick={hidePanel} />
+          <PanelClose size="lg" onClick={hidePanel} aria-label={t('Close Panel')} />
         </SidebarPanelHeader>
       ) : null}
       <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
@@ -118,8 +122,6 @@ function SidebarPanel({
     portalEl.current
   );
 }
-
-export default SidebarPanel;
 
 const SidebarPanelHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
@@ -151,10 +153,6 @@ const PanelClose = styled(IconClose)`
     color: ${p => p.theme.textColor};
   }
 `;
-
-PanelClose.defaultProps = {
-  size: 'lg',
-};
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};

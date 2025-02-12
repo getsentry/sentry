@@ -137,14 +137,14 @@ function TeamStability({
     const sumSessionsCount = Math.floor(sumSessions.length / 7);
     const countSeriesWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
     countSeries.forEach(
-      (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)] += s.value)
+      (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)]! += s.value)
     );
 
     const sumSessionsWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
-    sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
+    sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)]! += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
-      name: countSeries[idx * 7].name,
+      name: countSeries[idx * 7]!.name,
       value: sumSessionsWeeklyTotals[idx]
         ? formatFloat((value / sumSessionsWeeklyTotals[idx]) * 100, 2)
         : 0,

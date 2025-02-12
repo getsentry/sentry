@@ -33,11 +33,11 @@ import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fiel
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -179,13 +179,17 @@ function OSBrowserDropdownFilter({
   );
 }
 
+const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
+
 function NumericDropdownFilter({
   type,
   val,
   triggerOverlay,
+  formatter = DEFAULT_NUMERIC_DROPDOWN_FORMATTER,
 }: {
   type: string;
   val: number;
+  formatter?: (val: number) => string;
   triggerOverlay?: boolean;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
@@ -197,7 +201,7 @@ function NumericDropdownFilter({
           label: 'Add to filter',
           onAction: generateAction({
             key: type,
-            value: val.toString(),
+            value: formatter(val),
             edit: 'set',
             location,
           }),
@@ -207,7 +211,7 @@ function NumericDropdownFilter({
           label: 'Show values greater than',
           onAction: generateAction({
             key: type,
-            value: '>' + val.toString(),
+            value: '>' + formatter(val),
             edit: 'set',
             location,
           }),
@@ -217,7 +221,7 @@ function NumericDropdownFilter({
           label: 'Show values less than',
           onAction: generateAction({
             key: type,
-            value: '<' + val.toString(),
+            value: '<' + formatter(val),
             edit: 'set',
             location,
           }),
@@ -227,7 +231,7 @@ function NumericDropdownFilter({
           label: t('Exclude from filter'),
           onAction: generateAction({
             key: type,
-            value: val.toString(),
+            value: formatter(val),
             edit: 'remove',
             location,
           }),
@@ -301,8 +305,13 @@ export function ReplayCell({
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
+  const replayDetailsPathname = makeReplaysPathname({
+    path: `/${replay.id}/`,
+    organization,
+  });
+
   const replayDetails = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    pathname: replayDetailsPathname,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
@@ -310,7 +319,7 @@ export function ReplayCell({
   };
 
   const replayDetailsDeadRage = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    pathname: replayDetailsPathname,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
@@ -528,7 +537,11 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
       <Container>
         <Duration duration={[replay.duration.asMilliseconds(), 'ms']} precision="sec" />
         {showDropdownFilters ? (
-          <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+          <NumericDropdownFilter
+            type="duration"
+            val={replay.duration.asSeconds()}
+            formatter={(val: number) => `${val}s`}
+          />
         ) : null}
       </Container>
     </Item>

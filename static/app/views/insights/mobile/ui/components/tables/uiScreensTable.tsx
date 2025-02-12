@@ -13,6 +13,7 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
@@ -90,7 +91,7 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     ),
   };
 
-  function renderBodyCell(column, row): React.ReactNode | null {
+  function renderBodyCell(column: any, row: any): React.ReactNode | null {
     if (!data) {
       return null;
     }
@@ -102,19 +103,21 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     if (field === 'transaction') {
       return (
         <Fragment>
-          <TopResultsIndicator count={TOP_SCREENS} index={index} />
-          <Link
-            to={`${moduleURL}/spans/?${qs.stringify({
-              ...location.query,
-              project: row['project.id'],
-              transaction: row.transaction,
-              primaryRelease,
-              secondaryRelease,
-            })}`}
-            style={{display: `block`, width: `100%`}}
-          >
-            {row.transaction}
-          </Link>
+          <OverflowEllipsisTextContainer>
+            <TopResultsIndicator count={TOP_SCREENS} index={index} />
+            <Link
+              to={`${moduleURL}/spans/?${qs.stringify({
+                ...location.query,
+                project: row['project.id'],
+                transaction: row.transaction,
+                primaryRelease,
+                secondaryRelease,
+              })}`}
+              style={{display: `block`, width: `100%`}}
+            >
+              {row.transaction}
+            </Link>
+          </OverflowEllipsisTextContainer>
         </Fragment>
       );
     }

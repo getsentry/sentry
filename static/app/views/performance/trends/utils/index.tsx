@@ -158,15 +158,15 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[1];
+  return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
 
 function getDefaultTrendParameter(
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const performanceType = platformToPerformanceType(projects, projectIds);
-  const trendParameter = performanceTypeToTrendParameterLabel(performanceType);
+  const trendParameter = performanceTypeToTrendParameterLabel(performanceType!);
 
   return trendParameter;
 }
@@ -174,7 +174,7 @@ function getDefaultTrendParameter(
 export function getCurrentTrendParameter(
   location: Location,
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
   const trendParameter = TRENDS_PARAMETERS.find(
@@ -342,8 +342,8 @@ export function transformValueDelta(value: number, trendType: TrendChangeType) {
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
-): Array<NormalizedTrendsTransaction> {
+  data: TrendsTransaction[]
+): NormalizedTrendsTransaction[] {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
     return {
@@ -355,19 +355,21 @@ export function normalizeTrends(
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendSelectedQueryKeys[trendChangeType];
 }
 
 export function getUnselectedSeries(trendChangeType: TrendChangeType) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendUnselectedSeries[trendChangeType];
 }
 
-export function movingAverage(data, index, size) {
+export function movingAverage(data: any, index: any, size: any) {
   return (
     data
       .slice(index - size, index)
-      .map(a => a.value)
-      .reduce((a, b) => a + b, 0) / size
+      .map((a: any) => a.value)
+      .reduce((a: any, b: any) => a + b, 0) / size
   );
 }
 
@@ -388,7 +390,7 @@ function getLimitTransactionItems(query: string) {
   return limitQuery.formatString();
 }
 
-export const smoothTrend = (data: [number, number][], resolution = 100) => {
+export const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
   return ASAP(data, resolution);
 };
 
@@ -421,6 +423,8 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
       currentData.map(({name, value}) => [Number(name), value])
     );
 
+    // smoothed is not iterable - only indexable
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < smoothed.length; i++) {
       const point = smoothed[i] as any;
       const value = point.y;

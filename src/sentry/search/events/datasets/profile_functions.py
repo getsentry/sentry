@@ -124,7 +124,7 @@ class ProfileFunctionNumericColumn(NumericColumn):
 
         raise InvalidFunctionArgument(f"{value} is not a numeric column")
 
-    def get_type(self, value: str) -> str:
+    def get_type(self, value: str) -> str:  # type: ignore[override]  # baseclass is unsound
         try:
             return COLUMN_MAP[value].kind.value
         except KeyError:

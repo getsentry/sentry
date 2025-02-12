@@ -87,7 +87,7 @@ interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
   frameInConfigSpace: Rect;
 }
 function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
-  const flamegraph = props.flamegraph as DifferentialFlamegraph;
+  const flamegraph = props.flamegraph;
   const count = useMemo(() => {
     return props.flamegraph.weights.get(props.frame.node);
   }, [props.frame, props.flamegraph]);
@@ -106,9 +106,9 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
 
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
+      canvasBounds={props.canvasBounds}
       canvasView={props.flamegraphView}
     >
       <FlamegraphTooltipFrameMainInfo>
@@ -140,7 +140,7 @@ interface AggregateFlamegraphTooltipProps extends FlamegraphTooltipProps {
 function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
+      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -173,7 +173,7 @@ interface FlamechartTooltipProps extends FlamegraphTooltipProps {
 function FlamechartTooltip(props: FlamechartTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
+      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -237,8 +237,9 @@ export const FlamegraphTooltipTimelineInfo = styled('div')`
 `;
 
 export const FlamegraphTooltipFrameMainInfo = styled('div')`
-  display: flex;
-  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
@@ -255,4 +256,5 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
+  transform: translateY(2px);
 `;

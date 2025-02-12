@@ -9,7 +9,6 @@ import sentry_sdk
 
 from sentry import features, options
 from sentry.exceptions import HashDiscarded
-from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
@@ -22,12 +21,13 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
-    create_or_update_grouphash_metadata,
+    create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -67,9 +67,7 @@ def _calculate_event_grouping(
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_fingerprinting(
-                event.data.data,
-                get_fingerprinting_config_for_project(project),
-                allow_custom_title=True,
+                event.data.data, get_fingerprinting_config_for_project(project)
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
@@ -218,7 +216,7 @@ def get_or_create_grouphashes(
     hashes: Sequence[str],
     grouping_config: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    is_secondary = grouping_config == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
     # The only utility of secondary hashes is to link new primary hashes to an existing group.
@@ -233,13 +231,17 @@ def get_or_create_grouphashes(
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            with metrics.timer("grouping.grouphashmetadata.create_or_update_grouphash_metadata"):
-                create_or_update_grouphash_metadata(
+            try:
+                # We don't expect this to throw any errors, but collecting this metadata
+                # shouldn't ever derail ingestion, so better to be safe
+                create_or_update_grouphash_metadata_if_needed(
                     event, project, grouphash, created, grouping_config, variants
                 )
+            except Exception as exc:
+                sentry_sdk.capture_exception(exc)
 
         if grouphash.metadata:
-            record_grouphash_metadata_metrics(grouphash.metadata)
+            record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
         else:
             # Collect a temporary metric to get a sense of how often we would be adding metadata to an
             # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given

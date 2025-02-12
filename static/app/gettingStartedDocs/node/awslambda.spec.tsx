@@ -4,7 +4,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './awslambda';
 
@@ -37,10 +37,10 @@ describe('awslambda onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
     ).toBeInTheDocument();
   });
 
@@ -102,10 +102,10 @@ describe('awslambda onboarding docs', function () {
 
     // Should have start and stop profiling calls
     expect(
-      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
     ).toBeInTheDocument();
   });
 });

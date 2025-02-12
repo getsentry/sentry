@@ -8,7 +8,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_with_silo_cache_list
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
@@ -61,16 +60,6 @@ class AppService(RpcService):
     ) -> RpcSentryAppInstallation | None:
         pass
 
-    @rpc_method
-    @abc.abstractmethod
-    def get_installed_for_organization(
-        self,
-        *,
-        organization_id: int,
-    ) -> list[RpcSentryAppInstallation]:
-        # Deprecated use installations_for_organization instead.
-        pass
-
     def installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
@@ -79,10 +68,7 @@ class AppService(RpcService):
 
         This is a cached wrapper around get_installations_for_organization
         """
-        if in_random_rollout("app_service.installations_for_org.cached"):
-            return get_installations_for_organization(organization_id)
-        else:
-            return self.get_installed_for_organization(organization_id=organization_id)
+        return get_installations_for_organization(organization_id)
 
     @rpc_method
     @abc.abstractmethod
@@ -188,6 +174,27 @@ class AppService(RpcService):
     def get_published_sentry_apps_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_internal_integrations(
+        self, *, organization_id: int, integration_name: str
+    ) -> list[RpcSentryApp]:
+        """
+        Get all internal integrations for an organization matching a specific name.
+
+        Internal integrations are Sentry Apps that are created for use within a single
+        organization and are not available to be installed by users.
+
+        Args:
+            organization_id (int): The ID of the organization to search within
+            integration_name (str): The name of the internal integration to find
+
+        Returns:
+            list[RpcSentryApp]: A list of serialized internal Sentry Apps matching the criteria.
+                               Returns an empty list if no matches are found.
+        """
         pass
 
     @rpc_method

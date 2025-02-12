@@ -19,6 +19,9 @@ class UserExamples:
                     "hasAuthProvider": False,
                     "id": "2",
                     "isEarlyAdopter": False,
+                    "allowMemberInvite": True,
+                    "allowMemberProjectCreation": True,
+                    "allowSuperuserAccess": False,
                     "links": {
                         "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
                         "regionUrl": "https://us.sentry.io",
@@ -30,41 +33,6 @@ class UserExamples:
                 }
             ],
             status_codes=["200"],
-            response_only=True,
-        )
-    ]
-
-    LIST_USER_EMAILS = [
-        OpenApiExample(
-            "List user emails",
-            value=[
-                {
-                    "email": "billy@sentry.io",
-                    "isPrimary": True,
-                    "isVerified": True,
-                },
-                {
-                    "email": "billybob@sentry.io",
-                    "isPrimary": False,
-                    "isVerified": True,
-                },
-            ],
-            status_codes=["200"],
-            response_only=True,
-        )
-    ]
-
-    ADD_SECONDARY_EMAIL = [
-        OpenApiExample(
-            "Adds a secondary email",
-            value=[
-                {
-                    "email": "billybob@sentry.io",
-                    "isPrimary": True,
-                    "isVerified": True,
-                },
-            ],
-            status_codes=["200", "201"],
             response_only=True,
         )
     ]

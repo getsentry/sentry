@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.mail.forms.assigned_to import AssignedToForm
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.team import Team
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules import EventState
@@ -16,20 +16,18 @@ from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.users.models.user import User
 
 
 class AssignedToFilter(EventFilter):
     id = "sentry.rules.filters.assigned_to.AssignedToFilter"
-    form_cls = AssignedToForm
     label = "The issue is assigned to {targetType}"
     prompt = "The issue is assigned to {no one/team/member}"
 
     form_fields = {"targetType": {"type": "assignee", "choices": ASSIGNEE_CHOICES}}
 
-    def get_assignees(self, group: Group) -> Sequence[Team | User]:
+    def get_assignees(self, group: Group) -> list[GroupAssignee]:
         cache_key = f"group:{group.id}:assignees"
-        assignee_list: Sequence[Team | User] | None = cache.get(cache_key)
+        assignee_list = cache.get(cache_key)
         if assignee_list is None:
             assignee_list = list(group.assignee_set.all())
             cache.set(cache_key, assignee_list, 60)
@@ -54,8 +52,7 @@ class AssignedToFilter(EventFilter):
             return False
 
     def get_form_instance(self) -> forms.Form:
-        form: forms.Form = self.form_cls(self.project, self.data)
-        return form
+        return AssignedToForm(self.project, self.data)
 
     def render_label(self) -> str:
         target_type = AssigneeTargetType(self.get_option("targetType"))
@@ -69,6 +66,9 @@ class AssignedToFilter(EventFilter):
 
         elif target_type == AssigneeTargetType.MEMBER:
             user = user_service.get_user(user_id=target_identifer)
-            return self.label.format(targetType=user.username)
+            if user is not None:
+                return self.label.format(targetType=user.username)
+            else:
+                return self.label.format(**self.data)
 
         return self.label.format(**self.data)

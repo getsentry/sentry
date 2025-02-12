@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -152,7 +152,11 @@ export default function MonitorCreateForm() {
                           name="config.schedule"
                           placeholder="* * * * *"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
-                          css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                          css={css`
+                            input {
+                              font-family: ${commonTheme.text.familyMono};
+                            }
+                          `}
                           required={selectedCrontab}
                           stacked
                           inline={false}

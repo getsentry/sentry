@@ -9,7 +9,7 @@ from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -38,27 +38,23 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
     def project(self):
         return self.create_project(organization=self.org, teams=[self.team])
 
-    @cached_property
-    def group(self):
-        return self.create_group(project=self.project)
-
 
 class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_simple(self):
         self.store_event(
-            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            data={"timestamp": self.day_ago.isoformat(), "tags": {"fruit": "apple"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "tags": {"fruit": "orange"}},
+            data={"timestamp": self.min_ago.isoformat(), "tags": {"fruit": "orange"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "tags": {"some_tag": "some_value"}},
+            data={"timestamp": self.min_ago.isoformat(), "tags": {"some_tag": "some_value"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "tags": {"fruit": "orange"}},
+            data={"timestamp": self.min_ago.isoformat(), "tags": {"fruit": "orange"}},
             project_id=self.project.id,
         )
 
@@ -73,12 +69,12 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_env(self):
         env2 = self.create_environment()
         self.store_event(
-            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            data={"timestamp": self.day_ago.isoformat(), "tags": {"fruit": "apple"}},
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "tags": {"fruit": "apple"},
                 "environment": self.environment.name,
             },
@@ -86,14 +82,14 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "tags": {"fruit": "apple"},
                 "environment": env2.name,
             },
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "tags": {"fruit": "orange"}},
+            data={"timestamp": self.min_ago.isoformat(), "tags": {"fruit": "orange"}},
             project_id=self.project.id,
         )
         self.run_test(
@@ -107,7 +103,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         for minute in range(1, 6):
             self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(minutes=minute * 10)),
+                    "timestamp": before_now(minutes=minute * 10).isoformat(),
                     "tags": {"fruit": "apple"},
                     "environment": self.environment.name,
                 },
@@ -117,7 +113,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         for minute in range(1, 5):
             self.store_event(
                 data={
-                    "timestamp": iso_format(self.min_ago),
+                    "timestamp": self.min_ago.isoformat(),
                     "tags": {"fruit": "orange"},
                     "environment": self.environment.name,
                 },
@@ -140,7 +136,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
     def test_invalid_sort_field(self):
         self.store_event(
-            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            data={"timestamp": self.day_ago.isoformat(), "tags": {"fruit": "apple"}},
             project_id=self.project.id,
         )
         response = self.get_response("fruit", sort="invalid_field")
@@ -171,23 +167,23 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
     def test_snuba_column(self):
         self.store_event(
-            data={"timestamp": iso_format(self.day_ago), "user": {"email": "foo@example.com"}},
+            data={"timestamp": self.day_ago.isoformat(), "user": {"email": "foo@example.com"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "user": {"email": "bar@example.com"}},
+            data={"timestamp": self.min_ago.isoformat(), "user": {"email": "bar@example.com"}},
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "user": {"email": "baz@example.com"},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "user": {"email": "baz@example.com"},
             },
             project_id=self.project.id,
@@ -199,20 +195,20 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
     def test_release(self):
         self.store_event(
-            data={"timestamp": iso_format(self.day_ago), "tags": {"sentry:release": "3.1.2"}},
+            data={"timestamp": self.day_ago.isoformat(), "tags": {"sentry:release": "3.1.2"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "tags": {"sentry:release": "4.1.2"}},
+            data={"timestamp": self.min_ago.isoformat(), "tags": {"sentry:release": "4.1.2"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.day_ago), "tags": {"sentry:release": "3.1.2"}},
+            data={"timestamp": self.day_ago.isoformat(), "tags": {"sentry:release": "3.1.2"}},
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "tags": {"sentry:release": "5.1.2"},
             },
             project_id=self.project.id,
@@ -221,11 +217,11 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
     def test_user_tag(self):
         self.store_event(
-            data={"tags": {"sentry:user": "1"}, "timestamp": iso_format(self.day_ago)},
+            data={"tags": {"sentry:user": "1"}, "timestamp": self.day_ago.isoformat()},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"tags": {"sentry:user": "2"}, "timestamp": iso_format(self.min_ago)},
+            data={"tags": {"sentry:user": "2"}, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.store_event(
@@ -317,7 +313,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_group_id_tag(self):
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago - timedelta(minutes=1)),
+                "timestamp": (self.day_ago - timedelta(minutes=1)).isoformat(),
                 "tags": {"group_id": "not-a-group-id-but-a-string"},
             },
             project_id=self.project.id,
@@ -327,21 +323,21 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_user_display(self):
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago - timedelta(minutes=1)),
+                "timestamp": (self.day_ago - timedelta(minutes=1)).isoformat(),
                 "user": {"email": "foo@example.com", "ip_address": "127.0.0.1"},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago - timedelta(minutes=2)),
+                "timestamp": (self.day_ago - timedelta(minutes=2)).isoformat(),
                 "user": {"username": "bazz", "ip_address": "192.168.0.1"},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago - timedelta(minutes=3)),
+                "timestamp": (self.day_ago - timedelta(minutes=3)).isoformat(),
                 "user": {"ip_address": "127.0.0.1"},
             },
             project_id=self.project.id,
@@ -463,6 +459,37 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
             expected=[("aaa@1.0", None), ("aba@1.0", None)],
         )
 
+    def test_simple_flags(self):
+        self.store_event(
+            data={
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": True}]}},
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": False}]}},
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:feature-flag-autocomplete": True}):
+            url = reverse(
+                "sentry-api-0-organization-tagkey-values",
+                kwargs={"organization_id_or_slug": self.org.slug, "key": "abc"},
+            )
+            response = self.client.get(url + "?useFlagsBackend=1")
+            assert response.status_code == 200
+            assert len(response.data) == 2
+
+            results = sorted(response.data, key=lambda i: i["value"])
+            assert results[0]["value"] == "false"
+            assert results[1]["value"] == "true"
+            assert results[0]["count"] == 1
+            assert results[1]["count"] == 1
+
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):
@@ -479,8 +506,8 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.transaction.update(
             {
                 "transaction": "/city_by_code/",
-                "timestamp": iso_format(before_now(seconds=30)),
-                "start_timestamp": iso_format(before_now(seconds=35)),
+                "timestamp": before_now(seconds=30).isoformat(),
+                "start_timestamp": before_now(seconds=35).isoformat(),
             }
         )
         self.transaction["contexts"]["trace"].update(

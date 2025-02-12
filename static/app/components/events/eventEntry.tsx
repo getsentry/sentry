@@ -77,10 +77,10 @@ function EventEntryContent({
       return <Csp event={event} data={entry.data} />;
 
     case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE:
+    case EntryType.EXPECTSTAPLE: {
       const {data, type} = entry;
       return <Generic type={type} data={data} />;
-
+    }
     case EntryType.HPKP:
       return (
         <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
@@ -154,11 +154,11 @@ function EventEntryContent({
 export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
         </InterimSection>
-      }
+      )}
     >
       <EventEntryContent {...props} />
     </ErrorBoundary>

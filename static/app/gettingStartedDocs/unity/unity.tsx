@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   OnboardingConfig,
@@ -12,8 +13,6 @@ import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -21,15 +20,6 @@ const getVerifySnippet = () => `
 using Sentry; // On the top of the script
 
 SentrySdk.CaptureMessage("Test event");`;
-
-const getMetricsConfigureSnippet = () => `
-public override void Configure(SentryUnityOptions options)
-{
-    options.ExperimentalMetrics = new ExperimentalMetricsOptions
-    {
-      EnableCodeLocations = true
-    };
-}`;
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -94,7 +84,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -128,6 +118,15 @@ const onboarding: OnboardingConfig = {
             }
           )}
         </Fragment>
+      ),
+    },
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.projectSlug}
+        />
       ),
     },
   ],
@@ -168,99 +167,10 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
   nextSteps: () => [],
 };
 
-const metricsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [codeVersion:2.0.0] of the Unity SDK installed.',
-        {
-          codeVersion: <code />,
-        }
-      ),
-    },
-  ],
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'Once the SDK is installed or updated, you can enable the experimental metrics feature and code locations being emitted in your RuntimeConfiguration.'
-      ),
-      configurations: [
-        {
-          language: 'csharp',
-          code: getMetricsConfigureSnippet(),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], [code:gauges], and [code:timings].",
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Counter',
-              value: 'counter',
-              language: 'csharp',
-              code: exampleSnippets.dotnet.counter,
-            },
-            {
-              label: 'Distribution',
-              value: 'distribution',
-              language: 'csharp',
-              code: exampleSnippets.dotnet.distribution,
-            },
-            {
-              label: 'Set',
-              value: 'set',
-              language: 'csharp',
-              code: exampleSnippets.dotnet.set,
-            },
-            {
-              label: 'Gauge',
-              value: 'gauge',
-              language: 'csharp',
-              code: exampleSnippets.dotnet.gauge,
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/unity/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-};
-
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboarding,
   crashReportOnboarding: feedbackOnboarding,
-  customMetricsOnboarding: metricsOnboarding,
 };
 
 export default docs;

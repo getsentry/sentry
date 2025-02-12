@@ -4,17 +4,21 @@ import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type AutofixDiffProps = {
@@ -22,6 +26,8 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   repoId?: string;
 };
 
@@ -42,7 +48,7 @@ function makeTestIdFromLineType(lineType: DiffLineType) {
 
 function addChangesToDiffLines(lines: DiffLineWithChanges[]): DiffLineWithChanges[] {
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     if (line.line_type === DiffLineType.CONTEXT) {
       continue;
     }
@@ -101,7 +107,7 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
 
 function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
-
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: {
       fileName: string;
@@ -122,6 +128,9 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
           },
         },
       });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));
@@ -175,7 +184,7 @@ function DiffHunkContent({
   }, []);
 
   const lineGroups = useMemo(() => {
-    const groups: {end: number; start: number; type: 'change' | DiffLineType}[] = [];
+    const groups: Array<{end: number; start: number; type: 'change' | DiffLineType}> = [];
     let currentGroup: (typeof groups)[number] | null = null;
 
     linesWithChanges.forEach((line, index) => {
@@ -289,7 +298,7 @@ function DiffHunkContent({
 
     // Update diff_line_no for all lines after the insertion
     for (let i = insertionIndex + newAddedLines.length; i < updatedLines.length; i++) {
-      updatedLines[i].diff_line_no = ++lastDiffLineNo;
+      updatedLines[i]!.diff_line_no = ++lastDiffLineNo;
     }
 
     updateHunk.mutate({hunkIndex, lines: updatedLines, repoId, fileName});
@@ -328,15 +337,15 @@ function DiffHunkContent({
   };
 
   const getStartLineNumber = (index: number, lineType: DiffLineType) => {
-    const line = linesWithChanges[index];
+    const line = linesWithChanges[index]!;
     if (lineType === DiffLineType.REMOVED) {
       return line.source_line_no;
     }
     if (lineType === DiffLineType.ADDED) {
       // Find the first non-null target_line_no
       for (let i = index; i < linesWithChanges.length; i++) {
-        if (linesWithChanges[i].target_line_no !== null) {
-          return linesWithChanges[i].target_line_no;
+        if (linesWithChanges[i]!.target_line_no !== null) {
+          return linesWithChanges[i]!.target_line_no;
         }
       }
     }
@@ -486,14 +495,21 @@ function FileDiff({
   runId,
   repoId,
   editable,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   repoId?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
@@ -503,7 +519,7 @@ function FileDiff({
           <FileAdded>+{file.added}</FileAdded>
           <FileRemoved>-{file.removed}</FileRemoved>
         </FileAddedRemoved>
-        <FileName>{file.path}</FileName>
+        <FileName title={file.path}>{file.path}</FileName>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
           aria-label={t('Toggle file diff')}
@@ -512,8 +528,22 @@ function FileDiff({
           borderless
         />
       </FileHeader>
+      {selection && (
+        <AutofixHighlightPopup
+          selectedText={selection.selectedText}
+          referenceElement={selection.referenceElement}
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount - 1
+              : -1
+          }
+        />
+      )}
       {isExpanded && (
-        <DiffContainer>
+        <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
             return (
               <DiffHunkContent
@@ -535,7 +565,15 @@ function FileDiff({
   );
 }
 
-export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDiffProps) {
+export function AutofixDiff({
+  diff,
+  groupId,
+  runId,
+  repoId,
+  editable,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
   }
@@ -550,6 +588,8 @@ export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDif
           runId={runId}
           repoId={repoId}
           editable={editable}
+          previousDefaultStepIndex={previousDefaultStepIndex}
+          previousInsightCount={previousInsightCount}
         />
       ))}
     </DiffsColumn>
@@ -597,7 +637,13 @@ const FileRemoved = styled('div')`
   color: ${p => p.theme.errorText};
 `;
 
-const FileName = styled('div')``;
+const FileName = styled('div')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+`;
 
 const DiffContainer = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
@@ -628,10 +674,10 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${p.theme.diff.added}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.textColor}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${p.theme.diff.removed}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.textColor}`};
 
   & + & {
     padding-left: 0;
@@ -648,10 +694,10 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${p.theme.diff.addedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.textColor}`};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${p.theme.diff.removedRow}; color: ${p.theme.textColor}`};
+    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.textColor}`};
 
   &::before {
     content: ${p =>
@@ -668,8 +714,8 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
 const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
   vertical-align: middle;
-  ${p => p.added && `background-color: ${p.theme.diff.added};`};
-  ${p => p.removed && `background-color: ${p.theme.diff.removed};`};
+  ${p => p.added && `background-color: ${DIFF_COLORS.added};`};
+  ${p => p.removed && `background-color: ${DIFF_COLORS.removed};`};
 `;
 
 const ButtonGroup = styled('div')`
@@ -683,17 +729,21 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
   background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.translucentGray100};
-  color: ${p =>
-    p.isHovered ? p.theme.button.default.color : p.theme.translucentGray200};
+    p.isHovered ? p.theme.button.default.background : p.theme.background};
+  color: ${p => (p.isHovered ? p.theme.pink400 : p.theme.textColor)};
   transition:
     background-color 0.2s ease-in-out,
     color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: ${p => p.theme.pink400}10;
+    color: ${p => p.theme.pink400};
+  }
 `;
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: 11rem;
+  bottom: ${space(2)};
   right: ${space(2)};
   left: calc(50% + ${space(2)});
   background: ${p => p.theme.backgroundElevated};
@@ -736,7 +786,7 @@ const RemovedLines = styled('div')`
 `;
 
 const RemovedLine = styled('div')`
-  background-color: ${p => p.theme.diff.removedRow};
+  background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
 `;
@@ -744,7 +794,7 @@ const RemovedLine = styled('div')`
 const StyledTextArea = styled(TextArea)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.diff.addedRow};
+  background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.border};
   position: relative;
 

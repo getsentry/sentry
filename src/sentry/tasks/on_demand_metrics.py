@@ -49,6 +49,10 @@ def _get_widget_processing_batch_key() -> str:
     return "on-demand-metrics:widgets:currently-processing-batch"
 
 
+def _get_project_for_query_cache_key(organization: Organization) -> str:
+    return f"on-demand-project-spec:{organization.id}"
+
+
 def get_field_cardinality_cache_key(
     query_column: str, organization: Organization, widget_cache_key: str
 ) -> str:
@@ -59,10 +63,6 @@ def get_field_cardinality_cache_key(
 
 def _set_currently_processing_batch(current_batch: int) -> None:
     cache.set(_get_widget_processing_batch_key(), current_batch, timeout=3600)
-
-
-def _set_cardinality_cache(cache_key: str, is_low_cardinality: bool) -> None:
-    cache.set(cache_key, is_low_cardinality, timeout=_WIDGET_QUERY_CARDINALITY_TTL)
 
 
 def _get_previous_processing_batch() -> int:
@@ -253,9 +253,16 @@ def _get_widget_on_demand_specs(
     """
     Saves on-demand state for a widget query.
     """
-    # This can just be the first project we find, since spec hashes should not be project
-    # dependent. If spec hashes become project dependent then this may need to change.
-    project_for_query = Project.objects.filter(organization=organization).first()
+    project_for_query = cache.get(_get_project_for_query_cache_key(organization), None)
+    if not cache.has_key(_get_project_for_query_cache_key(organization)):
+        # This can just be the first project we find, since spec hashes should not be project
+        # dependent. If spec hashes become project dependent then this may need to change.
+        project_for_query = Project.objects.filter(organization=organization).first()
+        cache.set(
+            _get_project_for_query_cache_key(organization),
+            project_for_query,
+            timeout=_COLUMN_CARDINALITY_TTL,
+        )
 
     if not project_for_query:
         return []

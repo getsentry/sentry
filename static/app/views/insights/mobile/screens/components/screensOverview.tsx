@@ -56,9 +56,9 @@ function useMetrics(
 
   const newQuery: NewQuery = {
     name: '',
-    fields: fields,
+    fields,
     query: queryString,
-    dataset: dataset,
+    dataset,
     version: 2,
     projects: selection.projects,
   };
@@ -71,7 +71,7 @@ function useMetrics(
     eventView: tableEventView,
     ...useTableQuery({
       eventView: tableEventView,
-      enabled: enabled,
+      enabled,
       referrer: Referrer.SCREENS_SCREEN_TABLE,
     }),
   };
@@ -85,7 +85,7 @@ export function ScreensOverview() {
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const [visibleScreens, setVisibleScreens] = useState<string[]>([]);
   const sortedBy = decodeScalar(location.query.sort, '-count');
-  const sortField = decodeSorts([sortedBy])[0].field;
+  const sortField = decodeSorts([sortedBy])[0]!.field;
 
   const transactionMetricsDataset = DiscoverDatasets.METRICS;
   const transactionMetricsFields = [
@@ -102,8 +102,8 @@ export function ScreensOverview() {
   const spanMetricsFields = [
     SpanMetricsField.PROJECT_ID,
     SpanMetricsField.TRANSACTION,
-    `avg(mobile.slow_frames)`,
-    `avg(mobile.frozen_frames)`,
+    `division(mobile.slow_frames,mobile.total_frames)`,
+    `division(mobile.frozen_frames,mobile.total_frames)`,
     `avg(mobile.frames_delay)`,
   ];
 
@@ -115,6 +115,7 @@ export function ScreensOverview() {
 
   const secondaryDataset = isSpanPrimary ? transactionMetricsDataset : spanMetricsDataset;
   const secondaryFields = isSpanPrimary ? transactionMetricsFields : spanMetricsFields;
+  const hasVisibleScreens = visibleScreens.length > 0;
 
   const {
     data: primaryData,
@@ -139,13 +140,13 @@ export function ScreensOverview() {
     selection,
     location,
     undefined,
-    visibleScreens.length > 0,
+    hasVisibleScreens,
     visibleScreens
   );
 
   useEffect(() => {
     if (primaryData) {
-      const screens: string[] = new Array();
+      const screens: string[] = [];
       primaryData?.data.forEach(row => {
         if (row.transaction) {
           screens.push(String(row.transaction));
@@ -192,8 +193,7 @@ export function ScreensOverview() {
     return primaryData;
   }, [primaryData, secondaryData]);
 
-  const loading = primaryLoading || secondaryLoading;
-
+  const loading = primaryLoading || (hasVisibleScreens && secondaryLoading);
   return (
     <Container>
       <SearchBar
@@ -209,7 +209,7 @@ export function ScreensOverview() {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screen')}
         additionalConditions={tableSearchFilters}
       />

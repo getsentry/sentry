@@ -116,7 +116,8 @@ function TeamIssuesBreakdown({
       }
 
       for (const key of keys) {
-        projectTotals[projectId][key] += counts[key];
+        projectTotals[projectId][key as keyof StatusCounts] +=
+          counts[key as keyof StatusCounts]!;
       }
 
       if (!allReviewedByDay[projectId]) {
@@ -135,16 +136,23 @@ function TeamIssuesBreakdown({
     .map(([projectId, {total}]) => ({projectId, total}))
     .sort((a, b) => b.total - a.total);
 
-  const allSeries = Object.keys(allReviewedByDay).map(
-    (projectId, idx): BarChartSeries => ({
-      seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-      data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
-      animationDuration: 500,
-      animationDelay: idx * 500,
-      silent: true,
-      barCategoryGap: '5%',
-    })
-  );
+  // There are projects with more than 0 results
+  const hasResults = sortedProjectIds.some(({total}) => total !== 0);
+  const allSeries = Object.keys(allReviewedByDay)
+    // Hide projects with no results when there are other projects with results
+    .filter(projectId => (hasResults ? projectTotals[projectId]!.total !== 0 : true))
+    .map(
+      (projectId, idx): BarChartSeries => ({
+        seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+        data: sortSeriesByDay(
+          convertDayValueObjectToSeries(allReviewedByDay[projectId]!)
+        ),
+        animationDuration: 500,
+        animationDelay: idx * 500,
+        silent: true,
+        barCategoryGap: '5%',
+      })
+    );
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
@@ -197,10 +205,10 @@ function TeamIssuesBreakdown({
                     </ProjectBadgeContainer>
                     {statuses.map(action => (
                       <AlignRight key={action}>
-                        {projectTotals[projectId][action]}
+                        {projectTotals[projectId]![action]}
                       </AlignRight>
                     ))}
-                    <AlignRight>{projectTotals[projectId].total}</AlignRight>
+                    <AlignRight>{projectTotals[projectId]!.total}</AlignRight>
                   </Fragment>
                 );
               })}

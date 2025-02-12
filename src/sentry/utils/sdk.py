@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
@@ -23,10 +22,10 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
-from sentry.features.rollout import in_random_rollout
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-from sentry.utils.flag import get_flags_serialized
+from sentry.utils.flag import FlagPoleIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -50,6 +49,7 @@ UNSAFE_FILES = (
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
+    "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
@@ -72,8 +72,6 @@ SAMPLED_TASKS = {
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
@@ -242,11 +240,6 @@ def before_send(event: Event, _: Hint) -> Event | None:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
-
-    if "contexts" not in event:
-        event["contexts"] = {}
-    event["contexts"]["flags"] = {"values": get_flags_serialized()}
-
     return event
 
 
@@ -451,8 +444,6 @@ def configure_sdk():
         "schedule-digests",
     ]
 
-    enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
-
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -460,7 +451,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False, cache_spans=enable_cache_spans),
+            DjangoIntegration(signals_spans=False, cache_spans=True),
             CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
@@ -470,6 +461,7 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
+            FlagPoleIntegration(),
         ],
         **sdk_options,
     )

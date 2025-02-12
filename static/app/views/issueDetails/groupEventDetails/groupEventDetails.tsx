@@ -10,19 +10,16 @@ import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -45,8 +42,9 @@ import {
 } from '../utils';
 
 function GroupEventDetails() {
-  const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
   const params = useParams<{groupId: string; orgId: string; eventId?: string}>();
   const environments = useEnvironmentsFromUrl();
 
@@ -58,7 +56,6 @@ function GroupEventDetails() {
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
-    environments,
   });
 
   const {
@@ -99,14 +96,15 @@ function GroupEventDetails() {
     ) {
       const shouldRedirect =
         environments.length > 0 &&
-        !environments.find(env => env === getEventEnvironment(prevEvent as Event));
+        !environments.find(env => env === getEventEnvironment(prevEvent));
 
       if (shouldRedirect) {
-        browserHistory.replace(
-          normalizeUrl({
+        navigate(
+          {
             pathname: `/organizations/${organization.slug}/issues/${params.groupId}/`,
             query: location.query,
-          })
+          },
+          {replace: true}
         );
         return;
       }
@@ -118,6 +116,7 @@ function GroupEventDetails() {
     organization.slug,
     params,
     prevEvent,
+    navigate,
   ]);
 
   // Group and project should already be loaded, but we can render a loading state if it's not
@@ -152,7 +151,8 @@ function GroupEventDetails() {
           <ResolutionBox
             statusDetails={group.statusDetails}
             activities={group.activity}
-            projectId={project.id}
+            project={project}
+            organization={organization}
           />
         </GroupStatusBannerWrapper>
       );
@@ -163,13 +163,11 @@ function GroupEventDetails() {
 
   const renderContent = () => {
     if (isLoadingEvent) {
-      if (hasStreamlinedUI) {
-        return <GroupEventDetailsLoading />;
-      }
-      return <LoadingIndicator />;
+      return hasStreamlinedUI ? <GroupEventDetailsLoading /> : <LoadingIndicator />;
     }
 
-    if (isEventError) {
+    // The streamlined UI uses a different error interface
+    if (isEventError && !hasStreamlinedUI) {
       return (
         <GroupEventDetailsLoadingError
           environments={environments}
@@ -193,59 +191,50 @@ function GroupEventDetails() {
 
   return (
     <AnalyticsArea name="issue_details">
-      <TransactionProfileIdProvider
-        projectId={event?.projectID}
-        transactionId={event?.type === 'transaction' ? event.id : undefined}
-        timestamp={event?.dateReceived}
+      <VisuallyCompleteWithData
+        id="IssueDetails-EventBody"
+        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
+        isLoading={isLoadingEvent}
       >
-        <VisuallyCompleteWithData
-          id="IssueDetails-EventBody"
-          hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
-          isLoading={isLoadingEvent}
-        >
-          <LayoutBody data-test-id="group-event-details">
-            {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-              <ReprocessingProgress
-                totalEvents={
-                  (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
-                    .data.eventCount
-                }
-                pendingEvents={
-                  (group.statusDetails as GroupReprocessing['statusDetails'])
-                    .pendingEvents
-                }
-              />
-            ) : (
-              <Fragment>
-                <MainLayoutComponent>
-                  {!hasStreamlinedUI && renderGroupStatusBanner()}
-                  {eventWithMeta &&
-                    issueTypeConfig.stats.enabled &&
-                    !hasStreamlinedUI && (
-                      <GroupEventHeader
-                        group={group}
-                        event={eventWithMeta}
-                        project={project}
-                      />
-                    )}
-                  {renderContent()}
-                </MainLayoutComponent>
-                {hasStreamlinedUI ? null : (
-                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
-                    <GroupSidebar
-                      organization={organization}
-                      project={project}
-                      group={group}
-                      event={eventWithMeta}
-                      environments={environments}
-                    />
-                  </StyledLayoutSide>
+        <LayoutBody data-test-id="group-event-details">
+          {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+            <ReprocessingProgress
+              totalEvents={
+                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                  .data.eventCount
+              }
+              pendingEvents={
+                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
+              }
+            />
+          ) : (
+            <Fragment>
+              <MainLayoutComponent>
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
+                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
+                  <GroupEventHeader
+                    group={group}
+                    event={eventWithMeta}
+                    project={project}
+                  />
                 )}
-              </Fragment>
-            )}
-          </LayoutBody>
-        </VisuallyCompleteWithData>
-      </TransactionProfileIdProvider>
+                {renderContent()}
+              </MainLayoutComponent>
+              {hasStreamlinedUI ? null : (
+                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                  <GroupSidebar
+                    organization={organization}
+                    project={project}
+                    group={group}
+                    event={eventWithMeta}
+                    environments={environments}
+                  />
+                </StyledLayoutSide>
+              )}
+            </Fragment>
+          )}
+        </LayoutBody>
+      </VisuallyCompleteWithData>
     </AnalyticsArea>
   );
 }

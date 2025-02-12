@@ -1,7 +1,7 @@
 import logging
 
 import sentry_sdk
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,11 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
-from sentry.coreapi import APIUnauthorized
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +46,13 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
         scope.set_tag("sentry_app_slug", installation.sentry_app.slug)
 
         try:
-            if request.json_body.get("grant_type") == GrantTypes.AUTHORIZATION:
+            if request.data.get("grant_type") == GrantTypes.AUTHORIZATION:
                 auth_serializer: SentryAppAuthorizationSerializer = (
                     SentryAppAuthorizationSerializer(data=request.data)
                 )
 
                 if not auth_serializer.is_valid():
-                    return Response(auth_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(auth_serializer.errors, status=400)
 
                 token = GrantExchanger(
                     install=installation,
@@ -60,11 +60,11 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     client_id=auth_serializer.validated_data.get("client_id"),
                     user=promote_request_api_user(request),
                 ).run()
-            elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
+            elif request.data.get("grant_type") == GrantTypes.REFRESH:
                 refresh_serializer = SentryAppRefreshAuthorizationSerializer(data=request.data)
 
                 if not refresh_serializer.is_valid():
-                    return Response(refresh_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(refresh_serializer.errors, status=400)
 
                 token = Refresher(
                     install=installation,
@@ -73,11 +73,11 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             else:
-                return Response({"error": "Invalid grant_type"}, status=403)
-        except APIUnauthorized as e:
-            logger.warning(
-                e,
-                exc_info=True,
+                raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
+        except SentryAppIntegratorError as e:
+            logger.info(
+                "sentry-app-authorizations.error-context",
+                exc_info=e,
                 extra={
                     "user_id": request.user.id,
                     "sentry_app_installation_id": installation.id,
@@ -85,9 +85,9 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     "sentry_app_id": installation.sentry_app.id,
                 },
             )
-            return Response({"error": e.msg or "Unauthorized"}, status=403)
+            raise
 
-        attrs = {"state": request.json_body.get("state"), "application": None}
+        attrs = {"state": request.data.get("state"), "application": None}
 
         body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
 

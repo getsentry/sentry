@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q, Sum
@@ -13,8 +15,10 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import BaseOrganizationSerializer
-from sentry.api.serializers.types import OrganizationSerializerResponse
+from sentry.api.serializers.models.organization import (
+    BaseOrganizationSerializer,
+    OrganizationSerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
@@ -22,6 +26,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.issues.streamline import apply_streamline_rollout_group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectplatform import ProjectPlatform
@@ -34,6 +39,8 @@ from sentry.services.organization import (
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
 from sentry.users.services.user.service import user_service
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
@@ -120,6 +127,9 @@ class OrganizationIndexEndpoint(Endpoint):
                     "organization"
                 )
             )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         query = request.GET.get("query")
         if query:
@@ -231,70 +241,73 @@ class OrganizationIndexEndpoint(Endpoint):
 
         serializer = OrganizationPostSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                create_default_team = bool(result.get("defaultTeam"))
-                provision_args = OrganizationProvisioningOptions(
-                    provision_options=OrganizationOptions(
-                        name=result["name"],
-                        slug=result.get("slug") or result["name"],
-                        owning_user_id=request.user.id,
-                        create_default_team=create_default_team,
-                    ),
-                    post_provision_options=PostProvisionOptions(
-                        getsentry_options=None, sentry_options=None
-                    ),
-                )
+        result = serializer.validated_data
 
-                rpc_org = organization_provisioning_service.provision_organization_in_region(
-                    region_name=settings.SENTRY_REGION or settings.SENTRY_MONOLITH_REGION,
-                    provisioning_options=provision_args,
-                )
-                org = Organization.objects.get(id=rpc_org.id)
+        try:
+            create_default_team = bool(result.get("defaultTeam"))
+            provision_args = OrganizationProvisioningOptions(
+                provision_options=OrganizationOptions(
+                    name=result["name"],
+                    slug=result.get("slug") or result["name"],
+                    owning_user_id=request.user.id,
+                    create_default_team=create_default_team,
+                ),
+                post_provision_options=PostProvisionOptions(
+                    getsentry_options=None, sentry_options=None
+                ),
+            )
 
-                org_setup_complete.send_robust(
-                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
-                )
+            rpc_org = organization_provisioning_service.provision_organization_in_region(
+                region_name=settings.SENTRY_REGION or settings.SENTRY_MONOLITH_REGION,
+                provisioning_options=provision_args,
+            )
+            org = Organization.objects.get(id=rpc_org.id)
 
-                self.create_audit_entry(
-                    request=request,
-                    organization=org,
-                    target_object=org.id,
-                    event=audit_log.get_event_id("ORG_ADD"),
-                    data=org.get_audit_log_data(),
-                )
+            org_setup_complete.send_robust(
+                instance=org, user=request.user, sender=self.__class__, referrer="in-app"
+            )
 
-                analytics.record(
-                    "organization.created",
-                    org,
-                    actor_id=request.user.id if request.user.is_authenticated else None,
-                )
+            self.create_audit_entry(
+                request=request,
+                organization=org,
+                target_object=org.id,
+                event=audit_log.get_event_id("ORG_ADD"),
+                data=org.get_audit_log_data(),
+            )
 
-            # TODO(hybrid-cloud): We'll need to catch a more generic error
-            # when the internal RPC is implemented.
-            except IntegrityError:
-                return Response(
-                    {"detail": "An organization with this slug already exists."}, status=409
-                )
+            analytics.record(
+                "organization.created",
+                org,
+                actor_id=request.user.id if request.user.is_authenticated else None,
+            )
 
-            # failure on sending this signal is acceptable
-            if result.get("agreeTerms"):
-                terms_accepted.send_robust(
-                    user=request.user,
-                    organization_id=org.id,
-                    ip_address=request.META["REMOTE_ADDR"],
-                    sender=type(self),
-                )
+        # TODO(hybrid-cloud): We'll need to catch a more generic error
+        # when the internal RPC is implemented.
+        except IntegrityError:
+            return Response(
+                {"detail": "An organization with this slug already exists."}, status=409
+            )
 
-            if result.get("aggregatedDataConsent"):
-                org.update_option("sentry:aggregated_data_consent", True)
+        # failure on sending this signal is acceptable
+        if result.get("agreeTerms"):
+            terms_accepted.send_robust(
+                user=request.user,
+                organization_id=org.id,
+                ip_address=request.META["REMOTE_ADDR"],
+                sender=type(self),
+            )
 
-                analytics.record(
-                    "aggregated_data_consent.organization_created",
-                    organization_id=org.id,
-                )
+        if result.get("aggregatedDataConsent"):
+            org.update_option("sentry:aggregated_data_consent", True)
 
-            return Response(serialize(org, request.user), status=201)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            analytics.record(
+                "aggregated_data_consent.organization_created",
+                organization_id=org.id,
+            )
+
+        apply_streamline_rollout_group(organization=org)
+
+        return Response(serialize(org, request.user), status=201)

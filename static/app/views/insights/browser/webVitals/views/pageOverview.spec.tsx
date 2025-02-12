@@ -14,7 +14,7 @@ describe('PageOverview', function () {
     features: ['insights-initial-modules'],
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -154,22 +154,28 @@ describe('PageOverview', function () {
             dataset: 'spansIndexed',
             field: [
               'measurements.inp',
+              'measurements.lcp',
+              'measurements.cls',
               'measurements.score.inp',
-              'measurements.score.weight.inp',
+              'measurements.score.lcp',
+              'measurements.score.cls',
               'measurements.score.total',
-              'span_id',
-              'timestamp',
+              'trace',
               'profile_id',
               'replay.id',
               'user',
-              'origin.transaction',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
-              'browser.name',
-              'span.self_time',
               'span.description',
+              'timestamp',
+              'span.self_time',
+              'transaction',
             ],
             query:
-              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
+              'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
           }),
         })
       )
@@ -201,22 +207,28 @@ describe('PageOverview', function () {
             dataset: 'spansIndexed',
             field: [
               'measurements.inp',
+              'measurements.lcp',
+              'measurements.cls',
               'measurements.score.inp',
-              'measurements.score.weight.inp',
+              'measurements.score.lcp',
+              'measurements.score.cls',
               'measurements.score.total',
-              'span_id',
-              'timestamp',
+              'trace',
               'profile_id',
               'replay.id',
               'user',
-              'origin.transaction',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
-              'browser.name',
-              'span.self_time',
               'span.description',
+              'timestamp',
+              'span.self_time',
+              'transaction',
             ],
             query:
-              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
+              'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
           }),
         })
       )

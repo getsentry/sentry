@@ -10,7 +10,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import AuditLogList from './auditLogList';
 
@@ -126,7 +126,7 @@ function OrganizationAuditLog({location}: Props) {
           onCursor={handleCursor}
         />
       ) : (
-        <PermissionAlert />
+        <OrganizationPermissionAlert />
       )}
     </Fragment>
   );

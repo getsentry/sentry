@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Literal, TypedDict, overload
+from typing import Literal, NotRequired, TypedDict, TypeIs, overload
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -27,7 +27,6 @@ __all__ = (
     "Tag",
     "TagValue",
     "MetricMeta",
-    "MetricMetaWithTagKeys",
     "OPERATIONS",
     "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
@@ -141,7 +140,20 @@ MetricEntity = Literal[
     "generic_metrics_gauges",
 ]
 
-OP_TO_SNUBA_FUNCTION = {
+
+def is_metric_entity(s: str) -> TypeIs[MetricEntity]:
+    return s in {
+        "metrics_counters",
+        "metrics_sets",
+        "metrics_distributions",
+        "generic_metrics_counters",
+        "generic_metrics_sets",
+        "generic_metrics_distributions",
+        "generic_metrics_gauges",
+    }
+
+
+OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {
     "metrics_counters": {
         "sum": "sumIf",
         "min_timestamp": "minIf",
@@ -169,7 +181,7 @@ OP_TO_SNUBA_FUNCTION = {
         "max_timestamp": "maxIf",
     },
 }
-GENERIC_OP_TO_SNUBA_FUNCTION = {
+GENERIC_OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
@@ -275,9 +287,6 @@ AVAILABLE_GENERIC_OPERATIONS = {
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
-GENERIC_OPERATIONS_TO_ENTITY = {
-    op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
-}
 
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
@@ -331,24 +340,14 @@ class TagValue(TypedDict):
     value: str
 
 
-class BlockedMetric(TypedDict):
-    isBlocked: bool
-    blockedTags: Sequence[str]
-    projectId: int
-
-
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: MetricUnit | None
+    metric_id: NotRequired[int]
     mri: str
     projectIds: Sequence[int]
-    blockingStatus: Sequence[BlockedMetric] | None
-
-
-class MetricMetaWithTagKeys(MetricMeta):
-    tags: Sequence[Tag]
 
 
 OPERATIONS_PERCENTILES = (
@@ -401,7 +400,7 @@ DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] =
     "percentage": None,
     "last": None,
 }
-UNIT_TO_TYPE = {
+UNIT_TO_TYPE: dict[str, MetricOperationType] = {
     "sessions": "count",
     "percentage": "percentage",
     "users": "count",

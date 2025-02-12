@@ -70,7 +70,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get provider() {
-    return this.state.information.providers[0];
+    return this.state.information.providers[0]!;
   }
 
   get description() {
@@ -255,7 +255,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <IntegrationContext.Provider
         value={{
-          provider: provider,
+          provider,
           type: this.integrationType,
           installStatus: this.installationStatus,
           analyticsParams: {

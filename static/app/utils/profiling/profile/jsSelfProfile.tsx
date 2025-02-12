@@ -41,8 +41,8 @@ export class JSSelfProfile extends Profile {
       );
     }
 
-    const startedAt = profile.samples[0].timestamp;
-    const endedAt = profile.samples[profile.samples.length - 1]?.timestamp;
+    const startedAt = profile.samples[0]!.timestamp;
+    const endedAt = profile.samples[profile.samples.length - 1]?.timestamp!;
 
     const jsSelfProfile = new JSSelfProfile({
       duration: endedAt - startedAt,
@@ -66,9 +66,9 @@ export class JSSelfProfile extends Profile {
       jsSelfProfile.appendSample(
         resolveJSSelfProfilingStack(
           profile,
-          profile.samples[0].stackId,
+          profile.samples[0]!.stackId,
           frameIndex,
-          profile.samples[0].marker
+          profile.samples[0]!.marker
         ),
         0
       );
@@ -80,26 +80,26 @@ export class JSSelfProfile extends Profile {
       // When gc is triggered, the stack may be indicated as empty. In that case, the thread was not idle
       // and we should append gc to the top of the previous stack.
       // https://github.com/WICG/js-self-profiling/issues/59
-      if (samples[i].marker === 'gc' && options.type === 'flamechart') {
+      if (samples[i]!.marker === 'gc' && options.type === 'flamechart') {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,
             // use the previous sample
-            samples[i - 1].stackId,
+            samples[i - 1]!.stackId,
             frameIndex,
-            samples[i].marker
+            samples[i]!.marker
           ),
-          samples[i].timestamp - samples[i - 1].timestamp
+          samples[i]!.timestamp - samples[i - 1]!.timestamp
         );
       } else {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,
-            samples[i].stackId,
+            samples[i]!.stackId,
             frameIndex,
-            samples[i].marker
+            samples[i]!.marker
           ),
-          samples[i].timestamp - samples[i - 1].timestamp
+          samples[i]!.timestamp - samples[i - 1]!.timestamp
         );
       }
     }
@@ -132,10 +132,10 @@ export class JSSelfProfile extends Profile {
       let stackHeight = framesInStack.length - 1;
 
       while (stackHeight >= 0) {
-        if (framesInStack[stackHeight].frame === node.frame) {
+        if (framesInStack[stackHeight]!.frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[stackHeight].recursive = node;
-          node.recursive = framesInStack[stackHeight];
+          framesInStack[stackHeight]!.recursive = node;
+          node.recursive = framesInStack[stackHeight]!;
           break;
         }
         stackHeight--;
@@ -166,7 +166,7 @@ export class JSSelfProfile extends Profile {
 
     // If node is the same as the previous sample, add the weight to the previous sample
     if (node === this.samples[this.samples.length - 1]) {
-      this.weights[this.weights.length - 1] += weight;
+      this.weights[this.weights.length - 1]! += weight;
     } else {
       this.samples.push(node);
       this.weights.push(weight);

@@ -29,16 +29,17 @@ export type ValidSort = Sort & {
  */
 export function useResourceSort(
   sortParameterName: QueryParameterNames | 'sort' = 'sort',
-  fallback: Sort = DEFAULT_SORT
-) {
+  fallback: ValidSort = DEFAULT_SORT
+): ValidSort {
   const location = useLocation<Query>();
 
   return (
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
   );
 }
 
-const DEFAULT_SORT: Sort = {
+const DEFAULT_SORT: ValidSort = {
   kind: 'desc',
   field: SORTABLE_FIELDS[4],
 };

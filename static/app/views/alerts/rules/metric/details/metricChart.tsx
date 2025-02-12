@@ -25,7 +25,6 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -35,7 +34,6 @@ import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -47,7 +45,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -97,7 +94,6 @@ type Props = WithRouterProps & {
   formattedAggregate?: string;
   incidents?: Incident[];
   isOnDemandAlert?: boolean;
-  selectedIncident?: Incident | null;
 };
 
 type State = Record<string, never>;
@@ -114,12 +110,12 @@ function getRuleChangeSeries(
   data: AreaChartSeries[]
 ): LineSeriesOption[] {
   const {dateModified} = rule;
-  if (!data.length || !data[0].data.length || !dateModified) {
+  if (!data.length || !data[0]!.data.length || !dateModified) {
     return [];
   }
 
-  const seriesData = data[0].data;
-  const seriesStart = new Date(seriesData[0].name).getTime();
+  const seriesData = data[0]!.data;
+  const seriesStart = new Date(seriesData[0]!.name).getTime();
   const ruleChanged = new Date(dateModified).getTime();
 
   if (ruleChanged < seriesStart) {
@@ -254,13 +250,20 @@ class MetricChart extends PureComponent<Props, State> {
             </StyledSectionValue>
           </Fragment>
         </StyledInlineContainer>
-        {!isSessionAggregate(rule.aggregate) && (
-          <Feature features="discover-basic">
-            <Button size="sm" {...props}>
-              {buttonText}
-            </Button>
-          </Feature>
-        )}
+        {!isSessionAggregate(rule.aggregate) &&
+          (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            <Feature features="visibility-explore-view">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ) : (
+            <Feature features="discover-basic">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ))}
       </StyledChartControls>
     );
   }
@@ -274,7 +277,6 @@ class MetricChart extends PureComponent<Props, State> {
     const {
       anomalies,
       router,
-      selectedIncident,
       interval,
       filter,
       incidents,
@@ -310,7 +312,6 @@ class MetricChart extends PureComponent<Props, State> {
       seriesName: formattedAggregate,
       incidents,
       anomalies,
-      selectedIncident,
       showWaitingForData:
         shouldShowOnDemandMetricAlertUI(organization) && this.props.isOnDemandAlert,
       handleIncidentClick,
@@ -379,9 +380,10 @@ class MetricChart extends PureComponent<Props, State> {
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
+                        // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
                         const {marker, data: pointData} = pointSeries[0];
                         const seriesName =
-                          formattedAggregate ?? pointSeries[0].seriesName ?? '';
+                          formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(
                           pointY,
@@ -398,10 +400,7 @@ class MetricChart extends PureComponent<Props, State> {
                           period: `${timeWindow}`,
                         };
                         const endTime = formatTooltipDate(
-                          moment(pointX).add(
-                            parseInt(period, 10),
-                            periodLength as StatsPeriodType
-                          ),
+                          moment(pointX).add(parseInt(period!, 10), periodLength),
                           'MMM D LT'
                         );
 
@@ -412,6 +411,7 @@ class MetricChart extends PureComponent<Props, State> {
                               )
                             : undefined;
 
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         const comparisonPointY = comparisonSeries?.data[1] as
                           | number
                           | undefined;
@@ -493,7 +493,7 @@ class MetricChart extends PureComponent<Props, State> {
       loading ||
       !this.props.isOnDemandAlert ||
       !shouldShowOnDemandMetricAlertUI(organization) ||
-      !isEmptySeries(timeseriesData[0])
+      !isEmptySeries(timeseriesData[0]!)
     ) {
       return null;
     }
@@ -529,7 +529,6 @@ class MetricChart extends PureComponent<Props, State> {
       query,
       location,
       isOnDemandAlert,
-      selectedIncident,
     } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
@@ -548,38 +547,31 @@ class MetricChart extends PureComponent<Props, State> {
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData dataset
-    const viableStartDate = getUtcDateString(
+    let viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
         moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
 
+    // Events Analytics Platform Span queries only support up to 2016 buckets.
+    // 14 day 10m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
+    // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
+    if (
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.FOURTEEN_DAYS &&
+      interval === '10m'
+    ) {
+      viableStartDate = getUtcDateString(
+        moment.utc(viableStartDate).add(timeWindow, 'minutes')
+      );
+    }
+
     const viableEndDate = getUtcDateString(
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    let activationFilter = '';
-    if (
-      rule.monitorType === MonitorType.ACTIVATED &&
-      selectedIncident &&
-      selectedIncident.activation
-    ) {
-      const {activation} = selectedIncident;
-      const {activator, conditionType} = activation;
-      switch (conditionType) {
-        case String(ActivationConditionType.RELEASE_CREATION):
-          activationFilter = ` AND (release:${activator})`;
-          break;
-        case String(ActivationConditionType.DEPLOY_CREATION):
-          activationFilter = ` AND (deploy:${activator})`;
-          break;
-        default:
-          break;
-      }
-    }
-
-    const alertType = getAlertTypeFromAggregateDataset(rule);
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -588,7 +580,6 @@ class MetricChart extends PureComponent<Props, State> {
         newAlertOrQuery: false,
         useOnDemandMetrics: isOnDemandAlert,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
     };
 
     if (shouldUseErrorsDataset(dataset, query)) {
@@ -603,8 +594,9 @@ class MetricChart extends PureComponent<Props, State> {
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
-        query={query + activationFilter}
+        query={query}
         interval={interval}
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >
@@ -620,7 +612,7 @@ class MetricChart extends PureComponent<Props, State> {
       <EventsRequest
         api={api}
         organization={organization}
-        query={query + activationFilter}
+        query={query}
         environment={environment ? [environment] : undefined}
         project={project.id ? [Number(project.id)] : []}
         interval={interval}
@@ -633,6 +625,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useRpc={dataset === Dataset.EVENTS_ANALYTICS_PLATFORM}
         useOnDemandMetrics
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (

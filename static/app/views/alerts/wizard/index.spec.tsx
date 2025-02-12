@@ -53,6 +53,7 @@ describe('AlertWizard', () => {
           'performance-view',
           'crash-rate-alerts',
           'insights-addon-modules',
+          'uptime',
         ],
         access: ['org:write', 'alerts:write'],
       },
@@ -71,10 +72,9 @@ describe('AlertWizard', () => {
     expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText('Performance')).toBeInTheDocument();
     expect(screen.getByText('Uptime Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('LLM Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
-    expect(alertGroups.length).toEqual(6);
+    expect(alertGroups).toHaveLength(5);
   });
 
   it('should only render alerts for errors in self-hosted errors only', () => {
@@ -102,7 +102,7 @@ describe('AlertWizard', () => {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
-    expect(alertGroups.length).toEqual(1);
+    expect(alertGroups).toHaveLength(1);
   });
 
   it('shows uptime alert according to feature flag', () => {
@@ -113,6 +113,7 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'crash-rate-alerts',
+          'uptime',
         ],
         access: ['org:write', 'alerts:write'],
       },

@@ -51,9 +51,6 @@ def try_incident_threshold(
 
     monitor_env = failed_checkin.monitor_environment
 
-    if monitor_env is None:
-        return False
-
     failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
     if not failure_issue_threshold:
         failure_issue_threshold = 1
@@ -131,9 +128,6 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
     Returns True if the incident was resolved.
     """
     monitor_env = ok_checkin.monitor_environment
-
-    if monitor_env is None:
-        return False
 
     if monitor_env.status == MonitorStatus.OK or ok_checkin.status != CheckInStatus.OK:
         return False

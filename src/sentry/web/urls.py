@@ -322,6 +322,11 @@ urlpatterns += [
                     name="sentry-account-confirm-email",
                 ),
                 re_path(
+                    r"^confirm-signed-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
+                    accounts.confirm_signed_email,
+                    name="sentry-account-confirm-signed-email",
+                ),
+                re_path(
                     r"^user-confirm/(?P<key>[^\/]+)/$",
                     AccountConfirmationView.as_view(),
                     name="sentry-idp-email-verification",
@@ -624,6 +629,11 @@ urlpatterns += [
                     name="sentry-customer-domain-audit-log-settings",
                 ),
                 re_path(
+                    r"^rate-limits/",
+                    react_page_view,
+                    name="sentry-customer-domain-rate-limits-settings",
+                ),
+                re_path(
                     r"^relay/",
                     react_page_view,
                     name="sentry-customer-domain-relay-settings",
@@ -637,6 +647,16 @@ urlpatterns += [
                     r"^integrations/",
                     react_page_view,
                     name="sentry-customer-domain-integrations-settings",
+                ),
+                re_path(
+                    r"^dynamic-sampling/",
+                    react_page_view,
+                    name="sentry-customer-domain-dynamic-sampling-settings",
+                ),
+                re_path(
+                    r"^feature-flags/",
+                    react_page_view,
+                    name="sentry-customer-domain-feature-flags-settings",
                 ),
                 re_path(
                     r"^developer-settings/",
@@ -677,11 +697,6 @@ urlpatterns += [
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
-                ),
-                re_path(
-                    r"^dynamic-sampling/",
-                    react_page_view,
-                    name="sentry-customer-domain-dynamic-sampling-settings",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
@@ -780,6 +795,12 @@ urlpatterns += [
         react_page_view,
         name="insights",
     ),
+    # Explore
+    re_path(
+        r"^explore/",
+        react_page_view,
+        name="explore",
+    ),
     # Traces
     re_path(
         r"^traces/",
@@ -819,18 +840,6 @@ urlpatterns += [
         r"^discover/",
         react_page_view,
         name="discover",
-    ),
-    # DDM new
-    re_path(
-        r"^metrics/",
-        react_page_view,
-        name="metrics",
-    ),
-    # TODO(metrics): fade this out
-    re_path(
-        r"^ddm/",
-        react_page_view,
-        name="ddm",
     ),
     # Request to join an organization
     re_path(
@@ -1173,6 +1182,11 @@ urlpatterns += [
         r"^robots\.txt$",
         api.robots_txt,
         name="sentry-robots-txt",
+    ),
+    re_path(
+        r"^\.well-known/security\.txt$",
+        api.security_txt,
+        name="sentry-security-txt",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without

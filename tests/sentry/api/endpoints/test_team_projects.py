@@ -1,5 +1,5 @@
-from unittest import TestCase
-from unittest.mock import Mock
+from unittest import TestCase, mock
+from unittest.mock import Mock, patch
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
@@ -141,9 +141,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
-        # Ensure that creating the default alert rule does not trigger the
-        # alert_rule_created signal to avoid fake recording fake analytics.
-        assert signal_handler.call_count == 0
+        # Ensure that creating the default alert rule does trigger the
+        # alert_rule_created signal
+        assert signal_handler.call_count == 1
         alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules_disable_member_project_creation(self):
@@ -283,4 +283,71 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
                 project=project, key="sentry:similarity_backfill_completed"
             )
             is None
+        )
+
+    def test_builtin_symbol_sources_electron(self):
+        """
+        Test that project option for builtin symbol sources contains ["electron"] when creating
+        an Electron project, but uses defaults for other platforms.
+        """
+        # Test Electron project
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="electron-app",
+            slug="electron-app",
+            platform="electron",
+            status_code=201,
+        )
+
+        electron_project = Project.objects.get(id=response.data["id"])
+        assert electron_project.platform == "electron"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=electron_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["ios", "microsoft", "electron"]
+
+    def test_builtin_symbol_sources_not_electron(self):
+        # Test non-Electron project (e.g. Python)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="python-app",
+            slug="python-app",
+            platform="python",
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=response.data["id"])
+        assert python_project.platform == "python"
+        # Should use default value, not ["electron"]
+        symbol_sources = ProjectOption.objects.get_value(
+            project=python_project, key="sentry:builtin_symbol_sources"
+        )
+        assert "electron" not in symbol_sources
+
+    @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
+    def test_create_project_with_origin(self, create_audit_entry):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            default_rules=False,
+            status_code=201,
+            origin="ui",
+        )
+        project = Project.objects.get(id=response.data["id"])
+
+        assert create_audit_entry.call_count == 1
+
+        # Verify audit log
+        create_audit_entry.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=project.id,
+            event=1154,
+            data={
+                **project.get_audit_log_data(),
+                "origin": "ui",
+            },
         )

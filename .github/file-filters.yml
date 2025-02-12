@@ -48,7 +48,7 @@ backend_build_changes: &backend_build_changes
   - 'pyproject.toml'
 
 # `backend_src` filters on files that are backend changes excluding
-# changes to the tests/ directory.
+# changes to the tests/ directory and changes to typescript related config files.
 # If you want to filter on *all* backend files, use the `backend_all` filter.
 backend_src: &backend_src
   - *backend_build_changes
@@ -59,13 +59,14 @@ backend_src: &backend_src
   - 'src/sentry/!(static)/**'
   - 'src/sentry_plugins/**/*.html'
   - 'migrations_lockfile.txt'
-  - 'config/**/*'
+  - 'config/**/!(tsconfig)*'
   - 'fixtures/search-syntax/**/*'
 
 backend_all: &backend_all
   - *backend_src
   - '**/*.py'
   - '**/*.pyi'
+  - 'devservices/**'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
@@ -84,6 +85,7 @@ api_docs: &api_docs
 backend_any_type: &backend_any_type
   - *backend_all
   - *api_docs
+  - 'devservices/**'
 
 migrations_added:
   - added:

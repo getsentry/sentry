@@ -31,13 +31,13 @@ export function TraceErrorRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.maxIssueSeverity}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >

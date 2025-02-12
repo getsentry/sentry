@@ -6,7 +6,8 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
@@ -16,6 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -30,10 +32,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 // These labels need to be exported so that they can be used in audit logs
 export const retentionPrioritiesLabels = {
@@ -111,17 +111,11 @@ type ProjectThreshold = {
   id?: string;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   threshold: ProjectThreshold;
 };
 
-class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {projectId} = this.props.params;
-
-    return routeTitleGen(t('Performance'), projectId, false);
-  }
-
+class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
   getProjectEndpoint({orgId, projectId}: RouteParams) {
     return `/projects/${orgId}/${projectId}/`;
   }
@@ -130,11 +124,11 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     return `/projects/${orgId}/${projectId}/performance-issues/configure/`;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {params, organization} = this.props;
     const {projectId} = params;
 
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'threshold',
         `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
@@ -143,14 +137,14 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     ];
 
     const performanceIssuesEndpoint: ReturnType<
-      DeprecatedAsyncView['getEndpoints']
+      DeprecatedAsyncComponent['getEndpoints']
     >[number] = [
       'performance_issue_settings',
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
     ];
 
     const generalSettingsEndpoint: ReturnType<
-      DeprecatedAsyncView['getEndpoints']
+      DeprecatedAsyncComponent['getEndpoints']
     >[number] = [
       'general',
       `/projects/${organization.slug}/${projectId}/performance/configure/`,
@@ -162,7 +156,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     return endpoints;
   }
 
-  getRetentionPrioritiesData(...data) {
+  getRetentionPrioritiesData(...data: any) {
     return {
       dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
         id: key,
@@ -878,8 +872,9 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
 
     return (
       <Fragment>
+        <SentryDocumentTitle title={t('Performance')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
             <Feature features="organizations:insights-initial-modules">
@@ -943,10 +938,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             saveOnBlur
             allowUndo
             initialData={
-              project.dynamicSamplingBiases?.reduce((acc, bias) => {
-                acc[bias.id] = bias.active;
-                return acc;
-              }, {}) ?? {}
+              project.dynamicSamplingBiases?.reduce<Record<string, boolean>>(
+                (acc, bias) => {
+                  acc[bias.id] = bias.active;
+                  return acc;
+                },
+                {}
+              ) ?? {}
             }
             onSubmitSuccess={(response, _instance, id, change) => {
               ProjectsStore.onUpdateSuccess(response);
@@ -967,7 +965,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
-                  title={t('Retention Priorities')}
+                  title={t('Sampling Priorities')}
                   fields={this.retentionPrioritiesFormFields}
                   disabled={!hasAccess}
                   renderFooter={() => (
@@ -1045,7 +1043,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             apiEndpoint={performanceIssuesEndpoint}
             saveOnBlur
             onSubmitSuccess={(option: {[key: string]: number}) => {
-              const [threshold_key, threshold_value] = Object.entries(option)[0];
+              const [threshold_key, threshold_value] = Object.entries(option)[0]!;
 
               trackAnalytics(
                 'performance_views.project_issue_detection_threshold_changed',
@@ -1131,8 +1129,8 @@ const StyledJsonForm = styled(JsonForm)`
 const StyledPanelFooter = styled(PanelFooter)`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 calc(${p => p.theme.panelBorderRadius} - 1px)
-    calc(${p => p.theme.panelBorderRadius} - 1px);
+  border-radius: 0 0 calc(${p => p.theme.borderRadius} - 1px)
+    calc(${p => p.theme.borderRadius} - 1px);
 
   ${Actions} {
     padding: ${space(1.5)};

@@ -1,5 +1,5 @@
 import re
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -11,6 +11,9 @@ filter on the transaction field if you're filtering performance data.
 TIMEOUT_SPAN_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field or tags.
+"""
+TIMEOUT_RPC_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
 """
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
@@ -57,6 +60,7 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
+REPLAY_ALIAS = "replay"
 
 
 class ThresholdDict(TypedDict):
@@ -135,9 +139,27 @@ RESULT_TYPES = {
     "date",
     "rate",
 }
+
+SizeUnit = Literal[
+    "bit",
+    "byte",
+    "kibibyte",
+    "mebibyte",
+    "gibibyte",
+    "tebibyte",
+    "pebibyte",
+    "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
+]
+
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
-SIZE_UNITS = {
+SIZE_UNITS: dict[SizeUnit, float] = {
     "bit": 8,
     "byte": 1,
     "kibibyte": 1 / 1024,
@@ -153,8 +175,13 @@ SIZE_UNITS = {
     "petabyte": 1 / 1000**5,
     "exabyte": 1 / 1000**6,
 }
+
+DurationUnit = Literal[
+    "nanosecond", "microsecond", "millisecond", "second", "minute", "hour", "day", "week"
+]
+
 # event_search normalizes to seconds
-DURATION_UNITS = {
+DURATION_UNITS: dict[DurationUnit, float] = {
     "nanosecond": 1000**2,
     "microsecond": 1000,
     "millisecond": 1,
@@ -366,9 +393,6 @@ SPAN_METRICS_MAP = {
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
-}
-PROFILE_METRICS_MAP = {
-    "function.duration": "d:profiles/function.duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

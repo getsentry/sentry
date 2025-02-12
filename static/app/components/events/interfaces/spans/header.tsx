@@ -28,6 +28,8 @@ import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
+import {DEMO_HEADER_HEIGHT_PX} from '../../../demo/demoHeader';
+
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_HEIGHT,
@@ -83,7 +85,6 @@ class TraceViewHeader extends Component<PropType, State> {
     if (minimapInteractiveRef.current) {
       const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
       if (minimapWidth !== this.state.minimapWidth) {
-        // eslint-disable-next-line react/no-did-update-set-state
         this.setState({
           minimapWidth,
         });
@@ -464,11 +465,11 @@ class TraceViewHeader extends Component<PropType, State> {
             'metadata' in profiles.data &&
             profiles.data.metadata.platform === 'android' &&
             // Check that this profile has measurements
-            'measurements' in profiles?.data &&
+            'measurements' in profiles.data &&
             defined(profiles.data.measurements?.cpu_usage) &&
             // Check that this profile has enough data points
             getDataPoints(
-              profiles.data.measurements!.cpu_usage,
+              profiles.data.measurements.cpu_usage,
               transactionDuration * MS_PER_S
             ).length >= MIN_DATA_POINTS;
 
@@ -810,7 +811,7 @@ export const HeaderContainer = styled('div')<{
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
   z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

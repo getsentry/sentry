@@ -282,14 +282,7 @@ default_manager.add(
         template="rotated a client secret for {status} integration {sentry_app}",
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=120,
-        name="MONITOR_ADD",
-        api_name="monitor.add",
-        template="added monitor {name}",
-    )
-)
+default_manager.add(events.MonitorAddAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=121,
@@ -610,5 +603,30 @@ default_manager.add(
         event_id=1142,
         name="DATA_SECRECY_REINSTATED",
         api_name="data-secrecy.reinstated",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=1152,
+        name="TEMPEST_CLIENT_ID_ADD",
+        api_name="playstation-client-id.create",
+        template="added playstation client id {client_id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1153,
+        name="TEMPEST_CLIENT_ID_REMOVE",
+        api_name="playstation-client-id.remove",
+        template="removed playstation client id {client_id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1154,
+        name="PROJECT_ADD_WITH_ORIGIN",
+        api_name="project.create-with-origin",
+        template="created project {slug} via {origin}",
     )
 )

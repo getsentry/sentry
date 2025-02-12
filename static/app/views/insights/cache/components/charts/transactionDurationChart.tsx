@@ -3,7 +3,6 @@ import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {ALERTS} from 'sentry/views/insights/cache/alerts';
 import type {DataRow} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {CHART_HEIGHT} from 'sentry/views/insights/cache/settings';
@@ -63,10 +62,10 @@ export function TransactionDurationChart({
       ...(sampledSpanDataSeries ?? []),
     ];
 
-    const highlightedDataPoints = event.batch.map(batch => {
+    const highlightedDataPoints = event.batch.map((batch: any) => {
       const {seriesIndex, dataIndex} = batch;
 
-      const highlightedSeries = allSeries?.[seriesIndex];
+      const highlightedSeries = allSeries?.[seriesIndex]!;
       const highlightedDataPoint = highlightedSeries.data?.[dataIndex];
 
       return {series: highlightedSeries, dataPoint: highlightedDataPoint};
@@ -84,12 +83,7 @@ export function TransactionDurationChart({
   };
 
   return (
-    <ChartPanel
-      title={DataTitles['transaction.duration']}
-      alertConfigs={[
-        {...ALERTS.duration, query: MutableSearch.fromQueryObject(search).formatString()},
-      ]}
-    >
+    <ChartPanel title={DataTitles['transaction.duration']}>
       <Chart
         height={CHART_HEIGHT}
         grid={{

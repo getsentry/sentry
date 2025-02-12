@@ -43,7 +43,7 @@ export function initializeData(settings?: InitializeDataSettings) {
     },
   };
   if (settings?.selectedProject || settings?.project) {
-    routerLocation.query.project = (project || settings?.project) as any;
+    routerLocation.query.project = project || settings?.project;
   }
   const router = {
     location: routerLocation,
@@ -232,11 +232,11 @@ export function generateSampleSpan(
     data: {},
   };
 
-  if (!Array.isArray(event.entries[0].data)) {
+  if (!Array.isArray(event.entries[0]!.data)) {
     throw new Error('Event entries data is not an array');
   }
 
-  const data = event.entries[0].data as RawSpanType[];
+  const data = event.entries[0]!.data as RawSpanType[];
   data.push(span);
   return span;
 }

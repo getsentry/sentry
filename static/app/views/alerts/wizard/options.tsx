@@ -15,12 +15,6 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {
-  DEFAULT_EAP_METRICS_ALERT_FIELD,
-  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
-  DEFAULT_METRIC_ALERT_FIELD,
-} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -29,8 +23,6 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
-import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -46,11 +38,8 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users'
   | 'custom_transactions'
-  | 'custom_metrics'
-  | 'llm_tokens'
-  | 'llm_cost'
-  | 'insights_metrics'
   | 'uptime_monitor'
+  | 'crons_monitor'
   | 'eap_metrics';
 
 export enum MEPAlertsQueryType {
@@ -65,7 +54,10 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
+export type MetricAlertType = Exclude<
+  AlertType,
+  'issues' | 'uptime_monitor' | 'crons_monitor'
+>;
 
 export const DatasetMEPAlertQueryTypes: Record<
   Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
@@ -89,15 +81,12 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   lcp: t('Largest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
-  custom_metrics: t('Custom Metric'),
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
-  llm_cost: t('LLM cost'),
-  llm_tokens: t('LLM token usage'),
-  insights_metrics: t('Insights Metric'),
   uptime_monitor: t('Uptime Monitor'),
-  eap_metrics: t('EAP Metric'),
+  eap_metrics: t('Spans'),
+  crons_monitor: t('Cron Monitor'),
 };
 
 /**
@@ -105,9 +94,13 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  * for adding feature badges or other call-outs for newer alert types.
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
-  insights_metrics: <FeatureBadge type="alpha" />,
-  eap_metrics: <FeatureBadge type="experimental" />,
-  uptime_monitor: <FeatureBadge type="beta" />,
+  eap_metrics: (
+    <FeatureBadge
+      type="beta"
+      title={t('This feature is available for early adopters and the UX may change')}
+    />
+  ),
+  uptime_monitor: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -139,25 +132,31 @@ export const getAlertWizardCategories = (org: Organization) => {
         'lcp',
         'fid',
         'cls',
-        ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
+
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
-    if (org.features.includes('insights-addon-modules')) {
+
+    if (
+      org.features.includes('uptime') &&
+      !org.features.includes('uptime-create-disabled')
+    ) {
       result.push({
-        categoryHeading: LLM_MONITORING_MODULE_TITLE,
-        options: ['llm_tokens', 'llm_cost'],
+        categoryHeading: t('Uptime Monitoring'),
+        options: ['uptime_monitor'],
+      });
+    }
+
+    if (org.features.includes('insights-crons')) {
+      result.push({
+        categoryHeading: t('Cron Monitoring'),
+        options: ['crons_monitor'],
       });
     }
 
     result.push({
-      categoryHeading: t('Uptime Monitoring'),
-      options: ['uptime_monitor'],
-    });
-    result.push({
-      categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+      categoryHeading: t('Custom'),
+      options: ['custom_transactions'],
     });
   }
   return result;
@@ -224,26 +223,6 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  custom_metrics: {
-    aggregate: DEFAULT_METRIC_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  llm_tokens: {
-    aggregate: 'sum(ai.total_tokens.used)',
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  llm_cost: {
-    aggregate: 'sum(ai.total_cost)',
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  insights_metrics: {
-    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
     dataset: Dataset.METRICS,
@@ -255,7 +234,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.USER,
   },
   eap_metrics: {
-    aggregate: DEFAULT_EAP_METRICS_ALERT_FIELD,
+    aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRANSACTION,
   },
@@ -328,6 +307,7 @@ export function datasetSupportedTags(
   dataset: Dataset,
   org: Organization
 ): TagCollection | undefined {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return mapValues(
     {
       [Dataset.ERRORS]: ERROR_SUPPORTED_TAGS,
@@ -369,6 +349,7 @@ export function datasetOmittedTags(
       | ReplayClickFieldKey
     >
   | undefined {
+  // @ts-expect-error TS(2339): Property 'events_analytics_platform' does not exis... Remove this comment to see the full error message
   return {
     [Dataset.ERRORS]: [
       FieldKey.EVENT_TYPE,
@@ -417,7 +398,9 @@ export function getSupportedAndOmittedTags(
     omitTags?: string[];
     supportedTags?: TagCollection;
   }>((acc, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (result[key] !== undefined) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = result[key];
     }
 

@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
@@ -33,8 +34,7 @@ import {
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-
-import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 interface ProfileEventsTableProps<F extends FieldType> {
   columns: readonly F[];
@@ -236,13 +236,26 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     const project = getProjectForRow(props.baggage, props.dataRow);
 
     if (defined(project)) {
+      const linkToSummary = profilesRouteWithQuery({
+        query: props.baggage.location.query,
+        organization: props.baggage.organization,
+        projectID: project.id,
+        transaction: props.dataRow.transaction,
+      });
+
       return (
         <Container>
-          <ProfilingTransactionHovercard
-            transaction={value}
-            project={project}
-            organization={props.baggage.organization}
-          />
+          <Link
+            to={linkToSummary}
+            onClick={() =>
+              trackAnalytics('profiling_views.go_to_transaction', {
+                organization: props.baggage.organization,
+                source: 'profiling.landing.transaction_table',
+              })
+            }
+          >
+            {props.dataRow.transaction}
+          </Link>
         </Container>
       );
     }
@@ -285,13 +298,15 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
           <Count value={value} />
         </NumberContainer>
       );
-    case 'duration':
+    case 'duration': {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const multiplier = columnUnit ? DURATION_UNITS[columnUnit as string] ?? 1 : 1;
       return (
         <NumberContainer>
           <PerformanceDuration milliseconds={value * multiplier} abbreviation />
         </NumberContainer>
       );
+    }
     case 'date':
       return (
         <Container>
@@ -538,7 +553,9 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
 };
 
 function getColumnOrder<F extends FieldType>(field: F): GridColumnOrder<F> {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (COLUMN_ORDERS[field as string]) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return COLUMN_ORDERS[field as string] as GridColumnOrder<F>;
   }
 

@@ -2,26 +2,24 @@ import logging
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
-from sentry.apidocs.examples.user_examples import UserExamples
-from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.users.api.bases.user import UserEndpoint
-from sentry.users.api.serializers.useremail import UserEmailSerializer, UserEmailSerializerResponse
+from sentry.users.api.serializers.useremail import UserEmailSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
+from sentry.utils.signing import sign
 
 logger = logging.getLogger("sentry.accounts")
 
@@ -38,6 +36,28 @@ class EmailValidator(serializers.Serializer[UserEmail]):
     email = AllowedEmailField(required=True, help_text="The email address to add/remove.")
 
 
+def add_email_signed(email: str, user: User) -> None:
+    """New path for adding email - uses signed URLs"""
+
+    EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
+
+    if email is None:
+        raise InvalidEmailError
+
+    if UserEmail.objects.filter(user=user, email__iexact=email.lower()).exists():
+        raise DuplicateEmailError
+
+    # Generate signed data for verification URL
+    signed_data = sign(
+        user_id=user.id,
+        email=email,
+        salt=EMAIL_CONFIRMATION_SALT,
+    )
+
+    # Send verification email with signed URL
+    user.send_signed_url_confirm_email_singular(email, signed_data)
+
+
 def add_email(email: str, user: User) -> UserEmail:
     """
     Adds an email to user account
@@ -49,7 +69,7 @@ def add_email(email: str, user: User) -> UserEmail:
     if email is None:
         raise InvalidEmailError
 
-    if UserEmail.objects.filter(user=user, email__iexact=email).exists():
+    if UserEmail.objects.filter(user=user, email__iexact=email.lower()).exists():
         raise DuplicateEmailError
 
     try:
@@ -64,29 +84,16 @@ def add_email(email: str, user: User) -> UserEmail:
     return new_email
 
 
-@extend_schema(tags=["Users"])
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.UNOWNED
 
-    @extend_schema(
-        operation_id="List user emails",
-        parameters=[GlobalParams.USER_ID],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            403: RESPONSE_FORBIDDEN,
-        },
-        examples=UserExamples.LIST_USER_EMAILS,
-    )
     def get(self, request: Request, user: User) -> Response:
         """
         Returns a list of emails. Primary email will have `isPrimary: true`
@@ -99,21 +106,6 @@ class UserEmailsEndpoint(UserEndpoint):
             status=200,
         )
 
-    @extend_schema(
-        operation_id="Add a secondary email address",
-        parameters=[GlobalParams.USER_ID],
-        request=EmailValidator,
-        responses={
-            200: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            201: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            403: RESPONSE_FORBIDDEN,
-        },
-        examples=UserExamples.ADD_SECONDARY_EMAIL,
-    )
     @sudo_required
     def post(self, request: Request, user: User) -> Response:
         """
@@ -127,40 +119,44 @@ class UserEmailsEndpoint(UserEndpoint):
         result = validator.validated_data
         email = result["email"].lower().strip()
 
+        use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
         try:
-            new_useremail = add_email(email, user)
+            if use_signed_urls:
+                add_email_signed(email, user)
+                logger.info(
+                    "user.email.add",
+                    extra={
+                        "user_id": user.id,
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "used_signed_url": True,
+                        "email": email,
+                    },
+                )
+                return self.respond(
+                    {"detail": _("A verification email has been sent. Please check your inbox.")},
+                    status=201,
+                )
+            else:
+                new_useremail = add_email(email, user)
+                logger.info(
+                    "user.email.add",
+                    extra={
+                        "user_id": user.id,
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "used_signed_url": False,
+                        "email": email,
+                    },
+                )
+                return self.respond(
+                    serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                    status=201,
+                )
         except DuplicateEmailError:
-            new_useremail = user.emails.get(email__iexact=email)
             return self.respond(
-                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
-                status=200,
-            )
-        else:
-            logger.info(
-                "user.email.add",
-                extra={
-                    "user_id": user.id,
-                    "ip_address": request.META["REMOTE_ADDR"],
-                    "email": new_useremail.email,
-                },
-            )
-            return self.respond(
-                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
-                status=201,
+                {"detail": _("That email address is already associated with your account.")},
+                status=409,
             )
 
-    @extend_schema(
-        operation_id="Update a primary email address",
-        parameters=[GlobalParams.USER_ID],
-        request=EmailValidator,
-        responses={
-            200: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            403: RESPONSE_FORBIDDEN,
-            400: RESPONSE_BAD_REQUEST,
-        },
-    )
     @sudo_required
     def put(self, request: Request, user: User) -> Response:
         """
@@ -203,13 +199,13 @@ class UserEmailsEndpoint(UserEndpoint):
             .exists()
         ):
             return self.respond(
-                {"email": "That email address is already associated with another account."},
+                {"email": _("That email address is already associated with another account.")},
                 status=400,
             )
 
         if not new_useremail.is_verified:
             return self.respond(
-                {"email": "You must verify your email address before marking it as primary."},
+                {"email": _("You must verify your email address before marking it as primary.")},
                 status=400,
             )
 
@@ -252,16 +248,6 @@ class UserEmailsEndpoint(UserEndpoint):
             status=200,
         )
 
-    @extend_schema(
-        operation_id="Remove an email address",
-        parameters=[GlobalParams.USER_ID],
-        request=UserEmailSerializer,
-        responses={
-            204: RESPONSE_NO_CONTENT,
-            403: RESPONSE_FORBIDDEN,
-            400: RESPONSE_BAD_REQUEST,
-        },
-    )
     @sudo_required
     def delete(self, request: Request, user: User) -> Response:
         """

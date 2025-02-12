@@ -7,6 +7,7 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -73,6 +74,7 @@ function DashboardGrid({
         trackAnalytics('dashboards_manage.delete', {
           organization,
           dashboard_id: parseInt(dashboard.id, 10),
+          view_type: 'grid',
         });
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
@@ -91,6 +93,7 @@ function DashboardGrid({
       trackAnalytics('dashboards_manage.duplicate', {
         organization,
         dashboard_id: parseInt(dashboard.id, 10),
+        view_type: 'grid',
       });
       onDashboardsChange();
       addSuccessMessage(t('Dashboard duplicated'));
@@ -99,12 +102,28 @@ function DashboardGrid({
     }
   }
 
+  async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
+    await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
+    onDashboardsChange();
+    trackAnalytics('dashboards_manage.toggle_favorite', {
+      organization,
+      dashboard_id: dashboard.id,
+      favorited: isFavorited,
+    });
+  }
+
   function renderDropdownMenu(dashboard: DashboardListItem) {
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
         label: t('Duplicate'),
-        onAction: () => handleDuplicate(dashboard),
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to duplicate this dashboard?'),
+            priority: 'primary',
+            onConfirm: () => handleDuplicate(dashboard),
+          });
+        },
       },
       {
         key: 'dashboard-delete',
@@ -144,7 +163,7 @@ function DashboardGrid({
       />
     );
   }
-  function renderGridPreview(dashboard) {
+  function renderGridPreview(dashboard: any) {
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
@@ -181,6 +200,8 @@ function DashboardGrid({
           createdBy={dashboard.createdBy}
           renderWidgets={() => renderGridPreview(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
+          isFavorited={dashboard.isFavorited}
+          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
         />
       );
     });
@@ -213,7 +234,7 @@ function DashboardGrid({
           rowCount * columnCount > numDashboards &&
           new Array(rowCount * columnCount - numDashboards)
             .fill(0)
-            .map((_, index) => <Placeholder key={index} height="270px" />)}
+            .map((_, index) => <Placeholder key={index} height="210px" />)}
       </DashboardGridContainer>
     );
   }

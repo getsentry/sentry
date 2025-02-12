@@ -87,6 +87,8 @@ export const backend: PlatformKey[] = [
   'node-express',
   'node-koa',
   'node-connect',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'perl',
   'php',
   'php-laravel',
@@ -127,6 +129,8 @@ export const serverless: PlatformKey[] = [
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
@@ -465,6 +469,10 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'apple-ios',
   'react-native',
   'flutter',
+  // Old platforms
+  'java-android',
+  'cocoa-objc',
+  'cocoa-swift',
 ];
 
 // These are all the platforms that can set up replay.
@@ -566,80 +574,8 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript',
   'python',
-];
-
-const customMetricBackendPlatforms: readonly PlatformKey[] = [
-  'bun',
-  'dart',
-  'deno',
-  'dotnet',
-  'dotnet-aspnet',
-  'dotnet-aspnetcore',
-  'dotnet-awslambda',
-  'dotnet-gcpfunctions',
-  'dotnet-maui',
-  'dotnet-uwp',
-  'dotnet-winforms',
-  'dotnet-wpf',
-  'java',
-  'java-appengine',
-  'java-log4j',
-  'java-log4j2',
-  'java-logback',
-  'java-logging',
-  'java-spring',
-  'java-spring-boot',
-  'php',
-  'php-laravel',
-  // TODO: Enable once metrics are available for Symfony
-  // 'php-symfony',
-  'python',
-  'python-aiohttp',
-  'python-asgi',
-  'python-awslambda',
-  'python-bottle',
-  'python-celery',
-  'python-chalice',
-  'python-django',
-  'python-falcon',
-  'python-fastapi',
-  'python-flask',
-  'python-gcpfunctions',
-  'python-pymongo',
-  'python-pylons',
-  'python-pyramid',
-  'python-quart',
-  'python-rq',
-  'python-sanic',
-  'python-serverless',
-  'python-starlette',
-  'python-tornado',
-  'python-tryton',
-  'python-wsgi',
-  'rust',
-  'node',
-  'node-awslambda',
-  'node-azurefunctions',
-  'node-connect',
-  'node-express',
-  'node-gcpfunctions',
-  'node-koa',
-  'ruby',
-  'ruby-rails',
-  'ruby-rack',
-];
-
-const customMetricFrontendPlatforms: readonly PlatformKey[] = [
-  'android',
-  'apple-ios',
-  'electron',
-  'flutter',
-  'java-android',
   'javascript-angular',
   'javascript-astro',
-  'javascript-backbone',
-  'javascript-capacitor',
-  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -651,30 +587,15 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
-  'javascript',
-  'react-native',
-  'unity',
+  'python-aiohttp',
+  'python-bottle',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-pyramid',
+  'python-quart',
+  'python-sanic',
+  'python-starlette',
+  'python-tornado',
 ];
-
-// These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: readonly PlatformKey[] = [
-  ...customMetricFrontendPlatforms,
-  ...customMetricBackendPlatforms,
-];
-
-/**
- * The list of platforms for which we have created onboarding instructions.
- * Should be a subset of the list of `customMetricPlatforms`.
- */
-export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
-  customMetricPlatforms.filter(
-    p =>
-      // Legacy platforms that do not have in-product docs
-      ![
-        'javascript-backbone',
-        'javascript-capacitor',
-        'javascript-electron',
-        'python-pylons',
-        'python-tryton',
-      ].includes(p)
-  );

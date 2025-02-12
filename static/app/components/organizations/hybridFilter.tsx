@@ -53,7 +53,7 @@ export interface HybridFilterProps<Value extends SelectKey>
   /**
    * Message to show in the menu footer
    */
-  menuFooterMessage?: ((hasStagedChanges) => React.ReactNode) | React.ReactNode;
+  menuFooterMessage?: ((hasStagedChanges: any) => React.ReactNode) | React.ReactNode;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
   /**
@@ -160,14 +160,16 @@ export function HybridFilter<Value extends SelectKey>({
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const onKeyUp = useCallback(() => setModifierKeyPressed(false), []);
   const onKeyDown = useCallback(
-    e => {
-      e.key === 'Escape' && commitStagedChanges();
+    (e: any) => {
+      if (e.key === 'Escape') {
+        commitStagedChanges();
+      }
       setModifierKeyPressed(isModifierKeyPressed(e));
     },
     [commitStagedChanges]
   );
 
-  const mappedOptions = useMemo<SelectOptionOrSection<Value>[]>(() => {
+  const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
@@ -231,7 +233,7 @@ export function HybridFilter<Value extends SelectKey>({
         : menuFooterMessage;
 
     return menuFooter || footerMessage || hasStagedChanges || showModifierTip
-      ? ({closeOverlay}) => (
+      ? ({closeOverlay}: any) => (
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
@@ -299,7 +301,7 @@ export function HybridFilter<Value extends SelectKey>({
   );
 
   const handleChange = useCallback(
-    (selectedOptions: SelectOption<Value>[]) => {
+    (selectedOptions: Array<SelectOption<Value>>) => {
       const oldValue = stagedValue;
       const newValue = selectedOptions.map(op => op.value);
       const oldValueSet = new Set(oldValue);
@@ -323,13 +325,15 @@ export function HybridFilter<Value extends SelectKey>({
 
       // A modifier key is being pressed --> enter multiple selection mode
       if (multiple && modifierKeyPressed) {
-        !modifierTipSeen && setModifierTipSeen(true);
-        toggleOption(diff[0]);
+        if (!modifierTipSeen) {
+          setModifierTipSeen(true);
+        }
+        toggleOption(diff[0]!);
         return;
       }
 
       // Only one option was clicked on --> use single, direct selection mode
-      onReplace?.(diff[0]);
+      onReplace?.(diff[0]!);
       commit(diff);
     },
     [
@@ -345,7 +349,7 @@ export function HybridFilter<Value extends SelectKey>({
   );
 
   const menuHeaderTrailingItems = useCallback(
-    ({closeOverlay}) => {
+    ({closeOverlay}: any) => {
       // Don't show reset button if current value is already equal to the default one.
       if (!xor(stagedValue, defaultValue).length) {
         return null;

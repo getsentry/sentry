@@ -1,14 +1,10 @@
 export type QuickStartEventParameters = {
   'quick_start.completed': {
-    new_experience: boolean;
     referrer: string;
   };
-  'quick_start.opened': {
-    new_experience: boolean;
-  };
+  'quick_start.opened': {};
   'quick_start.task_card_clicked': {
     action: string;
-    new_experience: boolean;
     todo_id: string;
     todo_title: string;
   };

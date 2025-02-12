@@ -37,9 +37,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
+import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';
@@ -57,9 +56,10 @@ import {
 } from './settings';
 import TemplateCard from './templateCard';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Dashboards'), value: 'mydashboards'},
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
+  {label: t('Dashboard Name (Z-A)'), value: '-title'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Popular'), value: 'mostPopular'},
@@ -70,9 +70,7 @@ const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
-const LIST = 'list';
-
-type DashboardsLayout = 'grid' | 'list';
+const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
@@ -81,7 +79,9 @@ function shouldShowTemplates(): boolean {
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
-  return dashboardsLayout === GRID || dashboardsLayout === LIST ? dashboardsLayout : GRID;
+  return dashboardsLayout === GRID || dashboardsLayout === TABLE
+    ? dashboardsLayout
+    : GRID;
 }
 
 function ManageDashboards() {
@@ -117,7 +117,10 @@ function ManageDashboards() {
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
-          sort: getActiveSort().value,
+          sort: getActiveSort()!.value,
+          ...(organization.features.includes('dashboards-favourite')
+            ? {pin: 'favorites'}
+            : {}),
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
@@ -154,7 +157,7 @@ function ManageDashboards() {
   useEffect(() => {
     const dashboardGridObserver = new ResizeObserver(
       debounce(entries => {
-        entries.forEach(entry => {
+        entries.forEach((entry: any) => {
           const currentWidth = entry.contentRect.width;
 
           setRowsAndColumns(currentWidth);
@@ -162,7 +165,7 @@ function ManageDashboards() {
           const paginationObject = parseLinkHeader(dashboardsPageLinks);
           if (
             dashboards?.length &&
-            paginationObject.next.results &&
+            paginationObject.next!.results &&
             rowCount * columnCount > dashboards.length
           ) {
             refetchDashboards();
@@ -258,7 +261,13 @@ function ManageDashboards() {
         />
         <Feature features={'organizations:dashboards-table-view'}>
           <SegmentedControl<DashboardsLayout>
-            onChange={setDashboardsLayout}
+            onChange={newValue => {
+              setDashboardsLayout(newValue);
+              trackAnalytics('dashboards_manage.change_view_type', {
+                organization,
+                view_type: newValue,
+              });
+            }}
             size="md"
             value={dashboardsLayout}
             aria-label={t('Layout Control')}
@@ -279,7 +288,7 @@ function ManageDashboards() {
         </Feature>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
-          value={activeSort.value}
+          value={activeSort!.value}
           options={SORT_OPTIONS}
           onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"
@@ -440,7 +449,6 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <DashboardImportButton />
                       <Button
                         data-test-id="dashboard-create"
                         onClick={event => {
@@ -474,8 +482,6 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main fullWidth>
-                    <MetricsRemovedAlertsWidgetsAlert organization={organization} />
-
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">

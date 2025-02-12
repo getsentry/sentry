@@ -24,7 +24,6 @@ export type WidgetOption =
 interface LandingWidgetSelectorProps {
   cursorName: string;
   defaultWidget: WidgetOption;
-  query: string;
   storageKey: string;
   widgetHeight?: string;
 }
@@ -43,7 +42,7 @@ export function LandingWidgetSelector({
   );
 
   const onWidgetChange = useCallback(
-    opt => {
+    (opt: any) => {
       const newQuery = omit(router.location.query, [cursorName]);
       router.push({
         pathname: router.location.pathname,
@@ -147,7 +146,7 @@ export function LandingWidgetSelector({
   }
 }
 
-const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
+const WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
   {
     label: t('Slowest Functions (breakdown by AVG)'),
     value: 'slowest functions avg' as const,

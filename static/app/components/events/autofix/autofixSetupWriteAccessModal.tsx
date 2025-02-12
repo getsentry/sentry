@@ -23,7 +23,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
 
   const sortedRepos = useMemo(
     () =>
-      data?.githubWriteIntegration?.repos.toSorted((a, b) => {
+      data?.githubWriteIntegration?.repos.toSorted((a: any, b: any) => {
         if (a.ok === b.ok) {
           return `${a.owner}/${a.name}`.localeCompare(`${b.owner}/${b.name}`);
         }
@@ -60,7 +60,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
           )}
         </p>
         <RepoLinkUl>
-          {sortedRepos.map(repo => (
+          {sortedRepos.map((repo: any) => (
             <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
           ))}
         </RepoLinkUl>
@@ -96,7 +96,7 @@ export function AutofixSetupWriteAccessModal({
   const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
 
   return (
-    <Fragment>
+    <div id="autofix-write-access-modal">
       <Header closeButton>
         <h3>{t('Allow Autofix to Make Pull Requests')}</h3>
       </Header>
@@ -117,7 +117,7 @@ export function AutofixSetupWriteAccessModal({
           </ButtonBar>
         </Footer>
       )}
-    </Fragment>
+    </div>
   );
 }
 

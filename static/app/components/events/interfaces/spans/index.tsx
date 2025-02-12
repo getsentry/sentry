@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -49,7 +48,7 @@ function TraceErrorAlerts({
     return null;
   }
 
-  const traceErrors: (TraceError | TracePerformanceIssue)[] = [];
+  const traceErrors: Array<TraceError | TracePerformanceIssue> = [];
   if (errors && errors.length > 0) {
     traceErrors.push(...errors);
   }
@@ -72,7 +71,7 @@ function TraceErrorAlerts({
 
   return (
     <AlertContainer>
-      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors)}>
+      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors) ?? 'info'}>
         <ErrorLabel>{label}</ErrorLabel>
 
         <TraceErrorList

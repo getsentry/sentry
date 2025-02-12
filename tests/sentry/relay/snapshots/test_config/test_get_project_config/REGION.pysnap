@@ -1,5 +1,5 @@
 ---
-created: '2024-07-19T07:45:13.262472+00:00'
+created: '2025-01-21T09:32:06.138893+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -83,17 +83,18 @@ config:
       patterns:
       - '*healthcheck*'
       - '*heartbeat*'
-      - '*/health'
-      - '*/healthy'
-      - '*/healthz'
-      - '*/_health'
-      - '*/\[_health\]'
-      - '*/live'
-      - '*/livez'
-      - '*/ready'
-      - '*/readyz'
-      - '*/ping'
-      - '*/up'
+      - '*/health{/,}'
+      - '*/healthy{/,}'
+      - '*/healthz{/,}'
+      - '*/health_check{/,}'
+      - '*/_health{/,}'
+      - '*/\[_health\]{/,}'
+      - '*/live{/,}'
+      - '*/livez{/,}'
+      - '*/ready{/,}'
+      - '*/readyz{/,}'
+      - '*/ping{/,}'
+      - '*/up{/,}'
   groupingConfig:
     enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
@@ -123,13 +124,6 @@ config:
     - id: custom
       limit: 10000
       namespace: custom
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: profiles
-      limit: 10000
-      namespace: profiles
       scope: organization
       window:
         granularitySeconds: 600

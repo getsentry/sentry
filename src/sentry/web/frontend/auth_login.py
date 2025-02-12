@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import urllib
 from typing import Any
 
 from django.conf import settings
@@ -40,6 +41,7 @@ from sentry.utils.auth import (
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
+from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 
@@ -163,7 +165,7 @@ class AuthLoginView(BaseView):
             reverse("sentry-register"),
         ]
         return (
-            request.subdomain
+            bool(request.subdomain)
             and self.org_exists(request=request)
             and request.path_info not in non_sso_urls
         )
@@ -225,7 +227,9 @@ class AuthLoginView(BaseView):
             )
         else:
             assert op == "login"
-            return self.handle_login_form_submit(request=request, organization=organization)
+            return self.handle_login_form_submit(
+                request=request, organization=organization, **kwargs
+            )
 
     def redirect_post_to_sso(self, request: Request) -> HttpResponseRedirect:
         """
@@ -412,7 +416,7 @@ class AuthLoginView(BaseView):
 
         attempted_login = request.POST.get("username") and request.POST.get("password")
 
-        return attempted_login and ratelimiter.backend.is_limited(
+        return bool(attempted_login) and ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(value=request.POST["username"])).hexdigest()
             ),
@@ -431,7 +435,7 @@ class AuthLoginView(BaseView):
         ]
         metrics.incr("login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0)
 
-        context = {
+        context = self.get_default_context(request=request) | {
             "op": "login",
             "login_form": login_form,
             "referrer": request.GET.get("referrer"),
@@ -526,11 +530,10 @@ class AuthLoginView(BaseView):
         default_context = {
             "server_hostname": get_server_hostname(),
             "login_form": None,
-            "organization": kwargs.pop(
-                "organization", None
-            ),  # NOTE: not utilized in basic login page (only org login)
+            "organization": organization,  # NOTE: not utilized in basic login page (only org login)
             "register_form": None,
             "CAN_REGISTER": False,
+            "react_config": get_client_config(request, self.active_organization),
             "join_request_link": self.get_join_request_link(
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
@@ -668,6 +671,24 @@ class AuthLoginView(BaseView):
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
                 if organization:
+                    # Check if the user is a member of the provided organization based on their email
+                    membership = organization_service.check_membership_by_email(
+                        email=user.email, organization_id=organization.id
+                    )
+
+                    invitation_link = getattr(membership, "invitation_link", None)
+
+                    # If the user is a member, the user_id is None, and they are in a "pending invite acceptance" state with a valid invitation link,
+                    # we redirect them to the invitation page to explicitly accept the invite
+                    if (
+                        membership
+                        and membership.user_id is None
+                        and membership.is_pending
+                        and invitation_link
+                    ):
+                        accept_path = urllib.parse.urlparse(invitation_link).path
+                        return self.redirect(accept_path)
+
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     org_context = organization_service.get_organization_by_slug(
                         user_id=request.user.id,
@@ -702,18 +723,11 @@ class AuthLoginView(BaseView):
                     "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0
                 )
 
-        context = {
+        context = self.get_default_context(request=request, organization=organization) | {
             "op": op or "login",
-            "server_hostname": get_server_hostname(),
             "login_form": login_form,
-            "organization": organization,
             "register_form": register_form,
             "CAN_REGISTER": can_register,
-            "join_request_link": self.get_join_request_link(
-                organization=organization, request=request
-            ),
-            "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))

@@ -1,4 +1,5 @@
-import {TabList, Tabs} from 'sentry/components/tabs';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -86,8 +87,7 @@ function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDa
 
   const remainingSearchFilter = search.formatString();
 
-  for (let index = 0; index < denylistedFields.length; index++) {
-    const element = denylistedFields[index];
+  for (const element of denylistedFields) {
     if (remainingSearchFilter.includes(element)) {
       search.removeFilter(element);
       modifiedQuery = true;
@@ -126,7 +126,7 @@ export function DatasetSelectorTabs(props: Props) {
   }
 
   return (
-    <Tabs
+    <Layout.HeaderTabs
       value={value}
       onChange={newValue => {
         const {to: nextEventView, modifiedQuery} = getValidEventViewForDataset(
@@ -138,7 +138,7 @@ export function DatasetSelectorTabs(props: Props) {
             : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage
         );
         navigate({
@@ -156,6 +156,6 @@ export function DatasetSelectorTabs(props: Props) {
           <TabList.Item key={option.value}>{option.label}</TabList.Item>
         ))}
       </TabList>
-    </Tabs>
+    </Layout.HeaderTabs>
   );
 }

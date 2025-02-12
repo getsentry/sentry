@@ -38,9 +38,9 @@ type Props = {
 };
 
 type State = {
-  baseEvent: Array<string>;
+  baseEvent: string[];
   loading: boolean;
-  targetEvent: Array<string>;
+  targetEvent: string[];
   SplitDiffAsync?: typeof SplitDiff;
 };
 
@@ -118,7 +118,7 @@ class IssueDiff extends Component<Props, State> {
             parent_transaction: this.getTransaction(
               targetEventData?.tags ? targetEventData.tags : []
             ),
-            shouldBeGrouped: shouldBeGrouped,
+            shouldBeGrouped,
           });
         }
       } catch {

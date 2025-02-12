@@ -152,16 +152,15 @@ export function usePrompt({
   const prompt = usePromptsCheck({feature, organization, projectId}, options);
   const queryClient = useQueryClient();
 
-  const isPromptDismissed =
-    prompt.isSuccess && prompt.data.data
-      ? promptIsDismissed(
-          {
-            dismissedTime: prompt.data.data.dismissed_ts,
-            snoozedTime: prompt.data.data.snoozed_ts,
-          },
-          daysToSnooze
-        )
-      : undefined;
+  const isPromptDismissed = prompt.isSuccess
+    ? promptIsDismissed(
+        {
+          dismissedTime: prompt.data?.data?.dismissed_ts,
+          snoozedTime: prompt.data?.data?.snoozed_ts,
+        },
+        daysToSnooze
+      )
+    : undefined;
 
   const dismissPrompt = useCallback(() => {
     if (!organization) {
@@ -291,12 +290,12 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   for (const featureName of features) {
     const item = responseFeatures[featureName];
     if (item) {
-      result[featureName] = {
+      (result as any)[featureName] = {
         dismissedTime: item.dismissed_ts,
         snoozedTime: item.snoozed_ts,
       };
     } else {
-      result[featureName] = null;
+      (result as any)[featureName] = null;
     }
   }
   return result as {[key in T[number]]: PromptData};

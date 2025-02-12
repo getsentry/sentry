@@ -1,103 +1,93 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
-type Props = Omit<DeprecatedAsyncView['props'], 'params'> & {
-  organization: Organization;
-} & RouteComponentProps<{}, {}>;
-
 type Tab = 'public' | 'internal';
-type State = DeprecatedAsyncView['state'] & {
-  applications: SentryApp[];
-  tab: Tab;
-};
 
-class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
-  analyticsView = 'developer_settings' as const;
+function OrganizationDeveloperSettings() {
+  const location = useLocation();
+  const organization = useOrganization();
+  const api = useApi({persistInFlight: true});
 
-  getDefaultState(): State {
-    const {location} = this.props;
-    const value =
-      (['public', 'internal'] as const).find(tab => tab === location?.query?.type) ||
-      'internal';
+  const value =
+    ['public', 'internal'].find(tab => tab === location?.query?.type) || 'internal';
+  const analyticsView = 'developer_settings';
+  const tabs: Array<[id: Tab, label: string]> = [
+    ['internal', t('Internal Integration')],
+    ['public', t('Public Integration')],
+  ];
 
-    return {
-      ...super.getDefaultState(),
-      applications: [],
-      sentryFunctions: [],
-      tab: value,
-    };
+  const [tab, setTab] = useState<Tab>(value as Tab);
+  const [applicationsState, setApplicationsState] = useState<SentryApp[] | undefined>(
+    undefined
+  );
+
+  const {
+    data: fetchedApplications,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<SentryApp[]>([`/organizations/${organization.slug}/sentry-apps/`], {
+    staleTime: 0,
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  get tab() {
-    return this.state.tab;
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  getTitle() {
-    const {organization} = this.props;
-    return routeTitleGen(t('Custom Integrations'), organization.slug, false);
-  }
+  const applications = applicationsState ?? fetchedApplications;
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const returnValue: [string, string, any?, any?][] = [
-      ['applications', `/organizations/${organization.slug}/sentry-apps/`],
-    ];
-    return returnValue;
-  }
-
-  removeApp = (app: SentryApp) => {
-    const apps = this.state.applications.filter(a => a.slug !== app.slug);
-    removeSentryApp(this.api, app).then(
-      () => {
-        this.setState({applications: apps});
-      },
+  const removeApp = (app: SentryApp) => {
+    const apps = applications.filter(a => a.slug !== app.slug);
+    removeSentryApp(api, app).then(
+      () => setApplicationsState(apps),
       () => {}
     );
   };
 
-  onTabChange = (value: Tab) => {
-    this.setState({tab: value});
-  };
-
-  renderApplicationRow = (app: SentryApp) => {
-    const {organization} = this.props;
+  const renderApplicationRow = (app: SentryApp) => {
     return (
       <SentryApplicationRow
         key={app.uuid}
         app={app}
         organization={organization}
-        onRemoveApp={this.removeApp}
+        onRemoveApp={removeApp}
       />
     );
   };
 
-  renderInternalIntegrations() {
-    const integrations = this.state.applications.filter(
+  const renderInternalIntegrations = () => {
+    const integrations = applications.filter(
       (app: SentryApp) => app.status === 'internal'
     );
     const isEmpty = integrations.length === 0;
@@ -107,7 +97,7 @@ class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
         <PanelHeader>{t('Internal Integrations')}</PanelHeader>
         <PanelBody>
           {!isEmpty ? (
-            integrations.map(this.renderApplicationRow)
+            integrations.map(renderApplicationRow)
           ) : (
             <EmptyMessage>
               {t('No internal integrations have been created yet.')}
@@ -116,10 +106,10 @@ class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
         </PanelBody>
       </Panel>
     );
-  }
+  };
 
-  renderPublicIntegrations() {
-    const integrations = this.state.applications.filter(app => app.status !== 'internal');
+  const renderPublicIntegrations = () => {
+    const integrations = applications.filter(app => app.status !== 'internal');
     const isEmpty = integrations.length === 0;
 
     return (
@@ -127,7 +117,7 @@ class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
         <PanelHeader>{t('Public Integrations')}</PanelHeader>
         <PanelBody>
           {!isEmpty ? (
-            integrations.map(this.renderApplicationRow)
+            integrations.map(renderApplicationRow)
           ) : (
             <EmptyMessage>
               {t('No public integrations have been created yet.')}
@@ -136,78 +126,72 @@ class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
         </PanelBody>
       </Panel>
     );
-  }
+  };
 
-  renderTabContent(tab: Tab) {
+  const renderTabContent = () => {
     switch (tab) {
       case 'internal':
-        return this.renderInternalIntegrations();
+        return renderInternalIntegrations();
       case 'public':
       default:
-        return this.renderPublicIntegrations();
+        return renderPublicIntegrations();
     }
-  }
-  renderBody() {
-    const {organization} = this.props;
-    const tabs: [id: Tab, label: string][] = [
-      ['internal', t('Internal Integration')],
-      ['public', t('Public Integration')],
-    ];
+  };
 
-    return (
-      <div>
-        <SettingsPageHeader
-          title={t('Custom Integrations')}
-          body={
-            <Fragment>
-              {t(
-                'Create integrations that interact with Sentry using the REST API and webhooks. '
-              )}
-              <br />
-              {tct('For more information [link: see our docs].', {
-                link: (
-                  <ExternalLink
-                    href={platformEventLinkMap[PlatformEvents.DOCS]}
-                    onClick={() => {
-                      trackIntegrationAnalytics(PlatformEvents.DOCS, {
-                        organization,
-                        view: this.analyticsView,
-                      });
-                    }}
-                  />
-                ),
-              })}
-            </Fragment>
-          }
-          action={
-            <ActionContainer>
-              <ExampleIntegrationButton
-                analyticsView={this.analyticsView}
-                style={{marginRight: space(1)}}
-              />
-              <CreateIntegrationButton analyticsView={this.analyticsView} />
-            </ActionContainer>
-          }
-        />
-        <NavTabs underlined>
-          {tabs.map(([type, label]) => (
-            <li
-              key={type}
-              className={this.tab === type ? 'active' : ''}
-              onClick={() => this.onTabChange(type)}
-            >
-              <a>{label}</a>
-            </li>
-          ))}
-        </NavTabs>
-        {this.renderTabContent(this.tab)}
-      </div>
-    );
-  }
+  return (
+    <div>
+      <SentryDocumentTitle title={t('Custom Integrations')} orgSlug={organization.slug} />
+      <SettingsPageHeader
+        title={t('Custom Integrations')}
+        body={
+          <Fragment>
+            {t(
+              'Create integrations that interact with Sentry using the REST API and webhooks. '
+            )}
+            <br />
+            {tct('For more information [link: see our docs].', {
+              link: (
+                <ExternalLink
+                  href={platformEventLinkMap[PlatformEvents.DOCS]}
+                  onClick={() => {
+                    trackIntegrationAnalytics(PlatformEvents.DOCS, {
+                      organization,
+                      view: analyticsView,
+                    });
+                  }}
+                />
+              ),
+            })}
+          </Fragment>
+        }
+        action={
+          <ActionContainer>
+            <ExampleIntegrationButton
+              analyticsView={analyticsView}
+              style={{marginRight: space(1)}}
+            />
+            <CreateIntegrationButton analyticsView={analyticsView} />
+          </ActionContainer>
+        }
+      />
+      <NavTabs underlined>
+        {tabs.map(([type, label]) => (
+          <li
+            key={type}
+            className={tab === type ? 'active' : ''}
+            onClick={() => setTab(type)}
+          >
+            <a>{label}</a>
+          </li>
+        ))}
+      </NavTabs>
+      {renderTabContent()}
+    </div>
+  );
 }
 
 const ActionContainer = styled('div')`
   display: flex;
 `;
 
-export default withOrganization(OrganizationDeveloperSettings);
+export default OrganizationDeveloperSettings;

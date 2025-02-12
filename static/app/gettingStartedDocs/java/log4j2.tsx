@@ -9,7 +9,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -17,6 +16,11 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
+}
+
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
 }
 
 const platformOptions = {
@@ -30,6 +34,19 @@ const platformOptions = {
       {
         label: t('Maven'),
         value: PackageManager.MAVEN,
+      },
+    ],
+  },
+  opentelemetry: {
+    label: t('OpenTelemetry'),
+    items: [
+      {
+        label: t('With OpenTelemetry'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('Without OpenTelemetry'),
+        value: YesNo.NO,
       },
     ],
   },
@@ -103,6 +120,18 @@ const getMavenInstallSnippet = (params: Params) => `
   ...
 </build>`;
 
+const getOpenTelemetryRunSnippet = (params: Params) => `
+SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
+`;
+
+const getSentryPropertiesSnippet = (params: Params) => `
+dsn=${params.dsn.public}${
+  params.isPerformanceSelected
+    ? `
+traces-sample-rate=1.0`
+    : ''
+}`;
+
 const getConsoleAppenderSnippet = (params: Params) => `
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="warn" packages="org.apache.logging.log4j.core,io.sentry.log4j2">
@@ -110,8 +139,12 @@ const getConsoleAppenderSnippet = (params: Params) => `
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
-        <Sentry name="Sentry"
-                dsn=${params.dsn.public}>
+        <Sentry name="Sentry"${
+          params.platformOptions.opentelemetry === YesNo.NO
+            ? `
+                dsn=${params.dsn.public}`
+            : ''
+        }>
     </Appenders>
     <Loggers>
         <Root level="info">
@@ -124,8 +157,12 @@ const getConsoleAppenderSnippet = (params: Params) => `
 const getLogLevelSnippet = (params: Params) => `
 <!-- Setting minimumBreadcrumbLevel modifies the default minimum level to add breadcrumbs from INFO to DEBUG  -->
 <!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->
-<Sentry name="Sentry"
-        dsn="${params.dsn.public}"
+<Sentry name="Sentry"${
+  params.platformOptions.opentelemetry === YesNo.NO
+    ? `
+        dsn=${params.dsn.public}`
+    : ''
+}
         minimumBreadcrumbLevel="DEBUG"
         minimumEventLevel="WARN"
 />`;
@@ -222,6 +259,26 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               },
             ]
           : []),
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: tct(
+                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                  {
+                    code: <code />,
+                    linkMC: (
+                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                    ),
+                    linkGH: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                    ),
+                  }
+                ),
+                language: 'bash',
+                code: getOpenTelemetryRunSnippet(params),
+              },
+            ]
+          : []),
       ],
       additionalInfo: tct(
         'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
@@ -240,6 +297,25 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         "Configure Sentry as soon as possible in your application's lifecycle:"
       ),
       configurations: [
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                type: StepType.CONFIGURE,
+                description: tct(
+                  "Here's the [code:sentry.properties] file that goes with the [code:java] command above:",
+                  {
+                    code: <code />,
+                  }
+                ),
+                configurations: [
+                  {
+                    language: 'java',
+                    code: getSentryPropertiesSnippet(params),
+                  },
+                ],
+              },
+            ]
+          : []),
         {
           language: 'xml',
           description: tct(
@@ -249,15 +325,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             }
           ),
           code: getConsoleAppenderSnippet(params),
-          additionalInfo: tct(
-            "You'll also need to configure your DSN (client key) if it's not already in the [code:log4j2.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/log4j2/#dsn-configuration" />
-              ),
-            }
-          ),
+          ...(params.platformOptions.opentelemetry === YesNo.YES
+            ? {}
+            : {
+                additionalInfo: tct(
+                  "You'll also need to configure your DSN (client key) if it's not already in the [code:log4j2.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/log4j2/#dsn-configuration" />
+                    ),
+                  }
+                ),
+              }),
         },
         {
           description: tct(
@@ -333,7 +413,6 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  customMetricsOnboarding: getJavaMetricsOnboarding(),
   onboarding,
 };
 

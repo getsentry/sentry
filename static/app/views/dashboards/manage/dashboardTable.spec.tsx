@@ -46,6 +46,11 @@ describe('Dashboards - DashboardTable', function () {
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: UserFixture({id: '1'}),
+        permissions: {
+          isEditableByEveryone: false,
+          teamsWithEditAccess: [1],
+        },
+        isFavorited: true,
       }),
       DashboardListItemFixture({
         id: '2',
@@ -122,7 +127,7 @@ describe('Dashboards - DashboardTable', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders dashboard list', function () {
+  it('renders dashboard list', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -132,11 +137,11 @@ describe('Dashboards - DashboardTable', function () {
       />
     );
 
-    expect(screen.getByText('Dashboard 1')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard 1')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard 2')).toBeInTheDocument();
   });
 
-  it('returns landing page url for dashboards', function () {
+  it('returns landing page url for dashboards', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -147,17 +152,17 @@ describe('Dashboards - DashboardTable', function () {
       {router}
     );
 
-    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/1/'
     );
-    expect(screen.getByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/2/'
     );
   });
 
-  it('persists global selection headers', function () {
+  it('persists global selection headers', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -168,7 +173,7 @@ describe('Dashboards - DashboardTable', function () {
       {router}
     );
 
-    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
     );
@@ -186,7 +191,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]!);
 
     expect(deleteMock).not.toHaveBeenCalled();
 
@@ -196,11 +201,11 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('cannot delete last dashboard', function () {
+  it('cannot delete last dashboard', async function () {
     const singleDashboard = [
       DashboardListItemFixture({
         id: '1',
@@ -219,7 +224,7 @@ describe('Dashboards - DashboardTable', function () {
       />
     );
 
-    expect(screen.getAllByTestId('dashboard-delete')[0]).toHaveAttribute(
+    expect((await screen.findAllByTestId('dashboard-delete'))[0]).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -234,13 +239,20 @@ describe('Dashboards - DashboardTable', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
+    renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
+
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('does not throw an error if the POST fails during duplication', async function () {
@@ -258,13 +270,84 @@ describe('Dashboards - DashboardTable', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
+    renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
+
+    expect(postMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
-      // Should not update, and not throw error
-      expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+    // Should not update, and not throw error
+    expect(dashboardUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it('renders access column', async function () {
+    const organizationWithEditAccess = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithEditAccess}
+        dashboards={dashboards}
+        location={router.location}
+      />
+    );
+
+    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
+    expect(screen.getByText('Access')).toBeInTheDocument();
+    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]!);
+    expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
+  });
+
+  it('renders favorite column', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/favorite/',
+      method: 'PUT',
+      body: {isFavorited: false},
+    });
+
+    const organizationWithFavorite = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+        'dashboards-favourite',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithFavorite}
+        dashboards={dashboards}
+        location={router.location}
+      />,
+      {
+        organization: organizationWithFavorite,
+      }
+    );
+
+    expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+
+    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]!);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
   });
 });

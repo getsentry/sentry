@@ -37,7 +37,7 @@ describe('IssueList -> Polling', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps, router} = initializeOrg({
+  const {organization, project, routerProps} = initializeOrg({
     organization: {
       access: ['project:releases'],
     },
@@ -63,7 +63,13 @@ describe('IssueList -> Polling', function () {
   /* helpers */
   const renderComponent = async () => {
     render(<IssueList {...routerProps} {...defaultProps} />, {
-      router,
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {query: 'is:unresolved'},
+        },
+      },
     });
 
     await Promise.resolve();
@@ -75,7 +81,7 @@ describe('IssueList -> Polling', function () {
 
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.clearMockResponses();

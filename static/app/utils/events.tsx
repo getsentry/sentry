@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import type {
@@ -10,17 +12,16 @@ import type {
   Thread,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {
-  BaseGroup,
-  Group,
-  GroupActivityAssigned,
-  GroupTombstoneHelper,
-} from 'sentry/types/group';
+import type {BaseGroup, Group, GroupTombstoneHelper} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';
-import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
+import {
+  getExceptionGroupHeight,
+  getExceptionGroupWidth,
+} from 'sentry/utils/eventExceptionGroup';
+import getDaysSinceDate, {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
@@ -128,12 +129,13 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper) {
         subtitle: '',
       };
     case EventOrGroupType.TRANSACTION:
-    case EventOrGroupType.GENERIC:
+    case EventOrGroupType.GENERIC: {
       const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
         title: customTitle ?? title,
         subtitle: isIssue ? culprit : '',
       };
+    }
     default:
       return {
         title: customTitle ?? title,
@@ -269,7 +271,7 @@ function getExceptionFrames(event: Event, inAppOnly: boolean) {
 /**
  * Returns all entries of type 'exception' of this event
  */
-function getExceptionEntries(event: Event) {
+export function getExceptionEntries(event: Event) {
   return (event.entries?.filter(entry => entry.type === EntryType.EXCEPTION) ||
     []) as EntryException[];
 }
@@ -280,8 +282,10 @@ function getExceptionEntries(event: Event) {
 function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
   const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
   const frames: Frame[] = exceptions
+    // @ts-expect-error TS(2322): Type 'Thread[] | ExceptionValue[]' is not assignab... Remove this comment to see the full error message
     .flatMap(withStacktrace => withStacktrace.data.values ?? [])
     .flatMap(
+      // @ts-expect-error TS(2345): Argument of type '(withStacktrace: ExceptionValue ... Remove this comment to see the full error message
       (withStacktrace: ExceptionValue | Thread) =>
         withStacktrace?.stacktrace?.frames ?? []
     );
@@ -349,6 +353,36 @@ export function eventHasExceptionGroup(event: Event) {
   );
 }
 
+export function eventExceptionGroupHeight(event: Event) {
+  try {
+    const exceptionEntry = getExceptionEntries(event)[0];
+
+    if (!exceptionEntry) {
+      return 0;
+    }
+
+    return getExceptionGroupHeight(exceptionEntry);
+  } catch (e) {
+    Sentry.captureException(e);
+    return 0;
+  }
+}
+
+export function eventExceptionGroupWidth(event: Event) {
+  try {
+    const exceptionEntry = getExceptionEntries(event)[0];
+
+    if (!exceptionEntry) {
+      return 0;
+    }
+
+    return getExceptionGroupWidth(exceptionEntry);
+  } catch (e) {
+    Sentry.captureException(e);
+    return 0;
+  }
+}
+
 export function eventHasGraphQlRequest(event: Event) {
   const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
     | EntryRequest
@@ -368,7 +402,7 @@ function getAssignmentIntegration(group: Group) {
   }
   const assignmentAcitivies = group.activity.filter(
     activity => activity.type === GroupActivityType.ASSIGNED
-  ) as GroupActivityAssigned[];
+  );
   const integrationAssignments = assignmentAcitivies.find(
     activity => !!activity.data.integration
   );
@@ -385,11 +419,14 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
+    event_age: event ? getDaysSinceDate(event.dateCreated ?? event.dateReceived) : -1,
     event_platform: event?.platform,
     event_runtime: event?.tags?.find(tag => tag.key === 'runtime.name')?.value,
     event_type: event?.type,
     has_release: !!event?.release,
     has_exception_group: event ? eventHasExceptionGroup(event) : false,
+    exception_group_height: event ? eventExceptionGroupHeight(event) : 0,
+    exception_group_width: event ? eventExceptionGroupWidth(event) : 0,
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,

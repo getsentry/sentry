@@ -1,28 +1,19 @@
 import {Fragment} from 'react';
 
-import {t, tct} from 'sentry/locale';
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {formatRate} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {ALERTS} from 'sentry/views/insights/browser/resources/alerts';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
-import {
-  DATA_TYPE,
-  RESOURCE_THROUGHPUT_UNIT,
-} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
-  DataTitles,
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
+
+import {DATA_TYPE, FIELD_ALIASES} from '../../settings';
 
 const {
   SPAN_SELF_TIME,
@@ -49,21 +40,25 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       : {}),
   });
 
-  const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
-    useSpanMetricsSeries(
-      {
-        search: mutableSearch,
-        yAxis: [
-          `spm()`,
-          `avg(${SPAN_SELF_TIME})`,
-          `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-          `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-          `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-        ],
-        enabled: Boolean(props.groupId),
-      },
-      Referrer.RESOURCE_SUMMARY_CHARTS
-    );
+  const {
+    data: spanMetricsSeriesData,
+    isPending: areSpanMetricsSeriesLoading,
+    error: spanMetricsSeriesError,
+  } = useSpanMetricsSeries(
+    {
+      search: mutableSearch,
+      yAxis: [
+        `spm()`,
+        `avg(${SPAN_SELF_TIME})`,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+      ],
+      enabled: Boolean(props.groupId),
+      transformAliasToInputFormat: true,
+    },
+    Referrer.RESOURCE_SUMMARY_CHARTS
+  );
 
   if (spanMetricsSeriesData) {
     spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
@@ -77,75 +72,35 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   return (
     <Fragment>
       <ModuleLayout.Third>
-        <ChartPanel
-          title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}
-          alertConfigs={[{...ALERTS.spm, query: mutableSearch.formatString()}]}
-        >
-          <Chart
-            height={160}
-            data={[spanMetricsSeriesData?.[`spm()`]]}
-            loading={areSpanMetricsSeriesLoading}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-            aggregateOutputFormat="rate"
-            rateUnit={RESOURCE_THROUGHPUT_UNIT}
-            stacked
-            chartColors={[THROUGHPUT_COLOR]}
-            tooltipFormatterOptions={{
-              valueFormatter: value => formatRate(value, RESOURCE_THROUGHPUT_UNIT),
-              nameFormatter: () => t('Requests'),
-            }}
-          />
-        </ChartPanel>
+        <InsightsLineChartWidget
+          title={getThroughputChartTitle('resource')}
+          series={[spanMetricsSeriesData?.[`spm()`]]}
+          isLoading={areSpanMetricsSeriesLoading}
+          error={spanMetricsSeriesError}
+        />
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel
-          title={getDurationChartTitle('http')}
-          alertConfigs={[{...ALERTS.duration, query: mutableSearch.formatString()}]}
-        >
-          <Chart
-            height={160}
-            data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
-            loading={areSpanMetricsSeriesLoading}
-            chartColors={[AVG_COLOR]}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-          />
-        </ChartPanel>
+        <InsightsLineChartWidget
+          title={getDurationChartTitle('resource')}
+          series={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
+          isLoading={areSpanMetricsSeriesLoading}
+          error={spanMetricsSeriesError}
+        />
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel
-          title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}
-          alertConfigs={[
-            {...ALERTS.decodedSize, query: mutableSearch.formatString()},
-            {...ALERTS.transferSize, query: mutableSearch.formatString()},
-            {...ALERTS.encodedSize, query: mutableSearch.formatString()},
+        <InsightsLineChartWidget
+          title={t('Average %s Size', DATA_TYPE)}
+          series={[
+            spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
+            spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
+            spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
           ]}
-        >
-          <Chart
-            height={160}
-            aggregateOutputFormat="size"
-            data={[
-              spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
-              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
-              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
-            ]}
-            loading={areSpanMetricsSeriesLoading}
-            chartColors={[AVG_COLOR]}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-            tooltipFormatterOptions={{
-              valueFormatter: bytes =>
-                getDynamicText({
-                  value: formatBytesBase2(bytes),
-                  fixed: 'xx KiB',
-                }),
-              nameFormatter: name => DataTitles[name],
-            }}
-          />
-        </ChartPanel>
+          aliases={FIELD_ALIASES}
+          isLoading={areSpanMetricsSeriesLoading}
+          error={spanMetricsSeriesError}
+        />
       </ModuleLayout.Third>
     </Fragment>
   );

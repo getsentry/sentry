@@ -40,37 +40,29 @@ type Score = {
   ttfbScore: number;
 };
 
-export type ScoreWithWeightsAndOpportunity = Score & Weight & Opportunity;
-
-export type InteractionSpanSampleRow = {
-  [SpanIndexedField.INP]: number;
+export type SpanSampleRow = {
   'profile.id': string;
   projectSlug: string;
   replayId: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.TIMESTAMP]: string;
-  'user.display': string;
+  [SpanIndexedField.TRACE]: string;
+  'user.display'?: string;
+  [SpanIndexedField.INP]?: number;
+  [SpanIndexedField.CLS]?: number;
+  [SpanIndexedField.LCP]?: number;
 };
 
-export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
-  inpScore: number;
+export type SpanSampleRowWithScore = SpanSampleRow & {
   totalScore: number;
-};
-
-export type Weight = {
-  clsWeight: number;
-  fcpWeight: number;
-  inpWeight: number;
-  lcpWeight: number;
-  ttfbWeight: number;
 };
 
 export type Opportunity = {
   opportunity: number;
 };
 
-export type ProjectScore = Partial<Score> & Weight;
+export type ProjectScore = Partial<Score>;
 
 export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 

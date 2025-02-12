@@ -11,6 +11,8 @@ from django.db.models import (
     When,
 )
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
@@ -63,10 +65,6 @@ def map_value_to_constant(constant, value):
     if not hasattr(constant, value):
         raise ValueError(value)
     return getattr(constant, value)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 def flip_sort_direction(sort_field: str) -> str:
@@ -310,16 +308,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if seat_outcome != Outcome.ACCEPTED:
             monitor.update(status=ObjectStatus.DISABLED)
 
-        self.create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=monitor.id,
-            event=audit_log.get_event_id("MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
-        )
-
         project = result["project"]
-        signal_monitor_created(project, request.user, False)
+        signal_monitor_created(project, request.user, False, monitor, request)
 
         validated_issue_alert_rule = result.get("alert_rule")
         if validated_issue_alert_rule:
@@ -365,8 +355,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = dict(validator.validated_data)
 
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
+
         monitor_guids = result.pop("ids", [])
-        monitors = Monitor.objects.filter(guid__in=monitor_guids)
+        monitors = Monitor.objects.filter(guid__in=monitor_guids, project_id__in=project_ids)
 
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
@@ -392,6 +385,13 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
                 monitor.update(**result)
                 updated.append(monitor)
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=monitor.id,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
+                data=monitor.get_audit_log_data(),
+            )
 
         return self.respond(
             {

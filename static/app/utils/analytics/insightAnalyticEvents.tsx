@@ -1,3 +1,5 @@
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+
 export type InsightEventParameters = {
   'insight.app_start.select_start_type': {type: string};
   'insight.app_start.spans.filter_by_device_class': {filter: string};
@@ -17,22 +19,24 @@ export type InsightEventParameters = {
   'insight.general.select_action_value': {source: string; value: string};
   // Don't specify domain because domains are arbitrary values
   'insight.general.select_domain_value': {source: string};
+  'insight.general.select_region_value': {regions: string[]};
   'insight.general.table_paginate': {direction: string; source: string};
   'insight.general.table_sort': {
     direction: string;
     field: string;
     source: string;
   };
-  'insight.page_loads.ai': {has_ever_sent_data: boolean};
-  'insight.page_loads.app_start': {has_ever_sent_data: boolean};
-  'insight.page_loads.assets': {has_ever_sent_data: boolean};
-  'insight.page_loads.cache': {has_ever_sent_data: boolean};
-  'insight.page_loads.db': {has_ever_sent_data: boolean};
-  'insight.page_loads.http': {has_ever_sent_data: boolean};
-  'insight.page_loads.queue': {has_ever_sent_data: boolean};
-  'insight.page_loads.screen_load': {has_ever_sent_data: boolean};
-  'insight.page_loads.screen_rendering': {has_ever_sent_data: boolean};
-  'insight.page_loads.vital': {has_ever_sent_data: boolean};
+  'insight.page_loads.ai': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.app_start': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.cache': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.db': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.http': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.queue': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.screen_load': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.screen_rendering': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.sessions': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.vital': {has_ever_sent_data: boolean; view: DomainView};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
   'insight.vital.overview.open_full_waterfall': {};
@@ -51,6 +55,7 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
   'insight.page_loads.db': 'Insights: DB Page Load',
+  'insight.page_loads.sessions': 'Insights: Sessions Page Load',
   'insight.page_loads.http': 'Insights: HTTP Page Load',
   'insight.page_loads.queue': 'Insights: Queue Page Load',
   'insight.page_loads.screen_load': 'Insights: Screen Load Page Load',
@@ -84,5 +89,6 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.vital.overview.toggle_data_type':
     'Insights: Web Vitals Overview - toggle data type',
   'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
+  'insight.general.select_region_value': 'Insights: Select value in region selector',
   'insight.general.create_alert': 'Insights: Create Alert clicked',
 };

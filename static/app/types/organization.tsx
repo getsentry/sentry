@@ -58,7 +58,7 @@ export interface Organization extends OrganizationSummary {
   allowSuperuserAccess: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
-  availableRoles: {id: string; name: string}[];
+  availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -91,6 +91,7 @@ export interface Organization extends OrganizationSummary {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  streamlineOnly: boolean | null;
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
@@ -184,10 +185,10 @@ export interface Member {
   teamRoleList: TeamRole[];
 
   // TODO: Move to global store
-  teamRoles: {
+  teamRoles: Array<{
     role: string | null;
     teamSlug: string;
-  }[];
+  }>;
   /**
    * @deprecated use teamRoles
    */
@@ -223,7 +224,7 @@ export interface MissingMember {
  */
 export type SharedViewOrganization = {
   slug: string;
-  features?: Array<string>;
+  features?: string[];
   id?: string;
 };
 
@@ -256,7 +257,7 @@ export type AccessRequest = {
 export type SavedQueryVersions = 1 | 2;
 
 export interface NewQuery {
-  fields: Readonly<string[]>;
+  fields: readonly string[];
   name: string;
   version: SavedQueryVersions;
   createdBy?: User;
@@ -264,20 +265,20 @@ export interface NewQuery {
   datasetSource?: DatasetSource;
   display?: string;
   end?: string | Date;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   expired?: boolean;
   id?: string;
   interval?: string;
   orderby?: string | string[];
-  projects?: Readonly<number[]>;
+  projects?: readonly number[];
   query?: string;
   queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
-  teams?: Readonly<('myteams' | number)[]>;
+  teams?: ReadonlyArray<'myteams' | number>;
   topEvents?: string;
   utc?: boolean | string;
-  widths?: Readonly<string[]>;
+  widths?: readonly string[];
   yAxis?: string[];
 }
 
@@ -293,11 +294,18 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
 };
 
-export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type Confidence = 'high' | 'low' | null;
 
-// API response format for a single series
+export type EventsStatsData = Array<
+  [number, Array<{count: number; comparisonCount?: number}>]
+>;
+
+export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
+
+// API response for a single Discover timeseries
 export type EventsStats = {
   data: EventsStatsData;
+  confidence?: ConfidenceStatsData;
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
@@ -306,7 +314,9 @@ export type EventsStats = {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
-    units: Record<string, string>;
+    units: Record<string, string | null>;
+    dataset?: string;
+    datasetReason?: string;
     discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
@@ -315,21 +325,25 @@ export type EventsStats = {
   totals?: {count: number};
 };
 
-// API response format for multiple series
+// API response for a top N Discover series or a multi-axis Discover series
 export type MultiSeriesEventsStats = {
-  [seriesName: string]: EventsStats;
+  [groupOrSeriesName: string]: EventsStats;
 };
 
+// API response for a grouped top N Discover series
 export type GroupedMultiSeriesEventsStats = {
-  [seriesName: string]: MultiSeriesEventsStats & {order: number};
+  [groupName: string]: {
+    [seriesName: string]: EventsStats | number;
+    order: number;
+  };
 };
 
 export type EventsStatsSeries<F extends string> = {
-  data: {
+  data: Array<{
     axis: F;
     values: number[];
     label?: string;
-  }[];
+  }>;
   meta: {
     dataset: string;
     end: number;
@@ -343,11 +357,11 @@ export type EventsStatsSeries<F extends string> = {
  */
 // Base type for series style API response
 export interface SeriesApi {
-  groups: {
+  groups: Array<{
     by: Record<string, string | number>;
     series: Record<string, number[]>;
     totals: Record<string, number>;
-  }[];
+  }>;
   intervals: string[];
 }
 

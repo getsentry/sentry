@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PerformanceCardTable from 'sentry/components/discover/performanceCardTable';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -35,7 +36,6 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -84,7 +84,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: PageFilters;
 };
 
-class ReleaseOverview extends DeprecatedAsyncView<Props> {
+class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
   getTitle() {
     const {params, organization} = this.props;
     return routeTitleGen(
@@ -196,7 +196,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
   ): EventView {
     const eventView =
       performanceType === ProjectPerformanceType.FRONTEND
-        ? (EventView.fromSavedQuery({
+        ? EventView.fromSavedQuery({
             ...baseQuery,
             fields: [
               ...baseQuery.fields,
@@ -208,9 +208,9 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
               `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
               `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
-          }) as EventView)
+          })
         : performanceType === ProjectPerformanceType.BACKEND
-          ? (EventView.fromSavedQuery({
+          ? EventView.fromSavedQuery({
               ...baseQuery,
               fields: [
                 ...baseQuery.fields,
@@ -218,9 +218,9 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                 'p75(spans.http)',
                 'p75(spans.db)',
               ],
-            }) as EventView)
+            })
           : performanceType === ProjectPerformanceType.MOBILE
-            ? (EventView.fromSavedQuery({
+            ? EventView.fromSavedQuery({
                 ...baseQuery,
                 fields: [
                   ...baseQuery.fields,
@@ -229,10 +229,10 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                   `p75(${MobileVital.FRAMES_SLOW})`,
                   `p75(${MobileVital.FRAMES_FROZEN})`,
                 ],
-              }) as EventView)
-            : (EventView.fromSavedQuery({
+              })
+            : EventView.fromSavedQuery({
                 ...baseQuery,
-              }) as EventView);
+              });
 
     return eventView;
   }
@@ -383,7 +383,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
             'release-comparison-performance'
           );
           const {environments} = selection;
-          const performanceType = platformToPerformanceType([project], [project.id]);
+          const performanceType = platformToPerformanceType([project], [project.id])!;
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
             version,
@@ -662,7 +662,7 @@ function generateTransactionLink(
     const {start, end, period} = datetime;
 
     return transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transaction! as string,
       query: {
         query: trendTransaction ? '' : `release:${version}`,
@@ -725,7 +725,7 @@ function getTransactionsListSort(location: Location): {
     location.query.showTransactions,
     TransactionsListOption.FAILURE_COUNT
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selectedSort, sortOptions};
 }
 

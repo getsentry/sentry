@@ -39,7 +39,7 @@ type Options = {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: DateString;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   excludeOther?: boolean;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
@@ -48,7 +48,7 @@ type Options = {
   limit?: number;
   orderby?: string;
   period?: string | null;
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   query?: string;
   queryBatching?: QueryBatching;
   queryExtras?: Record<string, string | boolean | number>;
@@ -56,6 +56,7 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  useRpc?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -109,6 +110,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     excludeOther,
     includeAllArgs,
     dataset,
+    useRpc,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -137,6 +139,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
+      useRpc: useRpc ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -189,7 +192,7 @@ export type TagSegment = {
 
 export type Tag = {
   key: string;
-  topValues: Array<TagSegment>;
+  topValues: TagSegment[];
 };
 
 /**
@@ -236,7 +239,7 @@ export function fetchTotalCount(
 type FetchEventAttachmentParameters = {
   eventId: string;
   orgSlug: string;
-  projectSlug: string;
+  projectSlug: string | undefined;
 };
 
 type FetchEventAttachmentResponse = IssueAttachment[];
@@ -261,7 +264,8 @@ export const useFetchEventAttachments = (
       ...options,
       enabled:
         (organization.features.includes('event-attachments') ?? false) &&
-        options.enabled !== false,
+        options.enabled !== false &&
+        params.projectSlug !== undefined,
     }
   );
 };

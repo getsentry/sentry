@@ -16,7 +16,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -25,12 +24,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
-export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, {}>) {
+export default function OrganizationGeneralSettings() {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -95,6 +94,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
+      navigate,
       orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,
@@ -113,7 +113,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
           title={t('Organization Settings')}
           action={organizationRegionInfo}
         />
-        <PermissionAlert />
+        <OrganizationPermissionAlert />
 
         <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 

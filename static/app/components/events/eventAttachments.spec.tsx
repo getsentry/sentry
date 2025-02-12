@@ -27,7 +27,7 @@ describe('EventAttachments', function () {
 
   const props = {
     group: undefined,
-    project: project,
+    project,
     event,
   };
 
@@ -180,7 +180,7 @@ describe('EventAttachments', function () {
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
     await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: /delete/i})
     );
@@ -188,7 +188,7 @@ describe('EventAttachments', function () {
     // Should make the delete request and remove the attachment optimistically
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
     });
+    expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
   });
 });

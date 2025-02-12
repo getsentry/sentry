@@ -3,17 +3,14 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import type {
-  ProductSelectionProps,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
-import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
@@ -168,7 +165,7 @@ type SentryLogoProps = SVGIconProps & {
 };
 export type ParntershipAgreementType = 'standard' | 'partner_presence';
 export type PartnershipAgreementProps = {
-  agreements: Array<ParntershipAgreementType>;
+  agreements: ParntershipAgreementType[];
   partnerDisplayName: string;
   onSubmitSuccess?: () => void;
   organizationSlug?: string;
@@ -207,7 +204,6 @@ export type ComponentHooks = {
   'component:insights-date-range-query-limit-footer': () => React.ComponentType<{}>;
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
-  'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
   'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
@@ -687,6 +683,11 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
      * invites may currently be sent.
      */
     canSend: boolean;
+    /**
+     * Indicates that the account has reached the maximum member limit. Future invitations
+     * are limited to Billing roles
+     */
+    isOverMemberLimit: boolean;
     /**
      * Trigger sending invites
      */

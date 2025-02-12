@@ -11,17 +11,40 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
-from sentry.utils.types import NonNone
 
 
 class SeerEventManagerGroupingTest(TestCase):
     """Test whether Seer is called during ingest and if so, how the results are used"""
 
+    def setUp(self) -> None:
+        self.event_data = {
+            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "Charlie didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dogpark.py",
+                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+
     def test_obeys_seer_similarity_flags(self):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert existing_event.group_id
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
@@ -44,7 +67,7 @@ class SeerEventManagerGroupingTest(TestCase):
                 return_value=[seer_result_data],
             ),
             patch(
-                "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
+                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=True,
             ),
         ):
@@ -80,9 +103,7 @@ class SeerEventManagerGroupingTest(TestCase):
             # In real life just filtering on group id wouldn't be enough to guarantee us a
             # single, specific GroupHash record, but since the database resets before each test,
             # here it's okay
-            expected_grouphash = GroupHash.objects.filter(
-                group_id=NonNone(existing_event.group_id)
-            ).first()
+            expected_grouphash = GroupHash.objects.filter(group_id=existing_event.group_id).first()
 
             # We checked whether to make the call, and then made it
             assert should_call_seer_spy.call_count == 1
@@ -137,7 +158,7 @@ class SeerEventManagerGroupingTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ) as mock_get_similarity_data_from_seer:
-            existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
+            existing_event = save_new_event(self.event_data, self.project)
 
             existing_event_grouphash = GroupHash.objects.filter(
                 hash=existing_event.get_primary_hash(), project_id=self.project.id
@@ -160,18 +181,40 @@ class SeerEventManagerGroupingTest(TestCase):
             )
 
         # Event which is sent and does find a match
+        assert existing_event.group_id is not None
         seer_result_data = SeerSimilarIssueData(
             parent_hash=existing_event.get_primary_hash(),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
+        new_event_data = {
+            "title": "FailedToFetchError('Kenji didn't bring the ball back')",
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "Kenji didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dogpark.py",
+                                    "context_line": "raise FailedToFetchError('Kenji didn't bring the ball back')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ) as mock_get_similarity_data_from_seer:
-            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
+            new_event = save_new_event(new_event_data, self.project)
 
             assert new_event.group_id == existing_event.group_id
 
@@ -212,9 +255,10 @@ class SeerEventManagerGroupingTest(TestCase):
     def test_assigns_event_to_neighbor_group_if_found(self, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
+        assert existing_event.group_id is not None
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
@@ -223,7 +267,7 @@ class SeerEventManagerGroupingTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ) as mock_get_similarity_data:
-            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
+            new_event = save_new_event(self.event_data, self.project)
 
             assert mock_get_similarity_data.call_count == 1
             assert existing_event.group_id == new_event.group_id
@@ -235,7 +279,7 @@ class SeerEventManagerGroupingTest(TestCase):
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
         ) as mock_get_similarity_data:
-            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
+            new_event = save_new_event(self.event_data, self.project)
 
             assert mock_get_similarity_data.call_count == 1
             assert existing_event.group_id != new_event.group_id

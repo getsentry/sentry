@@ -1,6 +1,13 @@
 import {Fragment, useContext, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {MockCheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import FormContext from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
@@ -9,12 +16,9 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ScheduleType} from 'sentry/views/monitors/types';
+import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 
-import {CheckInPlaceholder} from './timeline/checkInPlaceholder';
-import {MockCheckInTimeline} from './timeline/checkInTimeline';
-import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
-import {getConfigFromTimeRange} from './timeline/utils/getConfigFromTimeRange';
+import {checkInStatusPrecedent, statusToText, tickStyle} from '../utils';
 
 interface ScheduleConfig {
   cronSchedule?: FieldValue;
@@ -68,7 +72,8 @@ export function MockTimelineVisualization({schedule}: Props) {
 
   const errorMessage =
     isError || !isValidConfig(schedule)
-      ? error?.responseJSON?.schedule?.[0] ?? t('Invalid Schedule')
+      ? // @ts-expect-error TS(2571): Object is of type 'unknown'.
+        error?.responseJSON?.schedule?.[0] ?? t('Invalid Schedule')
       : null;
 
   useEffect(() => {
@@ -106,6 +111,10 @@ export function MockTimelineVisualization({schedule}: Props) {
           />
           <MockCheckInTimeline
             mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
+            status={CheckInStatus.IN_PROGRESS}
+            statusStyle={tickStyle}
+            statusLabel={statusToText}
+            statusPrecedent={checkInStatusPrecedent}
             timeWindowConfig={timeWindowConfig}
           />
         </Fragment>

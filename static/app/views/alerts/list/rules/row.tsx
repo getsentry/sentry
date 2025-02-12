@@ -21,19 +21,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MonitorType} from 'sentry/types/alerts';
 import type {Actor} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
-import {
-  UptimeMonitorMode,
-  UptimeMonitorStatus,
-} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 
 import type {CombinedAlerts} from '../../types';
 import {CombinedAlertType} from '../../types';
@@ -61,16 +56,20 @@ function RuleListRow({
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
 
-  const isActivatedAlertRule =
-    rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
   const isUptime = rule.type === CombinedAlertType.UPTIME;
+  const isCron = rule.type === CombinedAlertType.CRONS;
 
-  const slug = isUptime ? rule.projectSlug : rule.projects[0];
+  const slug = isUptime
+    ? rule.projectSlug
+    : isCron
+      ? rule.project.slug
+      : rule.projects[0]!;
 
   const editKey = {
     [CombinedAlertType.ISSUE]: 'rules',
     [CombinedAlertType.METRIC]: 'metric-rules',
     [CombinedAlertType.UPTIME]: 'uptime-rules',
+    [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
   const editLink = `/organizations/${orgId}/alerts/${editKey[rule.type]}/${slug}/${rule.id}/`;
@@ -79,6 +78,7 @@ function RuleListRow({
     [CombinedAlertType.ISSUE]: 'issue',
     [CombinedAlertType.METRIC]: 'metric',
     [CombinedAlertType.UPTIME]: 'uptime',
+    [CombinedAlertType.CRONS]: 'crons',
   } satisfies Record<CombinedAlertType, string>;
 
   const duplicateLink = {
@@ -101,6 +101,7 @@ function RuleListRow({
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
     [CombinedAlertType.METRIC]: ['edit', 'duplicate', 'delete'],
     [CombinedAlertType.UPTIME]: ['edit', 'delete'],
+    [CombinedAlertType.CRONS]: ['edit', 'delete'],
   };
 
   const actions: MenuItemProps[] = [
@@ -174,7 +175,7 @@ function RuleListRow({
     }))
     .concat(unassignedOption);
 
-  const teamId = assignee?.split(':')[1];
+  const teamId = assignee?.split(':')[1]!;
   const teamName = filteredProjectTeams.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {
@@ -218,20 +219,25 @@ function RuleListRow({
     </Tag>
   ) : null;
 
+  function ruleUrl() {
+    switch (rule.type) {
+      case CombinedAlertType.METRIC:
+        return `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
+      case CombinedAlertType.CRONS:
+        return `/organizations/${orgId}/alerts/rules/crons/${rule.project.slug}/${rule.id}/details/`;
+      case CombinedAlertType.UPTIME:
+        return `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`;
+      default:
+        return `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`;
+    }
+  }
+
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <AlertNameAndStatus>
           <AlertName>
-            <Link
-              to={
-                rule.type === CombinedAlertType.ISSUE
-                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
-                  : rule.type === CombinedAlertType.METRIC
-                    ? `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
-                    : `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`
-              }
-            >
+            <Link to={ruleUrl()}>
               {rule.name} {titleBadge}
             </Link>
           </AlertName>
@@ -244,19 +250,11 @@ function RuleListRow({
         <FlexCenter>
           <CombinedAlertBadge rule={rule} />
         </FlexCenter>
-        <MarginLeft>
-          {isActivatedAlertRule ? (
-            <ActivatedMetricAlertRuleStatus rule={rule} />
-          ) : isUptime ? (
-            rule.status === UptimeMonitorStatus.FAILED ? (
-              t('Down')
-            ) : (
-              t('Up')
-            )
-          ) : (
+        {!isUptime && !isCron && (
+          <MarginLeft>
             <AlertRuleStatus rule={rule} />
-          )}
-        </MarginLeft>
+          </MarginLeft>
+        )}
       </FlexCenter>
       <FlexCenter>
         <ProjectBadgeContainer>

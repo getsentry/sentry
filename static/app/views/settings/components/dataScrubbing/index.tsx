@@ -84,7 +84,8 @@ export function DataScrubbing({
       modalProps => (
         <Edit
           {...modalProps}
-          rule={rules[params.scrubbingId]}
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+          rule={rules[params.scrubbingId!]}
           projectId={project?.id}
           savedRules={rules}
           api={api}

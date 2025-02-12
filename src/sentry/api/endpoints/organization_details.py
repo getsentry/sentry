@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, options, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -42,7 +42,6 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -53,8 +52,6 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -66,16 +63,16 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
+    ObjectStatus,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
+    calculate_sample_rates_of_projects,
+    query_project_counts_by_org,
 )
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     is_organization_mode_sampling,
@@ -92,6 +89,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -181,12 +179,6 @@ ORG_OPTIONS = (
     ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
     (
-        "aiSuggestedSolution",
-        "sentry:ai_suggested_solution",
-        bool,
-        AI_SUGGESTED_SOLUTION,
-    ),
-    (
         "hideAiFeatures",
         "sentry:hide_ai_features",
         bool,
@@ -221,18 +213,6 @@ ORG_OPTIONS = (
         "sentry:metric_alerts_thread_flag",
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
-    ),
-    (
-        "metricsActivatePercentiles",
-        "sentry:metrics_activate_percentiles",
-        bool,
-        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
-    ),
-    (
-        "metricsActivateLastForGauges",
-        "sentry:metrics_activate_last_for_gauges",
-        bool,
-        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
@@ -282,7 +262,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
-    aiSuggestedSolution = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
@@ -290,8 +269,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
@@ -495,7 +472,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return incoming
 
-    def save(self):
+    def save(self, **kwargs):
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -631,13 +608,13 @@ def post_org_pending_deletion(
             transaction_id=org_delete_response.schedule_guid,
         )
 
-        delete_confirmation_args: DeleteConfirmationArgs = dict(
-            username=request.user.get_username(),
-            ip_address=entry.ip_address,
-            deletion_datetime=entry.datetime,
-            countdown=ONE_DAY,
-            organization=updated_organization,
-        )
+        delete_confirmation_args: DeleteConfirmationArgs = {
+            "username": request.user.get_username(),
+            "ip_address": entry.ip_address,
+            "deletion_datetime": entry.datetime,
+            "countdown": ONE_DAY,
+            "organization": updated_organization,
+        }
         send_delete_confirmation(delete_confirmation_args)
 
 
@@ -647,8 +624,6 @@ def post_org_pending_deletion(
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
-        "metricsActivatePercentiles",
-        "metricsActivateLastForGauges",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -663,10 +638,6 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     isEarlyAdopter = serializers.BooleanField(
         help_text="Specify `true` to opt-in to new features before they're released to the public.",
-        required=False,
-    )
-    aiSuggestedSolution = serializers.BooleanField(
-        help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
         required=False,
     )
     hideAiFeatures = serializers.BooleanField(
@@ -853,10 +824,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     )
     apdexThreshold = serializers.IntegerField(required=False)
 
-    # TODO: publish when GA'd
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
-
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
@@ -934,10 +901,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
-        if request.access.has_scope("org:admin"):
-            serializer_cls = OwnerOrganizationSerializer
-        else:
-            serializer_cls = OrganizationSerializer
+        serializer_cls: type[OwnerOrganizationSerializer | OrganizationSerializer] = (
+            OwnerOrganizationSerializer
+            if request.access.has_scope("org:admin")
+            else OrganizationSerializer
+        )
 
         was_pending_deletion = organization.status in DELETION_STATUSES
 
@@ -983,7 +951,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if "samplingMode" in changed_data:
                     with transaction.atomic(router.db_for_write(ProjectOption)):
                         if is_project_mode_sampling(organization):
-                            self._compute_project_target_sample_rates(organization)
+                            self._compute_project_target_sample_rates(request, organization)
                             organization.delete_option("sentry:target_sample_rate")
 
                         elif is_org_mode:
@@ -1009,7 +977,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if is_org_mode and (
                     "samplingMode" in changed_data or "targetSampleRate" in changed_data
                 ):
-                    boost_low_volume_projects_of_org_with_query.delay(organization.id)
+                    boost_low_volume_projects_of_org_with_query.delay(
+                        organization.id,
+                    )
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -1040,15 +1010,41 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _compute_project_target_sample_rates(self, organization):
-        for project in organization.project_set.all():
-            current_rate, _ = get_boost_low_volume_projects_sample_rate(
-                org_id=organization.id,
-                project_id=project.id,
-                error_sample_rate_fallback=None,
+    def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
+        # TODO: this will take a long time for organizations with a lot of projects
+        #       so we need to refactor this into an async task we can run and observe
+        org_id = organization.id
+        measure = SamplingMeasure.TRANSACTIONS
+        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
+            "organizations:dynamic-sampling-spans", organization
+        ):
+            measure = SamplingMeasure.SPANS
+
+        projects_with_tx_count_and_rates = []
+        for chunk in query_project_counts_by_org(
+            [org_id], measure, query_interval=timedelta(days=30)
+        ):
+            for row in chunk:
+                projects_with_tx_count_and_rates.append(row[1:])
+
+        rebalanced_projects = calculate_sample_rates_of_projects(
+            org_id, projects_with_tx_count_and_rates
+        )
+
+        project_ids = set(
+            Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).values_list(
+                "id", flat=True
             )
-            if current_rate:
-                project.update_option("sentry:target_sample_rate", current_rate)
+        )
+
+        if rebalanced_projects is not None:
+            for rebalanced_item in rebalanced_projects:
+                if int(rebalanced_item.id) in project_ids:
+                    ProjectOption.objects.create_or_update(
+                        project_id=rebalanced_item.id,
+                        key="sentry:target_sample_rate",
+                        values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                    )
 
     def handle_delete(self, request: Request, organization: Organization):
         """
@@ -1139,7 +1135,7 @@ def update_tracked_data(model):
 
 class DeleteConfirmationArgs(TypedDict):
     username: str
-    ip_address: str
+    ip_address: str | None
     deletion_datetime: datetime
     organization: RpcOrganization
     countdown: int
@@ -1149,11 +1145,11 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
     from sentry import options
     from sentry.utils.email import MessageBuilder
 
-    organization = delete_confirmation_args.get("organization")
-    username = delete_confirmation_args.get("username")
-    user_ip_address = delete_confirmation_args.get("ip_address")
-    deletion_datetime = delete_confirmation_args.get("deletion_datetime")
-    countdown = delete_confirmation_args.get("countdown")
+    organization = delete_confirmation_args["organization"]
+    username = delete_confirmation_args["username"]
+    user_ip_address = delete_confirmation_args["ip_address"]
+    deletion_datetime = delete_confirmation_args["deletion_datetime"]
+    countdown = delete_confirmation_args["countdown"]
 
     url = organization.absolute_url(
         reverse("sentry-restore-organization", args=[organization.slug])

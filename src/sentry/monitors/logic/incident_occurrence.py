@@ -103,9 +103,6 @@ def queue_incident_occurrence(
     """
     monitor_env = failed_checkin.monitor_environment
 
-    if monitor_env is None:
-        return
-
     incident_occurrence: IncidentOccurrence = {
         "incident_id": incident.id,
         "failed_checkin_id": failed_checkin.id,
@@ -137,9 +134,6 @@ def send_incident_occurrence(
     failing check-ins which caused that incident.
     """
     monitor_env = failed_checkin.monitor_environment
-
-    if monitor_env is None:
-        return
 
     current_timestamp = datetime.now(timezone.utc)
 

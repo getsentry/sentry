@@ -10,7 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
-from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
+from sentry.sentry_apps.alert_rule_action_creator import SentryAppAlertRuleActionCreator
 from sentry.sentry_apps.api.serializers.sentry_app_component import (
     SentryAppAlertRuleActionSerializer,
 )
@@ -38,6 +38,7 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -96,12 +97,6 @@ class DatabaseBackedAppService(AppService):
             return serialize_sentry_app(sentry_app)
         except SentryApp.DoesNotExist:
             return None
-
-    def get_installed_for_organization(
-        self, *, organization_id: int
-    ) -> list[RpcSentryAppInstallation]:
-        # Deprecated. Use get_installations_for_organization instead.
-        return self.get_installations_for_organization(organization_id=organization_id)
 
     def get_installations_for_organization(
         self, *, organization_id: int
@@ -260,9 +255,21 @@ class DatabaseBackedAppService(AppService):
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
-        result = AlertRuleActionCreator(install=install, fields=fields).run()
-        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
+            return RpcAlertRuleActionResult(
+                success=False,
+                message="Installation does not exist",
+                error_type=SentryAppErrorType.SENTRY,
+                webhook_type={"installation_uuid": install_uuid},
+            )
+        result = SentryAppAlertRuleActionCreator(install=install, fields=fields).run()
+        return RpcAlertRuleActionResult(
+            success=result["success"],
+            message=result["message"],
+            error_type=result.get("error_type"),
+            webhook_context=result.get("webhook_context"),
+            public_context=result.get("public_context"),
+            status_code=result.get("status_code"),
+        )
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         try:
@@ -277,6 +284,30 @@ class DatabaseBackedAppService(AppService):
             owner_id=organization_id, status=SentryAppStatus.PUBLISHED
         )
         return [serialize_sentry_app(app) for app in published_apps]
+
+    def get_internal_integrations(
+        self, *, organization_id: int, integration_name: str
+    ) -> list[RpcSentryApp]:
+        """
+        Get all internal integrations for an organization matching a specific name.
+
+        Internal integrations are Sentry Apps that are created for use within a single
+        organization and are not available to be installed by users.
+
+        Args:
+            organization_id (int): The ID of the organization to search within
+            integration_name (str): The name of the internal integration to find
+
+        Returns:
+            list[RpcSentryApp]: A list of serialized internal Sentry Apps matching the criteria.
+                               Returns an empty list if no matches are found.
+        """
+        internal_integrations = SentryApp.objects.filter(
+            owner_id=organization_id,
+            status=SentryAppStatus.INTERNAL,
+            name=integration_name,
+        )
+        return [serialize_sentry_app(app) for app in internal_integrations]
 
     def create_internal_integration_for_channel_request(
         self,

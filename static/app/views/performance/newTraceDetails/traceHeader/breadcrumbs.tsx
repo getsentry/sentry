@@ -9,13 +9,9 @@ import type {
   RoutableModuleNames,
   URLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {
-  DOMAIN_VIEW_BASE_TITLE,
-  DOMAIN_VIEW_BASE_URL,
-} from 'sentry/views/insights/pages/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -40,13 +36,13 @@ export const enum TraceViewSources {
   MOBILE_SCREENS_MODULE = 'mobile_screens_module',
   SCREEN_RENDERING_MODULE = 'screen_rendering_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
-  PERFORMANCE_TRANSACTION_SUMMARY_PROFILES = 'performance_transaction_summary_profiles',
   ISSUE_DETAILS = 'issue_details',
+  DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
-const TRACE_SOURCE_TO_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
+const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   app_starts_module: ModuleName.APP_START,
   assets_module: ModuleName.RESOURCE,
   caches_module: ModuleName.CACHE,
@@ -58,7 +54,20 @@ const TRACE_SOURCE_TO_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   queues_module: ModuleName.QUEUE,
   screen_load_module: ModuleName.SCREEN_LOAD,
   screen_rendering_module: ModuleName.SCREEN_RENDERING,
-  mobile_screens_module: ModuleName.MOBILE_SCREENS,
+  mobile_screens_module: ModuleName.MOBILE_VITALS,
+};
+
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+  Record<TraceViewSources, string>
+> = {
+  traces: 'traces',
+  metrics: 'metrics',
+  discover: 'discover',
+  profiling_flamegraph: 'profiling',
+  performance_transaction_summary: 'performance',
+  issue_details: 'issues',
+  feedback_details: 'feedback',
+  dashboards: 'dashboards',
 };
 
 function getBreadCrumbTarget(
@@ -81,18 +90,7 @@ function getPerformanceBreadCrumbs(
   const crumbs: Crumb[] = [];
 
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
-  const transactionSummaryUrl = getTransactionSummaryBaseUrl(
-    organization.slug,
-    view,
-    true
-  );
-
-  if (view) {
-    crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
-    });
-  }
+  const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
   crumbs.push({
     label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
@@ -102,12 +100,8 @@ function getPerformanceBreadCrumbs(
   switch (location.query.tab) {
     case Tab.EVENTS:
       crumbs.push({
-        label: t('All Events'),
-        to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/events`,
-          location.query,
-          organization
-        ),
+        label: t('Transaction Summary'),
+        to: getBreadCrumbTarget(`${transactionSummaryUrl}`, location.query, organization),
       });
       break;
     case Tab.TAGS:
@@ -120,7 +114,7 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS:
+    case Tab.SPANS: {
       crumbs.push({
         label: t('Spans'),
         to: getBreadCrumbTarget(
@@ -142,6 +136,7 @@ function getPerformanceBreadCrumbs(
         });
       }
       break;
+    }
     case Tab.AGGREGATE_WATERFALL:
       crumbs.push({
         label: t('Transaction Summary'),
@@ -193,6 +188,43 @@ function getIssuesBreadCrumbs(organization: Organization, location: Location) {
   return crumbs;
 }
 
+function getDashboardsBreadCrumbs(organization: Organization, location: Location) {
+  const crumbs: Crumb[] = [];
+
+  crumbs.push({
+    label: t('Dashboards'),
+    to: getBreadCrumbTarget('dashboards', location.query, organization),
+  });
+
+  if (location.query.dashboardId) {
+    crumbs.push({
+      label: t('Widgets Legend'),
+      to: getBreadCrumbTarget(
+        `dashboard/${location.query.dashboardId}`,
+        location.query,
+        organization
+      ),
+    });
+
+    if (location.query.widgetId) {
+      crumbs.push({
+        label: t('Widget'),
+        to: getBreadCrumbTarget(
+          `dashboard/${location.query.dashboardId}/widget/${location.query.widgetId}/`,
+          location.query,
+          organization
+        ),
+      });
+    }
+  }
+
+  crumbs.push({
+    label: t('Trace View'),
+  });
+
+  return crumbs;
+}
+
 function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
@@ -202,10 +234,6 @@ function getInsightsModuleBreadcrumbs(
   const crumbs: Crumb[] = [];
 
   if (view && DOMAIN_VIEW_TITLES[view]) {
-    crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
-    });
     crumbs.push({
       label: DOMAIN_VIEW_TITLES[view],
       to: getBreadCrumbTarget(
@@ -224,13 +252,13 @@ function getInsightsModuleBreadcrumbs(
 
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source]
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
   ) {
-    moduleName = TRACE_SOURCE_TO_MODULE[location.query.source] as RoutableModuleNames;
-    crumbs.push({
-      label: MODULE_TITLES[moduleName],
-      to: moduleURLBuilder(moduleName),
-    });
+    moduleName = TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ] as RoutableModuleNames;
   }
 
   switch (moduleName) {
@@ -348,7 +376,9 @@ export function getTraceViewBreadcrumbs(
 ): Crumb[] {
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source]
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
   ) {
     return getInsightsModuleBreadcrumbs(location, organization, moduleUrlBuilder, view);
   }
@@ -384,6 +414,18 @@ export function getTraceViewBreadcrumbs(
           label: t('Trace View'),
         },
       ];
+    case TraceViewSources.FEEDBACK_DETAILS:
+      return [
+        {
+          label: t('User Feedback'),
+          to: getBreadCrumbTarget(`feedback`, location.query, organization),
+        },
+        {
+          label: t('Trace View'),
+        },
+      ];
+    case TraceViewSources.DASHBOARDS:
+      return getDashboardsBreadCrumbs(organization, location);
     case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:

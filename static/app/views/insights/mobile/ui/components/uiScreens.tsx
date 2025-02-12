@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -145,7 +145,7 @@ export function UIScreens() {
     yAxes: Y_AXES,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2) ?? [],
     releaseEvents,
     topTransactions,
   });
@@ -188,7 +188,7 @@ export function UIScreens() {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screen')}
         additionalConditions={
           new MutableSearch(

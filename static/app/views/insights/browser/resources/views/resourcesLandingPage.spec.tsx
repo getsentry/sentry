@@ -61,7 +61,7 @@ describe('ResourcesLandingPage', function () {
     render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.domainSelector.mock.calls).toMatchInlineSnapshot(`
+    expect(requestMocks.domainSelector!.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "/organizations/org-slug/events/",
@@ -94,7 +94,7 @@ describe('ResourcesLandingPage', function () {
     render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.mainTable.mock.calls).toMatchInlineSnapshot(`
+    expect(requestMocks.mainTable!.mock.calls).toMatchInlineSnapshot(`
 [
   [
     "/organizations/org-slug/events/",
@@ -270,6 +270,25 @@ const setupMockRequests = (organization: Organization) => {
           [1699907700, [{count: 1111.2}]],
           [1699908000, [{count: 2222.8}]],
         ],
+      },
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/`,
+    method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.insights.user-geo-subregion-selector',
+      }),
+    ],
+    body: {
+      data: [
+        {'user.geo.subregion': '21', 'count()': 123},
+        {'user.geo.subregion': '155', 'count()': 123},
+      ],
+      meta: {
+        fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
       },
     },
   });

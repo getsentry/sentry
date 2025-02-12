@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -10,6 +11,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -17,10 +20,12 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -31,9 +36,13 @@ import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOve
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   FRONTEND_LANDING_TITLE,
+  FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
-import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
+import {
+  generateFrontendOtherPerformanceEventView,
+  USER_MISERY_TOOLTIP,
+} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -47,16 +56,25 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
+const DURATION_TOOLTIP = tct(
+  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
+    ),
+  }
+);
+
 export const FRONTEND_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'p50()',
-  'p75()',
-  'p95()',
-  'users',
-  'user misery',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'p50()', tooltip: DURATION_TOOLTIP},
+  {title: 'p75()', tooltip: DURATION_TOOLTIP},
+  {title: 'p95()', tooltip: DURATION_TOOLTIP},
+  {title: 'users'},
+  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 function FrontendOverviewPage() {
@@ -68,6 +86,7 @@ function FrontendOverviewPage() {
   const navigate = useNavigate();
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
+  const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
@@ -75,6 +94,9 @@ function FrontendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
+
+  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -93,8 +115,23 @@ function FrontendOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
+    selection.projects,
+    projects
+  ).filter((project): project is Project =>
+    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
+  );
+
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
+  if (selectedFrontendProjects.length > 0) {
+    existingQuery.addOp('OR');
+    existingQuery.addFilterValue(
+      'project.id',
+      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
+    );
+  }
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -122,8 +159,6 @@ function FrontendOverviewPage() {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
-
-  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -157,7 +192,7 @@ function FrontendOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -178,11 +213,11 @@ function FrontendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>

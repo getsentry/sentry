@@ -138,7 +138,7 @@ class IntegrationDomain(StrEnum):
 class IntegrationProviderSlug(StrEnum):
     SLACK = "slack"
     DISCORD = "discord"
-    MSTeams = "msteams"
+    MSTEAMS = "msteams"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
     AZURE_DEVOPS = "vsts"
@@ -155,7 +155,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     IntegrationDomain.MESSAGING: [
         IntegrationProviderSlug.SLACK,
         IntegrationProviderSlug.DISCORD,
-        IntegrationProviderSlug.MSTeams,
+        IntegrationProviderSlug.MSTEAMS,
     ],
     IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
@@ -173,10 +173,6 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.PAGERDUTY,
         IntegrationProviderSlug.OPSGENIE,
     ],
-}
-
-INTEGRATION_PROVIDER_TO_TYPE = {
-    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
 }
 
 
@@ -516,9 +512,6 @@ class IntegrationInstallation(abc.ABC):
     # NotifyBasicMixin noops
 
     def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
-        pass
-
-    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass
 
 

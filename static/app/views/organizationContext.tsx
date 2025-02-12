@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -17,11 +18,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {metric} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface OrganizationLoaderContextProps {
   organizationPromise: Promise<unknown> | null;
@@ -59,6 +57,22 @@ export function useEnsureOrganization() {
 }
 
 /**
+ * Record if the organization was bootstrapped in the last 10 minutes
+ */
+function setRecentBootstrapTag(orgSlug: string) {
+  const previousBootstrapKey = `previous-bootstrap-${orgSlug}`;
+  try {
+    const previousBootstrapTime = localStorage.getItem(previousBootstrapKey);
+    const isRecentBoot = previousBootstrapTime
+      ? Date.now() - Number(previousBootstrapTime) < 10 * 60 * 1000
+      : false;
+    Sentry.setTag('is_recent_boot', isRecentBoot);
+    localStorage.setItem(previousBootstrapKey, `${Date.now()}`);
+  } catch {
+    // Ignore errors
+  }
+}
+/**
  * Context provider responsible for loading the organization into the
  * OrganizationStore if it is not already present.
  *
@@ -78,8 +92,6 @@ export function OrganizationContextProvider({children}: Props) {
 
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
-
-  const routes = useRoutes();
   const params = useParams<{orgId?: string}>();
 
   // XXX(epurkhiser): When running in deploy preview mode customer domains are
@@ -99,32 +111,19 @@ export function OrganizationContextProvider({children}: Props) {
       return;
     }
 
-    metric.mark({name: 'organization-details-fetch-start'});
+    setRecentBootstrapTag(orgSlug);
 
-    setOrganizationPromise(fetchOrganizationDetails(api, orgSlug, false, true));
+    const promise = Sentry.startSpan(
+      {
+        name: 'ui.bootstrap',
+        op: 'ui.render',
+        forceTransaction: true,
+      },
+      // Bootstraps organization, projects, and teams
+      () => fetchOrganizationDetails(api, orgSlug, false, true)
+    );
+    setOrganizationPromise(promise);
   }, [api, orgSlug, organization]);
-
-  // Take a measurement for when organization details are done loading and the
-  // new state is applied
-  useEffect(
-    () => {
-      if (organization === null) {
-        return;
-      }
-      metric.measure({
-        name: 'app.component.perf',
-        start: 'organization-details-fetch-start',
-        data: {
-          name: 'org-details',
-          route: getRouteStringFromRoutes(routes),
-          organization_id: parseInt(organization.id, 10),
-        },
-      });
-    },
-    // Ignore the `routes` dependency for the metrics measurement
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [organization]
-  );
 
   // XXX(epurkhiser): User may be null in some scenarios at this point in app
   // boot. We should fix the types here in the future

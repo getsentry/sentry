@@ -58,7 +58,7 @@ interface State<Data> {
  *   browser needs to hold in memory. Loading all data with this hook could
  *   cause rate-limiting, memory exhaustion, slow rendering, and other problems.
  *
- *   Before implementing a sequential-fetch you should first think about
+ *   Before implementing a parallel-fetch you should first think about
  *   building new api endpoints that return just the data you need (in a
  *   paginated way), or look at the feature design itself and make adjustments.
  * </WARNING>

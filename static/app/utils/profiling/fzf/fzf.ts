@@ -86,7 +86,7 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   const patternLength = pattern.length;
 
   for (let index = 0; index < textLength; index++) {
-    let char = text[index];
+    let char = text[index]!;
     // This is considerably faster than blindly applying strings.ToLower to the whole string
     if (!caseSensitive) {
       const cc = char.charCodeAt(0);
@@ -118,7 +118,7 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
     let char = text[index];
     // This is considerably faster than blindly applying strings.ToLower to the whole string
     if (!caseSensitive) {
-      const cc = char.charCodeAt(0);
+      const cc = char!.charCodeAt(0);
       if (cc >= 65 && cc <= 90) {
         char = String.fromCharCode(cc + 32);
       }
@@ -187,13 +187,13 @@ function calculateScore(
   for (let idx = sidx; idx < eidx; idx++) {
     let char = text[idx];
     if (!caseSensitive) {
-      const cc = char.charCodeAt(0);
+      const cc = char!.charCodeAt(0);
       if (cc >= 65 && cc <= 90) {
         char = String.fromCharCode(cc + 32);
       }
     }
     const patternchar = pattern[pidx];
-    const currentCharClass = getCharClass(char.charCodeAt(0));
+    const currentCharClass = getCharClass(char!.charCodeAt(0));
 
     if (char === patternchar) {
       pos[pidx] = idx;
@@ -238,18 +238,18 @@ function calculateScore(
   // we want to update/extend our current range, otherwise we want to add a new range.
 
   // Init range to first match, at this point we should have at least 1
-  const matches = [[pos[0], pos[0] + 1]] as [number, number][];
+  const matches = [[pos[0], pos[0]! + 1]] as Array<[number, number]>;
 
   // iterate over all positions and check for overlaps from current and end of last
   // range. Positions are already sorted by match index, we can just check the last range.
   for (let i = 1; i < pos.length; i++) {
-    const lastrange = matches[matches.length - 1];
+    const lastrange = matches[matches.length - 1]!;
     // if last range ends where new range stars, we can extend it
     if (lastrange[1] === pos[i]) {
-      lastrange[1] = pos[i] + 1;
+      lastrange[1] = pos[i]! + 1;
     } else {
       // otherwise we add a new range
-      matches.push([pos[i], pos[i] + 1]);
+      matches.push([pos[i]!, pos[i]! + 1]);
     }
   }
 

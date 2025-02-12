@@ -15,9 +15,13 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['insights-initial-modules', 'insights-entry-points'],
+  });
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let spanListRequestMock!: jest.Mock;
+  let spanChartsRequestMock!: jest.Mock;
+  let regionFilterRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
@@ -39,7 +43,7 @@ describe('HTTPLandingPage', function () {
   });
 
   jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
+    pathname: '/insights/backend/http/',
     search: '',
     query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
     hash: '',
@@ -74,6 +78,25 @@ describe('HTTPLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture({name: 'frontend'}), ProjectFixture({name: 'backend'})],
+    });
+
+    regionFilterRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -185,6 +208,25 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
+        },
+      })
+    );
+
+    expect(regionFilterRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['user.geo.subregion', 'count()'],
+          per_page: 50,
+          project: [],
+          query: 'has:user.geo.subregion',
+          sort: '-count()',
+          referrer: 'api.insights.user-geo-subregion-selector',
+          statsPeriod: '10d',
         },
       })
     );
@@ -210,6 +252,7 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -239,6 +282,7 @@ describe('HTTPLandingPage', function () {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -280,9 +324,10 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
-      'Outbound API Requests'
-    );
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
+    expect(tab).toBeInTheDocument();
+    expect(tab).toHaveAttribute('aria-selected', 'true');
 
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 
@@ -300,7 +345,7 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
+      '/organizations/org-slug/insights/backend/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
     );
     expect(
       screen.getAllByRole('cell', {name: 'View Project Details'})[0]

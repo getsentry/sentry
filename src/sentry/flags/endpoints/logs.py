@@ -5,7 +5,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-# from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -22,8 +21,8 @@ class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: str
     createdAt: datetime
-    createdBy: str
-    createdByType: str
+    createdBy: str | None
+    createdByType: str | None
     flag: str
     tags: dict[str, Any]
 
@@ -36,7 +35,11 @@ class FlagAuditLogModelSerializer(Serializer):
             "action": ActionEnum.to_string(obj.action),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,
-            "createdByType": CreatedByTypeEnum.to_string(obj.created_by_type),
+            "createdByType": (
+                None
+                if obj.created_by_type is None
+                else CreatedByTypeEnum.to_string(obj.created_by_type)
+            ),
             "flag": obj.flag,
             "tags": obj.tags,
         }
@@ -48,9 +51,6 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, organization: Organization) -> Response:
-        # if not features.has("organizations:feature-flag-ui", organization, actor=request.user):
-        #     raise ResourceDoesNotExist
-
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
@@ -81,9 +81,6 @@ class OrganizationFlagLogDetailsEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, organization: Organization, flag_log_id: int) -> Response:
-        # if not features.has("organizations:feature-flag-ui", organization, actor=request.user):
-        #     raise ResourceDoesNotExist
-
         try:
             model = FlagAuditLogModel.objects.filter(
                 id=flag_log_id,

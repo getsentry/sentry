@@ -5,10 +5,10 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagValue} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 import {SESSION_STATUSES, SESSIONS_FILTER_TAGS} from '../../releaseWidget/fields';
@@ -18,6 +18,7 @@ const filterKeySections: FilterKeySection[] = [
 ];
 
 const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[key] = {key, name: key};
   return acc;
 }, {});
@@ -31,17 +32,12 @@ const invalidMessages = {
 
 interface Props {
   onClose: SearchBarProps['onClose'];
-  organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
 }
 
-export function ReleaseSearchBar({
-  organization,
-  pageFilters,
-  widgetQuery,
-  onClose,
-}: Props) {
+export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
+  const organization = useOrganization();
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
 
@@ -60,7 +56,7 @@ export function ReleaseSearchBar({
       projectIds: projectIdStrings,
       includeTransactions: true,
     }).then(
-      tagValues => (tagValues as TagValue[]).map(({value}) => value),
+      tagValues => tagValues.map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }

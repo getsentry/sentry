@@ -35,6 +35,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   handleAddQueryToDashboard,
@@ -53,7 +54,7 @@ import {
   handleUpdateQuery,
 } from './utils';
 
-const renderDisabled = p => (
+const renderDisabled = (p: any) => (
   <Hovercard
     body={
       <FeatureDisabled
@@ -268,9 +269,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         Banner.dismiss('discover');
         this.setState({queryName: ''});
-        browserHistory.push(
-          normalizeUrl(view.getResultsViewUrlTarget(organization.slug))
-        );
+        browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
       }
     );
   };
@@ -287,7 +286,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
         setSavedQuery(savedQuery);
         this.setState({queryName: ''});
-        browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
+        browserHistory.push(view.getResultsViewShortUrlTarget(organization));
         updateCallback();
       }
     );
@@ -401,11 +400,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       savedQuery?.queryDataset
     );
 
-    let alertType;
+    let alertType: any;
     let buttonEventView = eventView;
     if (hasDatasetSelector(organization)) {
       alertType = defined(currentDataset)
-        ? {
+        ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
+          {
             [DiscoverDatasets.TRANSACTIONS]: 'throughput',
             [DiscoverDatasets.ERRORS]: 'num_errors',
           }[currentDataset]
@@ -454,10 +454,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             yAxis,
             router,
             widgetType: hasDatasetSelector(organization)
-              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                   getSavedQueryDataset(organization, location, savedQuery)
                 ]
               : undefined,
+            source: DashboardWidgetSource.DISCOVERV2,
           })
         }
       >
@@ -578,10 +580,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             yAxis,
             router,
             widgetType: hasDatasetSelector(organization)
-              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                   getSavedQueryDataset(organization, location, savedQuery)
                 ]
               : undefined,
+            source: DashboardWidgetSource.DISCOVERV2,
           });
         },
       });

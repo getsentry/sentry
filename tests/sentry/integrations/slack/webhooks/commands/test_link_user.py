@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
@@ -9,11 +8,11 @@ from sentry.integrations.slack.views.unlink_identity import (
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 
 @control_silo_test
@@ -41,9 +40,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         data = self.send_slack_message("link")
         assert "Link your Slack identity" in get_response_text(data)
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_link_command_already_linked(self, mock_record):
@@ -51,10 +48,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         data = self.send_slack_message("link")
         assert "You are already linked as" in get_response_text(data)
 
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED.value)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
 
 @control_silo_test
@@ -124,17 +118,11 @@ class SlackCommandsUnlinkUserTest(SlackCommandsTest):
         data = self.send_slack_message("unlink")
         assert "to unlink your identity" in get_response_text(data)
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unlink_command_already_unlinked(self, mock_record):
         data = self.send_slack_message("unlink")
         assert NOT_LINKED_MESSAGE in get_response_text(data)
 
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.NOT_LINKED.value)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

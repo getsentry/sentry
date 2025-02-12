@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -18,83 +18,73 @@ type Props = ModalRenderProps & {
   label: string;
   onSelected: (statusDetails: IgnoredStatusDetails) => void;
   windowName: WindowNames;
-  windowOptions: SelectValue<number>[];
+  windowOptions: Array<SelectValue<number>>;
 };
 
-type State = {
-  count: number;
-  window: number | null;
-};
+export default function CustomIgnoreCountModal(props: Props) {
+  const [count, setCount] = useState<number>(100);
+  const [window, setWindow] = useState<number | null>(null);
+  const {
+    Header,
+    Footer,
+    Body,
+    countLabel,
+    label,
+    windowOptions,
+    countName,
+    windowName,
+    onSelected,
+    closeModal,
+  } = props;
 
-class CustomIgnoreCountModal extends Component<Props, State> {
-  state: State = {
-    count: 100,
-    window: null,
-  };
-
-  handleSubmit = () => {
-    const {count, window} = this.state;
-    const {countName, windowName} = this.props;
-
+  const handleSubmit = () => {
     const statusDetails: IgnoredStatusDetails = {[countName]: count};
     if (window) {
       statusDetails[windowName] = window;
     }
-    this.props.onSelected(statusDetails);
-    this.props.closeModal();
+    onSelected(statusDetails);
+    closeModal();
   };
 
-  handleChange = (name: keyof State, value: number) => {
-    this.setState({[name]: value} as State);
-  };
-
-  render() {
-    const {Header, Footer, Body, countLabel, label, closeModal, windowOptions} =
-      this.props;
-    const {count, window} = this.state;
-
-    return (
-      <Fragment>
-        <Header>
-          <h4>{label}</h4>
-        </Header>
-        <Body>
-          <NumberField
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            label={countLabel}
-            name="count"
-            value={count}
-            onChange={val => this.handleChange('count' as const, Number(val))}
-            required
-            placeholder={t('e.g. 100')}
-          />
-          <SelectField
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            label={t('Time window')}
-            value={window}
-            name="window"
-            onChange={val => this.handleChange('window' as const, val)}
-            options={windowOptions}
-            placeholder={t('e.g. per hour')}
-            allowClear
-            help={t('(Optional) If supplied, this rule will apply as a rate of change.')}
-          />
-        </Body>
-        <Footer>
-          <ButtonBar gap={1}>
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button priority="primary" onClick={this.handleSubmit}>
-              {t('Ignore')}
-            </Button>
-          </ButtonBar>
-        </Footer>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Header>
+        <h4>{label}</h4>
+      </Header>
+      <Body>
+        <NumberField
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          label={countLabel}
+          name="count"
+          value={count}
+          onChange={setCount}
+          required
+          placeholder={t('e.g. 100')}
+        />
+        <SelectField
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          label={t('Time window')}
+          value={window}
+          name="window"
+          onChange={setWindow}
+          options={windowOptions}
+          placeholder={t('e.g. per hour')}
+          allowClear
+          help={t('(Optional) If supplied, this rule will apply as a rate of change.')}
+        />
+      </Body>
+      <Footer>
+        <ButtonBar gap={1}>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button priority="primary" onClick={handleSubmit}>
+            {t('Ignore')}
+          </Button>
+        </ButtonBar>
+      </Footer>
+    </Fragment>
+  );
 }
-
-export default CustomIgnoreCountModal;

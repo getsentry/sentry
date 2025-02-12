@@ -1,19 +1,22 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from 'sentry/components/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {TimeseriesData} from '../common/types';
+import type {Release, TimeSeries, TimeseriesSelection} from '../common/types';
+import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
+import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -24,9 +27,17 @@ const sampleDurationTimeSeries2 = {
       value: datum.value * 0.3 + 30 * Math.random(),
     };
   }),
+  meta: {
+    fields: {
+      'p50(span.duration)': 'duration',
+    },
+    units: {
+      'p50(span.duration)': 'millisecond',
+    },
+  },
 };
 
-export default storyBook(LineChartWidget, story => {
+export default storyBook('LineChartWidget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -44,14 +55,23 @@ export default storyBook(LineChartWidget, story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
+    const [timeseriesSelection, setTimeseriesSelection] = useState<TimeseriesSelection>({
+      'p50(span.duration)': true,
+      'p99(span.duration)': true,
+    });
+
+    const toggleTimeseriesSelection = (seriesName: string): void => {
+      setTimeseriesSelection(s => ({...s, [seriesName]: !s[seriesName]}));
+    };
+
     const throughputTimeSeries = toTimeSeriesSelection(
-      sampleThroughputTimeSeries as unknown as TimeseriesData,
+      sampleThroughputTimeSeries,
       start,
       end
     );
 
     const durationTimeSeries1 = toTimeSeriesSelection(
-      sampleDurationTimeSeries as unknown as TimeseriesData,
+      sampleDurationTimeSeries,
       start,
       end
     );
@@ -67,47 +87,135 @@ export default storyBook(LineChartWidget, story => {
         <p>
           The visualization of <JSXNode name="LineChartWidget" /> a line chart. It has
           some bells and whistles including automatic axes labels, and a hover tooltip.
+          Like other widgets, it automatically fills the parent element.
+        </p>
+        <SmallSizingWindow>
+          <LineChartWidget
+            title="eps()"
+            description="Number of events per second"
+            timeSeries={[throughputTimeSeries]}
+          />
+        </SmallSizingWindow>
+
+        <p>
+          The <code>dataCompletenessDelay</code> prop indicates that this data is live,
+          and the last few buckets might not have complete data. The delay is a number in
+          seconds. Any data bucket that happens in that delay window will be plotted with
+          a dotted line. By default the delay is <code>0</code>.
         </p>
 
         <p>
-          The <code>utc</code> prop controls whether the X Axis timestamps are shown in
-          UTC or not
+          To control the timeseries selection, you can use the{' '}
+          <code>timeseriesSelection</code> and <code>onTimeseriesSelectionChange</code>{' '}
+          props.
         </p>
 
         <SideBySide>
           <MediumWidget>
             <LineChartWidget
-              title="eps()"
-              description="Number of events per second"
-              timeseries={[throughputTimeSeries]}
-              meta={{
-                fields: {
-                  'eps()': 'rate',
-                },
-                units: {
-                  'eps()': '1/second',
-                },
+              title="span.duration"
+              dataCompletenessDelay={60 * 60 * 3}
+              timeSeries={[
+                shiftTimeserieToNow(durationTimeSeries1),
+                shiftTimeserieToNow(durationTimeSeries2),
+              ]}
+              aliases={{
+                'p50(span.duration)': '50th Percentile',
+                'p99(span.duration)': '99th Percentile',
+              }}
+              timeseriesSelection={timeseriesSelection}
+              onTimeseriesSelectionChange={newSelection => {
+                setTimeseriesSelection(newSelection);
               }}
             />
           </MediumWidget>
 
-          <MediumWidget>
+          <Button
+            onClick={() => {
+              toggleTimeseriesSelection('p50(span.duration)');
+            }}
+          >
+            Toggle 50th Percentile
+          </Button>
+
+          <Button
+            onClick={() => {
+              toggleTimeseriesSelection('p99(span.duration)');
+            }}
+          >
+            Toggle 99th Percentile
+          </Button>
+        </SideBySide>
+
+        <p>
+          <JSXNode name="LineChartWidget" /> will automatically check the types and unit
+          of all the incoming timeseries. If they do not all match, it will fall back to a
+          plain number scale. If the types match but the units do not, it will fall back
+          to a sensible unit
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="span.duration"
+            timeSeries={[
+              {
+                ...durationTimeSeries1,
+                meta: {
+                  fields: durationTimeSeries1.meta?.fields!,
+                  units: {
+                    'p99(span.duration)': 'millisecond',
+                  },
+                },
+              },
+              {
+                ...durationTimeSeries2,
+                data: durationTimeSeries2.data.map(datum => ({
+                  ...datum,
+                  value: datum.value / 1000,
+                })),
+                meta: {
+                  fields: durationTimeSeries2.meta?.fields!,
+                  units: {
+                    'p50(span.duration)': 'second',
+                  },
+                },
+              },
+            ]}
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('State', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="LineChartWidget" /> supports the usual loading and error states.
+          The loading state shows a spinner. The error state shows a message, and an
+          optional "Retry" button.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <LineChartWidget title="Loading Count" isLoading />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget title="Missing Count" />
+          </SmallWidget>
+          <SmallWidget>
             <LineChartWidget
-              title="span.duration"
-              timeseries={[durationTimeSeries1, durationTimeSeries2]}
-              utc
-              meta={{
-                fields: {
-                  'p99(span.duration)': 'duration',
-                  'p50(span.duration)': 'duration',
-                },
-                units: {
-                  'p99(span.duration)': 'millisecond',
-                  'p50(span.duration)': 'millisecond',
-                },
-              }}
+              title="Count Error"
+              error={new Error('Something went wrong!')}
             />
-          </MediumWidget>
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
+            />
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -127,21 +235,65 @@ export default storyBook(LineChartWidget, story => {
           <LineChartWidget
             title="error_rate()"
             description="Rate of Errors"
-            timeseries={[
+            timeSeries={[
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
+                meta: {
+                  fields: {
+                    'error_rate()': 'rate',
+                  },
+                  units: {
+                    'error_rate()': '1/second',
+                  },
+                },
                 color: theme.error,
-              } as unknown as TimeseriesData,
+              },
             ]}
-            meta={{
-              fields: {
-                'error_rate()': 'rate',
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('Releases', () => {
+    const releases = [
+      {
+        version: 'ui@0.1.2',
+        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+      },
+      {
+        version: 'ui@0.1.3',
+        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+      },
+    ].filter(hasTimestamp);
+
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="LineChartWidget" /> supports the <code>releases</code> prop. If
+          passed in, the widget will plot every release as a vertical line that overlays
+          the chart data. Clicking on a release line will open the release details page.
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="error_rate()"
+            timeSeries={[
+              {
+                ...sampleThroughputTimeSeries,
+                field: 'error_rate()',
+                meta: {
+                  fields: {
+                    'error_rate()': 'rate',
+                  },
+                  units: {
+                    'error_rate()': '1/second',
+                  },
+                },
               },
-              units: {
-                'error_rate()': '1/second',
-              },
-            }}
+            ]}
+            releases={releases}
           />
         </MediumWidget>
       </Fragment>
@@ -151,13 +303,24 @@ export default storyBook(LineChartWidget, story => {
 
 const MediumWidget = styled('div')`
   width: 420px;
+  height: 250px;
+`;
+
+const SmallWidget = styled('div')`
+  width: 360px;
+  height: 160px;
+`;
+
+const SmallSizingWindow = styled(SizingWindow)`
+  width: 50%;
+  height: 300px;
 `;
 
 function toTimeSeriesSelection(
-  timeSeries: TimeseriesData,
+  timeSeries: TimeSeries,
   start: DateString | null,
   end: DateString | null
-): TimeseriesData {
+): TimeSeries {
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {
@@ -172,4 +335,8 @@ function toTimeSeriesSelection(
       return true;
     }),
   };
+}
+
+function hasTimestamp(release: Partial<Release>): release is Release {
+  return Boolean(release?.timestamp);
 }

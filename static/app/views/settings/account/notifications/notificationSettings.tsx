@@ -15,6 +15,7 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
@@ -49,7 +50,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
 
   const renderOneSetting = (type: string) => {
     // TODO(isabella): Once GA, remove this
-    const field = NOTIFICATION_SETTING_FIELDS[type];
+    const field = NOTIFICATION_SETTING_FIELDS[type]!;
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
       field.help = t('Notifications that help avoid surprise invoices.');
@@ -67,6 +68,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
             borderless
             aria-label={t('Notification Settings')}
             data-test-id="fine-tuning"
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
           />
         </IconWrapper>
@@ -142,7 +144,7 @@ const FieldHelp = styled('div')`
 const FieldWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-  padding: ${p => p.theme.grid * 2}px;
+  padding: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

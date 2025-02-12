@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -11,7 +11,10 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportPHPInstallStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -186,6 +189,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

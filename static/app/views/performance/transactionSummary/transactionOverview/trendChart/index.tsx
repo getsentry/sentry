@@ -15,7 +15,6 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
@@ -24,6 +23,7 @@ import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/me
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
@@ -60,6 +60,7 @@ function TrendChart({
   end: propsEnd,
   projects,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
@@ -83,7 +84,7 @@ function TrendChart({
         unselectedSeries: unselected,
       },
     };
-    browserHistory.push(to);
+    navigate(to);
   }
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
@@ -154,6 +155,7 @@ function TrendChart({
     if (seriesName) {
       const unit = meta?.units?.[getAggregateAlias(seriesName)];
       // Scale series values to milliseconds or bytes depending on units from meta
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
     }
 

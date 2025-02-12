@@ -1,5 +1,5 @@
 import {Button} from 'sentry/components/button';
-import {removeSpace} from 'sentry/components/smartSearchBar/utils';
+import {removeSpace} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearchType} from 'sentry/types/group';
@@ -47,7 +47,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
         normalizeUrl({
           ...location,
           pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
-          query: {referrer: 'search-bar', ...currentQuery},
+          query: {...currentQuery, referrer: 'search-bar'},
         })
       );
     },
@@ -60,10 +60,10 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
           ...location,
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
-            referrer: 'search-bar',
             query,
             sort,
             ...currentQuery,
+            referrer: 'search-bar',
           },
         })
       );

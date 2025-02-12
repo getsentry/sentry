@@ -114,8 +114,25 @@ const organizationNavigation: NavigationSection[] = [
         path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
         title: t('Dynamic Sampling'),
         description: t('Manage your sampling rate'),
+        badge: () => <FeatureBadge type="alpha" />,
         show: ({organization}) =>
           !!organization && hasDynamicSamplingCustomFeature(organization),
+      },
+      {
+        path: `${organizationSettingsPathPrefix}/feature-flags/`,
+        title: t('Feature Flags'),
+        description: t('Set up your provider webhooks'),
+        badge: () => <FeatureBadge type="beta" />,
+        show: ({organization}) =>
+          !!organization && organization.features.includes('feature-flag-ui'),
+      },
+      {
+        path: `${organizationSettingsPathPrefix}/stats/`,
+        title: t('Stats & Usage'),
+        description: t('View organization stats and usage'),
+        id: 'stats',
+        show: ({organization}) =>
+          organization?.features.includes('navigation-sidebar-v2') ?? false,
       },
     ],
   },

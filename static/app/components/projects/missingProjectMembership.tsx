@@ -105,7 +105,11 @@ class MissingProjectMembership extends Component<Props, State> {
       if (!team) {
         return;
       }
-      team.isPending ? pending.push(team.slug) : request.push(team.slug);
+      if (team.isPending) {
+        pending.push(team.slug);
+      } else {
+        request.push(team.slug);
+      }
     });
 
     return [request, pending];
@@ -126,14 +130,14 @@ class MissingProjectMembership extends Component<Props, State> {
     const teamAccess = [
       {
         label: t('Request Access'),
-        options: this.getTeamsForAccess()[0].map(request => ({
+        options: this.getTeamsForAccess()[0]!.map(request => ({
           value: request,
           label: `#${request}`,
         })),
       },
       {
         label: t('Pending Requests'),
-        options: this.getTeamsForAccess()[1].map(pending =>
+        options: this.getTeamsForAccess()[1]!.map(pending =>
           this.getPendingTeamOption(pending)
         ),
       },
@@ -160,7 +164,7 @@ class MissingProjectMembership extends Component<Props, State> {
                   name="select"
                   placeholder={t('Select a Team')}
                   options={teamAccess}
-                  onChange={teamObj => {
+                  onChange={(teamObj: any) => {
                     const team = teamObj ? teamObj.value : null;
                     this.setState({team});
                   }}

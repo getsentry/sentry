@@ -8,7 +8,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -34,6 +34,7 @@ function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -43,6 +44,7 @@ export type OnDataFetchedProps = {
 
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
+  confidence?: Confidence;
   errorMessage?: string;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
@@ -129,7 +131,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Also don't count empty fields when checking for field changes
     const previousQueries = prevProps.widget.queries;
     const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
+        {name, ...rest}
+      ) => {
         names.push(name);
         rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
@@ -143,7 +148,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const nextQueries = widget.queries;
     const [widgetQueryNames, widgetQueries] = nextQueries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
+        {name, ...rest}
+      ) => {
         names.push(name);
         rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
@@ -179,11 +187,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     ) {
       // If the query names has changed, then update timeseries labels
 
-      // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
-            config.transformSeries!(prevState.rawResults![index], query, organization)
+            config.transformSeries!(prevState.rawResults![index]!, query, organization)
           );
         }, []);
 
@@ -268,7 +275,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
-        widget.queries[0],
+        widget.queries[0]!,
         organization,
         selection
       ) as TableDataWithTitle;
@@ -330,7 +337,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
-        widget.queries[requestIndex],
+        widget.queries[requestIndex]!,
         organization
       );
       // When charting timeseriesData on echarts, color association to a timeseries result
@@ -348,8 +355,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Get series result type
     // Only used by custom measurements in errorsAndTransactions at the moment
     const timeseriesResultsTypes = config.getSeriesResultType?.(
-      responses[0][0],
-      widget.queries[0]
+      responses[0]![0],
+      widget.queries[0]!
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {

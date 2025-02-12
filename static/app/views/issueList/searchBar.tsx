@@ -1,15 +1,19 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-// eslint-disable-next-line no-restricted-imports
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import {
+  SavedSearchType,
+  type Tag,
+  type TagCollection,
+  type TagValue,
+} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind} from 'sentry/utils/fields';
@@ -20,25 +24,37 @@ import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
-const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
+
   const issueFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
     ['key']
   ).map(tag => tag.key);
+
   const eventFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
     ['key']
   ).map(tag => tag.key);
+
   const eventTags = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.TAG),
     ['totalValues', 'key'],
     ['desc', 'asc']
   ).map(tag => tag.key);
 
-  return [
+  const eventFeatureFlags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.FEATURE_FLAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+
+  const sections = [
     {
       value: FieldKind.ISSUE_FIELD,
       label: t('Issues'),
@@ -55,6 +71,16 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       children: eventTags,
     },
   ];
+
+  if (organization.features.includes('feature-flag-autocomplete')) {
+    sections.push({
+      value: FieldKind.FEATURE_FLAG,
+      label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
+      children: eventFeatureFlags,
+    });
+  }
+
+  return sections;
 };
 
 interface Props extends Partial<SearchQueryBuilderProps> {
@@ -73,9 +99,9 @@ function IssueListSearchBar({
   const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
 
+  // Fetches the unique values seen for a tag key and query string. Result is sorted by count.
   const tagValueLoader = useCallback(
-    async (key: string, search: string) => {
-      const orgSlug = organization.slug;
+    async (key: string, search: string): Promise<TagValue[]> => {
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
         start: pageFilters.datetime.start
@@ -89,13 +115,21 @@ function IssueListSearchBar({
 
       const fetchTagValuesPayload = {
         api,
-        orgSlug,
+        orgSlug: organization.slug,
         tagKey: key,
         search,
         projectIds,
         endpointParams,
         sort: '-count' as const,
       };
+
+      // For now feature flags are treated like tags, but the api query is slightly different.
+      if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
+        return await fetchFeatureFlagValues({
+          ...fetchTagValuesPayload,
+          organization,
+        });
+      }
 
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
         fetchTagValues({
@@ -116,7 +150,8 @@ function IssueListSearchBar({
     },
     [
       api,
-      organization.slug,
+      filterKeys,
+      organization,
       pageFilters.datetime.end,
       pageFilters.datetime.period,
       pageFilters.datetime.start,
@@ -130,8 +165,8 @@ function IssueListSearchBar({
   );
 
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(filterKeys);
-  }, [filterKeys]);
+    return getFilterKeySections(filterKeys, organization);
+  }, [filterKeys, organization]);
 
   return (
     <SearchQueryBuilder

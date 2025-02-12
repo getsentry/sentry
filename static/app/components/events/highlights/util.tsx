@@ -61,7 +61,7 @@ function getFuzzyHighlightContext(
     };
   }
 
-  const highlightContextKeys = highlightContextSets[highlightKey];
+  const highlightContextKeys = highlightContextSets[highlightKey]!;
   const highlightItems: KeyValueListData = data.filter(
     ({key, subject}) =>
       // We match on key (e.g. 'trace_id') and subject (e.g. 'Trace ID')
@@ -154,9 +154,10 @@ export function getHighlightTagData({
 }: {
   event: Event;
   highlightTags: HighlightTags;
-}): Required<TagTreeContent>[] {
+}): Array<Required<TagTreeContent>> {
   const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
     event.tags.reduce((tm, tag, i) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
       return tm;
     }, {});

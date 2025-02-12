@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -15,12 +13,11 @@ export const enum EventAttachmentFilter {
 
 type AttachmentFilterValue = `${EventAttachmentFilter}`;
 
-type Props = {
-  project: Project;
-};
+interface GroupEventAttachmentsFilterProps {
+  onChange?: (filter: EventAttachmentFilter) => void;
+}
 
-function GroupEventAttachmentsFilter(props: Props) {
-  const {project} = props;
+function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,23 +39,18 @@ function GroupEventAttachmentsFilter(props: Props) {
             },
             {replace: true}
           );
+          onChange?.(key as EventAttachmentFilter);
         }}
       >
-        {[
-          <SegmentedControl.Item key={EventAttachmentFilter.ALL}>
-            {t('All Attachments')}
-          </SegmentedControl.Item>,
-          ...(isMobilePlatform(project.platform)
-            ? [
-                <SegmentedControl.Item key={EventAttachmentFilter.SCREENSHOT}>
-                  {t('Screenshots')}
-                </SegmentedControl.Item>,
-              ]
-            : []),
-          <SegmentedControl.Item key={EventAttachmentFilter.CRASH_REPORTS}>
-            {t('Only Crash Reports')}
-          </SegmentedControl.Item>,
-        ]}
+        <SegmentedControl.Item key={EventAttachmentFilter.ALL}>
+          {t('All Attachments')}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key={EventAttachmentFilter.SCREENSHOT}>
+          {t('Screenshots')}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key={EventAttachmentFilter.CRASH_REPORTS}>
+          {t('Only Crash Reports')}
+        </SegmentedControl.Item>
       </SegmentedControl>
     </FilterWrapper>
   );

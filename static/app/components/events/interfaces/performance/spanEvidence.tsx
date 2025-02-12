@@ -80,7 +80,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={projectSlug}
-          profileId={profileId || ''}
+          profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
             {profiles => (
@@ -93,11 +93,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
                   <TraceView
                     organization={organization}
                     waterfallModel={
-                      new WaterfallModel(
-                        event as EventTransaction,
-                        affectedSpanIds,
-                        focusedSpanIds
-                      )
+                      new WaterfallModel(event, affectedSpanIds, focusedSpanIds)
                     }
                     isEmbedded
                   />
@@ -110,13 +106,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         <TraceViewWrapper>
           <TraceView
             organization={organization}
-            waterfallModel={
-              new WaterfallModel(
-                event as EventTransaction,
-                affectedSpanIds,
-                focusedSpanIds
-              )
-            }
+            waterfallModel={new WaterfallModel(event, affectedSpanIds, focusedSpanIds)}
             isEmbedded
           />
         </TraceViewWrapper>

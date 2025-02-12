@@ -30,6 +30,10 @@ describe('EventGraph', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
       method: 'GET',
@@ -37,6 +41,10 @@ describe('EventGraph', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
     });
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(

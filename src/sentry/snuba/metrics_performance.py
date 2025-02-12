@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Any, Literal, overload
 
 import sentry_sdk
-from snuba_sdk import Column
+from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -30,29 +30,32 @@ INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 
 
 def query(
-    selected_columns,
-    query,
-    snuba_params=None,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    use_aggregate_conditions=False,
-    allow_metric_aggregates=True,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
+    selected_columns: list[str],
+    query: str,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    referrer: str | None = None,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = True,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    skip_tag_resolution: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
-):
+) -> EventsResponse:
     with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,
@@ -78,8 +81,12 @@ def query(
                 on_demand_metrics_type=on_demand_metrics_type,
             ),
         )
+        if referrer is None:
+            referrer = ""
         metrics_referrer = referrer + ".metrics-enhanced"
-        results = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
+        results = metrics_query.run_query(
+            referrer=metrics_referrer, query_source=query_source, use_cache=True
+        )
     with sentry_sdk.start_span(op="mep", name="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
@@ -258,6 +265,7 @@ def timeseries_query(
     groupby: Column | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -282,6 +290,7 @@ def timeseries_query(
                     use_metrics_layer=use_metrics_layer,
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
@@ -406,6 +415,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult | dict[str, Any]:
 
     if top_events is None:
@@ -438,6 +448,7 @@ def top_events_timeseries(
             functions_acl=functions_acl,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -520,9 +531,12 @@ def top_events_timeseries(
                     else item["data"]
                 ),
                 "order": item["order"],
-                # One of the queries in the builder has required, thus, we mark all of them
-                # This could mislead downstream consumers of the meta data
-                "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
+                "meta": {
+                    # One of the queries in the builder has required, thus, we mark all of them
+                    # This could mislead downstream consumers of the meta data
+                    "isMetricsExtractedData": top_events_builder.use_on_demand,
+                    **result["meta"],
+                },
             },
             snuba_params.start_date,
             snuba_params.end_date,

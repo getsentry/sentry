@@ -1,6 +1,11 @@
+from unittest.mock import patch
+
 import responses
 from django.urls import reverse
 
+from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_halt_metric, assert_middleware_metrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -30,7 +35,8 @@ class BitbucketSearchEndpointTest(APITestCase):
         )
 
     @responses.activate
-    def test_search_issues(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_search_issues(self, mock_record):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues",
@@ -52,8 +58,22 @@ class BitbucketSearchEndpointTest(APITestCase):
             {"label": "#456 Issue Title 456", "value": "456"},
         ]
 
+        assert len(mock_record.mock_calls) == 8
+
+        # first 2 are middleware calls to ensure control silo, then the next one and the last one are also middleware calls for get_response_from_control_silo
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = product_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+
     @responses.activate
-    def test_search_repositories(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_search_repositories(self, mock_record):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya",
@@ -64,8 +84,21 @@ class BitbucketSearchEndpointTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data == [{"label": "meredithanya/apples", "value": "meredithanya/apples"}]
 
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = (
+            product_calls  # calls get, which calls handle_search_repositories
+        )
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+
     @responses.activate
-    def test_search_repositories_no_issue_tracker(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_search_repositories_no_issue_tracker(self, mock_record):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues",
@@ -78,3 +111,17 @@ class BitbucketSearchEndpointTest(APITestCase):
         )
         assert resp.status_code == 400
         assert resp.data == {"detail": "Bitbucket Repository has no issue tracker."}
+
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+
+        product_calls = mock_record.mock_calls[3:-1]
+
+        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.NO_ISSUE_TRACKER.value)
+        # NOTE: handle_search_issues returns without raising an API error, so for the
+        # purposes of logging the GET request completes successfully
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS

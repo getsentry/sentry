@@ -113,7 +113,7 @@ function SimilarStackTrace({project}: Props) {
       similarLinks: updatedSimilarLinks,
       loading,
       error,
-    }) => {
+    }: any) => {
       if (updatedSimilarItems) {
         setItems({
           similar: updatedSimilarItems,
@@ -165,7 +165,7 @@ function SimilarStackTrace({project}: Props) {
     GroupingStore.onMerge({
       params,
       query: location.query.query as string,
-      projectId: firstIssue.issue.project.slug,
+      projectId: firstIssue!.issue.project.slug,
     });
   }, [params, location.query, items]);
 
@@ -193,7 +193,7 @@ function SimilarStackTrace({project}: Props) {
       {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
         <Panel>
           <EmptyStateWarning>
-            <p>{t("There don't seem to be any similar issues.")}</p>
+            <Title>{t("There don't seem to be any similar issues.")}</Title>
           </EmptyStateWarning>
         </Panel>
       )}

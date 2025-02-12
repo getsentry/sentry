@@ -13,7 +13,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table'],
+    features: ['insights-related-issues-table', 'insights-initial-modules'],
   });
   const group = GroupFixture();
 
@@ -27,7 +27,7 @@ describe('DatabaseSpanSummaryPage', function () {
         period: '10d',
         start: null,
         end: null,
-        utc: false,
+        utc: null,
       },
       environments: [],
       projects: [],
@@ -230,6 +230,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -256,6 +257,7 @@ describe('DatabaseSpanSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -311,7 +313,6 @@ describe('DatabaseSpanSummaryPage', function () {
           shortIdLookup: 1,
           project: [],
           statsPeriod: '10d',
-          utc: 'false',
         },
       })
     );
@@ -348,7 +349,7 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/database/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A25%3A0'
+      '/organizations/org-slug/insights/backend/database/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A25%3A0'
     );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '204.50ms'})).toBeInTheDocument();

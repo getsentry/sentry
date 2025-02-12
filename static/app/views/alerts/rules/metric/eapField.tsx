@@ -5,16 +5,11 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {
-  DEFAULT_EAP_FIELD,
-  DEFAULT_EAP_METRICS_ALERT_FIELD,
-} from 'sentry/utils/metrics/mri';
-import {
-  SpanTagsProvider,
-  useSpanTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+
+export const DEFAULT_EAP_FIELD = 'span.duration';
+export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -30,11 +25,7 @@ const OPERATIONS = [
 ];
 
 function EAPFieldWrapper({aggregate, onChange}: Props) {
-  return (
-    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-      <EAPField aggregate={aggregate} onChange={onChange} />
-    </SpanTagsProvider>
-  );
+  return <EAPField aggregate={aggregate} onChange={onChange} />;
 }
 
 function EAPField({aggregate, onChange}: Props) {
@@ -61,7 +52,7 @@ function EAPField({aggregate, onChange}: Props) {
   }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
-    option => {
+    (option: any) => {
       const selectedMeta = numberTags[option.value];
       if (!selectedMeta) {
         return;
@@ -72,7 +63,7 @@ function EAPField({aggregate, onChange}: Props) {
   );
 
   const handleOperationChange = useCallback(
-    option => {
+    (option: any) => {
       if (field) {
         onChange(`${option.value}(${field})`, {});
       } else {
@@ -102,9 +93,11 @@ function EAPField({aggregate, onChange}: Props) {
     [fieldsArray]
   );
 
+  const fieldName = fieldsArray.find(f => f.key === field)?.name;
+
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const selectedOption = field && {
-    label: field,
+    label: fieldName,
     value: field,
   };
 
@@ -125,8 +118,7 @@ function EAPField({aggregate, onChange}: Props) {
         }
         async
         defaultOptions={getFieldOptions('')}
-        loadOptions={searchText => Promise.resolve(getFieldOptions(searchText))}
-        filterOption={() => true}
+        loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
         value={selectedOption}
         onChange={handleFieldChange}
       />

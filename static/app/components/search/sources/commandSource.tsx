@@ -9,6 +9,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 
 import type {ChildProps, ResultItem} from './types';
 
@@ -37,15 +38,18 @@ const ACTIONS: Action[] = [
     action: () =>
       openSudo({
         isSuperuser: true,
+        needsReload: true,
       }),
   },
 
   {
     title: t('Toggle dark mode'),
     description: t('Toggle dark mode (superuser only atm)'),
-    requiresSuperuser: true,
-    action: () =>
-      ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark'),
+    requiresSuperuser: false,
+    action: () => {
+      removeBodyTheme();
+      ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark');
+    },
   },
 
   {

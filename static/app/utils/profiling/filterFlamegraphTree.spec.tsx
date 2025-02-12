@@ -29,8 +29,8 @@ function assertImmutability(baseNode: FlamegraphFrame, newNode: FlamegraphFrame)
       }
       map.set(n.key, n);
 
-      for (let i = 0; i < n.children.length; i++) {
-        stack.push(n.children[i]);
+      for (const child of n.children) {
+        stack.push(child);
       }
     }
   }
@@ -80,7 +80,7 @@ describe('filterFlamegraphTree', () => {
 
     const result = filterFlamegraphTree([root], skipFn);
     expect(result).toEqual([{...child1, parent: null}]);
-    assertImmutability(root, result[0]);
+    assertImmutability(root, result[0]!);
   });
 
   it('persists multiple children', () => {
@@ -106,9 +106,9 @@ describe('filterFlamegraphTree', () => {
     root.children = [child1, child2];
 
     const result = filterFlamegraphTree([root], skipFn);
-    expect(result[0].children.map(c => c.key)).toEqual([1, 2]);
+    expect(result[0]!.children.map(c => c.key)).toEqual([1, 2]);
 
-    assertImmutability(root, result[0]);
+    assertImmutability(root, result[0]!);
   });
 
   it('skips a level', () => {
@@ -138,10 +138,10 @@ describe('filterFlamegraphTree', () => {
     child2.parent = child1;
 
     const result = filterFlamegraphTree([root], skipFn);
-    expect(result[0].key).toBe(0);
-    expect(result[0].children[0].key).toBe(2);
+    expect(result[0]!.key).toBe(0);
+    expect(result[0]!.children[0]!.key).toBe(2);
 
-    assertImmutability(root, result[0]);
+    assertImmutability(root, result[0]!);
   });
 
   it('persists hierarchy level', () => {
@@ -171,11 +171,11 @@ describe('filterFlamegraphTree', () => {
     child2.parent = child1;
 
     const result = filterFlamegraphTree([root], skipFn);
-    expect(result[0].key).toBe(0);
-    expect(result[0].children[0].key).toBe(1);
-    expect(result[0].children[0].children[0].key).toBe(2);
+    expect(result[0]!.key).toBe(0);
+    expect(result[0]!.children[0]!.key).toBe(1);
+    expect(result[0]!.children[0]!.children[0]!.key).toBe(2);
 
-    assertImmutability(root, result[0]);
+    assertImmutability(root, result[0]!);
   });
 
   it('preserves child order', () => {
@@ -210,11 +210,11 @@ describe('filterFlamegraphTree', () => {
     child3.parent = child1;
 
     const result = filterFlamegraphTree([root], skipFn);
-    expect(result[0].key).toBe(0);
-    expect(result[0].children[0].key).toBe(1);
-    expect(result[0].children[0].children[0].key).toBe(3);
-    expect(result[0].children[0].children[1].key).toBe(2);
+    expect(result[0]!.key).toBe(0);
+    expect(result[0]!.children[0]!.key).toBe(1);
+    expect(result[0]!.children[0]!.children[0]!.key).toBe(3);
+    expect(result[0]!.children[0]!.children[1]!.key).toBe(2);
 
-    assertImmutability(root, result[0]);
+    assertImmutability(root, result[0]!);
   });
 });

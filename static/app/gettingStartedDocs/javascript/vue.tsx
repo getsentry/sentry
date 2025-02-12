@@ -18,7 +18,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getProfilingDocumentHeaderConfigurationStep,
   MaybeBrowserProfilingBetaWarning,
@@ -28,6 +27,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -358,9 +358,10 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+
   crashReportOnboarding,
   profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

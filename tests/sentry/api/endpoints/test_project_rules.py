@@ -124,20 +124,6 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
-    def mock_conversations_list(self, channels):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.list",
-                req_args={},
-                data={"ok": True, "channels": channels},
-                headers={},
-                status_code=200,
-            ),
-        )
-
     def mock_conversations_info(self, channel):
         return patch(
             "slack_sdk.web.client.WebClient.conversations_info",
@@ -1008,7 +994,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             **payload,
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=500,
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]

@@ -185,7 +185,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # are passed as aliased expressions to the MQB query transformer.
         if self.use_metrics_layer:
             first_column = self.columns[0]
-            return self.columns and (
+            return bool(self.columns) and (
                 isinstance(first_column, Function) or isinstance(first_column, AliasedExpression)
             )
 
@@ -444,8 +444,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
-        elif self.profile_functions_metrics_builder:
-            return UseCaseID.PROFILES
         else:
             return UseCaseID.SESSIONS
 
@@ -759,7 +757,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_tag_value(self, value: str) -> int | str | None:
         # We only use the indexer for alerts queries
-        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
+        if self.is_performance or self.use_metrics_layer:
             return value
         return self.resolve_metric_index(value)
 
@@ -1955,10 +1953,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 [column for column in self.columns if column not in self.aggregates]
             )
 
-    @cached_property
-    def non_aggregate_columns(self) -> list[str]:
-        return list(set(self.original_selected_columns) - set(self.timeseries_columns))
-
     @property
     def translated_groupby(self) -> list[str]:
         """Get the names of the groupby columns to create the series names"""
@@ -1981,7 +1975,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         return sorted(translated)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 

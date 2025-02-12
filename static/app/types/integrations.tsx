@@ -23,6 +23,7 @@ export type Permissions = {
   Project: PermissionValue;
   Release: PermissionValue;
   Team: PermissionValue;
+  Alerts?: PermissionValue;
 };
 
 export type PermissionResource = keyof Permissions;
@@ -157,7 +158,7 @@ export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
   url: string;
-  params?: Array<string>;
+  params?: string[];
 };
 
 export enum Coverage {
@@ -263,7 +264,7 @@ export type SentryAppComponent<
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
-  error?: boolean;
+  error?: string | boolean;
 };
 
 export type SentryAppWebhookRequest = {

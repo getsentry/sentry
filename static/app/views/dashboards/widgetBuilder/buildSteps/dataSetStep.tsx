@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
@@ -20,10 +20,11 @@ import {DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
 
-function DiscoverSplitAlert({onDismiss, splitDecision}) {
+function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
   const splitAlertMessage = splitDecision
     ? tct(
         "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to [splitDecision]. Edit as you see fit.",
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         {splitDecision: DATASET_LABEL_MAP[splitDecision]}
       )
     : null;
@@ -96,7 +97,11 @@ export function DataSetStep({
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
-        {t('Spans')} <FeatureBadge type="alpha" />
+        {t('Spans')}{' '}
+        <FeatureBadge
+          type="beta"
+          title={t('This feature is available for early adopters and the UX may change')}
+        />
       </FeatureBadgeAlignmentWrapper>
     );
   }

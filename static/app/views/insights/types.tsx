@@ -15,8 +15,11 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   MOBILE_UI = 'mobile-ui',
-  MOBILE_SCREENS = 'mobile-screens',
+  MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
+  CRONS = 'crons',
+  UPTIME = 'uptime',
+  SESSIONS = 'sessions',
   OTHER = 'other',
 }
 
@@ -253,6 +256,12 @@ export enum SpanIndexedField {
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
+  LCP = 'measurements.lcp',
+  LCP_SCORE = 'measurements.score.lcp',
+  CLS = 'measurements.cls',
+  CLS_SCORE = 'measurements.score.cls',
+  TTFB = 'measurements.ttfb',
+  FCP = 'measurements.fcp',
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
@@ -264,6 +273,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  IS_TRANSACTION = 'is_transaction',
 }
 
 export type SpanIndexedResponse = {
@@ -319,9 +329,14 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_ID]: string;
   [SpanIndexedField.USER_EMAIL]: string;
   [SpanIndexedField.USER_USERNAME]: string;
+  [SpanIndexedField.USER_IP]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.LCP]: number;
+  [SpanIndexedField.LCP_SCORE]: number;
+  [SpanIndexedField.CLS]: number;
+  [SpanIndexedField.CLS_SCORE]: number;
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
@@ -412,3 +427,9 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type OurlogsFields = {
+  'sentry.body': string;
+  'sentry.severity_text': string;
+  'sentry.timestamp': string;
+};

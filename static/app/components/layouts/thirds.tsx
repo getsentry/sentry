@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import NavTabs from 'sentry/components/navTabs';
+import {Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -82,9 +82,11 @@ export const HeaderActions = styled('div')`
  */
 export const Title = styled('h1')<{withMargins?: boolean}>`
   ${p => p.theme.overflowEllipsis};
-  ${p => p.theme.text.pageTitle};
-  color: ${p => p.theme.headingColor};
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0;
+  color: ${p => p.theme.headingColor};
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
   line-height: 40px;
@@ -95,27 +97,11 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
 `;
 
 /**
- * Styled Nav Tabs for use inside a Layout.Header component
+ * Styled Tabs for use inside a Layout.Header component
  */
-export const HeaderNavTabs = styled(NavTabs)`
-  margin: 0;
-  border-bottom: 0 !important;
-
-  & > li {
-    margin-right: ${space(3)};
-  }
-  & > li > a {
-    display: flex;
-    align-items: center;
-    height: 1.25rem;
-    padding: ${space(1)} 0;
-    margin-bottom: 4px;
-    box-sizing: content-box;
-  }
-  & > li.active > a {
-    margin-bottom: 0;
-  }
-`;
+export const HeaderTabs = styled(Tabs)`
+  grid-column: 1 / -1;
+` as typeof Tabs;
 
 /**
  * Base container for 66/33 containers.

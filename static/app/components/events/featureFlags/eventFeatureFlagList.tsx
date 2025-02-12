@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   CardContainer,
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
@@ -19,20 +19,20 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
+import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -77,12 +77,8 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
-  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
-  const {setParamValue: setProjectId} = useUrlParams('project');
 
-  useEffect(() => {
-    setProjectId(event.projectID);
-  }, [setProjectId, event.projectID]);
+  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
     suspectFlags,
@@ -95,26 +91,39 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const hasFlagContext = !!event.contexts.flags;
-  const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
-
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
       ? new Set()
       : new Set(suspectFlags.map(f => f.flag));
   }, [isSuspectError, isSuspectPending, suspectFlags]);
 
-  const hydratedFlags = useMemo(() => {
-    // Transform the flags array into something readable by the key-value component
-    // Reverse the flags to show newest at the top by default
-    const rawFlags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+  const hasFlagContext = Boolean(event.contexts?.flags?.values);
 
-    // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
-    const flags = rawFlags.filter(
-      f => f && typeof f === 'object' && 'flag' in f && 'result' in f
+  const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
+    // At runtime there's no type guarantees on the event flags. So we have to
+    // explicitly validate against SDK developer error or user-provided contexts.
+    const rawFlags = event.contexts?.flags?.values ?? [];
+    return rawFlags.filter(
+      (f): f is Required<FeatureFlag> =>
+        f &&
+        typeof f === 'object' &&
+        typeof f.flag === 'string' &&
+        typeof f.result === 'boolean'
     );
+  }, [event]);
 
-    return flags.map(f => {
+  const hasFlags = eventFlags.length > 0;
+
+  const showCTA =
+    !project.hasFlags &&
+    !hasFlagContext &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-cta');
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component.
+    // Reverse the flags to show newest at the top by default.
+    return eventFlags.toReversed().map((f: any) => {
       return {
         item: {
           key: f.flag,
@@ -131,7 +140,7 @@ export function EventFeatureFlagList({
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [event, suspectFlagNames]);
+  }, [suspectFlagNames, eventFlags]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -173,58 +182,71 @@ export function EventFeatureFlagList({
       trackAnalytics('flags.table_rendered', {
         organization,
         numFlags: hydratedFlags.length,
+        projectSlug: project.slug,
+        orgSlug: organization.slug,
       });
     }
-  }, [hasFlags, hydratedFlags.length, organization]);
+  }, [hasFlags, hydratedFlags.length, organization, project.slug]);
 
-  // TODO: for LD users, show a CTA in this section instead
-  // if contexts.flags is not set, hide the section
-  if (!hasFlagContext) {
+  if (group.issueCategory !== IssueCategory.ERROR) {
+    return null;
+  }
+
+  if (showCTA) {
+    return <FeatureFlagInlineCTA projectId={event.projectID} />;
+  }
+
+  // if contexts.flags is not set and project has not set up flags, hide the section
+  if (!hasFlagContext && !project.hasFlags) {
     return null;
   }
 
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      {hasFlagContext && (
-        <Fragment>
-          <Button
-            aria-label={t('Set Up Integration')}
-            size="xs"
-            onClick={activateSidebarSkipConfigure}
-          >
-            {t('Set Up Integration')}
-          </Button>
-          {hasFlags && (
-            <Fragment>
-              <Button
-                size="xs"
-                aria-label={t('View All')}
-                ref={viewAllButtonRef}
-                title={t('View All Flags')}
-                onClick={() => {
-                  isDrawerOpen ? closeDrawer() : onViewAllFlags();
-                }}
-              >
-                {t('View All')}
-              </Button>
-              <Button
-                aria-label={t('Open Feature Flag Search')}
-                icon={<IconSearch size="xs" />}
-                size="xs"
-                title={t('Open Search')}
-                onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-              />
-              <FeatureFlagSort
-                orderBy={orderBy}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                setOrderBy={setOrderBy}
-              />
-            </Fragment>
-          )}
-        </Fragment>
-      )}
+      <Fragment>
+        <Button
+          aria-label={t('Set Up Integration')}
+          size="xs"
+          onClick={mouseEvent => {
+            activateSidebarSkipConfigure(mouseEvent, project.id);
+          }}
+        >
+          {t('Set Up Integration')}
+        </Button>
+        {hasFlags && (
+          <Fragment>
+            <Button
+              size="xs"
+              aria-label={t('View All')}
+              ref={viewAllButtonRef}
+              title={t('View All Flags')}
+              onClick={() => {
+                if (isDrawerOpen) {
+                  closeDrawer();
+                } else {
+                  onViewAllFlags();
+                }
+              }}
+            >
+              {t('View All')}
+            </Button>
+            <Button
+              aria-label={t('Open Feature Flag Search')}
+              icon={<IconSearch size="xs" />}
+              size="xs"
+              title={t('Open Search')}
+              onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+            />
+            <FeatureFlagSort
+              orderBy={orderBy}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              setOrderBy={setOrderBy}
+            />
+          </Fragment>
+        )}
+      </Fragment>
     </ButtonBar>
   );
 
@@ -237,28 +259,26 @@ export function EventFeatureFlagList({
   }
 
   return (
-    <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection
-        help={t(
-          "The last 100 flags evaluated in the user's session leading up to this event."
-        )}
-        isHelpHoverable
-        title={t('Feature Flags')}
-        type={SectionKey.FEATURE_FLAGS}
-        actions={actions}
-      >
-        {hasFlags ? (
-          <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card expandLeft contentItems={columnOne} />
-            <KeyValueData.Card expandLeft contentItems={columnTwo} />
-          </CardContainer>
-        ) : (
-          <StyledEmptyStateWarning withIcon>
-            {t('No feature flags were found for this event')}
-          </StyledEmptyStateWarning>
-        )}
-      </InterimSection>
-    </ErrorBoundary>
+    <InterimSection
+      help={t(
+        "The last 100 flags evaluated in the user's session leading up to this event."
+      )}
+      isHelpHoverable
+      title={t('Feature Flags')}
+      type={SectionKey.FEATURE_FLAGS}
+      actions={actions}
+    >
+      {hasFlags ? (
+        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+          <KeyValueData.Card expandLeft contentItems={columnOne} />
+          <KeyValueData.Card expandLeft contentItems={columnTwo} />
+        </CardContainer>
+      ) : (
+        <StyledEmptyStateWarning withIcon small>
+          {t('No feature flags were found for this event')}
+        </StyledEmptyStateWarning>
+      )}
+    </InterimSection>
   );
 }
 

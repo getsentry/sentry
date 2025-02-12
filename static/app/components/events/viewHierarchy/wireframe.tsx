@@ -142,19 +142,9 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
         canvas.fillStyle = theme.gray100;
         canvas.strokeStyle = theme.gray300;
 
-        for (let i = 0; i < hierarchyData.nodes.length; i++) {
-          canvas.strokeRect(
-            hierarchyData.nodes[i].rect.x,
-            hierarchyData.nodes[i].rect.y,
-            hierarchyData.nodes[i].rect.width,
-            hierarchyData.nodes[i].rect.height
-          );
-          canvas.fillRect(
-            hierarchyData.nodes[i].rect.x,
-            hierarchyData.nodes[i].rect.y,
-            hierarchyData.nodes[i].rect.width,
-            hierarchyData.nodes[i].rect.height
-          );
+        for (const node of hierarchyData.nodes) {
+          canvas.strokeRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
+          canvas.fillRect(node.rect.x, node.rect.y, node.rect.width, node.rect.height);
         }
       }
     },

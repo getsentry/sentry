@@ -121,8 +121,8 @@ export type PermissionChoice = {
 
 type PermissionObj = {
   choices: {
-    admin: PermissionChoice;
     'no-access': PermissionChoice;
+    admin?: PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
   };
@@ -197,6 +197,15 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       read: {label: 'Read', scopes: ['member:read']},
       write: {label: 'Read & Write', scopes: ['member:read', 'member:write']},
       admin: {label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin']},
+    },
+  },
+  {
+    resource: 'Alerts',
+    help: 'Manage Alerts',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['alerts:read']},
+      write: {label: 'Read & Write', scopes: ['alerts:read', 'alerts:write']},
     },
   },
 ];
@@ -367,6 +376,16 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Continuous Profiling'),
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+  },
+  [DataCategoryExact.UPTIME]: {
+    name: DataCategoryExact.UPTIME,
+    apiName: 'uptime',
+    plural: 'uptime',
+    displayName: 'uptime monitor',
+    titleName: t('Uptime Monitors'),
+    productName: t('Uptime Monitoring'),
+    uid: 21,
+    isBilledCategory: true,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

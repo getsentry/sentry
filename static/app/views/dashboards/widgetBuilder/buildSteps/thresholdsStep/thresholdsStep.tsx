@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
@@ -18,19 +18,19 @@ type ThresholdErrors = {
 };
 
 type ThresholdsStepProps = {
-  errors: ThresholdErrors;
   onThresholdChange: (maxKey: ThresholdMaxKeys, value: string) => void;
   onUnitChange: (unit: string) => void;
   thresholdsConfig: ThresholdsConfig | null;
   dataType?: string;
   dataUnit?: string;
+  errors?: ThresholdErrors;
 };
 
 type ThresholdRowProp = {
   color: string;
   maxInputProps: NumberFieldProps;
   minInputProps: NumberFieldProps;
-  unitOptions: {label: string; value: string}[];
+  unitOptions: Array<{label: string; value: string}>;
   unitSelectProps: SelectFieldProps<any>;
   maxKey?: ThresholdMaxKeys;
   onThresholdChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
@@ -87,7 +87,7 @@ function ThresholdRow({
   );
 }
 
-function ThresholdsStep({
+export function Thresholds({
   thresholdsConfig,
   onThresholdChange,
   onUnitChange,
@@ -101,7 +101,6 @@ function ThresholdsStep({
   const unitOptions = ['duration', 'rate'].includes(dataType)
     ? getThresholdUnitSelectOptions(dataType)
     : [];
-
   const thresholdRowProps: ThresholdRowProp[] = [
     {
       maxKey: ThresholdMaxKeys.MAX_1,
@@ -167,6 +166,28 @@ function ThresholdsStep({
   ];
 
   return (
+    <ThresholdsContainer>
+      {thresholdRowProps.map((props, index) => (
+        <ThresholdRow
+          {...props}
+          onThresholdChange={onThresholdChange}
+          onUnitChange={onUnitChange}
+          key={index}
+        />
+      ))}
+    </ThresholdsContainer>
+  );
+}
+
+function ThresholdsStep({
+  thresholdsConfig,
+  onThresholdChange,
+  onUnitChange,
+  errors,
+  dataType = '',
+  dataUnit = '',
+}: ThresholdsStepProps) {
+  return (
     <BuildStep
       title={t('Set thresholds')}
       description={tct(
@@ -179,16 +200,14 @@ function ThresholdsStep({
         }
       )}
     >
-      <ThresholdsContainer>
-        {thresholdRowProps.map((props, index) => (
-          <ThresholdRow
-            {...props}
-            onThresholdChange={onThresholdChange}
-            onUnitChange={onUnitChange}
-            key={index}
-          />
-        ))}
-      </ThresholdsContainer>
+      <Thresholds
+        thresholdsConfig={thresholdsConfig}
+        onThresholdChange={onThresholdChange}
+        onUnitChange={onUnitChange}
+        errors={errors}
+        dataType={dataType}
+        dataUnit={dataUnit}
+      />
     </BuildStep>
   );
 }
@@ -219,7 +238,7 @@ const StyledSelectField = styled(SelectField)`
   min-width: 150px;
 `;
 
-const HighlightedText = styled('span')`
+export const HighlightedText = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.pink300};
 `;

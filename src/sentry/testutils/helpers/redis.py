@@ -9,11 +9,8 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.testutils.helpers import override_options
 
 
-@contextmanager
 def mock_redis_buffer():
-    buffer = RedisBuffer()
-    with patch("sentry.buffer.backend", new=buffer):
-        yield buffer
+    return patch("sentry.buffer.backend", new=RedisBuffer())
 
 
 @contextmanager
@@ -22,7 +19,7 @@ def use_redis_cluster(
     high_watermark: int = 100,
     with_settings: dict[str, Any] | None = None,
     with_options: dict[str, Any] | None = None,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     # Cluster id needs to be different than "default" to distinguish redis instance with redis cluster.
 
     options = {

@@ -1,7 +1,8 @@
 from collections.abc import Mapping, Sequence
-from datetime import timedelta
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, NotRequired, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -16,15 +17,51 @@ from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
     SentryAppAvatarSerializer as ResponseSentryAppAvatarSerializer,
 )
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+
+
+class OwnerResponseField(TypedDict):
+    id: int
+    slug: str
+
+
+class SentryAppSerializerResponse(TypedDict):
+    allowedOrigins: list[str]
+    avatars: SentryAppAvatarSerializerResponse
+    events: set[str]
+    featureData: list[str]
+    isAlertable: bool
+    metadata: str
+    name: str
+    schema: str
+    scopes: list[str]
+    slug: str
+    status: str
+    uuid: str
+    verifyInstall: bool
+
+    # Optional fields
+    author: NotRequired[str | None]
+    overview: NotRequired[str | None]
+    popularity: NotRequired[int | None]
+    redirectUrl: NotRequired[str | None]
+    webhookUrl: NotRequired[str | None]
+    clientSecret: NotRequired[str | None]
+    datePublished: NotRequired[datetime]
+    clientId: NotRequired[str]
+    owner: NotRequired[OwnerResponseField]
 
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def get_attrs(self, item_list: Sequence[SentryApp], user: User, **kwargs: Any):
+    def get_attrs(
+        self, item_list: Sequence[SentryApp], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ):
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP
@@ -57,35 +94,41 @@ class SentryAppSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: SentryApp, attrs: Mapping[str, Any], user: User, **kwargs: Any):
+    def serialize(
+        self,
+        obj: SentryApp,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> SentryAppSerializerResponse:
         from sentry.sentry_apps.logic import consolidate_events
 
         application = attrs["application"]
 
-        data = {
-            "allowedOrigins": application.get_allowed_origins(),
-            "author": obj.author,
-            "avatars": serialize(
+        data = SentryAppSerializerResponse(
+            allowedOrigins=application.get_allowed_origins(),
+            author=obj.author,
+            avatars=serialize(
                 objects=attrs.get("avatars"),
                 user=user,
                 serializer=ResponseSentryAppAvatarSerializer(),
             ),
-            "events": consolidate_events(obj.events),
-            "featureData": [],
-            "isAlertable": obj.is_alertable,
-            "metadata": obj.metadata,
-            "name": obj.name,
-            "overview": obj.overview,
-            "popularity": obj.popularity,
-            "redirectUrl": obj.redirect_url,
-            "schema": obj.schema,
-            "scopes": obj.get_scopes(),
-            "slug": obj.slug,
-            "status": obj.get_status_display(),
-            "uuid": obj.uuid,
-            "verifyInstall": obj.verify_install,
-            "webhookUrl": obj.webhook_url,
-        }
+            events=consolidate_events(obj.events),
+            featureData=[],
+            isAlertable=obj.is_alertable,
+            metadata=obj.metadata,
+            name=obj.name,
+            overview=obj.overview,
+            popularity=obj.popularity,
+            redirectUrl=obj.redirect_url,
+            schema=obj.schema,
+            scopes=obj.get_scopes(),
+            slug=obj.slug,
+            status=obj.get_status_display(),
+            uuid=obj.uuid,
+            verifyInstall=obj.verify_install,
+            webhookUrl=obj.webhook_url,
+        )
 
         if obj.status != SentryAppStatus.INTERNAL:
             data["featureData"] = [serialize(x, user) for x in attrs.get("features", [])]

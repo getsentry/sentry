@@ -10,7 +10,6 @@ from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
-from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
     SEER_ERROR_COUNT_KEY,
@@ -68,7 +67,7 @@ class TestGetEventSeverity(TestCase):
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/v0/issues/severity-score?",
+            "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=0.2,
@@ -84,11 +83,11 @@ class TestGetEventSeverity(TestCase):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score?",
+                "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={
                     "content-type": "application/json;charset=utf-8",
-                    "Authorization": "Rpcsignature rpc0:8d982376e4e49ffe845ed39853f6f2cb9bf38564d2a8a325dcd88abba8c58564",
+                    "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
                 },
                 timeout=0.2,
             )
@@ -120,7 +119,7 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score?",
+                "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
                 timeout=0.2,
@@ -425,15 +424,15 @@ class TestEventManagerSeverity(TestCase):
 
     @patch("sentry.event_manager._get_severity_score")
     def test_killswitch_on(self, mock_get_severity_score: MagicMock):
-        options.set("issues.severity.skip-seer-requests", [self.project.id])
-        event = EventManager(
-            make_event(
-                exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
-                platform="python",
-            )
-        ).save(self.project.id)
+        with override_options({"issues.severity.skip-seer-requests": [self.project.id]}):
+            event = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    platform="python",
+                )
+            ).save(self.project.id)
 
-        assert event.group
-        assert "severity" not in event.group.get_event_metadata()
-        assert cache.get(SEER_ERROR_COUNT_KEY) is None
-        assert mock_get_severity_score.call_count == 0
+            assert event.group
+            assert "severity" not in event.group.get_event_metadata()
+            assert cache.get(SEER_ERROR_COUNT_KEY) is None
+            assert mock_get_severity_score.call_count == 0

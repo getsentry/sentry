@@ -22,6 +22,8 @@ export function NewIssueExperienceButton() {
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
+  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
+
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
@@ -30,12 +32,19 @@ export function NewIssueExperienceButton() {
     mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
-      organization: organization,
+      organization,
     });
   }, [mutate, organization, hasStreamlinedUI]);
 
-  // We hide the toggle if the org doesn't have the 'opt-in' flag, or has the 'remove opt-out' flag.
-  if (!hasStreamlinedUIFlag || hasEnforceStreamlinedUIFlag) {
+  // We hide the toggle if the org...
+  if (
+    // doesn't have the 'opt-in' flag,
+    !hasStreamlinedUIFlag ||
+    // has the 'remove opt-out' flag,
+    hasEnforceStreamlinedUIFlag ||
+    // has access to only one interface (via the organization option).
+    hasOnlyOneUIOption
+  ) {
     return null;
   }
 
@@ -43,6 +52,7 @@ export function NewIssueExperienceButton() {
     const label = hasStreamlinedUI
       ? t('Switch to the old issue experience')
       : t('Switch to the new issue experience');
+    const text = hasStreamlinedUI ? null : t('Try New UI');
 
     return (
       <ToggleButtonWrapper>
@@ -74,7 +84,8 @@ export function NewIssueExperienceButton() {
           borderless={!hasStreamlinedUI}
           onClick={handleToggle}
         >
-          <ToggleBorder />
+          {text ? <span>{text}</span> : null}
+          {!hasStreamlinedUI && <ToggleBorder />}
         </ToggleButton>
       </ToggleButtonWrapper>
     );
@@ -98,19 +109,6 @@ export function NewIssueExperienceButton() {
           key: 'switch-to-old-ui',
           label: t('Switch to the old issue experience'),
           onAction: handleToggle,
-        },
-        {
-          key: 'learn-more',
-          label: t('Learn more about the new UI'),
-          onAction: () => {
-            trackAnalytics('issue_details.streamline_ui_learn_more', {
-              organization,
-            });
-            window.open(
-              'https://sentry.zendesk.com/hc/en-us/articles/30882241712795',
-              '_blank'
-            );
-          },
         },
         {
           key: 'give-feedback',
@@ -162,7 +160,6 @@ const ToggleButton = styled(Button)<{enabled: boolean}>`
   }
   span {
     z-index: 1;
-    margin: 0;
   }
 `;
 
@@ -178,8 +175,8 @@ const ToggleBorder = styled('div')`
   position: absolute;
   content: '';
   z-index: -1;
-  width: 46px;
-  height: 46px;
+  width: 125px;
+  height: 125px;
   border-radius: 7px;
   background: ${p => p.theme.badge.beta.background};
   animation: rotating 10s linear infinite;

@@ -23,6 +23,7 @@ from snuba_sdk import (
 from sentry.api import event_search
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.options.rollout import in_rollout_group
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig
@@ -85,6 +86,36 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             raw_field = "tags[group_id]"
 
         return super().resolve_field(raw_field, alias)
+
+    def resolve_projects(self) -> list[int]:
+        if self.params.organization_id and in_rollout_group(
+            "sentry.search.events.project.check_event", self.params.organization_id
+        ):
+            if self.dataset == Dataset.Discover:
+                project_ids = [
+                    proj.id
+                    for proj in self.params.projects
+                    if proj.flags.has_transactions or proj.first_event is not None
+                ]
+            elif self.dataset == Dataset.Events:
+                project_ids = [
+                    proj.id for proj in self.params.projects if proj.first_event is not None
+                ]
+            elif self.dataset in [Dataset.Transactions, Dataset.IssuePlatform]:
+                project_ids = [
+                    proj.id for proj in self.params.projects if proj.flags.has_transactions
+                ]
+            else:
+                return super().resolve_projects()
+
+            if len(project_ids) == 0:
+                raise InvalidSearchQuery(
+                    "All the projects in your query haven't received data yet, so no query was ran"
+                )
+            else:
+                return project_ids
+        else:
+            return super().resolve_projects()
 
     def get_function_result_type(
         self,

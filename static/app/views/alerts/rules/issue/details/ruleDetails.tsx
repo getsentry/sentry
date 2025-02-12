@@ -382,8 +382,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                 to: `/organizations/${organization.slug}/alerts/rules/`,
               },
               {
-                label: rule.name,
-                to: null,
+                label: t('Issue Alert'),
               },
             ]}
           />
@@ -442,7 +441,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {renderIncompatibleAlert()}
           {renderDisabledAlertBanner()}
           {isSnoozed && (
-            <Alert showIcon>
+            <Alert type="info" showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                 ? tct(
                     "[creator] muted this alert so these notifications won't be sent in the future.",

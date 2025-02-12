@@ -8,16 +8,15 @@ import responses
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils import jwt
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 from .test_helpers import (
     DECODED_TOKEN,
@@ -399,9 +398,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -437,10 +434,7 @@ class MsTeamsWebhookTest(APITestCase):
         ].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -502,9 +496,7 @@ class MsTeamsWebhookTest(APITestCase):
         ]
         assert self.metrics.incr.mock_calls == calls
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -546,10 +538,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED.value)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")

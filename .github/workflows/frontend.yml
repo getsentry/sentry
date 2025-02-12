@@ -53,7 +53,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
@@ -102,7 +102,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
@@ -129,7 +129,11 @@ jobs:
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          if [ ${{ github.ref }} = 'refs/heads/master' ]; then
+            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --coverage
+          else
+            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          fi
 
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.

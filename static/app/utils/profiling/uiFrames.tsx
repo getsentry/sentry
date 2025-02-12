@@ -28,7 +28,7 @@ function sortFramesByStartedTime(a: UIFrameMeasurement, b: UIFrameMeasurement) {
 }
 
 class UIFrames {
-  frames: ReadonlyArray<UIFrameNode> = [];
+  frames: readonly UIFrameNode[] = [];
   toUnit: string = 'nanoseconds';
   minFrameDuration: number = Number.MAX_SAFE_INTEGER;
   configSpace: Rect = Rect.Empty();
@@ -72,7 +72,7 @@ class UIFrames {
   buildFramesIntervalTree(
     slowFrames: NonNullable<UIFrameMeasurements>,
     frozenFrames: NonNullable<UIFrameMeasurements>
-  ): ReadonlyArray<UIFrameNode> {
+  ): readonly UIFrameNode[] {
     const frames: UIFrameNode[] = [];
 
     const toSlowFinalUnit = makeFormatTo(slowFrames.unit, this.toUnit);
@@ -86,8 +86,8 @@ class UIFrames {
         ? 'frozen'
         : !frozenFramesQueue.length
           ? 'slow'
-          : slowFramesQueue[0].elapsed - slowFramesQueue[0].value <
-              frozenFramesQueue[0].elapsed - frozenFramesQueue[0].value
+          : slowFramesQueue[0]!.elapsed - slowFramesQueue[0]!.value <
+              frozenFramesQueue[0]!.elapsed - frozenFramesQueue[0]!.value
             ? 'slow'
             : 'frozen';
 

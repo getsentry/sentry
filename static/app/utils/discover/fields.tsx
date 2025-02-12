@@ -3,10 +3,8 @@ import isEqual from 'lodash/isEqual';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
-import type {MetricType} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -19,6 +17,7 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
+  FieldKind,
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
@@ -58,10 +57,7 @@ type ValidateColumnValueFunction = (data: {
   name: string;
 }) => boolean;
 
-export type ValidateColumnTypes =
-  | ColumnType[]
-  | MetricType[]
-  | ValidateColumnValueFunction;
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
@@ -80,7 +76,7 @@ export type AggregateParameter =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       defaultValue?: string;
       placeholder?: string;
@@ -148,6 +144,33 @@ export enum DurationUnit {
   YEAR = 'year',
 }
 
+// Durations normalized to millisecond unit
+export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
+  month: 1000 * 60 * 60 * 24 * 30,
+  year: 1000 * 60 * 60 * 24 * 365,
+};
+
+export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'd',
+  week: 'wk',
+  month: 'mo',
+  year: 'yr',
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',
@@ -165,6 +188,41 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// Sizes normalized to byte unit
+export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
+  bit: 1 / 8,
+  byte: 1,
+  kibibyte: 1024,
+  mebibyte: 1024 ** 2,
+  gibibyte: 1024 ** 3,
+  tebibyte: 1024 ** 4,
+  pebibyte: 1024 ** 5,
+  exbibyte: 1024 ** 6,
+  kilobyte: 1000,
+  megabyte: 1000 ** 2,
+  gigabyte: 1000 ** 3,
+  terabyte: 1000 ** 4,
+  petabyte: 1000 ** 5,
+  exabyte: 1000 ** 6,
+};
+
+export const SIZE_UNIT_LABELS: Record<SizeUnit, string> = {
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+};
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -172,19 +230,19 @@ export enum RateUnit {
 }
 
 // Rates normalized to /second unit
-export const RATE_UNIT_MULTIPLIERS = {
+export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_SECOND]: 1,
   [RateUnit.PER_MINUTE]: 1 / 60,
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
-export const RATE_UNIT_LABELS = {
+export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: '/s',
   [RateUnit.PER_MINUTE]: '/min',
   [RateUnit.PER_HOUR]: '/hr',
 };
 
-export const RATE_UNIT_TITLE = {
+export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: 'Per Second',
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
@@ -264,7 +322,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
       {
@@ -296,7 +354,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -584,7 +642,7 @@ export type Aggregation = {
   /**
    * List of parameters for the function.
    */
-  parameters: Readonly<AggregateParameter[]>;
+  parameters: readonly AggregateParameter[];
   getFieldOverrides?: (
     data: DefaultValueInputs
   ) => Partial<Omit<AggregateParameter, 'kind'>>;
@@ -683,7 +741,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
           kind: 'dropdown',
           options: CONDITIONS_ARGUMENTS,
           dataType: 'string',
-          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
           required: true,
         },
         {
@@ -731,7 +789,7 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
-export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const TRANSACTION_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
@@ -747,7 +805,7 @@ export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
   f => !TRANSACTION_ONLY_FIELDS.includes(f)
 );
 
-export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const ERROR_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.LOCATION,
   FieldKey.EVENT_TYPE,
   FieldKey.ERROR_TYPE,
@@ -795,6 +853,7 @@ export function isMeasurement(field: string): boolean {
 
 export function measurementType(field: string): MeasurementType {
   if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
@@ -804,7 +863,7 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -818,7 +877,7 @@ export function getAggregateArg(field: string): string | null {
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
-    return result.arguments[0];
+    return result.arguments[0]!;
   }
 
   return null;
@@ -828,8 +887,8 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
-      name: results[1],
-      arguments: parseArguments(results[2]),
+      name: results[1]!,
+      arguments: parseArguments(results[2]!),
     };
   }
 
@@ -928,7 +987,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
-    return parseInt(results[1], 10);
+    return parseInt(results[1]!, 10);
   }
   return -1;
 }
@@ -961,7 +1020,9 @@ export function generateAggregateFields(
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
-    const parameters = AGGREGATIONS[func].parameters.map(param => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -972,9 +1033,9 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
       const newField = `${func}(${parameters
-        .map(param => param.defaultValue)
+        .map((param: any) => param.defaultValue)
         .join(',')})`;
       if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
@@ -1165,6 +1226,7 @@ export function aggregateFunctionOutputType(
   firstArg: string | undefined
 ): AggregationOutputType | null {
   const aggregate =
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1181,14 +1243,17 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
-    return STARFISH_FIELDS[firstArg].outputType;
+    return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1215,6 +1280,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1253,6 +1319,7 @@ export function sessionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1269,6 +1336,7 @@ export function sessionsAggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1290,6 +1358,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return AGGREGATIONS[result.name].multiPlotType;
 }
 
@@ -1344,9 +1413,7 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
-  if (isMRIField(columnName)) {
-    return 'right';
-  }
+
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1364,14 +1431,14 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricType) {
+export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -1640,6 +1707,11 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
 export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
 
 export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);

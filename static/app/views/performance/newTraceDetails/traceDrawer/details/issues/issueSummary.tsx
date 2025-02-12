@@ -37,7 +37,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
           <IconStar isSolid color="yellow400" />
         </IconWrapper>
       )}
-      <ErrorBoundary customComponent={<EventTitleError />} mini>
+      <ErrorBoundary customComponent={() => <EventTitleError />} mini>
         <StyledEventOrGroupTitle
           data={props.data}
           // hasSeen is undefined for GroupTombstone
@@ -131,7 +131,7 @@ const LocationWrapper = styled('div')`
   }
 `;
 
-function Location(props) {
+function Location(props: any) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>

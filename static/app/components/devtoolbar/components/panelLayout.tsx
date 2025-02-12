@@ -45,7 +45,11 @@ export default function PanelLayout({
       <span
         css={[
           panelHeadingCss,
-          {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
+          css`
+            display: flex;
+            align-items: center;
+            gap: var(--space100);
+          `,
           noBorder
             ? css`
                 border-color: white;
@@ -55,7 +59,11 @@ export default function PanelLayout({
       >
         {showProjectBadge && (
           <ProjectBadge
-            css={css({'&& img': {boxShadow: 'none'}})}
+            css={css`
+              && img {
+                box-shadow: none;
+              }
+            `}
             project={{
               slug: projectSlug,
               id: projectId,
@@ -71,7 +79,10 @@ export default function PanelLayout({
             css={[
               panelSectionCss,
               resetFlexRowCss,
-              {alignItems: 'center', marginRight: 'var(--space100)'},
+              css`
+                align-items: center;
+                margin-right: var(--space100);
+              `,
             ]}
           >
             {link ? (

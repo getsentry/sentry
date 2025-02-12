@@ -10,13 +10,19 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {traceAnalytics} from './traceAnalytics';
+import {useHasTraceNewUi} from './useHasTraceNewUi';
 
 export function TraceShortcuts() {
+  const hasTraceNewUi = useHasTraceNewUi();
   const organization = useOrganization();
   const onOpenShortcutsClick = useCallback(() => {
     traceAnalytics.trackViewShortcuts(organization);
     openModal(props => <TraceShortcutsModal {...props} />);
   }, [organization]);
+
+  if (hasTraceNewUi) {
+    return null;
+  }
 
   return (
     <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
@@ -25,19 +31,19 @@ export function TraceShortcuts() {
   );
 }
 
-const KEYBOARD_SHORTCUTS: [string, string][] = [
+const KEYBOARD_SHORTCUTS: Array<[string, string]> = [
   ['\u2191 / \u2193', t('Navigate up or down')],
   ['\u2190 / \u2192', t('Collapse or expand')],
   [t('Shift') + ' + \u2191 / \u2193', t('Jump to first/last element')],
 ];
 
-const TIMELINE_SHORTCUTS: [string, string][] = [
+const TIMELINE_SHORTCUTS: Array<[string, string]> = [
   [t('Cmd / Ctrl + Scroll'), t('Zoom in/out at cursor')],
   [t('Shift + Scroll'), t('Scroll horizontally')],
   [t('Double click'), t('Zoom to fill')],
 ];
 
-function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
+export function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
   return (
     <Fragment>
       <Header closeButton>

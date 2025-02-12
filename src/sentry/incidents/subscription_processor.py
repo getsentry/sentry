@@ -24,14 +24,11 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
-    invoke_alert_subscription_callback,
 )
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -43,8 +40,16 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.process_update_helpers import (
+    get_aggregation_value_helper,
+    get_crash_rate_alert_metrics_aggregation_value_helper,
+)
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.models.project import Project
+from sentry.search.eap.utils import add_start_end_conditions
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
@@ -53,10 +58,12 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
-from sentry.utils import metrics, redis
+from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -112,7 +119,7 @@ class SubscriptionProcessor:
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
 
     @property
-    def active_incident(self) -> Incident:
+    def active_incident(self) -> Incident | None:
         """
         fetches an incident given the alert rule, project (and subscription if available)
         """
@@ -131,7 +138,7 @@ class SubscriptionProcessor:
         return self._active_incident
 
     @active_incident.setter
-    def active_incident(self, active_incident: Incident) -> None:
+    def active_incident(self, active_incident: Incident | None) -> None:
         self._active_incident = active_incident
 
     @property
@@ -174,7 +181,7 @@ class SubscriptionProcessor:
             self.trigger_resolve_counts[trigger_id] = 0
         self.update_alert_rule_stats()
 
-    def calculate_resolve_threshold(self, trigger: IncidentTrigger) -> float:
+    def calculate_resolve_threshold(self, trigger: AlertRuleTrigger) -> float:
         """
         Determine the resolve threshold for a trigger. First checks whether an
         explicit resolve threshold has been set on the rule, and whether this trigger is
@@ -208,8 +215,13 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate, aggregation_value: float
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
+        # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
+        aggregation_value = get_aggregation_value_helper(subscription_update)
+        if self.alert_rule.comparison_delta is None:
+            return aggregation_value
+
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
         delta = timedelta(seconds=self.alert_rule.comparison_delta)
@@ -221,48 +233,86 @@ class SubscriptionProcessor:
             snuba_query,
             self.subscription.project.organization_id,
         )
-        try:
-            project_ids = [self.subscription.project_id]
-            # TODO: determine whether we need to include the subscription query_extra here
-            query_builder = entity_subscription.build_query_builder(
-                query=snuba_query.query,
-                project_ids=project_ids,
-                environment=snuba_query.environment,
-                params={
-                    "organization_id": self.subscription.project.organization.id,
-                    "project_id": project_ids,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
-            query_builder.add_conditions(
-                [
-                    Condition(Column(time_col), Op.GTE, start),
-                    Condition(Column(time_col), Op.LT, end),
-                ]
-            )
-            query_builder.limit = Limit(1)
-            results = query_builder.run_query(referrer="subscription_processor.comparison_query")
-            comparison_aggregate = list(results["data"][0].values())[0]
+        dataset = Dataset(snuba_query.dataset)
+        query_type = SnubaQuery.Type(snuba_query.type)
+        project_ids = [self.subscription.project_id]
 
-        except Exception:
-            logger.exception(
-                "Failed to run comparison query",
-                extra={
-                    "alert_rule_id": self.alert_rule.id,
-                    "subscription_id": subscription_update.get("subscription_id"),
-                    "organization_id": self.alert_rule.organization_id,
-                },
-            )
-            return None
+        comparison_aggregate: None | float = None
+        if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform:
+            try:
+                rpc_time_series_request = entity_subscription.build_rpc_request(
+                    query=snuba_query.query,
+                    project_ids=project_ids,
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": project_ids,
+                    },
+                    referrer="subscription_processor.comparison_query",
+                )
+
+                rpc_time_series_request = add_start_end_conditions(
+                    rpc_time_series_request, start, end
+                )
+
+                rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
+                if len(rpc_response.result_timeseries):
+                    comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
+
+            except Exception:
+                logger.exception(
+                    "Failed to run RPC comparison query",
+                    extra={
+                        "alert_rule_id": self.alert_rule.id,
+                        "subscription_id": subscription_update.get("subscription_id"),
+                        "organization_id": self.alert_rule.organization_id,
+                    },
+                )
+                return None
+
+        else:
+            try:
+                # TODO: determine whether we need to include the subscription query_extra here
+                query_builder = entity_subscription.build_query_builder(
+                    query=snuba_query.query,
+                    project_ids=project_ids,
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": project_ids,
+                        "start": start,
+                        "end": end,
+                    },
+                )
+                time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+                query_builder.add_conditions(
+                    [
+                        Condition(Column(time_col), Op.GTE, start),
+                        Condition(Column(time_col), Op.LT, end),
+                    ]
+                )
+                query_builder.limit = Limit(1)
+                results = query_builder.run_query(
+                    referrer="subscription_processor.comparison_query"
+                )
+                comparison_aggregate = list(results["data"][0].values())[0]
+
+            except Exception:
+                logger.exception(
+                    "Failed to run comparison query",
+                    extra={
+                        "alert_rule_id": self.alert_rule.id,
+                        "subscription_id": subscription_update.get("subscription_id"),
+                        "organization_id": self.alert_rule.organization_id,
+                    },
+                )
+                return None
 
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
             return None
 
-        result: float = (aggregation_value / comparison_aggregate) * 100
-        return result
+        return (aggregation_value / comparison_aggregate) * 100
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
@@ -282,24 +332,12 @@ class SubscriptionProcessor:
         count is just ignored
         - `crashed` represents the total sessions or user counts that crashed.
         """
-        row = subscription_update["values"]["data"][0]
-        total_session_count = row.get("count", 0)
-        crash_count = row.get("crashed", 0)
-
-        if total_session_count == 0:
+        # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
+        aggregation_value = get_crash_rate_alert_metrics_aggregation_value_helper(
+            subscription_update
+        )
+        if aggregation_value is None:
             self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                self.reset_trigger_counts()
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return None
-
-        aggregation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
-
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
@@ -308,18 +346,7 @@ class SubscriptionProcessor:
                 subscription_update
             )
         else:
-            aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-            # In some cases Snuba can return a None value for an aggregation. This means
-            # there were no rows present when we made the query for certain types of aggregations
-            # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
-            # the update in the future.
-            if aggregation_value is None:
-                aggregation_value = 0
-
-            if self.alert_rule.comparison_delta:
-                aggregation_value = self.get_comparison_aggregation_value(
-                    subscription_update, aggregation_value
-                )
+            aggregation_value = self.get_comparison_aggregation_value(subscription_update)
 
         return aggregation_value
 
@@ -357,6 +384,15 @@ class SubscriptionProcessor:
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
+
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            self.subscription.project.organization,
+        ):
+            data_packet = DataPacket[QuerySubscriptionUpdate](
+                source_id=str(self.subscription.id), packet=subscription_update
+            )
+            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         self.last_update = subscription_update["timestamp"]
 
@@ -421,27 +457,10 @@ class SubscriptionProcessor:
                 )
                 return
 
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        # Current callback will update the activation metric values & delete querysubscription on finish
-        # TODO: register over/under triggers as alert rule callbacks as well
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
-            subscription=self.subscription,
-            alert_rule=self.alert_rule,
-            value=aggregation_value,
-        )
-
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
 
-        # OVER/UNDER value trigger
-        alert_operator = None
-        resolve_operator = None
-        if not potential_anomalies:
-            alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
-                AlertRuleThresholdType(self.alert_rule.threshold_type)
-            ]
         fired_incident_triggers = []
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
@@ -493,6 +512,10 @@ class SubscriptionProcessor:
                         else:
                             self.trigger_resolve_counts[trigger.id] = 0
                 else:
+                    # OVER/UNDER value trigger
+                    alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
+                        AlertRuleThresholdType(self.alert_rule.threshold_type)
+                    ]
                     if alert_operator(
                         aggregation_value, trigger.alert_threshold
                     ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
@@ -587,13 +610,10 @@ class SubscriptionProcessor:
         last_incident_projects = (
             [project.id for project in last_incident.projects.all()] if last_incident else []
         )
-        minutes_since_last_incident = (
-            (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
-        )
         if (
             last_incident
             and self.subscription.project.id in last_incident_projects
-            and minutes_since_last_incident <= 10
+            and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
         ):
             metrics.incr(
                 "incidents.alert_rules.hit_rate_limit",
@@ -611,19 +631,6 @@ class SubscriptionProcessor:
             # Only create a new incident if we don't already have an active incident for the AlertRule
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
-                activation: AlertRuleActivations | None = None
-                if self.alert_rule.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
-                    activations = list(self.subscription.alertruleactivations_set.all())
-                    if len(activations) != 1:
-                        logger.error(
-                            "activated alert rule subscription has unexpected activation instances",
-                            extra={
-                                "activations_count": len(activations),
-                            },
-                        )
-                    else:
-                        activation = activations[0]
-
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
                     incident_type=IncidentType.ALERT_TRIGGERED,
@@ -633,7 +640,6 @@ class SubscriptionProcessor:
                     date_started=detected_at,
                     date_detected=self.last_update,
                     projects=[self.subscription.project],
-                    activation=activation,
                     subscription=self.subscription,
                 )
             # Now create (or update if it already exists) the incident trigger so that
@@ -691,7 +697,7 @@ class SubscriptionProcessor:
             incident_trigger.save()
             self.trigger_resolve_counts[trigger.id] = 0
 
-            if self.check_triggers_resolved():
+            if self.active_incident and self.check_triggers_resolved():
                 update_incident_status(
                     self.active_incident,
                     IncidentStatus.CLOSED,
@@ -882,7 +888,7 @@ def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
 
 def get_alert_rule_stats(
     alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
-) -> tuple[datetime, dict[str, int], dict[str, int]]:
+) -> tuple[datetime, dict[int, int], dict[int, int]]:
     """
     Fetches stats about the alert rule, specific to the current subscription
     :return: A tuple containing the stats about the alert rule and subscription.

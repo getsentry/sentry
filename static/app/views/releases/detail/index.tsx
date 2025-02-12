@@ -158,7 +158,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
         },
       },
       {
-        allowError: error => error.status === 400,
+        allowError: (error: any) => error.status === 400,
       },
     ]);
 
@@ -172,7 +172,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     ]);
   }
 
-  renderError(...args) {
+  renderError(...args: any[]) {
     const possiblyWrongProject = Object.values(this.state.errors).find(
       e => e?.status === 404 || e?.status === 403
     );
@@ -304,7 +304,7 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
     }
   }
 
-  renderError(...args) {
+  renderError(...args: any[]) {
     const has404Errors = Object.values(this.state.errors).find(e => e?.status === 404);
 
     if (has404Errors) {
@@ -375,7 +375,9 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
       <PageFiltersContainer
         shouldForceProject={projects.length === 1}
         forceProject={
-          projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
+          projects.length === 1
+            ? {...projects[0]!, id: String(projects[0]!.id)}
+            : undefined
         }
         specificProjectSlugs={projects.map(p => p.slug)}
       >

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -28,8 +28,8 @@ function UnsubscribeProject({location}: Props) {
         <h3>{t('Unsubscribe')}</h3>
         <UnsubscribeBody
           signature={signature}
-          orgSlug={params.orgId}
-          issueId={params.id}
+          orgSlug={params.orgId!}
+          issueId={params.id!}
         />
       </NarrowLayout>
     </SentryDocumentTitle>

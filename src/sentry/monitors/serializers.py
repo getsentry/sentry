@@ -158,7 +158,6 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
-    type: Literal["cron_job", "unknown"]
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
@@ -245,7 +244,6 @@ class MonitorSerializer(Serializer):
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
-            "type": obj.get_type_display(),
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
@@ -277,7 +275,6 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     status: str
     duration: int
     dateCreated: datetime
-    attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
 
@@ -339,7 +336,6 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
-            "attachmentId": obj.attachment_id,
             "expectedTime": obj.expected_time,
             "monitorConfig": obj.monitor_config or {},
         }

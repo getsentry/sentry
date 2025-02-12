@@ -81,6 +81,8 @@ export enum DataCategory {
   PROFILE_DURATION = 'profileDuration',
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
+  PROFILE_CHUNKS = 'profileChunks',
+  UPTIME = 'uptime',
 }
 
 /**
@@ -94,13 +96,15 @@ export enum DataCategoryExact {
   ATTACHMENT = 'attachment',
   PROFILE = 'profile',
   REPLAY = 'replay',
+  // TODO: Update processed and indexed transactions to camel case"
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
-  SPAN_INDEXED = 'span_indexed',
+  SPAN_INDEXED = 'spanIndexed',
+  UPTIME = 'uptime',
 }
 
 export interface DataCategoryInfo {

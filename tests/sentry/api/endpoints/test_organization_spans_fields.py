@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -179,7 +180,16 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             assert {"key": "foo", "name": "Foo"} in response.data
 
     def test_tags_list_nums_processed(self):
-        for tag in ["foo", "bar", "baz", "lcp", "fcp"]:
+        for tag in [
+            "foo",
+            "bar",
+            "baz",
+            "lcp",
+            "fcp",
+            "http.decoded_response_content_length",
+            "http.response_content_length",
+            "http.response_transfer_size",
+        ]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
@@ -208,6 +218,18 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 {"key": "tags[baz,number]", "name": "baz"},
                 {"key": "measurements.fcp", "name": "measurements.fcp"},
                 {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                },
                 {"key": "measurements.lcp", "name": "measurements.lcp"},
                 {"key": "span.duration", "name": "span.duration"},
             ]
@@ -819,6 +841,34 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert response.data == []
 
+    @mock.patch(
+        "sentry.api.endpoints.organization_spans_fields.EAPSpanFieldValuesAutocompletionExecutor.execute",
+        side_effect=InvalidSearchQuery,
+    )
+    @mock.patch(
+        "sentry.api.endpoints.organization_spans_fields.SpanFieldValuesAutocompletionExecutor.execute",
+        side_effect=InvalidSearchQuery,
+    )
+    def test_invalid_query(self, mock_executor_1, mock_executor_2):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=timestamp,
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"tag": "foo"},
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request("tag")
+        assert response.status_code == 400, response.data
+
 
 class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
     is_eap = True
@@ -842,3 +892,28 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
                 format="json",
                 **kwargs,
             )
+
+    def test_boolean_autocomplete(self):
+        keys = ["is_transaction"]
+        self.project
+        for key in keys:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "false",
+                    "name": "false",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "true",
+                    "name": "true",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+            ]

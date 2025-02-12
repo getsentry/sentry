@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 /**
  * List of workflows to dispatch to `getsentry`
  *

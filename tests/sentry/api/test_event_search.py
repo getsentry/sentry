@@ -93,6 +93,12 @@ def result_transformer(result):
         if token["type"] == "keyExplicitTag":
             return SearchKey(name=f"tags[{token['key']['value']}]")
 
+        if token["type"] == "keyExplicitStringTag":
+            return SearchKey(name=f"tags[{token['key']['value']},string]")
+
+        if token["type"] == "keyExplicitNumberTag":
+            return SearchKey(name=f"tags[{token['key']['value']},number]")
+
         if token["type"] == "keyAggregate":
             name = node_visitor(token["name"]).name
             # Consistent join aggregate function parameters
@@ -530,7 +536,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_allowed_keys(self):
-        config = SearchConfig(allowed_keys=["good_key"])
+        config = SearchConfig(allowed_keys={"good_key"})
 
         assert parse_search_query("good_key:123 bad_key:123 text") == [
             SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
@@ -547,7 +553,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_blocked_keys(self):
-        config = SearchConfig(blocked_keys=["bad_key"])
+        config = SearchConfig(blocked_keys={"bad_key"})
 
         assert parse_search_query("some_key:123 bad_key:123 text") == [
             SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
@@ -728,6 +734,9 @@ def test_search_value_to_query_string(value, expected_query_string):
         ("*f*o*o*", "other", "^.*f.*o.*o.*$"),
         (r"*foo\*", "suffix", r"foo*"),
         (r"*foo\\*", "infix", r"foo\\"),
+        pytest.param("*Case*", "infix", "Case", id="infix casing is kept"),
+        pytest.param("*Case", "suffix", "case", id="suffix is lower cased"),
+        pytest.param("Case*", "prefix", "case", id="prefix is lower cased"),
     ],
 )
 def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value):
@@ -736,6 +745,5 @@ def test_search_value_classify_and_format_wildcard(value, expected_kind, expecte
     and formatting the value according to the classification results.
     """
     search_value = SearchValue(value)
-    kind = search_value.classify_wildcard()
-    assert kind == expected_kind
-    assert search_value.format_wildcard(kind) == expected_value
+    kind, wildcard = search_value.classify_and_format_wildcard()
+    assert (kind, wildcard) == (expected_kind, expected_value)

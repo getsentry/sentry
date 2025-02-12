@@ -19,6 +19,7 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
 from sentry.snuba.metrics_performance import top_events_timeseries as metrics_top_events_timeseries
 from sentry.snuba.query_sources import QuerySource
+from sentry.snuba.types import DatasetQuery
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -48,7 +49,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-):
+) -> EventsResponse:
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
 
@@ -57,22 +58,22 @@ def query(
             result = metrics_query(
                 selected_columns,
                 query,
-                snuba_params,
-                equations,
-                orderby,
-                offset,
-                limit,
-                referrer,
-                auto_fields,
-                auto_aggregations,
-                use_aggregate_conditions,
-                allow_metric_aggregates,
-                conditions,
-                functions_acl,
-                transform_alias_to_input_format,
-                has_metrics,
-                use_metrics_layer,
-                on_demand_metrics_enabled,
+                snuba_params=snuba_params,
+                equations=equations,
+                orderby=orderby,
+                offset=offset,
+                limit=limit,
+                referrer=referrer,
+                auto_fields=auto_fields,
+                auto_aggregations=auto_aggregations,
+                use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
+                conditions=conditions,
+                functions_acl=functions_acl,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                has_metrics=has_metrics,
+                use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
             )
@@ -90,13 +91,13 @@ def query(
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
-        dataset: types.ModuleType = discover
+        dataset_query: DatasetQuery = discover.query
         if fallback_to_transactions:
-            dataset = transactions
+            dataset_query = transactions.query
             sentry_sdk.set_tag("performance.dataset", "transactions")
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
-        results = dataset.query(
+        results = dataset_query(
             selected_columns,
             query,
             snuba_params=snuba_params,
@@ -120,7 +121,10 @@ def query(
 
         return results
 
-    return {}
+    return {
+        "data": [],
+        "meta": {"fields": {}},
+    }
 
 
 def timeseries_query(
@@ -139,6 +143,7 @@ def timeseries_query(
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -163,6 +168,7 @@ def timeseries_query(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -191,6 +197,7 @@ def timeseries_query(
             functions_acl=functions_acl,
             has_metrics=has_metrics,
             query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         )
     return SnubaTSResult(
         {
@@ -228,6 +235,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
@@ -255,6 +263,7 @@ def top_events_timeseries(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -289,6 +298,7 @@ def top_events_timeseries(
             include_other,
             functions_acl,
             query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         )
     return SnubaTSResult(
         {

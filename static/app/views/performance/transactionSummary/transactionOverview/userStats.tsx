@@ -52,13 +52,13 @@ function UserStats({
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
   const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
-  const hasDomainViewFlag = organization.features.includes('insights-domain-view');
 
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
     const threshold: number | undefined = totals.project_threshold_config
-      ? totals.project_threshold_config[1]
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        totals.project_threshold_config[1]
       : undefined;
     const miserableUsers: number | undefined = totals['count_miserable_user()'];
     const userMiseryScore: number = totals['user_misery()'] || 0;
@@ -78,13 +78,13 @@ function UserStats({
   const orgSlug = organization.slug;
 
   let webVitalsTarget: LocationDescriptor = vitalsRouteWithQuery({
-    orgSlug,
+    organization,
     transaction: transactionName,
     projectID: decodeScalar(location.query.project),
     query: location.query,
   });
 
-  if (hasWebVitalsFlag && hasDomainViewFlag) {
+  if (hasWebVitalsFlag) {
     webVitalsTarget = {
       pathname: `${webVitalsUrl}/overview/`,
       query: {
@@ -93,7 +93,7 @@ function UserStats({
     };
   }
 
-  const showLink = !hasDomainViewFlag || (hasDomainViewFlag && hasWebVitalsFlag);
+  const showLink = hasWebVitalsFlag;
 
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();

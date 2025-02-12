@@ -42,8 +42,9 @@ from sentry.api.paginator import MAX_SNUBA_ELEMENTS, DateTimePaginator, Paginato
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -68,7 +69,12 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+from sentry.utils.snuba import (
+    SnubaQueryParams,
+    aliased_query_params,
+    bulk_raw_query_with_override,
+    substitute_conditions,
+)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -116,15 +122,6 @@ ENTITY_GROUP_ATTRIBUTES = "group_attributes"
 ENTITY_SEARCH_ISSUES = "search_issues"
 
 
-def map_field_name_from_format_search_filter(field: str) -> str:
-    """
-    Maps the field name we get from the format_search_filter to the field used in Suba
-    """
-    if field == "date":
-        return "timestamp"
-    return field
-
-
 @dataclass
 class TrendsParams:
     # (event or issue age_hours) / (event or issue halflife hours)
@@ -168,7 +165,7 @@ def get_search_filter(
         # <, <=, >, >=
         if search_filter.key.name == name and search_filter.operator.startswith(operator):
             val = search_filter.value.raw_value
-            found_val = comparator(val, found_val) if found_val else val
+            found_val = comparator(val, found_val) if found_val else val  # type: ignore[type-var]  # SearchFilter is an unsound union
     return found_val
 
 
@@ -195,8 +192,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     It's used to keep the query logic out of the actual search backend,
     which can now just build query parameters and use the appropriate query executor to run the query
     """
-
-    TABLE_ALIAS = ""
 
     @property
     @abstractmethod
@@ -344,7 +339,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         get_sample: bool,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ) -> SnubaQueryParams:
+    ) -> SnubaQueryParams | None:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
         """
@@ -406,7 +401,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization.id,
+            organization,
             project_ids,
             environments,
             group_ids,
@@ -485,7 +480,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         for gc in group_categories:
             try:
-                query_params_for_categories[gc] = self._prepare_params_for_category(
+                query_params = self._prepare_params_for_category(
                     gc,
                     query_partial,
                     organization,
@@ -504,16 +499,15 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
-        query_params_for_categories = {
-            gc: query_params
-            for gc, query_params in query_params_for_categories.items()
-            if query_params is not None
-        }
+            else:
+                if query_params is not None:
+                    query_params_for_categories[gc] = query_params
 
         try:
-            bulk_query_results = bulk_raw_query(
-                list(query_params_for_categories.values()), referrer=referrer
+            bulk_query_results = bulk_raw_query_with_override(
+                list(query_params_for_categories.values()),
+                referrer=referrer,
+                organization=organization,
             )
         except Exception:
             metrics.incr(
@@ -526,8 +520,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
             # we'll fallback to querying for errors only
             if GroupCategory.ERROR.value in query_params_for_categories.keys():
-                bulk_query_results = bulk_raw_query(
-                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                bulk_query_results = bulk_raw_query_with_override(
+                    [query_params_for_categories[GroupCategory.ERROR.value]],
+                    referrer=referrer,
+                    organization=organization,
                 )
             else:
                 raise
@@ -1821,6 +1817,12 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     )
                     if condition is not None:
                         where_conditions.append(condition)
+
+            if (
+                features.has("organizations:feature-flag-autocomplete", organization)
+                and is_errors is True
+            ):
+                where_conditions = list(substitute_conditions(where_conditions))
 
             # handle types based on issue.type and issue.category
             if not is_errors:

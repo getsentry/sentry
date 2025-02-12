@@ -144,7 +144,7 @@ type EventsRequestPartialProps = {
   /**
    * List of environments to query
    */
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   /**
    * Is query out of retention
    */
@@ -181,7 +181,7 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   /**
    * A container for query batching data and functions.
    */
@@ -216,6 +216,10 @@ type EventsRequestPartialProps = {
    * This is a temporary flag to allow us to test on demand metrics
    */
   useOnDemandMetrics?: boolean;
+  /**
+   * Whether or not to use RPCs instead of SnQL requests in the backend.
+   */
+  useRpc?: boolean;
   /**
    * Whether or not to zerofill results
    */
@@ -315,7 +319,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       errorMessage: undefined,
     }));
 
-    let errorMessage;
+    let errorMessage: any;
     if (expired) {
       errorMessage = t(
         '%s has an invalid date range. Please try a more recent date range.',
@@ -392,7 +396,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     data: EventsStatsData,
     getName: (
       timestamp: number,
-      countArray: {count: number}[],
+      countArray: Array<{count: number}>,
       i: number
     ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] {
@@ -421,7 +425,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
-        (_timestamp, _countArray, i) => current[i][0] * 1000
+        (_timestamp, _countArray, i) => current[i]![0] * 1000
       ),
       stack: 'previous',
     };
@@ -449,7 +453,10 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     if (seriesName) {
       const unit = meta?.units?.[getAggregateAlias(seriesName)];
       // Scale series values to milliseconds or bytes depending on units from meta
-      scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
+      scale =
+        ((unit &&
+          (DURATION_UNITS[unit as keyof typeof DURATION_UNITS] ??
+            SIZE_UNITS[unit as keyof typeof SIZE_UNITS])) as number) ?? 1;
     }
 
     return [
@@ -569,7 +576,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             seriesName: string,
             index: number
           ): [number, Series, Series | null, AdditionalSeriesInfo] => {
-            const seriesData: EventsStats = timeseriesData[seriesName];
+            const seriesData: EventsStats = timeseriesData[seriesName]!;
             const processedData = this.processData(
               seriesData,
               index,
@@ -585,7 +592,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             }
             return [
               seriesData.order || 0,
-              processedData.data[0],
+              processedData.data[0]!,
               processedData.previousData,
               {isMetricsData: processedData.isMetricsData},
             ];
@@ -594,7 +601,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         .sort((a, b) => a[0] - b[0]);
       const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
       Object.keys(timeseriesData).forEach(key => {
-        const fieldsMeta = timeseriesData[key].meta?.fields[getAggregateAlias(key)];
+        const fieldsMeta = timeseriesData[key]!.meta?.fields[getAggregateAlias(key)];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;
         }

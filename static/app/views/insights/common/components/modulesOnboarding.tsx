@@ -78,6 +78,7 @@ export function ModulesOnboarding({
 }
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
@@ -93,7 +94,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
               <ValueProp>
                 {emptyStateContent.valuePropDescription}
                 <ul>
-                  {emptyStateContent.valuePropPoints.map(point => (
+                  {emptyStateContent.valuePropPoints.map((point: any) => (
                     <li key={point?.toString()}>{point}</li>
                   ))}
                 </ul>
@@ -119,6 +120,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -295,7 +297,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
-  // Mobile UI is not released yet
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -303,9 +304,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile Screens is not released yet
-  'mobile-screens': {
-    heading: t('Mobile Screens'),
+  'mobile-vitals': {
+    heading: t('Mobile Vitals'),
     description: t('Explore mobile app metrics.'),
     valuePropDescription: '',
     valuePropPoints: [],
@@ -370,7 +370,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: requestPreviewImg,
   },
   resource: {
-    heading: t('Is your favourite animated gif worth the time it takes to load?'),
+    heading: t('Is your favorite animated gif worth the time it takes to load?'),
     description: tct(
       'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
       {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
@@ -479,5 +479,38 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  // XXX(epurkhiser): Crons does not use the insights onboarding component.
+  crons: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
+  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
+  uptime: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
+  sessions: {
+    heading: t(`Get insights about your application's session health`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+    ],
+    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    supportedSdks: [], // TODO: add supported sdks
   },
 };

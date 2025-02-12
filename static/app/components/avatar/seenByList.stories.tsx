@@ -20,7 +20,7 @@ function useLoadedMembers() {
   return {members, loadMore, ...rest};
 }
 
-export default storyBook(SeenByList, story => {
+export default storyBook('SeenByList', story => {
   story('Default', () => {
     const {members, fetching} = useLoadedMembers();
 

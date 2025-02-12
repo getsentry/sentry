@@ -1,8 +1,9 @@
-import {type CSSProperties, useMemo, useState} from 'react';
+import {type CSSProperties, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
@@ -25,14 +26,18 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/useReleaseMarkLineSeries';
+} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export const enum EventGraphSeries {
+const enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -71,9 +76,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
-  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
-
   const config = getConfigForIssueType(group, group.project);
+  const {dispatch} = useIssueDetails();
+  const {currentTab} = useGroupDetailsRoute();
 
   const {
     data: groupStats = {},
@@ -128,6 +133,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       staleTime: 60_000,
     }
   );
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 
   const {series: eventSeries, count: eventCount} = useMemo(() => {
@@ -136,6 +142,12 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     }
     return createSeriesAndCount(groupStats['count()']);
   }, [groupStats]);
+
+  // Ensure the dropdown can access the new filtered event count
+  useEffect(() => {
+    dispatch({type: 'UPDATE_EVENT_COUNT', count: eventCount});
+  }, [eventCount, dispatch]);
+
   const {series: unfilteredEventSeries} = useMemo(() => {
     if (!unfilteredGroupStats?.['count()']) {
       return {series: []};
@@ -161,6 +173,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const currentEventSeries = useCurrentEventMarklineSeries({
+    event,
+    group,
+  });
   const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
@@ -173,6 +189,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
+    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -181,7 +198,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: theme.gray100,
+            color: translucentGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -207,7 +224,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: theme.gray100,
+            color: translucentGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -220,18 +237,23 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple200 : theme.gray200,
+          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
       });
     }
 
+    // Only display the current event mark line if on the issue details tab
+    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
+      seriesData.push(currentEventSeries as BarChartSeries);
+    }
+
     if (releaseSeries.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine && hasFeatureFlagFeature) {
+    if (flagSeries.markLine && flagSeries.type === 'line') {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
@@ -240,13 +262,14 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     visibleSeries,
     userSeries,
     eventSeries,
+    currentEventSeries,
     releaseSeries,
     flagSeries,
     theme,
-    hasFeatureFlagFeature,
     isUnfilteredStatsEnabled,
     unfilteredEventSeries,
     unfilteredUserSeries,
+    currentTab,
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
@@ -260,13 +283,13 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   );
 
   const legend = Legend({
-    theme: theme,
+    theme,
     orient: 'horizontal',
     align: 'left',
     show: true,
     top: 4,
     right: 8,
-    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
+    data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
     inactiveColor: theme.gray200,
@@ -274,7 +297,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const onLegendSelectChanged = useMemo(
     () =>
-      ({name, selected: record}) => {
+      ({name, selected: record}: any) => {
         const newValue = record[name];
         setLegendSelected(prevState => ({
           ...prevState,
@@ -419,7 +442,7 @@ const SummaryContainer = styled('div')`
   gap: ${space(0.5)};
   flex-direction: column;
   margin: ${space(1)} ${space(1)} ${space(1)} 0;
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;
 
 const Callout = styled(Button)<{isActive: boolean}>`

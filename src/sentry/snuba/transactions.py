@@ -89,6 +89,7 @@ def timeseries_query(
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -110,6 +111,7 @@ def timeseries_query(
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Transactions,
         query_source=query_source,
+        transform_alias_to_input_format=transform_alias_to_input_format,
     )
 
 
@@ -133,6 +135,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     return discover.top_events_timeseries(
         timeseries_columns,
@@ -154,4 +157,18 @@ def top_events_timeseries(
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Transactions,
         query_source=query_source,
+        transform_alias_to_input_format=transform_alias_to_input_format,
+    )
+
+
+def get_facets(
+    query: str | None,
+    snuba_params: SnubaParams,
+    referrer: str,
+    per_page: int | None = discover.TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
+    dataset: Dataset | None = Dataset.Transactions,
+) -> list[discover.FacetResult]:
+    return discover.get_facets(
+        query, snuba_params, referrer, per_page, cursor, Dataset.Transactions
     )

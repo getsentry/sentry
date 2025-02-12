@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -5,6 +6,7 @@ import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
 import LoadingError from 'sentry/components/loadingError';
@@ -13,11 +15,15 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {uniqueId} from 'sentry/utils/guid';
 import {useDeploys} from 'sentry/utils/useDeploys';
 import {useRelease} from 'sentry/utils/useRelease';
 import {useRepositories} from 'sentry/utils/useRepositories';
+import {parseVersion} from 'sentry/utils/versions/parseVersion';
 
 interface Props extends React.ComponentProps<typeof Hovercard> {
   organization: Organization;
@@ -74,11 +80,25 @@ function VersionHoverCard({
     };
   }
 
+  const authors = useMemo(
+    () =>
+      release?.authors.map<Actor | User>(author =>
+        // Add a unique id if missing
+        ({
+          ...author,
+          type: 'user',
+          id: 'id' in author ? author.id : uniqueId(),
+        })
+      ),
+    [release?.authors]
+  );
+
   function getBody() {
     if (release === undefined || !defined(deploys)) {
       return {header: null, body: null};
     }
 
+    const parsedVersion = parseVersion(releaseVersion);
     const recentDeploysByEnvironment = deploys
       .toSorted(
         // Sorted by most recent deploy first
@@ -96,20 +116,34 @@ function VersionHoverCard({
               <CountSince>{release.newGroups}</CountSince>
             </div>
             <div>
-              <h6 style={{textAlign: 'right'}}>
-                {release.commitCount}{' '}
-                {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
-                {release.authors.length}{' '}
-                {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
-              </h6>
-              <AvatarList
-                users={release.authors}
-                avatarSize={25}
-                tooltipOptions={{container: 'body'} as any}
-                typeAvatars="authors"
-              />
+              <h6 style={{textAlign: 'right'}}>{t('Date Created')}</h6>
+              <DateTime date={release.dateCreated} seconds={false} />
             </div>
           </Flex>
+          {parsedVersion?.package && (
+            <Flex gap={space(2)} justify="space-between">
+              {parsedVersion.package && (
+                <div>
+                  <h6>{t('Package')}</h6>
+                  <div>{parsedVersion.package}</div>
+                </div>
+              )}
+              <div>
+                <h6 style={{textAlign: parsedVersion.package ? 'right' : undefined}}>
+                  {release.commitCount}{' '}
+                  {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                  {release.authors.length}{' '}
+                  {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
+                </h6>
+                <AvatarList
+                  users={authors}
+                  avatarSize={25}
+                  tooltipOptions={{container: 'body'} as any}
+                  typeAvatars="authors"
+                />
+              </div>
+            </Flex>
+          )}
           {release.lastCommit && <LastCommit commit={release.lastCommit} />}
           {deploys.length > 0 && (
             <Flex column gap={space(0.5)}>

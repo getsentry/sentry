@@ -27,9 +27,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -52,7 +50,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const projectAlertRuleDetailsRoutes: PlainRoute<any>[] = [
+const projectAlertRuleDetailsRoutes: Array<PlainRoute<any>> = [
   {
     path: '/',
   },
@@ -125,7 +123,6 @@ const createWrapper = (props = {}) => {
 describe('IssueRuleEditor', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       body: ProjectAlertRuleConfigurationFixture(),
@@ -173,7 +170,7 @@ describe('IssueRuleEditor', function () {
         projects: [{access: []}],
       });
 
-      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
@@ -184,7 +181,7 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
 
     it('is enabled with project-level alerts:write', async () => {
@@ -194,12 +191,12 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
-      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
   });
 
   describe('Edit Rule', function () {
-    let mock;
+    let mock: any;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
     beforeEach(function () {
       mock = MockApiClient.addMockResponse({
@@ -227,8 +224,8 @@ describe('IssueRuleEditor', function () {
         method: 'DELETE',
         body: {},
       });
-      createWrapper();
-      renderGlobalModal();
+      const {router} = createWrapper();
+      renderGlobalModal({router});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -237,7 +234,7 @@ describe('IssueRuleEditor', function () {
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(router.replace).toHaveBeenCalledWith(
         '/settings/org-slug/projects/project-slug/alerts/'
       );
     });
@@ -425,7 +422,7 @@ describe('IssueRuleEditor', function () {
       // Production environment is preselected because it's the first option.
       // staging should also be selectable.
       await selectEvent.select(
-        within(filtersContainer).getAllByText('production')[0],
+        within(filtersContainer).getAllByText('production')[0]!,
         'staging'
       );
     });
@@ -514,7 +511,7 @@ describe('IssueRuleEditor', function () {
   });
 
   describe('Duplicate Rule', function () {
-    let mock;
+    let mock: any;
     const rule = ProjectAlertRuleFixture();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 
@@ -542,7 +539,7 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
-      expect(screen.queryByText('A new issue is created')).toBeInTheDocument();
+      expect(screen.getByText('A new issue is created')).toBeInTheDocument();
       expect(mock).toHaveBeenCalled();
     });
 

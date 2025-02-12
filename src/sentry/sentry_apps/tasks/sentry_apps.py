@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from celery import Task, current_task
@@ -13,8 +13,9 @@ from sentry import analytics, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.hybridcloud.rpc.caching import region_caching_service
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -34,6 +35,7 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -75,6 +77,8 @@ TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 def _webhook_event_data(
     event: Event | GroupEvent, group_id: int, project_id: int
 ) -> dict[str, Any]:
+    from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
     project = Project.objects.get_from_cache(id=project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -91,6 +95,10 @@ def _webhook_event_data(
             "sentry-organization-event-detail", args=[organization.slug, group_id, event.event_id]
         )
     )
+    if hasattr(event, "occurrence") and event.occurrence is not None:
+        event_context["occurrence"] = convert_dict_key_case(
+            event.occurrence.to_dict(), snake_to_camel_case
+        )
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -100,29 +108,22 @@ def _webhook_event_data(
     return event_context
 
 
-@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
 @retry_decorator
-def send_alert_event(
-    event: Event | GroupEvent,
+def send_alert_webhook(
     rule: str,
     sentry_app_id: int,
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
     additional_payload_key: str | None = None,
     additional_payload: Mapping[str, Any] | None = None,
-) -> None:
-    """
-    When an incident alert is triggered, send incident data to the SentryApp's webhook.
-    :param event: The `Event` for which to build a payload.
-    :param rule: The AlertRule that was triggered.
-    :param sentry_app_id: The SentryApp to notify.
-    :param additional_payload_key: The key used to attach additional data to the webhook payload
-    :param additional_payload: The extra data attached to the payload body at the key specified by `additional_payload_key`.
-    :return:
-    """
-    group = event.group
+    **kwargs: Any,
+):
+    group = Group.objects.get_from_cache(id=group_id)
     assert group, "Group must exist to get related attributes"
     project = Project.objects.get_from_cache(id=group.project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
-
     extra = {
         "sentry_app_id": sentry_app_id,
         "project_slug": project.slug,
@@ -147,7 +148,41 @@ def send_alert_event(
         return
     (install,) = installations
 
-    event_context = _webhook_event_data(event, group.id, project.id)
+    nodedata = nodestore.backend.get(
+        BaseEvent.generate_node_id(project_id=project.id, event_id=instance_id)
+    )
+
+    if not nodedata:
+        extra = {
+            "event_id": instance_id,
+            "occurrence_id": occurrence_id,
+            "rule": rule,
+            "sentry_app": sentry_app.slug,
+            "group_id": group_id,
+        }
+        logger.info("send_alert_event.missing_event", extra=extra)
+        return
+
+    occurrence = None
+    if occurrence_id:
+        occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
+
+        if not occurrence:
+            logger.info(
+                "send_alert_event.missing_occurrence",
+                extra={"occurrence_id": occurrence_id, "project_id": project.id},
+            )
+            return
+
+    group_event = GroupEvent(
+        project_id=project.id,
+        event_id=instance_id,
+        group=group,
+        data=nodedata,
+        occurrence=occurrence,
+    )
+
+    event_context = _webhook_event_data(group_event, group.id, project.id)
 
     data = {"event": event_context, "triggered_rule": rule}
 
@@ -426,7 +461,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: Event | GroupEvent, futures):
+def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
@@ -446,8 +481,10 @@ def notify_sentry_app(event: Event | GroupEvent, futures):
                 "settings": settings,
             }
 
-        send_alert_event.delay(
-            event=event,
+        send_alert_webhook.delay(
+            instance_id=event.event_id,
+            group_id=event.group_id,
+            occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
             rule=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,

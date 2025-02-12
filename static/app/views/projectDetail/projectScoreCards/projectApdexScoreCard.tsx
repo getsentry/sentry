@@ -61,7 +61,7 @@ const useApdex = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -82,7 +82,7 @@ const useApdex = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -134,6 +134,7 @@ function ProjectApdexScoreCard(props: Props) {
         fields: {
           'apdex()': 'number',
         },
+        units: {},
       }}
       preferredPolarity="+"
       isLoading={isLoading}

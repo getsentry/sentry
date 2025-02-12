@@ -1,0 +1,18 @@
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+
+import type {TimeSeries} from '../../common/types';
+
+export function IncompleteLineChartWidgetSeries(timeSeries: TimeSeries) {
+  return LineSeries({
+    name: timeSeries.field,
+    color: timeSeries.color,
+    animation: false,
+    data: timeSeries.data.map(datum => {
+      return [datum.timestamp, datum.value];
+    }),
+    lineStyle: {
+      type: 'dotted',
+    },
+    silent: true,
+  });
+}

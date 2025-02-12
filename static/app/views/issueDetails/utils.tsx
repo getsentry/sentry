@@ -1,7 +1,11 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {
+  bulkUpdate,
+  useFetchIssueTag,
+  useFetchIssueTagValues,
+} from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -58,9 +62,9 @@ export function mergeAndSortTagValues(
   );
   tagValues2.forEach(tagValue => {
     if (tagValueCollection[tagValue.value]) {
-      tagValueCollection[tagValue.value].count += tagValue.count;
-      if (tagValue.lastSeen > tagValueCollection[tagValue.value].lastSeen) {
-        tagValueCollection[tagValue.value].lastSeen = tagValue.lastSeen;
+      tagValueCollection[tagValue.value]!.count += tagValue.count;
+      if (tagValue.lastSeen > tagValueCollection[tagValue.value]!.lastSeen) {
+        tagValueCollection[tagValue.value]!.lastSeen = tagValue.lastSeen;
       }
     } else {
       tagValueCollection[tagValue.value] = tagValue;
@@ -127,6 +131,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SUBSCRIPTION_REASONS[reason];
     }
   }
@@ -193,9 +198,15 @@ export function useEnvironmentsFromUrl(): string[] {
 export function getGroupEventDetailsQueryData({
   environments,
   query,
+  start,
+  end,
+  statsPeriod,
 }: {
   query: string | undefined;
+  end?: string;
   environments?: string[];
+  start?: string;
+  statsPeriod?: string;
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
@@ -209,6 +220,18 @@ export function getGroupEventDetailsQueryData({
     params.environment = environments;
   }
 
+  if (start) {
+    params.start = start;
+  }
+
+  if (end) {
+    params.end = end;
+  }
+
+  if (statsPeriod) {
+    params.statsPeriod = statsPeriod;
+  }
+
   return params;
 }
 
@@ -217,20 +240,29 @@ export function getGroupEventQueryKey({
   groupId,
   eventId,
   environments,
-  recommendedEventQuery,
+  query,
+  start,
+  end,
+  statsPeriod,
 }: {
   environments: string[];
   eventId: string;
   groupId: string;
   orgSlug: string;
-  recommendedEventQuery?: string;
+  end?: string;
+  query?: string;
+  start?: string;
+  statsPeriod?: string;
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: recommendedEventQuery,
+        query,
+        start,
+        end,
+        statsPeriod,
       }),
     },
   ];
@@ -244,6 +276,11 @@ export function useHasStreamlinedUI() {
   // Allow query param to override all other settings to set the UI.
   if (defined(location.query.streamline)) {
     return location.query.streamline === '1';
+  }
+
+  // If the organzation option is set, it determines which interface is used.
+  if (defined(organization.streamlineOnly)) {
+    return organization.streamlineOnly;
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI
@@ -265,11 +302,72 @@ export function useIsSampleEvent(): boolean {
 
   const {data} = useGroupTagsReadable(
     {
-      groupId: groupId,
+      groupId,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests
     {enabled: defined(group)}
   );
   return data?.some(tag => tag.key === 'sample_event') ?? false;
+}
+
+type TagSort = 'date' | 'count';
+const DEFAULT_SORT: TagSort = 'count';
+
+export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const sort: TagSort =
+    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  useFetchIssueTagValues(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+      sort,
+      cursor: location.query.tagDrawerCursor as string | undefined,
+    },
+    {enabled}
+  );
+  useFetchIssueTag(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+    },
+    {enabled}
+  );
+}
+
+export function getUserTagValue(tagValue: TagValue): {
+  subtitle: string | null;
+  subtitleType: string | null;
+  title: string | null;
+} {
+  let title: string | null = null;
+  let subtitle: string | null = null;
+  let subtitleType: string | null = null;
+  if (defined(tagValue?.name)) {
+    title = tagValue?.name;
+  } else if (defined(tagValue?.email)) {
+    title = tagValue?.email;
+  } else if (defined(tagValue?.username)) {
+    title = title ? title : tagValue?.username;
+  } else if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
+    title = tagValue?.ip_address ?? tagValue?.ipAddress;
+  }
+
+  if (defined(tagValue?.id)) {
+    title = title ? title : tagValue?.id;
+    if (tagValue?.id && tagValue?.id !== 'None') {
+      subtitle = tagValue?.id;
+      subtitleType = t('ID');
+    }
+  }
+
+  if (title === subtitle) {
+    subtitle = null;
+  }
+
+  return {title, subtitle, subtitleType};
 }

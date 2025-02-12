@@ -99,14 +99,16 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             )
         super(DatabaseSchemaEditorMixin, self).delete_model(model)
 
-    def remove_field(self, model, field):
+    def remove_field(self, model, field, is_safe=False):
         """
         It's never safe to remove a field using the standard migration process
         """
-        raise UnsafeOperationException(
-            f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
-        )
+        if not is_safe:
+            raise UnsafeOperationException(
+                f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
+                "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
+            )
+        super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
 
     def execute(self, sql, params=()):
         if sql is DUMMY_SQL:

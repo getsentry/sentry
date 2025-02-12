@@ -44,13 +44,15 @@ export function formatMongoDBQuery(query: string, command: string) {
 
     // Push the bolded entry into tokens so it is the first entry displayed.
     // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
-    isBoldedEntry
-      ? tokens.push(jsonEntryToToken(key, val, true))
-      : tempTokens.push(jsonEntryToToken(key, val));
+    if (isBoldedEntry) {
+      tokens.push(jsonEntryToToken(key, val, true));
+    } else {
+      tempTokens.push(jsonEntryToToken(key, val));
+    }
   });
 
   if (tokens.length === 1 && tempTokens.length > 0) {
-    tokens.push(stringToToken(', ', `${tokens[0].key}:,`));
+    tokens.push(stringToToken(', ', `${tokens[0]!.key}:,`));
   }
 
   tempTokens.forEach((token, index) => {

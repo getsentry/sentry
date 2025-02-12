@@ -1,5 +1,6 @@
 import type {IssueType} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
+import type {Tab} from 'sentry/views/issueDetails/types';
 
 export type ResourceLink = {
   link: string;
@@ -21,25 +22,37 @@ export type IssueTypeConfig = {
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolve: DisabledWithReasonConfig;
     resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
-  /**
-   * Is the Attachments tab shown for this issue
-   */
-  attachments: DisabledWithReasonConfig;
   /**
    * Should show Autofix for this issue type
    */
   autofix: boolean;
   /**
+   * Custom copy for actions and other UI elements
+   */
+  customCopy: {
+    eventUnits: string;
+    resolution: string;
+  };
+  /**
+   * Should show detector section in the sidebar
+   * Optionally set a custom title for it
+   */
+  detector: DisabledWithReasonConfig & {
+    ctaText?: string;
+    title?: string;
+  };
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;
   /**
-   * Is the Events tab show for this issue
+   * Is the Event and User Counts shown for this issue
    */
-  events: DisabledWithReasonConfig;
+  eventAndUserCounts: DisabledWithReasonConfig;
   /**
    * Options for rendering the Evidence section - pass null to disable
    */
@@ -47,15 +60,71 @@ export type IssueTypeConfig = {
     title: string;
     helpText?: string;
   } | null;
-  filterAndSearchHeader: DisabledWithReasonConfig;
+  /**
+   * Configuration for the issue-level information header
+   */
+  header: {
+    filterBar: DisabledWithReasonConfig & {
+      // Display the environment filter in an inactive, locked state
+      fixedEnvironment?: boolean;
+    };
+    graph: DisabledWithReasonConfig & {
+      type?: 'discover-events' | 'uptime-checks' | 'detector-history';
+    };
+    occurrenceSummary: DisabledWithReasonConfig & {
+      downtime?: boolean;
+    };
+    tagDistribution: DisabledWithReasonConfig;
+  };
   /**
    * Is the Issue Summary available for this issue
    */
   issueSummary: DisabledWithReasonConfig;
   /**
+   * Is the Log Level icon shown for this issue
+   */
+  logLevel: DisabledWithReasonConfig;
+  /**
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;
+  /**
+   * Configuration for the event/occurrence content pages (formerly tabs)
+   */
+  pages: {
+    /**
+     * Is the Attachments page shown for this issue
+     */
+    attachments: DisabledWithReasonConfig;
+    /**
+     * Is the Check-Ins page shown for this issue
+     */
+    checkIns: DisabledWithReasonConfig;
+    /**
+     * Is the All Events/Occurrences page shown for this issue
+     */
+    events: DisabledWithReasonConfig;
+    /**
+     * The default page content to show for landing on this issue type
+     */
+    landingPage: Tab;
+    /**
+     * Is the Open periods page shown for this issue
+     */
+    openPeriods: DisabledWithReasonConfig;
+    /**
+     * Is the Replays page shown for this issue
+     */
+    replays: DisabledWithReasonConfig;
+    /**
+     * Is the Tags tab shown for this issue (legacy)
+     */
+    tagsTab: DisabledWithReasonConfig;
+    /**
+     * Is the User Feedback page shown for this issue
+     */
+    userFeedback: DisabledWithReasonConfig;
+  };
   /**
    * Shows performance duration regression components
    */
@@ -68,10 +137,6 @@ export type IssueTypeConfig = {
    * Enables various regression related supporting data for an issue type.
    */
   regression: DisabledWithReasonConfig;
-  /**
-   * Is the Replays tab shown for this issue
-   */
-  replays: DisabledWithReasonConfig;
   /**
    * If defined, will display a resources section for providing more information
    * about the given issue type
@@ -109,13 +174,9 @@ export type IssueTypeConfig = {
    */
   tags: DisabledWithReasonConfig;
   /**
-   * Is the Tags tab show for this issue
+   * Whether to use open periods for the last checked date
    */
-  tagsTab: DisabledWithReasonConfig;
-  /**
-   * Is the User Feedback tab shown for this issue
-   */
-  userFeedback: DisabledWithReasonConfig;
+  useOpenPeriodChecks: boolean;
   /**
    * Whether or not the issue type is using the issue platform
    */

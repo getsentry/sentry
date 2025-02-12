@@ -96,8 +96,9 @@ async function renderModal({
 }
 
 describe('Modals -> WidgetViewerModal', function () {
-  let initialData, initialDataWithFlag;
-  let widgetLegendState: WidgetLegendSelectionState;
+  let initialData!: ReturnType<typeof initializeOrg>;
+  let initialDataWithFlag!: ReturnType<typeof initializeOrg>;
+  let widgetLegendState!: WidgetLegendSelectionState;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -128,6 +129,11 @@ describe('Modals -> WidgetViewerModal', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
 
@@ -437,71 +443,6 @@ describe('Modals -> WidgetViewerModal', function () {
         );
       });
 
-      it('renders widget chart minimap', async function () {
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        mockEvents();
-        await renderModal({
-          initialData,
-          widget: {
-            ...mockWidget,
-            queries: [{...mockQuery, name: ''}, additionalMockQuery],
-          },
-        });
-
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            option: expect.objectContaining({
-              dataZoom: expect.arrayContaining([
-                expect.objectContaining({
-                  realtime: false,
-                  showDetail: false,
-                  end: 100,
-                  start: 0,
-                }),
-              ]),
-            }),
-          }),
-          {}
-        );
-      });
-
-      it('zooming on minimap updates location query and updates echart start and end values', async function () {
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        mockEvents();
-        await renderModal({
-          initialData,
-          widget: {
-            ...mockWidget,
-            queries: [{...mockQuery, name: ''}, additionalMockQuery],
-          },
-        });
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-        act(() => {
-          // Simulate dataZoom event on chart
-          calls[calls.length - 1][0].onEvents.datazoom(
-            {seriesStart: 1646100000000, seriesEnd: 1646120000000},
-            {
-              getModel: () => {
-                return {
-                  _payload: {start: 30, end: 70},
-                };
-              },
-            }
-          );
-        });
-
-        await waitFor(() =>
-          expect(initialData.router.push).toHaveBeenCalledWith(
-            expect.objectContaining({
-              query: {
-                viewerEnd: '2022-03-01T05:53:20',
-                viewerStart: '2022-03-01T03:40:00',
-              },
-            })
-          )
-        );
-      });
-
       it('includes group by in widget viewer table', async function () {
         mockEvents();
         mockWidget.queries = [
@@ -561,7 +502,7 @@ describe('Modals -> WidgetViewerModal', function () {
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toEqual('123ms');
+        expect(yAxisFormatter(123)).toBe('123ms');
       });
 
       it('renders widget chart with default number y axis formatter when seriesResultType has multiple different types', async function () {
@@ -575,7 +516,7 @@ describe('Modals -> WidgetViewerModal', function () {
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toEqual('123');
+        expect(yAxisFormatter(123)).toBe('123');
       });
 
       it('does not allow sorting by transaction name when widget is using metrics', async function () {
@@ -670,7 +611,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     describe('TopN Chart Widget', function () {
-      let mockQuery, mockWidget;
+      let mockQuery!: Widget['queries'][number];
+      let mockWidget!: Widget;
 
       function mockEventsStats() {
         return MockApiClient.addMockResponse({
@@ -741,7 +683,6 @@ describe('Modals -> WidgetViewerModal', function () {
           fields: ['error.type', 'count()'],
           aggregates: ['count()'],
           columns: ['error.type'],
-          id: '1',
           name: 'Query Name',
           orderby: '',
         };
@@ -906,77 +847,6 @@ describe('Modals -> WidgetViewerModal', function () {
         await waitForMetaToHaveBeenCalled();
         expect(eventsStatsMock).toHaveBeenCalledTimes(1);
       });
-
-      it('renders widget chart minimap', async function () {
-        mockEventsStats();
-        mockEvents();
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        await renderModal({initialData, widget: mockWidget});
-
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            option: expect.objectContaining({
-              dataZoom: expect.arrayContaining([
-                expect.objectContaining({
-                  realtime: false,
-                  showDetail: false,
-                  end: 100,
-                  start: 0,
-                }),
-              ]),
-            }),
-          }),
-          {}
-        );
-      });
-
-      it('zooming on minimap updates location query and updates echart start and end values', async function () {
-        mockEventsStats();
-        mockEvents();
-        initialData.organization.features.push('widget-viewer-modal-minimap');
-        await renderModal({initialData, widget: mockWidget});
-        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-        act(() => {
-          // Simulate dataZoom event on chart
-          calls[calls.length - 1][0].onEvents.datazoom(
-            {seriesStart: 1646100000000, seriesEnd: 1646120000000},
-            {
-              getModel: () => {
-                return {
-                  _payload: {start: 30, end: 70},
-                };
-              },
-            }
-          );
-        });
-
-        expect(initialData.router.push).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: {
-              viewerEnd: '2022-03-01T05:53:20',
-              viewerStart: '2022-03-01T03:40:00',
-            },
-          })
-        );
-
-        await waitFor(() => {
-          expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-              option: expect.objectContaining({
-                dataZoom: expect.arrayContaining([
-                  expect.objectContaining({
-                    realtime: false,
-                    showDetail: false,
-                    endValue: 1646114000000,
-                    startValue: 1646106000000,
-                  }),
-                ]),
-              }),
-            }),
-            {}
-          );
-        });
-      });
     });
 
     describe('Table Widget', function () {
@@ -1132,7 +1002,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Issue Table Widget', function () {
-    let issuesMock;
+    let issuesMock!: jest.Mock;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -1348,12 +1218,12 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Release Health Widgets', function () {
-    let metricsMock;
+    let metricsMock!: jest.Mock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(session)`],
       columns: [],
-      aggregates: [],
+      aggregates: ['sum(session)'],
       id: '1',
       name: 'Query Name',
       orderby: '',

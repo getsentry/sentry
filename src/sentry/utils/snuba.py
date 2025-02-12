@@ -3,11 +3,12 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
+import math
 import os
 import re
 import time
 from collections import namedtuple
-from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Collection, Iterator, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
@@ -22,9 +23,22 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import DeleteQuery, MetricsQuery, Request
+from snuba_sdk import (
+    And,
+    BooleanCondition,
+    Column,
+    Condition,
+    CurriedFunction,
+    DeleteQuery,
+    Function,
+    MetricsQuery,
+    Query,
+    Request,
+)
+from snuba_sdk.conditions import Or
 from snuba_sdk.legacy import json_to_snql
 
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -214,9 +228,14 @@ SPAN_EAP_COLUMN_MAP = {
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
     # Copy paste, unsure if this is truth in production
+    "cache.item_size": "attr_num[cache.item_size]",
+    "messaging.message.body.size": "attr_num[messaging.message.body.size]",
+    "messaging.message.receive.latency": "attr_num[messaging.message.receive.latency]",
+    "messaging.message.retry.count": "attr_num[messaging.message.retry.count]",
     "messaging.destination.name": "attr_str[sentry.messaging.destination.name]",
     "messaging.message.id": "attr_str[sentry.messaging.message.id]",
     "span.status_code": "attr_str[sentry.status_code]",
+    "profile.id": "attr_str[sentry.profile_id]",
     "replay.id": "attr_str[sentry.replay_id]",
     "span.ai.pipeline.group": "attr_str[sentry.ai_pipeline_group]",
     "trace.status": "attr_str[sentry.trace.status]",
@@ -234,22 +253,9 @@ SPAN_EAP_COLUMN_MAP = {
     "user.ip": "attr_str[sentry.user.ip]",
     "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
     "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
-}
-
-METRICS_SUMMARIES_COLUMN_MAP = {
-    "project": "project_id",
-    "project.id": "project_id",
-    "id": "span_id",
-    "trace": "trace_id",
-    "metric": "metric_mri",
-    "timestamp": "end_timestamp",
-    "segment.id": "segment_id",
-    "span.duration": "duration_ms",
-    "span.group": "group",
-    "min_metric": "min",
-    "max_metric": "max",
-    "sum_metric": "sum",
-    "count_metric": "count",
+    "http.decoded_response_content_length": "attr_num[http.decoded_response_content_length]",
+    "http.response_content_length": "attr_num[http.response_content_length]",
+    "http.response_transfer_size": "attr_num[http.response_transfer_size]",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -302,7 +308,6 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
-    Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.EventsAnalyticsPlatform: SPAN_EAP_COLUMN_MAP,
@@ -321,11 +326,8 @@ DATASET_FIELDS = {
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
     Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
-    Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
-SNUBA_OR = "or"
-SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
     "LIKE": "like",
     "NOT LIKE": "notLike",
@@ -501,7 +503,13 @@ class RetrySkipTimeout(urllib3.Retry):
     """
 
     def increment(
-        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+        self,
+        method=None,
+        url=None,
+        response=None,
+        error=None,
+        _pool=None,
+        _stacktrace=None,
     ):
         """
         Just rely on the parent class unless we have a read timeout. In that case
@@ -640,7 +648,9 @@ def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
     return organization_id
 
 
-def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> list[int]:
+def infer_project_ids_from_related_models(
+    filter_keys: Mapping[str, Sequence[int]],
+) -> list[int]:
     ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
     return list(set.union(*ids))
 
@@ -940,7 +950,6 @@ class SnubaRequest:
         return headers
 
 
-LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
 # TODO: Would be nice to make this a concrete structure
 ResultSet = list[Mapping[str, Any]]
 
@@ -960,7 +969,10 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     return bulk_snuba_queries(
-        requests=[request], referrer=referrer, use_cache=use_cache, query_source=query_source
+        requests=[request],
+        referrer=referrer,
+        use_cache=use_cache,
+        query_source=query_source,
     )[0]
 
 
@@ -1099,7 +1111,9 @@ def _apply_cache_and_build_results(
         for result, (query_pos, _, opt_cache_key) in zip(query_results, to_query):
             if opt_cache_key:
                 cache.set(
-                    opt_cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS
+                    opt_cache_key,
+                    json.dumps(result),
+                    settings.SENTRY_SNUBA_CACHE_TTL_SECONDS,
                 )
             results.append((query_pos, result))
 
@@ -1168,7 +1182,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             except ValueError:
                 if response.status != 200:
                     logger.exception(
-                        "snuba.query.invalid-json", extra={"response.data": response.data}
+                        "snuba.query.invalid-json",
+                        extra={"response.data": response.data},
                     )
                     raise SnubaError("Failed to parse snuba error response")
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
@@ -1445,7 +1460,6 @@ def resolve_column(dataset) -> Callable:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
-
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         elif dataset == Dataset.EventsAnalyticsPlatform:
@@ -1828,7 +1842,11 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "bucketed_end", int(parse_datetime(row["bucketed_end"]).timestamp()))
+            replace(
+                row,
+                "bucketed_end",
+                int(parse_datetime(row["bucketed_end"]).timestamp()),
+            )
             if "bucketed_end" in row
             else row
         ),
@@ -1934,6 +1952,7 @@ def is_duration_measurement(key):
         "measurements.time_to_full_display",
         "measurements.time_to_initial_display",
         "measurements.inp",
+        "measurements.messaging.message.receive.latency",
     ]
 
 
@@ -1990,3 +2009,187 @@ def get_array_column_field(array_column, internal_key):
     if array_column == "span_op_breakdowns":
         return get_span_op_breakdown_key_name(internal_key)
     return internal_key
+
+
+def process_value(value: None | str | int | float | list[str] | list[int] | list[float]):
+    if isinstance(value, float):
+        # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are
+        # invalid json so needed to pick something valid to use instead
+        if math.isnan(value):
+            value = 0
+        elif math.isinf(value):
+            value = None
+
+    if isinstance(value, list):
+        for i, v in enumerate(value):
+            if isinstance(v, float):
+                value[i] = process_value(v)
+        return value
+
+    return value
+
+
+# Flags and tags query re-writes. Flags are treated like tags but they're stored on a separate
+# column. We re-write queries targetting tags to also target flags. For now there is no explicit
+# search syntax for searching flags. Everything is done through the tags syntax.
+
+
+def error_stats_query_with_override(
+    start,
+    end,
+    groupby,
+    conditions,
+    filter_keys,
+    aggregations,
+    referrer: str,
+    tenant_ids: dict[str, Any],
+    organization: Organization,
+):
+    with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
+        params = aliased_query_params(
+            dataset=Dataset.Events,
+            start=start,
+            end=end,
+            groupby=groupby,
+            conditions=conditions,
+            filter_keys=filter_keys,
+            aggregations=aggregations,
+            referrer=referrer,
+            tenant_ids=tenant_ids,
+        )
+
+        kwargs = {}
+        kwargs["tenant_ids"] = tenant_ids
+        kwargs["tenant_ids"]["referrer"] = referrer
+
+        snuba_params = SnubaQueryParams(
+            dataset=Dataset.Events,
+            start=params["start"],
+            end=params["end"],
+            groupby=params["groupby"],
+            conditions=params["conditions"],
+            filter_keys=params["filter_keys"],
+            aggregations=params["aggregations"],
+            rollup=None,
+            is_grouprelease=False,
+            **kwargs,
+        )
+
+        return bulk_raw_query_with_override(
+            [snuba_params], organization, referrer=referrer, use_cache=False
+        )[0]
+
+
+def bulk_raw_query_with_override(
+    snuba_param_list: Sequence[SnubaQueryParams],
+    organization: Organization,
+    referrer: str | None = None,
+    use_cache: bool | None = False,
+) -> ResultSet:
+    """
+    Duplicate of bulk_raw_query except we re-write tags conditions on the events dataset. If the
+    search-issues-snuba flag is ever flipped to true then this can be removed.
+    """
+    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
+    snuba_requests = [
+        SnubaRequest(
+            request=json_to_snql(query, query["dataset"]),
+            referrer=referrer,
+            forward=forward,
+            reverse=reverse,
+        )
+        for query, forward, reverse in params
+    ]
+
+    # When the feature-flag enabling flag-query rewrites is enabled we find requests targetting
+    # the errors dataset, check for any tag conditions, and substitute them before returning a
+    # new query instance.
+    if features.has("organizations:feature-flag-autocomplete", organization):
+        for req in snuba_requests:
+            if req.request.dataset == "events":
+                query = req.request.query
+                if isinstance(query, Query) and query.where:
+                    # A new query needs to be instatiated because the old query is immutable.
+                    req.request.query = Query(
+                        match=query.match,
+                        select=query.select,
+                        groupby=query.groupby,
+                        array_join=query.array_join,
+                        # Tag conditions are re-written here.
+                        where=list(substitute_conditions(query.where)),
+                        having=query.having,
+                        orderby=query.orderby,
+                        limitby=query.limitby,
+                        limit=query.limit,
+                        offset=query.offset,
+                        granularity=query.granularity,
+                        totals=query.totals,
+                    )
+
+    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
+
+
+def substitute_conditions(
+    conditions: list[Condition | BooleanCondition],
+) -> Iterator[Condition | BooleanCondition]:
+    for condition in conditions:
+        if has_tags_filter(condition):
+            yield Or(conditions=[condition, substitute_tags_filter(condition)])
+        else:
+            yield condition
+
+
+def has_tags_filter(condition: Condition | BooleanCondition) -> bool:
+    if isinstance(condition, BooleanCondition):
+        return any(has_tags_filter(c) for c in condition.conditions)
+    elif isinstance(condition, Condition):
+        return _has_tags_filter(condition.lhs)
+    else:
+        return False
+
+
+def _has_tags_filter(condition: Column | Function) -> bool:
+    if isinstance(condition, Column) and condition.name.startswith("tags["):
+        return True
+    elif isinstance(condition, Function):
+        for param in condition.parameters:
+            if isinstance(param, (Column, Function)):
+                return _has_tags_filter(param)
+        return False
+    else:
+        return False
+
+
+def substitute_tags_filter(condition: Condition | BooleanCondition) -> Condition | BooleanCondition:
+    if isinstance(condition, Condition):
+        return Condition(
+            lhs=_substitute_tags_filter(condition.lhs),
+            op=condition.op,
+            rhs=condition.rhs,
+        )
+    elif isinstance(condition, (And, Or)):
+        return condition.__class__(
+            conditions=[substitute_tags_filter(c) for c in condition.conditions]
+        )
+    else:
+        return condition.__class__(
+            op=condition.op, conditions=[substitute_tags_filter(c) for c in condition.conditions]
+        )
+
+
+def _substitute_tags_filter(
+    condition: Column | CurriedFunction | Function,
+) -> Column | CurriedFunction | Function:
+    if isinstance(condition, Column) and condition.name.startswith("tags["):
+        return Column(
+            name=condition.name.replace("tags[", "flags["),
+            entity=condition.entity,
+        )
+    elif isinstance(condition, Function):
+        return Function(
+            condition.function,
+            [_substitute_tags_filter(param) for param in condition.parameters],
+            condition.alias,
+        )
+    else:
+        return condition

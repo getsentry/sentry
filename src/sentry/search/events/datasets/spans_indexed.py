@@ -78,6 +78,12 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.PRECISE_START_TS: lambda alias: field_aliases.resolve_precise_timestamp(
                 Column("start_timestamp"), Column("start_ms"), alias
             ),
+            constants.USER_DISPLAY_ALIAS: lambda alias: field_aliases.resolve_user_display_alias(
+                self.builder, alias
+            ),
+            constants.REPLAY_ALIAS: lambda alias: field_aliases.resolve_replay_alias(
+                self.builder, alias
+            ),
         }
 
     @property
@@ -835,9 +841,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
-                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
-                        args, alias, 1.0
-                    ),
+                    snql_aggregate=self._resolve_aggregate_if("max"),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,

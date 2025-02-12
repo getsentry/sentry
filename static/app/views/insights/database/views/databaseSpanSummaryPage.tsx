@@ -2,9 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,7 +10,6 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -29,20 +25,18 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
+  getDurationChartTitle,
+  getThroughputChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
-import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
-import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {
   ModuleName,
@@ -51,6 +45,9 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
   transaction: string;
@@ -62,18 +59,17 @@ type Query = {
 type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
-  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
 
   const {groupId} = params;
-  const {transaction, transactionMethod} = location.query;
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
 
+  // @ts-expect-error TS(2551): Property 'transactionsCursor' does not exist on ty... Remove this comment to see the full error message
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   // TODO: Fetch sort information using `useLocationQuery`
@@ -153,6 +149,18 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
+  useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={span[SpanMetricsField.SPAN_GROUP]}
+        moduleName={ModuleName.DB}
+        referrer={TraceViewSources.QUERIES_MODULE}
+      />
+    ),
+    moduleName: ModuleName.DB,
+    requiredParams: ['transaction'],
+  });
+
   const {
     isPending: isThroughputDataLoading,
     data: throughputData,
@@ -162,6 +170,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: ['spm()'],
       enabled: Boolean(groupId),
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-summary-page-metrics-chart'
   );
@@ -175,48 +184,22 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
       enabled: Boolean(groupId),
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-summary-page-metrics-chart'
   );
 
-  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
-
-  const crumbs = useModuleBreadcrumbs('db');
-
   return (
     <Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Query Summary'),
-                },
-              ]}
-            />
-            <Layout.Title>{t('Query Summary')}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <BackendHeader
-          headerTitle={t('Query Summary')}
-          breadcrumbs={[
-            {
-              label: t('Query Summary'),
-            },
-          ]}
-          module={ModuleName.DB}
-        />
-      )}
+      <BackendHeader
+        headerTitle={t('Query Summary')}
+        breadcrumbs={[
+          {
+            label: t('Query Summary'),
+          },
+        ]}
+        module={ModuleName.DB}
+      />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
         <Layout.Body>
@@ -234,6 +217,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('db')}
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`${SpanFunction.SPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
@@ -241,6 +225,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.avg}
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
@@ -248,9 +233,11 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.timeSpent}
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       tooltip={getTimeSpentExplanation(
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         spanMetrics?.['time_spent_percentage()'],
                         'db'
                       )}
@@ -264,6 +251,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 <DescriptionContainer>
                   <DatabaseSpanDescription
                     groupId={groupId}
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     preliminaryDescription={spanMetrics?.['span.description']}
                   />
                 </DescriptionContainer>
@@ -285,14 +273,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
               <ModuleLayout.Full>
                 <ChartContainer>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('db')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
-                    filters={filters}
                   />
 
-                  <DurationChart
+                  <InsightsLineChartWidget
+                    title={getDurationChartTitle('db')}
                     series={[
                       durationData[
                         `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
@@ -300,7 +289,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                     ]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
-                    filters={filters}
                   />
                 </ChartContainer>
               </ModuleLayout.Full>
@@ -319,14 +307,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 </ModuleLayout.Full>
               )}
             </ModuleLayout.Layout>
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              moduleName={ModuleName.DB}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
-              referrer={TraceViewSources.QUERIES_MODULE}
-            />
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
@@ -356,13 +336,9 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
 `;
 
-function PageWithProviders(props) {
+function PageWithProviders(props: any) {
   return (
-    <ModulePageProviders
-      moduleName="db"
-      pageTitle={t('Query Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
       <DatabaseSpanSummaryPage {...props} />
     </ModulePageProviders>
   );

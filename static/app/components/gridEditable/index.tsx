@@ -63,8 +63,8 @@ export type ColResizeMetadata = {
 };
 
 type GridEditableProps<DataRow, ColumnKey> = {
-  columnOrder: GridColumnOrder<ColumnKey>[];
-  columnSortBy: GridColumnSortBy<ColumnKey>[];
+  columnOrder: Array<GridColumnOrder<ColumnKey>>;
+  columnSortBy: Array<GridColumnSortBy<ColumnKey>>;
   data: DataRow[];
 
   /**
@@ -94,6 +94,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   'aria-label'?: string;
+  bodyStyle?: React.CSSProperties;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
   /**
@@ -177,7 +178,7 @@ class GridEditable<
 
   clearWindowLifecycleEvents() {
     Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
-      this.resizeWindowLifecycleEvents[e].forEach(c => window.removeEventListener(e, c));
+      this.resizeWindowLifecycleEvents[e]!.forEach(c => window.removeEventListener(e, c));
       this.resizeWindowLifecycleEvents[e] = [];
     });
   }
@@ -187,7 +188,7 @@ class GridEditable<
 
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[i] = {
-      ...nextColumnOrder[i],
+      ...nextColumnOrder[i]!,
       width: COL_WIDTH_UNDEFINED,
     };
     this.setGridTemplateColumns(nextColumnOrder);
@@ -210,7 +211,7 @@ class GridEditable<
     }
 
     // <GridResizer> is nested 1 level down from <GridHeadCell>
-    const cell = e.currentTarget!.parentElement;
+    const cell = e.currentTarget.parentElement;
     if (!cell) {
       return;
     }
@@ -223,10 +224,10 @@ class GridEditable<
     };
 
     window.addEventListener('mousemove', this.onResizeMouseMove);
-    this.resizeWindowLifecycleEvents.mousemove.push(this.onResizeMouseMove);
+    this.resizeWindowLifecycleEvents.mousemove!.push(this.onResizeMouseMove);
 
     window.addEventListener('mouseup', this.onResizeMouseUp);
-    this.resizeWindowLifecycleEvents.mouseup.push(this.onResizeMouseUp);
+    this.resizeWindowLifecycleEvents.mouseup!.push(this.onResizeMouseUp);
   };
 
   onResizeMouseUp = (e: MouseEvent) => {
@@ -238,7 +239,7 @@ class GridEditable<
       const widthChange = e.clientX - metadata.cursorX;
 
       onResizeColumn(metadata.columnIndex, {
-        ...columnOrder[metadata.columnIndex],
+        ...columnOrder[metadata.columnIndex]!,
         width: metadata.columnWidth + widthChange,
       });
     }
@@ -266,7 +267,7 @@ class GridEditable<
 
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
-      ...nextColumnOrder[metadata.columnIndex],
+      ...nextColumnOrder[metadata.columnIndex]!,
       width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 
@@ -450,6 +451,7 @@ class GridEditable<
       scrollable,
       height,
       'aria-label': ariaLabel,
+      bodyStyle,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -463,7 +465,7 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body>
+          <Body style={bodyStyle}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"

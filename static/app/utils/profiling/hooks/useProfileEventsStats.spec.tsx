@@ -25,8 +25,6 @@ describe('useProfileEvents', function () {
   });
 
   it('handles no axis', async function () {
-    const yAxes = [];
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
@@ -37,7 +35,7 @@ describe('useProfileEvents', function () {
       wrapper: TestContext,
       initialProps: {
         dataset: 'profiles' as const,
-        yAxes,
+        yAxes: [],
         referrer: '',
       },
     });
@@ -74,7 +72,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -135,7 +133,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -197,7 +195,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });

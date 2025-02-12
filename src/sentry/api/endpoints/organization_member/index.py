@@ -137,6 +137,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         return self.validate_orgRole(role)
 
     def validate_orgRole(self, role):
+        if role == "billing" and features.has(
+            "organizations:invite-billing", self.context["organization"]
+        ):
+            return role
         role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
         if role_obj is None:
             raise serializers.ValidationError(
@@ -314,13 +318,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        if not features.has("organizations:invite-members", organization, actor=request.user):
+        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
+        billing_bypass = assigned_org_role == "billing" and features.has(
+            "organizations:invite-billing", organization
+        )
+        if not billing_bypass and not features.has(
+            "organizations:invite-members", organization, actor=request.user
+        ):
             return Response(
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
@@ -360,10 +369,37 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        if (
-            ("teamRoles" in result and result["teamRoles"])
-            or ("teams" in result and result["teams"])
-        ) and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
+        is_member = not request.access.has_scope("member:admin") and (
+            request.access.has_scope("member:invite")
+        )
+        # if Open Team Membership is disabled and Member Invites are enabled, members can only invite members to teams they are in
+        members_can_only_invite_to_members_teams = (
+            not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
+        )
+        has_teams = bool(result.get("teamRoles") or result.get("teams"))
+
+        if is_member and members_can_only_invite_to_members_teams and has_teams:
+            requester_teams = set(
+                OrganizationMember.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    user_is_active=True,
+                ).values_list("teams__slug", flat=True)
+            )
+            team_slugs = list(
+                set(
+                    [team.slug for team, _ in result.get("teamRoles", [])]
+                    + [team.slug for team in result.get("teams", [])]
+                )
+            )
+            # ensure that the requester is a member of all teams they are trying to assign
+            if not requester_teams.issuperset(team_slugs):
+                return Response(
+                    {"detail": "You cannot assign members to teams you are not a member of."},
+                    status=400,
+                )
+
+        if has_teams and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
             return Response(
                 {
                     "email": f"The user with a '{assigned_org_role}' role cannot have team-level permissions."

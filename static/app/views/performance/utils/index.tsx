@@ -78,7 +78,7 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
     props.location
   ).withSorts([{field: 'epm', kind: 'desc'}]);
   const target = discoverEventView.getResultsViewUrlTarget(
-    props.organization.slug,
+    props.organization,
     false,
     hasDatasetSelector(props.organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );
@@ -111,7 +111,7 @@ const BACKEND_PLATFORMS: string[] = backend.filter(
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
-  projects: (Project | ReleaseProject)[],
+  projects: Array<Project | ReleaseProject>,
   projectIds: readonly number[]
 ) {
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
@@ -149,6 +149,22 @@ export function platformToPerformanceType(
   return PlatformKey;
 }
 
+export function platformToDomainView(
+  projects: Array<Project | ReleaseProject>,
+  projectIds: readonly number[]
+): DomainView | undefined {
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  switch (performanceType) {
+    case ProjectPerformanceType.FRONTEND:
+      return 'frontend';
+    case ProjectPerformanceType.BACKEND:
+      return 'backend';
+    case ProjectPerformanceType.MOBILE:
+      return 'mobile';
+    default:
+      return undefined;
+  }
+}
 /**
  * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
  */
@@ -369,11 +385,7 @@ export function getProject(
   eventData: EventData,
   projects: Project[]
 ): Project | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
+  const projectSlug = eventData.project as string | undefined;
 
   return projects.find(currentProject => currentProject.slug === projectSlug);
 }

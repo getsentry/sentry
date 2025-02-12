@@ -10,6 +10,13 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
+from sentry.integrations.discord.spec import DiscordMessagingSpec
+from sentry.integrations.discord.utils.metrics import record_lifecycle_termination_level
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
 
@@ -38,7 +45,7 @@ def send_incident_alert_notification(
         # We can't send a message if we don't know the channel
         logger.warning(
             "discord.metric_alert.no_channel",
-            extra={"guild_id": incident.identifier},
+            extra={"incident_id": incident.id},
         )
         return False
 
@@ -51,13 +58,24 @@ def send_incident_alert_notification(
     )
 
     client = DiscordClient()
-    try:
-        client.send_message(channel, message)
-    except Exception as error:
-        logger.warning(
-            "discord.metric_alert.message_send_failure",
-            extra={"error": error, "guild_id": incident.identifier, "channel_id": channel},
-        )
-        return False
-    else:
+    with MessagingInteractionEvent(
+        interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
+        spec=DiscordMessagingSpec(),
+    ).capture() as lifecycle:
+        try:
+            client.send_message(channel, message)
+        except ApiError as error:
+            # Errors that we recieve from the Discord API
+            record_lifecycle_termination_level(lifecycle, error)
+            return False
+        except Exception as error:
+            lifecycle.add_extras(
+                {
+                    "incident_id": incident.id,
+                    "channel_id": channel,
+                }
+            )
+
+            lifecycle.record_failure(error)
+            return False
         return True

@@ -4,6 +4,7 @@ import base64
 import logging
 import os
 import zlib
+from collections import Counter
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -145,34 +146,42 @@ class Enhancements:
 
         self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
 
-    def apply_modifications_to_frame(
+    def apply_category_and_updated_in_app_to_frames(
         self,
         frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
     ) -> None:
         """
-        This applies the frame modifications to the frames itself. This does not affect grouping.
+        Apply enhancement rules to each frame, adding a category (if any) and updating the `in_app`
+        value if necessary.
+
+        Both the category and `in_app` data will be used during grouping. The `in_app` values will
+        also be persisted in the saved event, so they can be used in the UI and when determining
+        things like suspect commits and suggested assignees.
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_enhanced_frames = self.rust_enhancements.apply_modifications_to_frames(
+        category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
             match_frames, make_rust_exception_data(exception_data)
         )
 
-        for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+        for frame, (category, in_app) in zip(frames, category_and_in_app_results):
             if in_app is not None:
+                # If the `in_app` value changes as a result of this call, the original value (in
+                # integer form) will be added to `frame.data` under the key "orig_in_app"
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
 
     def assemble_stacktrace_component(
         self,
-        components: list[FrameGroupingComponent],
+        variant_name: str,
+        frame_components: list[FrameGroupingComponent],
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
-    ) -> tuple[StacktraceGroupingComponent, bool]:
+    ) -> StacktraceGroupingComponent:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -181,22 +190,80 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_components = [RustComponent(contributes=c.contributes) for c in components]
+        rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
+        # Modify the rust components by applying +group/-group rules and getting hints for both
+        # those changes and the `in_app` changes applied by earlier in the ingestion process by
+        # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
+        # for the overall stacktrace (returned in `rust_results`).
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components
         )
 
-        for py_component, rust_component in zip(components, rust_components):
-            py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
+        # both collect metrics and use the information in decisions about whether to send the event
+        # to Seer
+        frame_counts: Counter[str] = Counter()
 
-        component = StacktraceGroupingComponent(
-            values=components,
-            hint=rust_results.hint,
-            contributes=rust_results.contributes,
+        # Update frame components with results from rust
+        for py_component, rust_component in zip(frame_components, rust_components):
+            # TODO: Remove the first condition once we get rid of the legacy config
+            if (
+                not (self.bases and self.bases[0].startswith("legacy"))
+                and variant_name == "app"
+                and not py_component.in_app
+            ):
+                # System frames should never contribute in the app variant, so force
+                # `contribtues=False`, regardless of the rust results. Use the rust hint if it
+                # explains the `in_app` value (but not if it explains the `contributing` value,
+                # because we're ignoring that)
+                #
+                # TODO: Right now, if stacktrace rules have modified both the `in_app` and
+                # `contributes` values, then the hint you get back from the rust enhancers depends
+                # on the order in which those changes happened, which in turn depends on both the
+                # order of stacktrace rules and the order of the actions within a stacktrace rule.
+                # Ideally we'd get both hints back.
+                hint = (
+                    rust_component.hint
+                    if rust_component.hint and rust_component.hint.startswith("marked out of app")
+                    else py_component.hint
+                )
+                py_component.update(contributes=False, hint=hint)
+            else:
+                py_component.update(
+                    contributes=rust_component.contributes, hint=rust_component.hint
+                )
+
+            # Add this frame to our tally
+            key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
+            frame_counts[key] += 1
+
+        # Because of the special case above, in which we ignore the rust-derived `contributes` value
+        # for certain frames, it's possible for the rust-derived `contributes` value for the overall
+        # stacktrace to be wrong, too (if in the process of ignoring rust we turn a stacktrace with
+        # at least one contributing frame into one without any). So we need to special-case here as
+        # well.
+        #
+        # TODO: Remove the first condition once we get rid of the legacy config
+        if (
+            not (self.bases and self.bases[0].startswith("legacy"))
+            and variant_name == "app"
+            and frame_counts["in_app_contributing_frames"] == 0
+        ):
+            stacktrace_contributes = False
+            stacktrace_hint = None
+        else:
+            stacktrace_contributes = rust_results.contributes
+            stacktrace_hint = rust_results.hint
+
+        stacktrace_component = StacktraceGroupingComponent(
+            values=frame_components,
+            hint=stacktrace_hint,
+            contributes=stacktrace_contributes,
+            frame_counts=frame_counts,
         )
 
-        return component, rust_results.invert_stacktrace
+        return stacktrace_component
 
     def as_dict(self, with_rules=False):
         rv = {
@@ -256,7 +323,7 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(cls, s, bases=None, id=None) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)

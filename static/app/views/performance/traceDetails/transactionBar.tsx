@@ -1,4 +1,4 @@
-import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -99,8 +99,8 @@ type Props = {
 
 function TransactionBar(props: Props) {
   const [showDetail, setShowDetail] = useState(false);
-  const transactionRowDOMRef = createRef<HTMLDivElement>();
-  const transactionTitleRef = createRef<HTMLDivElement>();
+  const transactionRowDOMRef = useRef<HTMLDivElement>(null);
+  const transactionTitleRef = useRef<HTMLDivElement>(null);
   let spanContentRef: HTMLDivElement | null = null;
 
   const handleWheel = useCallback(
@@ -187,7 +187,7 @@ function TransactionBar(props: Props) {
     return (
       <Fragment>
         {Array.from(measurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -232,7 +232,7 @@ function TransactionBar(props: Props) {
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingDepths.map(
+    const connectorBars: React.ReactNode[] = continuingDepths.map(
       ({depth, isOrphanDepth}) => {
         if (generation - depth <= 1) {
           // If the difference is less than or equal to 1, then it means that the continued
@@ -544,8 +544,7 @@ function TransactionBar(props: Props) {
     const rows: React.ReactElement[] = [];
     // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(transaction.timestamp - transaction.start_timestamp) || 1;
-    for (let i = 0; i < transaction.performance_issues.length; i++) {
-      const issue = transaction.performance_issues[i];
+    for (const issue of transaction.performance_issues) {
       const startPosition = Math.abs(issue.start - transaction.start_timestamp);
       const startPercentage = startPosition / delta;
       const duration = Math.abs(issue.end - issue.start);
@@ -663,7 +662,7 @@ function TransactionBar(props: Props) {
   );
 }
 
-function getOffset(generation) {
+function getOffset(generation: any) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 

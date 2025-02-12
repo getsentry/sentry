@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -8,26 +7,28 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
+import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {parseCursor} from 'sentry/utils/cursor';
+import {percent} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
@@ -68,15 +69,8 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const isError = tagValuesIsError || tagIsError;
   const isPending = tagValuesIsPending || tagIsPending;
 
-  const currentCursor = parseCursor(location.query?.tagDrawerCursor);
-  const start = currentCursor?.offset ?? 0;
-  const pageCount = tagValues?.length ?? 0;
-
   const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-  const paginationCaption = tct('Showing [start]-[end] of [count]', {
-    start: start.toLocaleString(),
-    end: (start + pageCount).toLocaleString(),
+  const paginationCaption = tct('[count] results', {
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
 
@@ -120,7 +114,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
               {sort === 'count' && sortArrow}
               {t('Count')}
             </ColumnSort>
-            <ColumnTitle>{t('Percentage')}</ColumnTitle>
+            <ShareColumnTitle>{t('Share')}</ShareColumnTitle>
           </Header>
           <Body>
             {tagValues.map((tv, i) => (
@@ -162,70 +156,32 @@ function TagDetailsRow({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
-  const [isHovered, setIsHovered] = useState(false);
+
   const key = tagValue.key ?? tag.key;
   const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
-  const eventView = useIssueDetailsEventView({group, queryProps: query});
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,
   };
+  const percentage = Math.floor(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
+  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
 
   return (
-    <Row onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <Row>
       <TagDetailsValue
         valueLocation={allEventsLocation}
         tagKey={key}
         tagValue={tagValue}
       />
       <OverflowTimeSince date={tagValue.lastSeen} />
-      <div>{tagValue.count.toLocaleString()}</div>
+      <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
+      <RightAlignedValue>{displayPercentage}</RightAlignedValue>
       {tag.totalValues ? (
-        <TagBar
-          style={{height: space(2)}}
-          count={tagValue.count}
-          total={tag.totalValues}
-        />
+        <TagBar percentage={percentage} style={{height: space(1.5)}} />
       ) : (
         '--'
       )}
-      <DropdownMenu
-        size="xs"
-        trigger={triggerProps => (
-          <ActionButton
-            {...triggerProps}
-            isHidden={!isHovered}
-            size="xs"
-            icon={<IconEllipsis />}
-            aria-label={t('Tag Value Actions Menu')}
-          />
-        )}
-        items={[
-          {
-            key: 'open-in-discover',
-            label: t('Open in Discover'),
-            to: eventView.getResultsViewUrlTarget(
-              organization.slug,
-              false,
-              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-            ),
-            hidden: !group || !organization.features.includes('discover-basic'),
-          },
-          {
-            key: 'view-events',
-            label: t('View other events with this tag value'),
-            to: allEventsLocation,
-          },
-          {
-            key: 'view-issues',
-            label: t('View issues with this tag value'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query,
-            },
-          },
-        ]}
-      />
+      <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
     </Row>
   );
 }
@@ -239,9 +195,21 @@ function TagDetailsValue({
   tagValue: TagValue;
   valueLocation: LocationDescriptor;
 }) {
+  const userValues = getUserTagValue(tagValue);
   const valueComponent =
     tagKey === 'user' ? (
-      <UserBadge user={{...tagValue, id: tagValue.id ?? ''}} avatarSize={20} hideEmail />
+      <UserValue>
+        {getContextIcon({
+          alias: 'user',
+          type: 'user',
+          value: tagValue,
+          contextIconProps: {
+            size: 'md',
+          },
+        })}
+        <div>{userValues.title}</div>
+        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
+      </UserValue>
     ) : (
       <DeviceName value={tagValue.value} />
     );
@@ -249,11 +217,6 @@ function TagDetailsValue({
   return (
     <Value>
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
-      {tagValue?.email && (
-        <IconLink to={`mailto:${tagValue.email}`}>
-          <IconMail size="xs" color="gray300" />
-        </IconLink>
-      )}
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
           priority="link"
@@ -267,18 +230,92 @@ function TagDetailsValue({
   );
 }
 
+function TagValueActionsMenu({
+  group,
+  tag,
+  tagValue,
+}: {
+  group: Group;
+  tag: Tag;
+  tagValue: TagValue;
+}) {
+  const organization = useOrganization();
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: tagValue.value,
+  });
+  const key = tagValue.key ?? tag.key;
+  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const eventView = useIssueDetailsEventView({group, queryProps: query});
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <DropdownMenu
+      size="xs"
+      className={isVisible ? '' : 'invisible'}
+      onOpenChange={isOpen => setIsVisible(isOpen)}
+      triggerProps={{
+        'aria-label': t('Tag Value Actions Menu'),
+        icon: <IconEllipsis />,
+        showChevron: false,
+        size: 'xs',
+      }}
+      items={[
+        {
+          key: 'open-in-discover',
+          label: t('Open in Discover'),
+          to: eventView.getResultsViewUrlTarget(
+            organization,
+            false,
+            hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+          ),
+          hidden: !group || !organization.features.includes('discover-basic'),
+        },
+        {
+          key: 'view-events',
+          label: t('View other events with this tag value'),
+          to: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            query,
+          },
+        },
+        {
+          key: 'view-issues',
+          label: t('Search issues with this tag value'),
+          to: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query,
+          },
+        },
+        {
+          key: 'copy-value',
+          label: t('Copy tag value to clipboard'),
+          onAction: handleCopy,
+        },
+      ]}
+    />
+  );
+}
+
 const Table = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, auto) 1fr auto;
-  column-gap: ${space(2)};
+  grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
+  column-gap: ${space(1)};
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    column-gap: ${space(2)};
+  }
 `;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ShareColumnTitle = styled(ColumnTitle)`
+  text-align: center;
 `;
 
 const ColumnSort = styled(Link)`
@@ -317,6 +354,16 @@ const Row = styled(Body)`
   align-items: center;
   border-radius: 4px;
   padding: ${space(0.25)} ${space(1)};
+
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
+    }
+  }
 `;
 
 const Value = styled('div')`
@@ -325,35 +372,30 @@ const Value = styled('div')`
   align-items: center;
 `;
 
-const ValueLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
+const RightAlignedValue = styled('div')`
+  text-align: right;
 `;
 
-const IconLink = styled(Link)`
-  display: block;
-  line-height: 0;
+const UserSubtitle = styled('div')`
+  color: ${p => p.theme.subText};
+  display: inline-block; /* Prevent inheriting text decoration */
+`;
+
+const ValueLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+  word-break: break-all;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-`;
-
-// We need to do the hiding here so that focus styles from the `Button` component take precedent
-const ActionButton = styled(Button)<{isHidden: boolean}>`
-  ${p =>
-    p.isHidden &&
-    css`
-      border: 0;
-      color: transparent;
-      background: transparent;
-    `}
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const ExternalLinkbutton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const UserValue = styled('div')`
+  display: flex;
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;

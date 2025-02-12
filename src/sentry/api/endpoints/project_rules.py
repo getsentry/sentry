@@ -32,6 +32,7 @@ from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
 from sentry.utils import metrics
 
@@ -436,7 +437,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The event's `attribute` value `match` `value`**
-- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
+- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crash_type`, `app.in_foreground`.
 - `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
 - `value` - A string. Not required when `match` is `is` or `ns`.
 ```json
@@ -841,9 +842,16 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             find_channel_id_for_rule.apply_async(kwargs=kwargs)
             return Response(uuid_context, status=202)
 
-        created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
-            kwargs["actions"]
-        )
+        try:
+            created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
+                kwargs["actions"]
+            )
+        except SentryAppBaseError as e:
+            response = e.response_from_exception()
+            response.data["actions"] = [response.data.pop("detail")]
+
+            return response
+
         rule = ProjectRuleCreator(
             name=kwargs["name"],
             project=project,

@@ -1,3 +1,4 @@
+import type {ReactElement} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
@@ -6,15 +7,15 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 import ReplayPreview from './replayPreview';
 
-jest.mock('sentry/utils/replays/hooks/useReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 
-const mockUseReplayReader = jest.mocked(useReplayReader);
+const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -39,7 +40,7 @@ const mockReplay = ReplayReader.factory({
   }),
 });
 
-mockUseReplayReader.mockImplementation(() => {
+mockUseLoadReplayReader.mockImplementation(() => {
   return {
     attachments: [],
     errors: [],
@@ -53,7 +54,7 @@ mockUseReplayReader.mockImplementation(() => {
   };
 });
 
-const render: typeof baseRender = children => {
+const render = (children: ReactElement) => {
   const {router} = initializeOrg({
     router: {
       routes: [
@@ -84,7 +85,7 @@ const defaultProps = {
 describe('ReplayPreview', () => {
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
-    mockUseReplayReader.mockImplementationOnce(() => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
         errors: [],
@@ -105,7 +106,7 @@ describe('ReplayPreview', () => {
 
   it('Should throw error when there is a fetch error', () => {
     // Change the mocked hook to return a fetch error
-    mockUseReplayReader.mockImplementationOnce(() => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
         errors: [],

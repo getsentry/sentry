@@ -4,16 +4,10 @@ from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLA
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
-from sentry.integrations.messaging.metrics import (
-    MessageCommandFailureReason,
-    MessageCommandHaltReason,
-)
+from sentry.integrations.messaging.metrics import MessageCommandFailureReason
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import APITestCase
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_halt_metric,
-)
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
@@ -54,9 +48,7 @@ class DiscordCommandInteractionTest(APITestCase):
             )
         assert resp.status_code == 200
 
-        start, failure = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -85,9 +77,7 @@ class DiscordCommandInteractionTest(APITestCase):
             )
         assert resp.status_code == 200
 
-        start, failure = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -124,9 +114,7 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_link_dm(self, mock_record):
@@ -162,9 +150,7 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_link_already_linked(self, mock_record):
@@ -211,10 +197,7 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED.value)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unlink_no_identity(self, mock_record):
@@ -239,10 +222,7 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.NOT_LINKED.value)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unlink(self, mock_record):
@@ -290,9 +270,7 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_help(self, mock_record):
@@ -317,7 +295,4 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

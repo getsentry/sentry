@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from re import Match
@@ -70,6 +69,7 @@ from sentry.utils.snuba import (
     is_numeric_measurement,
     is_percentage_measurement,
     is_span_op_breakdown,
+    process_value,
     raw_snql_query,
     resolve_column,
 )
@@ -87,10 +87,10 @@ class BaseQueryBuilder:
     organization_column: str = "organization.id"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
-    profile_functions_metrics_builder = False
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    size_fields: dict[str, str] = {}
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
 
@@ -542,6 +542,9 @@ class BaseQueryBuilder:
 
         return where, having
 
+    def resolve_projects(self) -> list[int]:
+        return self.params.project_ids
+
     def resolve_params(self) -> list[WhereType]:
         """Keys included as url params take precedent if same key is included in search
         They are also considered safe and to have had access rules applied unlike conditions
@@ -570,19 +573,20 @@ class BaseQueryBuilder:
         # complain on an empty list which results on no data being returned.
         # This change will prevent calling Snuba when no projects are selected.
         # Snuba will complain with UnqualifiedQueryError: validation failed for entity...
-        if not self.params.project_ids:
+        project_ids = self.resolve_projects()
+        if not project_ids:
             # TODO: Fix the tests and always raise the error
             # In development, we will let Snuba complain about the lack of projects
             # so the developer can write their tests with a non-empty project list
             # In production, we will raise an error
             if not in_test_environment():
-                raise UnqualifiedQueryError("You need to specify at least one project.")
+                raise UnqualifiedQueryError("You need to specify at least one project with data.")
         else:
             conditions.append(
                 Condition(
                     self.column("project_id"),
                     Op.IN,
-                    self.params.project_ids,
+                    project_ids,
                 )
             )
 
@@ -1004,7 +1008,7 @@ class BaseQueryBuilder:
             return self.meta_resolver_map[field]
         if is_percentage_measurement(field):
             return "percentage"
-        elif is_numeric_measurement(field):
+        if is_numeric_measurement(field):
             return "number"
 
         if (
@@ -1013,6 +1017,9 @@ class BaseQueryBuilder:
             or is_span_op_breakdown(field)
         ):
             return "duration"
+
+        if unit := self.size_fields.get(field):
+            return unit
 
         measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do
@@ -1175,9 +1182,9 @@ class BaseQueryBuilder:
 
     def resolve_measurement_value(self, unit: str, value: float) -> float:
         if unit in constants.SIZE_UNITS:
-            return constants.SIZE_UNITS[unit] * value
+            return constants.SIZE_UNITS[cast(constants.SizeUnit, unit)] * value
         elif unit in constants.DURATION_UNITS:
-            return constants.DURATION_UNITS[unit] * value
+            return constants.DURATION_UNITS[cast(constants.DurationUnit, unit)] * value
         return value
 
     def convert_aggregate_filter_to_condition(
@@ -1313,7 +1320,13 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
+            if is_context and name in self.config.nullable_context_keys:
+                return Condition(
+                    Function("has", [Column("contexts.key"), lhs.key]),
+                    Op(search_filter.operator),
+                    0,
+                )
+            elif is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             elif is_measurement(name):
                 # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check
@@ -1342,40 +1355,26 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            kind = (
-                search_filter.value.classify_wildcard()
-                if self.config.optimize_wildcard_searches
-                else "other"
-            )
+            if self.config.optimize_wildcard_searches:
+                kind, value_o = search_filter.value.classify_and_format_wildcard()
+            else:
+                kind, value_o = "other", search_filter.value.value
+
             if kind == "prefix":
                 condition = Condition(
-                    Function(
-                        "startsWith",
-                        [
-                            Function("lower", [lhs]),
-                            search_filter.value.format_wildcard(kind).lower(),
-                        ],
-                    ),
+                    Function("startsWith", [Function("lower", [lhs]), value_o]),
                     Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                     1,
                 )
             elif kind == "suffix":
                 condition = Condition(
-                    Function(
-                        "endsWith",
-                        [
-                            Function("lower", [lhs]),
-                            search_filter.value.format_wildcard(kind).lower(),
-                        ],
-                    ),
+                    Function("endsWith", [Function("lower", [lhs]), value_o]),
                     Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                     1,
                 )
             elif kind == "infix":
                 condition = Condition(
-                    Function(
-                        "positionCaseInsensitive", [lhs, search_filter.value.format_wildcard(kind)]
-                    ),
+                    Function("positionCaseInsensitive", [lhs, value_o]),
                     Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                     0,
                 )
@@ -1530,16 +1529,6 @@ class BaseQueryBuilder:
             tenant_ids=self.tenant_ids,
         )
 
-    @classmethod
-    def handle_invalid_float(cls, value: float | None) -> float | None:
-        if value is None:
-            return value
-        elif math.isnan(value):
-            return 0
-        elif math.isinf(value):
-            return None
-        return value
-
     def run_query(
         self, referrer: str | None, use_cache: bool = False, query_source: QuerySource | None = None
     ) -> Any:
@@ -1592,18 +1581,7 @@ class BaseQueryBuilder:
             def get_row(row: dict[str, Any]) -> dict[str, Any]:
                 transformed = {}
                 for key, value in row.items():
-                    if isinstance(value, float):
-                        # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
-                        # so needed to pick something valid to use instead
-                        if math.isnan(value):
-                            value = 0
-                        elif math.isinf(value):
-                            value = None
-                        value = self.handle_invalid_float(value)
-                    if isinstance(value, list):
-                        for index, item in enumerate(value):
-                            if isinstance(item, float):
-                                value[index] = self.handle_invalid_float(item)
+                    value = process_value(value)
                     if key in self.value_resolver_map:
                         new_value = self.value_resolver_map[key](value)
                     else:

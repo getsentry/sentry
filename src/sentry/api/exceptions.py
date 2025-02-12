@@ -50,16 +50,6 @@ class ParameterValidationError(SentryAPIException):
         super().__init__(message=message, context=".".join(context or []))
 
 
-class ProjectMoved(SentryAPIException):
-    status_code = status.HTTP_302_FOUND
-    # code/message currently don't get used
-    code = "resource-moved"
-    message = "Resource has been moved"
-
-    def __init__(self, new_url, slug):
-        super().__init__(url=new_url, slug=slug)
-
-
 class SsoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sso-required"
@@ -119,10 +109,10 @@ class SudoRequired(SentryAPIException):
         super().__init__(username=user.username)
 
 
-class EmailVerificationRequired(SentryAPIException):
+class PrimaryEmailVerificationRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    code = "email-verification-required"
-    message = "Email verification required."
+    code = "primary-email-verification-required"
+    message = "Primary email verification required."
 
     def __init__(self, user):
         super().__init__(username=user.username)

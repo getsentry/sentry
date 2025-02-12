@@ -3,7 +3,7 @@ import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -29,7 +29,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -37,7 +37,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -51,6 +51,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
@@ -65,15 +66,6 @@ import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
-export const SLIDER_HEIGHT = 60;
-
-export type AugmentedEChartDataZoomHandler = (
-  params: Parameters<EChartDataZoomHandler>[0] & {
-    seriesEnd: string | number;
-    seriesStart: string | number;
-  },
-  instance: Parameters<EChartDataZoomHandler>[1]
-) => void;
 
 type TableResultProps = Pick<
   GenericWidgetQueriesChildrenProps,
@@ -91,19 +83,20 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
-  chartZoomOptions?: DataZoomComponentOption;
+  confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onZoom?: AugmentedEChartDataZoomHandler;
+  onZoom?: EChartDataZoomHandler;
   shouldResize?: boolean;
-  showSlider?: boolean;
+  showConfidenceWarning?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -139,20 +132,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return !isEqual(currentProps, nextProps);
   }
 
-  tableResultComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    const {location, widget, selection} = this.props;
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
+  tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
+    const {location, widget, selection, minTableColumnWidth} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -160,10 +141,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     const datasetConfig = getDatasetConfig(widget.widgetType);
 
+    const getCustomFieldRenderer = (
+      field: string,
+      meta: MetaType,
+      organization?: Organization
+    ) => {
+      return (
+        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
+      );
+    };
+
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
-      const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
+      const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
 
       return (
         <TableWrapper key={`table:${result.title}`}>
@@ -179,26 +170,15 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             data={result.data}
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+            getCustomFieldRenderer={getCustomFieldRenderer}
+            minColumnWidth={minTableColumnWidth}
           />
         </TableWrapper>
       );
     });
   }
 
-  bigNumberComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
+  bigNumberComponent({loading, tableResults}: TableResultProps): React.ReactNode {
     if (typeof tableResults === 'undefined' || loading) {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
@@ -209,12 +189,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta?.fields ?? {});
 
-      let field = fields[0];
+      let field = fields[0]!;
       let selectedField = field;
 
-      if (defined(widget.queries[0].selectedAggregate)) {
-        const index = widget.queries[0].selectedAggregate;
-        selectedField = widget.queries[0].aggregates[index];
+      if (defined(widget.queries[0]!.selectedAggregate)) {
+        const index = widget.queries[0]!.selectedAggregate;
+        selectedField = widget.queries[0]!.aggregates[index]!;
         if (fields.includes(selectedField)) {
           field = selectedField;
         }
@@ -266,13 +246,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     }
   };
 
-  chartComponent(chartProps): React.ReactNode {
+  chartComponent(chartProps: any): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]?.columns.length > 0;
+    const stacked = widget.queries[0]?.columns.length! > 0;
 
     switch (widget.displayType) {
       case 'bar':
-        return <BarChart {...chartProps} stacked={stacked} />;
+        return <BarChart {...chartProps} stacked={stacked} animation={false} />;
       case 'area':
       case 'top_n':
         return <AreaChart stacked {...chartProps} />;
@@ -292,20 +272,27 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       widget,
       onZoom,
       legendOptions,
-      showSlider,
       noPadding,
-      chartZoomOptions,
       timeseriesResultsTypes,
       shouldResize,
-      organization,
+      confidence,
+      showConfidenceWarning,
     } = this.props;
+
+    if (errorMessage) {
+      return (
+        <StyledErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </StyledErrorPanel>
+      );
+    }
 
     if (widget.displayType === 'table') {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
             <LoadingScreen loading={loading} />
-            {this.tableResultComponent({tableResults, loading, errorMessage})}
+            {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -317,30 +304,56 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper>
-            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+            {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
         </TransitionChart>
       );
     }
-
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
     const {location, selection, onLegendSelectChanged, widgetLegendState} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
+
+    const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
+    const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
+      seriesName?.match(otherRegex)
+    );
+    const colors = timeseriesResults
+      ? (theme.charts
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          ?.slice() as string[])
+      : [];
+    // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+    if (shouldColorOther) {
+      colors[colors.length] = theme.chartOther;
+    }
+
+    // Create a list of series based on the order of the fields,
+    const series = timeseriesResults
+      ? timeseriesResults
+          .map((values, i: number) => {
+            let seriesName = '';
+            if (values.seriesName !== undefined) {
+              seriesName = isEquation(values.seriesName)
+                ? getEquation(values.seriesName)
+                : values.seriesName;
+            }
+            return {
+              ...values,
+              seriesName,
+              fieldName: seriesName,
+              color: colors[i],
+            };
+          })
+          .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
+      : [];
 
     const legend = {
       left: 0,
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
-        seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName);
+        seriesName =
+          WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)!;
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -362,7 +375,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     // Check to see if all series output types are the same. If not, then default to number.
     const outputType =
       timeseriesResultsTypes && new Set(Object.values(timeseriesResultsTypes)).size === 1
-        ? timeseriesResultsTypes[axisLabel]
+        ? timeseriesResultsTypes[axisLabel]!
         : 'number';
     const isDurationChart = outputType === 'duration';
     const durationUnit = isDurationChart
@@ -384,16 +397,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     };
 
     const nameFormatter = (name: string) => {
-      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name)!;
     };
 
     const chartOptions = {
       autoHeightResize: shouldResize ?? true,
+      useMultilineDate: true,
       grid: {
         left: 0,
         right: 4,
         top: '40px',
-        bottom: showSlider ? SLIDER_HEIGHT : 0,
+        bottom: 0,
       },
       seriesOptions: {
         showSymbol: false,
@@ -403,7 +417,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         axisPointer: {
           type: 'cross',
         },
-        formatter: (params, asyncTicket) => {
+        formatter: (params: any, asyncTicket: any) => {
           const {chartGroup} = this.props;
           const isInGroup =
             chartGroup && chartGroup === this.chartRef?.getEchartsInstance().group;
@@ -468,64 +482,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       },
     };
 
+    const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+
     return (
-      <ChartZoom
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-        showSlider={showSlider}
-        chartZoomOptions={chartZoomOptions}
-      >
+      <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
-          if (errorMessage) {
-            return (
-              <StyledErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </StyledErrorPanel>
-            );
-          }
-
-          const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
-          const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
-            seriesName?.match(otherRegex)
-          );
-          const colors = timeseriesResults
-            ? theme.charts.getColorPalette(
-                timeseriesResults.length - (shouldColorOther ? 3 : 2)
-              )
-            : [];
-          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
-          if (shouldColorOther) {
-            colors[colors.length] = theme.chartOther;
-          }
-
-          // Create a list of series based on the order of the fields,
-          const series = timeseriesResults
-            ? timeseriesResults
-                .map((values, i: number) => {
-                  let seriesName = '';
-                  if (values.seriesName !== undefined) {
-                    seriesName = isEquation(values.seriesName)
-                      ? getEquation(values.seriesName)
-                      : values.seriesName;
-                  }
-                  return {
-                    ...values,
-                    seriesName,
-                    color: colors[i],
-                  };
-                })
-                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colours are assigned based on sparse array index
-            : [];
-
-          const seriesStart = series[0]?.data[0]?.name;
-          const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
-
-          const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
-
-          return organization.features.includes('dashboards-releases-on-charts') &&
-            widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
+          return (
             <ReleaseSeries
               end={end}
               start={start}
@@ -533,6 +495,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               environments={environments}
               projects={projects}
               memoized
+              enabled={widgetLegendState.widgetRequiresLegendUnselection(widget)}
             >
               {({releaseSeries}) => {
                 // make series name into seriesName:widgetId form for individual widget legend control
@@ -550,59 +513,33 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
                     >
-                      {getDynamicText({
-                        value: this.chartComponent({
-                          ...zoomRenderProps,
-                          ...chartOptions,
-                          // Override default datazoom behaviour for updating Global Selection Header
-                          ...(onZoom
-                            ? {
-                                onDataZoom: (evt, chartProps) =>
-                                  // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
-                                  // callback with percentage instead of datetime values. Passing seriesStart
-                                  // and seriesEnd allows calculating datetime values with percentage.
-                                  onZoom({...evt, seriesStart, seriesEnd}, chartProps),
-                              }
-                            : {}),
-                          legend,
-                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
-                          onLegendSelectChanged,
-                          forwardedRef,
-                        }),
-                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                      })}
+                      <RenderedChartContainer>
+                        {getDynamicText({
+                          value: this.chartComponent({
+                            ...zoomRenderProps,
+                            ...chartOptions,
+                            // Override default datazoom behaviour for updating Global Selection Header
+                            ...(onZoom ? {onDataZoom: onZoom} : {}),
+                            legend,
+                            series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
+                            onLegendSelectChanged,
+                            forwardedRef,
+                          }),
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                        })}
+                      </RenderedChartContainer>
+
+                      {showConfidenceWarning && confidence && (
+                        <ConfidenceWarning
+                          query={widget.queries[0]?.conditions ?? ''}
+                          confidence={confidence}
+                        />
+                      )}
                     </ChartWrapper>
                   </TransitionChart>
                 );
               }}
             </ReleaseSeries>
-          ) : (
-            <TransitionChart loading={loading} reloading={loading}>
-              <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
-                {getDynamicText({
-                  value: this.chartComponent({
-                    ...zoomRenderProps,
-                    ...chartOptions,
-                    // Override default datazoom behaviour for updating Global Selection Header
-                    ...(onZoom
-                      ? {
-                          onDataZoom: (evt, chartProps) =>
-                            // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
-                            // callback with percentage instead of datetime values. Passing seriesStart
-                            // and seriesEnd allows calculating datetime values with percentage.
-                            onZoom({...evt, seriesStart, seriesEnd}, chartProps),
-                        }
-                      : {}),
-                    legend,
-                    series,
-                    onLegendSelectChanged,
-                    forwardedRef,
-                  }),
-                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                })}
-              </ChartWrapper>
-            </TransitionChart>
           );
         }}
       </ChartZoom>
@@ -612,7 +549,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
 export default withTheme(WidgetCardChart);
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
@@ -662,6 +599,9 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const TableWrapper = styled('div')`
@@ -678,4 +618,8 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
 
 const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
+`;
+
+const RenderedChartContainer = styled('div')`
+  flex: 1;
 `;

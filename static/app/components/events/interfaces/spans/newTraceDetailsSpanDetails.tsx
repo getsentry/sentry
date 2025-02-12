@@ -12,7 +12,6 @@ import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSum
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
@@ -109,7 +108,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   );
 
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(props.node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
@@ -170,7 +169,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         data-test-id="view-child-transactions"
         size="xs"
         to={childrenEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
@@ -209,7 +208,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           }
 
           const target = transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.value.project_id),
@@ -268,14 +267,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             transaction: transactionName,
             query: location.query,
             spanSlug: {op: props.node.value.op, group: groupHash},
             projectID: event.projectID,
           })}
         >
-          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
+          {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}
         </LinkButton>
       </ButtonGroup>
     );
@@ -308,20 +307,23 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
   }
 
-  function partitionSizes(data): {
+  function partitionSizes(data: any): {
     nonSizeKeys: {[key: string]: unknown};
     sizeKeys: {[key: string]: number};
   } {
-    const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key) && defined(data[key])) {
-        try {
-          keys[key] = parseInt(data[key], 10);
-        } catch (e) {
-          keys[key] = data[key];
+    const sizeKeys = SIZE_DATA_KEYS.reduce(
+      (keys, key) => {
+        if (data.hasOwnProperty(key) && defined(data[key])) {
+          try {
+            keys[key] = parseInt(data[key], 10);
+          } catch (e) {
+            keys[key] = data[key];
+          }
         }
-      }
-      return keys;
-    }, {});
+        return keys;
+      },
+      {} as Record<string, number>
+    );
 
     const nonSizeKeys = {...data};
     SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -574,19 +576,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 }
                 return (
                   <Row title={key} key={key}>
-                    <GeneralSpanDetailsValue value={span[key]} />
+                    <GeneralSpanDetailsValue value={span[key as never]} />
                   </Row>
                 );
               })}
             </tbody>
           </table>
-          {span._metrics_summary ? (
-            <CustomMetricsEventData
-              projectId={event.projectID}
-              metricsSummary={span._metrics_summary}
-              startTimestamp={span.start_timestamp}
-            />
-          ) : null}
         </SpanDetails>
       </Fragment>
     );
@@ -607,7 +602,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
 function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {
-    const [method, url] = span.description.split(' ');
+    const [method, url] = span.description.split(' ') as [string, string];
 
     const parsedURL = safeURL(url);
     const queryString = qs.parse(parsedURL?.search ?? '');
@@ -671,7 +666,7 @@ const StyledText = styled('p')`
   margin: ${space(2)} 0;
 `;
 
-function TextTr({children}) {
+function TextTr({children}: any) {
   return (
     <tr>
       <td className="key" />

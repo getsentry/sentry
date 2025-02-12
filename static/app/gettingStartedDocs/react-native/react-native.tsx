@@ -9,12 +9,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -80,10 +78,8 @@ import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  _experiments: {
-    replaysSessionSampleRate: 1.0,
-    replaysOnErrorSampleRate: 1.0,
-  },
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
   integrations: [
     Sentry.mobileReplayIntegration(),
   ],
@@ -383,35 +379,12 @@ Sentry.captureUserFeedback(userFeedback);`,
   nextSteps: () => [],
 };
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/react-native',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react-native',
-      },
-    ],
-  },
-];
-
 const replayOnboarding: OnboardingConfig = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/react-native/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry React Native SDK version is at least 6.5.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {
@@ -485,7 +458,6 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi,
   crashReportOnboarding: feedbackOnboardingCrashApi,
-  customMetricsOnboarding: getReactNativeMetricsOnboarding({getInstallConfig}),
   replayOnboarding,
 };
 

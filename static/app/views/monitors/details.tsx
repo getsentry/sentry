@@ -6,7 +6,7 @@ import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,20 +20,24 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
-import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
-import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
-import MonitorCheckIns from './components/monitorCheckIns';
-import MonitorHeader from './components/monitorHeader';
-import MonitorIssues from './components/monitorIssues';
-import MonitorStats from './components/monitorStats';
-import MonitorOnboarding from './components/onboarding';
+import {DetailsSidebar} from './components/detailsSidebar';
+import {DetailsTimeline} from './components/detailsTimeline';
+import {MonitorCheckIns} from './components/monitorCheckIns';
+import {MonitorHeader} from './components/monitorHeader';
+import {MonitorIssues} from './components/monitorIssues';
+import {MonitorStats} from './components/monitorStats';
+import {MonitorOnboarding} from './components/onboarding';
+import {MonitorProcessingErrors} from './components/processingErrors/monitorProcessingErrors';
+import {makeMonitorErrorsQueryKey} from './components/processingErrors/utils';
 import {StatusToggleButton} from './components/statusToggleButton';
-import type {MonitorBucket} from './components/timeline/types';
-import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
+import type {
+  CheckinProcessingError,
+  Monitor,
+  MonitorBucket,
+  ProcessingErrorType,
+} from './types';
+import {makeMonitorDetailsQueryKey} from './utils';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
@@ -139,7 +143,7 @@ function MonitorDetails({params, location}: Props) {
   const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
   return (
-    <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
+    <SentryDocumentTitle title={`${monitor.name} — Crons`}>
       <Layout.Page>
         <MonitorHeader
           monitor={monitor}
@@ -182,23 +186,9 @@ function MonitorDetails({params, location}: Props) {
             ) : (
               <Fragment>
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorStats
-                  orgSlug={organization.slug}
-                  monitor={monitor}
-                  monitorEnvs={monitor.environments}
-                />
-
-                <MonitorIssues
-                  orgSlug={organization.slug}
-                  monitor={monitor}
-                  monitorEnvs={monitor.environments}
-                />
-
-                <MonitorCheckIns
-                  orgSlug={organization.slug}
-                  monitor={monitor}
-                  monitorEnvs={monitor.environments}
-                />
+                <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
+                <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                <MonitorCheckIns monitor={monitor} monitorEnvs={monitor.environments} />
               </Fragment>
             )}
           </Layout.Main>

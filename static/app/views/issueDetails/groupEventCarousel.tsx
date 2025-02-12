@@ -211,7 +211,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: {...location.query, referrer: `${selectedOption.value}-event`},
             });
             break;
-          case EventNavDropdownOption.ALL:
+          case EventNavDropdownOption.ALL: {
             const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
@@ -220,6 +220,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
               query: searchTermWithoutQuery,
             });
             break;
+          }
           default:
             break;
         }
@@ -234,7 +235,7 @@ type GroupEventActionsProps = {
   projectSlug: string;
 };
 
-export function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
+function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
   const organization = useOrganization();
@@ -251,6 +252,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
     trackAnalytics('issue_details.event_json_clicked', {
       organization,
       group_id: parseInt(`${event.groupID}`, 10),
+      streamline: false,
     });
   };
 
@@ -264,12 +266,20 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
         organization,
         ...getAnalyticsDataForGroup(group),
         ...getAnalyticsDataForEvent(event),
+        streamline: false,
       }),
   });
 
   const {onClick: copyEventId} = useCopyToClipboard({
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_id_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+        streamline: false,
+      }),
   });
 
   return (
@@ -306,7 +316,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
             hidden: !organization.features.includes('discover-basic'),
             to: eventDetailsRoute({
               eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              orgSlug: organization.slug,
+              organization,
             }),
             onAction: () => {
               trackAnalytics('issue_details.event_details_clicked', {

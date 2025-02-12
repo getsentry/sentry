@@ -1,5 +1,7 @@
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+
 KEY_RATE_LIMIT = {
     "id": "60120449b6b1d5e45f75561e6dabd80b",
     "name": "Liked Pegasus",
@@ -54,7 +56,6 @@ BASE_PROJECT = {
         "data-forwarding",
         "discard-groups",
         "minidump",
-        "race-free-group-creation",
         "rate-limits",
         "servicehooks",
         "similarity-indexing",
@@ -83,12 +84,12 @@ BASE_PROJECT = {
     ],
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
-    "hasCustomMetrics": False,
     "hasFeedbacks": False,
     "hasMonitors": False,
     "hasNewFeedbacks": False,
     "hasProfiles": False,
     "hasReplays": False,
+    "hasFlags": False,
     "hasSessions": False,
     "hasInsightsHttp": True,
     "hasInsightsDb": False,
@@ -129,11 +130,11 @@ DETAILED_PROJECT = {
         "sentry:scrub_data": False,
         "sentry:token": "e84c8c0fb1c121e988558785885f9cde",
         "sentry:resolve_age": 168,
-        "sentry:grouping_config": "newstyle:2023-01-11",
+        "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
         "quotas:spike-protection-disabled": False,
         "sentry:store_crash_reports": 5,
         "digests:mail:minimum_delay": 180,
-        "sentry:secondary_grouping_config": "newstyle:2019-10-29",
+        "sentry:secondary_grouping_config": LEGACY_GROUPING_CONFIG,
         "sentry:secondary_grouping_expiry": 147555024,
         "sentry:builtin_symbol_sources": ["ios", "android", "chromium"],
         "sentry:origins": ["getsentry.com", "app.getsentry.com", "www.getsentry.com", "sentry.io"],
@@ -166,11 +167,11 @@ DETAILED_PROJECT = {
     "verifySSL": True,
     "scrubIPAddresses": False,
     "scrapeJavaScript": True,
-    "groupingConfig": "newstyle:2023-01-11",
+    "groupingConfig": DEFAULT_GROUPING_CONFIG,
     "groupingEnhancements": "",
     "groupingEnhancementsBase": None,
     "secondaryGroupingExpiry": 1687010243,
-    "secondaryGroupingConfig": "newstyle:2019-10-29",
+    "secondaryGroupingConfig": LEGACY_GROUPING_CONFIG,
     "fingerprintingRules": "",
     "uptimeAutodetection": True,
     "organization": {
@@ -180,6 +181,9 @@ DETAILED_PROJECT = {
         "name": "Sentry",
         "dateCreated": "2014-12-15T04:06:24.263571Z",
         "isEarlyAdopter": True,
+        "allowMemberInvite": True,
+        "allowMemberProjectCreation": True,
+        "allowSuperuserAccess": False,
         "require2FA": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
@@ -233,7 +237,6 @@ DETAILED_PROJECT = {
             "transaction-metrics-extraction",
             "performance-consecutive-db-queries-post-process-group",
             "performance-slow-db-query-post-process-group",
-            "session-replay-sdk-errors-only",
             "performance-n-plus-one-db-queries-ingest",
             "profile-image-decode-main-thread-visible",
             "performance-issues-render-blocking-assets-detector",
@@ -367,6 +370,11 @@ DETAILED_PROJECT = {
     ],
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
+    "tempestFetchScreenshots": False,
+    "isDynamicallySampled": True,
+    "highlightTags": [],
+    "highlightContext": {},
+    "highlightPreset": {"tags": [], "context": {}},
 }
 
 SYMBOL_SOURCES = [

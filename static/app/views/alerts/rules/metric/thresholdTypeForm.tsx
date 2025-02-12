@@ -48,7 +48,6 @@ function ThresholdTypeForm({
     'fid',
     'cls',
     'custom_transactions',
-    'insights_metrics',
   ]);
 
   const hasAnomalyDetection =
@@ -87,7 +86,7 @@ function ThresholdTypeForm({
               }),
             }}
             value={comparisonDelta}
-            onChange={({value}) => onComparisonDeltaChange(value)}
+            onChange={({value}: any) => onComparisonDeltaChange(value)}
             options={COMPARISON_DELTA_OPTIONS}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />

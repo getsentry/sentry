@@ -92,7 +92,9 @@ export function ReprocessingEventModal({
             label={t('Number of events to be reprocessed')}
             help={t('If you set a limit, we will reprocess your most recent events.')}
             placeholder={t('Reprocess all events')}
-            onChange={value => setMaxEvents(!isNaN(value) ? Number(value) : undefined)}
+            onChange={(value: any) =>
+              setMaxEvents(!isNaN(value) ? Number(value) : undefined)
+            }
             min={1}
           />
 

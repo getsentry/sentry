@@ -427,6 +427,9 @@ describe('AssigneeSelectorDropdown', () => {
         })
       )
     );
+    expect(assignMock).toHaveBeenCalledTimes(1);
+    assignMock.mockClear();
+
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroup}
@@ -442,13 +445,14 @@ describe('AssigneeSelectorDropdown', () => {
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
-      expect(assignMock).toHaveBeenLastCalledWith(
+      expect(assignMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
       )
     );
+    expect(assignMock).toHaveBeenCalledTimes(1);
   });
 
   it('filters user by email and selects with keyboard', async () => {
@@ -572,7 +576,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('AB');
-    await userEvent.click(options[0]);
+    await userEvent.click(options[0]!);
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(

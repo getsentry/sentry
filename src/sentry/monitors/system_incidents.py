@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import statistics
 from collections import Counter
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -22,7 +22,7 @@ from django.conf import settings
 from sentry import options
 from sentry.utils import metrics, redis
 
-logger = logging.getLogger("sentry")
+logger = logging.getLogger(__name__)
 
 # This key is used to record historical date about the volume of check-ins.
 MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{ts}"
@@ -64,7 +64,7 @@ BACKFILL_CUTOFF = 1440
 BACKFILL_CHUNKS = 10
 
 
-def update_check_in_volume(ts_list: Sequence[datetime]):
+def update_check_in_volume(ts_iter: Iterable[datetime]) -> None:
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
     trimmed to the minute and grouped appropriately
@@ -72,7 +72,7 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     # Group timestamps down to the minute
-    for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_list).items():
+    for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_iter).items():
         key = MONITOR_VOLUME_HISTORY.format(ts=reference_ts)
 
         pipeline = redis_client.pipeline()
@@ -90,7 +90,7 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
     result = make_clock_tick_decision(tick)
 
     logger.info(
-        "monitors.system_incidents.process_clock_tick",
+        "process_clock_tick",
         extra={"decision": result.decision, "transition": result.transition},
     )
 
@@ -116,7 +116,7 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
         if start := get_last_incident_ts():
             prune_incident_check_in_volume(start, result.ts)
         else:
-            logger.error("monitors.system_incidents.recovered_without_start_ts")
+            logger.error("recovered_without_start_ts")
 
     return result
 
@@ -207,10 +207,12 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
 
     # Can't make any decisions if we didn't have data for the past minute
     if past_minute_volume is None:
+        logger.info("past_minute_volume_missing", extra={"reference_datetime": tick})
         return
 
     # We need AT LEAST two data points to calculate standard deviation
     if len(historic_volume) < 2:
+        logger.info("history_volume_low", extra={"reference_datetime": tick})
         return
 
     # Record some statistics about the past_minute_volume volume in comparison
@@ -242,7 +244,7 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
     metrics.gauge("monitors.task.volume_history.pct_deviation", pct_deviation, sample_rate=1.0)
 
     logger.info(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -511,7 +513,7 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
         pipeline.execute()
 
         logger.info(
-            "monitors.system_incidents.decision",
+            "clock_tick_decision",
             extra={
                 "reference_datetime": str(tick),
                 "decision": decision,
@@ -631,7 +633,7 @@ def _make_backfill(start: datetime, until_not: TickAnomalyDecision) -> Generator
 
     # If we've iterated through the entire BACKFILL_CUTOFF we have a
     # "decision runaway" and should report this as an error
-    logger.error("sentry.system_incidents.decision_backfill_runaway")
+    logger.error("decision_backfill_runaway")
 
 
 def _backfill_decisions(
@@ -663,7 +665,7 @@ def _backfill_decisions(
     return None
 
 
-def _make_reference_ts(ts: datetime):
+def _make_reference_ts(ts: datetime) -> int:
     """
     Produce a timestamp number with the seconds and microsecond removed
     """

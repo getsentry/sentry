@@ -80,7 +80,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     def link_user_handler(self, _: CommandInput) -> IntegrationResponse[str]:
         if self.request.has_identity():
             return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.HALTED,
+                interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
                 outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
                 context_data={
@@ -120,7 +120,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[str]:
         if not self.request.has_identity():
             return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.HALTED,
+                interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=NOT_LINKED_MESSAGE,
                 outcome_reason=str(MessageCommandHaltReason.NOT_LINKED),
             )

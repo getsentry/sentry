@@ -3,13 +3,12 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
-from functools import cached_property
 from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
-from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
@@ -17,6 +16,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
 from sentry.utils import metrics
+from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -44,24 +44,29 @@ class TaskNamespace:
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
-        self._producer: KafkaProducer | None = None
+        self._producer: SingletonProducer = SingletonProducer(
+            self._basic_producer, max_futures=1000
+        )
 
-    @cached_property
-    def producer(self) -> KafkaProducer:
-        if self._producer:
-            return self._producer
+    def _basic_producer(self) -> KafkaProducer:
         cluster_name = get_topic_definition(self.topic)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
-        self._producer = KafkaProducer(producer_config)
-
-        return self._producer
+        return KafkaProducer(producer_config)
 
     def get(self, name: str) -> Task[Any, Any]:
+        """
+        Get a registered task by name
+
+        Raises KeyError when an unknown task is provided.
+        """
         if name not in self._registered_tasks:
             raise KeyError(f"No task registered with the name {name}. Check your imports")
         return self._registered_tasks[name]
 
     def contains(self, name: str) -> bool:
+        """
+        Check if a task name has been registered
+        """
         return name in self._registered_tasks
 
     def register(
@@ -71,19 +76,50 @@ class TaskNamespace:
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
+        at_most_once: bool = False,
+        wait_for_delivery: bool = False,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
-        """register a task, used as a decorator"""
+        """
+        Register a task.
+
+        Applied as a decorator to functions to enable them to be run
+        asynchronously via taskworkers.
+
+        Parameters
+        ----------
+
+        name: str
+            The name of the task. This is serialized and must be stable across deploys.
+        retry: Retry | None
+            The retry policy for the task. If none and at_most_once is not enabled
+            the Task namespace default retry policy will be used.
+        expires: int | datetime.timedelta
+            The number of seconds a task activation is valid for. After this
+            duration the activation will be discarded and not executed.
+        at_most_once : bool
+            Enable at-most-once execution. Tasks with `at_most_once` cannot
+            define retry policies, and use a worker side idempotency key to
+            prevent processing deadline based retries.
+        wait_for_delivery: bool
+            If true, the task will wait for the delivery report to be received
+            before returning.
+        """
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
+            task_retry = retry
+            if not at_most_once:
+                task_retry = retry or self.default_retry
             task = Task(
                 name=name,
                 func=func,
                 namespace=self,
-                retry=retry or self.default_retry,
+                retry=task_retry,
                 expires=expires or self.default_expires,
                 processing_deadline_duration=(
                     processing_deadline_duration or self.default_processing_deadline_duration
                 ),
+                at_most_once=at_most_once,
+                wait_for_delivery=wait_for_delivery,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
@@ -92,13 +128,18 @@ class TaskNamespace:
 
         return wrapped
 
-    def send_task(self, activation: TaskActivation) -> None:
+    def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
-        # TODO(taskworker) producer callback handling
-        self.producer.produce(
+
+        produce_future = self._producer.produce(
             ArroyoTopic(name=self.topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
+        if wait_for_delivery:
+            try:
+                produce_future.result(timeout=10)
+            except Exception:
+                logger.exception("Failed to wait for delivery")
 
 
 class TaskRegistry:

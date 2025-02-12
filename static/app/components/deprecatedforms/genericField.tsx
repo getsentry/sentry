@@ -74,10 +74,10 @@ function GenericField({
     placeholder: config.placeholder,
     required,
     name: config.name,
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     error: formErrors?.[config.name],
     defaultValue: config.default,
     disabled: config.readonly,
-    key: config.name,
     formState,
     help:
       defined(config.help) && config.help !== '' ? (
@@ -87,24 +87,24 @@ function GenericField({
 
   switch (config.type) {
     case 'secret':
-      return <PasswordField {...fieldProps} />;
+      return <PasswordField key={config.name} {...fieldProps} />;
     case 'bool':
-      return <BooleanField {...fieldProps} />;
+      return <BooleanField key={config.name} {...fieldProps} />;
     case 'email':
-      return <EmailField {...fieldProps} />;
+      return <EmailField key={config.name} {...fieldProps} />;
     case 'string':
     case 'text':
     case 'url':
       if (fieldProps.choices) {
-        return <SelectCreatableField {...fieldProps} />;
+        return <SelectCreatableField key={config.name} {...fieldProps} />;
       }
-      return <TextField {...fieldProps} />;
+      return <TextField key={config.name} {...fieldProps} />;
     case 'number':
-      return <NumberField {...fieldProps} />;
+      return <NumberField key={config.name} {...fieldProps} />;
     case 'textarea':
-      return <TextareaField {...fieldProps} />;
+      return <TextareaField key={config.name} {...fieldProps} />;
     case 'choice':
-    case 'select':
+    case 'select': {
       // the chrome required tip winds up in weird places
       // for select elements, so just make it look like
       // it's required (with *) and rely on server validation
@@ -115,9 +115,10 @@ function GenericField({
           ...config,
           ...selectProps,
         };
-        return <SelectAsyncField {...selectFieldProps} />;
+        return <SelectAsyncField key={config.name} {...selectFieldProps} />;
       }
-      return <SelectField {...selectProps} />;
+      return <SelectField key={config.name} {...selectProps} />;
+    }
     default:
       return null;
   }

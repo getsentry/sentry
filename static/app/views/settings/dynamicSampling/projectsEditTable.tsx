@@ -1,69 +1,62 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type React from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
 
-import {Button} from 'sentry/components/button';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
-import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
-import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {
+  ProjectionSamplePeriod,
+  ProjectSampleCount,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
+  actions: React.ReactNode;
   editMode: 'single' | 'bulk';
   isLoading: boolean;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
+  period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
 }
 
 const {useFormField} = projectSamplingForm;
-const EMPTY_ARRAY = [];
+const EMPTY_ARRAY: any = [];
 
 export function ProjectsEditTable({
+  actions,
   isLoading: isLoadingProp,
   sampleCounts,
   editMode,
+  period,
   onEditModeChange,
 }: Props) {
   const {projects, fetching} = useProjects();
-  const hasAccess = useHasDynamicSamplingWriteAccess();
   const {value, initialValue, error, onChange} = useFormField('projectRates');
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const [orgRate, setOrgRate] = useState<string>('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
   const dataByProjectId = useMemo(
     () =>
-      sampleCounts.reduce(
-        (acc, item) => {
-          acc[item.project.id] = item;
-          return acc;
-        },
-        {} as Record<string, (typeof sampleCounts)[0]>
-      ),
+      mapArrayToObject({
+        array: sampleCounts,
+        keySelector: item => item.project.id,
+        valueSelector: item => item,
+      }),
     [sampleCounts]
   );
-
-  useEffect(() => {
-    if (isBulkEditEnabled) {
-      inputRef.current?.focus();
-    }
-  }, [isBulkEditEnabled]);
 
   const handleProjectChange = useCallback(
     (projectId: string, newRate: string) => {
@@ -77,13 +70,15 @@ export function ProjectsEditTable({
   );
 
   const handleOrgChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newRate = event.target.value;
+    (newRate: string) => {
+      // Editing the org rate will transition the logic to bulk edit mode
+      // On the first edit, we need to snapshot the current project rates as scaling baseline
+      // to avoid rounding errors when scaling the sample rates up and down
       if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
-      const cappedOrgRate = parsePercent(newRate, 1);
 
+      const cappedOrgRate = parsePercent(newRate, 1);
       const scalingItems = Object.entries(projectRateSnapshotRef.current)
         .map(([projectId, rate]) => ({
           id: projectId,
@@ -98,10 +93,13 @@ export function ProjectsEditTable({
         sampleRate: cappedOrgRate,
       });
 
-      const newProjectValues = scaledItems.reduce((acc, item) => {
-        acc[item.id] = formatPercent(item.sampleRate);
-        return acc;
-      }, {});
+      const newProjectValues = mapArrayToObject({
+        array: scaledItems,
+        keySelector: item => item.id,
+        valueSelector: item => formatPercent(item.sampleRate),
+      });
+
+      // Update the form state (project values) with the new sample rates
       onChange(prev => {
         return {...prev, ...newProjectValues};
       });
@@ -112,27 +110,28 @@ export function ProjectsEditTable({
     [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
 
-  const handleOrgBlur = useCallback(() => {
-    setIsBulkEditEnabled(false);
-    // Parse to ensure valid values
-    setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+  const handleBulkEditChange = useCallback((newIsActive: boolean) => {
+    setIsBulkEditEnabled(newIsActive);
+
+    // On exiting the bulk edit mode, we need to ensure the displayed org rate is a valid percentage
+    if (newIsActive === false) {
+      setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+    }
   }, []);
 
   const items = useMemo(
     () =>
       projects.map(project => {
-        const item = dataByProjectId[project.id] as
-          | (typeof dataByProjectId)[string]
-          | undefined;
+        const item = dataByProjectId[project.id];
         return {
           id: project.slug,
           name: project.slug,
           count: item?.count || 0,
           ownCount: item?.ownCount || 0,
           subProjects: item?.subProjects ?? EMPTY_ARRAY,
-          project: project,
-          initialSampleRate: initialValue[project.id],
-          sampleRate: value[project.id],
+          project,
+          initialSampleRate: initialValue[project.id]!,
+          sampleRate: value[project.id]!,
           error: error?.[project.id],
         };
       }),
@@ -144,7 +143,9 @@ export function ProjectsEditTable({
     [items]
   );
 
-  const projectedOrgRate = useMemo(() => {
+  // In bulk edit mode, we display the org rate from the input state
+  // In single edit mode, we display the estimated org rate based on the current sample rates
+  const displayedOrgRate = useMemo(() => {
     if (editMode === 'bulk') {
       return orgRate;
     }
@@ -165,26 +166,24 @@ export function ProjectsEditTable({
 
   const breakdownSampleRates = useMemo(
     () =>
-      Object.entries(value).reduce(
-        (acc, [projectId, rate]) => {
-          acc[projectId] = parsePercent(rate);
-          return acc;
-        },
-        {} as Record<string, number>
-      ),
+      mapArrayToObject({
+        array: Object.entries(value),
+        keySelector: ([projectId, _]) => projectId,
+        valueSelector: ([_, rate]) => parsePercent(rate),
+      }),
     [value]
-  );
-
-  const [activeItems, inactiveItems] = useMemo(
-    () => partition(items, item => item.count > 0 || item.initialSampleRate !== '100'),
-    [items]
   );
 
   const isLoading = fetching || isLoadingProp;
 
   return (
     <Fragment>
-      <BreakdownPanel>
+      <SamplingBreakdown
+        sampleCounts={sampleCounts}
+        sampleRates={breakdownSampleRates}
+        isLoading={isLoading}
+      />
+      <Panel>
         {isLoading ? (
           <LoadingIndicator
             css={css`
@@ -193,110 +192,38 @@ export function ProjectsEditTable({
           />
         ) : (
           <Fragment>
-            <BreakdownWrapper>
-              <SamplingBreakdown
-                sampleCounts={sampleCounts}
-                sampleRates={breakdownSampleRates}
-              />
-            </BreakdownWrapper>
-            <FieldGroup
+            <OrganizationSampleRateInput
               label={t('Estimated Organization Rate')}
               help={t('An estimate of the combined sample rate for all projects.')}
-              flexibleControlStateSize
-              alignRight
-            >
-              <InputWrapper>
-                <Tooltip
-                  disabled={hasAccess}
-                  title={t('You do not have permission to change the sample rate')}
-                >
-                  <PercentInput
-                    type="number"
-                    ref={inputRef}
-                    disabled={!hasAccess || !isBulkEditEnabled}
-                    size="sm"
-                    onChange={handleOrgChange}
-                    value={projectedOrgRate}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        inputRef.current?.blur();
-                      }
-                    }}
-                    onBlur={handleOrgBlur}
-                  />
-                </Tooltip>
-                <FlexRow>
-                  <PreviousValue>
-                    {initialOrgRate !== projectedOrgRate
-                      ? t('previous: %f%%', initialOrgRate)
-                      : // Placeholder char to prevent the line from collapsing
-                        '\u200b'}
-                  </PreviousValue>
-                  {hasAccess && !isBulkEditEnabled && (
-                    <BulkEditButton
-                      size="zero"
-                      tooltipProps={{
-                        position: 'bottom',
-                      }}
-                      title={t('Proportionally scale project rates')}
-                      priority="link"
-                      onClick={() => {
-                        setIsBulkEditEnabled(true);
-                      }}
-                    >
-                      {t('edit')}
-                    </BulkEditButton>
-                  )}
-                </FlexRow>
-              </InputWrapper>
-            </FieldGroup>
+              value={displayedOrgRate}
+              isBulkEditEnabled
+              isBulkEditActive={isBulkEditEnabled}
+              onBulkEditChange={handleBulkEditChange}
+              onChange={handleOrgChange}
+              showPreviousValue={initialOrgRate !== displayedOrgRate}
+              previousValue={initialOrgRate}
+            />
+            <ProjectsTable
+              rateHeader={t('Target Rate')}
+              canEdit={!isBulkEditEnabled}
+              onChange={handleProjectChange}
+              emptyMessage={t('No active projects found in the selected period.')}
+              period={period}
+              isLoading={isLoading}
+              items={items}
+            />
+            <Footer>{actions}</Footer>
           </Fragment>
         )}
-      </BreakdownPanel>
-
-      <ProjectsTable
-        rateHeader={t('Target Rate')}
-        canEdit={!isBulkEditEnabled}
-        onChange={handleProjectChange}
-        emptyMessage={t('No active projects found in the selected period.')}
-        isLoading={isLoading}
-        items={activeItems}
-        inactiveItems={inactiveItems}
-      />
+      </Panel>
     </Fragment>
   );
 }
 
-const BreakdownPanel = styled(Panel)`
-  margin-bottom: ${space(3)};
-`;
-
-const BreakdownWrapper = styled('div')`
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
-
-const InputWrapper = styled('div')`
+const Footer = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
   display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const FlexRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
-
-const PreviousValue = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.subText};
-`;
-
-const BulkEditButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: 0;
-  border: none;
+  justify-content: flex-end;
+  gap: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 `;

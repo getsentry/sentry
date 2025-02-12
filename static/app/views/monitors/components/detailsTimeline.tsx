@@ -5,23 +5,27 @@ import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
 } from 'sentry/actionCreators/monitors';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Monitor} from 'sentry/views/monitors/types';
+import type {Monitor, MonitorBucket} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
+import {useMonitorStats} from './../utils/useMonitorStats';
 import {OverviewRow} from './overviewTimeline/overviewRow';
-import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
-import {useMonitorStats} from './timeline/hooks/useMonitorStats';
-import {useTimeWindowConfig} from './timeline/hooks/useTimeWindowConfig';
-import type {MonitorBucket} from './timeline/types';
+import {CronServiceIncidents} from './serviceIncidents';
 
 interface Props {
   monitor: Monitor;
@@ -38,7 +42,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   const queryClient = useQueryClient();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -55,7 +60,7 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   });
 
   useEffect(
-    () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]),
+    () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]!),
     [onStatsLoaded, monitorStats, monitor.id]
   );
 
@@ -98,7 +103,7 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       }
 
       oldMonitorDetails.environments[oldMonitorEnvIdx] = {
-        ...oldMonitorDetails.environments[oldMonitorEnvIdx],
+        ...oldMonitorDetails.environments[oldMonitorEnvIdx]!,
         isMuted,
       };
       return oldMonitorDetails;
@@ -115,8 +120,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       <AlignedGridLineOverlay
         allowZoom
         showCursor
-        showIncidents
         timeWindowConfig={timeWindowConfig}
+        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
       />
       <OverviewRow
         monitor={monitor}
@@ -139,6 +144,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
+  z-index: 1;
 `;
 
 const TimelineWidthTracker = styled('div')`
@@ -153,7 +159,8 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const TimelineTitle = styled(Text)`
-  ${p => p.theme.text.cardTitle};
   padding: ${space(2)};
   grid-column: 1;
+  line-height: 1.2;
+  font-weight: bold;
 `;

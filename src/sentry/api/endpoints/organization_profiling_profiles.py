@@ -1,4 +1,3 @@
-import sentry_sdk
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -15,13 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.profiles.flamegraph import (
-    FlamegraphExecutor,
-    get_chunks_from_spans_metadata,
-    get_profile_ids,
-    get_profiles_with_function,
-    get_spans_from_group,
-)
+from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset, StorageKey
@@ -39,7 +32,9 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     # fingerprint is an UInt32
     fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
-    dataSource = serializers.ChoiceField(["transactions", "profiles", "functions"], required=False)
+    dataSource = serializers.ChoiceField(
+        ["transactions", "profiles", "functions", "spans"], required=False
+    )
     query = serializers.CharField(required=False)
     expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
 
@@ -59,6 +54,8 @@ class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
             )
         elif source == "profiles":
             attrs["dataSource"] = "profiles"
+        elif source == "spans":
+            attrs["dataSource"] = "spans"
         else:
             attrs["dataSource"] = "transactions"
 
@@ -70,36 +67,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
-
-        if not features.has(
-            "organizations:continuous-profiling-compat", organization, actor=request.user
-        ):
-            snuba_params = self.get_snuba_params(request, organization)
-
-            project_ids = snuba_params.project_ids
-            if len(project_ids) > 1:
-                raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
-
-            if request.query_params.get("fingerprint"):
-                sentry_sdk.set_tag("data source", "functions")
-                function_fingerprint = int(request.query_params["fingerprint"])
-
-                profile_ids = get_profiles_with_function(
-                    organization.id,
-                    project_ids[0],
-                    function_fingerprint,
-                    snuba_params,
-                    request.GET.get("query", ""),
-                )
-            else:
-                sentry_sdk.set_tag("data source", "profiles")
-                profile_ids = get_profile_ids(snuba_params, request.query_params.get("query", None))
-
-            return proxy_profiling_service(
-                method="POST",
-                path=f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
-                json_data=profile_ids,
-            )
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -160,38 +127,6 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
                 "start": str(int(snuba_params.start_date.timestamp() * 1e9)),
                 "end": str(int(snuba_params.end_date.timestamp() * 1e9)),
             },
-        )
-
-
-@region_silo_endpoint
-class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
-    def get(self, request: Request, organization: Organization) -> HttpResponse:
-        if not features.has("organizations:profiling", organization, actor=request.user):
-            return Response(status=404)
-
-        snuba_params = self.get_snuba_params(request, organization)
-
-        project_ids = snuba_params.project_ids
-        if len(project_ids) != 1:
-            raise ParseError(detail="one project_id must be specified.")
-
-        span_group = request.query_params.get("span_group")
-        if span_group is None:
-            raise ParseError(detail="span_group must be specified.")
-
-        spans = get_spans_from_group(
-            organization.id,
-            project_ids[0],
-            snuba_params,
-            span_group,
-        )
-
-        chunksMetadata = get_chunks_from_spans_metadata(organization.id, project_ids[0], spans)
-
-        return proxy_profiling_service(
-            method="POST",
-            path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks-flamegraph",
-            json_data={"chunks_metadata": chunksMetadata},
         )
 
 

@@ -405,7 +405,7 @@ class BaseView(View, OrganizationMixin):
 
         return self.handle(request, *args, **kwargs)
 
-    def test_csrf(self, request: HttpRequest) -> HttpResponse:
+    def test_csrf(self, request: HttpRequest) -> HttpResponseBase | None:
         middleware = CsrfViewMiddleware(placeholder_get_response)
         return middleware.process_view(request, self.dispatch, (request,), {})
 
@@ -467,8 +467,7 @@ class BaseView(View, OrganizationMixin):
         return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request: HttpRequest, **kwargs: Any) -> dict[str, Any]:
-        context = csrf(request)
-        return context
+        return csrf(request)
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,14 +14,13 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
   'device.class': string;
@@ -37,44 +35,24 @@ type Query = {
 
 function ScreenSummary() {
   const location = useLocation<Query>();
-  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
   const {transaction: transactionName} = location.query;
 
-  const crumbs = useModuleBreadcrumbs('mobile-ui');
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Screen Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>{transactionName}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
-
-        {isInDomainView && (
-          <MobileHeader
-            hideDefaultTabs={isMobileScreensEnabled}
-            module={ModuleName.MOBILE_SCREENS}
-            headerTitle={transactionName}
-            breadcrumbs={[
-              {
-                label: t('Screen Summary'),
-              },
-            ]}
-          />
-        )}
+        <MobileHeader
+          hideDefaultTabs={isMobileScreensEnabled}
+          module={ModuleName.MOBILE_VITALS}
+          headerTitle={transactionName}
+          breadcrumbs={[
+            {
+              label: t('Screen Summary'),
+            },
+          ]}
+        />
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -87,16 +65,28 @@ function ScreenSummary() {
 }
 
 export function ScreenSummaryContent() {
-  const location = useLocation<Query>();
   const router = useRouter();
+  const location = useLocation<Query>();
 
-  const {
-    transaction: transactionName,
-    spanGroup,
-    spanDescription,
-    spanOp,
-    'device.class': deviceClass,
-  } = location.query;
+  const {transaction: transactionName, spanGroup} = location.query;
+
+  useSamplesDrawer({
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.OTHER} />,
+    moduleName: ModuleName.OTHER,
+    requiredParams: ['spanGroup', 'spanOp'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(
+          router.location.query,
+          'spanGroup',
+          'transactionMethod',
+          'spanDescription',
+          'spanOp'
+        ),
+      });
+    },
+  });
 
   return (
     <Fragment>
@@ -114,46 +104,17 @@ export function ScreenSummaryContent() {
         <SamplesTables
           transactionName={transactionName}
           SpanOperationTable={SpanOperationTable}
-          // TODO(nar): Add event samples component specific to ui module
-          EventSamples={_props => <div />}
+          // for now, let's only show the span ops table
+          EventSamples={undefined}
         />
       </SamplesContainer>
-
-      {spanGroup && spanOp && (
-        <SpanSamplesPanel
-          additionalFilters={{
-            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-          }}
-          groupId={spanGroup}
-          moduleName={ModuleName.OTHER}
-          transactionName={transactionName}
-          spanDescription={spanDescription}
-          spanOp={spanOp}
-          onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(
-                router.location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            });
-          }}
-        />
-      )}
     </Fragment>
   );
 }
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="mobile-ui"
-      pageTitle={t('Screen Summary')}
-      features={['insights-addon-modules', 'starfish-mobile-ui-module']}
-    >
+    <ModulePageProviders moduleName="mobile-ui" pageTitle={t('Screen Summary')}>
       <ScreenSummary />
     </ModulePageProviders>
   );

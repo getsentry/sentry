@@ -29,7 +29,6 @@ import type {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -44,7 +43,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
@@ -176,7 +175,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    const baseEndpoints: Array<[string, string, any] | [string, string]> = [
       ['config', `/organizations/${organization.slug}/config/integrations/`],
       [
         'integrations',
@@ -318,8 +317,8 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
   getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
     const {category, search} = qs.parse(this.props.location.search);
 
-    const selectedCategory = Array.isArray(category) ? category[0] : category || '';
-    const searchInput = Array.isArray(search) ? search[0] : search || '';
+    const selectedCategory = Array.isArray(category) ? category[0]! : category || '';
+    const searchInput = Array.isArray(search) ? search[0]! : search || '';
 
     return {searchInput, selectedCategory};
   };
@@ -336,7 +335,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
       category: selectedCategory ? selectedCategory : undefined,
     });
 
-    browserHistory.replace({
+    this.props.router.replace({
       pathname: this.props.location.pathname,
       search: searchString ? `?${searchString}` : undefined,
     });
@@ -544,7 +543,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-        <PermissionAlert access={['org:integrations']} />
+        <OrganizationPermissionAlert access={['org:integrations']} />
         <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">

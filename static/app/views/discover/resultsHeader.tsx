@@ -132,7 +132,7 @@ class ResultsHeader extends Component<Props, State> {
   renderBanner() {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const to = eventView.getResultsViewUrlTarget(organization);
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
     return (
@@ -242,14 +242,12 @@ class ResultsHeader extends Component<Props, State> {
         >
           {({hasFeature}) =>
             hasFeature && (
-              <DatasetSelectorWrapper>
-                <DatasetSelectorTabs
-                  eventView={eventView}
-                  isHomepage={isHomepage}
-                  savedQuery={savedQuery}
-                  splitDecision={splitDecision}
-                />
-              </DatasetSelectorWrapper>
+              <DatasetSelectorTabs
+                eventView={eventView}
+                isHomepage={isHomepage}
+                savedQuery={savedQuery}
+                splitDecision={splitDecision}
+              />
             )
           }
         </Feature>
@@ -266,12 +264,6 @@ const Subtitle = styled('h4')`
 `;
 
 const BannerWrapper = styled('div')`
-  grid-column: 1 / -1;
-`;
-
-// Force the dataset selector to have the entire width of the grid
-// so it doesn't go into the overflow menu state when the window is small
-const DatasetSelectorWrapper = styled('div')`
   grid-column: 1 / -1;
 `;
 

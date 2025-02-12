@@ -12,13 +12,17 @@ import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
+import {
+  useExploreVisualizes,
+  useSetExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
-  useVisualizes,
-} from 'sentry/views/explore/hooks/useVisualizes';
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
@@ -36,12 +40,9 @@ type ParsedVisualize = {
   label: string;
 };
 
-interface ToolbarVisualizeProps {}
-
-export function ToolbarVisualize({}: ToolbarVisualizeProps) {
-  const [visualizes, setVisualizes] = useVisualizes();
-
-  const numberTags = useSpanTags('number');
+export function ToolbarVisualize() {
+  const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
 
   const parsedVisualizeGroups: ParsedVisualize[][] = useMemo(() => {
     return visualizes.map(visualize =>
@@ -57,31 +58,13 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<string>[] = useMemo(() => {
-    const options = Object.values(numberTags).map(tag => {
-      return {
-        label: tag.name,
-        value: tag.key,
-        textValue: tag.name,
-      };
-    });
+  const yAxes: string[] = useMemo(() => {
+    return visualizes.flatMap(visualize => visualize.yAxes);
+  }, [visualizes]);
 
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
 
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return options;
-  }, [numberTags]);
-
-  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
@@ -92,17 +75,17 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   }, []);
 
   const addChart = useCallback(() => {
-    setVisualizes([
-      ...visualizes,
-      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
-    ]);
+    setVisualizes(
+      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
+      DEFAULT_VISUALIZATION_FIELD
+    );
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes.push(DEFAULT_VISUALIZATION);
-      setVisualizes(newVisualizes);
+      newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
+      setVisualizes(newVisualizes, DEFAULT_VISUALIZATION_FIELD);
     },
     [setVisualizes, visualizes]
   );
@@ -110,9 +93,9 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const setChartField = useCallback(
     (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes[index] =
-        `${parsedVisualizeGroups[group][index].func.name}(${value})`;
-      setVisualizes(newVisualizes);
+      newVisualizes[group]!.yAxes[index] =
+        `${parsedVisualizeGroups[group]![index]!.func.name}(${value})`;
+      setVisualizes(newVisualizes, String(value));
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
@@ -120,8 +103,8 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const setChartAggregate = useCallback(
     (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes[index] =
-        `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
+      newVisualizes[group]!.yAxes[index] =
+        `${value}(${parsedVisualizeGroups[group]![index]!.func.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
@@ -182,18 +165,18 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
-                  <ColumnCompactSelect
-                    searchable
-                    options={fieldOptions}
-                    value={parsedVisualize.func.arguments[0]}
-                    onChange={newField => setChartField(group, index, newField)}
-                  />
                   <AggregateCompactSelect
                     options={aggregateOptions}
                     value={parsedVisualize.func.name}
                     onChange={newAggregate =>
                       setChartAggregate(group, index, newAggregate)
                     }
+                  />
+                  <ColumnCompactSelect
+                    searchable
+                    options={fieldOptions}
+                    value={parsedVisualize.func.arguments[0]}
+                    onChange={newField => setChartField(group, index, newField)}
                   />
                   <Button
                     borderless
@@ -229,7 +212,7 @@ const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  width: 32px;
+  width: 38px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};

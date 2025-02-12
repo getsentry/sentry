@@ -20,7 +20,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAMES = [
@@ -41,7 +41,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
@@ -359,43 +359,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             self.page.wait_until_loaded()
-
-    @pytest.mark.skip(reason="Flaky")
-    def test_duplicate_widget_in_view_mode(self):
-        existing_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            order=0,
-            title="Big Number Widget",
-            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
-            widget_type=DashboardWidgetTypes.DISCOVER,
-            interval="1d",
-        )
-        DashboardWidgetQuery.objects.create(
-            widget=existing_widget,
-            fields=["count_unique(issue)"],
-            columns=[],
-            aggregates=["count_unique(issue)"],
-            order=0,
-        )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_dashboard_detail()
-
-            # Hover over the widget to show widget actions
-            self.browser.move_to('[aria-label="Widget panel"]')
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
-            self.page.wait_until_loaded()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
-            self.page.wait_until_loaded()
-
-            # Should not trigger alert
-            self.page.enter_edit_state()
-            self.page.click_cancel_button()
-            wait = WebDriverWait(self.browser.driver, 5)
-            wait.until_not(EC.alert_is_present())
 
     def test_delete_widget_in_view_mode(self):
         existing_widget = DashboardWidget.objects.create(

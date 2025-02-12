@@ -5,9 +5,12 @@ import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getProjectOptions({
   organization,
@@ -112,4 +115,44 @@ export function shouldUseErrorsDiscoverDataset(
   }
 
   return dataset === Dataset.ERRORS;
+}
+
+export function getAlertRuleExploreUrl({
+  rule,
+  orgSlug,
+  period,
+  projectId,
+}: {
+  orgSlug: string;
+  period: string;
+  projectId: string;
+  rule: MetricRule;
+}) {
+  if (rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return '';
+  }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const interval = TIME_WINDOW_TO_INTERVAL[rule.timeWindow];
+
+  return getExploreUrl({
+    orgSlug,
+    selection: {
+      datetime: {
+        period: period === '9998m' ? '7d' : period,
+        start: null,
+        end: null,
+        utc: null,
+      },
+      environments: rule.environment ? [rule.environment] : [],
+      projects: [parseInt(projectId, 10)],
+    },
+    interval,
+    visualize: [
+      {
+        chartType: ChartType.LINE,
+        yAxes: [rule.aggregate],
+      },
+    ],
+    query: rule.query,
+  });
 }

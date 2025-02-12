@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
@@ -21,7 +20,6 @@ import {
   useEAPSpans,
   useSpanMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
   EAPNumberOfPipelinesChart,
   EAPPipelineDurationChart,
@@ -33,7 +31,6 @@ import {
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanFunction,
@@ -52,7 +49,6 @@ type Query = {
 };
 
 export function LLMMonitoringPage({params}: Props) {
-  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -120,46 +116,23 @@ export function LLMMonitoringPage({params}: Props) {
   );
   const tokenUsedMetric = (useEAP ? eapTokenData[0] : totalTokenData[0]) ?? {};
 
-  const crumbs = useModuleBreadcrumbs('ai');
-
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Pipeline Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>
-                {spanDescription}
-                <FeatureBadge type={RELEASE_LEVEL} />
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
-
-        {isInDomainView && (
-          <AiHeader
-            headerTitle={
-              <Fragment>
-                {spanDescription}
-                <FeatureBadge type={RELEASE_LEVEL} />
-              </Fragment>
-            }
-            breadcrumbs={[
-              {
-                label: t('Pipeline Summary'),
-              },
-            ]}
-            module={ModuleName.AI}
-          />
-        )}
+        <AiHeader
+          headerTitle={
+            <Fragment>
+              {spanDescription}
+              <FeatureBadge type={RELEASE_LEVEL} />
+            </Fragment>
+          }
+          breadcrumbs={[
+            {
+              label: t('Pipeline Summary'),
+            },
+          ]}
+          module={ModuleName.AI}
+        />
         <ModuleBodyUpsellHook moduleName={ModuleName.AI}>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -173,6 +146,7 @@ export function LLMMonitoringPage({params}: Props) {
                     <ReadoutRibbon>
                       <MetricReadout
                         title={t('Total Tokens Used')}
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={tokenUsedMetric['sum(ai.total_tokens.used)']}
                         unit={'count'}
                         isLoading={
@@ -182,6 +156,7 @@ export function LLMMonitoringPage({params}: Props) {
 
                       <MetricReadout
                         title={t('Total Cost')}
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={tokenUsedMetric['sum(ai.total_cost)']}
                         unit={CurrencyUnit.USD}
                         isLoading={
@@ -191,6 +166,7 @@ export function LLMMonitoringPage({params}: Props) {
 
                       <MetricReadout
                         title={t('Pipeline Duration')}
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
                         unit={DurationUnit.MILLISECOND}
                         isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
@@ -198,6 +174,7 @@ export function LLMMonitoringPage({params}: Props) {
 
                       <MetricReadout
                         title={t('Pipeline Runs Per Minute')}
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={spanMetrics?.[`${SpanFunction.SPM}()`]}
                         unit={RateUnit.PER_MINUTE}
                         isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
@@ -240,11 +217,7 @@ export function LLMMonitoringPage({params}: Props) {
 
 function PageWithProviders({params}: Props) {
   return (
-    <ModulePageProviders
-      moduleName="ai"
-      pageTitle={t('Pipeline Summary')}
-      features="insights-addon-modules"
-    >
+    <ModulePageProviders moduleName="ai" pageTitle={t('Pipeline Summary')}>
       <LLMMonitoringPage params={params} />
     </ModulePageProviders>
   );

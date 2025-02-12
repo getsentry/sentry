@@ -76,7 +76,7 @@ class DiscordClient(ApiClient):
 
     def get_guild_name(self, guild_id: str) -> str:
         response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
-        return response["name"]  # type: ignore[index]
+        return response["name"]
 
     def get_access_token(self, code: str, url: str):
         data = {
@@ -91,8 +91,7 @@ class DiscordClient(ApiClient):
             "Content-Type": "application/x-www-form-urlencoded",
         }
         response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-        access_token = response["access_token"]  # type: ignore[index]
-        return access_token
+        return response["access_token"]
 
     def get_user_id(self, access_token: str):
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -100,8 +99,7 @@ class DiscordClient(ApiClient):
             USER_URL,
             headers=headers,
         )
-        user_id = response["id"]  # type: ignore[index]
-        return user_id
+        return response["id"]
 
     def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
         headers = {"Authorization": f"Bearer {access_token}"}

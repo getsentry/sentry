@@ -1,9 +1,4 @@
 import {t} from 'sentry/locale';
-import type {
-  ActivationConditionType,
-  AlertRuleActivation,
-  MonitorType,
-} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -118,10 +113,8 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
-  activationCondition?: ActivationConditionType;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
-  monitorType?: MonitorType;
   monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
@@ -131,7 +124,6 @@ export type UnsavedMetricRule = {
 
 // Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
-  activations: AlertRuleActivation[];
   dateCreated: string;
   dateModified: string;
   id: string;
@@ -139,7 +131,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   snooze: boolean;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   /**
    * Returned with the expand=latestIncident query parameter
    */

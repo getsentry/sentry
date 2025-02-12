@@ -2,12 +2,12 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -62,7 +62,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
         .map(key => [
           key,
           {
-            ...supportedTags[key],
+            ...supportedTags[key]!,
             kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
           },
         ])
@@ -126,9 +126,9 @@ function ReplaySearchBar(props: Props) {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: start,
-      end: end,
-      statsPeriod: statsPeriod,
+      start,
+      end,
+      statsPeriod,
     },
     {}
   );
@@ -154,9 +154,9 @@ function ReplaySearchBar(props: Props) {
       }
 
       const endpointParams = {
-        start: start,
-        end: end,
-        statsPeriod: statsPeriod,
+        start,
+        end,
+        statsPeriod,
       };
 
       return fetchTagValues({
@@ -169,9 +169,7 @@ function ReplaySearchBar(props: Props) {
         includeReplays: true,
       }).then(
         tagValues =>
-          (tagValues as TagValue[])
-            .filter(tagValue => tagValue.name !== '')
-            .map(({value}) => value),
+          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }

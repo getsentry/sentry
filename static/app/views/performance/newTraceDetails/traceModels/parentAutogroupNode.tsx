@@ -1,5 +1,3 @@
-import {isSpanNode} from '../traceGuards';
-
 import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
 
@@ -9,7 +7,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   groupCount: number = 0;
   profiles: TraceTree.Profile[] = [];
 
-  private _autogroupedSegments: [number, number][] | undefined;
+  private _autogroupedSegments: Array<[number, number]> | undefined;
 
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -25,12 +23,12 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     this.tail = tail;
   }
 
-  get autogroupedSegments(): [number, number][] {
+  get autogroupedSegments(): Array<[number, number]> {
     if (this._autogroupedSegments) {
       return this._autogroupedSegments;
     }
 
-    const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const children: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
     let start: TraceTreeNode<TraceTree.NodeValue> | undefined = this.head;
 
     while (start && start !== this.tail) {
@@ -49,30 +47,22 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 // It looks for gaps between spans and creates a segment for each gap. If there are no gaps, it
 // merges the n and n+1 segments.
 export function computeCollapsedBarSpace(
-  nodes: TraceTreeNode<TraceTree.NodeValue>[]
-): [number, number][] {
+  nodes: Array<TraceTreeNode<TraceTree.NodeValue>>
+): Array<[number, number]> {
   if (nodes.length === 0) {
     return [];
   }
 
-  const first = nodes[0];
+  const first = nodes[0]!;
 
-  if (!isSpanNode(first)) {
-    throw new Error('Autogrouped node must have span children');
-  }
-
-  const segments: [number, number][] = [];
+  const segments: Array<[number, number]> = [];
 
   let start = first.space[0];
   let end = first.space[0] + first.space[1];
   let i = 1;
 
   while (i < nodes.length) {
-    const next = nodes[i];
-
-    if (!isSpanNode(next)) {
-      throw new Error('Autogrouped node must have span children');
-    }
+    const next = nodes[i]!;
 
     if (next.space[0] > end) {
       segments.push([start, end - start]);

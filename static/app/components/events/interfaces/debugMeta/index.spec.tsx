@@ -161,13 +161,13 @@ describe('DebugMeta', function () {
     screen.getByRole('heading', {name: 'Images Loaded'});
     await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
     expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
-    expect(screen.getByText(secondImage?.debug_file as string)).toBeInTheDocument();
+    expect(screen.getByText(secondImage?.debug_file)).toBeInTheDocument();
 
     const filterButton = screen.getByRole('button', {name: '2 Active Filters'});
     expect(filterButton).toBeInTheDocument();
     await userEvent.click(filterButton);
     await userEvent.click(screen.getByRole('option', {name: 'Missing'}));
     expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
-    expect(screen.queryByText(secondImage?.debug_file as string)).not.toBeInTheDocument();
+    expect(screen.queryByText(secondImage?.debug_file)).not.toBeInTheDocument();
   });
 });

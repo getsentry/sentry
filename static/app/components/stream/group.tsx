@@ -142,7 +142,7 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
       tooltipPrefix={label}
       date={date}
       suffix="ago"
-      unitStyle="extraShort"
+      unitStyle="short"
     />
   );
 }
@@ -184,7 +184,7 @@ function BaseGroupRow({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label.toLowerCase() ??
+    customStatsPeriod?.label?.toLowerCase() ??
     (!!start && !!end
       ? 'time range'
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
@@ -264,22 +264,22 @@ function BaseGroupRow({
     [group]
   );
 
-  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
 
     return group.filtered
-      ? group.filtered.stats?.[statsPeriod]
-      : group.stats?.[statsPeriod];
+      ? group.filtered.stats?.[statsPeriod]!
+      : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
-  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupSecondaryStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
 
-    return group.filtered ? group.stats?.[statsPeriod] : [];
+    return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
   if (!group) {
@@ -325,7 +325,7 @@ function BaseGroupRow({
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
       return discoverView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
       );
@@ -386,7 +386,7 @@ function BaseGroupRow({
     // Original state had an inbox reason
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
-    !group!.inbox &&
+    !group.inbox &&
     // Only apply reviewed on the "for review" tab
     isForReviewQuery(query);
 
@@ -410,6 +410,7 @@ function BaseGroupRow({
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
     [IssueCategory.UPTIME]: t('Uptime Events'),
+    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -844,6 +845,7 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
 `;
 
 const CountsWrapper = styled('div')`
+  position: relative;
   display: flex;
   flex-direction: column;
 `;
@@ -860,7 +862,7 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-variant-numeric: tabular-nums;
 `;
 
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)<{
   hasNewLayout?: boolean;
 }>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};

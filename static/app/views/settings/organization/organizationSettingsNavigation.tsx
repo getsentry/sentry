@@ -22,7 +22,6 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
   state: State = this.getHooks();
 
   componentDidMount() {
-    // eslint-disable-next-line react/no-did-mount-set-state
     this.setState(this.getHooks());
   }
 
@@ -39,7 +38,10 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
    * We should update the hook interface for the two hooks used here
    */
   unsubscribe = HookStore.listen(
-    (hookName: HookName, hooks: Hooks['settings:organization-navigation-config'][]) => {
+    (
+      hookName: HookName,
+      hooks: Array<Hooks['settings:organization-navigation-config']>
+    ) => {
       this.handleHooks(hookName, hooks);
     },
     undefined
@@ -59,7 +61,10 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
     };
   }
 
-  handleHooks(name: HookName, hooks: Hooks['settings:organization-navigation-config'][]) {
+  handleHooks(
+    name: HookName,
+    hooks: Array<Hooks['settings:organization-navigation-config']>
+  ) {
     const org = this.props.organization;
     if (name !== 'settings:organization-navigation-config') {
       return;
@@ -68,11 +73,12 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
   }
 
   render() {
-    const {hooks, hookConfigs} = this.state as State;
+    const {hooks, hookConfigs} = this.state;
     const {organization} = this.props as Props;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+
     return (
       <SettingsNavigation
         navigationObjects={navigationConfiguration}
