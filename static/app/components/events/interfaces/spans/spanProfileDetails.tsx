@@ -146,7 +146,7 @@ export function useSpanProfileDetails(
 
       if (defined(profileContext.profile_id)) {
         return generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profileId: profileContext.profile_id,
           query: {
@@ -157,7 +157,7 @@ export function useSpanProfileDetails(
 
       if (defined(profileContext.profiler_id)) {
         return generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profilerId: profileContext.profiler_id,
           start: new Date(event.startTimestamp * 1000).toISOString(),

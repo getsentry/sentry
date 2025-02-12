@@ -41,7 +41,7 @@ function trailToCrumb(
           // cursor and query are not used in the landing page
           // and break the API call as the qs gets forwarded to the API
           query: omit(trail.payload.query, ['cursor', 'query']),
-          orgSlug: organization.slug,
+          organization,
         }),
         label: t('Profiling'),
         preservePageFilters: true,
@@ -53,7 +53,7 @@ function trailToCrumb(
           // cursor and query are not used in the summary page
           // and break the API call as the qs gets forwarded to the API
           query: omit(trail.payload.query, ['cursor', 'query']),
-          orgSlug: organization.slug,
+          organization,
           projectSlug: trail.payload.projectSlug,
           transaction: trail.payload.transaction,
         }),
@@ -65,7 +65,7 @@ function trailToCrumb(
       return {
         to: generateProfileFlamechartRouteWithQuery({
           query: trail.payload.query,
-          orgSlug: organization.slug,
+          organization,
           projectSlug: trail.payload.projectSlug,
           profileId: trail.payload.profileId,
         }),

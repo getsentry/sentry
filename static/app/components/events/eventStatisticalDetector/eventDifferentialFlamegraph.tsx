@@ -155,7 +155,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
       return (
         generateProfileRouteFromProfileReference({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: props.project.slug,
           reference: profile,
           framePackage: frame.frame.package,
@@ -163,7 +163,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         }) ?? ''
       );
     },
-    [organization.slug, props.project]
+    [organization, props.project]
   );
 
   return (

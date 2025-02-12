@@ -242,7 +242,7 @@ function FunctionTrendsEntry({
     // the same bucket as the breakpoint.
 
     const beforeTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: beforeExamples[beforeExamples.length - 2]![1],
       frameName: func.function,
@@ -256,7 +256,7 @@ function FunctionTrendsEntry({
     );
 
     const afterTarget = generateProfileRouteFromProfileReference({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: project.slug,
       reference: afterExamples[afterExamples.length - 2]![1],
       frameName: func.function,

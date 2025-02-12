@@ -1,4 +1,5 @@
 import type {LocationDescriptor} from 'history';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {TraceTree} from '../traceModels/traceTree';
 import {TraceTreeNode} from '../traceModels/traceTreeNode';
@@ -35,7 +36,7 @@ describe('traceProfilingLink', () => {
       expect(
         makeTraceContinuousProfilingLink(node, event.profiler_id, {
           projectSlug: 'project',
-          orgSlug: '',
+          organization: OrganizationFixture(),
           traceId: '',
           threadId: '0',
         })
@@ -46,7 +47,7 @@ describe('traceProfilingLink', () => {
       expect(
         makeTraceContinuousProfilingLink(node, event.profiler_id, {
           projectSlug: '',
-          orgSlug: 'sentry',
+          organization: OrganizationFixture({slug: 'sentry'}),
           traceId: '',
           threadId: '0',
         })
@@ -57,7 +58,7 @@ describe('traceProfilingLink', () => {
         // @ts-expect-error missing profiler_id
         makeTraceContinuousProfilingLink(node, undefined, {
           projectSlug: 'project',
-          orgSlug: 'sentry',
+          organization: OrganizationFixture({slug: 'sentry'}),
         })
       ).toBeNull();
     });
@@ -84,7 +85,7 @@ describe('traceProfilingLink', () => {
       'profiler',
       {
         projectSlug: 'project',
-        orgSlug: 'sentry',
+        organization: OrganizationFixture({slug: 'sentry'}),
         traceId: 'trace',
         threadId: '0',
       }

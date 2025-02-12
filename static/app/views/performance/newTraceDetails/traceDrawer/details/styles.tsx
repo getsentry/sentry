@@ -977,10 +977,10 @@ function NodeActions(props: {
       return null;
     }
     return makeTransactionProfilingLink(profileId, {
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.node.metadata.project_slug ?? '',
     });
-  }, [props.node, props.organization]);
+  }, [organization, props.node]);
 
   const continuousProfileTarget = useMemo(() => {
     const profilerId = isTransactionNode(props.node)
@@ -992,12 +992,12 @@ function NodeActions(props: {
       return null;
     }
     return makeTraceContinuousProfilingLink(props.node, profilerId, {
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.node.metadata.project_slug ?? '',
       traceId: params.traceSlug ?? '',
       threadId: getThreadIdFromNode(props.node, transaction),
     });
-  }, [params.traceSlug, props.node, props.organization, transaction]);
+  }, [organization, params.traceSlug, props.node, transaction]);
 
   if (!hasNewTraceUi) {
     return (

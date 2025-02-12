@@ -220,7 +220,7 @@ function TableEntry({
                   source: `${analyticsPageSource}.suspect_functions_table`,
                 }),
               target: generateProfileRouteFromProfileReference({
-                orgSlug: organization.slug,
+                organization,
                 projectSlug: project?.slug || '',
                 reference: example,
                 // specify the frame to focus, the flamegraph will switch
