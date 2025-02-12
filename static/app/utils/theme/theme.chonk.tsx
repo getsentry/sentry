@@ -1,3 +1,115 @@
+function _generateChonkTokens(colorScheme: typeof _chonkLightColors) {
+  return {
+    token: {
+      static: {
+        text: {
+          primary: colorScheme.dynamic.grayTransparent500,
+          secondary: colorScheme.dynamic.grayTransparent400,
+          accent: colorScheme.dynamic.blurple400,
+          success: colorScheme.dynamic.green400,
+          warning: colorScheme.dynamic.gold400,
+          danger: colorScheme.dynamic.red400,
+        },
+        graphic: {
+          icon: {
+            primary: colorScheme.dynamic.grayTransparent500,
+            secondary: colorScheme.dynamic.grayTransparent400,
+            tertiary: colorScheme.dynamic.grayTransparent300,
+            quaternary: colorScheme.dynamic.grayTransparent200,
+            accent: colorScheme.static.blurple400,
+            success: colorScheme.static.green100,
+            warning: colorScheme.static.gold100,
+            danger: colorScheme.static.red400,
+          },
+          chart: {
+            annotation: {
+              axisLabel: colorScheme.dynamic.grayOpaque400,
+            },
+            canvas: {
+              lineGrid: colorScheme.dynamic.grayOpaque100,
+            },
+          },
+        },
+        background: {
+          primary: colorScheme.dynamic.surface400,
+          secondary: colorScheme.dynamic.surface300,
+          tertiary: colorScheme.dynamic.surface200,
+        },
+        border: {
+          primary: colorScheme.dynamic.surface100,
+          secondary: colorScheme.dynamic.surface200,
+        },
+      },
+      interactive: {
+        outline: {
+          default: {
+            color: colorScheme.static.blurple400,
+          },
+          danger: {
+            color: colorScheme.static.red400,
+          },
+        },
+        link: {
+          accent: {
+            color: {
+              default: colorScheme.dynamic.blurple400,
+              hover: colorScheme.dynamic.blurple400,
+              active: colorScheme.dynamic.blurple400,
+            },
+          },
+        },
+        button: {
+          default: {
+            chonk: colorScheme.dynamic.surface100,
+            children: colorScheme.dynamic.grayTransparent500,
+            background: {
+              default: colorScheme.dynamic.surface400,
+              hover: colorScheme.dynamic.surface300,
+              active: colorScheme.dynamic.surface200,
+            },
+          },
+          transparent: {
+            chonk: colorScheme.dynamic.surface100,
+            children: colorScheme.dynamic.grayTransparent500,
+            background: {
+              default: colorScheme.dynamic.surface400,
+              hover: colorScheme.dynamic.surface300,
+              active: colorScheme.dynamic.surface200,
+            },
+          },
+          accent: {
+            chonk: colorScheme.dynamic.blurple100,
+            children: colorScheme.static.white,
+            background: {
+              default: colorScheme.static.blurple400,
+              hover: colorScheme.static.blurple300,
+              active: colorScheme.static.blurple200,
+            },
+          },
+          warning: {
+            chonk: colorScheme.dynamic.gold100,
+            children: colorScheme.static.black,
+            background: {
+              default: colorScheme.static.gold400,
+              hover: colorScheme.static.gold300,
+              active: colorScheme.static.gold200,
+            },
+          },
+          danger: {
+            chonk: colorScheme.dynamic.red100,
+            children: colorScheme.static.white,
+            background: {
+              default: colorScheme.static.red400,
+              hover: colorScheme.static.red300,
+              active: colorScheme.static.red200,
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 const _chonkShared = {
   space: {
     // @TODO(jonasbadalic): none doesn't need to exist
