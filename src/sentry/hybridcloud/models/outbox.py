@@ -407,11 +407,7 @@ class OutboxBase(Model):
         # We avoid selecting messages that are reserved in self._reserve_messages_for_processing().
         # Lock the row immediately to prevent concurrent processing.
         coalesced = (
-            self.select_coalesced_messages()
-            .filter(scheduled_for__lte=current_time)
-            .select_for_update(nowait=True)
-            .order_by("-id")
-            .first()
+            self.select_coalesced_messages().select_for_update(nowait=True).order_by("-id").first()
         )
         if coalesced is None:
             return None, None
@@ -422,11 +418,7 @@ class OutboxBase(Model):
         # fall back to the representative record.
         # We avoid selecting messages that are reserved in self._reserve_messages_for_processing().
         first_coalesced = (
-            self.select_coalesced_messages()
-            .filter(scheduled_for__lte=current_time)
-            .select_for_update(nowait=True)
-            .order_by("id")
-            .first()
+            self.select_coalesced_messages().select_for_update(nowait=True).order_by("id").first()
         ) or coalesced
         return coalesced, first_coalesced
 
