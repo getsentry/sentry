@@ -123,6 +123,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         monitor_environment=monitor_environment,
         status=CheckInStatus.MISSED,
         date_added=expected_time,
+        date_clock=ts,
         expected_time=expected_time,
         monitor_config=monitor.get_validated_config(),
     )
