@@ -436,13 +436,13 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 class SnubaQueryValidatorTest(TestCase):
     def setUp(self):
         self.valid_data = {
-            "query_type": SnubaQuery.Type.ERROR.value,
+            "queryType": SnubaQuery.Type.ERROR.value,
             "dataset": Dataset.Events.value,
             "query": "test query",
             "aggregate": "count()",
-            "time_window": 60,
+            "timeWindow": 60,
             "environment": self.environment.name,
-            "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+            "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
         }
         self.context = {
             "organization": self.project.organization,
@@ -476,7 +476,7 @@ class SnubaQueryValidatorTest(TestCase):
 
     def test_invalid_query_type(self):
         invalid_query_type = 666
-        self.valid_data["query_type"] = invalid_query_type
+        self.valid_data["queryType"] = invalid_query_type
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("queryType") == [
