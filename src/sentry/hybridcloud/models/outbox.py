@@ -60,6 +60,34 @@ def _ensure_not_null(k: str, v: Any) -> Any:
     return v
 
 
+def get_coalesced_reservation_window() -> int:
+    """
+    Get the configured reservation window for coalesced outbox messages.
+
+    The reservation window is the time period (in minutes) for which messages are reserved
+    during processing to prevent other workers from picking them up.
+
+    Returns:
+        int: The reservation window in minutes. Defaults to 60 minutes if:
+            - The option is not set
+            - The option value is None
+            - The option value is negative
+            - Any error occurs while retrieving/parsing the option
+    """
+    try:
+        coalesced_reservation_window = options.get(
+            "hybrid_cloud.outbox.coalesced_reservation_window"
+        )
+        if coalesced_reservation_window is None:
+            return 60
+        coalesced_reservation_window = int(coalesced_reservation_window)
+        if coalesced_reservation_window < 0:
+            return 60
+        return coalesced_reservation_window
+    except Exception:
+        return 60
+
+
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
@@ -417,7 +445,9 @@ class OutboxBase(Model):
         # In practice, every worker is expected to only select and process messages with a scheduled_for timestamp
         # that is in the past (or otherwise eligible). As long as all processes honor this rule, no worker will
         # pick up these reserved rows until the reserved time has passed.
-        new_scheduled_for = current_time + datetime.timedelta(hours=1)
+        new_scheduled_for = current_time + datetime.timedelta(
+            minutes=get_coalesced_reservation_window()
+        )
         self.objects.filter(id__in=all_ids + [coalesced.id]).update(scheduled_for=new_scheduled_for)
         return new_scheduled_for
 
