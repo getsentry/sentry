@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 
@@ -15,20 +14,7 @@ function scrollDisable(newLocation: Location, prevLocation: Location) {
 }
 
 function SettingsWrapper({location, children}: Props) {
-  const organization = useOrganization({
-    allowNull: true,
-  });
   useScrollToTop({location, disable: scrollDisable});
-
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
-  if (hasNavigationV2) {
-    return (
-      <StyledSettingsWrapper>
-        <BreadcrumbProvider>{children}</BreadcrumbProvider>
-      </StyledSettingsWrapper>
-    );
-  }
 
   return (
     <StyledSettingsWrapper>
