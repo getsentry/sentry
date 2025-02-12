@@ -51,6 +51,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
       'input',
       throttle(e => {
         root.render(
+          /**
+           * The screens and components rendering here will always render in light mode.
+           * This is because config is not available at this point (user might not be logged in yet),
+           * and so we dont know which theme to pick.
+           */
           <ThemeAndStyleProvider>
             <PasswordStrength value={e.target.value} />
           </ThemeAndStyleProvider>
@@ -75,6 +80,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
       // TODO(ts): Unsure how to type this, complains about u2fsign's required props
       renderDom(
         (props: any) => (
+          /**
+           * The screens and components rendering here will always render in light mode.
+           * This is because config is not available at this point (user might not be logged in yet),
+           * and so we dont know which theme to pick.
+           */
           <ThemeAndStyleProvider>
             <Component {...props} />
           </ThemeAndStyleProvider>
