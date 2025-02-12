@@ -58,6 +58,7 @@ class RpcProject(RpcModel):
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
     platform: str | None = None
+    external_id: str | None = None
 
     def get_option(
         self,
