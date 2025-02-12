@@ -433,7 +433,11 @@ export const subregionCodeToName = {
 export type SubregionCode = keyof typeof subregionCodeToName;
 
 export type OurlogsFields = {
+  'log.severity_number': number;
   'sentry.body': string;
+  'sentry.organization_id': number;
+  'sentry.project_id': number;
   'sentry.severity_text': string;
+  'sentry.span_id': string;
   'sentry.timestamp': string;
 };

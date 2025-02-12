@@ -14,14 +14,17 @@ export function defaultFields(): string[] {
   ];
 }
 
-export function getFieldsFromLocation(location: Location): string[] {
+export function getFieldsFromLocation(
+  location: Location,
+  locationDefaultFields: () => string[] = defaultFields
+): string[] {
   const fields = decodeList(location.query.field);
 
   if (fields.length) {
     return fields;
   }
 
-  return defaultFields();
+  return locationDefaultFields();
 }
 
 export function updateLocationWithFields(
