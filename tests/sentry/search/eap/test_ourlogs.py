@@ -89,7 +89,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("log.severity_number:[123,456,789]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_IN,
                 value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
             )
@@ -100,7 +100,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("log.severity_number:>123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_GREATER_THAN,
                 value=AttributeValue(val_double=123),
             )
