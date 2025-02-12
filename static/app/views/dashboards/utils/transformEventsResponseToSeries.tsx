@@ -7,7 +7,7 @@ import type {
 
 import type {WidgetQuery} from '../types';
 
-import {transformEventsStatsToSeries} from './transformSeries';
+import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
 
 type SeriesWithOrdering = [order: number, series: Series];
 
