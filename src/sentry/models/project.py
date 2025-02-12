@@ -253,6 +253,9 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
+    # external_id for the projects managed/provisioned through the 3rd party
+    external_id = models.CharField(max_length=256, null=True)
+
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
         # bitfield flags are dependent on their order and inserting/removing
