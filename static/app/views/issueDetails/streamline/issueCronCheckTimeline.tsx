@@ -1,15 +1,18 @@
-import {useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
+  Gridline,
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {Flex} from 'sentry/components/container/flex';
+import {Tooltip} from 'sentry/components/tooltip';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -19,7 +22,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import {CheckInStatus, type MonitorBucket} from 'sentry/views/monitors/types';
@@ -64,18 +66,11 @@ export function useCronIssueAlertId({groupId}: {groupId: string}): string | unde
     : event?.tags?.find(({key}) => key === 'monitor.id')?.value;
 }
 
-function useCronLegendStatuses({
-  bucketStats,
-  environments = [],
-}: {
-  bucketStats: MonitorBucket[];
-  environments?: string[];
-}) {
+function useCronLegendStatuses({bucketStats}: {bucketStats: MonitorBucket[]}) {
   /**
    * Extract a list of statuses that have occurred at least once in the bucket stats.
    */
   return useMemo(() => {
-    const environmentSet = new Set(environments);
     const statusMap: Record<CheckInStatus, boolean> = {
       [CheckInStatus.OK]: true,
       [CheckInStatus.ERROR]: false,
@@ -85,15 +80,10 @@ function useCronLegendStatuses({
       [CheckInStatus.UNKNOWN]: false,
     };
     bucketStats?.forEach(([_timestamp, bucketEnvMapping]) => {
-      const bucketEnvMappingEntries = Object.entries(bucketEnvMapping) as Array<
-        [string, StatsBucket<CheckInStatus>]
+      const bucketEnvMappingEntries = Object.values(bucketEnvMapping) as Array<
+        StatsBucket<CheckInStatus>
       >;
-      for (const [environment, statBucket] of bucketEnvMappingEntries) {
-        // Ignore stats from other environments if specified, otherwise show all
-        if (environmentSet.size > 0 && !environmentSet.has(environment)) {
-          continue;
-        }
-
+      for (const statBucket of bucketEnvMappingEntries) {
         const statBucketEntries = Object.entries(statBucket) as Array<
           [CheckInStatus, number]
         >;
@@ -104,32 +94,44 @@ function useCronLegendStatuses({
         }
       }
     });
-    return Object.keys(statusMap).filter(status => statusMap[status as CheckInStatus]);
-  }, [bucketStats, environments]);
+    return (Object.keys(statusMap) as CheckInStatus[]).filter(
+      status => statusMap[status]
+    );
+  }, [bucketStats]);
 }
 
-export function IssueCronCheckTimeline({group}: {group: Group}) {
+export function IssueCronCheckTimeline({group}: {group: Group; event?: Event}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
-  const cronAlertId = useCronIssueAlertId({groupId: group.id});
-  const eventView = useIssueDetailsEventView({group});
 
-  const {data: cronStats, isPending} = useMonitorStats({
+  const cronAlertId = useCronIssueAlertId({groupId: group.id});
+  const {data: stats, isPending} = useMonitorStats({
     monitors: cronAlertId ? [cronAlertId] : [],
     timeWindowConfig,
   });
 
+  const cronStats = useMemo(() => {
+    if (!cronAlertId) {
+      return [];
+    }
+    return stats?.[cronAlertId] ?? [];
+  }, [cronAlertId, stats]);
+
+  const statEnvironments = useMemo(() => {
+    const envSet = cronStats.reduce((acc, [_, envs]) => {
+      return new Set([...acc, ...Object.keys(envs)]);
+    }, new Set<string>());
+    return [...(envSet ?? [])];
+  }, [cronStats]);
+
   const legendStatuses = useCronLegendStatuses({
-    bucketStats: cronStats?.[cronAlertId ?? ''] ?? [],
-    environments: (eventView.environment as string[]) ?? [],
+    bucketStats: cronStats,
   });
 
-  const stats = cronAlertId ? cronStats?.[cronAlertId] : [];
-
   return (
-    <ChartContainer>
+    <ChartContainer envCount={statEnvironments.length}>
       <TimelineLegend ref={elementRef}>
         {!isPending &&
           legendStatuses.map(status => (
@@ -141,36 +143,60 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
             </Flex>
           ))}
       </TimelineLegend>
-      <GridLineOverlay
+      <IssueGridLineOverlay
         stickyCursor
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
         labelPosition="center-bottom"
+        envCount={statEnvironments.length}
       />
-      <GridLineLabels timeWindowConfig={timeWindowConfig} labelPosition="center-bottom" />
+      <IssueGridLineLabels
+        timeWindowConfig={timeWindowConfig}
+        labelPosition="center-bottom"
+        envCount={statEnvironments.length}
+      />
       <TimelineContainer>
         {isPending ? (
           <CheckInPlaceholder />
         ) : (
-          <CheckInTimeline
-            // TODO(leander): Use the environment from the event view
-            bucketedData={stats ? selectCheckInData(stats, 'prod') : []}
-            statusLabel={statusToText}
-            statusStyle={tickStyle}
-            statusPrecedent={checkInStatusPrecedent}
-            timeWindowConfig={timeWindowConfig}
-          />
+          <Fragment>
+            {statEnvironments.map((env, index) => (
+              <Fragment key={env}>
+                {statEnvironments.length > 1 && (
+                  <EnvironmentLabel
+                    title={tct('Environment: [env]', {env})}
+                    envIndex={index}
+                  >
+                    {env}
+                  </EnvironmentLabel>
+                )}
+                <PositionedTimelineContainer
+                  envIndex={index}
+                  bucketedData={stats && env ? selectCheckInData(cronStats, env) : []}
+                  statusLabel={statusToText}
+                  statusStyle={tickStyle}
+                  statusPrecedent={checkInStatusPrecedent}
+                  timeWindowConfig={timeWindowConfig}
+                />
+              </Fragment>
+            ))}
+          </Fragment>
         )}
       </TimelineContainer>
     </ChartContainer>
   );
 }
 
-const ChartContainer = styled('div')`
+const timelineHeight = 14;
+const environmentHeight = 16;
+const paddingHeight = 8;
+const totalHeight = timelineHeight + environmentHeight + paddingHeight;
+
+const ChartContainer = styled('div')<{envCount: number}>`
   position: relative;
-  min-height: 104px;
   width: 100%;
+  min-height: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 104}px;
 `;
 
 const TimelineLegend = styled('div')`
@@ -190,4 +216,28 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
+`;
+
+const PositionedTimelineContainer = styled(CheckInTimeline)<{envIndex: number}>`
+  top: calc(${p => p.envIndex * (environmentHeight + paddingHeight)}px);
+`;
+
+const EnvironmentLabel = styled(Tooltip)<{envIndex: number}>`
+  position: absolute;
+  user-select: none;
+  font-weight: ${p => p.theme.fontWeightBold};
+  top: ${p => p.envIndex * totalHeight + timelineHeight}px;
+  left: 0;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const IssueGridLineLabels = styled(GridLineLabels)<{envCount: number}>`
+  top: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 68}px;
+`;
+
+const IssueGridLineOverlay = styled(GridLineOverlay)<{envCount: number}>`
+  ${Gridline} {
+    top: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 68}px;
+  }
 `;
