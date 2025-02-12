@@ -165,6 +165,7 @@ export function OnboardingStatus({
           onClose={hidePanel}
           gettingStartedTasks={gettingStartedTasks}
           beyondBasicsTasks={beyondBasicsTasks}
+          title={label}
         />
       )}
     </GuideAnchor>

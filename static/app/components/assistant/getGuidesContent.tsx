@@ -66,7 +66,7 @@ export default function getGuidesContent(
           ),
         },
         {
-          title: t('Quick Setup'),
+          title: t('Onboarding'),
           target: 'onboarding_sidebar',
           description: t(
             'Walk through this guide to get the most out of Sentry right away.'
