@@ -596,6 +596,12 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def get_organization_members(self, *, organization_id: int) -> list[RpcOrganizationMember]:
+        """Get a list of members in the org"""
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def get_organization_owner_members(
         self, *, organization_id: int
     ) -> list[RpcOrganizationMember]:
