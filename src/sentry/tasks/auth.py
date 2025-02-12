@@ -98,7 +98,7 @@ class OrganizationComplianceTask(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
+    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember) -> None:
         """Prompt a member to comply with the new requirement."""
         raise NotImplementedError()
 
@@ -145,10 +145,14 @@ class OrganizationComplianceTask(abc.ABC):
         org_members = OrganizationMember.objects.filter(
             organization_id=org_id, user_id__isnull=False
         )
-        rpc_users = user_service.get_many_by_id(ids=[member.user_id for member in org_members])
+        rpc_users = user_service.get_many_by_id(
+            ids=[member.user_id for member in org_members if member.user_id is not None]
+        )
         rpc_users_dict = {user.id: user for user in rpc_users}
         for member in org_members:
-            user = rpc_users_dict.get(member.user_id, None)
+            if member.user_id is None:
+                continue
+            user = rpc_users_dict.get(member.user_id)
             if user is None:
                 continue
 
@@ -164,7 +168,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
             return user.has_2fa()
         return False
 
-    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
+    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember) -> None:
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
         subject = "{} {} Mandatory: Enable Two-Factor Authentication".format(
@@ -188,7 +192,12 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     silo_mode=SiloMode.REGION,
 )
 @retry
-def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
+def remove_2fa_non_compliant_members(
+    org_id: int,
+    actor_id: int | None = None,
+    actor_key_id: int | None = None,
+    ip_address: str | None = None,
+) -> None:
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
     )
