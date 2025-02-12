@@ -148,7 +148,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        'issue_details'
       );
     }
 

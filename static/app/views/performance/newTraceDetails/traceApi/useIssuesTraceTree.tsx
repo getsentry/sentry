@@ -8,6 +8,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
@@ -58,6 +59,7 @@ export function useIssuesTraceTree({
               event_id: traceSlug,
             })
       );
+      traceAnalytics.trackTraceErrorState(organization, 'issue_details');
       return;
     }
 
@@ -66,6 +68,7 @@ export function useIssuesTraceTree({
       trace?.data?.orphan_errors.length === 0
     ) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
+      traceAnalytics.trackTraceEmptyState(organization, 'issue_details');
       return;
     }
 
