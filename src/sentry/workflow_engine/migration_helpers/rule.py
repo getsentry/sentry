@@ -218,11 +218,11 @@ def delete_migrated_issue_alert(rule: Rule):
     workflow: Workflow = alert_rule_workflow.workflow
 
     try:
-        # delete all associated IF DCGs and their conditions
+        # delete all associated IF DCGs and their conditions and actions
+        # conditions are cascade deleted
         workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
         for workflow_dcg in workflow_dcgs:
             if_dcg = workflow_dcg.condition_group
-            if_dcg.conditions.all().delete()
             delete_workflow_actions(if_dcg=if_dcg)
             if_dcg.delete()
 
@@ -237,11 +237,9 @@ def delete_migrated_issue_alert(rule: Rule):
         )
     else:
         when_dcg = workflow.when_condition_group
-        when_dcg.conditions.all().delete()
         when_dcg.delete()
 
     workflow.delete()
-    alert_rule_workflow.delete()
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):

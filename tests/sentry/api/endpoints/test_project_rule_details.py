@@ -31,8 +31,10 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.rule import migrate_issue_alert
 from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 
@@ -1659,6 +1661,43 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 
+    def setUp(self):
+        super().setUp()
+        self.rule = self.create_project_rule(
+            self.project,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                    "name": "The event occurs",
+                },
+            ],
+            action_data=self.notify_issue_owners_action,
+        )
+        migrate_issue_alert(self.rule, user_id=self.user.id)
+
+        self.alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=self.rule)
+        self.workflow = self.alert_rule_workflow.workflow
+        self.when_dcg = self.workflow.when_condition_group
+        self.if_dcg = WorkflowDataConditionGroup.objects.get(workflow=self.workflow).condition_group
+        self.dcg_actions = DataConditionGroupAction.objects.get(condition_group=self.if_dcg)
+        self.action = self.dcg_actions.action
+
+    def assert_all_workflow_engine_models_deleted(self):
+        assert not AlertRuleWorkflow.objects.filter(rule_id=self.rule.id).exists()
+        assert not Workflow.objects.filter(id=self.workflow.id).exists()
+        assert not WorkflowDataConditionGroup.objects.filter(workflow=self.workflow).exists()
+        assert self.when_dcg
+        assert not DataConditionGroup.objects.filter(id=self.when_dcg.id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.if_dcg.id).exists()
+        assert not DataCondition.objects.filter(condition_group=self.when_dcg).exists()
+        assert not DataCondition.objects.filter(condition_group=self.if_dcg).exists()
+        assert not DataConditionGroupAction.objects.filter(id=self.dcg_actions.id).exists()
+        assert not Action.objects.filter(id=self.action.id).exists()
+
     def test_simple(self):
         rule = self.create_project_rule(self.project)
         self.get_success_response(
@@ -1671,42 +1710,24 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_delete_workflow_engine(self):
-        rule = self.create_project_rule(
-            self.project,
-            condition_data=[
-                {
-                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                    "name": "A new issue is created",
-                },
-                {
-                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
-                    "name": "The event occurs",
-                },
-            ],
-        )
-        migrate_issue_alert(rule, user_id=self.user.id)
-
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
-        workflow = alert_rule_workflow.workflow
-        when_dcg = workflow.when_condition_group
-        assert when_dcg
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-
-        self.get_success_response(
-            self.organization.slug, rule.project.slug, rule.id, status_code=202
-        )
-
-        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
-        assert not Workflow.objects.filter(id=workflow.id).exists()
-        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
-        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
-        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
-        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug, self.rule.project.slug, self.rule.id, status_code=202
+            )
+        self.assert_all_workflow_engine_models_deleted()
 
     def test_dual_delete_workflow_engine_no_migrated_models(self):
-        rule = self.create_project_rule(self.project)
+        non_migrated_rule = self.create_project_rule(self.project)
         self.get_success_response(
-            self.organization.slug, rule.project.slug, rule.id, status_code=202
+            self.organization.slug,
+            non_migrated_rule.project.slug,
+            non_migrated_rule.id,
+            status_code=202,
         )
 
-        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule=non_migrated_rule).exists()
+
+    def test_delete_org_deletes_workflow_engine(self):
+        self.organization.delete()
+
+        self.assert_all_workflow_engine_models_deleted()

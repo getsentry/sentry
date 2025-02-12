@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django.conf import settings
 from django.db import models, router, transaction
 from django.db.models import QuerySet
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -518,3 +520,12 @@ class Organization(ReplicatedRegionModel):
         if flags.hide_organizations:
             self.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
         return old_pk
+
+
+@receiver(pre_delete, sender=Organization)
+def delete_workflow_actions(sender, instance: Organization, **kwargs):
+    from sentry.workflow_engine.models import Action, DataConditionGroupAction
+
+    dcg_actions = DataConditionGroupAction.objects.filter(condition_group__organization=instance)
+    action_ids = dcg_actions.values_list("action_id", flat=True)
+    Action.objects.filter(id__in=action_ids).delete()
