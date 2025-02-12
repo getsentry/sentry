@@ -109,7 +109,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
             }
           : undefined;
         return generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profileId: profileContext.profile_id,
           query,
@@ -122,7 +122,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
           tid: spanThreadId,
         };
         return generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profilerId: profileContext.profiler_id,
           start: new Date(event.startTimestamp * 1000).toISOString(),
@@ -371,7 +371,7 @@ function ProfilePreviewHeader({
             }
           : undefined;
         return generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profileId: profileContext.profile_id,
           query,
@@ -384,7 +384,7 @@ function ProfilePreviewHeader({
           tid: spanThreadId,
         };
         return generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: event.projectSlug,
           profilerId: profileContext.profiler_id,
           start: new Date(event.startTimestamp * 1000).toISOString(),

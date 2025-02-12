@@ -529,6 +529,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Control number of breadcrumbs converted to OurLogs
+register(
+    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -2863,6 +2869,18 @@ register(
 # provider blocks the uptime checker causing false positives.
 register(
     "uptime.restrict-issue-creation-by-hosting-provider-id",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Disables specific uptime checker regions. This is a list of region slugs
+# which must match regions available in the settings.UPTIME_REGIONS list.
+#
+# Useful to remove a region from check rotation if there is some kind of
+# problem with the region.
+register(
+    "uptime.disabled-checker-regions",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

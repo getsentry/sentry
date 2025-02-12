@@ -15,6 +15,9 @@ import {
   isTokenOperator,
   isTokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
+import {ArithmeticTokenFunction} from 'sentry/components/arithmeticBuilder/token/function';
+import {ArithmeticTokenOperator} from 'sentry/components/arithmeticBuilder/token/operator';
+import {ArithmeticTokenParenthesis} from 'sentry/components/arithmeticBuilder/token/parenthesis';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,11 +104,25 @@ function GridList(props: GridListProps) {
         }
 
         if (isTokenParenthesis(token)) {
-          return null;
+          return (
+            <ArithmeticTokenParenthesis
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
         }
 
         if (isTokenOperator(token)) {
-          return null;
+          return (
+            <ArithmeticTokenOperator
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
         }
 
         if (isTokenFreeText(token)) {
@@ -113,7 +130,14 @@ function GridList(props: GridListProps) {
         }
 
         if (isTokenFunction(token)) {
-          return null;
+          return (
+            <ArithmeticTokenFunction
+              key={item.key}
+              item={item}
+              state={state}
+              token={token}
+            />
+          );
         }
 
         Sentry.captureMessage(`Unknown token: ${token.kind}`);

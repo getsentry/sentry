@@ -47,11 +47,10 @@ export function PasswordStrength({
     return null;
   }
 
-  const {score} = result;
-  const percent = Math.round(((score + 1) / MAX_SCORE) * 100);
+  const percent = Math.round(((result.score + 1) / MAX_SCORE) * 100);
 
   const styles = css`
-    background: ${colors[score]};
+    background: ${colors[result.score]};
     width: ${percent}%;
   `;
 
@@ -59,7 +58,7 @@ export function PasswordStrength({
     <Fragment>
       <StrengthProgress
         role="progressbar"
-        aria-valuenow={score}
+        aria-valuenow={result.score}
         aria-valuemin={0}
         aria-valuemax={100}
       >
@@ -67,7 +66,7 @@ export function PasswordStrength({
       </StrengthProgress>
       <StrengthLabel>
         {tct('Strength: [textScore]', {
-          textScore: <ScoreText>{labels[score]}</ScoreText>,
+          textScore: <ScoreText>{labels[result.score]}</ScoreText>,
         })}
       </StrengthLabel>
     </Fragment>
