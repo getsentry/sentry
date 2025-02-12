@@ -229,12 +229,33 @@ function useWidgetBuilderState(): {
               newFields.length > 0 &&
               !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
             ) {
-              setSort([
-                {
-                  kind: 'desc',
-                  field: generateFieldAsString(newFields[0] as QueryFieldValue),
-                },
-              ]);
+              const validReleaseSortOptions = newFields.filter(field => {
+                const fieldString = generateFieldAsString(field);
+                return (
+                  !DISABLED_SORT.includes(fieldString) &&
+                  !TAG_SORT_DENY_LIST.includes(fieldString)
+                );
+              });
+
+              setSort(
+                dataset === WidgetType.RELEASE
+                  ? validReleaseSortOptions.length > 0
+                    ? [
+                        {
+                          kind: 'desc',
+                          field: generateFieldAsString(
+                            validReleaseSortOptions[0] as QueryFieldValue
+                          ),
+                        },
+                      ]
+                    : []
+                  : [
+                      {
+                        kind: 'desc',
+                        field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                      },
+                    ]
+              );
             }
           } else if (action.payload === DisplayType.BIG_NUMBER) {
             // TODO: Reset the selected aggregate here for widgets with equations
@@ -250,6 +271,14 @@ function useWidgetBuilderState(): {
               ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
               ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
             ]);
+
+            if (dataset === WidgetType.RELEASE && sort?.length === 0) {
+              setSort(
+                decodeSorts(
+                  getDatasetConfig(WidgetType.RELEASE).defaultWidgetQuery.orderby
+                )
+              );
+            }
           }
           setThresholds(undefined);
           setSelectedAggregate(undefined);
