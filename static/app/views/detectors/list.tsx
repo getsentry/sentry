@@ -1,21 +1,93 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {Detector} from 'sentry/views/detectors/detectorListRow';
+import DetectorListTable from 'sentry/views/detectors/detectorListTable';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
+
+  const detectors: Detector[] = [
+    {
+      automations: [
+        {
+          name: '/endpoint',
+          project: {slug: 'javascript', platform: 'javascript'},
+          description: 'transaction.duration',
+          link: 'monitors/def456',
+        },
+        {
+          name: '/checkout',
+          project: {slug: 'javascript', platform: 'javascript'},
+          description: 'transaction.duration',
+          link: 'monitors/ghi789',
+        },
+      ],
+      groups: [
+        {
+          shortId: 'abc123',
+          project: {
+            platform: 'javascript',
+          },
+          lastSeen: new Date().toString(),
+        },
+      ],
+      id: '123',
+      link: 'hello.com',
+      name: 'Sample Detector 1',
+      project: {
+        slug: 'javascript',
+        platform: 'javascript',
+      },
+      details: ['transaction.duration'],
+    },
+    {
+      automations: [],
+      groups: [
+        {
+          shortId: 'def123',
+          project: {
+            platform: 'android',
+          },
+          lastSeen: new Date().toString(),
+        },
+      ],
+      id: '456',
+      link: 'hello.com',
+      name: 'Sample Detector 2',
+      project: {
+        slug: 'android',
+        platform: 'android',
+      },
+      details: ['transaction.duration'],
+      isDisabled: true,
+    },
+  ];
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <ActionsProvider actions={<Actions />}>
         <ListLayout>
           <h2>Monitors</h2>
+          <Flex gap={space(1.5)} column>
+            <Flex gap={space(1.5)}>
+              <ProjectPageFilter />
+              <div style={{flex: 1}}>
+                <SearchBar placeholder={t('Search by name')} />
+              </div>
+            </Flex>
+            <DetectorListTable detectors={detectors} />
+          </Flex>
         </ListLayout>
       </ActionsProvider>
     </SentryDocumentTitle>
