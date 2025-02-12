@@ -7,7 +7,7 @@ import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
   SIDEBAR_MOBILE_HEIGHT,
-} from 'sentry/components/sidebar';
+} from 'sentry/components/sidebar/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
@@ -45,7 +45,7 @@ const PanelContainer = styled('div')<PositionProps>`
         `};
 `;
 
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
+export interface SidebarPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   collapsed: CommonSidebarProps['collapsed'];
   hidePanel: CommonSidebarProps['hidePanel'];
   orientation: CommonSidebarProps['orientation'];
@@ -71,7 +71,7 @@ export default function SidebarPanel({
   title,
   children,
   ...props
-}: Props): React.ReactElement {
+}: SidebarPanelProps): React.ReactElement {
   const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
 
   const panelCloseHandler = useCallback(

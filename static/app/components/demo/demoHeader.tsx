@@ -7,7 +7,7 @@ import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
   SIDEBAR_MOBILE_HEIGHT,
-} from 'sentry/components/sidebar';
+} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';

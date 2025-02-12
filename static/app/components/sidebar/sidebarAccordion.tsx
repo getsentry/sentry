@@ -12,7 +12,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {Overlay} from 'sentry/components/overlay';
-import {SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar';
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar/constants';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

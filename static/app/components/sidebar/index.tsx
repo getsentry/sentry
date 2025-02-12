@@ -12,6 +12,12 @@ import Hook from 'sentry/components/hook';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+  SIDEBAR_SEMI_COLLAPSED_WIDTH,
+} from 'sentry/components/sidebar/constants';
+import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
@@ -86,11 +92,6 @@ import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
-
-export const SIDEBAR_COLLAPSED_WIDTH = '70px';
-export const SIDEBAR_SEMI_COLLAPSED_WIDTH = '100px';
-export const SIDEBAR_EXPANDED_WIDTH = '220px';
-export const SIDEBAR_MOBILE_HEIGHT = '54px';
 
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
