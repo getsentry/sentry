@@ -266,8 +266,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
                     new_value = options_result.get(key)
 
-                    for org_id, display_value in new_value.items():
-                        current_value[org_id] = display_value
+                    current_value.update(new_value)
 
                     UserOption.objects.set_value(
                         user=user, key=key_map.get(key, key), value=current_value
