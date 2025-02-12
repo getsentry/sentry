@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import NamedTuple
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
@@ -48,20 +49,22 @@ class UnsupportedFrameFilename(Exception):
 
 def derive_code_mappings(
     organization: Organization,
-    stacktrace_filename: str,
+    frame: dict[str, Any],
 ) -> list[dict[str, str]]:
     installation = get_installation(organization)
     if not isinstance(installation, RepoTreesIntegration):
         return []
     trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
-    frame_filename = FrameFilename(stacktrace_filename)
+    frame_filename = FrameFilename(frame)
     return trees_helper.list_file_matches(frame_filename)
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
-    def __init__(self, frame_file_path: str) -> None:
+    def __init__(self, frame: Mapping[str, Any]) -> None:
+        # XXX: In the next PR, we will use more than just the filename
+        frame_file_path = frame["filename"]
         self.raw_path = frame_file_path
         is_windows_path = False
         if "\\" in frame_file_path:
@@ -123,12 +126,12 @@ class CodeMappingTreesHelper:
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 
-    def generate_code_mappings(self, stacktraces: list[str]) -> list[CodeMapping]:
+    def generate_code_mappings(self, frames: list[dict[str, Any]]) -> list[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: dict[str, list[FrameFilename]] = self._stacktrace_buckets(stacktraces)
+        buckets: dict[str, list[FrameFilename]] = self._stacktrace_buckets(frames)
 
         # We reprocess stackframes until we are told that no code mappings were produced
         # This is order to reprocess past stackframes in light of newly discovered code mappings
@@ -187,16 +190,18 @@ class CodeMappingTreesHelper:
                     )
         return file_matches
 
-    def _stacktrace_buckets(self, stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
+    def _stacktrace_buckets(
+        self, frames: Sequence[dict[str, Any]]
+    ) -> dict[str, list[FrameFilename]]:
         """Groups stacktraces into buckets based on the root of the stacktrace path"""
         buckets: defaultdict[str, list[FrameFilename]] = defaultdict(list)
-        for stacktrace_frame_file_path in stacktraces:
+        for frame in frames:
             try:
-                frame_filename = FrameFilename(stacktrace_frame_file_path)
+                frame_filename = FrameFilename(frame)
                 # Any files without a top directory will be grouped together
                 buckets[frame_filename.root].append(frame_filename)
             except UnsupportedFrameFilename:
-                logger.info("Frame's filepath not supported: %s", stacktrace_frame_file_path)
+                logger.info("Frame's filepath not supported: %s", frame["filename"])
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 

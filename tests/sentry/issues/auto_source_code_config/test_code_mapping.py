@@ -92,19 +92,19 @@ def test_get_extension() -> None:
 
 
 def test_buckets_logic() -> None:
-    stacktraces = [
-        "app://foo.js",
-        "./app/utils/handleXhrErrorResponse.tsx",
-        "getsentry/billing/tax/manager.py",
-        "/cronscripts/monitoringsync.php",
-    ] + UNSUPPORTED_FRAME_FILENAMES
+    frames = [
+        {"filename": "app://foo.js"},
+        {"filename": "./app/utils/handleXhrErrorResponse.tsx"},
+        {"filename": "getsentry/billing/tax/manager.py"},
+        {"filename": "/cronscripts/monitoringsync.php"},
+    ] + [{"filename": f} for f in UNSUPPORTED_FRAME_FILENAMES]
     helper = CodeMappingTreesHelper({})
-    buckets = helper._stacktrace_buckets(stacktraces)
+    buckets = helper._stacktrace_buckets(frames)
     assert buckets == {
-        "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
-        "app:": [FrameFilename("app://foo.js")],
-        "cronscripts": [FrameFilename("/cronscripts/monitoringsync.php")],
-        "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
+        "./app": [FrameFilename({"filename": "./app/utils/handleXhrErrorResponse.tsx"})],
+        "app:": [FrameFilename({"filename": "app://foo.js"})],
+        "cronscripts": [FrameFilename({"filename": "/cronscripts/monitoringsync.php"})],
+        "getsentry": [FrameFilename({"filename": "getsentry/billing/tax/manager.py"})],
     }
 
 
@@ -124,12 +124,12 @@ class TestFrameFilename:
 
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
-        assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
+        assert FrameFilename({"filename": path}).__repr__() == f"FrameFilename: {path}"
 
     def test_raises_unsupported(self) -> None:
         for filepath in UNSUPPORTED_FRAME_FILENAMES:
             with pytest.raises(UnsupportedFrameFilename):
-                FrameFilename(filepath)
+                FrameFilename({"filename": filepath})
 
     @pytest.mark.parametrize(
         "files,prefixes",
@@ -180,29 +180,30 @@ class TestDerivedCodeMappings(TestCase):
         # We create a new tree helper in order to improve the understability of this test
         cmh = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
         cm = cmh._generate_code_mapping_from_tree(
-            repo_tree=repo_tree, frame_filename=FrameFilename("raven/base.py")
+            repo_tree=repo_tree, frame_filename=FrameFilename({"filename": "raven/base.py"})
         )
         # We should not derive a code mapping since the package name does not match
         assert cm == []
 
     def test_no_matches(self) -> None:
-        stacktraces = [
-            "getsentry/billing/tax/manager.py",
-            "requests/models.py",
-            "urllib3/connectionpool.py",
-            "ssl.py",
+        frames = [
+            {"filename": "getsentry/billing/tax/manager.py"},
+            {"filename": "requests/models.py"},
+            {"filename": "urllib3/connectionpool.py"},
+            {"filename": "ssl.py"},
         ]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == []
 
     @patch("sentry.issues.auto_source_code_config.code_mapping.logger")
     def test_matches_top_src_file(self, logger: Any) -> None:
-        stacktraces = ["setup.py"]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        frames = [{"filename": "setup.py"}]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == []
 
     def test_no_dir_depth_match(self) -> None:
-        code_mappings = self.code_mapping_helper.generate_code_mappings(["sentry/wsgi.py"])
+        frames = [{"filename": "sentry/wsgi.py"}]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == [
             CodeMapping(
                 repo=RepoAndBranch(name="Test-Organization/foo", branch="master"),
@@ -212,13 +213,13 @@ class TestDerivedCodeMappings(TestCase):
         ]
 
     def test_more_than_one_match_does_derive(self) -> None:
-        stacktraces = [
+        frames = [
             # More than one file matches for this, however, the package name is taken into account
             # - "src/sentry_plugins/slack/client.py",
             # - "src/sentry/integrations/slack/client.py",
-            "sentry_plugins/slack/client.py",
+            {"filename": "sentry_plugins/slack/client.py"},
         ]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == [
             CodeMapping(
                 repo=self.foo_repo,
@@ -232,21 +233,21 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == []
 
     def test_more_than_one_match_works_when_code_mapping_excludes_other_match(self) -> None:
-        stacktraces = [
-            "sentry/identity/oauth2.py",
-            "sentry_plugins/slack/client.py",
+        frames = [
+            {"filename": "sentry/identity/oauth2.py"},
+            {"filename": "sentry_plugins/slack/client.py"},
         ]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == self.expected_code_mappings
 
     def test_more_than_one_match_works_with_different_order(self) -> None:
-        stacktraces = [
+        frames = [
             # This file matches twice files in the repo, however, the reprocessing
             # feature allows deriving both code mappings
-            "sentry_plugins/slack/client.py",
-            "sentry/identity/oauth2.py",
+            {"filename": "sentry_plugins/slack/client.py"},
+            {"filename": "sentry/identity/oauth2.py"},
         ]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert sorted(code_mappings) == sorted(self.expected_code_mappings)
 
     @patch("sentry.issues.auto_source_code_config.code_mapping.logger")
@@ -254,14 +255,14 @@ class TestDerivedCodeMappings(TestCase):
         # XXX: There's a chance that we could infer package names but that is risky
         # repo 1: src/sentry/web/urls.py
         # repo 2: sentry/web/urls.py
-        stacktraces = ["sentry/web/urls.py"]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        frames = [{"filename": "sentry/web/urls.py"}]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
         logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")
 
     def test_list_file_matches_single(self) -> None:
-        frame_filename = FrameFilename("sentry_plugins/slack/client.py")
+        frame_filename = FrameFilename({"filename": "sentry_plugins/slack/client.py"})
         matches = self.code_mapping_helper.list_file_matches(frame_filename)
         expected_matches = [
             {
@@ -275,7 +276,7 @@ class TestDerivedCodeMappings(TestCase):
         assert matches == expected_matches
 
     def test_list_file_matches_multiple(self) -> None:
-        frame_filename = FrameFilename("sentry/web/urls.py")
+        frame_filename = FrameFilename({"filename": "sentry/web/urls.py"})
         matches = self.code_mapping_helper.list_file_matches(frame_filename)
         expected_matches = [
             {
