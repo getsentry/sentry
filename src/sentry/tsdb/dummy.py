@@ -72,6 +72,7 @@ class DummyTSDB(BaseTSDB):
         jitter_value=None,
         tenant_ids=None,
         referrer_suffix=None,
+        conditions=None,
     ):
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}
