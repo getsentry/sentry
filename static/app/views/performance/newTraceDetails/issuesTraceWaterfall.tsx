@@ -319,6 +319,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       >
         <IssuesPointerDisabled>
           <Trace
+            metaQueryResults={props.meta}
             trace={props.tree}
             rerender={rerender}
             trace_id={props.traceSlug}
