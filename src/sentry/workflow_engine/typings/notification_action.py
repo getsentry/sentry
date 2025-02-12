@@ -20,18 +20,29 @@ EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 @dataclass
 class FieldMapping:
-    """FieldMapping is a class that represents the mapping of a target field to a source field."""
+    """
+    FieldMapping is a class that represents the mapping of a target field to a source field.
+    """
 
     source_field: str
     default_value: Any = None
 
 
 class ActionFieldMappingKeys(StrEnum):
-    """ActionFieldMappingKeys is an enum that represents the keys of an action field mapping."""
+    """
+    ActionFieldMappingKeys is an enum that represents the keys of an action field mapping.
+    """
 
     INTEGRATION_ID_KEY = "integration_id_key"
     TARGET_IDENTIFIER_KEY = "target_identifier_key"
     TARGET_DISPLAY_KEY = "target_display_key"
+
+
+class TicketFieldMappingKeys(StrEnum):
+    """
+    TicketFieldMappingKeys is an enum that represents the keys of a ticket field mapping.
+    """
+
     DYNAMIC_FORM_FIELDS_KEY = "dynamic_form_fields"
     ADDITIONAL_FIELDS_KEY = "additional_fields"
 
@@ -367,7 +378,7 @@ class TicketingActionDataBlobHelper(ABC):
         Returns tuple of (dynamic_form_fields, additional_fields)
         """
         excluded_keys = excluded_keys or []
-        dynamic_form_fields = data.get(ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
+        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
 
         additional_fields = {
             k: v
@@ -375,7 +386,7 @@ class TicketingActionDataBlobHelper(ABC):
             if k not in dynamic_form_fields
             and k not in EXCLUDED_ACTION_DATA_KEYS
             and k not in excluded_keys
-            and k != ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value
+            and k != TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value
         }
         return dynamic_form_fields, additional_fields
 
@@ -409,7 +420,7 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
             _, additional_fields = self.separate_fields(
                 self.action, excluded_keys=self.required_fields
             )
-            data[ActionFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value] = additional_fields
+            data[TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value] = additional_fields
         return data
 
 
