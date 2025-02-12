@@ -22,7 +22,7 @@ function ShortId({shortId, avatar, className}: Props) {
 
 export default ShortId;
 
-const Wrapper = styled('div')`
+export const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;

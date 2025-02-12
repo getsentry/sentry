@@ -42,12 +42,12 @@ export function DetectorListRow({
   details,
   handleSelect,
   selected,
-  disabled = false,
+  disabled,
 }: DetectorListRowProps) {
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
-      <Flex style={{justifyContent: 'space-between'}}>
+      <Flex justify="space-between">
         <Flex flex={1}>
           <StyledCheckbox
             checked={selected}
@@ -55,25 +55,34 @@ export function DetectorListRow({
               handleSelect(id, !selected);
             }}
           />
-          <StyledTitleCell
-            name={name}
-            project={project}
-            link={link}
-            details={details}
-            disabled={disabled}
-          />
+          <CellWrapper>
+            <StyledTitleCell
+              name={name}
+              project={project}
+              link={link}
+              details={details}
+              disabled={disabled}
+            />
+          </CellWrapper>
         </Flex>
         <StyledEmptyCell />
       </Flex>
-      <StyledIssueCell
-        {...(groups.length > 0 ? {group: groups[0]} : {})}
-        disabled={disabled}
-      />
-      <StyledNumberCell number={groups.length} />
-      <StyledConnectionCell
-        items={automations}
-        renderText={count => tn('%s automation', '%s automations', count)}
-      />
+      <CellWrapper className="last-issue">
+        <StyledIssueCell
+          {...(groups.length > 0 ? {group: groups[0]} : {})}
+          disabled={disabled}
+        />
+      </CellWrapper>
+      <CellWrapper className="open-issues">
+        <NumberCell number={groups.length} />
+      </CellWrapper>
+      <CellWrapper className="connected-automations">
+        <ConnectionCell
+          items={automations}
+          renderText={count => tn('%s automation', '%s automations', count)}
+          disabled={disabled}
+        />
+      </CellWrapper>
     </RowWrapper>
   );
 }
@@ -83,33 +92,30 @@ const StyledCheckbox = styled(Checkbox)<{checked?: boolean}>`
   opacity: 1;
 `;
 
-const StyledTitleCell = styled(TitleCell)`
-  padding: ${space(2)};
-  margin: -${space(2)} 0;
-`;
-
 const StyledEmptyCell = styled(EmptyCell)`
   width: 35%;
   padding: 0 ${space(2)};
 `;
 
+const CellWrapper = styled(Flex)`
+  padding: 0 ${space(2)};
+  flex: 1;
+`;
+
+const StyledTitleCell = styled(TitleCell)`
+  padding: ${space(2)};
+  margin: -${space(2)};
+`;
+
 const StyledIssueCell = styled(IssueCell)`
   padding: ${space(2)};
-  margin: -${space(2)} 0;
-`;
-
-const StyledNumberCell = styled(NumberCell)`
-  padding: 0 ${space(2)};
-`;
-
-const StyledConnectionCell = styled(ConnectionCell)`
-  padding: 0 ${space(2)};
+  margin: -${space(2)};
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
   position: relative;
   align-items: center;
-  padding: 16px;
+  padding: ${space(2)};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   display: grid;
 
@@ -118,30 +124,37 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
       visibility: visible;
     }
   }
-
-  grid-template-columns: 3fr 1fr 0.75fr 1fr;
-
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 2.5fr 1fr 0.75fr;
-
-    ${StyledConnectionCell} {
-      display: none;
-    }
+  .open-issues,
+  .last-issue,
+  .connected-automations {
+    display: none;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 3fr 1fr 0.6fr;
-
-    ${StyledIssueCell} {
-      display: none;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     grid-template-columns: 3fr 1fr;
 
-    ${StyledNumberCell} {
-      display: none;
+    .open-issues {
+      display: flex;
     }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 3fr 1fr 0.6fr;
+
+    .last-issue {
+      display: flex;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 2.5fr 1fr 0.75fr;
+
+    .connected-automations {
+      display: flex;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: 3fr 1fr 0.75fr 1fr;
   }
 `;

@@ -70,7 +70,40 @@ export default function DetectorsList() {
         platform: 'android',
       },
       details: ['transaction.duration'],
-      isDisabled: true,
+    },
+    {
+      automations: [
+        {
+          name: '/endpoint',
+          project: {slug: 'javascript', platform: 'javascript'},
+          description: 'transaction.duration',
+          link: 'monitors/def456',
+        },
+        {
+          name: '/checkout',
+          project: {slug: 'javascript', platform: 'javascript'},
+          description: 'transaction.duration',
+          link: 'monitors/ghi789',
+        },
+      ],
+      groups: [
+        {
+          shortId: 'rip',
+          project: {
+            platform: 'android',
+          },
+          lastSeen: new Date().toString(),
+        },
+      ],
+      id: '456',
+      link: 'hello.com',
+      name: 'Sample Detector 3',
+      project: {
+        slug: 'android',
+        platform: 'android',
+      },
+      details: ['transaction.duration'],
+      disabled: true,
     },
   ];
 

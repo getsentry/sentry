@@ -20,15 +20,21 @@ export type ConnectionCellProps = {
   items: Item[];
   renderText: (count: number) => string;
   className?: string;
+  disabled?: boolean;
 };
 
-export function ConnectionCell({items, renderText, className}: ConnectionCellProps) {
+export function ConnectionCell({
+  items,
+  renderText,
+  disabled = false,
+  className,
+}: ConnectionCellProps) {
   if (items.length === 0) {
     return <EmptyCell className={className} />;
   }
   return (
     <div className={className}>
-      <Hovercard
+      <StyledHovercard
         body={items.map(({name, project, description, link}, index) => (
           <Fragment key={link}>
             {index > 0 && <Divider />}
@@ -55,12 +61,21 @@ export function ConnectionCell({items, renderText, className}: ConnectionCellPro
             </HovercardRow>
           </Fragment>
         ))}
+        hide={disabled}
       >
         <MonitorCount>{renderText(items.length)}</MonitorCount>
-      </Hovercard>
+      </StyledHovercard>
     </div>
   );
 }
+
+const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
+  ${p =>
+    p.hide &&
+    css`
+      display: none;
+    `};
+`;
 
 const MonitorDetails = styled('div')`
   display: inline-grid;
