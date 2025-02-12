@@ -138,6 +138,8 @@ export type TraceMeta = {
   errors: number;
   performance_issues: number;
   projects: number;
+  span_count: number;
+  span_count_map: Record<string, number>;
+  transaction_child_count_map: Record<string, number>;
   transactions: number;
-  transactiontoSpanChildrenCount: Record<string, number>;
 };

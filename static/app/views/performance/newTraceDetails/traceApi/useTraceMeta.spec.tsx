@@ -44,6 +44,10 @@ describe('useTraceMeta', () => {
         projects: 1,
         transactions: 1,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+        span_count: 1,
+        span_count_map: {
+          op1: 1,
+        },
       },
     });
     MockApiClient.addMockResponse({
@@ -55,6 +59,11 @@ describe('useTraceMeta', () => {
         projects: 1,
         transactions: 1,
         transaction_child_count_map: [{'transaction.id': '2', count: 2}],
+        span_count: 2,
+        span_count_map: {
+          op1: 1,
+          op2: 1,
+        },
       },
     });
     MockApiClient.addMockResponse({
@@ -66,6 +75,10 @@ describe('useTraceMeta', () => {
         projects: 1,
         transactions: 1,
         transaction_child_count_map: [],
+        span_count: 1,
+        span_count_map: {
+          op3: 1,
+        },
       },
     });
 
@@ -89,9 +102,15 @@ describe('useTraceMeta', () => {
         performance_issues: 3,
         projects: 1,
         transactions: 3,
-        transactiontoSpanChildrenCount: {
+        transaction_child_count_map: {
           '1': 1,
           '2': 2,
+        },
+        span_count: 4,
+        span_count_map: {
+          op1: 2,
+          op2: 1,
+          op3: 1,
         },
       },
       errors: [],
@@ -136,7 +155,9 @@ describe('useTraceMeta', () => {
         performance_issues: 0,
         projects: 0,
         transactions: 0,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
       status: 'error',
@@ -162,6 +183,10 @@ describe('useTraceMeta', () => {
         projects: 1,
         transactions: 1,
         transaction_child_count_map: [],
+        span_count: 1,
+        span_count_map: {
+          op1: 1,
+        },
       },
     });
     const mockRequest3 = MockApiClient.addMockResponse({
@@ -173,6 +198,10 @@ describe('useTraceMeta', () => {
         projects: 1,
         transactions: 1,
         transaction_child_count_map: [],
+        span_count: 1,
+        span_count_map: {
+          op2: 1,
+        },
       },
     });
 
@@ -196,7 +225,12 @@ describe('useTraceMeta', () => {
         performance_issues: 2,
         projects: 1,
         transactions: 2,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 2,
+        span_count_map: {
+          op1: 1,
+          op2: 1,
+        },
       },
       errors: [expect.any(Error)],
       status: 'success',

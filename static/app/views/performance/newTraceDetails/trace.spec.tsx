@@ -111,6 +111,8 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
       },
     }),
   });
@@ -282,6 +284,8 @@ async function keyboardNavigationTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
@@ -340,6 +344,8 @@ async function pageloadTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
@@ -455,6 +461,8 @@ async function searchTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
 
@@ -517,6 +525,8 @@ async function simpleTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
@@ -621,6 +631,8 @@ async function completeTestSetup() {
           count: 2,
         },
       ],
+      span_count: 0,
+      span_count_map: {},
     },
   });
   mockTraceRootFacets();
@@ -1691,6 +1703,8 @@ describe('trace view', () => {
               count: 5,
             },
           ],
+          span_count: 0,
+          span_count_map: {},
         },
       });
 
