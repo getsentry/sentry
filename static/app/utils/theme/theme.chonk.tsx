@@ -130,8 +130,8 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 //   space: {
 //     // @TODO(jonasbadalic): none doesn't need to exist
 //     // none: 0,
-//     subMicroscoptic: 1,
-//     microscoptic: 2,
+//     nano: 1,
+//     micro: 2,
 //     mini: 4,
 //     small: 6,
 //     medium: 8,
@@ -141,8 +141,8 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 //   borderRadius: {
 //     // @TODO(jonasbadalic): none doesn't need to exist
 //     // none: 0,
-//     subMicroscoptic: 1,
-//     microscoptic: 2,
+//     nano: 1,
+//     micro: 2,
 //     mini: 3,
 //     small: 4,
 //     medium: 5,
