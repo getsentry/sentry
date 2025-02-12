@@ -24,9 +24,9 @@ from sentry.uptime.detectors.ranking import (
 )
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
+    create_project_uptime_subscription,
     delete_uptime_subscriptions_for_project,
     get_auto_monitored_subscriptions_for_project,
-    get_or_create_project_uptime_subscription,
     is_url_auto_monitored_for_project,
 )
 from sentry.utils import metrics
@@ -256,7 +256,7 @@ def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscrip
             ],
         )
     metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
-    return get_or_create_project_uptime_subscription(
+    return create_project_uptime_subscription(
         project,
         # TODO(epurkhiser): This is where we would put the environment object
         # from autodetection if we decide to do that.
@@ -265,7 +265,7 @@ def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscrip
         interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
         timeout_ms=ONBOARDING_SUBSCRIPTION_TIMEOUT_MS,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-    )[0]
+    )
 
 
 def is_failed_url(url: str) -> bool:
