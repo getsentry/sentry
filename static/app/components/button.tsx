@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -118,11 +119,15 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    */
   href?: string;
   /**
+   * @deprecated Use LinkButton instead
+   */
+  replace?: boolean;
+  /**
    * Similar to `href`, but for internal links within the app.
    *
    * @deprecated Use LinkButton instead
    */
-  to?: string | object;
+  to?: string | LocationDescriptor;
 }
 
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
@@ -147,8 +152,9 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
   /**
    * Similar to `href`, but for internal links within the app.
    */
-  to: string | object;
+  to: string | LocationDescriptor;
   external?: never;
+  replace?: boolean;
 }
 
 interface HrefLinkButtonProps extends BaseLinkButtonProps {
@@ -208,6 +214,7 @@ const ICON_SIZES: Partial<
 function BaseButton({
   size = 'md',
   to,
+  replace,
   busy,
   href,
   title,
@@ -293,6 +300,7 @@ function BaseButton({
       disabled={disabled}
       to={!disabled ? to : undefined}
       href={!disabled ? href : undefined}
+      replace={replace}
       size={size}
       priority={priority}
       borderless={borderless}
@@ -526,6 +534,7 @@ const StyledButton = styled(
     shouldForwardProp: prop =>
       prop === 'forwardRef' ||
       prop === 'external' ||
+      prop === 'replace' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
