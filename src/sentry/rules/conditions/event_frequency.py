@@ -569,7 +569,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 conditions.append(snuba_condition)
 
         total = self.get_chunked_result(
-            tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+            tsdb_function=self.tsdb.get_distinct_counts_totals,
             model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
             organization_id=event.group.project.organization_id,
             group_ids=[event.group.id],
@@ -632,7 +632,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         )
         if error_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
-                tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
                 model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
                 organization_id=organization_id,
@@ -646,7 +646,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
 
         if generic_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
-                tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
                 model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
                 organization_id=organization_id,
