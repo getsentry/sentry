@@ -21,6 +21,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -414,6 +415,8 @@ export function IssueViewsPFStateProvider({
   const {className: _className, ...restProps} = props;
 
   const allowMultipleProjects = organization.features.includes('global-views');
+  const isSuperUser = isActiveSuperuser();
+
   const {projects: allProjects} = useProjects();
   const memberProjects = useMemo(
     () => allProjects.filter(project => project.isMember),
@@ -424,8 +427,13 @@ export function IssueViewsPFStateProvider({
     if (allowMultipleProjects) {
       return [];
     }
+
+    if (isSuperUser) {
+      return allowMultipleProjects ? [] : [parseInt(allProjects[0]!.id, 10)];
+    }
+
     return [parseInt(memberProjects[0]!.id, 10)];
-  }, [memberProjects, allowMultipleProjects]);
+  }, [memberProjects, allowMultipleProjects, isSuperUser, allProjects]);
 
   const {query, sort, viewId} = router.location.query;
 
