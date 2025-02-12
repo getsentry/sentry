@@ -503,7 +503,8 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
     def setUp(self):
         super().setUp()
 
-        self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs
+        self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
+        self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
         self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
         self.condition_group_results = {
             UniqueConditionQuery(
@@ -539,6 +540,13 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         # add slow condition to workflow1 IF dcg (ALL), passes
         self.create_data_condition(
             condition_group=self.workflow1_dcgs[1],
+            type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        # add slow condition to detector WHEN dcg (ANY), passes but not in result
+        self.create_data_condition(
+            condition_group=self.detector_dcg,
             type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
             comparison={"interval": "1h", "value": 100},
             condition_result=True,

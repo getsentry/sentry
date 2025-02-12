@@ -240,12 +240,13 @@ def get_groups_to_fire(
     for dcg in data_condition_groups:
         slow_conditions = get_slow_conditions(dcg)
         action_match = DataConditionGroup.Type(dcg.logic_type)
+        workflow_id = dcg_to_workflow.get(dcg.id)
+        workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
+
         for group_id in dcg_to_groups[dcg.id]:
             conditions_to_evaluate = []
             for condition in slow_conditions:
-                unique_queries = generate_unique_queries(
-                    condition, workflows_to_envs[dcg_to_workflow[dcg.id]]
-                )
+                unique_queries = generate_unique_queries(condition, workflow_env)
                 query_values = [
                     condition_group_results[unique_query][group_id]
                     for unique_query in unique_queries
@@ -253,7 +254,11 @@ def get_groups_to_fire(
                 conditions_to_evaluate.append((condition, query_values))
 
             passes, _ = evaluate_data_conditions(conditions_to_evaluate, action_match)
-            if passes:
+            if (
+                passes and workflow_id is None
+            ):  # TODO: detector trigger passes. do something like create issue
+                pass
+            elif passes:
                 groups_to_fire[group_id].add(dcg)
 
     return groups_to_fire
