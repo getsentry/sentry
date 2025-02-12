@@ -123,7 +123,7 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
     const envSet = cronStats.reduce((acc, [_, envs]) => {
       return new Set([...acc, ...Object.keys(envs)]);
     }, new Set<string>());
-    return [...(envSet ?? [])];
+    return [...envSet];
   }, [cronStats]);
 
   const legendStatuses = useCronLegendStatuses({
