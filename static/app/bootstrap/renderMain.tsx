@@ -5,7 +5,7 @@ import {renderDom} from './renderDom';
 
 export function renderMain() {
   try {
-    renderDom(Main, `#${ROOT_ELEMENT}`);
+    renderDom(Main, `#${ROOT_ELEMENT}`, {});
   } catch (err) {
     if (err.message === 'URI malformed') {
       // eslint-disable-next-line no-console
