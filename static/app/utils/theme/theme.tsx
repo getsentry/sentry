@@ -1096,13 +1096,6 @@ const commonTheme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
   },
-
-  diff: {
-    removedRow: 'hsl(358deg 89% 65% / 15%)',
-    removed: 'hsl(358deg 89% 65% / 30%)',
-    addedRow: 'hsl(100deg 100% 87% / 18%)',
-    added: 'hsl(166deg 58% 47% / 32%)',
-  },
 };
 
 // Light and dark theme definitions
