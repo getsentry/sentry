@@ -55,7 +55,7 @@ interface BaseField {
    * specified as false to disable showing the changed fields in the toast.
    */
   formatMessageValue?: Function | false;
-  getData?: (data: object) => object;
+  getData?: (data: Record<PropertyKey, unknown>) => Record<PropertyKey, unknown>;
   getValue?: (value: FieldValue) => any;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   hideLabel?: boolean;
@@ -153,7 +153,7 @@ export interface TableType {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels: object;
+  columnLabels: Record<PropertyKey, React.ReactNode>;
   type: 'table';
   /**
    * The confirmation message before a a row is deleted

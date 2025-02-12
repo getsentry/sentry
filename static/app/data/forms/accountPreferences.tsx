@@ -9,7 +9,7 @@ export const route = '/settings/account/details/';
 
 // Called before sending API request, these fields need to be sent as an
 // `options` object
-const transformOptions = (data: object) => ({options: data});
+const transformOptions = (data: Record<PropertyKey, unknown>) => ({options: data});
 
 const formGroups: JsonFormObject[] = [
   {

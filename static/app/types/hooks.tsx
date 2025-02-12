@@ -490,7 +490,7 @@ type MetricsEvent = (
   /**
    * An additional tags object
    */
-  tags?: object
+  tags?: Record<PropertyKey, unknown>
 ) => void;
 
 /**

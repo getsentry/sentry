@@ -360,7 +360,11 @@ type Props = WithRouterProps &
     /**
      * Get a list of tag values for the passed tag
      */
-    onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+    onGetTagValues?: (
+      tag: Tag,
+      query: string,
+      params: Record<PropertyKey, unknown>
+    ) => Promise<string[]>;
     /**
      * Called on key down
      */

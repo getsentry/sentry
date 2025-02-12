@@ -205,7 +205,7 @@ class DeprecatedAsyncComponent<
     this.fetchData({reloading: true});
   }
 
-  fetchData = (extraState?: object) => {
+  fetchData = (extraState?: Record<PropertyKey, unknown>) => {
     const endpoints = this.getEndpoints();
 
     if (!endpoints.length) {

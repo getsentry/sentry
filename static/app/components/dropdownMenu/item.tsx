@@ -213,7 +213,7 @@ function BaseDropdownMenuItem(
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const mergedProps = mergeProps(props, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
-  const innerWrapProps = {as: to ? Link : 'div', to};
+  const innerWrapProps = {as: to ? Link : ('div' as const), to};
 
   return (
     <MenuListItem

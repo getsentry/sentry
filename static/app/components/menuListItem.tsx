@@ -92,12 +92,12 @@ export type MenuListItemProps = {
 
 interface OtherProps {
   as?: React.ElementType;
-  detailsProps?: object;
-  innerWrapProps?: object;
+  detailsProps?: Partial<React.ComponentProps<typeof Details>>;
+  innerWrapProps?: Partial<React.ComponentProps<typeof InnerWrap>>;
   isFocused?: boolean;
   isPressed?: boolean;
   isSelected?: boolean;
-  labelProps?: object;
+  labelProps?: Partial<React.ComponentProps<typeof Label>>;
   showDivider?: boolean;
 }
 

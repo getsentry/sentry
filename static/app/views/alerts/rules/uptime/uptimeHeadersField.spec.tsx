@@ -102,7 +102,7 @@ describe('UptimeHeaderField', function () {
         headers: [
           ['one', 'test one'],
           ['two', 'test two'],
-        ],
+        ] as any,
       },
     });
 

@@ -11,7 +11,7 @@ export function formatQueryString(query: string): string {
 
 export function addQueryParamsToExistingUrl(
   origUrl: string,
-  queryParams: object
+  queryParams: Record<PropertyKey, unknown>
 ): string {
   const url = safeURL(origUrl);
 

@@ -20,7 +20,7 @@ describe('InviteMembersModal', function () {
   type MockApiResponseFn = (
     client: typeof MockApiClient,
     orgSlug: string,
-    roles?: object[]
+    roles?: Array<Record<PropertyKey, unknown>>
   ) => jest.Mock;
   const defaultMockOrganizationRoles: MockApiResponseFn = (client, orgSlug, roles) => {
     return client.addMockResponse({
@@ -71,7 +71,7 @@ describe('InviteMembersModal', function () {
     modalProps?: ComponentProps<typeof InviteMembersModal>;
     orgAccess?: Scope[];
     orgTeams?: DetailedTeam[];
-    roles?: object[];
+    roles?: Array<Record<PropertyKey, unknown>>;
   } = {}) => {
     const org = OrganizationFixture({access: orgAccess});
     TeamStore.reset();

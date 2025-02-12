@@ -376,11 +376,11 @@ export default typescript.config([
         'error',
         {
           types: {
-            // TODO(scttcper): Turn object on to make our types more strict
-            // object: {
-            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-            //   fixWith: 'Record<string, unknown>'
-            // },
+            object: {
+              message:
+                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+              fixWith: 'Record<PropertyKey, unknown>',
+            },
             Buffer: {
               message:
                 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
