@@ -2,7 +2,7 @@ import FormField from 'sentry/components/deprecatedforms/formField';
 
 type InputFieldProps = FormField['props'] & {
   autoComplete?: string;
-  inputStyle?: object;
+  inputStyle?: Record<PropertyKey, unknown>;
   min?: number;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;

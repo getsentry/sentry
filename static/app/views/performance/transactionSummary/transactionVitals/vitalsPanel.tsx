@@ -19,7 +19,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  results: object;
+  results: Record<PropertyKey, unknown>;
   dataFilter?: DataFilter;
 };
 

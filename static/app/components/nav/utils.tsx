@@ -22,7 +22,7 @@ export function isLinkActive(
  * Creates a `LocationDescriptor` from a URL string that may contain search params
  */
 export function makeLinkPropsFromTo(to: string): {
-  state: object;
+  state: Record<PropertyKey, unknown>;
   to: LocationDescriptor;
 } {
   const {pathname, search, hash} = new URL(

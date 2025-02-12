@@ -31,7 +31,7 @@ type Download = {
   dateCreated: string;
   id: number;
   query: {
-    info: object;
+    info: Record<PropertyKey, unknown>;
     type: ExportQueryType;
   };
   status: DownloadStatus;

@@ -76,7 +76,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   );
 
   const labelPropsMemo = useMemo(
-    () => ({as: typeof label === 'string' ? 'p' : 'div'}),
+    () => ({as: typeof label === 'string' ? 'p' : 'div'}) as const,
     [label]
   );
 

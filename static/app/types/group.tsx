@@ -248,7 +248,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: object;
+  headers: Record<PropertyKey, unknown>;
   id: string;
   mimetype: string;
   name: string;
