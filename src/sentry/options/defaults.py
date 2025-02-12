@@ -2874,6 +2874,18 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Disables specific uptime checker regions. This is a list of region slugs
+# which must match regions available in the settings.UPTIME_REGIONS list.
+#
+# Useful to remove a region from check rotation if there is some kind of
+# problem with the region.
+register(
+    "uptime.disabled-checker-regions",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
