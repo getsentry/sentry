@@ -119,6 +119,31 @@ export default function TempestSettings({organization, project}: Props) {
           ]}
         />
       </Form>
+      <Form
+        apiMethod="PUT"
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
+        initialData={{
+          tempestFetchDumps: project?.tempestFetchDumps,
+        }}
+        saveOnBlur
+        hideFooter
+      >
+        <JsonForm
+          forms={[
+            {
+              title: t('General Settings'),
+              fields: [
+                {
+                  name: 'tempestFetchDumps',
+                  type: 'boolean',
+                  label: t('Attach Dumps'),
+                  help: t('Attach dumps to issues.'),
+                },
+              ],
+            },
+          ]}
+        />
+      </Form>
 
       <PanelTable
         headers={[
