@@ -89,7 +89,7 @@ class MonitorEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        request._request.organization = project.organization
+        request._request.organization = project.organization  # type: ignore[attr-defined]
 
         kwargs["organization"] = organization
         kwargs["project"] = project
@@ -151,11 +151,12 @@ class ProjectMonitorCheckinEndpoint(ProjectMonitorEndpoint):
     def convert_args(
         self,
         request: Request,
+        monitor_id_or_slug: str,
         checkin_id: str,
         *args,
         **kwargs,
     ):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
+        args, kwargs = super().convert_args(request, monitor_id_or_slug, *args, **kwargs)
         try:
             kwargs["checkin"] = MonitorCheckIn.objects.get(
                 project_id=kwargs["project"].id,
@@ -178,11 +179,12 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
     def convert_args(
         self,
         request: Request,
+        monitor_id_or_slug: str,
         environment: str,
         *args,
         **kwargs,
     ):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
+        args, kwargs = super().convert_args(request, monitor_id_or_slug, *args, **kwargs)
         monitor = kwargs["monitor"]
         try:
             environment_object = Environment.objects.get(
