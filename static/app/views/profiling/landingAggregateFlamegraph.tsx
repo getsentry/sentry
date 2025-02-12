@@ -662,7 +662,7 @@ function AggregateFlamegraphProfileReference(props: {
   }
 
   const to = generateProfileRouteFromProfileReference({
-    orgSlug: organization.slug,
+    organization,
     projectSlug: project.slug,
     reference: props.profile,
     frameName: props.frameName,

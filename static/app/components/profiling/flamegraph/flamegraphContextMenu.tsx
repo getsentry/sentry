@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
@@ -140,7 +141,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
-                organizationSlug={organization.slug}
+                organization={organization}
                 projectSlug={project?.slug}
                 subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
@@ -387,7 +388,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
-                organizationSlug={organization.slug}
+                organization={organization}
                 projectSlug={project?.slug}
                 subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
@@ -529,7 +530,7 @@ function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
   framePackage: string | undefined;
-  organizationSlug: string;
+  organization: Organization;
   profileIds: Profiling.ProfileReference[];
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
@@ -624,7 +625,7 @@ function ProfileIdsSubMenu(props: {
                 }
 
                 const to = generateProfileRouteFromProfileReference({
-                  orgSlug: props.organizationSlug,
+                  organization: props.organization,
                   projectSlug,
                   reference: profileId,
                   frameName: props.frameName,

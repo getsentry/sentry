@@ -360,7 +360,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       const profileTarget =
         defined(row.projectSlug) && defined(row[key])
           ? generateProfileFlamechartRoute({
-              orgSlug: organization.slug,
+              organization,
               projectSlug: row.projectSlug,
               profileId,
             })

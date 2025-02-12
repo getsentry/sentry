@@ -252,7 +252,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: detail.traceFullDetailedEvent.project_slug,
       profileId: detail.traceFullDetailedEvent.profile_id,
     });

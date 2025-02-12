@@ -134,7 +134,7 @@ class TransactionDetail extends Component<Props> {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: transaction.project_slug,
       profileId: transaction.profile_id,
     });
