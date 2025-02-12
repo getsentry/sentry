@@ -67,14 +67,6 @@ def test_invalid_public_name_regex(name):
             "d:transactions/measurements.disk_io@byte/second",
             ParsedMRI("d", "transactions", "measurements.disk_io", "byte/second"),
         ),
-        (
-            "c:transactions/http.client.open_connections@{connection}",
-            ParsedMRI("c", "custom", "http.client.open_connections", "{connection}"),
-        ),
-        (
-            "c:transactions/http.client.active_requests@{request}",
-            ParsedMRI("c", "custom", "http.client.active_requests", "{request}"),
-        ),
     ],
 )
 def test_parse_mri_with_valid_mri(name, expected):

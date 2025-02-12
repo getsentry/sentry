@@ -1036,7 +1036,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             "min",
             TransactionMRI.DURATION.value,
         )
-        query_2 = self.mql("max", "d:transactions/app_load@millisecond")
+        query_2 = self.mql("max", "d:sessions/app_load@millisecond")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(

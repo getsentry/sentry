@@ -202,7 +202,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             )
 
         response = self.get_success_response(
-            self.organization.slug, project=[project_1.id], useCase=["transactions", "custom"]
+            self.organization.slug, project=[project_1.id], useCase=["transactions"]
         )
         assert len(response.data) == 2
 
