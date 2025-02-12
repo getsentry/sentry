@@ -519,7 +519,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     logger.exception(
                         "Error when dual writing alert rule", extra={"details": str(e)}
                     )
-                raise BadRequest
+                    raise BadRequest
 
             self._handle_triggers(alert_rule, triggers)
             if should_dual_write:
@@ -530,7 +530,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     logger.exception(
                         "Error when dual writing alert rule", extra={"details": str(e)}
                     )
-                raise BadRequest
+                    raise BadRequest
             return alert_rule
 
     def update(self, instance, validated_data):

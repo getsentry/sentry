@@ -70,7 +70,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 logger.exception(
                     "Error when dual writing alert rule trigger", extra={"details": str(e)}
                 )
-            raise BadRequest
+                raise BadRequest
         self._handle_actions(alert_rule_trigger, actions)
         return alert_rule_trigger
 
