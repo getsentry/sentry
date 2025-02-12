@@ -371,6 +371,7 @@ DETAILED_PROJECT = {
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
+    "tempestFetchDumps": False,
     "isDynamicallySampled": True,
     "highlightTags": [],
     "highlightContext": {},
