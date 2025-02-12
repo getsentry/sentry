@@ -118,7 +118,6 @@ class BaseTSDB(Service):
             "get_distinct_counts_series",
             "get_distinct_counts_totals",
             "get_frequency_series",
-            "get_distinct_counts_totals_with_conditions",
         ]
     )
 
@@ -447,6 +446,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, int]:
         range_set = self.get_range(
             model,
@@ -459,6 +459,7 @@ class BaseTSDB(Service):
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
+            conditions=conditions,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
@@ -545,28 +546,10 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[int, Any]:
-        """
-        Count distinct items during a time range.
-        """
-        raise NotImplementedError
-
-    def get_distinct_counts_totals_with_conditions(
-        self,
-        model: TSDBModel,
-        keys: Sequence[int],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        use_cache: bool = False,
-        jitter_value: int | None = None,
-        tenant_ids: dict[str, int | str] | None = None,
-        referrer_suffix: str | None = None,
         conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, Any]:
         """
-        Count distinct items during a time range with conditions.
+        Count distinct items during a time range with optional conditions
         """
         raise NotImplementedError
 
