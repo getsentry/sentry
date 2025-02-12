@@ -6,6 +6,7 @@ import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
+import {focusNext, focusPrev} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -32,6 +33,21 @@ export function DeletableToken<T>({
     state,
   });
 
+  const onKeyDownCapture = useCallback(
+    (evt: KeyboardEvent<HTMLInputElement>) => {
+      if (evt.key === 'ArrowLeft') {
+        focusPrev(state, item);
+        return;
+      }
+
+      if (evt.key === 'ArrowRight') {
+        focusNext(state, item);
+        return;
+      }
+    },
+    [state, item]
+  );
+
   const onKeyDown = useCallback(
     (evt: KeyboardEvent<HTMLDivElement>) => {
       if (evt.key === 'Backspace' || evt.key === 'Delete') {
@@ -54,6 +70,7 @@ export function DeletableToken<T>({
       {...rowProps}
       onClick={onClick}
       onKeyDown={onKeyDown}
+      onKeyDownCapture={onKeyDownCapture}
       aria-invalid={false} // TODO: handle invalid state
       ref={ref}
     >

@@ -131,7 +131,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
           title: t('Dynamic Sampling'),
           description: t('Manage your sampling rate'),
-          badge: () => <FeatureBadge type="alpha" />,
+          badge: () => 'alpha',
           show: ({organization}) =>
             !!organization && hasDynamicSamplingCustomFeature(organization),
         },
@@ -139,7 +139,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up your provider webhooks'),
-          badge: () => <FeatureBadge type="beta" />,
+          badge: () => 'beta',
           show: ({organization}) =>
             !!organization && organization.features.includes('feature-flag-ui'),
         },

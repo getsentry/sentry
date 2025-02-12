@@ -25,11 +25,8 @@ const LabelHook = HookOrDefault({
 });
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
-  if (badge === 'new') {
-    return <FeatureBadge type="new" />;
-  }
-  if (badge === 'beta') {
-    return <FeatureBadge type="beta" />;
+  if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
+    return <FeatureBadge type={badge} variant="short" />;
   }
   if (badge === 'warning') {
     return (
@@ -47,9 +44,13 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
 
 function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   return (
-    <SecondaryNav.Item to={to} end={index} {...props}>
+    <SecondaryNav.Item
+      to={to}
+      end={index}
+      trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
+      {...props}
+    >
       <LabelHook id={id}>{label}</LabelHook>
-      {badge ? <SettingsNavBadge badge={badge} /> : null}
     </SecondaryNav.Item>
   );
 }

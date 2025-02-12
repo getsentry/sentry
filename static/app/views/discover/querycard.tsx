@@ -11,7 +11,7 @@ import type {User} from 'sentry/types/user';
 
 type Props = {
   renderGraph: () => React.ReactNode;
-  to: object;
+  to: Record<PropertyKey, unknown>;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;

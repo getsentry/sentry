@@ -56,9 +56,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                 # Flags are stored on the same table as tags but on a different column. Ideally
                 # both could be queried in a single request. But at present we're not sure if we
                 # want to treat tags and flags as the same or different and in which context.
-                use_flag_backend = request.GET.get("useFlagsBackend") == "1" and features.has(
-                    "organizations:feature-flag-autocomplete", organization, actor=request.user
-                )
+                use_flag_backend = request.GET.get("useFlagsBackend") == "1"
                 if use_flag_backend:
                     backend = tagstore.flag_backend
                 else:

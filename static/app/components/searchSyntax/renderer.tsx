@@ -230,6 +230,9 @@ function KeyToken({
     | Token.KEY_EXPLICIT_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
   >;
   negated?: boolean;
 }) {
