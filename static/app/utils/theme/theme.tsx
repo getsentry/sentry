@@ -1172,7 +1172,9 @@ export const darkTheme = {
   },
 } satisfies SentryTheme;
 
-// Theme type exports
+/**
+ * @deprecated use import type {Theme} from '@emotion/react'
+ */
 export type SentryTheme = typeof lightTheme;
 
 export type ColorMapping = typeof lightColors;
