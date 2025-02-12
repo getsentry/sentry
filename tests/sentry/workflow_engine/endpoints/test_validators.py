@@ -23,7 +23,7 @@ from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
-    BaseGroupTypeDetectorValidator,
+    BaseDetectorTypeValidator,
     DataSourceCreator,
     NumericComparisonConditionValidator,
 )
@@ -84,9 +84,9 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
         super().setUp()
         self.project = self.create_project()
 
-        self.validator_class = BaseGroupTypeDetectorValidator
+        self.validator_class = BaseDetectorTypeValidator
 
-    def test_validate_group_type_valid(self):
+    def test_validate_detector_type_valid(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -96,18 +96,19 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
                 detector_validator=MetricAlertsDetectorValidator,
             )
             validator = self.validator_class()
-            result = validator.validate_group_type("test_type")
+            result = validator.validate_detector_type("test_type")
             assert result == mock_get_by_slug.return_value
 
-    def test_validate_group_type_unknown(self):
+    def test_validate_detector_type_unknown(self):
         with mock.patch.object(grouptype.registry, "get_by_slug", return_value=None):
             validator = self.validator_class()
             with pytest.raises(
-                ValidationError, match="[ErrorDetail(string='Unknown group type', code='invalid')]"
+                ValidationError,
+                match="[ErrorDetail(string='Unknown detector type', code='invalid')]",
             ):
-                validator.validate_group_type("unknown_type")
+                validator.validate_detector_type("unknown_type")
 
-    def test_validate_group_type_incompatible(self):
+    def test_validate_detector_type_incompatible(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -119,9 +120,9 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
             validator = self.validator_class()
             with pytest.raises(
                 ValidationError,
-                match="[ErrorDetail(string='Group type not compatible with detectors', code='invalid')]",
+                match="[ErrorDetail(string='Detector type not compatible with detectors', code='invalid')]",
             ):
-                validator.validate_group_type("test_type")
+                validator.validate_detector_type("test_type")
 
 
 class MetricAlertComparisonConditionValidatorTest(TestCase):
@@ -183,7 +184,7 @@ class DetectorValidatorTest(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": "metric_alert_fire",
+            "detectorType": "metric_alert_fire",
             "data_source": {
                 "field1": "test",
                 "field2": 123,
@@ -241,22 +242,22 @@ class DetectorValidatorTest(TestCase):
             data=detector.get_audit_log_data(),
         )
 
-    def test_validate_group_type_unknown(self):
-        validator = MockDetectorValidator(data={**self.valid_data, "group_type": "unknown_type"})
+    def test_validate_detector_type_unknown(self):
+        validator = MockDetectorValidator(data={**self.valid_data, "detectorType": "unknown_type"})
         assert not validator.is_valid()
-        assert validator.errors.get("groupType") == [
-            ErrorDetail(string="Unknown group type", code="invalid")
+        assert validator.errors.get("detectorType") == [
+            ErrorDetail(string="Unknown detector type", code="invalid")
         ], validator.errors
 
-    def test_validate_group_type_incompatible(self):
+    def test_validate_detector_type_incompatible(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
             validator = MockDetectorValidator(
-                data={**self.valid_data, "group_type": "incompatible_type"}
+                data={**self.valid_data, "detectorType": "incompatible_type"}
             )
             assert not validator.is_valid()
-            assert validator.errors.get("groupType") == [
-                ErrorDetail(string="Group type not compatible with detectors", code="invalid")
+            assert validator.errors.get("detectorType") == [
+                ErrorDetail(string="Detector type not compatible with detectors", code="invalid")
             ]
 
 
@@ -274,7 +275,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": "metric_alert_fire",
+            "detector_type": "metric_alert_fire",
             "data_source": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -354,12 +355,12 @@ class TestMetricAlertsDetectorValidator(TestCase):
             data=detector.get_audit_log_data(),
         )
 
-    def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": "invalid_type"}
+    def test_invalid_detector_type(self):
+        data = {**self.valid_data, "detector_type": "invalid_type"}
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors.get("groupType") == [
-            ErrorDetail(string="Unknown group type", code="invalid")
+        assert validator.errors.get("detectorType") == [
+            ErrorDetail(string="Unknown detector type", code="invalid")
         ]
 
     def test_too_many_conditions(self):
@@ -500,6 +501,6 @@ class MockDataConditionValidator(NumericComparisonConditionValidator):
     supported_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
 
 
-class MockDetectorValidator(BaseGroupTypeDetectorValidator):
+class MockDetectorValidator(BaseDetectorTypeValidator):
     data_source = MockDataSourceValidator()
     data_conditions = MockDataConditionValidator(many=True)

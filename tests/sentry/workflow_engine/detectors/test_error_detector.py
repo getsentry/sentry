@@ -23,7 +23,7 @@ class TestErrorDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": "error",
+            "detectorType": "error",
             "fingerprinting_rules": """message:"hello world 1" -> hw1 title="HW1""",
             "resolve_age": 30,
         }
@@ -55,12 +55,12 @@ class TestErrorDetectorValidator(TestCase):
             data=detector.get_audit_log_data(),
         )
 
-    def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": "metric_alert_fire"}
+    def test_invalid_detector_type(self):
+        data = {**self.valid_data, "detectorType": "metric_alert_fire"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors.get("groupType") == [
-            ErrorDetail(string="Group type must be error", code="invalid")
+        assert validator.errors.get("detectorType") == [
+            ErrorDetail(string="Detector type must be error", code="invalid")
         ]
 
     def test_invalid_fingerprinting_rules(self):

@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.endpoints.validators.base import (
-    BaseGroupTypeDetectorValidator,
+    BaseDetectorTypeValidator,
     NumericComparisonConditionValidator,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -14,7 +14,7 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
     supported_results = frozenset((DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM))
 
 
-class MetricAlertsDetectorValidator(BaseGroupTypeDetectorValidator):
+class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True)
     data_conditions = MetricAlertComparisonConditionValidator(many=True)
 
