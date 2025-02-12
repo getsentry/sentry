@@ -1181,7 +1181,13 @@ export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 
-export default commonTheme;
+/**
+ * Do not import theme values directly as they only define light color theme.
+ * Consuming it directly means that you won't get the correct colors in dark mode.
+ * @deprecated use useTheme hook instead.
+ */
+const commonThemeExport = {...commonTheme};
+export default commonThemeExport;
 
 /**
  * Configure Emotion to use our theme
