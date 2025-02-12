@@ -238,7 +238,7 @@ function DropdownMenu({
             return (
               <Section key={item.key} title={item.label} items={item.children}>
                 {sectionItem => (
-                  <Item size={size} {...sectionItem}>
+                  <Item size={size} {...sectionItem} key={sectionItem.key}>
                     {sectionItem.label}
                   </Item>
                 )}
