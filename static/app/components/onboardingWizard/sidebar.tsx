@@ -16,7 +16,9 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
-import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
+import SidebarPanel, {
+  type SidebarPanelProps,
+} from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -577,7 +579,8 @@ function TaskGroup({
 }
 
 interface SidebarProps
-  extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
+  extends Pick<SidebarPanelProps, 'title'>,
+    Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
     Pick<
       ReturnType<typeof useOnboardingTasks>,
       'gettingStartedTasks' | 'beyondBasicsTasks'
@@ -591,9 +594,8 @@ export function OnboardingSidebar({
   collapsed,
   gettingStartedTasks,
   beyondBasicsTasks,
+  title,
 }: SidebarProps) {
-  const walkthrough = isDemoModeEnabled();
-
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
       orderedGettingStartedTasks.indexOf(a.task) -
@@ -616,7 +618,7 @@ export function OnboardingSidebar({
       collapsed={collapsed}
       hidePanel={onClose}
       orientation={orientation}
-      title={walkthrough ? t('Guided Tour') : t('Quick Setup')}
+      title={title}
     >
       <Content>
         <TaskGroup
