@@ -264,8 +264,10 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_shard(self, latest_shard_row: OutboxBase | None) -> Generator[OutboxBase | None]:
         flush_all: bool = not bool(latest_shard_row)
-        next_shard_row: OutboxBase | None
+        next_shard_row: OutboxBase | None = None
         using: str = db.router.db_for_write(type(self))
+
+        # Select and prepare the row inside transaction
         with transaction.atomic(using=using), django_test_transaction_water_mark(using=using):
             try:
                 next_shard_row = (
