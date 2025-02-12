@@ -27,6 +27,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {NO_PLOTTABLE_VALUES} from '../common/settings';
 import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
 import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
@@ -56,6 +57,18 @@ export interface TimeSeriesWidgetVisualizationProps {
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
+  if (
+    props.timeSeries
+      .flatMap(timeSeries => timeSeries.data)
+      .every(item => item.value === null)
+  ) {
+    throw new Error(NO_PLOTTABLE_VALUES);
+  }
+
+  // TODO: It would be polite to also scan for gaps (i.e., the items don't all
+  // have the same difference in `timestamp`s) even though this is rare, since
+  // the backend zerofills the
+
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 

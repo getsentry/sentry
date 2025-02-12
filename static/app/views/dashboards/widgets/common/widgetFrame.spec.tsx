@@ -24,9 +24,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.getByText('Uh Oh')).toBeInTheDocument();
 
-      expect(
-        await screen.findByText('Sorry, something went wrong when rendering this widget.')
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/cannot read properties/i)).toBeInTheDocument();
 
       jest.resetAllMocks();
     });
