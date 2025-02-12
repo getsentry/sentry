@@ -23,6 +23,7 @@ import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -172,6 +173,7 @@ class UsageStatsOrganization<
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateStartDisplay: string;
+    chartDateTimezoneAbbreviationDisplay: string;
     chartDateTimezoneDisplay: string;
     chartDateUtc: boolean;
     chartStats: ChartStats;
@@ -179,8 +181,10 @@ class UsageStatsOrganization<
     chartTransform: ChartDataTransform;
     dataError?: Error;
   } {
+    const user = ConfigStore.get('user');
     return {
       ...mapSeriesToChart({
+        userTimezone: user.options.timezone,
         orgStats: this.state.orgStats,
         chartDateInterval: this.chartDateRange.chartDateInterval,
         chartDateUtc: this.chartDateRange.chartDateUtc,
@@ -210,12 +214,14 @@ class UsageStatsOrganization<
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateStartDisplay: string;
+    chartDateTimezoneAbbreviationDisplay: string;
     chartDateTimezoneDisplay: string;
     chartDateUtc: boolean;
   } {
     const {orgStats} = this.state;
     const {dataDatetime} = this.props;
 
+    const user = ConfigStore.get('user');
     const interval = getSeriesApiInterval(dataDatetime);
 
     // Use fillers as loading/error states will not display datetime at all
@@ -228,6 +234,7 @@ class UsageStatsOrganization<
         chartDateStartDisplay: '',
         chartDateEndDisplay: '',
         chartDateTimezoneDisplay: '',
+        chartDateTimezoneAbbreviationDisplay: '',
       };
     }
 
@@ -249,8 +256,12 @@ class UsageStatsOrganization<
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);
-    const displayStart = useUtc ? moment(startTime).utc() : moment(startTime).local();
-    const displayEnd = useUtc ? moment(endTime).utc() : moment(endTime).local();
+    const displayStart = useUtc
+      ? moment(startTime).utc()
+      : moment(startTime).tz(user.options.timezone);
+    const displayEnd = useUtc
+      ? moment(endTime).utc()
+      : moment(endTime).tz(user.options.timezone);
 
     if (intervalHours < 24) {
       displayEnd.add(intervalHours, 'h');
@@ -264,6 +275,7 @@ class UsageStatsOrganization<
       chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
       chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
       chartDateTimezoneDisplay: displayStart.format('Z'),
+      chartDateTimezoneAbbreviationDisplay: displayStart.format('z'),
     };
   }
 
@@ -487,6 +499,7 @@ class UsageStatsOrganization<
       chartDateStartDisplay,
       chartDateEndDisplay,
       chartDateTimezoneDisplay,
+      chartDateTimezoneAbbreviationDisplay,
     } = this.chartData;
 
     return (
@@ -498,12 +511,16 @@ class UsageStatsOrganization<
               {loading || error ? (
                 <NotAvailable />
               ) : (
-                tct('[start] — [end] ([timezone] UTC, [interval] interval)', {
-                  start: chartDateStartDisplay,
-                  end: chartDateEndDisplay,
-                  timezone: chartDateTimezoneDisplay,
-                  interval: chartDateInterval,
-                })
+                tct(
+                  '[start] — [end] ([timezone] [timezoneAbbreviation], [interval] interval)',
+                  {
+                    start: chartDateStartDisplay,
+                    end: chartDateEndDisplay,
+                    timezone: chartDateTimezoneDisplay,
+                    timezoneAbbreviation: chartDateTimezoneAbbreviationDisplay,
+                    interval: chartDateInterval,
+                  }
+                )
               )}
             </span>
           </FooterDate>

@@ -18,6 +18,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
@@ -258,6 +259,7 @@ function chartMetadata({
   xAxisLabelVisibility: Record<number, boolean>;
   yAxisMinInterval: number;
 } {
+  const user = ConfigStore.get('user');
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
   if (!selectDataCategory) {
     throw new Error('Selected item is not supported');
@@ -300,6 +302,7 @@ function chartMetadata({
   const xAxisDates = getXAxisDates(
     usageDateStart,
     usageDateEnd,
+    user.options.timezone,
     usageDateShowUtc,
     usageDateInterval
   );
