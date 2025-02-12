@@ -228,13 +228,12 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         self.login_as(user=self.user)
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
-            response = self.get_response(query="is:unresolved flag:true", groups=[group_a.id])
-            response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
+        response = self.get_response(query="is:unresolved flags[flag]:true", groups=[group_a.id])
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
 
-            assert response.status_code == 200
-            assert len(response_data) == 1
-            assert int(response_data[0]["id"]) == group_a.id
-            assert response_data[0]["count"] == "2"
-            assert response_data[0]["filtered"]["count"] == "1"
-            assert response_data[0]["lifetime"]["count"] == "1"
+        assert response.status_code == 200
+        assert len(response_data) == 1
+        assert int(response_data[0]["id"]) == group_a.id
+        assert response_data[0]["count"] == "2"
+        assert response_data[0]["filtered"]["count"] == "1"
+        assert response_data[0]["lifetime"]["count"] == "1"

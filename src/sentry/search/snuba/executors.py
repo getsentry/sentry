@@ -69,12 +69,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import (
-    SnubaQueryParams,
-    aliased_query_params,
-    bulk_raw_query_with_override,
-    substitute_conditions,
-)
+from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -401,7 +396,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization,
+            organization.id,
             project_ids,
             environments,
             group_ids,
@@ -504,10 +499,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     query_params_for_categories[gc] = query_params
 
         try:
-            bulk_query_results = bulk_raw_query_with_override(
-                list(query_params_for_categories.values()),
-                referrer=referrer,
-                organization=organization,
+            bulk_query_results = bulk_raw_query(
+                list(query_params_for_categories.values()), referrer=referrer
             )
         except Exception:
             metrics.incr(
@@ -520,10 +513,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
             # we'll fallback to querying for errors only
             if GroupCategory.ERROR.value in query_params_for_categories.keys():
-                bulk_query_results = bulk_raw_query_with_override(
-                    [query_params_for_categories[GroupCategory.ERROR.value]],
-                    referrer=referrer,
-                    organization=organization,
+                bulk_query_results = bulk_raw_query(
+                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
                 )
             else:
                 raise
@@ -1817,12 +1808,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     )
                     if condition is not None:
                         where_conditions.append(condition)
-
-            if (
-                features.has("organizations:feature-flag-autocomplete", organization)
-                and is_errors is True
-            ):
-                where_conditions = list(substitute_conditions(where_conditions))
 
             # handle types based on issue.type and issue.category
             if not is_errors:

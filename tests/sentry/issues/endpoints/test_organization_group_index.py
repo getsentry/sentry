@@ -4043,45 +4043,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": True,
-                "organizations:issue-search-snuba": True,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 1, "test:flag:true on"
-            response = self.get_success_response(query='"test:flag":false')
-            assert len(json.loads(response.content)) == 0, '"test:flag":false on'
-
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": True,
-                "organizations:issue-search-snuba": False,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 1, '"test:flag":true on legacy'
-            response = self.get_success_response(query='"test:flag":false')
-            assert len(json.loads(response.content)) == 0, '"test:flag":false on legacy'
-
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": False,
-                "organizations:issue-search-snuba": False,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 0, '"test:flag":true off'
-
-        with self.feature(
-            {
-                "organizations:feature-flag-autocomplete": False,
-                "organizations:issue-search-snuba": True,
-            }
-        ):
-            response = self.get_success_response(query='"test:flag":true')
-            assert len(json.loads(response.content)) == 0, '"test:flag":true off legacy'
+        with self.feature({"organizations:issue-search-snuba": False}):
+            response = self.get_success_response(query='flags["test:flag"]:true')
+            assert len(json.loads(response.content)) == 1
+            response = self.get_success_response(query='flags["test:flag"]:false')
+            assert len(json.loads(response.content)) == 0
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

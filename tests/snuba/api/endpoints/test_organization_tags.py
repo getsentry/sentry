@@ -101,12 +101,11 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
         )
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
-            response = self.client.get(
-                url,
-                {"statsPeriod": "14d", "useFlagsBackend": "1", "dataset": "events"},
-                format="json",
-            )
+        response = self.client.get(
+            url,
+            {"statsPeriod": "14d", "useFlagsBackend": "1", "dataset": "events"},
+            format="json",
+        )
         assert response.status_code == 200, response.content
         data = response.data
         data.sort(key=lambda val: val["totalValues"], reverse=True)

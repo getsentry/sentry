@@ -4,7 +4,6 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from snuba_sdk import And, Column, Condition, Function, Op, Or
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 
@@ -18,17 +17,12 @@ from sentry.utils.snuba import (
     RetrySkipTimeout,
     SnubaQueryParams,
     UnqualifiedQueryError,
-    _has_tags_filter,
     _prepare_query_params,
-    _substitute_tags_filter,
     get_json_type,
     get_query_params_to_update_for_projects,
     get_snuba_column_name,
     get_snuba_translators,
-    has_tags_filter,
     quantize_time,
-    substitute_conditions,
-    substitute_tags_filter,
 )
 
 
@@ -449,77 +443,3 @@ def test_retries():
         snuba_pool.urlopen("POST", "/query", body="{}")
 
     assert connection_mock.request.call_count == 1
-
-
-def test_substitute_conditions():
-    tags = Condition(lhs=Column(name="tags[hello]", entity=None), op=Op.EQ, rhs=True)
-    not_tags = Condition(lhs=Column(name="not_tags", entity=None), op=Op.EQ, rhs=True)
-
-    result = list(substitute_conditions(conditions=[tags, not_tags]))
-    assert result == [Or(conditions=[tags, substitute_tags_filter(tags)]), not_tags]
-
-
-def test_has_tags_filter():
-    tags = Condition(lhs=Column(name="tags[hello]", entity=None), op=Op.EQ, rhs=True)
-    not_tags = Condition(lhs=Column(name="not_tags", entity=None), op=Op.EQ, rhs=True)
-
-    assert has_tags_filter(tags) is True
-    assert has_tags_filter(not_tags) is False
-    assert has_tags_filter(And(conditions=[tags, not_tags])) is True
-    assert has_tags_filter(And(conditions=[not_tags, not_tags])) is False
-    assert has_tags_filter(Or(conditions=[tags, not_tags])) is True
-    assert has_tags_filter(Or(conditions=[not_tags, not_tags])) is False
-
-
-def test__has_tags_filter():
-    """Test has_tags filter."""
-    tags = Column(name="tags[hello]", entity=None)
-    not_tags = Column(name="not_tags", entity=None)
-
-    assert _has_tags_filter(tags) is True
-    assert _has_tags_filter(not_tags) is False
-    assert _has_tags_filter(Function("any", parameters=[tags])) is True
-    assert _has_tags_filter(Function("any", parameters=[not_tags])) is False
-    assert (
-        _has_tags_filter(Function("any", parameters=[Function("any", parameters=[tags])])) is True
-    )
-    assert (
-        _has_tags_filter(Function("any", parameters=[Function("any", parameters=[not_tags])]))
-        is False
-    )
-
-
-def test_substitute_tags_filter():
-    tags = Condition(lhs=Column(name="tags[hello]", entity=None), op=Op.EQ, rhs=True)
-    flags = Condition(lhs=Column(name="flags[hello]", entity=None), op=Op.EQ, rhs=True)
-    not_tags = Condition(lhs=Column(name="not_tags", entity=None), op=Op.EQ, rhs=True)
-
-    assert substitute_tags_filter(not_tags) == not_tags
-    assert substitute_tags_filter(tags) == flags
-    assert substitute_tags_filter(And(conditions=[tags, not_tags])) == And(
-        conditions=[flags, not_tags]
-    )
-    assert substitute_tags_filter(Or(conditions=[tags, not_tags])) == Or(
-        conditions=[flags, not_tags]
-    )
-
-
-def test__substitute_tags_filter():
-    tags = Column(name="tags[hello]", entity=None)
-    flags = Column(name="flags[hello]", entity=None)
-    not_tags = Column(name="not_tags", entity=None)
-
-    assert _substitute_tags_filter(tags) == flags
-    assert _substitute_tags_filter(not_tags) == not_tags
-    assert _substitute_tags_filter(Function("any", parameters=[tags])) == Function(
-        "any", parameters=[flags]
-    )
-    assert _substitute_tags_filter(Function("any", parameters=[not_tags])) == Function(
-        "any", parameters=[not_tags]
-    )
-    assert _substitute_tags_filter(
-        Function("any", parameters=[Function("any", parameters=[tags])])
-    ) == Function("any", parameters=[Function("any", parameters=[flags])])
-    assert _substitute_tags_filter(
-        Function("any", parameters=[Function("any", parameters=[not_tags])])
-    ) == Function("any", parameters=[Function("any", parameters=[not_tags])])
