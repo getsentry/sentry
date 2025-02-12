@@ -79,7 +79,6 @@ export function DetectorListRow({
 }
 
 const StyledCheckbox = styled(Checkbox)<{checked?: boolean}>`
-  align-self: center;
   visibility: ${p => (p.checked ? 'visible' : 'hidden')};
   opacity: 1;
 `;
@@ -95,24 +94,22 @@ const StyledEmptyCell = styled(EmptyCell)`
 `;
 
 const StyledIssueCell = styled(IssueCell)`
-  /* width: 180px; */
   padding: ${space(2)};
   margin: -${space(2)} 0;
 `;
 
 const StyledNumberCell = styled(NumberCell)`
-  /* width: 130px; */
   padding: 0 ${space(2)};
 `;
 
 const StyledConnectionCell = styled(ConnectionCell)`
-  /* width: 200px; */
   padding: 0 ${space(2)};
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
-  padding: 16px;
+  position: relative;
   align-items: center;
+  padding: 16px;
   opacity: ${p => (p.disabled ? 0.6 : 1)};
   display: grid;
 

@@ -50,7 +50,8 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
   }
 
   const bulkActionsVisible = useMemo(() => selectedRows.length > 0, [selectedRows]);
-  const canDelete = false;
+  // TODO: Implement canDelete logic
+  const canDelete = true;
 
   return (
     <Panel>
