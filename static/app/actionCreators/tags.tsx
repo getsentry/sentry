@@ -240,8 +240,9 @@ export function fetchFeatureFlagValues({
     return Promise.resolve([]);
   }
 
-  // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support that syntax.
+  // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support it.
   const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
+
   const url = `/organizations/${organization.slug}/tags/${strippedKey}/values/`;
 
   const query: Query = {
