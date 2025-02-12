@@ -11,11 +11,10 @@ export function makeGetIssueTagValues(
   tagValueLoader: (key: string, search: string) => Promise<TagValue[]>
 ) {
   return async (tag: Tag, query: string): Promise<string[]> => {
-    // Strip quotes for feature flags, which may be used to escape special characters in the search bar.
-    const charsToStrip = '"';
+    // Strip flags[] or flags[""] from the tag key
     const key =
       tag.kind === FieldKind.FEATURE_FLAG
-        ? tag.key.replace(new RegExp(`^[${charsToStrip}]+|[${charsToStrip}]+$`, 'g'), '')
+        ? tag.key.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1')
         : tag.key;
 
     // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
