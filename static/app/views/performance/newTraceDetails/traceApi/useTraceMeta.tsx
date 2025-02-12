@@ -103,7 +103,7 @@ async function fetchTraceMetaInBatches(
 
         acc.span_count += result.value.span_count;
         Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
-          acc.span_count_map[span_op] = count;
+          acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
         });
       } else {
         apiErrors.push(new Error(result?.reason));
