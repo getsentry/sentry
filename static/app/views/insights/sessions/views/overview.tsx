@@ -13,6 +13,7 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import CrashFreeSessionChart from 'sentry/views/insights/sessions/charts/crashFreeSessionChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -41,7 +42,7 @@ export function SessionsOverview() {
             </ModuleLayout.Full>
             {view === MOBILE_LANDING_SUB_PATH ? (
               <ModuleLayout.Half>
-                <ErrorFreeSessionsChart groupByRelease />
+                <CrashFreeSessionChart />
               </ModuleLayout.Half>
             ) : (
               <ModuleLayout.Third>
