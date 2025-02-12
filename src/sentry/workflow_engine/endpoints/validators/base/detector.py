@@ -35,7 +35,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             raise serializers.ValidationError("Detector type not compatible with detectors")
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector
-        return detector_type
+        return detector_type.slug
 
     @property
     def data_source(self) -> BaseDataSourceValidator:

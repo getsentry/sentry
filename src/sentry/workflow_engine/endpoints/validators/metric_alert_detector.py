@@ -8,7 +8,6 @@ from sentry.snuba.subscriptions import update_snuba_query
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
-    BaseDataConditionGroupValidator,
     NumericComparisonConditionValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
@@ -107,7 +106,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
         instance.type = validated_data.get("detector_type", instance.group_type.slug)
         condition_group = validated_data.pop("condition_group")
         data_conditions = condition_group.get("conditions")
-        # import pdb; pdb.set_trace()
+
         if data_conditions:
             self.update_data_conditions(instance, data_conditions)
 
