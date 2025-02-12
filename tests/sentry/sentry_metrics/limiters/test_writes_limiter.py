@@ -172,7 +172,7 @@ def test_writes_limiter_org_limit():
         )
 
         with writes_limiter.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 8
+            assert len(state.dropped_strings) == 6
             assert sorted(ds.use_case_key_result.org_id for ds in state.dropped_strings) == [
                 1,
                 2,
@@ -180,8 +180,6 @@ def test_writes_limiter_org_limit():
                 4,
                 5,
                 6,
-                7,
-                8,
             ]
             assert sorted(org_id for _, org_id, _ in state.accepted_keys.as_tuples()) == [
                 3,
@@ -190,12 +188,6 @@ def test_writes_limiter_org_limit():
                 5,
                 6,
                 6,
-                7,
-                7,
-                7,
-                8,
-                8,
-                8,
             ]
 
 
@@ -246,7 +238,7 @@ def test_writes_limiter_global_limit():
         )
 
         with writes_limiter.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 10
+            assert len(state.dropped_strings) == 6
 
 
 @patch(
@@ -301,9 +293,9 @@ def test_writes_limiter_respects_use_case_id():
             assert len(state.dropped_strings) == 0
 
         with writes_limiter_perf.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 24
+            assert len(state.dropped_strings) == 18
 
         writes_limiter_rh = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         with writes_limiter_rh.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 24
+            assert len(state.dropped_strings) == 18

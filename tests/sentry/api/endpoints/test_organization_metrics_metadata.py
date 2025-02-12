@@ -56,28 +56,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
                 self.now().timestamp(),
                 value,
             )
-        # Use Case: CUSTOM
-        for value, release, tag_value, time in (
-            (1, release_1.version, "tag_value_1", self.now()),
-            (1, release_1.version, "tag_value_1", self.now()),
-            (1, release_1.version, "tag_value_2", self.now() - timedelta(days=40)),
-            (1, release_2.version, "tag_value_3", self.now() - timedelta(days=50)),
-            (1, release_2.version, "tag_value_4", self.now() - timedelta(days=60)),
-        ):
-            self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                "d:custom/my_test_metric@percent",
-                {
-                    "transaction": "/hello",
-                    "platform": "platform",
-                    "environment": "prod",
-                    "release": release,
-                    "mytag": tag_value,
-                },
-                self.now().timestamp(),
-                value,
-            )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
         self.dev_env = self.create_environment(name="dev", project=self.project)

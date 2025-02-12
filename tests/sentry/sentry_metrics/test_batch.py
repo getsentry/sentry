@@ -1803,16 +1803,10 @@ def test_aggregation_options():
     with override_options(
         {
             "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["custom", "transactions"],
+            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
 
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1823,16 +1817,10 @@ def test_aggregation_options():
     with override_options(
         {
             "sentry-metrics.10s-granularity": True,
-            "sentry-metrics.drop-percentiles.per-use-case": ["custom", "transactions"],
+            "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
 
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1843,25 +1831,17 @@ def test_aggregation_options():
     with override_options(
         {
             "sentry-metrics.10s-granularity": False,
-            "sentry-metrics.drop-percentiles.per-use-case": ["custom", "transactions", "spans"],
+            "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
         }
     ):
 
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
         assert get_aggregation_options("c:spans/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
+
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1889,10 +1869,6 @@ def test_aggregation_options():
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
         }
     ):
-
-        assert get_aggregation_options("c:custom/count@none") == {
-            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
-        }
 
         assert get_aggregation_options("d:transactions/measurements.fcp@millisecond") == {
             AggregationOption.HIST: TimeWindow.NINETY_DAYS
