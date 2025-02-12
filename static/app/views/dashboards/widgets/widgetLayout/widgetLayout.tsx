@@ -40,7 +40,9 @@ export function WidgetLayout(props: WidgetLayoutProps) {
 
       {props.Visualization && (
         <ErrorBoundary
-          customComponent={({error}) => <ErrorPanel error={error ?? undefined} />}
+          customComponent={({error}) => (
+            <ErrorPanel error={error?.message ?? undefined} />
+          )}
         >
           <VisualizationWrapper noPadding={props.noVisualizationPadding}>
             {props.Visualization}
