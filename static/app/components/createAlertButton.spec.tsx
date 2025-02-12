@@ -11,7 +11,6 @@ import CreateAlertButton, {
 import GuideStore from 'sentry/stores/guideStore';
 import EventView from 'sentry/utils/discover/eventView';
 import useProjects from 'sentry/utils/useProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
 const onClickMock = jest.fn();
@@ -228,10 +227,7 @@ describe('CreateAlertFromViewButton', () => {
     });
     await userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
-      makeAlertsPathname({
-        path: `/wizard/`,
-        organization,
-      }),
+      `/organizations/org-slug/alerts/wizard/?`,
       expect.objectContaining({
         params: expect.objectContaining({
           orgId: 'org-slug',
@@ -289,10 +285,7 @@ describe('CreateAlertFromViewButton', () => {
     );
     await userEvent.click(screen.getByRole('button'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: makeAlertsPathname({
-        path: `/new/metric/`,
-        organization,
-      }),
+      pathname: `/organizations/org-slug/alerts/new/metric/`,
       query: expect.objectContaining({
         query: 'event.type:error ',
         project: 'project-slug',
