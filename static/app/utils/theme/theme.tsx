@@ -1138,7 +1138,7 @@ export const lightTheme = {
   },
 };
 
-export const darkTheme = {
+export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
   ...darkColors,
@@ -1170,12 +1170,7 @@ export const darkTheme = {
     border: darkAliases.border,
     superuser: '#620808',
   },
-} satisfies SentryTheme;
-
-/**
- * @deprecated use import type {Theme} from '@emotion/react'
- */
-export type SentryTheme = typeof lightTheme;
+};
 
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
@@ -1196,5 +1191,6 @@ export default commonThemeExport;
  */
 declare module '@emotion/react' {
   // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
+  type SentryTheme = typeof lightTheme;
   export interface Theme extends SentryTheme {}
 }
