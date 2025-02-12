@@ -701,7 +701,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
-            aggregation_value="NULL_VALUE",
+            aggregation_value="NULL_VALUE",  # type: ignore[arg-type]
         )
         logger_extra = {
             "subscription_id": self.sub.id,
