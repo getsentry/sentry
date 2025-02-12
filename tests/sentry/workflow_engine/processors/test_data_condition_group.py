@@ -216,8 +216,8 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
 
     def test_execute_slow_conditions(self):
         (logic_result, condition_results), remaining_conditions = process_data_condition_group(
-            self.data_condition_group.id,
-            {"snuba_results": [10]},
+            self.data_condition_group,
+            [10],
             False,
         )
 

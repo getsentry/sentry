@@ -25,6 +25,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
+from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.types import DataConditionHandlerType
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
@@ -228,6 +229,41 @@ def get_condition_group_results(
     return condition_group_results
 
 
+def get_groups_to_fire(
+    data_condition_groups: list[DataConditionGroup],
+    workflows_to_envs: WorkflowEnvMapping,
+    dcg_to_workflow: dict[int, int],
+    dcg_to_groups: DataConditionGroupGroups,
+    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+) -> dict[int, set[DataConditionGroup]]:
+    groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
+    for dcg in data_condition_groups:
+        slow_conditions = get_slow_conditions(dcg)
+        action_match = DataConditionGroup.Type(dcg.logic_type)
+        workflow_id = dcg_to_workflow.get(dcg.id)
+        workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
+
+        for group_id in dcg_to_groups[dcg.id]:
+            conditions_to_evaluate = []
+            for condition in slow_conditions:
+                unique_queries = generate_unique_queries(condition, workflow_env)
+                query_values = [
+                    condition_group_results[unique_query][group_id]
+                    for unique_query in unique_queries
+                ]
+                conditions_to_evaluate.append((condition, query_values))
+
+            passes, _ = evaluate_data_conditions(conditions_to_evaluate, action_match)
+            if (
+                passes and workflow_id is None
+            ):  # TODO: detector trigger passes. do something like create issue
+                pass
+            elif passes:
+                groups_to_fire[group_id].add(dcg)
+
+    return groups_to_fire
+
+
 @instrumented_task(
     name="sentry.workflow_engine.processors.delayed_workflow",
     queue="delayed_rules",
@@ -253,18 +289,27 @@ def process_delayed_workflows(
     dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
-    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]
+    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER].copy()
     dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
 
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
-    _ = get_condition_query_groups(
+    # Get unique query groups to query Snuba
+    condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+    condition_group_results = get_condition_group_results(condition_groups)
 
-    # TODO(cathy): fetch results from snuba
-    # TODO(cathy): evaluate condition groups
+    # Evaluate DCGs
+    _ = get_groups_to_fire(
+        data_condition_groups,
+        workflows_to_envs,
+        dcg_to_workflow,
+        dcg_to_groups,
+        condition_group_results,
+    )
+
     # TODO(cathy): fire actions on passing groups
     # TODO(cathy): clean up redis buffer
 
