@@ -15,7 +15,7 @@ describe('latencyChart', () => {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [],
+        data: [[1739378162, [{count: 1}]]],
       },
     });
   });

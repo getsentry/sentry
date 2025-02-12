@@ -67,7 +67,9 @@ describe('destinationSummaryPage', () => {
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
-      body: {data: []},
+      body: {
+        data: [[1699907700, [{count: 0.2}]]],
+      },
     });
   });
 
