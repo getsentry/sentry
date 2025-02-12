@@ -279,9 +279,12 @@ class OutboxBase(Model):
         # could not be obtained ("could not obtain lock"), then we yield None to signal that
         # another process is already handling this group.
         try:
+            current_time = timezone.now()
             # Start an atomic transaction for a consistent snapshot of the coalesced group.
             with transaction.atomic(using=using):
-                coalesced, first_coalesced = self._select_coalesced_messages()
+                coalesced, first_coalesced = self._select_coalesced_messages(
+                    current_time=current_time,
+                )
                 if coalesced is None:
                     yield None
                     return
@@ -294,6 +297,7 @@ class OutboxBase(Model):
                 new_scheduled_for = self._reserve_messages_for_processing(
                     coalesced=coalesced,
                     all_ids=all_ids,
+                    current_time=current_time,
                 )
 
             # End of the selection/reservation phase. The transaction is now committed, and all locks
@@ -332,10 +336,10 @@ class OutboxBase(Model):
                 metrics.incr("outbox.lock_error")
                 raise
 
-    def _select_coalesced_messages(self) -> tuple[OutboxBase | None, OutboxBase | None]:
+    def _select_coalesced_messages(
+        self, *, current_time: datetime.datetime
+    ) -> tuple[OutboxBase | None, OutboxBase | None]:
         """Select the representative message from the group and the first (oldest) message."""
-
-        current_time = timezone.now()
 
         # Select the representative message from the group, which is defined as the one
         # with the highest id. Only select messages that are due for processing (scheduled_for <= now).
@@ -403,7 +407,7 @@ class OutboxBase(Model):
         return tags, scheduled_from, date_added, all_ids
 
     def _reserve_messages_for_processing(
-        self, *, coalesced: OutboxBase, all_ids: list[int]
+        self, *, coalesced: OutboxBase, all_ids: list[int], current_time: datetime.datetime
     ) -> datetime.datetime:
         """Reserve messages by updating their scheduled_for time."""
         # Reserve the messages for processing. By updating scheduled_for to a point
@@ -413,7 +417,7 @@ class OutboxBase(Model):
         # In practice, every worker is expected to only select and process messages with a scheduled_for timestamp
         # that is in the past (or otherwise eligible). As long as all processes honor this rule, no worker will
         # pick up these reserved rows until the reserved time has passed.
-        new_scheduled_for = timezone.now() + datetime.timedelta(hours=1)
+        new_scheduled_for = current_time + datetime.timedelta(hours=1)
         self.objects.filter(id__in=all_ids + [coalesced.id]).update(scheduled_for=new_scheduled_for)
         return new_scheduled_for
 
