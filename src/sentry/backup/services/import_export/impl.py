@@ -369,9 +369,9 @@ class UniversalImportExportService(ImportExportService):
 
         except DeserializationError as err:
             sentry_sdk.capture_exception()
-            reason = "No additional information"
+            reason = str(err) or "No additional information"
             if err.__cause__:
-                reason = str(err.__cause__)
+                reason += f", {err.__cause__}"
 
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
