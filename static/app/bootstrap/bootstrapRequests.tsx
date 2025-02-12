@@ -11,7 +11,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {queryOptions, useQuery} from 'sentry/utils/queryClient';
+import {queryOptions, skipToken, useQuery} from 'sentry/utils/queryClient';
 
 // 30 second stale time
 // Stale time decides if the query should be refetched
@@ -68,26 +68,30 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
 export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-organization', orgSlug],
-    queryFn: async (): Promise<Organization> => {
-      // Get the preloaded data promise
-      try {
-        const preloadResponse = await getPreloadedData('organization', orgSlug!);
-        // If the preload request was for a different org or the promise was rejected
-        if (Array.isArray(preloadResponse) && preloadResponse[0] !== null) {
-          return preloadResponse[0];
-        }
-      } catch {
-        // Silently try again with non-preloaded data
-      }
+    queryFn: orgSlug
+      ? async (): Promise<Organization> => {
+          // Get the preloaded data promise
+          try {
+            const preloadResponse = await getPreloadedData('organization', orgSlug);
+            // If the preload request was for a different org or the promise was rejected
+            if (Array.isArray(preloadResponse) && preloadResponse[0] !== null) {
+              return preloadResponse[0];
+            }
+          } catch {
+            // Silently try again with non-preloaded data
+          }
 
-      const uncancelableApi = new Client();
-      const [org] = await uncancelableApi.requestPromise(`/organizations/${orgSlug}/`, {
-        includeAllArgs: true,
-        query: {detailed: 0, include_feature_flags: 1},
-      });
-      return org;
-    },
-    enabled: !!orgSlug,
+          const uncancelableApi = new Client();
+          const [org] = await uncancelableApi.requestPromise(
+            `/organizations/${orgSlug}/`,
+            {
+              includeAllArgs: true,
+              query: {detailed: 0, include_feature_flags: 1},
+            }
+          );
+          return org;
+        }
+      : skipToken,
     staleTime: BOOTSTRAP_QUERY_STALE_TIME,
     gcTime: BOOTSTRAP_QUERY_GC_TIME,
     retry: false,
@@ -113,32 +117,33 @@ function createTeamsObject(response: ApiResult): {
 export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-teams', orgSlug],
-    queryFn: async (): Promise<{
-      cursor: string | null;
-      hasMore: boolean;
-      teams: Team[];
-    }> => {
-      // Get the preloaded data promise
-      try {
-        const preloadResponse = await getPreloadedData('teams', orgSlug!);
-        // If the preload request was successful, find the matching team
-        if (preloadResponse !== null && preloadResponse[0] !== null) {
-          return createTeamsObject(preloadResponse);
-        }
-      } catch {
-        // Silently try again with non-preloaded data
-      }
+    queryFn: orgSlug
+      ? async (): Promise<{
+          cursor: string | null;
+          hasMore: boolean;
+          teams: Team[];
+        }> => {
+          // Get the preloaded data promise
+          try {
+            const preloadResponse = await getPreloadedData('teams', orgSlug);
+            // If the preload request was successful, find the matching team
+            if (preloadResponse !== null && preloadResponse[0] !== null) {
+              return createTeamsObject(preloadResponse);
+            }
+          } catch {
+            // Silently try again with non-preloaded data
+          }
 
-      const uncancelableApi = new Client();
-      const teamsApiResponse = await uncancelableApi.requestPromise(
-        `/organizations/${orgSlug}/teams/`,
-        {
-          includeAllArgs: true,
+          const uncancelableApi = new Client();
+          const teamsApiResponse = await uncancelableApi.requestPromise(
+            `/organizations/${orgSlug}/teams/`,
+            {
+              includeAllArgs: true,
+            }
+          );
+          return createTeamsObject(teamsApiResponse);
         }
-      );
-      return createTeamsObject(teamsApiResponse);
-    },
-    enabled: !!orgSlug,
+      : skipToken,
     staleTime: BOOTSTRAP_QUERY_STALE_TIME,
     gcTime: BOOTSTRAP_QUERY_GC_TIME,
     retry: false,
@@ -148,32 +153,33 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
 export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-projects', orgSlug],
-    queryFn: async (): Promise<Project[]> => {
-      // Get the preloaded data promise
-      try {
-        const preloadResponse = await getPreloadedData('projects', orgSlug!);
-        // If the preload request was successful
-        if (preloadResponse !== null && preloadResponse[0] !== null) {
-          return preloadResponse[0];
-        }
-      } catch {
-        // Silently try again with non-preloaded data
-      }
+    queryFn: orgSlug
+      ? async (): Promise<Project[]> => {
+          // Get the preloaded data promise
+          try {
+            const preloadResponse = await getPreloadedData('projects', orgSlug);
+            // If the preload request was successful
+            if (preloadResponse !== null && preloadResponse[0] !== null) {
+              return preloadResponse[0];
+            }
+          } catch {
+            // Silently try again with non-preloaded data
+          }
 
-      const uncancelableApi = new Client();
-      const [projects] = await uncancelableApi.requestPromise(
-        `/organizations/${orgSlug}/projects/`,
-        {
-          includeAllArgs: true,
-          query: {
-            all_projects: 1,
-            collapse: ['latestDeploys', 'unusedFeatures'],
-          },
+          const uncancelableApi = new Client();
+          const [projects] = await uncancelableApi.requestPromise(
+            `/organizations/${orgSlug}/projects/`,
+            {
+              includeAllArgs: true,
+              query: {
+                all_projects: 1,
+                collapse: ['latestDeploys', 'unusedFeatures'],
+              },
+            }
+          );
+          return projects;
         }
-      );
-      return projects;
-    },
-    enabled: !!orgSlug,
+      : skipToken,
     staleTime: BOOTSTRAP_QUERY_STALE_TIME,
     gcTime: BOOTSTRAP_QUERY_GC_TIME,
     retry: false,
