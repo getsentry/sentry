@@ -43,7 +43,7 @@ def validate_quick_start_display(value: dict[str, int] | None) -> None:
     if value is not None:
         for display_value in value.values():
             if not isinstance(display_value, int):
-                raise ValidationError("The value shall be an integer.")
+                raise ValidationError("The value should be an integer.")
             if display_value <= 0:
                 raise ValidationError("The value cannot be less than or equal to 0.")
             if display_value > 2:
@@ -256,9 +256,26 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for key in key_map:
             if key in options_result:
-                UserOption.objects.set_value(
-                    user=user, key=key_map.get(key, key), value=options_result.get(key)
-                )
+                if key == "quickStartDisplay":
+                    current_value = UserOption.objects.get_value(
+                        user=user, key=key_map.get(key, key)
+                    )
+
+                    if current_value is None:
+                        current_value = {}
+
+                    new_value = options_result.get(key)
+
+                    for org_id, display_value in new_value.items():
+                        current_value[org_id] = display_value
+
+                    UserOption.objects.set_value(
+                        user=user, key=key_map.get(key, key), value=current_value
+                    )
+                else:
+                    UserOption.objects.set_value(
+                        user=user, key=key_map.get(key, key), value=options_result.get(key)
+                    )
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
