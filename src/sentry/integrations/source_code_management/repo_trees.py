@@ -25,7 +25,7 @@ class RepoAndBranch(NamedTuple):
 
 class RepoTree(NamedTuple):
     repo: RepoAndBranch
-    files: list[str]
+    files: Sequence[str]
 
 
 # Tasks which hit the API multiple connection errors should give up.
