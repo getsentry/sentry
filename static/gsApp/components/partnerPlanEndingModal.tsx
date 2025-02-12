@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
-
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-
 import PartnerPlanEndingBackground from 'getsentry-images/partnership/plan-ending.svg';
 
 import Tag from 'sentry/components/badge/tag';

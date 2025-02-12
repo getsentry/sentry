@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-
 import businessUpgrade from 'getsentry-images/product_trial/business-upgrade-notrial.svg';
 import businessTrial from 'getsentry-images/product_trial/try-sentry-business-present.svg';
 

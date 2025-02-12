@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-
 import missionControl from 'getsentry-images/missionControl.jpg';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

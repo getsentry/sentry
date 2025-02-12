@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
-
 import incidentsPerformanceImg from 'getsentry-images/features/alert-builder.svg';
 import dashboardsImg from 'getsentry-images/features/dashboards.svg';
 import dataRetentionImg from 'getsentry-images/features/data-retention.svg';

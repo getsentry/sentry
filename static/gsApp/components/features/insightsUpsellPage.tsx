@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import upsellImage from 'getsentry-images/features/insights/module-upsells/insights-module-upsell.svg';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
@@ -11,8 +12,6 @@ import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-re
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
-
-import upsellImage from 'getsentry-images/features/insights/module-upsells/insights-module-upsell.svg';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';

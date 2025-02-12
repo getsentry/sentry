@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-
 import HeroImg from 'getsentry-images/features/replay-modal-hero.jpg';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

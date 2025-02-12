@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
-
 import BusinessBundleArt from 'getsentry-images/bundles/business-bundle-art-plain.svg';
 import CustomBundleArt from 'getsentry-images/bundles/custom-bundle-art-plain.svg';
 import TeamBundleArt from 'getsentry-images/bundles/team-bundle-art-plain.svg';
+import moment from 'moment-timezone';
 
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';

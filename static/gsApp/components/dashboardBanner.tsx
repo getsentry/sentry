@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-
 import DashLeft from 'getsentry-images/dashboards-banner-left.svg';
 import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
