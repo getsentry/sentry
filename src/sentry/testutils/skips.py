@@ -25,6 +25,7 @@ def _requires_service_message(name: str) -> str:
     return f"requires '{name}' server running\n\t💡 Hint: run `devservices up`"
 
 
+@pytest.fixture(scope="session")
 def _requires_snuba() -> None:
     parsed = urlparse(settings.SENTRY_SNUBA)
     assert parsed.hostname is not None
