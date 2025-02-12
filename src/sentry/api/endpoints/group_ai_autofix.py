@@ -357,7 +357,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if serialized_event is None:
             return self._respond_with_error("Cannot fix issues without an event.", 400)
 
-        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
+        if not any(
+            [
+                entry.get("type") == "exception" or entry.get("type") == "threads"
+                for entry in serialized_event["entries"]
+            ]
+        ):
             return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
