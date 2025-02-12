@@ -37,6 +37,22 @@ const sampleDurationTimeSeries2 = {
   },
 };
 
+const sectionSize = sampleThroughputTimeSeries.data.length / 10;
+const sectionStart = sectionSize * 2;
+const sectionEnd = sectionSize * 3;
+const sparseThroughputTimeSeries = {
+  ...sampleThroughputTimeSeries,
+  data: sampleThroughputTimeSeries.data.map((datum, index) => {
+    if (index > sectionStart && index < sectionEnd) {
+      return {
+        ...datum,
+        value: null,
+      };
+    }
+    return datum;
+  }),
+};
+
 export default storyBook('LineChartWidget', story => {
   story('Getting Started', () => {
     return (
@@ -65,7 +81,7 @@ export default storyBook('LineChartWidget', story => {
     };
 
     const throughputTimeSeries = toTimeSeriesSelection(
-      sampleThroughputTimeSeries,
+      sparseThroughputTimeSeries,
       start,
       end
     );
@@ -87,13 +103,14 @@ export default storyBook('LineChartWidget', story => {
         <p>
           The visualization of <JSXNode name="LineChartWidget" /> a line chart. It has
           some bells and whistles including automatic axes labels, and a hover tooltip.
-          Like other widgets, it automatically fills the parent element.
+          Like other widgets, it automatically fills the parent element. <code>null</code>{' '}
+          values are supported!
         </p>
         <SmallSizingWindow>
           <LineChartWidget
             title="eps()"
             description="Number of events per second"
-            timeSeries={[throughputTimeSeries]}
+            timeSeries={[toTimeSeriesSelection(throughputTimeSeries, start, end)]}
           />
         </SmallSizingWindow>
 
