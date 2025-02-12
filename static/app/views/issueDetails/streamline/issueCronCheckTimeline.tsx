@@ -121,7 +121,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
 
   const statEnvironments = useMemo(() => {
     const envSet = cronStats.reduce((acc, [_, envs]) => {
-      return new Set([...acc, ...Object.keys(envs)]);
+      Object.keys(envs).forEach(env => acc.add(env));
+      return acc;
     }, new Set<string>());
     return [...envSet];
   }, [cronStats]);
