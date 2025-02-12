@@ -24,9 +24,7 @@ describe('IssueTagsPreview', () => {
     );
 
     expect(await screen.findByText('prod')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'View issue tag distributions'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View all tags'})).toBeInTheDocument();
   });
 
   it('renders no tags', async () => {
