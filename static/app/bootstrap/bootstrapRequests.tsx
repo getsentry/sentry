@@ -188,6 +188,8 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
 
 /**
  * Small helper to access the preload requests in window.__sentry_preload
+ * See preload-data.html for more details, this request is started before the app is loaded
+ * saving time on the initial page load.
  */
 function getPreloadedData(
   name: 'organization' | 'projects' | 'teams',
