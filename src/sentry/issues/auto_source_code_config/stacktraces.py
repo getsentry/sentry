@@ -11,9 +11,7 @@ from .constants import PROCESS_ALL_FRAMES
 logger = logging.getLogger(__name__)
 
 
-def get_frames_to_process(
-    data: NodeData | dict[str, Any], platform: str | None = None
-) -> list[dict[str, Any]]:
+def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> list[dict[str, Any]]:
     """It flattens all processableframes from the event's data."""
     stacktraces = get_stacktraces(data)
     frames_to_process = []
@@ -37,9 +35,4 @@ def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
     if exceptions:
         return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
 
-    stacktrace = data.get("stacktrace")
-    if stacktrace and stacktrace.get("frames"):
-        logger.warning("Investigate if we use this code path in production.")
-        return [stacktrace]
-
-    return []
+    return [data.get("stacktrace")]

@@ -13,7 +13,12 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.code_mapping import (
+    CodeMapping,
+    CodeMappingTreesHelper,
+    FailedToExtractFilename,
+    MissingModuleOrAbsPath,
+)
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -84,6 +89,8 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
             set_project_codemappings(code_mappings, installation, project, platform)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
+    except (FailedToExtractFilename, MissingModuleOrAbsPath):
+        logger.warning("Non-urgent error. Investigate.", extra=extra)
 
     return code_mappings
 

@@ -317,3 +317,29 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
     def test_auto_source_code_config_no_normalization(self) -> None:
         self._process_and_assert_code_mapping(["sentry/foo/bar.py"], "", "")
+
+
+class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
+    platform = "java"
+    frames = [
+        # {"module": "kotlinx.coroutines.scheduling.Foo$Worker"},
+        # {"module": "io.sentry.foo.Baz", "abs_path": "Baz.kt"},
+        # The package name is short, so we don't use it
+        # {"module": "com.foo.Short", "abs_path": "Short.kt"},
+        {"module": "com.example.foo.Bar$handle$1", "abs_path": "Bar.kt"},
+    ]
+
+    def test_handles_two_levels_of_directories_and_dollar_sign_in_module(self) -> None:
+        # No code mapping will be stored, however, we get what would have been created
+        code_mappings = self._process_and_assert_no_code_mapping(["src/com/example/foo/Bar.kt"])
+        assert len(code_mappings) == 1
+        # Two levels of directories implies that we're not including the package name,
+        # thus, making a more generic code mapping.
+        assert code_mappings[0].stacktrace_root == "com/example/"
+        assert code_mappings[0].source_path == "src/com/example/"
+
+    def test_module_is_too_short(self) -> None:
+        # This is to prove that we will prevent code mappings when the module is too short
+        # to be a valid code mapping.
+        code_mappings = self._process_and_assert_no_code_mapping(["src/com/foo/Short.kt"])
+        assert len(code_mappings) == 0

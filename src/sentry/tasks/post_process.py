@@ -1006,7 +1006,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         if not supported_platform(event.data.get("platform")):
             return
 
-        frames_to_process = get_frames_to_process(event.data, event.platform)
+        frames_to_process = get_frames_to_process(event.data, event.platform or "")
         if not frames_to_process:
             return
 

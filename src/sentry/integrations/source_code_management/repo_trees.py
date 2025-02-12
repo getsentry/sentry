@@ -18,6 +18,7 @@ SUPPORTED_EXTENSIONS = [
     "cs",
     "go",
     "groovy",
+    "java",
     "js",
     "jsx",
     "mjs",
