@@ -844,19 +844,21 @@ class ProcessResultTest(ConfigPusherTestMixin):
     def run_check_and_update_region_test(
         self,
         sub: UptimeSubscription,
-        regions: list[tuple[str, bool]],
+        regions: list[str],
+        disabled_regions: list[str],
         expected_regions_before: set[str],
         expected_regions_after: set[str],
         expected_config_updates: list[tuple[str, str | None]],
         current_minute=5,
     ):
         region_configs = [
-            UptimeRegionConfig(slug=slug, name=slug, enabled=enabled, config_redis_key_prefix=slug)
-            for slug, enabled in regions
+            UptimeRegionConfig(slug=slug, name=slug, config_redis_key_prefix=slug)
+            for slug in regions
         ]
 
         with (
             override_settings(UPTIME_REGIONS=region_configs),
+            override_options({"uptime.disabled-checker-regions": disabled_regions}),
             self.tasks(),
             freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
         ):
@@ -879,7 +881,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1"},
             [],
@@ -887,7 +890,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1", "region2"},
             [("region1", "upsert"), ("region2", "upsert")],
@@ -903,7 +907,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             hour_sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1", "region2"},
             [("region1", "upsert"), ("region2", "upsert")],
@@ -917,7 +922,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             five_min_sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1"},
             [],
@@ -925,7 +931,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             five_min_sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1"},
             [],
@@ -933,7 +940,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             five_min_sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1"},
             [],
@@ -941,7 +949,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             five_min_sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1", "region2"},
             [("region1", "upsert"), ("region2", "upsert")],
@@ -955,7 +964,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             five_min_sub,
-            [("region1", True), ("region2", True)],
+            ["region1", "region2"],
+            [],
             {"region1"},
             {"region1", "region2"},
             [("region1", "upsert"), ("region2", "upsert")],
@@ -968,7 +978,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             sub,
-            [("region1", True), ("region2", False)],
+            ["region1", "region2"],
+            ["region2"],
             {"region1", "region2"},
             {"region1", "region2"},
             [],
@@ -976,7 +987,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         self.run_check_and_update_region_test(
             sub,
-            [("region1", True), ("region2", False)],
+            ["region1", "region2"],
+            ["region2"],
             {"region1", "region2"},
             {"region1"},
             [("region1", "upsert"), ("region2", "delete")],
