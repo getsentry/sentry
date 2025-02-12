@@ -658,6 +658,7 @@ class SpanTree extends Component<PropType> {
     return (
       <SpanRow
         {...props}
+        key={props.key}
         spanTree={spanTree}
         spanContextProps={this.props.spanContextProps}
         cache={this.cache}
