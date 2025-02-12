@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {
   PROVIDER_OPTION_TO_URLS,
   ProviderOptions,
@@ -98,15 +99,34 @@ export default function OnboardingIntegrationSection({
       <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
       <IntegrationSection>
         <SubSection>
-          <div>
-            {tct(
-              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-              {
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />,
-              }
-            )}
-          </div>
+          <Flex gap={space(2)} column>
+            <div>
+              {tct(
+                'Change tracking enables Sentry to listen for your feature flag updates. The change log appears in the event volume chart on Issue Details and presents itself as a vertical line, similar to a release line. Setting up change tracking also allows us to notify you of potential suspect flags. Learn more by [link:reading the docs].',
+                {
+                  link: (
+                    <ExternalLink
+                      href={
+                        'https://docs.sentry.io/product/issues/issue-details/feature-flags/#change-tracking'
+                      }
+                    />
+                  ),
+                }
+              )}
+            </div>
+            <div>
+              {tct(
+                "To set up change tracking, create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
+                {
+                  link: (
+                    <ExternalLink
+                      href={PROVIDER_OPTION_TO_URLS[provider as ProviderOptions]}
+                    />
+                  ),
+                }
+              )}
+            </div>
+          </Flex>
           <InputTitle>{t('Webhook URL')}</InputTitle>
           <TextCopyInput
             style={{padding: '20px'}}
@@ -166,6 +186,7 @@ export default function OnboardingIntegrationSection({
 }
 
 const InputTitle = styled('div')`
+  margin-top: ${space(1)};
   font-weight: bold;
 `;
 
