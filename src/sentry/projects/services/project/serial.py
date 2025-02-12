@@ -12,4 +12,5 @@ def serialize_project(project: Project) -> RpcProject:
         organization_id=project.organization_id,
         status=project.status,
         platform=project.platform,
+        external_id=project.external_id,
     )
