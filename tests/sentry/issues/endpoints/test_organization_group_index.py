@@ -4049,6 +4049,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(query='flags["test:flag"]:false')
             assert len(json.loads(response.content)) == 0
 
+        with self.feature({"organizations:issue-search-snuba": True}):
+            response = self.get_success_response(query='flags["test:flag"]:true')
+            assert len(json.loads(response.content)) == 1
+            response = self.get_success_response(query='flags["test:flag"]:false')
+            assert len(json.loads(response.content)) == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"

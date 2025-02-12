@@ -317,6 +317,9 @@ class BaseQueryBuilder:
         if not col.startswith("tags[") and column_name.startswith("tags["):
             self.prefixed_to_tag_map[f"tags_{col}"] = col
             self.tag_to_prefixed_map[col] = f"tags_{col}"
+        elif not col.startswith("flags[") and column_name.startswith("flags["):
+            self.prefixed_to_tag_map[f"flags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"flags_{col}"
         return column_name
 
     def resolve_query(
@@ -684,7 +687,13 @@ class BaseQueryBuilder:
         dataset and return the Snql Column
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
-        field = tag_match.group("tag") if tag_match else raw_field
+        flag_match = constants.FLAG_KEY_RE.search(raw_field)
+        if tag_match:
+            field = tag_match.group("tag")
+        elif flag_match:
+            field = flag_match.group("flag")
+        else:
+            field = raw_field
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
