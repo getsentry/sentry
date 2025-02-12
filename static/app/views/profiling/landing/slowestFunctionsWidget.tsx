@@ -280,7 +280,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
             ),
             textValue: targetId,
             to: generateProfileRouteFromProfileReference({
-              orgSlug: organization.slug,
+              organization,
               projectSlug: project?.slug || '',
               reference: profileRef,
               frameName: frame.name,

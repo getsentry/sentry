@@ -1,28 +1,27 @@
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import {createContext, type ReactNode, useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {
+  useBootstrapOrganizationQuery,
+  useBootstrapProjectsQuery,
+  useBootstrapTeamsQuery,
+} from 'sentry/bootstrap/bootstrapRequests';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 interface OrganizationLoaderContextProps {
-  organizationPromise: Promise<unknown> | null;
+  bootstrapIsPending: boolean;
 }
 
 interface Props {
@@ -38,23 +37,8 @@ export const OrganizationContext = createContext<Organization | null>(null);
  * Holds a function to load the organization.
  */
 export const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps>({
-  organizationPromise: null,
+  bootstrapIsPending: false,
 });
-
-/**
- * Ensures that an organization is loaded when the hook is used. This will only
- * be done on first render and if an organization is not already loaded.
- */
-export function useEnsureOrganization() {
-  const {organizationPromise} = useContext(OrganizationLoaderContext);
-
-  useEffect(() => {
-    async function fetchData() {
-      await organizationPromise;
-    }
-    fetchData();
-  }, [organizationPromise]);
-}
 
 /**
  * Record if the organization was bootstrapped in the last 10 minutes
@@ -75,24 +59,16 @@ function setRecentBootstrapTag(orgSlug: string) {
 /**
  * Context provider responsible for loading the organization into the
  * OrganizationStore if it is not already present.
- *
- * This provider *does not* immediately attempt to load the organization. A
- * child component must be responsible for calling `useEnsureOrganization` to
- * have the organization loaded.
  */
 export function OrganizationContextProvider({children}: Props) {
-  const api = useApi();
   const configStore = useLegacyStore(ConfigStore);
 
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
-  const [organizationPromise, setOrganizationPromise] = useState<Promise<unknown> | null>(
-    null
-  );
-
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
+  const spanRef = useRef<Sentry.Span | null>(null);
 
   // XXX(epurkhiser): When running in deploy preview mode customer domains are
   // not supported correctly. Do NOT use the customer domain from the params.
@@ -100,30 +76,43 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  useEffect(() => {
-    // Nothing to do if we already have the organization loaded
-    if (organization && organization.slug === orgSlug) {
-      return;
-    }
+  const {isFetching: isOrganizationFetching} = useBootstrapOrganizationQuery(orgSlug);
+  const {isFetching: isTeamsFetching} = useBootstrapTeamsQuery(orgSlug);
+  const {isFetching: isProjectsFetching} = useBootstrapProjectsQuery(orgSlug);
+  const bootstrapIsPending =
+    isOrganizationFetching || isTeamsFetching || isProjectsFetching;
 
+  useEffect(() => {
+    // Clear stores when the org slug changes
+    if (organization?.slug && organization?.slug !== orgSlug) {
+      OrganizationStore.reset();
+      ProjectsStore.reset();
+      TeamStore.reset();
+      PageFiltersStore.onReset();
+    }
+  }, [orgSlug, organization?.slug]);
+
+  useEffect(() => {
     if (!orgSlug) {
       OrganizationStore.setNoOrganization();
       return;
     }
 
-    setRecentBootstrapTag(orgSlug);
-
-    const promise = Sentry.startSpan(
-      {
+    if (bootstrapIsPending && !spanRef.current) {
+      // Measure the time it takes to bootstrap all three requests
+      setRecentBootstrapTag(orgSlug);
+      spanRef.current = Sentry.startInactiveSpan({
         name: 'ui.bootstrap',
         op: 'ui.render',
         forceTransaction: true,
-      },
-      // Bootstraps organization, projects, and teams
-      () => fetchOrganizationDetails(api, orgSlug, false, true)
-    );
-    setOrganizationPromise(promise);
-  }, [api, orgSlug, organization]);
+      });
+    }
+
+    if (!bootstrapIsPending && spanRef.current) {
+      spanRef.current.end();
+      spanRef.current = null;
+    }
+  }, [bootstrapIsPending, orgSlug]);
 
   // XXX(epurkhiser): User may be null in some scenarios at this point in app
   // boot. We should fix the types here in the future
@@ -178,7 +167,7 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={{organizationPromise}}>
+    <OrganizationLoaderContext.Provider value={{bootstrapIsPending}}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>

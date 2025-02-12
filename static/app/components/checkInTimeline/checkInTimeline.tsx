@@ -58,7 +58,7 @@ export function CheckInTimeline<Status extends string>({
   );
 
   return (
-    <TimelineContainer>
+    <TimelineContainer role="figure">
       {jobTicks.map(jobTick => {
         const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
 

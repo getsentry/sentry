@@ -178,8 +178,8 @@ function IssueTagButton({
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
         disabled={tags.length === 0}
       >
         {t('View All Tags')}

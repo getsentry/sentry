@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {isValidElement, memo, useCallback} from 'react';
+import {forwardRef, isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -40,6 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -56,18 +57,21 @@ interface Props {
   style?: CSSProperties;
 }
 
-function BreadcrumbItem({
-  className,
-  extraction,
-  frame,
-  expandPaths,
-  onClick,
-  onInspectorExpanded,
-  onMouseEnter,
-  onMouseLeave,
-  startTimestampMs,
-  style,
-}: Props) {
+const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem(
+  {
+    className,
+    extraction,
+    frame,
+    expandPaths,
+    onClick,
+    onInspectorExpanded,
+    onMouseEnter,
+    onMouseLeave,
+    startTimestampMs,
+    style,
+  },
+  ref
+) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
@@ -141,6 +145,7 @@ function BreadcrumbItem({
 
   return (
     <StyledTimelineItem
+      ref={ref}
       icon={icon}
       title={title}
       colorConfig={{title: color, icon: color, iconBorder: color}}
@@ -171,7 +176,7 @@ function BreadcrumbItem({
       </ErrorBoundary>
     </StyledTimelineItem>
   );
-}
+});
 
 function WebVitalData({
   selectors,
@@ -315,7 +320,10 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
         to={
           isFeedbackFrame(frame)
             ? {
-                pathname: `/organizations/${organization.slug}/feedback/`,
+                pathname: makeFeedbackPathname({
+                  path: '/',
+                  organization,
+                }),
                 query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
               }
             : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
@@ -412,4 +420,4 @@ const Wrapper = styled('div')`
   }
 `;
 
-export default memo(BreadcrumbItem);
+export default BreadcrumbItem;

@@ -97,7 +97,7 @@ export function EventSamplesTable({
       const profileTarget =
         defined(row['project.name']) && defined(row[profileIdKey])
           ? generateProfileFlamechartRoute({
-              orgSlug: organization.slug,
+              organization,
               projectSlug: row['project.name'],
               profileId: String(row[profileIdKey]),
             })

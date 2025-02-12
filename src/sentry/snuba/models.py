@@ -13,6 +13,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.deletions.base import ModelRelation
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.team import Team
 from sentry.users.models.user import User
@@ -167,5 +168,8 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
         qs_lookup = {
             str(qs.id): qs for qs in QuerySubscription.objects.filter(id__in=query_subscription_ids)
         }
-
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
+        return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
