@@ -488,6 +488,7 @@ const StyledButton = styled(
         title: _title,
         external,
         to,
+        replace,
         href,
         disabled,
         ...props
@@ -502,7 +503,9 @@ const StyledButton = styled(
       // Get component to use based on existence of `to` or `href` properties
       // Can be react-router `Link`, `a`, or `button`
       if (to) {
-        return <Link {...props} ref={ref} to={to} disabled={disabled} />;
+        return (
+          <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />
+        );
       }
 
       if (href && external) {
