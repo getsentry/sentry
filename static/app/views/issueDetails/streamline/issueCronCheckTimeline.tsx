@@ -66,7 +66,11 @@ export function useCronIssueAlertId({groupId}: {groupId: string}): string | unde
     : event?.tags?.find(({key}) => key === 'monitor.id')?.value;
 }
 
-function useCronLegendStatuses({bucketStats}: {bucketStats: MonitorBucket[]}) {
+function useCronLegendStatuses({
+  bucketStats,
+}: {
+  bucketStats: MonitorBucket[];
+}): CheckInStatus[] {
   /**
    * Extract a list of statuses that have occurred at least once in the bucket stats.
    */
@@ -80,9 +84,8 @@ function useCronLegendStatuses({bucketStats}: {bucketStats: MonitorBucket[]}) {
       [CheckInStatus.UNKNOWN]: false,
     };
     bucketStats?.forEach(([_timestamp, bucketEnvMapping]) => {
-      const bucketEnvMappingEntries = Object.values(bucketEnvMapping) as Array<
-        StatsBucket<CheckInStatus>
-      >;
+      const bucketEnvMappingEntries: Array<StatsBucket<CheckInStatus>> =
+        Object.values(bucketEnvMapping);
       for (const statBucket of bucketEnvMappingEntries) {
         const statBucketEntries = Object.entries(statBucket) as Array<
           [CheckInStatus, number]
@@ -137,10 +140,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
         {!isPending &&
           legendStatuses.map(status => (
             <Flex align="center" gap={space(0.5)} key={status}>
-              <MonitorIndicator status={status as CheckInStatus} size={8} />
-              <TimelineLegendText>
-                {statusToText[status as CheckInStatus]}
-              </TimelineLegendText>
+              <MonitorIndicator status={status} size={8} />
+              <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
             </Flex>
           ))}
       </TimelineLegend>
@@ -162,18 +163,22 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
           <CheckInPlaceholder />
         ) : (
           <Fragment>
-            {statEnvironments.map((env, index) => (
+            {statEnvironments.map((env, envIndex) => (
               <Fragment key={env}>
                 {statEnvironments.length > 1 && (
                   <EnvironmentLabel
                     title={tct('Environment: [env]', {env})}
-                    envIndex={index}
+                    style={{
+                      top: envIndex * totalHeight + timelineHeight,
+                    }}
                   >
                     {env}
                   </EnvironmentLabel>
                 )}
-                <PositionedTimelineContainer
-                  envIndex={index}
+                <CheckInTimeline
+                  style={{
+                    top: envIndex * (environmentHeight + paddingHeight),
+                  }}
                   bucketedData={stats && env ? selectCheckInData(cronStats, env) : []}
                   statusLabel={statusToText}
                   statusStyle={tickStyle}
@@ -219,16 +224,11 @@ const TimelineContainer = styled('div')`
   top: 36px;
 `;
 
-const PositionedTimelineContainer = styled(CheckInTimeline)<{envIndex: number}>`
-  top: calc(${p => p.envIndex * (environmentHeight + paddingHeight)}px);
-`;
-
-const EnvironmentLabel = styled(Tooltip)<{envIndex: number}>`
+const EnvironmentLabel = styled(Tooltip)`
   position: absolute;
   user-select: none;
-  font-weight: ${p => p.theme.fontWeightBold};
-  top: ${p => p.envIndex * totalHeight + timelineHeight}px;
   left: 0;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
 `;
