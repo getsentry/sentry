@@ -32,12 +32,12 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
    * password strength estimation library. Load it on demand.
    */
   if (initConfig.name === 'passwordStrength') {
-    const {input, element} = initConfig;
-    if (!input || !element) {
+    if (!initConfig.input || !initConfig.element) {
       return;
     }
-    const inputElem = document.querySelector(input);
-    const rootEl = document.querySelector(element);
+    const inputElem = document.querySelector(initConfig.input);
+    const rootEl = document.querySelector(initConfig.element);
+
     if (!inputElem || !rootEl) {
       return;
     }
