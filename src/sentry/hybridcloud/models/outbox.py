@@ -88,6 +88,34 @@ def get_coalesced_reservation_window() -> int:
         return 60
 
 
+def get_reserved_message_deletion_batch_size() -> int:
+    """
+    Get the configured batch size for deleting reserved outbox messages.
+
+    The batch size determines how many reserved messages are deleted in a single transaction
+    to avoid long-running transactions during cleanup.
+
+    Returns:
+        int: The batch size for message deletion. Defaults to 50 if:
+            - The option is not set
+            - The option value is None
+            - The option value is negative
+            - Any error occurs while retrieving/parsing the option
+    """
+    try:
+        reserved_message_deletion_batch_size = options.get(
+            "hybrid_cloud.outbox.reserved_message_deletion_batch_size"
+        )
+        if reserved_message_deletion_batch_size is None:
+            return 50
+        reserved_message_deletion_batch_size = int(reserved_message_deletion_batch_size)
+        if reserved_message_deletion_batch_size < 0:
+            return 50
+        return reserved_message_deletion_batch_size
+    except Exception:
+        return 50
+
+
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
@@ -326,6 +354,7 @@ class OutboxBase(Model):
                     coalesced=coalesced,
                     all_ids=all_ids,
                     current_time=current_time,
+                    tags=tags,
                 )
 
             # End of the selection/reservation phase. The transaction is now committed, and all locks
@@ -435,7 +464,12 @@ class OutboxBase(Model):
         return tags, scheduled_from, date_added, all_ids
 
     def _reserve_messages_for_processing(
-        self, *, coalesced: OutboxBase, all_ids: list[int], current_time: datetime.datetime
+        self,
+        *,
+        coalesced: OutboxBase,
+        all_ids: list[int],
+        current_time: datetime.datetime,
+        tags: dict,
     ) -> datetime.datetime:
         """Reserve messages by updating their scheduled_for time."""
         # Reserve the messages for processing. By updating scheduled_for to a point
@@ -445,10 +479,12 @@ class OutboxBase(Model):
         # In practice, every worker is expected to only select and process messages with a scheduled_for timestamp
         # that is in the past (or otherwise eligible). As long as all processes honor this rule, no worker will
         # pick up these reserved rows until the reserved time has passed.
-        new_scheduled_for = current_time + datetime.timedelta(
-            minutes=get_coalesced_reservation_window()
-        )
+        reservation_window = get_coalesced_reservation_window()
+        metrics.incr("outbox.coalesced_reservation_window", reservation_window, tags=tags)
+
+        new_scheduled_for = current_time + datetime.timedelta(minutes=reservation_window)
         self.objects.filter(id__in=all_ids + [coalesced.id]).update(scheduled_for=new_scheduled_for)
+
         return new_scheduled_for
 
     def _revert_reserved_messages(
@@ -497,7 +533,9 @@ class OutboxBase(Model):
         """Delete the reserved messages in batches and record metrics."""
         try:
             deleted_count = 0
-            batch_size = 50  # Process deletions in batches to avoid long-running transactions.
+            # Process deletions in batches to avoid long-running transactions.
+            batch_size = get_reserved_message_deletion_batch_size()
+            metrics.incr("outbox.reserved_message_deletion_batch_size", batch_size, tags=tags)
 
             # Loop over the list of reserved IDs in chunks of batch_size.
             for i in range(0, len(all_ids), batch_size):

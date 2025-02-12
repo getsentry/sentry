@@ -169,3 +169,11 @@ register(
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Units are in number of outbox messages.
+register(
+    "hybrid_cloud.outbox.reserved_message_deletion_batch_size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
