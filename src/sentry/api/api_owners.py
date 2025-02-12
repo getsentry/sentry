@@ -10,6 +10,7 @@ class ApiOwner(Enum):
     ALERTS_NOTIFICATIONS = "alerts-notifications"
     BILLING = "revenue"
     CRONS = "crons"
+    DEV_INFRA = "dev-infra"
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"
     FEEDBACK = "feedback-backend"

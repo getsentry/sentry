@@ -12,7 +12,7 @@ from sentry.models.organization import Organization
 @region_silo_endpoint
 class InternalEAFeaturesEndpoint(Endpoint):
     permission_classes = (OrganizationAdminPermission,)
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.DEV_INFRA
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

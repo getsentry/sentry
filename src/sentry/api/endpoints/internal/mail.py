@@ -11,7 +11,7 @@ from sentry.utils.email import send_mail
 
 @all_silo_endpoint
 class InternalMailEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.DEV_INFRA
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

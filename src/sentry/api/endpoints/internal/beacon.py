@@ -40,7 +40,7 @@ class MetricsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class InternalBeaconEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.DEV_INFRA
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
