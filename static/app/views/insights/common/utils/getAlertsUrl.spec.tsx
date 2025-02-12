@@ -32,7 +32,7 @@ describe('getAlertsUrl', function () {
       project,
       aggregate,
       query,
-      orgSlug,
+      organization: OrganizationFixture({slug: orgSlug}),
       pageFilters,
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     });

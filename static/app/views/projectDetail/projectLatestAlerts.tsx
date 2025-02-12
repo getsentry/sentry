@@ -43,7 +43,7 @@ function AlertRow({alert}: AlertRowProps) {
     <AlertRowLink
       aria-label={title}
       to={makeAlertsPathname({
-        path: `/rules/details/${identifier}/`,
+        path: `/${identifier}/`,
         organization,
       })}
     >
