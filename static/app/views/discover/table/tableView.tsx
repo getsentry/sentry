@@ -463,7 +463,7 @@ function TableView(props: TableViewProps) {
 
       if (projectSlug && profileId) {
         const target = generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: String(projectSlug),
           profileId: String(profileId),
         });
@@ -611,7 +611,7 @@ function TableView(props: TableViewProps) {
           browserHistory.push(
             normalizeUrl(
               nextView.getResultsViewUrlTarget(
-                organization.slug,
+                organization,
                 isHomepage,
                 hasDatasetSelector(organization) ? queryDataset : undefined
               )
@@ -640,7 +640,7 @@ function TableView(props: TableViewProps) {
       nextView.query = query.formatString();
 
       const target = nextView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         isHomepage,
         hasDatasetSelector(organization) ? queryDataset : undefined
       );
@@ -660,7 +660,7 @@ function TableView(props: TableViewProps) {
 
     const nextView = eventView.withColumns(columns);
     const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       isHomepage,
       hasDatasetSelector(organization) ? queryDataset : undefined
     );

@@ -63,6 +63,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   return (
     <WidgetLayout
       ariaLabel="Widget panel"
+      borderless={props.borderless}
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
@@ -154,7 +155,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           <ErrorPanel error={error} />
         ) : (
           <ErrorBoundary
-            customComponent={<ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
+            customComponent={() => <ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
           >
             {props.children}
           </ErrorBoundary>

@@ -5,7 +5,12 @@ const SPACING = 15;
 
 export function CheckInPlaceholder() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="14px">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="100%"
+      height="14px"
+      data-test-id="check-in-placeholder"
+    >
       <defs>
         <pattern
           id="tick-pattern"
