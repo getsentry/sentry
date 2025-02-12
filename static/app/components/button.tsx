@@ -119,6 +119,10 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    */
   href?: string;
   /**
+   * @deprecated Use LinkButton instead
+   */
+  replace?: boolean;
+  /**
    * Similar to `href`, but for internal links within the app.
    *
    * @deprecated Use LinkButton instead
@@ -150,6 +154,7 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
    */
   to: string | LocationDescriptor;
   external?: never;
+  replace?: boolean;
 }
 
 interface HrefLinkButtonProps extends BaseLinkButtonProps {
@@ -209,6 +214,7 @@ const ICON_SIZES: Partial<
 function BaseButton({
   size = 'md',
   to,
+  replace,
   busy,
   href,
   title,
@@ -294,6 +300,7 @@ function BaseButton({
       disabled={disabled}
       to={!disabled ? to : undefined}
       href={!disabled ? href : undefined}
+      replace={replace}
       size={size}
       priority={priority}
       borderless={borderless}
@@ -481,6 +488,7 @@ const StyledButton = styled(
         title: _title,
         external,
         to,
+        replace,
         href,
         disabled,
         ...props
@@ -495,7 +503,9 @@ const StyledButton = styled(
       // Get component to use based on existence of `to` or `href` properties
       // Can be react-router `Link`, `a`, or `button`
       if (to) {
-        return <Link {...props} ref={ref} to={to} disabled={disabled} />;
+        return (
+          <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />
+        );
       }
 
       if (href && external) {
@@ -527,6 +537,7 @@ const StyledButton = styled(
     shouldForwardProp: prop =>
       prop === 'forwardRef' ||
       prop === 'external' ||
+      prop === 'replace' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`

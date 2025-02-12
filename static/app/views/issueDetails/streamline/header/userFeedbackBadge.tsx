@@ -34,6 +34,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
           pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
           query: location.query,
         }}
+        replace
         aria-label={t("View this issues's feedback")}
       >
         {tn('%s User Report', '%s User Reports', group.userReportCount)}
