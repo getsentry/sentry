@@ -29,7 +29,12 @@ export interface ControlStateProps {
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-function ControlState({isSaving, isSaved, error, hideErrorMessage}: ControlStateProps) {
+export function ControlState({
+  isSaving,
+  isSaved,
+  error,
+  hideErrorMessage,
+}: ControlStateProps) {
   return (
     <Fragment>
       {isSaving ? (
@@ -77,5 +82,3 @@ const StyledIconWarning = styled(IconWarning)`
 const FormSpinner = styled(Spinner)`
   margin-left: 0;
 `;
-
-export default ControlState;

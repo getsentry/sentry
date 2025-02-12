@@ -73,9 +73,11 @@ describe('Nav', function () {
       ).getAllByRole('link');
       expect(links).toHaveLength(5);
 
-      ['Issues', 'Explore', 'Boards', 'Insights', 'Settings'].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
+        (title, index) => {
+          expect(links[index]).toHaveAccessibleName(title);
+        }
+      );
     });
 
     it('displays the current primary route as active', function () {
@@ -215,7 +217,7 @@ describe('Nav', function () {
       ).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Explore'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Boards'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Dashboards'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Insights'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Settings'})).toBeInTheDocument();
 

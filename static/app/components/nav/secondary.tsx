@@ -21,6 +21,10 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
   /**
+   * Will display the link as active under the given path.
+   */
+  activeTo?: To;
+  /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
    */
@@ -45,6 +49,16 @@ export function SecondaryNav({children, group}: SecondaryNavProps) {
 
   return createPortal(children, secondaryNavEl);
 }
+
+SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
+  const {layout} = useNavContext();
+
+  if (layout === NavLayout.MOBILE) {
+    return null;
+  }
+
+  return <Header>{children}</Header>;
+};
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
@@ -73,12 +87,13 @@ SecondaryNav.Section = function SecondaryNavSection({
 SecondaryNav.Item = function SecondaryNavItem({
   children,
   to,
+  activeTo = to,
   isActive: incomingIsActive,
   end = false,
   ...linkProps
 }: SecondaryNavItemProps) {
   const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(to, location.pathname, {end});
+  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
 
@@ -101,6 +116,12 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
   return <Footer layout={layout}>{children}</Footer>;
 };
+
+const Header = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+`;
 
 const Body = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)};
