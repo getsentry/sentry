@@ -114,6 +114,7 @@ class DatabaseBackedProjectService(ProjectService):
         organization_id: int,
         project_name: str,
         platform: str,
+        external_id: str | None = None,
         user_id: int,
         add_org_default_team: bool | None = False,
     ) -> RpcProject:
@@ -122,6 +123,7 @@ class DatabaseBackedProjectService(ProjectService):
                 name=project_name,
                 organization_id=organization_id,
                 platform=platform,
+                external_id=external_id,
             )
 
             if add_org_default_team:
@@ -153,6 +155,7 @@ class DatabaseBackedProjectService(ProjectService):
         organization_id: int,
         project_name: str,
         platform: str,
+        external_id: str | None = None,
         user_id: int,
         add_org_default_team: bool | None = False,
     ) -> RpcProject:
@@ -160,6 +163,7 @@ class DatabaseBackedProjectService(ProjectService):
             organization_id=organization_id,
             name=project_name,
             platform=platform,
+            external_id=external_id,
             status=ObjectStatus.ACTIVE,
         ).order_by("date_added")
 
@@ -170,6 +174,7 @@ class DatabaseBackedProjectService(ProjectService):
             organization_id=organization_id,
             project_name=project_name,
             platform=platform,
+            external_id=external_id,
             user_id=user_id,
             add_org_default_team=add_org_default_team,
         )
