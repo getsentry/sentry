@@ -409,7 +409,7 @@ const LegendTitle = styled('div')`
 
 const IssueTagsLink = styled(Link)`
   color: ${p => p.theme.purple300};
-  align-self: flex-end;
+  align-self: flex-start;
 
   &:hover {
     color: ${p => p.theme.purple400};
