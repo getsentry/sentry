@@ -242,7 +242,6 @@ module = [
     "sentry_plugins.jira.plugin",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.test_base",
-    "tests.sentry.api.test_event_search",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
