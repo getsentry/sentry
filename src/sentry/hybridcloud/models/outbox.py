@@ -74,6 +74,10 @@ def get_coalesced_reservation_window() -> int:
             - The option value is negative
             - Any error occurs while retrieving/parsing the option
     """
+
+    # NOTE:
+    # This must be sufficient to cover the time it takes to process the messages in the coalesced batch.
+    # That is, this must be much bigger than "outbox.coalesced_net_processing_time".
     try:
         coalesced_reservation_window = options.get(
             "hybrid_cloud.outbox.coalesced_reservation_window"
