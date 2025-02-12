@@ -35,6 +35,7 @@ from sentry.auth.idpmigration import (
 from sentry.auth.partnership_configs import ChannelName
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
+from sentry.auth.providers.vercel.provider import VercelOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
@@ -989,4 +990,7 @@ class AuthHelper(Pipeline):
         )
 
 
-CHANNEL_PROVIDER_MAP = {ChannelName.FLY_IO.value: FlyOAuth2Provider}
+CHANNEL_PROVIDER_MAP = {
+    ChannelName.FLY_IO.value: FlyOAuth2Provider,
+    ChannelName.VERCEL.value: VercelOAuth2Provider,
+}
