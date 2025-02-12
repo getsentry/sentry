@@ -203,7 +203,7 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
           <DiscoverButton
             size="sm"
             to={props.traceEventView.getResultsViewUrlTarget(
-              props.organization.slug,
+              props.organization,
               false,
               hasDatasetSelector(props.organization)
                 ? SavedQueryDatasets.TRANSACTIONS

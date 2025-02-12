@@ -5,10 +5,12 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
@@ -46,6 +48,7 @@ export function DomainViewHeader({
   tabs,
 }: Props) {
   const organization = useOrganization();
+  const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
 
   const crumbs: Crumb[] = [
@@ -60,13 +63,15 @@ export function DomainViewHeader({
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
 
+  const globalQuery = extractSelectionParameters(location?.query);
+
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
       ? [
           {
             key: OVERVIEW_PAGE_TITLE,
             children: OVERVIEW_PAGE_TITLE,
-            to: domainBaseUrl,
+            to: {pathname: domainBaseUrl, query: globalQuery},
           },
         ]
       : []),
@@ -75,7 +80,10 @@ export function DomainViewHeader({
       .map(moduleName => ({
         key: moduleName,
         children: <TabLabel moduleName={moduleName} />,
-        to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
+        to: {
+          pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
+          query: globalQuery,
+        },
       })),
   ];
 
