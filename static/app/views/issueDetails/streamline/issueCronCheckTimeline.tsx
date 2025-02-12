@@ -100,7 +100,7 @@ function useCronLegendStatuses({bucketStats}: {bucketStats: MonitorBucket[]}) {
   }, [bucketStats]);
 }
 
-export function IssueCronCheckTimeline({group}: {group: Group; event?: Event}) {
+export function IssueCronCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
@@ -132,7 +132,7 @@ export function IssueCronCheckTimeline({group}: {group: Group; event?: Event}) {
 
   return (
     <ChartContainer envCount={statEnvironments.length}>
-      <TimelineLegend ref={elementRef}>
+      <TimelineLegend ref={elementRef} role="caption">
         {!isPending &&
           legendStatuses.map(status => (
             <Flex align="center" gap={space(0.5)} key={status}>
