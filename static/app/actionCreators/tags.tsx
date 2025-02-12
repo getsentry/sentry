@@ -240,7 +240,9 @@ export function fetchFeatureFlagValues({
     return Promise.resolve([]);
   }
 
-  const url = `/organizations/${organization.slug}/tags/${tagKey}/values/`;
+  // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support that syntax.
+  const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
+  const url = `/organizations/${organization.slug}/tags/${strippedKey}/values/`;
 
   const query: Query = {
     dataset: Dataset.ERRORS,
