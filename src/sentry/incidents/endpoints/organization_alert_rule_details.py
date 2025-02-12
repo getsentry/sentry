@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -39,6 +41,8 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):
@@ -114,7 +118,16 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
         # the user could be removed from the dual write flag for whatever reason, and we need to make sure
         # that the extra table data is deleted. If the rows don't exist, we'll exit early.
-        dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=request.user)
+        try:
+            dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=request.user)
+        except Exception as e:
+            logger.exception(
+                "Error when dual deleting alert rule",
+                extra={"details": str(e)},
+            )
+            return Response(
+                "Error when dual deleting alert rule", status=status.HTTP_400_BAD_REQUEST
+            )
         delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
         return Response(status=status.HTTP_204_NO_CONTENT)
     except AlreadyDeletedError:

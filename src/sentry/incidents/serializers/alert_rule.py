@@ -513,12 +513,24 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
             )
             if should_dual_write:
-                migrate_alert_rule(alert_rule, user)
+                try:
+                    migrate_alert_rule(alert_rule, user)
+                except Exception as e:
+                    logger.exception(
+                        "Error when dual writing alert rule", extra={"details": str(e)}
+                    )
+                raise BadRequest
 
             self._handle_triggers(alert_rule, triggers)
             if should_dual_write:
-                # create the resolution data triggers once we've migrated the critical/warning triggers
-                migrate_resolve_threshold_data_conditions(alert_rule)
+                try:
+                    # create the resolution data triggers once we've migrated the critical/warning triggers
+                    migrate_resolve_threshold_data_conditions(alert_rule)
+                except Exception as e:
+                    logger.exception(
+                        "Error when dual writing alert rule", extra={"details": str(e)}
+                    )
+                raise BadRequest
             return alert_rule
 
     def update(self, instance, validated_data):
@@ -558,7 +570,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
-                dual_delete_migrated_alert_rule_trigger(trigger)
+                try:
+                    dual_delete_migrated_alert_rule_trigger(trigger)
+                except Exception as e:
+                    logger.exception(
+                        "Error when dual deleting alert rule trigger", extra={"details": str(e)}
+                    )
+                    raise serializers.ValidationError(
+                        "Error when dual deleting alert rule trigger."
+                    )
                 delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:

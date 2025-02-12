@@ -1,7 +1,10 @@
+import logging
+
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics, features
+from sentry.api.exceptions import BadRequest
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.auth.access import Access
 from sentry.incidents.logic import (
@@ -19,6 +22,8 @@ from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
+
+logger = logging.getLogger(__name__)
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
@@ -212,7 +217,13 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "organizations:workflow-engine-metric-alert-dual-write",
             action.alert_rule_trigger.alert_rule.organization,
         ):
-            migrate_metric_action(action)
+            try:
+                migrate_metric_action(action)
+            except Exception as e:
+                logger.exception(
+                    "Error when dual writing alert rule trigger", extra={"details": str(e)}
+                )
+            raise BadRequest
 
         return action
 
