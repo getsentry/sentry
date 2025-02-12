@@ -136,7 +136,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             # We sent an email to each person in the recip. list so anything less means we had a failure
             if sent_messages < len(recipients):
                 extras = {"organization": org_mapping.slug, **new_context}
-                sentry_sdk.capture_message("publish-email-failed", extras)
+                sentry_sdk.capture_message("publish-email-failed", "info")
                 logger.info("publish-email-failed", extra=extras)
                 return Response(
                     {"detail": "Something went wrong trying to send publish confirmation email"},
