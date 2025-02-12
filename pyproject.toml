@@ -225,7 +225,6 @@ module = [
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.query_builder",
     "sentry.snuba.spans_metrics",
-    "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.testutils.cases",
     "sentry.utils.auth",
