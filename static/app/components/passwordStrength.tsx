@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'zxcv... Remove this comment to see the full error message
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
 
 /**
  * The maximum score that zxcvbn reports
@@ -31,28 +32,16 @@ type Props = {
  * NOTE: Do not import this component synchronously. The zxcvbn library is
  * relatively large. This component should be loaded async as a split chunk.
  */
-export function PasswordStrength(props: Props) {
-  const theme = useTheme();
-  if (props.value === '') {
+export function PasswordStrength({
+  value,
+  labels = ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'],
+  colors = [theme.red300, theme.red300, theme.yellow300, theme.green300, theme.green300],
+}: Props) {
+  if (value === '') {
     return null;
   }
 
-  const labels = props.labels ?? [
-    'Very Weak',
-    'Very Weak',
-    'Weak',
-    'Strong',
-    'Very Strong',
-  ];
-  const colors = props.colors ?? [
-    theme.red300,
-    theme.red300,
-    theme.yellow300,
-    theme.green300,
-    theme.green300,
-  ];
-
-  const result = zxcvbn(props.value);
+  const result = zxcvbn(value);
 
   if (!result) {
     return null;
@@ -86,7 +75,7 @@ export function PasswordStrength(props: Props) {
 }
 
 const StrengthProgress = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${theme.gray200};
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
@@ -99,7 +88,7 @@ const StrengthProgressBar = styled('div')`
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray400};
+  color: ${theme.gray400};
 `;
 
 const ScoreText = styled('strong')`
