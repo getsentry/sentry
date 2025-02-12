@@ -1,3 +1,11 @@
+"""
+Contains data blobs that we store in the Rule.action json field.
+
+These are used to test the workflow engine's migration helpers and Notification Action handlers.
+
+Ideally we move this into a fixture and dynamically generate the data blobs based on the current state of the code.
+"""
+
 GITHUB_ACTION_DATA_BLOBS = [
     {
         "integration": "123456",

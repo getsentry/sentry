@@ -339,15 +339,15 @@ class TestGithubIssueAlertHandler(BaseWorkflowTest):
         super().setUp()
         self.handler = TicketingIssueAlertHandler()
 
-        self.action_data = pop_keys_from_data_blob(GITHUB_ACTION_DATA_BLOBS, Action.Type.GITHUB)
-
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Github action data"""
-        for action_blob, expected in zip(self.action_data, GITHUB_ACTION_DATA_BLOBS):
+        for expected in GITHUB_ACTION_DATA_BLOBS:
+            action_data = pop_keys_from_data_blob([expected], Action.Type.GITHUB)[0]
+
             action = self.create_action(
                 type=Action.Type.GITHUB,
                 integration_id=expected["integration"],
-                data=action_blob,
+                data=action_data,
             )
 
             blob = self.handler.build_rule_action_blob(action)
