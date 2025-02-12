@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
@@ -49,7 +50,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     inputElem.addEventListener(
       'input',
       throttle(e => {
-        root.render(<PasswordStrength value={e.target.value} />);
+        root.render(
+          <ThemeAndStyleProvider>
+            <PasswordStrength value={e.target.value} />
+          </ThemeAndStyleProvider>
+        );
       })
     );
 
@@ -68,7 +73,15 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
 
     renderOnDomReady(() =>
       // TODO(ts): Unsure how to type this, complains about u2fsign's required props
-      renderDom(Component as any, initConfig.container, initConfig.props)
+      renderDom(
+        (props: any) => (
+          <ThemeAndStyleProvider>
+            <Component {...props} />
+          </ThemeAndStyleProvider>
+        ),
+        initConfig.container,
+        initConfig.props
+      )
     );
   }
 
