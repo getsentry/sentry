@@ -99,6 +99,7 @@ export default function TempestSettings({organization, project}: Props) {
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         initialData={{
           tempestFetchScreenshots: project?.tempestFetchScreenshots,
+          tempestFetchDumps: project?.tempestFetchDumps,
         }}
         saveOnBlur
         hideFooter
@@ -113,6 +114,12 @@ export default function TempestSettings({organization, project}: Props) {
                   type: 'boolean',
                   label: t('Attach Screenshots'),
                   help: t('Attach screenshots to issues.'),
+                },
+                {
+                  name: 'tempestFetchDumps',
+                  type: 'boolean',
+                  label: t('Attach Dumps'),
+                  help: t('Attach dumps to issues.'),
                 },
               ],
             },
