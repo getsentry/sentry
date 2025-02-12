@@ -10,4 +10,4 @@ SUPPORTED_LANGUAGES = [
     "ruby",
 ]
 # These languages will run as dry-run mode by default
-DRY_RUN_PLATFORMS = []
+DRY_RUN_PLATFORMS: list[str] = []
