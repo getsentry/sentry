@@ -12,12 +12,17 @@ export async function disconnectIdentity(
   const api = new Client();
 
   try {
-    await api.requestPromise(
+    const response = await api.requestPromise(
       `/users/me/user-identities/${identity.category}/${identity.id}/`,
       {
         method: 'DELETE',
       }
     );
+
+    if (response?.nextUri) {
+      window.location.assign(response.nextUri);
+      return;
+    }
   } catch {
     addErrorMessage('Error disconnecting identity');
     return;
