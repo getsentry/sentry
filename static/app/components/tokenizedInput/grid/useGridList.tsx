@@ -39,6 +39,7 @@ export function useGridList<T>({props, ref, state}: UseGridListProps<T>) {
         ...gridProps,
         // The default behavior will capture some keys such as Enter and Space, which
         // we want to handle ourselves.
+        onKeyDown: noop,
         onKeyDownCapture: noop,
       },
     };
