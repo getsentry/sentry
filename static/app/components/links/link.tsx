@@ -39,6 +39,7 @@ export interface LinkProps
    * Forwarded ref
    */
   forwardedRef?: React.Ref<HTMLAnchorElement>;
+  replace?: ReactRouterLinkProps['replace'];
   state?: ReactRouterLinkProps['state'];
 }
 

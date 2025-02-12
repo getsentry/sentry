@@ -45,8 +45,8 @@ export function AttachmentsBadge({group}: {group: Group}) {
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
         aria-label={t("View this issue's attachments")}
       >
         {hasManyAttachments

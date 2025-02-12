@@ -18,8 +18,8 @@ export function MergedIssuesSidebarSection() {
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.MERGED]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
       >
         {t('View')}
       </ViewButton>

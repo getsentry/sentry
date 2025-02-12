@@ -37,8 +37,8 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
         aria-label={t("View this issue's replays")}
       >
         {replaysCount > 50

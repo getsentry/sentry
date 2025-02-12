@@ -165,8 +165,8 @@ function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: st
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
         disabled={tags.length === 0}
       >
         {t('All Tags')}
@@ -181,8 +181,8 @@ function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: st
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
         query: location.query,
-        replace: true,
       }}
+      replace
       analyticsEventKey="issue_details.issue_tags_clicked"
       analyticsEventName="Issue Details: Issue Tags Clicked"
     >
