@@ -79,33 +79,33 @@ Makefile                                                 @getsentry/owners-sentr
 /tests/tools/mypy_helpers                                @getsentry/python-typing
 
 ## GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
-/.github/labels.yml                                      @getsentry/open-source
-/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
-/bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
-/bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
-/static/app/components/sidebar/index.tsx                 @getsentry/open-source
+/.github/labels.yml                                      @getsentry/dev-infra
+/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/dev-infra
+/bin/react-to-product-owners-yml-changes.py              @getsentry/dev-infra
+/bin/react-to-product-owners-yml-changes.sh              @getsentry/dev-infra
+/static/app/components/sidebar/index.tsx                 @getsentry/dev-infra
 
 ## Backup - getsentry/team-ospo#153
-/src/sentry/backup/                                      @getsentry/open-source
-/src/sentry/runner/commands/backup.py                    @getsentry/open-source
-/src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
-/tests/sentry/backup/                                    @getsentry/open-source
-/tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
+/src/sentry/backup/                                      @getsentry/dev-infra
+/src/sentry/runner/commands/backup.py                    @getsentry/dev-infra
+/src/sentry/testutils/helpers/backups.py                 @getsentry/dev-infra
+/tests/sentry/backup/                                    @getsentry/dev-infra
+/tests/sentry/runner/commands/test_backup.py             @getsentry/dev-infra
 
 ## Relocation - getsentry/team-ospo#153
-/src/sentry/analytics/events/relocation_*.py             @getsentry/open-source
-/src/sentry/api/endpoints/organization_fork.py           @getsentry/open-source
-/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
-/src/sentry/api/serializers/models/relocation/           @getsentry/open-source
-/src/sentry/models/relocation/                           @getsentry/open-source
-/src/sentry/relocation/                                  @getsentry/open-source
-/src/sentry/tasks/relocation.py                          @getsentry/open-source
-/src/sentry/utils/relocation.py                          @getsentry/open-source
-/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
-/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/open-source
-/tests/sentry/api/serializer/test_relocation.py          @getsentry/open-source
-/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
-/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
+/src/sentry/analytics/events/relocation_*.py             @getsentry/dev-infra
+/src/sentry/api/endpoints/organization_fork.py           @getsentry/dev-infra
+/src/sentry/api/endpoints/relocation/                    @getsentry/dev-infra
+/src/sentry/api/serializers/models/relocation/           @getsentry/dev-infra
+/src/sentry/models/relocation/                           @getsentry/dev-infra
+/src/sentry/relocation/                                  @getsentry/dev-infra
+/src/sentry/tasks/relocation.py                          @getsentry/dev-infra
+/src/sentry/utils/relocation.py                          @getsentry/dev-infra
+/tests/sentry/api/endpoints/relocation                   @getsentry/dev-infra
+/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/dev-infra
+/tests/sentry/api/serializer/test_relocation.py          @getsentry/dev-infra
+/tests/sentry/tasks/test_relocation.py                   @getsentry/dev-infra
+/tests/sentry/utils/test_relocation.py                   @getsentry/dev-infra
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
