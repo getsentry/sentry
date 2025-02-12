@@ -1,6 +1,7 @@
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 
 import type {TimeSeries} from '../../common/types';
+import {timeSeriesItemToEChartsDataPoint} from '../timeSeriesItemToEChartsDataPoint';
 
 export function CompleteAreaChartWidgetSeries(timeSeries: TimeSeries) {
   return LineSeries({
@@ -12,8 +13,6 @@ export function CompleteAreaChartWidgetSeries(timeSeries: TimeSeries) {
       color: timeSeries.color,
       opacity: 1.0,
     },
-    data: timeSeries.data.map(datum => {
-      return [datum.timestamp, datum.value];
-    }),
+    data: timeSeries.data.map(timeSeriesItemToEChartsDataPoint),
   });
 }
