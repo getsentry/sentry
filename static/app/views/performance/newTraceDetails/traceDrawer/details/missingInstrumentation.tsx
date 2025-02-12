@@ -148,7 +148,7 @@ function LegacyMissingInstrumentationNodeDetails({
         <TraceDrawerComponents.CopyableCardValueWithLink
           value={profileId}
           linkTarget={generateProfileFlamechartRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             projectSlug: project.slug,
             profileId,
           })}

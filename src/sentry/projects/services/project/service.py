@@ -66,6 +66,11 @@ class ProjectService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def get_by_external_id(self, *, organization_id: int, external_id: str) -> RpcProject | None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def serialize_many(
         self,
         *,
