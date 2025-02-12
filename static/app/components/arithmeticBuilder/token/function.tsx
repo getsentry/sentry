@@ -1,5 +1,5 @@
 import type {ChangeEvent, RefObject} from 'react';
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
@@ -93,14 +93,6 @@ function InternalInput({
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
 
-  useLayoutEffect(() => {
-    if (isFocused) {
-      setInputValue('');
-    } else {
-      setInputValue(token.attribute);
-    }
-  }, [isFocused, setInputValue, token.attribute]);
-
   const filterValue = inputValue.trim();
 
   const updateSelectionIndex = useCallback(() => {
@@ -124,17 +116,14 @@ function InternalInput({
   });
 
   const shouldCloseOnInteractOutside = useCallback(
-    (el: Element) => {
-      if (rowRef.current?.contains(el)) {
-        return false;
-      }
-      return true;
-    },
+    (el: Element) => !rowRef.current?.contains(el),
     [rowRef]
   );
 
   const validateAndUpdateArgument = useCallback(
     (value: string) => {
+      // If it's not a validate argument, we fall back
+      // to using the what was originally in the token
       const text = allowedAttributes.includes(value)
         ? `${functionToken.function}(${value})`
         : `${functionToken.function}(${token.attribute})`;
@@ -264,7 +253,7 @@ function InternalInput({
         items={items}
         placeholder={token.attribute}
         inputLabel={t('Select an attribute')}
-        inputValue={inputValue}
+        inputValue={isFocused ? inputValue : token.attribute}
         filterValue={filterValue}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
