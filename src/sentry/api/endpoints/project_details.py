@@ -132,6 +132,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "uptimeAutodetection",
         "tempestFetchScreenshots",
+        "tempestFetchDumps",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -226,6 +227,7 @@ E.g. `['release', 'environment']`""",
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
+    tempestFetchDumps = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -436,6 +438,15 @@ E.g. `['release', 'environment']`""",
         return value
 
     def validate_tempestFetchScreenshots(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_tempest_access(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_tempestFetchDumps(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
         if not has_tempest_access(organization, actor=actor):
@@ -733,6 +744,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
+        if result.get("tempestFetchDumps") is not None:
+            if project.update_option("sentry:tempest_fetch_dumps", result["tempestFetchDumps"]):
+                changed_proj_settings["sentry:tempest_fetch_dumps"] = result["tempestFetchDumps"]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)

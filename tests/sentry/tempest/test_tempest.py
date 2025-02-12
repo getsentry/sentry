@@ -191,6 +191,16 @@ class TempestTasksTest(TestCase):
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
+    def test_tempest_dump_option(self):
+        # Default should be False
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+
+        self.project.update_option("sentry:tempest_fetch_dumps", True)
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
+        self.project.update_option("sentry:tempest_fetch_dumps", False)
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+
     @patch("sentry.tempest.tasks.schedule_invalidate_project_config")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_invalidates_config(self, mock_fetch, mock_invalidate):
