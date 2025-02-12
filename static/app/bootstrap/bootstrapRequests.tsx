@@ -18,7 +18,8 @@ import {queryOptions, useQuery} from 'sentry/utils/queryClient';
 const BOOTSTRAP_QUERY_STALE_TIME = 30 * 1000;
 
 // 10 minute gc time
-// gc time is how long it will stay (even if stale) in the query cache
+// Warning: We will always have an observer on the organization object
+// so it will never be garbage collected from the query cache
 const BOOTSTRAP_QUERY_GC_TIME = 10 * 60 * 1000;
 
 export function useBootstrapOrganizationQuery(orgSlug: string | null) {
