@@ -2,6 +2,9 @@ import dataclasses
 import logging
 from typing import Any
 
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
+
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
@@ -737,6 +740,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     return data_source
 
 
+@receiver(pre_delete, sender=AlertRule)
 def dual_delete_migrated_alert_rule(
     alert_rule: AlertRule,
     user: RpcUser | None = None,
