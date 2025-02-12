@@ -43,6 +43,7 @@ def get_anomaly_data_from_seer(
         or not alert_rule.sensitivity
         or not alert_rule.seasonality
         or not snuba_query.time_window
+        or not aggregation_value
     ):
         return None
 
