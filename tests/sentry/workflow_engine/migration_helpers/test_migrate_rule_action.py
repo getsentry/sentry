@@ -12,7 +12,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
-    TicketActionTranslator,
+    ActionFieldMappingKeys,
     TicketDataBlob,
     issue_alert_action_translator_registry,
 )
@@ -26,19 +26,18 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict, exclude_keys: list[str]
     ):
-        # Get standard fields from JiraDataBlob, excluding additional_fields
-        standard_fields = TicketActionTranslator.standard_fields()
 
-        # Check standard fields
-        for field in standard_fields:
-            assert action.data.get(field, "") == compare_dict.get(field, "")
+        # Check dynamic_form_fields
+        assert action.data.get(
+            ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
+        ) == compare_dict.get(ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
 
         # Check that additional_fields contains all other non-excluded fields
-        additional_fields = action.data.get("additional_fields", {})
+        additional_fields = action.data.get(ActionFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
         for key, value in compare_dict.items():
             if (
                 key not in exclude_keys
-                and key not in standard_fields
+                and key not in ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value
                 and key != "id"
                 and value  # Only check non-empty values
             ):

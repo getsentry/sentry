@@ -32,6 +32,8 @@ class ActionFieldMappingKeys(StrEnum):
     INTEGRATION_ID_KEY = "integration_id_key"
     TARGET_IDENTIFIER_KEY = "target_identifier_key"
     TARGET_DISPLAY_KEY = "target_display_key"
+    DYNAMIC_FORM_FIELDS_KEY = "dynamic_form_fields"
+    ADDITIONAL_FIELDS_KEY = "additional_fields"
 
 
 class ActionFieldMapping(TypedDict):
@@ -355,16 +357,35 @@ class OpsgenieActionTranslator(BaseActionTranslator):
         return OnCallDataBlob
 
 
-class TicketActionTranslator(BaseActionTranslator, ABC):
+class TicketingActionDataBlobHelper(ABC):
+    @staticmethod
+    def separate_fields(
+        data: dict[str, Any], excluded_keys: list[str] | None = None
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """
+        Separates data into standard and additional fields.
+        Returns tuple of (dynamic_form_fields, additional_fields)
+        """
+        excluded_keys = excluded_keys or []
+        dynamic_form_fields = data.get(ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
+
+        additional_fields = {
+            k: v
+            for k, v in data.items()
+            if k not in dynamic_form_fields
+            and k not in EXCLUDED_ACTION_DATA_KEYS
+            and k not in excluded_keys
+            and k != ActionFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value
+        }
+        return dynamic_form_fields, additional_fields
+
+
+class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper, ABC):
     @property
     def required_fields(self) -> list[str]:
         return [
             ACTION_FIELD_MAPPINGS[self.action_type][ActionFieldMappingKeys.INTEGRATION_ID_KEY.value]
         ]
-
-    @staticmethod
-    def standard_fields() -> list[str]:
-        return [f.name for f in dataclasses.fields(TicketDataBlob) if f.name != "additional_fields"]
 
     @property
     def integration_id(self) -> Any | None:
@@ -384,17 +405,11 @@ class TicketActionTranslator(BaseActionTranslator, ABC):
         """
         data = super().get_sanitized_data()
         if self.blob_type:
-            # Get all fields that aren't part of the standard TicketDataBlob fields
-            additional_fields = {
-                k: v
-                for k, v in self.action.items()
-                if k not in self.standard_fields()
-                and k not in EXCLUDED_ACTION_DATA_KEYS
-                and k not in self.required_fields
-                and k != "dynamic_form_fields"
-                and v  # Only include non-empty values
-            }
-            data["additional_fields"] = additional_fields
+            # Use helper to separate fields, excluding required fields
+            _, additional_fields = self.separate_fields(
+                self.action, excluded_keys=self.required_fields
+            )
+            data[ActionFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value] = additional_fields
         return data
 
 
