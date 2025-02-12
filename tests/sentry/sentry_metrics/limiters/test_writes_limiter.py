@@ -24,7 +24,6 @@ MOCK_METRIC_PATH_MAPPING = {
     UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
     UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
     UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
-    UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
 }
 
 MOCK_REVERSE_METRIC_PATH_MAPPING = {
@@ -71,10 +70,6 @@ def test_writes_limiter_no_limits():
                 UseCaseID.ESCALATING_ISSUES: {
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
-                },
-                UseCaseID.CUSTOM: {
-                    1: {"x", "y", "z"},
-                    2: {"a", "b", "c"},
                 },
             }
         )
@@ -124,10 +119,6 @@ def test_writes_limiter_doesnt_limit():
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                UseCaseID.CUSTOM: {
-                    7: {"m", "n", "o", "p"},
-                    8: {"q", "r", "s", "t"},
-                },
             }
         )
 
@@ -176,10 +167,6 @@ def test_writes_limiter_org_limit():
                 UseCaseID.ESCALATING_ISSUES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
-                },
-                UseCaseID.CUSTOM: {
-                    7: {"m", "n", "o", "p"},
-                    8: {"q", "r", "s", "t"},
                 },
             }
         )
@@ -255,10 +242,6 @@ def test_writes_limiter_global_limit():
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                UseCaseID.CUSTOM: {
-                    7: {"m", "n", "o", "p"},
-                    8: {"q", "r", "s", "t"},
-                },
             }
         )
 
@@ -310,10 +293,6 @@ def test_writes_limiter_respects_use_case_id():
                 UseCaseID.ESCALATING_ISSUES: {
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
-                },
-                UseCaseID.CUSTOM: {
-                    1: {"x", "y", "z"},
-                    2: {"a", "b", "c"},
                 },
             }
         )
