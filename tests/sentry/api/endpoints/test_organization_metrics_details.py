@@ -188,8 +188,8 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         project_1 = self.create_project()
 
         metrics: tuple[tuple[str, Project], ...] = (
-            ("s:custom/user@none", project_1),
-            ("c:custom/clicks@none", project_1),
+            ("s:transactions/user@none", project_1),
+            ("c:transactions/clicks@none", project_1),
         )
         for mri, project in metrics:
             self.store_metric(
@@ -202,12 +202,12 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             )
 
         response = self.get_success_response(
-            self.organization.slug, project=[project_1.id], useCase=["transactions", "custom"]
+            self.organization.slug, project=[project_1.id], useCase=["transactions"]
         )
         assert len(response.data) == 2
 
         data = sorted(response.data, key=lambda d: d["mri"])
-        assert data[0]["mri"] == "c:custom/clicks@none"
+        assert data[0]["mri"] == "c:transactions/clicks@none"
         assert data[0]["projectIds"] == [project_1.id]
-        assert data[1]["mri"] == "s:custom/user@none"
+        assert data[1]["mri"] == "s:transactions/user@none"
         assert sorted(data[1]["projectIds"]) == sorted([project_1.id])

@@ -426,7 +426,10 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            self.use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
+            self.use_case_id
+            in [
+                UseCaseID.TRANSACTIONS,
+            ]
             and self.include_series
             and self.interval is None
         ):

@@ -82,8 +82,6 @@ def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
 @pytest.mark.parametrize(
     "agg, query, result",
     [
-        ("sum(c:custom/page_load@millisecond)", "release:a", False),
-        ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
         ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
         ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", False),
         ("p95(d:spans/duration@millisecond)", "release:a", False),

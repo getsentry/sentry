@@ -453,7 +453,7 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
                 PerformanceMetricsEntitySubscription,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.PerformanceMetrics,
-                "max(d:custom/sentry.process_profile.track_outcome@second)",
+                "max(d:transactions/sentry.process_profile.track_outcome@second)",
             ),
             (
                 MetricsCountersEntitySubscription,
@@ -536,7 +536,7 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsCounters,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.PerformanceMetrics,
-                "sum(c:custom/sentry.process_profile.track_outcome@second)",
+                "sum(c:transactions/sentry.process_profile.track_outcome@second)",
                 "",
                 # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
                 False,
@@ -546,7 +546,7 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsDistributions,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.PerformanceMetrics,
-                "max(d:custom/sentry.process_profile.track_outcome@second)",
+                "max(d:transactions/sentry.process_profile.track_outcome@second)",
                 "",
                 # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
                 False,
@@ -556,7 +556,7 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsSets,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.PerformanceMetrics,
-                "count_unique(s:custom/sentry.process_profile.track_outcome@second)",
+                "count_unique(s:transactions/sentry.process_profile.track_outcome@second)",
                 "",
                 # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
                 False,
@@ -566,7 +566,7 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsGauges,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.PerformanceMetrics,
-                "last(g:custom/sentry.process_profile.track_outcome@second)",
+                "last(g:transactions/sentry.process_profile.track_outcome@second)",
                 "",
                 # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
                 False,
