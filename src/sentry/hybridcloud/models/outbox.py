@@ -287,9 +287,14 @@ class OutboxBase(Model):
                     return
 
                 tags, scheduled_from, date_added, all_ids = self._prepare_processing_metrics(
-                    coalesced, first_coalesced, is_synchronous_flush
+                    coalesced=coalesced,
+                    first_coalesced=first_coalesced,
+                    is_synchronous_flush=is_synchronous_flush,
                 )
-                new_scheduled_for = self._reserve_messages_for_processing(coalesced, all_ids)
+                new_scheduled_for = self._reserve_messages_for_processing(
+                    coalesced=coalesced,
+                    all_ids=all_ids,
+                )
 
             # End of the selection/reservation phase. The transaction is now committed, and all locks
             # are released. Yield the representative coalesced message so that remote processing (like
@@ -300,12 +305,22 @@ class OutboxBase(Model):
                 # If an an exception occurs during processing (e.g. send_signal() raised an exception),
                 # we want to revert the reservation update so that these messages are eligible for reprocessing.
                 self._revert_reserved_messages(
-                    coalesced, all_ids, new_scheduled_for, scheduled_from, tags
+                    coalesced=coalesced,
+                    all_ids=all_ids,
+                    new_scheduled_for=new_scheduled_for,
+                    scheduled_from=scheduled_from,
+                    tags=tags,
                 )
                 raise
 
             # After the yield, we now proceed to clean up (delete) the reserved messages.
-            self._delete_reserved_messages(all_ids, coalesced, tags, scheduled_from, date_added)
+            self._delete_reserved_messages(
+                all_ids=all_ids,
+                coalesced=coalesced,
+                tags=tags,
+                scheduled_from=scheduled_from,
+                date_added=date_added,
+            )
 
         except OperationalError as e:
             if "could not obtain lock" in str(e).lower():
@@ -319,24 +334,39 @@ class OutboxBase(Model):
 
     def _select_coalesced_messages(self) -> tuple[OutboxBase | None, OutboxBase | None]:
         """Select the representative message from the group and the first (oldest) message."""
+
+        current_time = timezone.now()
+
         # Select the representative message from the group, which is defined as the one
-        # with the highest id. Lock the row immediately to prevent concurrent processing.
+        # with the highest id. Only select messages that are due for processing (scheduled_for <= now).
+        # We avoid selecting messages that are reserved in self._reserve_messages_for_processing().
+        # Lock the row immediately to prevent concurrent processing.
         coalesced = (
-            self.select_coalesced_messages().select_for_update(nowait=True).order_by("-id").first()
+            self.select_coalesced_messages()
+            .filter(scheduled_for__lte=current_time)
+            .select_for_update(nowait=True)
+            .order_by("-id")
+            .first()
         )
         if coalesced is None:
             return None, None
 
         # For timing and metrics, we also need to determine the first (oldest) record.
-        # This is done with a second query ordering by ascending id. If no record is found,
+        # This is done with a second query ordering by ascending id. Only messages that are
+        # due for processing (scheduled_for <= now) are considered. If no record is found,
         # fall back to the representative record.
+        # We avoid selecting messages that are reserved in self._reserve_messages_for_processing().
         first_coalesced = (
-            self.select_coalesced_messages().select_for_update(nowait=True).order_by("id").first()
+            self.select_coalesced_messages()
+            .filter(scheduled_for__lte=current_time)
+            .select_for_update(nowait=True)
+            .order_by("id")
+            .first()
         ) or coalesced
         return coalesced, first_coalesced
 
     def _prepare_processing_metrics(
-        self, coalesced: OutboxBase, first_coalesced: OutboxBase, is_synchronous_flush: bool
+        self, *, coalesced: OutboxBase, first_coalesced: OutboxBase, is_synchronous_flush: bool
     ) -> tuple[dict, datetime.datetime, datetime.datetime, list[int]]:
         """Prepare metrics and collect IDs for processing."""
         # Build a tags dictionary for metrics purposes. The outbox category is included
@@ -373,18 +403,23 @@ class OutboxBase(Model):
         return tags, scheduled_from, date_added, all_ids
 
     def _reserve_messages_for_processing(
-        self, coalesced: OutboxBase, all_ids: list[int]
+        self, *, coalesced: OutboxBase, all_ids: list[int]
     ) -> datetime.datetime:
         """Reserve messages by updating their scheduled_for time."""
         # Reserve the messages for processing. By updating scheduled_for to a point
         # in the future (now + 1 hour), we effectively signal that these messages are
         # being processed, thereby preventing any other drain process from picking them up.
+        #
+        # In practice, every worker is expected to only select and process messages with a scheduled_for timestamp
+        # that is in the past (or otherwise eligible). As long as all processes honor this rule, no worker will
+        # pick up these reserved rows until the reserved time has passed.
         new_scheduled_for = timezone.now() + datetime.timedelta(hours=1)
         self.objects.filter(id__in=all_ids + [coalesced.id]).update(scheduled_for=new_scheduled_for)
         return new_scheduled_for
 
     def _revert_reserved_messages(
         self,
+        *,
         coalesced: OutboxBase,
         all_ids: list[int],
         new_scheduled_for: datetime.datetime,
@@ -418,6 +453,7 @@ class OutboxBase(Model):
 
     def _delete_reserved_messages(
         self,
+        *,
         all_ids: list[int],
         coalesced: OutboxBase,
         tags: dict,
