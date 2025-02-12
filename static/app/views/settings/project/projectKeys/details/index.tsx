@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -29,6 +31,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   const {keyId, projectId} = params;
   const api = useApi();
   const queryClient = useQueryClient();
+  const theme = useTheme();
 
   const {
     data: projKeyData,
@@ -65,7 +68,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
     <SentryDocumentTitle title={t('Key Details')}>
       <SettingsPageHeader title={t('Key Details')} data-test-id="key-details" />
       <ProjectPermissionAlert project={project} />
-      <KeyStats api={api} organization={organization} params={params} />
+      <KeyStats api={api} organization={organization} params={params} theme={theme} />
       <KeySettings
         data={projKeyData}
         updateData={onDataChange}

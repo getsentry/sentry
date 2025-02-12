@@ -1,3 +1,5 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import startCase from 'lodash/startCase';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -11,7 +13,6 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
@@ -19,26 +20,30 @@ type Props = {
   project: Project;
 };
 
-const STAT_OPS = {
-  'browser-extensions': theme.gray200,
-  cors: theme.yellow300,
-  'error-message': theme.purple300,
-  'discarded-hash': theme.gray200,
-  'invalid-csp': theme.blue300,
-  'ip-address': theme.red200,
-  'legacy-browsers': theme.gray200,
-  localhost: theme.blue300,
-  'release-version': theme.purple200,
-  'web-crawlers': theme.red300,
-  'filtered-transaction': theme.yellow400,
-  'react-hydration-errors': theme.outcome.filtered,
-  'chunk-load-error': theme.outcome.filtered,
-};
+function makeStatOPColors(theme: Theme): Record<string, string> {
+  return {
+    'browser-extensions': theme.gray200,
+    cors: theme.yellow300,
+    'error-message': theme.purple300,
+    'discarded-hash': theme.gray200,
+    'invalid-csp': theme.blue300,
+    'ip-address': theme.red200,
+    'legacy-browsers': theme.gray200,
+    localhost: theme.blue300,
+    'release-version': theme.purple200,
+    'web-crawlers': theme.red300,
+    'filtered-transaction': theme.yellow400,
+    'react-hydration-errors': theme.outcome.filtered,
+    'chunk-load-error': theme.outcome.filtered,
+  };
+}
 
-function formatData(rawData: UsageSeries | undefined) {
+function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData || !rawData.groups?.length) {
     return [];
   }
+
+  const statOpsColors = makeStatOPColors(theme);
 
   const formattedData = rawData.groups
     .map(group => {
@@ -50,7 +55,7 @@ function formatData(rawData: UsageSeries | undefined) {
 
       return {
         seriesName: startCase(String(reason)),
-        color: STAT_OPS[reason as keyof typeof STAT_OPS] ?? theme.gray200,
+        color: statOpsColors[reason] ?? theme.gray200,
         data: rawData.intervals
           .map((interval, index) => ({
             name: interval,
@@ -66,6 +71,7 @@ function formatData(rawData: UsageSeries | undefined) {
 
 export function ProjectFiltersChart({project}: Props) {
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
     [
@@ -87,7 +93,7 @@ export function ProjectFiltersChart({project}: Props) {
     }
   );
 
-  const formattedData = formatData(data);
+  const formattedData = formatData(data, theme);
   const hasLoaded = !isPending && !isError;
   const colors = formattedData.map(series => series.color);
   const blankStats = !formattedData.length;

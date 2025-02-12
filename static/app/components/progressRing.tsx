@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 import type {SerializedStyles, Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
-import theme from 'sentry/utils/theme';
 
 type TextProps = {
   percent: number;
@@ -80,11 +80,12 @@ function ProgressRing({
   text,
   textCss,
   animate = false,
-  progressColor = theme.green300,
-  backgroundColor = theme.gray200,
   progressEndcaps,
   ...p
 }: Props) {
+  const theme = useTheme();
+  const progressColor = p.progressColor ?? theme.green300;
+  const backgroundColor = p.backgroundColor ?? theme.gray200;
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
 

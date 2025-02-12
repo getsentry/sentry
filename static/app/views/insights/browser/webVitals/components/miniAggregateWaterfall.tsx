@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -38,6 +40,7 @@ export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Pr
   };
   const minimap = (
     <ActualMinimap
+      theme={theme}
       spans={waterfallModel.getWaterfall({
         viewStart: 0,
         viewEnd: 1,

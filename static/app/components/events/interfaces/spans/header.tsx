@@ -1,6 +1,8 @@
 import {Component, Fragment, PureComponent} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DEMO_HEADER_HEIGHT_PX} from 'sentry/components/demo/demoHeader';
 import {
   getDataPoints,
   MIN_DATA_POINTS,
@@ -25,10 +27,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import toPercent from 'sentry/utils/number/toPercent';
-import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
-
-import {DEMO_HEADER_HEIGHT_PX} from '../../../demo/demoHeader';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -58,6 +57,7 @@ type PropType = {
   organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
   trace: ParsedTraceType;
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
@@ -507,6 +507,7 @@ class TraceViewHeader extends Component<PropType, State> {
                         }}
                       />
                       <ActualMinimap
+                        theme={this.props.theme}
                         spans={this.props.spans}
                         generateBounds={this.props.generateBounds}
                         dividerPosition={dividerPosition}
@@ -587,6 +588,7 @@ class ActualMinimap extends PureComponent<{
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
 }> {
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
@@ -611,7 +613,9 @@ class ActualMinimap extends PureComponent<{
               key={`${payload.type}-${i}`}
               style={{
                 backgroundColor:
-                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
+                  payload.type === 'span_group_chain'
+                    ? this.props.theme.blue300
+                    : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
               }}
@@ -636,7 +640,7 @@ class ActualMinimap extends PureComponent<{
                 return (
                   <MinimapSpanBar
                     style={{
-                      backgroundColor: theme.blue300,
+                      backgroundColor: this.props.theme.blue300,
                       left: spanLeft,
                       width: spanWidth,
                       minWidth: 0,
