@@ -1,5 +1,6 @@
 import type {ChangeEvent, RefObject} from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
@@ -56,7 +57,7 @@ export function ArithmeticTokenFunction({
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       {'('}
-      <ArgumentGridCell {...gridCellProps}>
+      <BaseGridCell {...gridCellProps}>
         <InternalInput
           isFocused={isFocused}
           item={item}
@@ -65,7 +66,7 @@ export function ArithmeticTokenFunction({
           token={attribute}
           rowRef={ref}
         />
-      </ArgumentGridCell>
+      </BaseGridCell>
       {')'}
     </FunctionWrapper>
   );
@@ -334,15 +335,15 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   ${p =>
     p.state === 'invalid'
-      ? `
-      border-color: ${p.theme.red200};
-      background-color: ${p.theme.red100};
-    `
+      ? css`
+          border-color: ${p.theme.red200};
+          background-color: ${p.theme.red100};
+        `
       : p.state === 'warning'
-        ? `
-      border-color: ${p.theme.gray300};
-      background-color: ${p.theme.gray100};
-    `
+        ? css`
+            border-color: ${p.theme.gray300};
+            background-color: ${p.theme.gray100};
+          `
         : ''}
 
   &[aria-selected='true'] {
@@ -359,5 +360,3 @@ const BaseGridCell = styled('div')`
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
 `;
-
-const ArgumentGridCell = styled(BaseGridCell)``;
