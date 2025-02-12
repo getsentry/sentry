@@ -797,8 +797,8 @@ class MQLTest(TestCase, BaseMetricsTestCase):
 
     def test_resolve_all_mris(self) -> None:
         for mri in [
-            "d:custom/sentry.event_manager.save@second",
-            "d:custom/sentry.event_manager.save_generic_events@second",
+            "d:transactions/sentry.event_manager.save@second",
+            "d:transactions/sentry.event_manager.save_generic_events@second",
         ]:
             self.store_metric(
                 self.org_id,
@@ -819,13 +819,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 parameters=[
                     Timeseries(
                         metric=Metric(
-                            mri="d:custom/sentry.event_manager.save@second",
+                            mri="d:transactions/sentry.event_manager.save@second",
                         ),
                         aggregate="avg",
                     ),
                     Timeseries(
                         metric=Metric(
-                            mri="d:custom/sentry.event_manager.save_generic_events@second",
+                            mri="d:transactions/sentry.event_manager.save_generic_events@second",
                         ),
                         aggregate="avg",
                     ),
@@ -835,7 +835,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             end=self.now,
             rollup=Rollup(interval=None, totals=True, orderby=None, granularity=10),
             scope=MetricsScope(
-                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="custom"
+                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="transactions"
             ),
             limit=Limit(20),
             offset=None,
