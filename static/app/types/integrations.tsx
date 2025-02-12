@@ -291,7 +291,7 @@ export type SentryAppAvatar = Avatar & {
   photo_type: SentryAppAvatarPhotoType;
 };
 
-enum SentryAppAvatarPhotoType {
+export enum SentryAppAvatarPhotoType {
   ICON = 'icon',
   LOGO = 'logo',
 }
