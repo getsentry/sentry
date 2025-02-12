@@ -284,8 +284,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         # The amount of time it took for a check result to get from the checker to this consumer and be processed
         metrics.distribution(
-            "uptime.result_processor.completion_time",
-            datetime.now().timestamp()
+            "uptime.result_processor.check_completion_time",
+            (datetime.now().timestamp() * 1000)
             - (
                 result["actual_check_time_ms"] + result["duration_ms"]
                 if result["duration_ms"]
