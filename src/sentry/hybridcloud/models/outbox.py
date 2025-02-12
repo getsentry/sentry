@@ -405,8 +405,7 @@ class OutboxBase(Model):
         """Select the representative message from the group and the first (oldest) message."""
 
         # Select the representative message from the group, which is defined as the one
-        # with the highest id. Only select messages that are due for processing (scheduled_for <= now).
-        # We avoid selecting messages that are reserved in self._reserve_messages_for_processing().
+        # with the highest id.
         # Lock the row immediately to prevent concurrent processing.
         coalesced = (
             self.select_coalesced_messages().select_for_update(nowait=True).order_by("-id").first()
@@ -415,10 +414,8 @@ class OutboxBase(Model):
             return None, None
 
         # For timing and metrics, we also need to determine the first (oldest) record.
-        # This is done with a second query ordering by ascending id. Only messages that are
-        # due for processing (scheduled_for <= now) are considered. If no record is found,
-        # fall back to the representative record.
-        # We avoid selecting messages that are reserved in self._reserve_messages_for_processing().
+        # This is done with a second query ordering by ascending id.
+        # If no record is found, fall back to the representative record.
         first_coalesced = (
             self.select_coalesced_messages().select_for_update(nowait=True).order_by("id").first()
         ) or coalesced
