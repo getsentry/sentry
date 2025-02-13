@@ -1,10 +1,16 @@
+from collections.abc import Sequence
+
 from django.conf import settings
 
+from sentry import options
 from sentry.conf.types.uptime import UptimeRegionConfig
 
 
 def get_active_region_configs() -> list[UptimeRegionConfig]:
-    return [v for v in settings.UPTIME_REGIONS if v.enabled]
+    configured_regions: Sequence[UptimeRegionConfig] = settings.UPTIME_REGIONS
+    disabled_region_slugs: Sequence[str] = options.get("uptime.disabled-checker-regions")
+
+    return [c for c in configured_regions if c.slug not in disabled_region_slugs]
 
 
 def get_region_config(region_slug: str) -> UptimeRegionConfig | None:

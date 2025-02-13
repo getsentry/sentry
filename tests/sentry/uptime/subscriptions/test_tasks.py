@@ -165,21 +165,18 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
                 name="Region 1",
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 config_redis_key_prefix="r1",
-                enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region2",
                 name="Region 2",
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 config_redis_key_prefix="r2",
-                enabled=True,
             ),
             UptimeRegionConfig(
                 slug="region3",
                 name="Region 3",
                 config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
                 config_redis_key_prefix="r3",
-                enabled=True,
             ),
         ]
         with override_settings(UPTIME_REGIONS=regions):
