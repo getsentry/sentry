@@ -11,7 +11,8 @@ class UptimeRegionConfig:
 
     slug: str
     name: str
-    enabled: bool
+    # TODO: Remove once no region configurations are setting this
+    enabled: bool = True
     # TODO: Remove once we've removed config that relies on this
     config_topic: Topic | None = None
     # Temporarily defaulted for backwards compat

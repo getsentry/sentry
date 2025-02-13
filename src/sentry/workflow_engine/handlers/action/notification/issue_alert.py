@@ -22,6 +22,8 @@ from sentry.workflow_engine.typings.notification_action import (
     DiscordDataBlob,
     OnCallDataBlob,
     SlackDataBlob,
+    TicketFieldMappingKeys,
+    TicketingActionDataBlobHelper,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,7 +180,7 @@ class BaseIssueAlertHandler(ABC):
             cls.execute_futures(job, futures)
 
 
-issue_alert_handler_registry = Registry[BaseIssueAlertHandler]()
+issue_alert_handler_registry = Registry[BaseIssueAlertHandler](enable_reverse_lookup=False)
 
 
 @issue_alert_handler_registry.register(Action.Type.DISCORD)
@@ -231,3 +233,32 @@ class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         blob = OnCallDataBlob(**action.data)
         return {"priority": blob.priority}
+
+
+@issue_alert_handler_registry.register(Action.Type.GITHUB)
+@issue_alert_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
+@issue_alert_handler_registry.register(Action.Type.AZURE_DEVOPS)
+@issue_alert_handler_registry.register(Action.Type.JIRA)
+@issue_alert_handler_registry.register(Action.Type.JIRA_SERVER)
+class TicketingIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        # Use helper to separate fields
+        dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
+            action.data
+        )
+
+        final_blob = {
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,
+            **additional_fields,
+        }
+
+        return final_blob

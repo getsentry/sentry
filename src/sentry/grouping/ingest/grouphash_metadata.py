@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import random
 from typing import Any, TypeIs, cast
 
+from sentry import features, options
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
@@ -93,6 +95,22 @@ METRICS_TAGS_BY_HASH_BASIS = {
     HashBasis.FALLBACK: ["fallback_reason"],
     HashBasis.UNKNOWN: [],
 }
+
+
+def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
+    # Killswitches
+    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled") or not features.has(
+        "organizations:grouphash-metadata-creation", project.organization
+    ):
+        return False
+
+    # While we're backfilling metadata for existing grouphash records, if the load is too high, we
+    # want to prioritize metadata for new grouphashes because there's certain information
+    # (timestamp, Seer data) which is only available at group creation time.
+    if grouphash_is_new:
+        return True
+    else:
+        return random.random() <= options.get("grouping.grouphash_metadata.backfill_sample_rate")
 
 
 def create_or_update_grouphash_metadata_if_needed(
