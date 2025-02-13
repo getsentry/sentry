@@ -59,17 +59,15 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         self.valid_data = {
             "name": "Test Detector",
             "detectorType": MetricAlertFire.slug,
-            "dataSources": [
-                {
-                    "queryType": SnubaQuery.Type.ERROR.value,
-                    "dataset": Dataset.Events.name.lower(),
-                    "query": "test query",
-                    "aggregate": "count()",
-                    "timeWindow": 60,
-                    "environment": self.environment.name,
-                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-                },
-            ],
+            "dataSource": {
+                "queryType": SnubaQuery.Type.ERROR.value,
+                "dataset": Dataset.Events.name.lower(),
+                "query": "test query",
+                "aggregate": "count()",
+                "timeWindow": 60,
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+            },
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,

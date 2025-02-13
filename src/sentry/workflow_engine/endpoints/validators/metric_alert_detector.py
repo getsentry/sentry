@@ -24,7 +24,7 @@ class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
-    data_sources = SnubaQueryValidator(required=True, many=True)
+    data_source = SnubaQueryValidator(required=True)
     condition_group = MetricAlertConditionGroupValidator(required=True)
 
     def validate(self, attrs):

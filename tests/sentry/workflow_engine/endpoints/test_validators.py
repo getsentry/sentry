@@ -203,12 +203,10 @@ class DetectorValidatorTest(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "detectorType": MetricAlertFire.slug,
-            "dataSources": [
-                {
-                    "field1": "test",
-                    "field2": 123,
-                },
-            ],
+            "dataSource": {
+                "field1": "test",
+                "field2": 123,
+            },
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -302,17 +300,15 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "detectorType": MetricAlertFire.slug,
-            "dataSources": [
-                {
-                    "query_type": SnubaQuery.Type.ERROR.value,
-                    "dataset": Dataset.Events.value,
-                    "query": "test query",
-                    "aggregate": "count()",
-                    "time_window": 60,
-                    "environment": self.environment.name,
-                    "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-                },
-            ],
+            "dataSource": {
+                "query_type": SnubaQuery.Type.ERROR.value,
+                "dataset": Dataset.Events.value,
+                "query": "test query",
+                "aggregate": "count()",
+                "time_window": 60,
+                "environment": self.environment.name,
+                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+            },
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -548,5 +544,5 @@ class MockConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MockDetectorValidator(BaseDetectorTypeValidator):
-    data_sources = MockDataSourceValidator(many=True)
+    data_source = MockDataSourceValidator(many=True)
     condition_group = MockConditionGroupValidator()
