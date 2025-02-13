@@ -1,4 +1,5 @@
 import {Fragment, lazy, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -38,6 +39,7 @@ export function MetricIssueChart({
   group: Group;
   project: Project;
 }) {
+  const theme = useTheme();
   const api = useApi();
   const organization = useOrganization();
 
@@ -99,6 +101,7 @@ export function MetricIssueChart({
   return (
     <MetricChartSection>
       <LazyLoad
+        theme={theme}
         LazyComponent={MetricChart}
         api={api}
         rule={rule}
