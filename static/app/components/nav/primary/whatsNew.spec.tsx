@@ -1,6 +1,6 @@
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
@@ -19,6 +19,7 @@ describe('WhatsNew', function () {
       url: `/organizations/org-slug/broadcasts/`,
       body: [],
     });
+    jest.useRealTimers();
   });
 
   it('renders empty state', async function () {
@@ -30,21 +31,31 @@ describe('WhatsNew', function () {
   });
 
   it('displays the correct number of unseen broadcasts as a badge', async function () {
+    jest.useFakeTimers();
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/',
+      method: 'PUT',
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
       body: [
         BroadcastFixture({
           id: '1',
+          title: 'Test Broadcast 1',
           category: 'blog',
           hasSeen: false,
         }),
         BroadcastFixture({
           id: '2',
+          title: 'Test Broadcast 2',
           category: 'blog',
           hasSeen: false,
         }),
         BroadcastFixture({
           id: '3',
+          title: 'Test Broadcast 3',
           category: 'blog',
           hasSeen: true,
         }),
@@ -60,8 +71,14 @@ describe('WhatsNew', function () {
       body: [],
     });
 
-    //
-    await userEvent.click(screen.getByRole('button', {name: "What's New"}));
+    await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
+      delay: null,
+    });
+    await screen.findByText('Test Broadcast 1');
+
+    // Advance by 1 second to trigger the mark as seen delay
+    act(() => jest.advanceTimersByTime(1000));
+
     await waitFor(() => {
       expect(screen.queryByTestId('whats-new-badge')).not.toBeInTheDocument();
     });
