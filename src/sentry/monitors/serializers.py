@@ -276,7 +276,7 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     duration: int
     dateCreated: datetime
     expectedTime: datetime
-    monitorConfig: Any
+    monitorConfig: MonitorConfigSerializerResponse
 
 
 @register(MonitorCheckIn)
@@ -330,6 +330,11 @@ class MonitorCheckInSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
+        config: MonitorConfigSerializerResponse = (
+            obj.monitor_config.copy() if obj.monitor_config else {}
+        )
+        if "schedule_type" in config:
+            config["schedule_type"] = obj.get_schedule_type_display()
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
@@ -337,7 +342,7 @@ class MonitorCheckInSerializer(Serializer):
             "duration": obj.duration,
             "dateCreated": obj.date_added,
             "expectedTime": obj.expected_time,
-            "monitorConfig": obj.monitor_config or {},
+            "monitorConfig": config,
         }
 
         if self._expand("groups"):
