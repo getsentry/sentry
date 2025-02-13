@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -118,8 +118,15 @@ CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
 
+class JiraProjectMapping(TypedDict):
+    value: str
+    label: str
+
+    def to_select_option(self) -> dict[str, str]:
+        return {"value": self.value, "label": self.label}
+
+
 class JiraIntegration(IssueSyncIntegration):
-    comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
@@ -137,15 +144,11 @@ class JiraIntegration(IssueSyncIntegration):
         client = self.get_client()
 
         try:
-            # Query the project mappings configured for this Jira integration installation.
-            project_mappings = IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            )
-            configured_projects = [
-                {"value": p.external_id, "label": p.name} for p in project_mappings
+            projects: list[JiraProjectMapping] = [
+                JiraProjectMapping(value=p["id"], label=p["name"])
+                for p in client.get_projects_list()
             ]
-            self._set_status_choices_in_organization_config(configuration, configured_projects)
-            projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
+            self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
         except ApiError:
             configuration[0]["disabled"] = True
@@ -168,8 +171,22 @@ class JiraIntegration(IssueSyncIntegration):
 
         return configuration
 
+    def get_active_config_projects(
+        self, jira_project_configs: list[JiraProjectMapping]
+    ) -> list[JiraProjectMapping]:
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        jira_project_set = {p["value"]: p["label"] for p in jira_project_configs}
+        active_projects = [
+            JiraProjectMapping(value=p.external_id, label=jira_project_set[p.external_id])
+            for p in project_mappings
+            if p.external_id in jira_project_set
+        ]
+        return active_projects
+
     def _set_status_choices_in_organization_config(
-        self, configuration: dict[str, Any], projects: list[dict[str, Any]]
+        self, configuration: list[dict[str, Any]], jira_projects: list[JiraProjectMapping]
     ) -> list[dict[str, Any]]:
         """
         Set the status choices in the provided organization config.
@@ -184,17 +201,9 @@ class JiraIntegration(IssueSyncIntegration):
 
         if features.has("organizations:jira-per-project-statuses", self.organization):
             try:
-                for project in projects:
+                for project in jira_projects:
                     project_id = project["value"]
                     project_statuses = client.get_project_statuses(project_id).get("values", [])
-                    logger.info(
-                        "jira.get-project-statuses.success",
-                        extra={
-                            "org_id": self.organization_id,
-                            "project_id": project_id,
-                            "project_statuses": project_statuses,
-                        },
-                    )
                     statuses = [(c["id"], c["name"]) for c in project_statuses]
                     configuration[0]["mappedSelectors"][project_id] = {
                         "on_resolve": {"choices": statuses},
@@ -216,8 +225,10 @@ class JiraIntegration(IssueSyncIntegration):
         # Fallback logic to the global statuses per project. This may occur if
         # there are too many projects we need to fetch.
         statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
-        configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
-        configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
+        configuration[0]["mappedSelectors"] = {
+            "on_resolve": {"choices": statuses},
+            "on_unresolve": {"choices": statuses},
+        }
 
         return configuration
 
@@ -236,10 +247,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "noResultsMessage": _("Could not find Jira project"),
                     "items": [],  # Populated with projects
                 },
-                "mappedSelectors": {
-                    "on_resolve": {"choices": [], "placeholder": _("Select a status")},
-                    "on_unresolve": {"choices": [], "placeholder": _("Select a status")},
-                },
+                "mappedSelectors": {},
                 "columnLabels": {
                     "on_resolve": _("When resolved"),
                     "on_unresolve": _("When unresolved"),
@@ -355,7 +363,10 @@ class JiraIntegration(IssueSyncIntegration):
             organization_integration_id=self.org_integration.id
         )
         sync_status_forward = {}
+        project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
         for pm in project_mappings:
+            if pm.external_id not in project_ids_set:
+                continue
             sync_status_forward[pm.external_id] = {
                 "on_unresolve": pm.unresolved_status,
                 "on_resolve": pm.resolved_status,
