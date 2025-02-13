@@ -32,6 +32,7 @@ import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useShouldPreloadData} from 'sentry/utils/useShouldPreloadData';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
@@ -61,6 +62,7 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
+  const shouldPreloadData = useShouldPreloadData();
 
   // Command palette global-shortcut
   useHotkeys(
@@ -145,7 +147,7 @@ function App({children, params}: Props) {
   useEffect(() => {
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
-    if (!config.shouldPreloadData) {
+    if (!shouldPreloadData) {
       return undefined;
     }
 
@@ -177,13 +179,7 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [
-    loadOrganizations,
-    checkInternalHealth,
-    config.messages,
-    user,
-    config.shouldPreloadData,
-  ]);
+  }, [loadOrganizations, checkInternalHealth, config.messages, user, shouldPreloadData]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -255,12 +251,12 @@ function App({children, params}: Props) {
     (content: React.ReactNode) => {
       // Skip loading organization-related data before the user is logged in,
       // because it triggers a 401 error in the UI.
-      if (!config.shouldPreloadData) {
+      if (!shouldPreloadData) {
         return content;
       }
       return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
     },
-    [config.shouldPreloadData]
+    [shouldPreloadData]
   );
 
   // Used to restore focus to the container after closing the modal
