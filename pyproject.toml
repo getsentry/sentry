@@ -99,7 +99,6 @@ module = [
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
     "rb.*",
-    "sqlparse.*",
     "statsd.*",
     "u2flib_server.model.*",
 ]
