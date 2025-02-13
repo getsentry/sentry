@@ -45,7 +45,16 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
     provider = serializers.ChoiceField(
         choices=["launchdarkly", "generic", "unleash", "statsig"], required=True
     )
-    secret = serializers.CharField(required=True, max_length=32, min_length=32)
+    secret = serializers.CharField(required=True, min_length=32, max_length=64)
+
+    def validate_secret(self, value):
+        if self.initial_data.get("provider") == "statsig":
+            if not value.startswith("webhook-"):
+                raise serializers.ValidationError("Secret must be of the format webhook-<hash>")
+        elif len(value) > 32:
+            raise serializers.ValidationError("Ensure this field has no more than 32 characters.")
+
+        return value
 
 
 @region_silo_endpoint
