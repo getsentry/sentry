@@ -29,7 +29,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -305,20 +304,18 @@ export function SearchQueryBuilder({
         aria-disabled={disabled}
         data-test-id="search-query-builder"
       >
-        <PanelProvider>
-          <SearchIndicator
-            initialQuery={initialQuery}
-            showUnsubmittedIndicator={showUnsubmittedIndicator}
-          />
-          {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
-            <PlainTextQueryInput label={label} />
-          ) : (
-            <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
-          )}
-          {size !== 'small' && (
-            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
-          )}
-        </PanelProvider>
+        <SearchIndicator
+          initialQuery={initialQuery}
+          showUnsubmittedIndicator={showUnsubmittedIndicator}
+        />
+        {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
+          <PlainTextQueryInput label={label} />
+        ) : (
+          <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+        )}
+        {size !== 'small' && (
+          <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
+        )}
       </Wrapper>
     </SearchQueryBuilderContext.Provider>
   );

@@ -462,7 +462,7 @@ const RecentFilterPill = styled('li')`
   padding: 0 ${space(1.5)} 0 ${space(0.75)};
   background: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: 4px 0 0 4px;
   cursor: pointer;
 
   /* Fade out on right side to represent that this is a filter key only */
@@ -494,6 +494,7 @@ const SectionButton = styled(Button)`
   padding: 0 ${space(1.5)};
   color: ${p => p.theme.subText};
   border: 0;
+  border-radius: 4px;
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.purple100};

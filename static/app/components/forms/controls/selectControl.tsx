@@ -27,7 +27,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
-import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
@@ -110,11 +109,7 @@ const SingleValueLabel = styled('div')`
 
 function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   const {children, ...otherProps} = props;
-  return (
-    <selectComponents.Menu {...otherProps}>
-      <PanelProvider>{children}</PanelProvider>
-    </selectComponents.Menu>
-  );
+  return <selectComponents.Menu {...otherProps}>{children}</selectComponents.Menu>;
 }
 
 export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
