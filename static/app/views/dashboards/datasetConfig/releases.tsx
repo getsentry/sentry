@@ -7,7 +7,6 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {SessionsMeta} from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
@@ -75,10 +74,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 
 const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
-export const ReleasesConfig: DatasetConfig<
-  SessionApiResponse | MetricsApiResponse,
-  SessionApiResponse | MetricsApiResponse
-> = {
+export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiResponse> = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -217,8 +213,8 @@ function getReleasesSeriesRequest(
     displayType,
     {start, end, period},
     '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
+    // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'medium' : undefined
   );
 
   return getReleasesRequest(
@@ -278,7 +274,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
 }
 
 export function transformSessionsResponseToTable(
-  data: SessionApiResponse | MetricsApiResponse,
+  data: SessionApiResponse,
   widgetQuery: WidgetQuery
 ): TableData {
   const useSessionAPI = widgetQuery.columns.includes('session.status');
@@ -312,7 +308,7 @@ export function transformSessionsResponseToTable(
 }
 
 export function transformSessionsResponseToSeries(
-  data: SessionApiResponse | MetricsApiResponse,
+  data: SessionApiResponse,
   widgetQuery: WidgetQuery
 ) {
   if (data === null) {
@@ -352,7 +348,6 @@ export function transformSessionsResponseToSeries(
       // stripped.
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
-          // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
           seriesName: getSeriesName(field, group, queryAlias),
           data: data.intervals.map((interval, index) => ({
             name: interval,
@@ -377,7 +372,6 @@ export function transformSessionsResponseToSeries(
             }
           }
           results.push({
-            // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
             seriesName: getSeriesName(status, group, queryAlias),
             data: data.intervals.map((interval, index) => ({
               name: interval,

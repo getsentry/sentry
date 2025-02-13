@@ -297,7 +297,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: llmPreviewImg,
     supportedSdks: ['python'],
   },
-  // Mobile UI is not released yet
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
@@ -305,9 +304,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile Screens is not released yet
-  'mobile-screens': {
-    heading: t('Mobile Screens'),
+  'mobile-vitals': {
+    heading: t('Mobile Vitals'),
     description: t('Explore mobile app metrics.'),
     valuePropDescription: '',
     valuePropPoints: [],
@@ -497,5 +495,22 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: null,
     valuePropDescription: null,
     valuePropPoints: [],
+  },
+  sessions: {
+    heading: t(`Get insights about your application's session health`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+    ],
+    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    supportedSdks: [], // TODO: add supported sdks
   },
 };

@@ -140,7 +140,7 @@ export function EventDetailsContent({
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
-        <ActionableItems event={event} project={project} isShare={false} />
+        <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
@@ -372,9 +372,7 @@ export function EventDetailsContent({
         </Fragment>
       )}
       <EventHydrationDiff event={event} group={group} />
-      {issueTypeConfig.replays.enabled && (
-        <EventReplay event={event} group={group} projectSlug={project.slug} />
-      )}
+      <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.HPKP]) && (
         <EntryErrorBoundary type={EntryType.HPKP}>
           <Generic
@@ -518,11 +516,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>

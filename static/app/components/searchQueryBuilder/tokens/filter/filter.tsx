@@ -48,7 +48,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
@@ -77,12 +77,14 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
         </FilterValueList>
       );
-    case Token.VALUE_ISO_8601_DATE:
+    }
+    case Token.VALUE_ISO_8601_DATE: {
       const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
 
       return (
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
+    }
     default:
       return (
         <FilterValueSingleTruncatedValue>

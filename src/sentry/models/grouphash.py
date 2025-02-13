@@ -13,6 +13,9 @@ from sentry.db.models import (
     region_silo_model,
 )
 from sentry.db.models.base import sane_repr
+from sentry.types.grouphash_metadata import has_fingerprint_data
+from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
 
 if TYPE_CHECKING:
     from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -49,3 +52,26 @@ class GroupHash(Model):
             return None
 
     __repr__ = sane_repr("group_id", "hash")
+
+    def get_associated_fingerprint(self) -> list[str] | None:
+        """
+        Pull a resolved fingerprint value from the grouphash's metadata, if possible.
+
+        This only returns results for hashes which come from either hybrid or custom fingerprints.
+        Even then, the hash may come from a time before we were storing such data, in which case
+        this returns None.
+        """
+        if (
+            not self.metadata
+            or not self.metadata.hashing_metadata
+            or not has_fingerprint_data(self.metadata.hashing_metadata)
+        ):
+            return None
+
+        try:
+            return json.loads(self.metadata.hashing_metadata["fingerprint"])
+
+        # Fingerprints used to be stored by stringifying them rather than jsonifying them, and the
+        # stringified ones can't be parsed and will cause this error
+        except JSONDecodeError:
+            return None

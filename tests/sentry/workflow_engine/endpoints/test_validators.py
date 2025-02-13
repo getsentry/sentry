@@ -7,10 +7,6 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.incidents.endpoints.validators import (
-    MetricAlertComparisonConditionValidator,
-    MetricAlertsDetectorValidator,
-)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
@@ -23,12 +19,17 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
-    BaseGroupTypeDetectorValidator,
+    BaseDetectorTypeValidator,
     DataSourceCreator,
     NumericComparisonConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.metric_alert_detector import (
+    MetricAlertComparisonConditionValidator,
+    MetricAlertsDetectorValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
@@ -83,9 +84,9 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
         super().setUp()
         self.project = self.create_project()
 
-        self.validator_class = BaseGroupTypeDetectorValidator
+        self.validator_class = BaseDetectorTypeValidator
 
-    def test_validate_group_type_valid(self):
+    def test_validate_detector_type_valid(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -95,18 +96,19 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
                 detector_validator=MetricAlertsDetectorValidator,
             )
             validator = self.validator_class()
-            result = validator.validate_group_type("test_type")
+            result = validator.validate_detector_type("test_type")
             assert result == mock_get_by_slug.return_value
 
-    def test_validate_group_type_unknown(self):
+    def test_validate_detector_type_unknown(self):
         with mock.patch.object(grouptype.registry, "get_by_slug", return_value=None):
             validator = self.validator_class()
             with pytest.raises(
-                ValidationError, match="[ErrorDetail(string='Unknown group type', code='invalid')]"
+                ValidationError,
+                match="[ErrorDetail(string='Unknown detector type', code='invalid')]",
             ):
-                validator.validate_group_type("unknown_type")
+                validator.validate_detector_type("unknown_type")
 
-    def test_validate_group_type_incompatible(self):
+    def test_validate_detector_type_incompatible(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -118,9 +120,9 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
             validator = self.validator_class()
             with pytest.raises(
                 ValidationError,
-                match="[ErrorDetail(string='Group type not compatible with detectors', code='invalid')]",
+                match="[ErrorDetail(string='Detector type not compatible with detectors', code='invalid')]",
             ):
-                validator.validate_group_type("test_type")
+                validator.validate_detector_type("test_type")
 
 
 class MetricAlertComparisonConditionValidatorTest(TestCase):
@@ -182,7 +184,7 @@ class DetectorValidatorTest(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": "metric_alert_fire",
+            "detectorType": "metric_alert_fire",
             "data_source": {
                 "field1": "test",
                 "field2": 123,
@@ -240,22 +242,22 @@ class DetectorValidatorTest(TestCase):
             data=detector.get_audit_log_data(),
         )
 
-    def test_validate_group_type_unknown(self):
-        validator = MockDetectorValidator(data={**self.valid_data, "group_type": "unknown_type"})
+    def test_validate_detector_type_unknown(self):
+        validator = MockDetectorValidator(data={**self.valid_data, "detectorType": "unknown_type"})
         assert not validator.is_valid()
-        assert validator.errors.get("groupType") == [
-            ErrorDetail(string="Unknown group type", code="invalid")
+        assert validator.errors.get("detectorType") == [
+            ErrorDetail(string="Unknown detector type", code="invalid")
         ], validator.errors
 
-    def test_validate_group_type_incompatible(self):
+    def test_validate_detector_type_incompatible(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
             validator = MockDetectorValidator(
-                data={**self.valid_data, "group_type": "incompatible_type"}
+                data={**self.valid_data, "detectorType": "incompatible_type"}
             )
             assert not validator.is_valid()
-            assert validator.errors.get("groupType") == [
-                ErrorDetail(string="Group type not compatible with detectors", code="invalid")
+            assert validator.errors.get("detectorType") == [
+                ErrorDetail(string="Detector type not compatible with detectors", code="invalid")
             ]
 
 
@@ -273,7 +275,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": "metric_alert_fire",
+            "detector_type": "metric_alert_fire",
             "data_source": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -281,7 +283,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
                 "aggregate": "count()",
                 "time_window": 60,
                 "environment": self.environment.name,
-                "event_types": [SnubaQueryEventType.EventType.ERROR.value],
+                "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "data_conditions": [
                 {
@@ -316,7 +318,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         )
         assert data_source.organization_id == self.project.organization_id
 
-        query_sub = QuerySubscription.objects.get(id=data_source.query_id)
+        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
         assert query_sub.project == self.project
         assert query_sub.type == INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 
@@ -353,12 +355,12 @@ class TestMetricAlertsDetectorValidator(TestCase):
             data=detector.get_audit_log_data(),
         )
 
-    def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": "invalid_type"}
+    def test_invalid_detector_type(self):
+        data = {**self.valid_data, "detector_type": "invalid_type"}
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
-        assert validator.errors.get("groupType") == [
-            ErrorDetail(string="Unknown group type", code="invalid")
+        assert validator.errors.get("detectorType") == [
+            ErrorDetail(string="Unknown detector type", code="invalid")
         ]
 
     def test_too_many_conditions(self):
@@ -389,6 +391,57 @@ class TestMetricAlertsDetectorValidator(TestCase):
         ]
 
 
+class SnubaQueryValidatorTest(TestCase):
+    def setUp(self):
+        self.valid_data = {
+            "query_type": SnubaQuery.Type.ERROR.value,
+            "dataset": Dataset.Events.value,
+            "query": "test query",
+            "aggregate": "count()",
+            "time_window": 60,
+            "environment": self.environment.name,
+            "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+        }
+        self.context = {
+            "organization": self.project.organization,
+            "project": self.project,
+            "request": self.make_request(),
+        }
+
+    def test_simple(self):
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.validated_data["query_type"] == SnubaQuery.Type.ERROR
+        assert validator.validated_data["dataset"] == Dataset.Events
+        assert validator.validated_data["query"] == "test query"
+        assert validator.validated_data["aggregate"] == "count()"
+        assert validator.validated_data["time_window"] == 60
+        assert validator.validated_data["environment"] == self.environment
+        assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
+        assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
+
+    def test_invalid_query(self):
+        unsupported_query = "release:latest"
+        self.valid_data["query"] = unsupported_query
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("query") == [
+            ErrorDetail(
+                string=f"Unsupported Query: We do not currently support the {unsupported_query} query",
+                code="invalid",
+            )
+        ]
+
+    def test_invalid_query_type(self):
+        invalid_query_type = 666
+        self.valid_data["query_type"] = invalid_query_type
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("queryType") == [
+            ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
+        ]
+
+
 class MockModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -416,6 +469,13 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
     field2 = serializers.IntegerField()
     data_source_type_handler = QuerySubscriptionDataSourceHandler
 
+    class Meta:
+        model = MockModel
+        fields = [
+            "field1",
+            "field2",
+        ]
+
     def create_source(self, validated_data) -> MockModel:
         return MockModel.objects.create()
 
@@ -441,6 +501,6 @@ class MockDataConditionValidator(NumericComparisonConditionValidator):
     supported_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
 
 
-class MockDetectorValidator(BaseGroupTypeDetectorValidator):
+class MockDetectorValidator(BaseDetectorTypeValidator):
     data_source = MockDataSourceValidator()
     data_conditions = MockDataConditionValidator(many=True)

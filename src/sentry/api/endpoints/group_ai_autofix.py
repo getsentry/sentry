@@ -261,16 +261,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         return execution_tree
 
-    def _make_error_metadata(self, autofix: dict, reason: str):
-        return {
-            **autofix,
-            "completed_at": datetime.now().isoformat(),
-            "status": "ERROR",
-            "fix": None,
-            "error_message": reason,
-            "steps": [],
-        }
-
     def _respond_with_error(self, reason: str, status: int):
         return Response(
             {
@@ -367,7 +357,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if serialized_event is None:
             return self._respond_with_error("Cannot fix issues without an event.", 400)
 
-        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
+        if not any(
+            [
+                entry.get("type") == "exception" or entry.get("type") == "threads"
+                for entry in serialized_event["entries"]
+            ]
+        ):
             return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
         repos = get_autofix_repos_from_project_code_mappings(group.project)
@@ -421,6 +416,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
         check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
         return Response(
+            {
+                "run_id": run_id,
+            },
             status=202,
         )
 

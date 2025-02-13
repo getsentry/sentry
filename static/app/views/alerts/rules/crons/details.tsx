@@ -6,7 +6,7 @@ import {
   deleteMonitorProcessingErrorByType,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -186,23 +186,9 @@ function MonitorDetails({params, location}: Props) {
           ) : (
             <Fragment>
               <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-              <MonitorStats
-                orgSlug={organization.slug}
-                monitor={monitor}
-                monitorEnvs={monitor.environments}
-              />
-
-              <MonitorIssues
-                orgSlug={organization.slug}
-                monitor={monitor}
-                monitorEnvs={monitor.environments}
-              />
-
-              <MonitorCheckIns
-                orgSlug={organization.slug}
-                monitor={monitor}
-                monitorEnvs={monitor.environments}
-              />
+              <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
+              <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+              <MonitorCheckIns monitor={monitor} monitorEnvs={monitor.environments} />
             </Fragment>
           )}
         </Layout.Main>

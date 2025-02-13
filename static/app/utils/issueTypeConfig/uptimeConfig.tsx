@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 const uptimeConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -14,9 +15,10 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     header: {
-      filterAndSearch: {enabled: true},
+      filterBar: {enabled: true, fixedEnvironment: true},
+      graph: {enabled: true, type: 'uptime-checks'},
       tagDistribution: {enabled: false},
-      timelineSummary: {enabled: true},
+      occurrenceSummary: {enabled: true, downtime: true},
     },
     detector: {
       enabled: true,
@@ -24,19 +26,25 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       ctaText: t('View alert details'),
     },
     customCopy: {
-      eventUnits: t('Check-ins'),
+      eventUnits: t('Events'),
       resolution: t('Resolved'),
     },
-    attachments: {enabled: false},
+    pages: {
+      landingPage: Tab.EVENTS,
+      events: {enabled: true},
+      openPeriods: {enabled: false},
+      checkIns: {enabled: true},
+      attachments: {enabled: false},
+      userFeedback: {enabled: false},
+      replays: {enabled: false},
+      tagsTab: {enabled: false},
+    },
     resources: null,
     autofix: false,
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
     similarIssues: {enabled: false},
-    userFeedback: {enabled: false},
     usesIssuePlatform: true,
     stats: {enabled: false},
-    tagsTab: {enabled: false},
     issueSummary: {enabled: false},
   },
 };

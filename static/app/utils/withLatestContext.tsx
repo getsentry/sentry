@@ -70,7 +70,8 @@ function withLatestContext<P extends InjectedLatestContextProps>(
       return (
         <WrappedComponent
           project={project as Project}
-          {...(this.props as P)}
+          // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+          {...(this.props as P as any)}
           organization={(this.props.organization || latestOrganization) as Organization}
         />
       );

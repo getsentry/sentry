@@ -56,7 +56,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
         if features.has(
-            "organizations:workflow-engine-metric-alert-processing",
+            "organizations:workflow-engine-metric-alert-dual-write",
             alert_rule_trigger.alert_rule.organization,
         ):
             migrate_metric_data_conditions(alert_rule_trigger)

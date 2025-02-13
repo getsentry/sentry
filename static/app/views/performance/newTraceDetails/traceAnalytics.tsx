@@ -5,13 +5,17 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
+import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
+
+export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
 
 const trackTraceMetadata = (
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
-  hasExceededPerformanceUsageLimit: boolean | null
+  hasExceededPerformanceUsageLimit: boolean | null,
+  source: TraceWaterFallSource
 ) => {
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
@@ -37,6 +41,7 @@ const trackTraceMetadata = (
     num_nodes: tree.list.length,
     project_platforms: projectPlatforms,
     organization,
+    source,
   });
 };
 
@@ -49,6 +54,19 @@ const trackLayoutChange = (layout: string, organization: Organization) =>
 const trackDrawerMinimize = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.drawer_minimize', {
     organization,
+  });
+
+const trackExploreSearch = (
+  organization: Organization,
+  key: string,
+  value: string | number,
+  kind: TraceDrawerActionKind
+) =>
+  trackAnalytics('trace.trace_drawer_explore_search', {
+    organization,
+    key,
+    value,
+    kind,
   });
 
 const trackShowInView = (organization: Organization) =>
@@ -114,6 +132,18 @@ const trackMissingSpansDocLinkClicked = (organization: Organization) =>
     organization,
   });
 
+const trackTraceEmptyState = (organization: Organization, source: TraceWaterFallSource) =>
+  trackAnalytics('trace.load.empty_state', {
+    organization,
+    source,
+  });
+
+const trackTraceErrorState = (organization: Organization, source: TraceWaterFallSource) =>
+  trackAnalytics('trace.load.error_state', {
+    organization,
+    source,
+  });
+
 const trackQuotaExceededLearnMoreClicked = (
   organization: Organization,
   traceType: string
@@ -173,7 +203,8 @@ function trackTraceShape(
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
-  hasExceededPerformanceUsageLimit: boolean | null
+  hasExceededPerformanceUsageLimit: boolean | null,
+  source: TraceWaterFallSource
 ) {
   switch (tree.shape) {
     case TraceShape.BROKEN_SUBTRACES:
@@ -187,7 +218,8 @@ function trackTraceShape(
         tree,
         projects,
         organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        source
       );
       break;
     default: {
@@ -200,7 +232,10 @@ const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
   trackTraceShape,
+  trackTraceEmptyState,
+  trackTraceErrorState,
   // Drawer actions
+  trackExploreSearch,
   trackShowInView,
   trackViewEventJSON,
   trackViewContinuousProfile,

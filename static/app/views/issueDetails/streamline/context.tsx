@@ -7,6 +7,8 @@ import {
   useReducer,
 } from 'react';
 
+import type {DetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
+
 export const enum SectionKey {
   /**
    * Trace timeline or linked error
@@ -95,6 +97,7 @@ export interface IssueDetailsContextType extends IssueDetailsState {
 
 export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   sectionData: {},
+  detectorDetails: {},
   isSidebarOpen: true,
   navScrollMargin: 0,
   eventCount: 0,
@@ -106,6 +109,10 @@ export function useIssueDetails() {
 }
 
 export interface IssueDetailsState {
+  /**
+   * Detector details for the current issue
+   */
+  detectorDetails: DetectorDetails;
   /**
    * Allows updating the event count based on the date/time/environment filters.
    */
@@ -147,11 +154,17 @@ type UpdateSidebarAction = {
   type: 'UPDATE_SIDEBAR_STATE';
 };
 
+type UpdateDetectorDetailsAction = {
+  detectorDetails: DetectorDetails;
+  type: 'UPDATE_DETECTOR_DETAILS';
+};
+
 export type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
-  | UpdateSidebarAction;
+  | UpdateSidebarAction
+  | UpdateDetectorDetailsAction;
 
 function updateEventSection(
   state: IssueDetailsState,
@@ -176,6 +189,7 @@ function updateEventSection(
 export function useIssueDetailsReducer() {
   const initialState: IssueDetailsState = {
     sectionData: {},
+    detectorDetails: {},
     isSidebarOpen: true,
     eventCount: 0,
     navScrollMargin: 0,
@@ -192,6 +206,8 @@ export function useIssueDetailsReducer() {
           return updateEventSection(state, action.key, action.config ?? {});
         case 'UPDATE_EVENT_COUNT':
           return {...state, eventCount: action.count};
+        case 'UPDATE_DETECTOR_DETAILS':
+          return {...state, detectorDetails: action.detectorDetails};
         default:
           return state;
       }

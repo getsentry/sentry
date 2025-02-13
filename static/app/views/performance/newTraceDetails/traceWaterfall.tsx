@@ -66,7 +66,7 @@ import {
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import TraceActionsMenu from './traceActionsMenu';
-import {traceAnalytics} from './traceAnalytics';
+import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
 import {
   isAutogroupedNode,
   isParentAutogroupedNode,
@@ -521,6 +521,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
+  const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -530,7 +532,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         props.tree,
         projectsRef.current,
         props.organization,
-        hasExceededPerformanceUsageLimit
+        hasExceededPerformanceUsageLimit,
+        source
       );
     }
     // The tree has the data fetched, but does not yet respect the user preferences.
@@ -633,6 +636,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    source,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -846,6 +850,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         hideBottomBorder={hasTraceNewUi}
       >
         <Trace
+          metaQueryResults={props.meta}
           trace={props.tree}
           rerender={rerender}
           trace_id={props.traceSlug}

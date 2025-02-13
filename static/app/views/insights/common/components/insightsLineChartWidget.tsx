@@ -37,7 +37,7 @@ export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
   const {projects, environments} = pageFilters.selection;
 
   const visualizationProps: LineChartWidgetVisualizationProps = {
-    timeseries: (props.series.filter(Boolean) ?? [])?.map(serie => {
+    timeSeries: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeserie = convertSeriesToTimeseries(serie);
 
       return {

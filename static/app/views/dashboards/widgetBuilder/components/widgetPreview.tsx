@@ -1,4 +1,5 @@
 import PanelAlert from 'sentry/components/panels/panelAlert';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +24,8 @@ interface WidgetPreviewProps {
   onDataFetched?: (tableData: TableDataWithTitle[]) => void;
   shouldForceDescriptionTooltip?: boolean;
 }
+
+const MIN_TABLE_COLUMN_WIDTH = '125px';
 
 function WidgetPreview({
   dashboard,
@@ -54,6 +57,24 @@ function WidgetPreview({
       false,
   };
 
+  const isChart =
+    widget.displayType !== DisplayType.TABLE &&
+    widget.displayType !== DisplayType.BIG_NUMBER;
+
+  // the spans dataset doesn't handle timeseries for duplicate yAxes/aggregates
+  // automatically, so we need to dedupe them
+  const widgetWithDedupedYAxes = {
+    ...widget,
+    queries: widget.queries.map(query => {
+      const dedupedAggregates = dedupeArray(query.aggregates);
+
+      return {
+        ...query,
+        aggregates: dedupedAggregates,
+      };
+    }),
+  };
+
   return (
     <WidgetCard
       disableFullscreen
@@ -64,7 +85,11 @@ function WidgetPreview({
       shouldResize={state.displayType !== DisplayType.TABLE}
       organization={organization}
       selection={pageFilters.selection}
-      widget={widget}
+      widget={
+        widget.widgetType === WidgetType.SPANS && isChart
+          ? widgetWithDedupedYAxes
+          : widget
+      }
       dashboardFilters={dashboardFilters}
       isEditingDashboard={false}
       widgetLimitReached={false}
@@ -88,6 +113,8 @@ function WidgetPreview({
       // onWidgetSplitDecision={onWidgetSplitDecision}
 
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+      // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
+      minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH}
     />
   );
 }

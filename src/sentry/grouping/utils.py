@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
+DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
 def parse_fingerprint_var(value: str) -> str | None:
@@ -43,7 +44,18 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     return result.hexdigest()
 
 
-def get_fingerprint_type(fingerprint: list[str]) -> Literal["default", "hybrid", "custom"]:
+def get_fingerprint_type(
+    fingerprint: list[str] | None,
+) -> Literal["default", "hybrid", "custom"] | None:
+    """
+    Examine a fingerprint to determine if it's custom, hybrid, or the default fingerprint.
+
+    Accepts (and then returns) None for convenience, so the fingerprint's existence doesn't have to
+    be separately checked.
+    """
+    if not fingerprint:
+        return None
+
     return (
         "default"
         if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
@@ -116,7 +128,7 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
         # Turn "tags.some_tag" into just "some_tag"
         tag = var[5:]
         for t, value in data.get("tags") or ():
-            if t == tag:
+            if t == tag and value is not None:
                 return value
         return "<no-value-for-tag-%s>" % tag
     else:
@@ -126,6 +138,8 @@ def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str |
 def resolve_fingerprint_values(values: list[str], event_data: NodeData) -> list[str]:
     def _get_fingerprint_value(value: str) -> str:
         var = parse_fingerprint_var(value)
+        if var == "default":
+            return DEFAULT_FINGERPRINT_VARIABLE
         if var is None:
             return value
         rv = get_fingerprint_value(var, event_data)

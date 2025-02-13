@@ -7,13 +7,13 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
+import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
@@ -28,6 +28,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
@@ -113,7 +114,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
               {sort === 'count' && sortArrow}
               {t('Count')}
             </ColumnSort>
-            <ColumnTitle>{t('Share')}</ColumnTitle>
+            <ShareColumnTitle>{t('Share')}</ShareColumnTitle>
           </Header>
           <Body>
             {tagValues.map((tv, i) => (
@@ -194,13 +195,21 @@ function TagDetailsValue({
   tagValue: TagValue;
   valueLocation: LocationDescriptor;
 }) {
+  const userValues = getUserTagValue(tagValue);
   const valueComponent =
     tagKey === 'user' ? (
-      <UserBadge
-        user={{...tagValue, id: tagValue.id ?? tagValue.value}}
-        avatarSize={20}
-        hideEmail
-      />
+      <UserValue>
+        {getContextIcon({
+          alias: 'user',
+          type: 'user',
+          value: tagValue,
+          contextIconProps: {
+            size: 'md',
+          },
+        })}
+        <div>{userValues.title}</div>
+        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
+      </UserValue>
     ) : (
       <DeviceName value={tagValue.value} />
     );
@@ -208,11 +217,6 @@ function TagDetailsValue({
   return (
     <Value>
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
-      {tagValue?.email && (
-        <IconLink to={`mailto:${tagValue.email}`}>
-          <IconMail size="xs" color="gray300" />
-        </IconLink>
-      )}
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
           priority="link"
@@ -260,7 +264,7 @@ function TagValueActionsMenu({
           key: 'open-in-discover',
           label: t('Open in Discover'),
           to: eventView.getResultsViewUrlTarget(
-            organization.slug,
+            organization,
             false,
             hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
           ),
@@ -294,16 +298,24 @@ function TagValueActionsMenu({
 
 const Table = styled('div')`
   display: grid;
-  grid-template-columns: 1fr repeat(3, auto) 45px min-content;
-  column-gap: ${space(2)};
+  grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
+  column-gap: ${space(1)};
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    column-gap: ${space(2)};
+  }
 `;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ShareColumnTitle = styled(ColumnTitle)`
+  text-align: center;
 `;
 
 const ColumnSort = styled(Link)`
@@ -364,24 +376,26 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const ValueLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
+const UserSubtitle = styled('div')`
+  color: ${p => p.theme.subText};
+  display: inline-block; /* Prevent inheriting text decoration */
 `;
 
-const IconLink = styled(Link)`
-  display: block;
-  line-height: 0;
+const ValueLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+  word-break: break-all;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const ExternalLinkbutton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const UserValue = styled('div')`
+  display: flex;
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;

@@ -84,7 +84,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "alert-filters",
     "servicehooks",
     "similarity-embeddings",
-    "similarity-embeddings-delete-by-hash",
 }
 
 
@@ -267,7 +266,6 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: list[str]
     hasAccess: bool
-    hasCustomMetrics: bool
     hasFeedbacks: bool
     hasFlags: bool
     hasMinifiedStackTrace: bool
@@ -534,7 +532,6 @@ class ProjectSerializer(Serializer):
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "access": attrs["access"],
             "hasAccess": attrs["has_access"],
-            "hasCustomMetrics": bool(obj.flags.has_custom_metrics),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
@@ -788,7 +785,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasReplays=bool(obj.flags.has_replays),
             hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasNewFeedbacks=bool(obj.flags.has_new_feedbacks),
-            hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             # whether first span has been sent for each insight module
@@ -947,7 +943,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     processingIssues: int
     defaultEnvironment: str | None
     relayPiiConfig: str | None
-    relayCustomMetricCardinalityLimit: int | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
@@ -955,6 +950,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
+    tempestFetchDumps: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1089,7 +1085,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "processingIssues": attrs["processing_issues"],
             "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-            "relayCustomMetricCardinalityLimit": self.get_custom_metric_cardinality_limit(attrs),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
             ),
@@ -1112,16 +1107,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
             )
+            data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
 
         return data
-
-    def get_custom_metric_cardinality_limit(self, attrs):
-        cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
-        for limit in cardinalityLimits or ():
-            if limit.get("limit", {}).get("id") == "project-override-custom":
-                return limit.get("limit", {}).get("limit", None)
-
-        return None
 
     def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:
         options = attrs["options"]

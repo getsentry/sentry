@@ -132,6 +132,7 @@ export type IssueEventParameters = {
     content: string;
   };
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.issue_tags_click': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.related_trace_issue.trace_issue_clicked': {
@@ -264,6 +265,9 @@ export type IssueEventParameters = {
   'issue_views.deleted_view': {};
   'issue_views.discarded_changes': {};
   'issue_views.duplicated_view': {};
+  'issue_views.page_filters_logged': {
+    user_id: string;
+  };
   'issue_views.renamed_view': {};
   'issue_views.reordered_views': {};
   'issue_views.saved_changes': {};
@@ -388,6 +392,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Issues Banner Feedback Received',
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
+  'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
@@ -427,6 +432,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
+  'issue_views.page_filters_logged': 'Issue Views: Page Filters Logged',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',

@@ -6,15 +6,15 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
+import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
-import sampleDurationTimeSeries from '../lineChartWidget/sampleDurationTimeSeries.json';
 
 import {WidgetButton} from './widgetButton';
 import {WidgetDescription} from './widgetDescription';
 import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
-export default storyBook(WidgetLayout, story => {
+export default storyBook('WidgetLayout', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -38,9 +38,11 @@ export default storyBook(WidgetLayout, story => {
           bordered widget frame. The contents of the <code>Title</code> prop are shown in
           the top left, and are always visible. The title is truncated to fit. The
           contents of the <code>Actions</code> prop are shown in the top right, and only
-          shown on hover. Actions are not truncated. The contents of{' '}
-          <code>Visualization</code> are always visible, shown below the title and
-          actions. The layout expands both horizontally and vertically to fit the parent.
+          shown on hover. You can set the <code>revealActions</code> prop to{' '}
+          <code>"always"</code> to always show the actions. Actions are not truncated. The
+          contents of <code>Visualization</code> are always visible, shown below the title
+          and actions. The layout expands both horizontally and vertically to fit the
+          parent.
         </p>
 
         <p>
@@ -50,7 +52,7 @@ export default storyBook(WidgetLayout, story => {
 
         <CodeSnippet language="jsx">
           {`import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
-import sampleDurationTimeSeries from '../lineChartWidget/sampleDurationTimeSeries.json';
+import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 
 import {WidgetButton} from './widgetButton';
 import {WidgetDescription} from './widgetDescription';
@@ -58,7 +60,7 @@ import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
 <WidgetLayout
-  Title={<WidgetTitle title="epm()" />}
+  Title={<WidgetTitle title="epm() : /insights/frontend/assets" />}
   Actions={
     <Fragment>
       <WidgetButton>Say More</WidgetButton>
@@ -72,7 +74,7 @@ import {WidgetTitle} from './widgetTitle';
   Visualization={
     <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
   }
-  Caption={<p>This data is incomplete!</p>}
+  Footer={<span>This data is incomplete!</span>}
 />
 
         `}
@@ -80,21 +82,21 @@ import {WidgetTitle} from './widgetTitle';
 
         <SmallSizingWindow>
           <WidgetLayout
-            Title={<WidgetTitle title="epm()" />}
+            Title={<WidgetTitle title="epm() : /insights/frontend/assets" />}
             Actions={
               <Fragment>
                 <WidgetButton>Say More</WidgetButton>
                 <WidgetButton>Say Less</WidgetButton>
                 <WidgetDescription
-                  title="epm()"
+                  title="epm() : /insights/frontend/assets"
                   description="Events received, tracked per minute"
                 />
               </Fragment>
             }
             Visualization={
-              <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
+              <LineChartWidgetVisualization timeSeries={[sampleDurationTimeSeries]} />
             }
-            Caption={<p>This data is incomplete!</p>}
+            Footer={<span>This data is incomplete!</span>}
           />
         </SmallSizingWindow>
       </Fragment>

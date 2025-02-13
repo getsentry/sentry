@@ -7,7 +7,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(LoadingError, story => {
+export default storyBook('LoadingError', story => {
   story('Default', () => {
     return (
       <Fragment>

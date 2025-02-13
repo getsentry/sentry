@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 from typing import Any
 
@@ -9,7 +10,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
@@ -30,6 +34,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +50,23 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
+LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_identifier", "target_type"]
+ACTION_DATA_FIELDS = ["type", "sentry_app_id", "sentry_app_config"]
+
 
 class MissingDataConditionGroup(Exception):
+    pass
+
+
+class UnresolvableResolveThreshold(Exception):
+    pass
+
+
+class InvalidActionType(Exception):
+    pass
+
+
+class CouldNotCreateDataSource(Exception):
     pass
 
 
@@ -66,6 +86,71 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
             return None
     else:
         return Action.Type.EMAIL
+
+
+def build_sentry_app_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction,
+) -> dict[str, Any]:
+    if not alert_rule_trigger_action.sentry_app_config:
+        return {}
+    # Convert config to proper type for SentryAppDataBlob
+    settings = (
+        [alert_rule_trigger_action.sentry_app_config]
+        if isinstance(alert_rule_trigger_action.sentry_app_config, dict)
+        else alert_rule_trigger_action.sentry_app_config
+    )
+    return dataclasses.asdict(SentryAppDataBlob.from_list(settings))
+
+
+def build_on_call_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> dict[str, Any]:
+    default_priority = (
+        OPSGENIE_DEFAULT_PRIORITY
+        if action_type == Action.Type.OPSGENIE
+        else PAGERDUTY_DEFAULT_SEVERITY
+    )
+
+    if not alert_rule_trigger_action.sentry_app_config:
+        return {"priority": default_priority}
+
+    # Ensure sentry_app_config is a dict before accessing
+    config = alert_rule_trigger_action.sentry_app_config
+    if not isinstance(config, dict):
+        return {"priority": default_priority}
+
+    priority = config.get("priority", default_priority)
+    return dataclasses.asdict(OnCallDataBlob(priority=priority))
+
+
+def build_action_data_blob(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> dict[str, Any]:
+    # if the action is a Sentry app, we need to get the Sentry app installation ID
+    if action_type == Action.Type.SENTRY_APP:
+        return build_sentry_app_data_blob(alert_rule_trigger_action)
+    elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
+        return build_on_call_data_blob(alert_rule_trigger_action, action_type)
+    else:
+        return {
+            "type": alert_rule_trigger_action.type,
+            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
+            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
+        }
+
+
+def get_target_identifier(
+    alert_rule_trigger_action: AlertRuleTriggerAction, action_type: Action.Type
+) -> str | None:
+    if action_type == Action.Type.SENTRY_APP:
+        # Ensure we have a valid sentry_app_id
+        if not alert_rule_trigger_action.sentry_app_id:
+            raise InvalidActionType(
+                f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
+            )
+        return str(alert_rule_trigger_action.sentry_app_id)
+    # Ensure we have a valid target_identifier
+    return alert_rule_trigger_action.target_identifier
 
 
 def get_detector_trigger(
@@ -123,7 +208,7 @@ def get_action_filter(
 
 def migrate_metric_action(
     alert_rule_trigger_action: AlertRuleTriggerAction,
-) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction] | None:
+) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction]:
     alert_rule_trigger = alert_rule_trigger_action.alert_rule_trigger
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     action_filter = get_action_filter(alert_rule_trigger, priority)
@@ -134,19 +219,19 @@ def migrate_metric_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
         )
-        return None
+        raise InvalidActionType
 
-    data = {
-        "type": alert_rule_trigger_action.type,
-        "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-        "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-    }
+    # Ensure action_type is Action.Type before passing to functions
+    action_type_enum = Action.Type(action_type)
+    data = build_action_data_blob(alert_rule_trigger_action, action_type_enum)
+    target_identifier = get_target_identifier(alert_rule_trigger_action, action_type_enum)
+
     action = Action.objects.create(
-        type=action_type,
+        type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
-        target_identifier=alert_rule_trigger_action.target_identifier,
+        target_identifier=target_identifier,
         target_type=alert_rule_trigger_action.target_type,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
@@ -162,7 +247,7 @@ def migrate_metric_action(
 
 def migrate_metric_data_conditions(
     alert_rule_trigger: AlertRuleTrigger,
-) -> tuple[DataCondition, DataCondition] | None:
+) -> tuple[DataCondition, DataCondition]:
     alert_rule = alert_rule_trigger.alert_rule
     # create a data condition for the Detector's data condition group with the
     # threshold and associated priority level
@@ -172,8 +257,10 @@ def migrate_metric_data_conditions(
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
-        logger.error("workflow_condition_group does not exist", extra={"detector": detector})
-        return None
+        logger.error(
+            "detector.workflow_condition_group does not exist", extra={"detector": detector}
+        )
+        raise MissingDataConditionGroup
 
     threshold_type = (
         Condition.GREATER
@@ -217,35 +304,29 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
     the legacy AlertRule.
     """
     detector_triggers = DataCondition.objects.filter(condition_group=detector_data_condition_group)
-    if detector_triggers.count() > 1:
-        # there is a warning threshold for this detector, so we should resolve based on it
-        warning_data_condition = detector_triggers.filter(
-            condition_result=DetectorPriorityLevel.MEDIUM
-        ).first()
-        if warning_data_condition is None:
-            logger.error(
-                "more than one detector trigger in detector data condition group, but no warning condition exists",
-                extra={"detector_data_condition_group": detector_triggers},
-            )
-            return -1
+    warning_data_condition = detector_triggers.filter(
+        condition_result=DetectorPriorityLevel.MEDIUM
+    ).first()
+    if warning_data_condition is not None:
         resolve_threshold = warning_data_condition.comparison
     else:
-        # critical threshold value
-        critical_data_condition = detector_triggers.first()
+        critical_data_condition = detector_triggers.filter(
+            condition_result=DetectorPriorityLevel.HIGH
+        ).first()
         if critical_data_condition is None:
             logger.error(
-                "no data conditions exist for detector data condition group",
+                "no critical or warning data conditions exist for detector data condition group",
                 extra={"detector_data_condition_group": detector_triggers},
             )
             return -1
-        resolve_threshold = critical_data_condition.comparison
-
+        else:
+            resolve_threshold = critical_data_condition.comparison
     return resolve_threshold
 
 
 def migrate_resolve_threshold_data_conditions(
     alert_rule: AlertRule,
-) -> tuple[DataCondition, DataCondition] | None:
+) -> tuple[DataCondition, DataCondition]:
     """
     Create data conditions for the old world's "resolve" threshold. If a resolve threshold
     has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
@@ -258,7 +339,7 @@ def migrate_resolve_threshold_data_conditions(
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
         logger.error("workflow_condition_group does not exist", extra={"detector": detector})
-        return None
+        raise MissingDataConditionGroup
 
     # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
     # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
@@ -275,7 +356,7 @@ def migrate_resolve_threshold_data_conditions(
         resolve_threshold = get_resolve_threshold(detector_data_condition_group)
         if resolve_threshold == -1:
             # something went wrong
-            return None
+            raise UnresolvableResolveThreshold
 
     detector_trigger = DataCondition.objects.create(
         comparison=resolve_threshold,
@@ -328,7 +409,7 @@ def create_data_source(
         return None
     return DataSource.objects.create(
         organization_id=organization_id,
-        query_id=query_subscription.id,
+        source_id=str(query_subscription.id),
         type="snuba_query_subscription",
     )
 
@@ -383,38 +464,43 @@ def create_detector(
 def migrate_alert_rule(
     alert_rule: AlertRule,
     user: RpcUser | None = None,
-) -> (
-    tuple[
-        DataSource,
-        DataConditionGroup,
-        Workflow,
-        Detector,
-        DetectorState,
-        AlertRuleDetector,
-        AlertRuleWorkflow,
-        DetectorWorkflow,
-    ]
-    | None
-):
+) -> tuple[
+    DataSource,
+    DataConditionGroup,
+    Workflow,
+    Detector,
+    DetectorState,
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    DetectorWorkflow,
+]:
     organization_id = alert_rule.organization_id
-    project = alert_rule.projects.first()
-    if not project:
-        return None
+    project = alert_rule.projects.get()
 
     data_source = create_data_source(organization_id, alert_rule.snuba_query)
     if not data_source:
-        return None
+        raise CouldNotCreateDataSource
 
     detector_data_condition_group = create_data_condition_group(organization_id)
     detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
 
     workflow = create_workflow(alert_rule.name, organization_id, user)
 
+    open_incident = Incident.objects.get_active_incident(alert_rule, project)
+    if open_incident:
+        state = (
+            DetectorPriorityLevel.MEDIUM
+            if open_incident.status == IncidentStatus.WARNING.value
+            else DetectorPriorityLevel.HIGH
+        )
+    else:
+        state = DetectorPriorityLevel.OK
+
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
         active=False,
-        state=DetectorPriorityLevel.OK,  # TODO this should be determined based on whether or not the rule has an active incident
+        state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
         alert_rule, detector, workflow
@@ -431,7 +517,7 @@ def migrate_alert_rule(
     )
 
 
-def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
+def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
     tuple[
         DetectorState,
         Detector,
@@ -441,22 +527,16 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        logger.exception(
-            "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": alert_rule.id},
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule},
         )
+        # This alert rule was not dual written
         return None
 
     detector: Detector = alert_rule_detector.detector
 
-    try:
-        detector_state = DetectorState.objects.get(detector=detector)
-    except DetectorState.DoesNotExist:
-        logger.exception(
-            "DetectorState does not exist",
-            extra={"alert_rule_id": alert_rule.id, "detector_id": detector.id},
-        )
-        return None
+    detector_state = DetectorState.objects.get(detector=detector)
 
     updated_detector_fields: dict[str, Any] = {}
     config = detector.config.copy()
@@ -480,7 +560,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
                 "AlertRuleDetector has no associated DataConditionGroup",
                 extra={"alert_rule_id": alert_rule.id},
             )
-            return None
+            raise MissingDataConditionGroup
         data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
         if "threshold_type" in updated_fields:
             threshold_type = (
@@ -500,8 +580,16 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
                     dc.update(type=threshold_type)
 
         if "resolve_threshold" in updated_fields:
-            resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
-            resolve_condition.update(comparison=updated_fields["resolve_threshold"])
+            resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+            if updated_fields["resolve_threshold"] is None:
+                # we need to figure out the resolve threshold ourselves
+                resolve_threshold = get_resolve_threshold(data_condition_group)
+                if resolve_threshold != -1:
+                    resolve_condition.update(comparison=resolve_threshold)
+                else:
+                    raise UnresolvableResolveThreshold
+            else:
+                resolve_condition.update(comparison=updated_fields["resolve_threshold"])
 
     detector.update(**updated_detector_fields)
 
@@ -509,6 +597,119 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     detector_state.update(active=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
+
+
+def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None:
+    """
+    Helper method to update the detector trigger for a legacy resolution "trigger" if
+    no explicit resolution threshold is set on the alert rule.
+    """
+    # if the alert rule has a resolve threshold or if it hasn't been dual written, return early
+    if alert_rule.resolve_threshold is not None:
+        return None
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        # We attempted to dual delete a trigger that was not dual migrated
+        return None
+
+    detector = alert_rule_detector.detector
+    detector_data_condition_group = detector.workflow_condition_group
+    if detector_data_condition_group is None:
+        logger.error(
+            "detector_data_condition_group does not exist",
+            extra={"alert_rule_id": alert_rule.id},
+        )
+        raise MissingDataConditionGroup
+
+    resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+    if resolve_threshold == -1:
+        raise UnresolvableResolveThreshold
+
+    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
+    try:
+        resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
+    except DataCondition.DoesNotExist:
+        # In the serializer, we call handle triggers before migrating the resolve data condition,
+        # so the resolve condition may not exist yet. Return early.
+        return None
+    resolve_condition.update(comparison=resolve_threshold)
+
+    return resolve_condition
+
+
+def dual_update_migrated_alert_rule_trigger(
+    alert_rule_trigger: AlertRuleTrigger, updated_fields: dict[str, Any]
+) -> tuple[DataCondition, DataCondition] | None:
+    # NOTE: update the trigger *AFTER* calling this helper so that we can get the right data conditions
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
+        )
+        return None
+    action_filter = get_action_filter(alert_rule_trigger, priority)
+
+    # Fields have already been validated in logic.py, so we can update without validating here
+    updated_detector_trigger_fields: dict[str, Any] = {}
+    updated_action_filter_fields: dict[str, Any] = {}
+    if "label" in updated_fields:
+        label = updated_fields["label"]
+        updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+        updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(
+            label, DetectorPriorityLevel.HIGH
+        )
+    if "alert_threshold" in updated_fields:
+        updated_detector_trigger_fields["comparison"] = updated_fields["alert_threshold"]
+
+    detector_trigger.update(**updated_detector_trigger_fields)
+    if updated_action_filter_fields:
+        action_filter.update(**updated_action_filter_fields)
+
+    return detector_trigger, action_filter
+
+
+def dual_update_migrated_alert_rule_trigger_action(
+    trigger_action: AlertRuleTriggerAction, updated_fields: dict[str, Any]
+) -> Action | None:
+    # NOTE: update the action *BEFORE* calling this method so that we can reuse the get_action_type method
+    alert_rule_trigger = trigger_action.alert_rule_trigger
+    # Check that we dual wrote this action
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
+        )
+        return None
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    action = aarta.action
+
+    updated_action_fields: dict[str, Any] = {}
+    action_type = get_action_type(trigger_action)
+    if not action_type:
+        logger.error(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        )
+        raise InvalidActionType
+    updated_action_fields["type"] = action_type
+    data = action.data.copy()
+    for field in LEGACY_ACTION_FIELDS:
+        if field in updated_fields:
+            updated_action_fields[field] = updated_fields[field]
+    for field in ACTION_DATA_FIELDS:
+        if field in updated_fields:
+            data[field] = updated_fields[field]
+    updated_action_fields["data"] = data
+
+    action.update(**updated_action_fields)
+    return action
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:
@@ -524,7 +725,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     try:
         data_source = DataSource.objects.get(
             organization=organization,
-            query_id=query_subscription.id,
+            source_id=query_subscription.id,
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
     except DataSource.DoesNotExist:
@@ -538,21 +739,14 @@ def dual_delete_migrated_alert_rule(
 ) -> None:
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        # NOTE: making this an info log because we run the dual delete even if the user
-        # isn't flagged into dual write
+        # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
-            "AlertRuleDetector does not exist",
+            "alert rule was not dual written, returning early",
             extra={"alert_rule_id": alert_rule.id},
         )
         return
-    except AlertRuleWorkflow.DoesNotExist:
-        logger.info(
-            "AlertRuleWorkflow does not exist",
-            extra={"alert_rule_id": alert_rule.id},
-        )
-        return
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
 
     workflow: Workflow = alert_rule_workflow.workflow
     detector: Detector = alert_rule_detector.detector

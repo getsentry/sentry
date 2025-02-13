@@ -1,4 +1,4 @@
-import type {DashboardsLayout} from 'sentry/views/dashboards/manage';
+import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 
 export enum WidgetBuilderVersion {
   PAGE = 'page',

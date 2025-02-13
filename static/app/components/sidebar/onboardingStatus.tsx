@@ -1,8 +1,9 @@
-import {Fragment, useCallback, useContext, useEffect} from 'react';
+import {useCallback, useContext, useEffect, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
@@ -20,8 +21,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
@@ -35,6 +39,9 @@ export function OnboardingStatus({
   hidePanel,
   onShowPanel,
 }: OnboardingStatusProps) {
+  const user = useUser();
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
@@ -76,6 +83,14 @@ export function OnboardingStatus({
     (!demoMode && !organization.features?.includes('onboarding')) ||
     (allTasksCompleted && !isActive);
 
+  const orgId = organization.id;
+
+  const quickStartDisplay = useMemo(() => {
+    return user?.options?.quickStartDisplay ?? {};
+  }, [user?.options?.quickStartDisplay]);
+
+  const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
+
   const handleShowPanel = useCallback(() => {
     if (!demoMode && !isActive === true) {
       trackAnalytics('quick_start.opened', {
@@ -110,12 +125,28 @@ export function OnboardingStatus({
     allTasksCompleted,
   ]);
 
+  useEffect(() => {
+    if (skipQuickStart || quickStartDisplayStatus > 1) {
+      return;
+    }
+
+    const newQuickStartDisplay = {...quickStartDisplay};
+    newQuickStartDisplay[orgId] = quickStartDisplayStatus + 1;
+
+    mutateUserOptions({['quickStartDisplay']: newQuickStartDisplay});
+
+    if (quickStartDisplayStatus === 1) {
+      activateSidebar();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
+
   if (skipQuickStart) {
     return null;
   }
 
   return (
-    <Fragment>
+    <GuideAnchor target="onboarding_sidebar" position="right">
       <Container
         role="button"
         aria-label={label}
@@ -127,7 +158,7 @@ export function OnboardingStatus({
         }}
       >
         <ProgressRing
-          animateText
+          animate
           textCss={() => css`
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
@@ -164,9 +195,10 @@ export function OnboardingStatus({
           onClose={hidePanel}
           gettingStartedTasks={gettingStartedTasks}
           beyondBasicsTasks={beyondBasicsTasks}
+          title={label}
         />
       )}
-    </Fragment>
+    </GuideAnchor>
   );
 }
 

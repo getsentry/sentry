@@ -91,7 +91,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
 
   if (field === 'profile.id') {
     const target = generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: data.project,
       profileId: data['profile.id'],
     });
@@ -157,6 +157,7 @@ function SpanDescriptionRenderer(data: EventData) {
             <ProjectBadge
               project={project ? project : {slug: data.project}}
               avatarSize={16}
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
               hideName
             />
           )}

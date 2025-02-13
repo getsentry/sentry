@@ -195,8 +195,8 @@ export class SampledProfile extends Profile {
         size = 0;
         // If we are using the current stack, then we need to resolve the frames,
         // else the processed frames will be the frames that were previously resolved
-        for (let j = 0; j < stack.length; j++) {
-          frame = resolveFrame(stack[j]!);
+        for (const index of stack) {
+          frame = resolveFrame(index);
           if (!frame) {
             continue;
           }

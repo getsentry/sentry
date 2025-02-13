@@ -1,6 +1,7 @@
 import logging
 
 import requests
+import sentry_sdk
 from django.conf import settings
 from requests import Response
 
@@ -25,9 +26,15 @@ def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
     for credentials in TempestCredentials.objects.all():
         if credentials.latest_fetched_item_id is None:
-            fetch_latest_item_id.delay(credentials.id)
+            fetch_latest_item_id.apply_async(
+                kwargs={"credentials_id": credentials.id},
+                headers={"sentry-propagate-traces": False},
+            )
         else:
-            poll_tempest_crashes.delay(credentials.id)
+            poll_tempest_crashes.apply_async(
+                kwargs={"credentials_id": credentials.id},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
@@ -37,7 +44,7 @@ def poll_tempest(**kwargs):
     soft_time_limit=55,
     time_limit=60,
 )
-def fetch_latest_item_id(credentials_id: int) -> None:
+def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # FIXME: Try catch this later
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
@@ -63,37 +70,16 @@ def fetch_latest_item_id(credentials_id: int) -> None:
                 credentials.message = "Seems like the provided credentials are invalid"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
-
-                logger.info(
-                    "invalid_credentials",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "client_id": client_id,
-                        "status_code": response.status_code,
-                        "response_text": result,
-                    },
-                )
                 return
+
             elif result["error"]["type"] == "ip_not_allowlisted":
                 credentials.message = "Seems like our IP is not allow-listed"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
-
-                logger.info(
-                    "ip_not_allowlisted",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "client_id": client_id,
-                        "status_code": response.status_code,
-                        "response_text": result,
-                    },
-                )
                 return
 
         # Default in case things go wrong
-        logger.info(
+        logger.error(
             "Fetching the latest item id failed.",
             extra={
                 "org_id": org_id,
@@ -105,7 +91,7 @@ def fetch_latest_item_id(credentials_id: int) -> None:
         )
 
     except Exception as e:
-        logger.info(
+        logger.exception(
             "Fetching the latest item id failed.",
             extra={
                 "org_id": org_id,
@@ -123,7 +109,7 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     soft_time_limit=55,
     time_limit=60,
 )
-def poll_tempest_crashes(credentials_id: int) -> None:
+def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
@@ -141,8 +127,9 @@ def poll_tempest_crashes(credentials_id: int) -> None:
                     project_id=project_id, trigger="tempest:poll_tempest_crashes"
                 )
 
-            # Check if we should attach screenshots (opt-in feature)
+            # Check if we should attach screenshots  and or dumps (opt-in features)
             attach_screenshot = credentials.project.get_option("sentry:tempest_fetch_screenshots")
+            attach_dump = credentials.project.get_option("sentry:tempest_fetch_dumps")
 
             response = fetch_items_from_tempest(
                 org_id=org_id,
@@ -153,6 +140,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
                 offset=int(credentials.latest_fetched_item_id),
                 limit=options.get("tempest.poll-limit"),
                 attach_screenshot=attach_screenshot,
+                attach_dump=attach_dump,
             )
         else:
             raise ValueError(
@@ -165,7 +153,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
         credentials.latest_fetched_item_id = result["latest_id"]
         credentials.save(update_fields=["latest_fetched_item_id"])
     except Exception as e:
-        logger.info(
+        logger.exception(
             "Fetching the crashes failed.",
             extra={
                 "org_id": org_id,
@@ -193,14 +181,9 @@ def fetch_latest_id_from_tempest(
         json=payload,
     )
 
-    logger.info(
-        "Tempest API response",
-        extra={
-            "status_code": response.status_code,
-            "response_text": response.text,
-            "endpoint": "/latest-id",
-        },
-    )
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data("response_text", response.text)
 
     return response
 
@@ -214,6 +197,7 @@ def fetch_items_from_tempest(
     offset: int,
     limit: int = 10,
     attach_screenshot: bool = False,
+    attach_dump: bool = False,
     time_out: int = 50,  # Since there is a timeout of 45s in the middleware anyways
 ) -> Response:
     payload = {
@@ -225,6 +209,7 @@ def fetch_items_from_tempest(
         "offset": offset,
         "limit": limit,
         "attach_screenshot": attach_screenshot,
+        "attach_dump": attach_dump,
     }
 
     response = requests.post(
@@ -234,13 +219,8 @@ def fetch_items_from_tempest(
         timeout=time_out,
     )
 
-    logger.info(
-        "Tempest API response",
-        extra={
-            "status_code": response.status_code,
-            "response_text": response.text,
-            "endpoint": "/crashes",
-        },
-    )
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data("response_text", response.text)
 
     return response

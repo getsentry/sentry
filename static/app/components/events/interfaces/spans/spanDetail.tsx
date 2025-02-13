@@ -179,7 +179,7 @@ function SpanDetail(props: Props) {
         data-test-id="view-child-transactions"
         size="xs"
         to={childrenEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
@@ -321,7 +321,7 @@ function SpanDetail(props: Props) {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
+      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors) ?? 'info'} system>
         <ErrorMessageTitle>
           {tn(
             '%s error event or performance issue is associated with this span.',

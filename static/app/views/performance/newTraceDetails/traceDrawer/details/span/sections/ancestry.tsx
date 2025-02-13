@@ -21,6 +21,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -146,7 +147,7 @@ function SpanChildrenTraversalButton({
       data-test-id="view-child-transactions"
       size="xs"
       to={childrenEventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
       )}
@@ -260,10 +261,21 @@ export function useSpanAncestryAndGroupingItems({
     });
   }
 
+  const spanGroup = defined(span.hash) ? String(span.hash) : null;
   items.push({
     key: 'same_group',
-    value: defined(span.hash) ? String(span.hash) : null,
+    value: spanGroup,
     subject: t('Span Group'),
+    actionButton: (
+      <TraceDrawerComponents.KeyValueAction
+        rowKey={SpanIndexedField.SPAN_GROUP}
+        rowValue={spanGroup}
+        projectIds={
+          childTransaction ? String(childTransaction.value.project_id) : undefined
+        }
+      />
+    ),
+    actionButtonAlwaysVisible: true,
   });
 
   return items;

@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
-from sentry.constants import ObjectStatus
-from sentry.db.models.fields.node import NodeData
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -23,12 +20,17 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.safe import get_path
+
+from .constants import DRY_RUN_PLATFORMS
+from .integration_utils import (
+    InstallationCannotGetTreesError,
+    InstallationNotFoundError,
+    get_installation,
+)
+from .stacktraces import identify_stacktrace_paths
+from .utils import supported_platform
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationInstallation
 
 
 class DeriveCodeMappingsErrorReason(StrEnum):
@@ -37,7 +39,7 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_event(project_id: int, group_id: int, event_id: str) -> None:
+def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMapping]:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -60,21 +62,26 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
     event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
-        return
+        return []
+
+    if not supported_platform(event.platform):
+        return []
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
-        return
+        return []
 
-    installation, organization_integration = get_installation(org)
-    if not installation or not organization_integration:
-        logger.info("No installation or organization integration found.", extra=extra)
-        return
+    try:
+        installation = get_installation(org)
+        trees = get_trees_for_org(installation, org, extra)
+        trees_helper = CodeMappingTreesHelper(trees)
+        code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+        if event.platform not in DRY_RUN_PLATFORMS:
+            set_project_codemappings(code_mappings, installation, project)
+    except (InstallationNotFoundError, InstallationCannotGetTreesError):
+        pass
 
-    trees = get_trees_for_org(installation, org, extra)
-    trees_helper = CodeMappingTreesHelper(trees)
-    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project)
+    return code_mappings
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -122,18 +129,14 @@ def get_trees_for_org(
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
     if not hasattr(installation, "get_trees_for_org"):
-        # XXX: We should not get to this point, thus, report it as an error
-        logger.error(
-            "Installation does not have required method get_trees_for_org",
-            extra={"installation_type": type(installation).__name__, **extra},
-        )
         return trees
 
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
     with SCMIntegrationInteractionEvent(
-        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS, provider_key=installation.model.provider
+        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+        provider_key=installation.model.provider,
     ).capture() as lifecycle:
         try:
             with lock.acquire():
@@ -144,79 +147,26 @@ def get_trees_for_org(
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
         except UnableToAcquireLock as error:
-            extra["error"] = str(error)
-            lifecycle.record_failure(error, extra)
+            lifecycle.record_halt(error, extra)
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
 
         return trees
 
 
-def identify_stacktrace_paths(data: NodeData) -> list[str]:
-    """
-    Get the stacktrace_paths from the event data.
-    """
-    stacktraces = get_stacktrace(data)
-    stacktrace_paths = set()
-    for stacktrace in stacktraces:
-        try:
-            frames = stacktrace["frames"]
-            paths = {
-                frame["filename"]
-                for frame in frames
-                if frame and frame.get("in_app") and frame.get("filename")
-            }
-            stacktrace_paths.update(paths)
-        except Exception:
-            logger.exception("Error getting filenames for project.")
-    return list(stacktrace_paths)
-
-
-def get_stacktrace(data: NodeData) -> list[Mapping[str, Any]]:
-    exceptions = get_path(data, "exception", "values", filter=True)
-    if exceptions:
-        return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
-
-    stacktrace = data.get("stacktrace")
-    if stacktrace and stacktrace.get("frames"):
-        return [stacktrace]
-
-    return []
-
-
-def get_installation(
-    organization: Organization,
-) -> tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
-    integrations = integration_service.get_integrations(
-        organization_id=organization.id,
-        providers=["github"],
-        status=ObjectStatus.ACTIVE,
-    )
-    if len(integrations) == 0:
-        return None, None
-
-    # XXX: We only operate on the first integration for an organization.
-    integration = integrations[0]
-    organization_integration = integration_service.get_organization_integration(
-        integration_id=integration.id, organization_id=organization.id
-    )
-    if not organization_integration:
-        return None, None
-
-    installation = integration.get_installation(organization_id=organization.id)
-
-    return installation, organization_integration
-
-
 def set_project_codemappings(
     code_mappings: list[CodeMapping],
-    organization_integration: RpcOrganizationIntegration,
+    installation: IntegrationInstallation,
     project: Project,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
+    organization_integration = installation.org_integration
+    if not organization_integration:
+        raise InstallationNotFoundError
+
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
         repository = (

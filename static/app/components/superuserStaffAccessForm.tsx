@@ -1,4 +1,5 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment, useState} from 'react';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -8,7 +9,6 @@ import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
@@ -34,7 +34,7 @@ type State = {
   superuserReason: string;
 };
 
-class SuperuserStaffAccessForm extends Component<Props, State> {
+class SuperuserStaffAccessFormContent extends Component<Props, State> {
   constructor(props: any) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
@@ -163,9 +163,9 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   };
 
   handleLogout = () => {
-    const {superuserUrl} = window.__initialData?.links;
+    const {superuserUrl} = window.__initialData.links;
     const urlOrigin =
-      window.__initialData?.customerDomain && superuserUrl
+      window.__initialData.customerDomain && superuserUrl
         ? superuserUrl
         : window.location.origin;
 
@@ -195,7 +195,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     }
 
     return (
-      <ThemeAndStyleProvider>
+      <Fragment>
         {this.props.hasStaff ? (
           isLoading ? (
             <LoadingIndicator />
@@ -242,9 +242,23 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
             )}
           </Form>
         )}
-      </ThemeAndStyleProvider>
+      </Fragment>
     );
   }
+}
+
+const FormWithApi = withApi(SuperuserStaffAccessFormContent);
+
+export default function SuperuserStaffAccessForm({hasStaff}: Props) {
+  const [router] = useState(() =>
+    createBrowserRouter([
+      {
+        path: '*',
+        element: <FormWithApi hasStaff={hasStaff} />,
+      },
+    ])
+  );
+  return <RouterProvider router={router} />;
 }
 
 const StyledAlert = styled(Alert)`
@@ -255,5 +269,3 @@ const BackWrapper = styled('div')`
   width: 100%;
   margin-left: ${space(4)};
 `;
-
-export default withApi(SuperuserStaffAccessForm);

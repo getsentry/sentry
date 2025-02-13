@@ -32,7 +32,6 @@ from snuba_sdk import (
     OrderBy,
     Request,
 )
-from snuba_sdk.conditions import Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
@@ -161,7 +160,7 @@ def get_search_filter(
         # <, <=, >, >=
         if search_filter.key.name == name and search_filter.operator.startswith(operator):
             val = search_filter.value.raw_value
-            found_val = comparator(val, found_val) if found_val else val
+            found_val = comparator(val, found_val) if found_val else val  # type: ignore[type-var]  # SearchFilter is an unsound union
     return found_val
 
 
@@ -335,7 +334,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         get_sample: bool,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ) -> SnubaQueryParams:
+    ) -> SnubaQueryParams | None:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
         """
@@ -476,7 +475,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         for gc in group_categories:
             try:
-                query_params_for_categories[gc] = self._prepare_params_for_category(
+                query_params = self._prepare_params_for_category(
                     gc,
                     query_partial,
                     organization,
@@ -495,12 +494,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
-        query_params_for_categories = {
-            gc: query_params
-            for gc, query_params in query_params_for_categories.items()
-            if query_params is not None
-        }
+            else:
+                if query_params is not None:
+                    query_params_for_categories[gc] = query_params
 
         try:
             bulk_query_results = bulk_raw_query(
@@ -1811,16 +1807,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
-                        if features.has(
-                            "organizations:feature-flag-autocomplete", organization
-                        ) and has_tags_filter(condition.lhs):
-                            feature_condition = Condition(
-                                lhs=substitute_tags_filter(condition.lhs),
-                                op=condition.op,
-                                rhs=condition.rhs,
-                            )
-                            condition = Or(conditions=[condition, feature_condition])
-
                         where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
@@ -1951,34 +1937,3 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
-
-
-# This should update the search box so we can fetch the correct
-# issues.
-def has_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if (
-            condition.entity.name == "events"
-            and condition.name.startswith("tags[")
-            and condition.name.endswith("]")
-        ):
-            return True
-    elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return has_tags_filter(parameter)
-    return False
-
-
-def substitute_tags_filter(condition: Column | Function) -> bool:
-    if isinstance(condition, Column):
-        if condition.name.startswith("tags[") and condition.name.endswith("]"):
-            return Column(
-                name=f"flags[{condition.name[5:-1]}]",
-                entity=condition.entity,
-            )
-    elif isinstance(condition, Function):
-        for parameter in condition.parameters:
-            if isinstance(parameter, (Column, Function)):
-                return substitute_tags_filter(parameter)
-    return condition

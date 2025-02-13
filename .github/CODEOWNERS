@@ -378,6 +378,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications
+/src/sentry/notifications/models/                                    @getsentry/ecosystem
+/src/sentry/notifications/notifications/                             @getsentry/ecosystem
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
@@ -650,3 +652,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## Migrations
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
+
+
+## Frontend Platform (keep last as we want highest specificity)
+/static/app/utils/theme.tsx                              @getsentry/design-engineering
+## End of Frontend Platform

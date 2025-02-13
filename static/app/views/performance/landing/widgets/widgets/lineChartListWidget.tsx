@@ -644,7 +644,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             </Fragment>
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
+        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
           const description = listItem[SpanMetricsField.SPAN_DESCRIPTION] as string;
           const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
@@ -686,12 +686,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
-        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
+        }
+        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS: {
           const moduleRoute = moduleURLBuilder('cache', 'backend');
           const cacheMissRate = listItem[fieldString] as any;
 
           const target = normalizeUrl(
-            `/${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
+            `${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
 
           return (
@@ -713,6 +714,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
+        }
         default:
           if (typeof rightValue === 'number') {
             return (
@@ -802,7 +804,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           },
         ];
 
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder();
 
   const getContainerActions = (provided: ComponentData) => {
     const route: string =
@@ -826,7 +828,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton to={`/${route}/`} size="sm">
+          <LinkButton to={`${route}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

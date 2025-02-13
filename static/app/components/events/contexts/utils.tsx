@@ -361,10 +361,11 @@ export function getContextIcon({
     case 'browser':
       iconName = generateIconName(value?.name, value?.version);
       break;
-    case 'user':
+    case 'user': {
       const user = userContextToActor(value);
       const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
       return <UserAvatar user={user} size={iconSize} gravatar={false} />;
+    }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;

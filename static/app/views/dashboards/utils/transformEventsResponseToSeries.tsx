@@ -5,9 +5,10 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 
-import type {SeriesWithOrdering} from '../datasetConfig/errorsAndTransactions';
 import type {WidgetQuery} from '../types';
 import {transformSeries} from '../widgetCard/widgetQueries';
+
+type SeriesWithOrdering = [order: number, series: Series];
 
 import {
   isEventsStats,

@@ -1,4 +1,5 @@
 import type {CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -19,10 +20,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssueListItem;
@@ -39,12 +40,10 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-export default function FeedbackListItem({
-  feedbackItem,
-  isSelected,
-  onSelect,
-  style,
-}: Props) {
+const FeedbackListItem = forwardRef<HTMLDivElement, Props>(function FeedbackListItem(
+  {feedbackItem, isSelected, onSelect, style},
+  ref
+) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -57,11 +56,14 @@ export default function FeedbackListItem({
   const hasComments = feedbackItem.numComments > 0;
 
   return (
-    <CardSpacing style={style}>
+    <CardSpacing ref={ref} style={style}>
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
-          pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+          pathname: makeFeedbackPathname({
+            path: '/',
+            organization,
+          }),
           query: {
             ...location.query,
             referrer: 'feedback_list_page',
@@ -166,7 +168,9 @@ export default function FeedbackListItem({
       </LinkedFeedbackCard>
     </CardSpacing>
   );
-}
+});
+
+export default FeedbackListItem;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;

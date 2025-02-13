@@ -22,7 +22,7 @@ import SeparatorField from './separatorField';
 import TextareaField from './textareaField';
 import TextField from './textField';
 
-export default storyBook(Form, story => {
+export default storyBook('Form', story => {
   story('Available fields', () => {
     const {projects} = useProjects();
 

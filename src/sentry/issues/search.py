@@ -138,7 +138,7 @@ def _query_params_for_error(
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
     actor: Any | None = None,
-) -> SnubaQueryParams | None:
+) -> SnubaQueryParams:
     if group_ids:
         filters = {"group_id": sorted(group_ids), **filters}
     error_conditions = _updated_conditions(
@@ -152,7 +152,7 @@ def _query_params_for_error(
     )
 
     params = query_partial(
-        dataset=Dataset.Discover,
+        dataset=Dataset.Events,
         selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
@@ -210,8 +210,8 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
-    strategies = {}
+def get_search_strategies() -> dict[int, GroupSearchStrategy]:
+    strategies: dict[int, GroupSearchStrategy] = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error

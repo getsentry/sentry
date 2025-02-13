@@ -218,12 +218,6 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
     },
-    UseCaseID.CUSTOM: {
-        EntityKey.GenericMetricsCounters,
-        EntityKey.GenericMetricsSets,
-        EntityKey.GenericMetricsDistributions,
-        EntityKey.GenericMetricsGauges,
-    },
     UseCaseID.METRIC_STATS: {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsGauges,
@@ -340,12 +334,6 @@ class TagValue(TypedDict):
     value: str
 
 
-class BlockedMetric(TypedDict):
-    isBlocked: bool
-    blockedTags: Sequence[str]
-    projectId: int
-
-
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
@@ -354,7 +342,6 @@ class MetricMeta(TypedDict):
     metric_id: NotRequired[int]
     mri: str
     projectIds: Sequence[int]
-    blockingStatus: Sequence[BlockedMetric] | None
 
 
 OPERATIONS_PERCENTILES = (

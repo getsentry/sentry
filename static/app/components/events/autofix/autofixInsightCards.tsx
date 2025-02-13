@@ -266,7 +266,11 @@ function AutofixInsightCard({
                     <p
                       ref={justificationRef}
                       dangerouslySetInnerHTML={{
-                        __html: marked(replaceHeadersWithBold(insight.justification)),
+                        __html: marked(
+                          replaceHeadersWithBold(
+                            insight.justification || t('No details here.')
+                          )
+                        ),
                       }}
                     />
                   </ContextBody>
@@ -565,7 +569,9 @@ const EmptyResultsContainer = styled('div')`
   min-height: ${space(2)};
 `;
 
-const InsightsContainer = styled('div')``;
+const InsightsContainer = styled('div')`
+  z-index: 0;
+`;
 
 const InsightContainer = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};

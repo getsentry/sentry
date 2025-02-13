@@ -1,27 +1,19 @@
 import partition from 'lodash/partition';
 
-import type {TimeseriesData} from '../common/types';
+import type {TimeSeries, TimeSeriesItem} from '../common/types';
+
+import {markDelayedData} from './markDelayedData';
 
 export function splitSeriesIntoCompleteAndIncomplete(
-  serie: TimeseriesData,
+  timeSeries: TimeSeries,
   delay: number
-): Array<TimeseriesData | undefined> {
-  const penultimateDatum = serie.data.at(-2);
-  const finalDatum = serie.data.at(-1);
+): Array<TimeSeries | undefined> {
+  const markedTimeserie = markDelayedData(timeSeries, delay);
 
-  let bucketSize: number = 0;
-  if (penultimateDatum && finalDatum) {
-    bucketSize =
-      new Date(finalDatum.timestamp).getTime() -
-      new Date(penultimateDatum.timestamp).getTime();
-  }
-
-  const ingestionDelayTimestamp = Date.now() - delay * 1000;
-
-  const [completeData, incompleteData] = partition(serie.data, datum => {
-    const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
-    return bucketEndTimestamp < ingestionDelayTimestamp;
-  });
+  const [completeData, incompleteData] = partition(
+    markedTimeserie.data,
+    datum => !datum.delayed
+  );
 
   // If there is both complete and incomplete data, prepend the incomplete data
   // with the final point from the complete data. This way, when the series are
@@ -32,18 +24,27 @@ export function splitSeriesIntoCompleteAndIncomplete(
     incompleteData.unshift({...finalCompletePoint});
   }
 
+  // Discard the delayed property since the split series already communicate
+  // that information
   return [
     completeData.length > 0
       ? {
-          ...serie,
-          data: completeData,
+          ...timeSeries,
+          data: completeData.map(discardDelayProperty),
         }
       : undefined,
     incompleteData.length > 0
       ? {
-          ...serie,
-          data: incompleteData,
+          ...timeSeries,
+          data: incompleteData.map(discardDelayProperty),
         }
       : undefined,
   ];
+}
+
+function discardDelayProperty(
+  datum: TimeSeriesItem
+): Omit<TimeSeries['data'][number], 'delayed'> {
+  const {delayed: _delayed, ...other} = datum;
+  return other;
 }

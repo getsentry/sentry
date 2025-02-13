@@ -65,6 +65,7 @@ def retrieve_uptime_subscription(
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
+    trace_sampling: bool,
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -73,6 +74,7 @@ def retrieve_uptime_subscription(
                 interval_seconds=interval_seconds,
                 timeout_ms=timeout_ms,
                 method=method,
+                trace_sampling=trace_sampling,
             )
             .annotate(
                 headers_md5=MD5("headers", output_field=TextField()),
@@ -109,7 +111,7 @@ def get_or_create_uptime_subscription(
     result = extract_domain_parts(url)
 
     subscription = retrieve_uptime_subscription(
-        url, interval_seconds, timeout_ms, method, headers, body
+        url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
     )
     created = False
 
@@ -132,7 +134,7 @@ def get_or_create_uptime_subscription(
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
             subscription = retrieve_uptime_subscription(
-                url, interval_seconds, timeout_ms, method, headers, body
+                url, interval_seconds, timeout_ms, method, headers, body, trace_sampling
             )
 
     if subscription is None:
@@ -192,6 +194,7 @@ def get_or_create_project_uptime_subscription(
     name: str = "",
     owner: Actor | None = None,
     trace_sampling: bool = False,
+    override_manual_org_limit: bool = False,
 ) -> tuple[ProjectUptimeSubscription, bool]:
     """
     Links a project to an uptime subscription so that it can process results.
@@ -200,7 +203,10 @@ def get_or_create_project_uptime_subscription(
         manual_subscription_count = ProjectUptimeSubscription.objects.filter(
             project__organization=project.organization, mode=ProjectUptimeSubscriptionMode.MANUAL
         ).count()
-        if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+        if (
+            not override_manual_org_limit
+            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
+        ):
             raise MaxManualUptimeSubscriptionsReached
 
     uptime_subscription = get_or_create_uptime_subscription(
@@ -274,12 +280,6 @@ def update_project_uptime_subscription(
         body=body,
         trace_sampling=trace_sampling,
     )
-    updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
-
-    mode = uptime_monitor.mode
-    if updated_subscription:
-        # If the `uptime_subscription` is updated then treat this as a manual subscription
-        mode = ProjectUptimeSubscriptionMode.MANUAL
 
     owner_user_id = uptime_monitor.owner_user_id
     owner_team_id = uptime_monitor.owner_team_id
@@ -295,14 +295,14 @@ def update_project_uptime_subscription(
         environment=environment,
         uptime_subscription=new_uptime_subscription,
         name=name,
-        mode=mode,
+        # After an update, we always convert a subscription to manual mode
+        mode=ProjectUptimeSubscriptionMode.MANUAL,
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
     # If we changed any fields on the actual subscription we created a new subscription and associated it with this
     # uptime monitor. Check if the old subscription was orphaned due to this.
-    if updated_subscription:
-        remove_uptime_subscription_if_unused(cur_uptime_subscription)
+    remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
     # Update status. This may have the side effect of removing or creating a
     # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
@@ -401,6 +401,7 @@ def delete_uptime_subscriptions_for_project(
 
 def delete_project_uptime_subscription(subscription: ProjectUptimeSubscription):
     uptime_subscription = subscription.uptime_subscription
+    quotas.backend.disable_seat(DataCategory.UPTIME, subscription)
     subscription.delete()
     remove_uptime_subscription_if_unused(uptime_subscription)
 

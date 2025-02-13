@@ -1,4 +1,5 @@
 import type React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
@@ -50,12 +51,13 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
     onKeyDown: OnEvent;
     suffix: React.ReactNode;
     value: string | number;
+    alignRight?: boolean;
     hideControlState?: boolean;
     monospace?: NumberFieldProps['monospace'];
     placeholder?: string;
     size?: NumberFieldProps['size'];
   }) {
-    const {size, monospace} = rest;
+    const {size, monospace, alignRight} = rest;
     return (
       <InputGroup>
         <InputGroup.Input
@@ -65,7 +67,7 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
           name={name}
           {...rest}
         />
-        <SuffixWrapper {...{size, monospace}}>
+        <SuffixWrapper {...{size, monospace, alignRight}}>
           <HiddenValue aria-hidden>{rest.value || rest.placeholder}</HiddenValue>
           <Suffix>{suffix}</Suffix>
         </SuffixWrapper>
@@ -87,8 +89,16 @@ const SuffixWrapper = styled('span')<Omit<NumberFieldProps, 'name'>>`
   position: absolute;
   top: 0;
   left: 0;
+  overflow: hidden;
+  text-overflow: clip;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
+  ${p =>
+    p.alignRight
+      ? css`
+          text-align: right;
+        `
+      : undefined}
 `;
 const HiddenValue = styled('span')`
   visibility: hidden;

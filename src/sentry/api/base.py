@@ -228,12 +228,6 @@ class Endpoint(APIView):
         | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
     ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-    snuba_methods: list[HTTP_METHOD_NAME] = []
-
-    def build_link_header(self, request: Request, path: str, rel: str):
-        # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
-        uri = request.build_absolute_uri(urlquote(path))
-        return f'<{uri}>; rel="{rel}">'
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
         if request.GET.get("cursor") is None:
@@ -380,6 +374,8 @@ class Endpoint(APIView):
             request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
+
+        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
 
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).
@@ -597,7 +593,7 @@ class EnvironmentMixin:
         self, request: Request, organization_id: int
     ) -> int | None:
         environment = self._get_environment_from_request(request, organization_id)
-        return environment and environment.id
+        return environment.id if environment is not None else None
 
     def _get_environment_from_request(
         self, request: Request, organization_id: int

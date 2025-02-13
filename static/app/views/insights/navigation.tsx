@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 
+import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AI_LANDING_SUB_PATH,
@@ -36,12 +39,14 @@ export default function InsightsNavigation({children}: InsightsNavigationProps) 
 
   return (
     <Fragment>
-      <SecondaryNav>
+      <SecondaryNav group={PrimaryNavGroup.INSIGHTS}>
+        <SecondaryNav.Header>
+          {NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+        </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            {/* TODO(malwilley): Move projects to the /insights/projects/ route */}
-            <SecondaryNav.Item to={`/organizations/${organization.slug}/projects/`}>
-              All Projects
+            <SecondaryNav.Item to={`${baseUrl}/projects/`}>
+              {t('All Projects')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
           <SecondaryNav.Section>

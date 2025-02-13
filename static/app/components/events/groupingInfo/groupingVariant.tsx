@@ -165,7 +165,7 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
-      case EventGroupVariantType.PERFORMANCE_PROBLEM:
+      case EventGroupVariantType.PERFORMANCE_PROBLEM: {
         const spansToHashes = Object.fromEntries(
           event.entries
             .find((c): c is EntrySpans => c.type === 'spans')
@@ -200,6 +200,7 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
           [...new Set(variant.evidence?.offender_span_ids?.map(id => spansToHashes[id]))],
         ]);
         break;
+      }
       default:
         break;
     }

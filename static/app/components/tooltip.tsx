@@ -51,8 +51,18 @@ function Tooltip({
 }: TooltipProps) {
   const {container} = useContext(TooltipContext);
   const theme = useTheme();
-  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
-    useHoverOverlay('tooltip', hoverOverlayProps);
+  const {
+    wrapTrigger,
+    isOpen,
+    overlayProps,
+    placement,
+    arrowData,
+    arrowProps,
+    reset,
+    update,
+  } = useHoverOverlay('tooltip', hoverOverlayProps);
+
+  const {forceVisible} = hoverOverlayProps;
 
   // Reset the visibility when the tooltip becomes disabled
   useEffect(() => {
@@ -60,6 +70,13 @@ function Tooltip({
       reset();
     }
   }, [reset, disabled]);
+
+  // Update the tooltip when the tooltip is forced to be visible and the children change
+  useEffect(() => {
+    if (update && forceVisible) {
+      update();
+    }
+  }, [update, children, forceVisible]);
 
   if (disabled || !title) {
     return <Fragment>{children}</Fragment>;

@@ -112,7 +112,7 @@ export function EventFeatureFlagList({
     );
   }, [event]);
 
-  const hasFlags = hasFlagContext && eventFlags.length > 0;
+  const hasFlags = eventFlags.length > 0;
 
   const showCTA =
     !project.hasFlags &&
@@ -274,7 +274,7 @@ export function EventFeatureFlagList({
           <KeyValueData.Card expandLeft contentItems={columnTwo} />
         </CardContainer>
       ) : (
-        <StyledEmptyStateWarning withIcon>
+        <StyledEmptyStateWarning withIcon small>
           {t('No feature flags were found for this event')}
         </StyledEmptyStateWarning>
       )}

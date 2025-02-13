@@ -288,7 +288,7 @@ def run_top_events_timeseries_query(
         params,
         query_string,
         y_axes,
-        groupby_columns_without_project,
+        [],  # in the other series, we want eveything in a single group, so remove the group by
         referrer,
         config,
         granularity_secs,

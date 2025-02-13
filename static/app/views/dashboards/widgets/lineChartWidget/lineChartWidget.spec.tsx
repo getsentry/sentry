@@ -1,7 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {TimeSeriesItem} from '../common/types';
+
+import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 
 describe('LineChartWidget', () => {
   describe('Layout', () => {
@@ -10,7 +12,7 @@ describe('LineChartWidget', () => {
         <LineChartWidget
           title="eps()"
           description="Number of events per second"
-          timeseries={[sampleDurationTimeSeries]}
+          timeSeries={[sampleDurationTimeSeries]}
         />
       );
     });
@@ -21,6 +23,53 @@ describe('LineChartWidget', () => {
       render(<LineChartWidget />);
 
       expect(screen.getByText('No Data')).toBeInTheDocument();
+    });
+
+    const UNPLOTTABLE_CASES = [
+      [[]],
+      [
+        [
+          {
+            timestamp: '2025-01-01T00:00:00',
+            value: null,
+          },
+        ],
+      ],
+      [
+        [
+          {
+            timestamp: '2025-01-01T00:00:00',
+            value: null,
+          },
+          {
+            timestamp: '2025-01-01T00:01:00',
+            value: null,
+          },
+        ],
+      ],
+    ] satisfies Array<[TimeSeriesItem[]]>;
+
+    it.each(UNPLOTTABLE_CASES)('Explains no plottable values for %s', data => {
+      render(
+        <LineChartWidget
+          timeSeries={[
+            {
+              field: 'count()',
+              data,
+              meta: {
+                fields: {
+                  'count()': 'number',
+                },
+                units: {},
+              },
+            },
+          ]}
+        />
+      );
+
+      expect(
+        screen.getByText(/does not contain any plottable values/)
+      ).toBeInTheDocument();
     });
   });
 

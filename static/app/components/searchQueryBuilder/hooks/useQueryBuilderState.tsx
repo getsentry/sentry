@@ -381,7 +381,7 @@ function multiSelectTokenValue(
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const values = tokenValue.items.map(item => item.value?.text ?? '');
       const containsValue = values.includes(action.value);
       const newValues = containsValue
@@ -389,7 +389,8 @@ function multiSelectTokenValue(
         : [...values, action.value];
 
       return updateFilterMultipleValues(state, action.token, newValues);
-    default:
+    }
+    default: {
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
@@ -397,6 +398,7 @@ function multiSelectTokenValue(
         ? [tokenValue.text, action.value]
         : [action.value];
       return updateFilterMultipleValues(state, action.token, newValue);
+    }
   }
 }
 
@@ -408,10 +410,11 @@ function deleteLastMultiSelectTokenValue(
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const newValues = tokenValue.items.slice(0, -1).map(item => item.value?.text ?? '');
 
       return updateFilterMultipleValues(state, action.token, newValues);
+    }
     default:
       return updateFilterMultipleValues(state, action.token, ['']);
   }

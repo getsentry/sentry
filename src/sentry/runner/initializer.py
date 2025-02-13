@@ -29,7 +29,7 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
 
     # entry_points={
     #    'sentry.plugins': [
-    #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
+    #         'example = sentry_plugins.example.plugin:ExamplePlugin'
     #     ],
     # },
     entry_points = {

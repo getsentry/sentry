@@ -7,10 +7,11 @@ import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -18,6 +19,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {Monitor, MonitorEnvironment, MonitorStat} from '../types';
@@ -25,10 +27,10 @@ import type {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgSlug: string;
 };
 
-export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorStats({monitor, monitorEnvs}: Props) {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -45,7 +47,7 @@ export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   }
 
   const queryKey = [
-    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/stats/`,
+    `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/stats/`,
     {
       query: {
         since: since.toString(),
@@ -108,11 +110,9 @@ export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   if (!isPending && emptyStats) {
     return (
       <Panel>
-        <PanelBody withPadding>
-          <EmptyMessage
-            title={t('No check-ins have been recorded for this time period.')}
-          />
-        </PanelBody>
+        <EmptyStateWarning withIcon={false}>
+          {t('No check-ins have been recorded for this time period.')}
+        </EmptyStateWarning>
       </Panel>
     );
   }
@@ -160,7 +160,7 @@ export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
               useShortDate
               series={[duration]}
               height={height}
-              colors={[theme.charts.colors![0]]}
+              colors={[CHART_PALETTE[CHART_PALETTE.length - 1]![0]]}
               yAxis={getYAxisOptions('duration')}
               grid={{
                 top: 6,

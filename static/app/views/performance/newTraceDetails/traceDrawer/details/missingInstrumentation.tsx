@@ -49,8 +49,8 @@ export function MissingInstrumentationNodeDetails(
               {t('No Instrumentation')}
             </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
-              hideCopyButton
-              text={t('How Awkward')}
+              clipboardText=""
+              subTitle={t('How Awkward')}
             />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
@@ -148,7 +148,7 @@ function LegacyMissingInstrumentationNodeDetails({
         <TraceDrawerComponents.CopyableCardValueWithLink
           value={profileId}
           linkTarget={generateProfileFlamechartRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             projectSlug: project.slug,
             profileId,
           })}

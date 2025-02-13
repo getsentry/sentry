@@ -41,12 +41,12 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   const hideDropdownButton =
-    !issueTypeConfig.attachments.enabled &&
-    !issueTypeConfig.userFeedback.enabled &&
-    !issueTypeConfig.replays.enabled;
+    !issueTypeConfig.pages.attachments.enabled &&
+    !issueTypeConfig.pages.userFeedback.enabled &&
+    !issueTypeConfig.pages.replays.enabled;
 
   const discoverUrl = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
@@ -77,9 +77,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.USER_FEEDBACK]: t('Feedback'),
   };
 
-  const allEventsPath = issueTypeConfig.showOpenPeriods
-    ? `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`
-    : `${baseUrl}${TabPaths[Tab.EVENTS]}`;
+  const isListView = [Tab.UPTIME_CHECKS, Tab.EVENTS, Tab.OPEN_PERIODS].includes(
+    currentTab
+  );
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -123,7 +123,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
               },
-              hidden: !issueTypeConfig.replays.enabled,
+              hidden: !issueTypeConfig.pages.replays.enabled,
             },
             {
               key: Tab.ATTACHMENTS,
@@ -140,7 +140,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
               },
-              hidden: !issueTypeConfig.attachments.enabled,
+              hidden: !issueTypeConfig.pages.attachments.enabled,
             },
             {
               key: Tab.USER_FEEDBACK,
@@ -154,7 +154,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
               },
-              hidden: !issueTypeConfig.userFeedback.enabled,
+              hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },
           ]}
           offset={[-2, 1]}
@@ -186,31 +186,61 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         {currentTab === Tab.DETAILS && (
           <Fragment>
             <IssueDetailsEventNavigation event={event} group={group} />
-            <LinkButton
-              to={{
-                pathname: allEventsPath,
-                query: location.query,
-              }}
-              size="xs"
-              analyticsEventKey="issue_details.all_events_clicked"
-              analyticsEventName="Issue Details: All Events Clicked"
-            >
-              {t('All %s', issueTypeConfig.customCopy.eventUnits)}
-            </LinkButton>
+            {issueTypeConfig.pages.events.enabled && (
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                  query: location.query,
+                }}
+                size="xs"
+                analyticsEventKey="issue_details.all_events_clicked"
+                analyticsEventName="Issue Details: All Events Clicked"
+              >
+                {t('All %s', issueTypeConfig.customCopy.eventUnits)}
+              </LinkButton>
+            )}
+            {issueTypeConfig.pages.openPeriods.enabled && (
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
+                  query: location.query,
+                }}
+                size="xs"
+                analyticsEventKey="issue_details.all_open_periods_clicked"
+                analyticsEventName="Issue Details: All Open Periods Clicked"
+              >
+                {t('All Open Periods')}
+              </LinkButton>
+            )}
+            {issueTypeConfig.pages.checkIns.enabled && (
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                  query: location.query,
+                }}
+                size="xs"
+                analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                analyticsEventName="Issue Details: All Uptime Checks Clicked"
+              >
+                {t('All Uptime Checks')}
+              </LinkButton>
+            )}
           </Fragment>
         )}
-        {(currentTab === Tab.EVENTS || currentTab === Tab.OPEN_PERIODS) && (
+        {isListView && (
           <ButtonBar gap={1}>
-            <LinkButton
-              to={discoverUrl}
-              aria-label={t('Open in Discover')}
-              size="xs"
-              icon={<IconTelescope />}
-              analyticsEventKey="issue_details.discover_clicked"
-              analyticsEventName="Issue Details: Discover Clicked"
-            >
-              {t('Discover')}
-            </LinkButton>
+            {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
+              <LinkButton
+                to={discoverUrl}
+                aria-label={t('Open in Discover')}
+                size="xs"
+                icon={<IconTelescope />}
+                analyticsEventKey="issue_details.discover_clicked"
+                analyticsEventName="Issue Details: Discover Clicked"
+              >
+                {t('Discover')}
+              </LinkButton>
+            )}
             <LinkButton
               to={{
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,

@@ -255,16 +255,11 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
+                    "integration_id": self.integration.id,
                 },
             )
-            return self._dialog_response(
-                {
-                    "error": _(
-                        "This integration has already been installed on another Sentry organization "
-                        "which resides in a different region. Installation could not be completed."
-                    )
-                },
-                False,
+            return self.error(
+                "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
             )
 
         org_integration = self.integration.add_organization(

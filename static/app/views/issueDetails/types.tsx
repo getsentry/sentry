@@ -9,6 +9,7 @@ export enum Tab {
   SIMILAR_ISSUES = 'similar-issues',
   REPLAYS = 'Replays',
   OPEN_PERIODS = 'open-periods',
+  UPTIME_CHECKS = 'uptime-checks',
 }
 
 export const TabPaths: Record<Tab, string> = {
@@ -22,4 +23,5 @@ export const TabPaths: Record<Tab, string> = {
   [Tab.SIMILAR_ISSUES]: 'similar/',
   [Tab.REPLAYS]: 'replays/',
   [Tab.OPEN_PERIODS]: 'open-periods/',
+  [Tab.UPTIME_CHECKS]: 'uptime-checks/',
 };

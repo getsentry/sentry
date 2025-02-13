@@ -165,7 +165,7 @@ class AuthLoginView(BaseView):
             reverse("sentry-register"),
         ]
         return (
-            request.subdomain
+            bool(request.subdomain)
             and self.org_exists(request=request)
             and request.path_info not in non_sso_urls
         )
@@ -416,7 +416,7 @@ class AuthLoginView(BaseView):
 
         attempted_login = request.POST.get("username") and request.POST.get("password")
 
-        return attempted_login and ratelimiter.backend.is_limited(
+        return bool(attempted_login) and ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(value=request.POST["username"])).hexdigest()
             ),

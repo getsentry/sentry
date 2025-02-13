@@ -33,7 +33,7 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webV
 import {useInteractionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useInteractionsCategorizedSamplesQuery';
 import {useTransactionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionsCategorizedSamplesQuery';
 import type {
-  InteractionSpanSampleRowWithScore,
+  SpanSampleRowWithScore,
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
@@ -69,11 +69,6 @@ const inpColumnOrder: GridColumnOrder[] = [
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
   key: 'totalScore',
-  order: 'desc',
-};
-
-const inpSort: GridColumnSortBy<keyof InteractionSpanSampleRowWithScore> = {
-  key: 'inpScore',
   order: 'desc',
 };
 
@@ -268,7 +263,7 @@ export function PageOverviewWebVitalsDetailPanel({
         );
       }
       const target = generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug,
         profileId: String(row['profile.id']),
       });
@@ -283,15 +278,13 @@ export function PageOverviewWebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
-  const renderInpBodyCell = (col: Column, row: InteractionSpanSampleRowWithScore) => {
+  const renderInpBodyCell = (col: Column, row: SpanSampleRowWithScore) => {
     const {key} = col;
     if (key === 'score') {
       if (row[`measurements.${webVital}` as keyof typeof row] !== undefined) {
         return (
           <AlignCenter>
-            <PerformanceBadge
-              score={row[`${webVital}Score` as keyof typeof row] as number}
-            />
+            <PerformanceBadge score={row[`totalScore` as keyof typeof row] as number} />
           </AlignCenter>
         );
       }
@@ -349,7 +342,7 @@ export function PageOverviewWebVitalsDetailPanel({
         );
       }
       const target = generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: project.slug,
         profileId: String(row['profile.id']),
       });
@@ -404,7 +397,7 @@ export function PageOverviewWebVitalsDetailPanel({
               data={inpTableData}
               isLoading={isInteractionsLoading}
               columnOrder={inpColumnOrder}
-              columnSortBy={[inpSort]}
+              columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
                 renderBodyCell: renderInpBodyCell,

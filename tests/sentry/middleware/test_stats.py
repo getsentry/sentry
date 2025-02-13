@@ -78,6 +78,7 @@ class RequestTimingMiddlewareTest(TestCase):
         request._view_path = "/"
         response = Mock(status_code=200)
         request.COOKIES = {"foo": "bar"}
+        request.auth = None
 
         self.middleware.process_response(request, response)
 

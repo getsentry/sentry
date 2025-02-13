@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from copy import copy
 from logging import Logger, getLogger
 from typing import Any
@@ -22,6 +22,10 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
 )
+from sentry.integrations.repository.notification_action import (
+    NotificationActionNotificationMessage,
+    NotificationActionNotificationMessageRepository,
+)
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.message_builder.types import SlackBlock
@@ -36,6 +40,7 @@ from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -45,6 +50,9 @@ from sentry.notifications.notifications.activity.escalating import EscalatingAct
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_pull_request import (
+    ResolvedInPullRequestActivityNotification,
+)
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
@@ -68,7 +76,7 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedActivityNotification,
-    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedInPullRequestActivityNotification,
     ActivityType.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityNotification,
     ActivityType.UNASSIGNED: UnassignedActivityNotification,
     ActivityType.SET_ESCALATING: EscalatingActivityNotification,
@@ -79,6 +87,10 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
 
 
 class RuleDataError(Exception):
+    pass
+
+
+class ActionDataError(Exception):
     pass
 
 
@@ -94,12 +106,14 @@ class SlackService:
 
     def __init__(
         self,
-        notification_message_repository: IssueAlertNotificationMessageRepository,
+        issue_alert_repository: IssueAlertNotificationMessageRepository,
+        notification_action_repository: NotificationActionNotificationMessageRepository,
         message_block_builder: BlockSlackMessageBuilder,
         activity_thread_notification_handlers: dict[ActivityType, type[ActivityNotification]],
         logger: Logger,
     ) -> None:
-        self._notification_message_repository = notification_message_repository
+        self._issue_alert_repository = issue_alert_repository
+        self._notification_action_repository = notification_action_repository
         self._slack_block_builder = message_block_builder
         self._activity_thread_notification_handlers = activity_thread_notification_handlers
         self._logger = logger
@@ -107,7 +121,8 @@ class SlackService:
     @classmethod
     def default(cls) -> SlackService:
         return SlackService(
-            notification_message_repository=get_default_issue_alert_repository(),
+            issue_alert_repository=get_default_issue_alert_repository(),
+            notification_action_repository=NotificationActionNotificationMessageRepository.default(),
             message_block_builder=BlockSlackMessageBuilder(),
             activity_thread_notification_handlers=DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS,
             logger=_default_logger,
@@ -121,38 +136,45 @@ class SlackService:
         If the group is not associated with an activity, return early as there's nothing to do.
         If the user is not associated with an activity, return early as we only care about user activities.
         """
+        log_params = {
+            "activity_id": activity.id,
+            "project_id": activity.project.id,
+        }
+
         if activity.group is None:
             self._logger.info(
                 "no group associated on the activity, nothing to do",
-                extra={
-                    "activity_id": activity.id,
-                },
+                extra=log_params,
             )
             return None
 
-        if activity.user_id is None:
+        log_params["group_id"] = activity.group.id
+        log_params["organization_id"] = activity.group.organization.id
+
+        uptime_resolved_notification = (
+            activity.type == ActivityType.SET_RESOLVED.value
+            and activity.group.issue_category == GroupCategory.UPTIME
+        )
+
+        if activity.user_id is None and not uptime_resolved_notification:
             self._logger.info(
                 "machine/system updates are ignored at this time, nothing to do",
-                extra={
-                    "activity_id": activity.id,
-                },
+                extra=log_params,
             )
             return None
 
-        organization_id = activity.group.organization.id
+        organization = activity.group.organization
+        organization_id = organization.id
+
         # If the feature is turned off for the organization, exit early as there's nothing to do
         if not OrganizationOption.objects.get_value(
-            organization=activity.group.organization,
+            organization=organization,
             key="sentry:issue_alerts_thread_flag",
             default=ISSUE_ALERTS_THREAD_DEFAULT,
         ):
             self._logger.info(
                 "feature is turned off for this organization",
-                extra={
-                    "activity_id": activity.id,
-                    "organization_id": organization_id,
-                    "project_id": activity.project.id,
-                },
+                extra=log_params,
             )
             return None
         # The same message is sent to all the threads, so this needs to only happen once
@@ -160,9 +182,7 @@ class SlackService:
         if not notification_to_send:
             self._logger.info(
                 "notification to send is invalid",
-                extra={
-                    "activity_id": activity.id,
-                },
+                extra=log_params,
             )
             return None
 
@@ -173,17 +193,26 @@ class SlackService:
         if integration is None:
             self._logger.info(
                 "no integration found for activity",
-                extra={
-                    "activity_id": activity.id,
-                    "organization_id": organization_id,
-                    "project_id": activity.project.id,
-                },
+                extra=log_params,
             )
             return None
 
         slack_client = SlackSdkClient(integration_id=integration.id)
 
-        # Get all parent notifications, which will have the message identifier to use to reply in a thread
+        self._notify_all_threads_for_activity(
+            activity=activity,
+            group=activity.group,
+            notification_to_send=notification_to_send,
+            client=slack_client,
+        )
+
+    def _notify_all_threads_for_activity(
+        self,
+        activity: Activity,
+        group: Group,
+        notification_to_send: str,
+        client: SlackSdkClient,
+    ) -> None:
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
             spec=SlackMessagingSpec(),
@@ -191,31 +220,52 @@ class SlackService:
             lifecycle.add_extras(
                 {
                     "activity_id": activity.id,
-                    "group_id": activity.group.id,
+                    "group_id": group.id,
                     "project_id": activity.project.id,
+                    "organization_id": group.organization.id,
                 }
             )
 
             use_open_period_start = False
+            parent_notifications: Generator[
+                NotificationActionNotificationMessage | IssueAlertNotificationMessage
+            ]
             if (
                 features.has(
-                    "organizations:issue-alerts-thread-open-period",
-                    activity.group.project.organization,
+                    "organizations:slack-threads-refactor-uptime",
+                    group.organization,
                 )
-                and activity.group.issue_category == GroupCategory.UPTIME
+                and group.issue_category == GroupCategory.UPTIME
             ):
                 use_open_period_start = True
-                open_period_start = open_period_start_for_group(activity.group)
-                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
-                    group_ids=[activity.group.id],
-                    project_ids=[activity.project.id],
-                    open_period_start=open_period_start,
-                )
+                open_period_start = open_period_start_for_group(group)
+                if features.has(
+                    "organizations:workflow-engine-notification-action",
+                    group.organization,
+                ):
+                    parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
+                        group_ids=[group.id],
+                        open_period_start=open_period_start,
+                    )
+                else:
+                    parent_notifications = self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
+                        group_ids=[group.id],
+                        project_ids=[activity.project.id],
+                        open_period_start=open_period_start,
+                    )
             else:
-                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
-                    group_ids=[activity.group.id],
-                    project_ids=[activity.project.id],
-                )
+                if features.has(
+                    "organizations:workflow-engine-notification-action",
+                    group.organization,
+                ):
+                    parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
+                        group_ids=[group.id],
+                    )
+                else:
+                    parent_notifications = self._issue_alert_repository.get_all_parent_notification_messages_by_filters(
+                        group_ids=[group.id],
+                        project_ids=[activity.project.id],
+                    )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         parent_notification_count = 0
@@ -230,16 +280,38 @@ class SlackService:
                         "activity_id": activity.id,
                         "parent_notification_id": parent_notification.id,
                         "notification_to_send": notification_to_send,
-                        "integration_id": integration.id,
-                        "group_id": activity.group.id,
+                        "integration_id": client.integration_id,
+                        "group_id": group.id,
                         "project_id": activity.project.id,
                     }
                 )
                 try:
-                    self._handle_parent_notification(
-                        parent_notification=parent_notification,
+                    if not parent_notification.message_identifier:
+                        self._logger.info(
+                            "parent notification does not have a message identifier, skipping",
+                            extra={
+                                "parent_notification_id": parent_notification.id,
+                            },
+                        )
+                        lifecycle.record_failure(
+                            "parent notification does not have a message identifier, skipping"
+                        )
+                        continue
+                    if isinstance(parent_notification, NotificationActionNotificationMessage):
+                        channel_id = (
+                            self._get_channel_id_from_parent_notification_notification_action(
+                                parent_notification
+                            )
+                        )
+                    else:
+                        channel_id = self._get_channel_id_from_parent_notification(
+                            parent_notification
+                        )
+                    self._send_notification_to_slack_channel(
+                        channel_id=channel_id,
+                        message_identifier=parent_notification.message_identifier,
                         notification_to_send=notification_to_send,
-                        client=slack_client,
+                        client=client,
                     )
                 except Exception as err:
                     if isinstance(err, SlackApiError):
@@ -247,9 +319,9 @@ class SlackService:
                     else:
                         lifecycle.record_failure(err)
 
-        if use_open_period_start and parent_notification_count != 1:
+        if use_open_period_start and parent_notification_count > 1:
             sentry_sdk.capture_message(
-                f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {activity.group.id}, Project: {activity.project.id}, Integration: {integration.id}, Parent Notification Count: {parent_notification_count}"
+                f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {group.id}, Project: {activity.project.id}, Integration: {client.integration_id}, Parent Notification Count: {parent_notification_count}"
             )
             self._logger.error(
                 "multiple parent notifications found for single open period",
@@ -259,14 +331,28 @@ class SlackService:
                 },
             )
 
-    def _handle_parent_notification(
+    def _get_channel_id_from_parent_notification_notification_action(
+        self,
+        parent_notification: NotificationActionNotificationMessage,
+    ) -> str:
+        """Get the channel ID from a parent notification by looking up the rule action details."""
+        if not parent_notification.action:
+            raise ActionDataError(
+                f"parent notification {parent_notification.id} does not have an action"
+            )
+
+        if not parent_notification.action.target_identifier:
+            raise ActionDataError(
+                f"parent notification {parent_notification.id} does not have a target_identifier"
+            )
+
+        return str(parent_notification.action.target_identifier)
+
+    def _get_channel_id_from_parent_notification(
         self,
         parent_notification: IssueAlertNotificationMessage,
-        notification_to_send: str,
-        client: SlackSdkClient,
-    ) -> None:
-        # For each parent notification, we need to get the channel that the notification is replied to
-        # Get the channel by using the action uuid
+    ) -> str:
+        """Get the channel ID from a parent notification by looking up the rule action details."""
         if not parent_notification.rule_fire_history:
             raise RuleDataError(
                 f"parent notification {parent_notification.id} does not have a rule_fire_history"
@@ -290,8 +376,17 @@ class SlackService:
                 f"failed to get channel_id for rule {rule.id} and rule action {parent_notification.rule_action_uuid}"
             )
 
+        return channel_id
+
+    def _send_notification_to_slack_channel(
+        self,
+        channel_id: str,
+        message_identifier: str,
+        notification_to_send: str,
+        client: SlackSdkClient,
+    ) -> None:
         block = self._slack_block_builder.get_markdown_block(text=notification_to_send)
-        payload = {"channel": channel_id, "thread_ts": parent_notification.message_identifier}
+        payload = {"channel": channel_id, "thread_ts": message_identifier}
         slack_payload = self._slack_block_builder._build_blocks(
             block, fallback_text=notification_to_send
         )
@@ -302,7 +397,7 @@ class SlackService:
 
         client.chat_postMessage(
             channel=channel_id,
-            thread_ts=parent_notification.message_identifier,
+            thread_ts=message_identifier,
             text=notification_to_send,
             blocks=json_blocks,
         )

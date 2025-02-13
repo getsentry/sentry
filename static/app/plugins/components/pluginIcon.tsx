@@ -16,7 +16,6 @@ import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
-import phabricator from 'sentry-logos/logo-phabricator.svg';
 import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
 import pushover from 'sentry-logos/logo-pushover.svg';
 import redmine from 'sentry-logos/logo-redmine.svg';
@@ -57,7 +56,6 @@ export const ICON_PATHS = {
   msteams,
   opsgenie,
   pagerduty,
-  phabricator,
   pivotal,
   pushover,
   redmine,

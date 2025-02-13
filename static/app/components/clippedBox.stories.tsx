@@ -12,7 +12,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(ClippedBox, story => {
+export default storyBook('ClippedBox', story => {
   story('Default', () => (
     <Fragment>
       <p>

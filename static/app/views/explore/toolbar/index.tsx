@@ -46,7 +46,7 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
       )}
       <ToolbarMode mode={mode} setMode={setMode} />
       <ToolbarVisualize />
-      <ToolbarGroupBy disabled={mode !== Mode.AGGREGATE} />
+      {mode === Mode.AGGREGATE && <ToolbarGroupBy />}
       <ToolbarSortBy
         fields={fields}
         groupBys={groupBys}

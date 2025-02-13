@@ -251,15 +251,6 @@ def _get_entity_of_metric_mri(
         )
     elif use_case_id is UseCaseID.ESCALATING_ISSUES:
         entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
-    elif use_case_id is UseCaseID.CUSTOM:
-        entity_keys_set = frozenset(
-            {
-                EntityKey.GenericMetricsCounters,
-                EntityKey.GenericMetricsSets,
-                EntityKey.GenericMetricsDistributions,
-                EntityKey.GenericMetricsGauges,
-            }
-        )
     else:
         raise InvalidParams
 
@@ -485,7 +476,6 @@ class RawOp(MetricOperation):
         if use_case_id in [
             UseCaseID.TRANSACTIONS,
             UseCaseID.SPANS,
-            UseCaseID.CUSTOM,
             UseCaseID.ESCALATING_ISSUES,
         ]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
@@ -917,7 +907,7 @@ class DerivedMetricExpressionDefinition:
     unit: str
     op: str | None = None
     meta_type: str | None = None
-    result_type: MetricType | None = None
+    result_type: MetricType = "numeric"
     # TODO: better typing
     # snql attribute is a function that takes optional args that map to strings that are MRIs for
     # the derived metric, org_id, metric_ids required to generate the snql and a string alias,
@@ -950,7 +940,6 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
-            self.result_type = "numeric"
 
             if self.snql is None:
                 raise DerivedMetricParseException(
@@ -1166,10 +1155,6 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
 
 
 class CompositeEntityDerivedMetric(DerivedMetricExpression):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.result_type = "numeric"
-
     def validate_can_orderby(self) -> None:
         raise NotSupportedOverCompositeEntityException()
 

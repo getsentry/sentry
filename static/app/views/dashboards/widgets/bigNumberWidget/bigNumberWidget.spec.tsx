@@ -37,6 +37,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'p95(span.duration)': 'number',
             },
+            units: {},
           }}
         />
       );
@@ -53,6 +54,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'count()': 'number',
             },
+            units: {},
           }}
         />
       );
@@ -88,6 +90,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'max(timestamp)': 'string',
             },
+            units: {},
           }}
         />
       );
@@ -146,6 +149,7 @@ describe('BigNumberWidget', () => {
             fields: {
               'count()': 'integer',
             },
+            units: {},
           }}
         />
       );

@@ -1,5 +1,7 @@
 import type {Confidence} from 'sentry/types/organization';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
@@ -21,6 +23,12 @@ export type TracingEventParameters = {
     visualizes: Visualize[];
     visualizes_count: number;
   };
+  'trace.load.empty_state': {
+    source: TraceWaterFallSource;
+  };
+  'trace.load.error_state': {
+    source: TraceWaterFallSource;
+  };
   'trace.metadata': {
     has_exceeded_performance_usage_limit: boolean | null;
     num_nodes: number;
@@ -28,6 +36,7 @@ export type TracingEventParameters = {
     project_platforms: string[];
     referrer: string | null;
     shape: string;
+    source: TraceWaterFallSource;
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {
@@ -48,6 +57,11 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_explore_search': {
+    key: string;
+    kind: TraceDrawerActionKind;
+    value: string | number;
   };
   'trace.trace_layout.change': {
     layout: string;
@@ -126,9 +140,12 @@ export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
+  'trace.load.empty_state': 'Trace Load Empty State',
+  'trace.load.error_state': 'Trace Load Error State',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
+  'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
   'trace.trace_layout.view_event_json': 'Clicked View Event JSON Action',
   'trace.trace_layout.tab_pin': 'Pinned Trace Tab',

@@ -1,19 +1,9 @@
-__all__ = (
-    "QueryDefinition",
-    "SnubaQueryBuilder",
-    "SnubaResultConverter",
-    "get_date_range",
-    "parse_field",
-    "parse_conditions",
-    "resolve_tags",
-    "translate_meta_results",
-    "QUERY_PROJECT_LIMIT",
-)
+from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, overload
 
 import sentry_sdk
 from snuba_sdk import (
@@ -79,6 +69,7 @@ from sentry.snuba.metrics.utils import (
     TS_COL_GROUP,
     DerivedMetricParseException,
     MetricDoesNotExistException,
+    MetricEntity,
     get_num_intervals,
     get_timestamp_column_name,
     require_rhs_condition_resolution,
@@ -86,6 +77,19 @@ from sentry.snuba.metrics.utils import (
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
+
+__all__ = (
+    "QueryDefinition",
+    "SnubaQueryBuilder",
+    "SnubaResultConverter",
+    "get_date_range",
+    "parse_field",
+    "parse_conditions",
+    "resolve_tags",
+    "translate_meta_results",
+    "QUERY_PROJECT_LIMIT",
+)
+
 
 QUERY_PROJECT_LIMIT = 10
 
@@ -119,14 +123,13 @@ def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     return parse_public_field(field)
 
 
-# TODO(ddm): implement this similar to parse_mri_field
 def parse_public_field(field: str) -> MetricField:
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
 
-    try:
+    if matches is not None:
         operation = matches[1]
         metric_name = matches[2]
-    except (TypeError, IndexError):
+    else:
         operation = None
         metric_name = field
 
@@ -412,7 +415,7 @@ def resolve_tags(
 
 def get_project_ids(
     org_id: int, projects: Sequence[Project], rhs_slugs: Sequence[str]
-) -> Sequence[str]:
+) -> list[int]:
     projects_in_where_clause = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
 
     if len(projects_in_where_clause) >= QUERY_PROJECT_LIMIT:
@@ -445,7 +448,7 @@ def is_tag_key_allowed(tag_key: str, allowed_tag_keys: dict[str, str] | None) ->
 
 
 def parse_conditions(
-    query_string: str, projects: Sequence[Project], environments: Sequence[str]
+    query_string: str, projects: Sequence[Project], environments: list[str]
 ) -> Sequence[Condition]:
     """Parse given filter query and query params into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
@@ -597,8 +600,8 @@ def get_date_range(params: Mapping) -> tuple[datetime, datetime, int]:
     contrary to the one used in sessions_v2.
 
     """
-    interval = parse_stats_period(params.get("interval", "1h"))
-    interval = int(3600 if interval is None else interval.total_seconds())
+    interval_td = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval_td is None else interval_td.total_seconds())
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
     date_range = timedelta(
@@ -687,7 +690,7 @@ def translate_meta_results(
     p50(d:transactions/measurements.lcp@millisecond) -> p50(transaction.measurements.lcp)
     tags[9223372036854776020] -> transaction
     """
-    results = []
+    results: list[dict[str, str]] = []
     for record in meta:
         alias_type, (parsed_op, parsed_alias) = get_alias_meta_type(
             record["name"], alias_to_metric_group_by_field
@@ -782,7 +785,29 @@ class SnubaQueryBuilder:
         self._org_id = metrics_query.org_id
         self._use_case_id = use_case_id
 
-        self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
+        self._alias_to_metric_field = {
+            field.alias: field for field in self._metrics_query.select if field.alias is not None
+        }
+
+    @overload
+    @staticmethod
+    def generate_snql_for_action_by_fields(
+        metric_action_by_field: MetricOrderByField,
+        use_case_id: UseCaseID,
+        org_id: int,
+        projects: Sequence[Project],
+        is_column: bool = False,
+    ) -> list[OrderBy]: ...
+
+    @overload
+    @staticmethod
+    def generate_snql_for_action_by_fields(
+        metric_action_by_field: MetricActionByField,
+        use_case_id: UseCaseID,
+        org_id: int,
+        projects: Sequence[Project],
+        is_column: bool = False,
+    ) -> Column | AliasedExpression | Function: ...
 
     @staticmethod
     def generate_snql_for_action_by_fields(
@@ -969,7 +994,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.orderby is None:
             return None
 
-        orderby_fields = []
+        orderby_fields: list[OrderBy] = []
         for metric_order_by_obj in self._metrics_query.orderby:
             orderby_fields.extend(
                 self.generate_snql_for_action_by_fields(
@@ -1048,7 +1073,7 @@ class SnubaQueryBuilder:
             if self._metrics_query.max_limit:
                 series_limit = self._metrics_query.max_limit
 
-            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS, UseCaseID.CUSTOM]:
+            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
@@ -1079,11 +1104,11 @@ class SnubaQueryBuilder:
 
     def __update_query_dicts_with_component_entities(
         self,
-        component_entities,
-        metric_mri_to_obj_dict,
+        component_entities: dict[MetricEntity, Sequence[str]],
+        metric_mri_to_obj_dict: dict[tuple[None, str, str], MetricExpressionBase],
         fields_in_entities,
         parent_alias,
-    ):
+    ) -> dict[tuple[None, str, str], MetricExpressionBase]:
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
         # ToDo(ahmed): In future PR, we might want to allow for dependency metrics to also have an
@@ -1237,7 +1262,9 @@ class SnubaResultConverter:
         # This dictionary is required because at the very end when we want to remove all the extra constituents that
         # were returned by the query, and the only thing we have is the alias, we need a mapping from the alias to
         # the metric object that that alias represents
-        self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
+        self._alias_to_metric_field = {
+            field.alias: field for field in self._metrics_query.select if field.alias is not None
+        }
 
         # This is a set of all the `(op, metric_mri, alias)` combinations passed in the metrics_query
         self._metrics_query_fields_set = {

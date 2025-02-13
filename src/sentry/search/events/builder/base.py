@@ -317,6 +317,9 @@ class BaseQueryBuilder:
         if not col.startswith("tags[") and column_name.startswith("tags["):
             self.prefixed_to_tag_map[f"tags_{col}"] = col
             self.tag_to_prefixed_map[col] = f"tags_{col}"
+        elif not col.startswith("flags[") and column_name.startswith("flags["):
+            self.prefixed_to_tag_map[f"flags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"flags_{col}"
         return column_name
 
     def resolve_query(
@@ -684,7 +687,13 @@ class BaseQueryBuilder:
         dataset and return the Snql Column
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
-        field = tag_match.group("tag") if tag_match else raw_field
+        flag_match = constants.FLAG_KEY_RE.search(raw_field)
+        if tag_match:
+            field = tag_match.group("tag")
+        elif flag_match:
+            field = flag_match.group("flag")
+        else:
+            field = raw_field
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
@@ -1320,7 +1329,13 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
+            if is_context and name in self.config.nullable_context_keys:
+                return Condition(
+                    Function("has", [Column("contexts.key"), lhs.key]),
+                    Op(search_filter.operator),
+                    0,
+                )
+            elif is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             elif is_measurement(name):
                 # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check

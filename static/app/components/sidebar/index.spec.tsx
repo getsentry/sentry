@@ -30,19 +30,20 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
-  'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
   'performance-view',
   'performance-trace-explorer',
-  'starfish-mobile-ui-module',
   'profiling',
 ];
 
 describe('Sidebar', function () {
   const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
-  const user = UserFixture();
+  const userMock = UserFixture();
+  const user = UserFixture({
+    options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
+  });
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),
@@ -68,6 +69,7 @@ describe('Sidebar', function () {
   };
 
   beforeEach(function () {
+    ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
     jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
       () =>
@@ -320,7 +322,6 @@ describe('Sidebar', function () {
     beforeEach(function () {
       ConfigStore.init();
       ConfigStore.set('features', new Set([]));
-      ConfigStore.set('user', user);
 
       mockUseLocation.mockReturnValue({...LocationFixture()});
     });
@@ -375,14 +376,13 @@ describe('Sidebar', function () {
       });
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(25);
+      expect(links).toHaveLength(24);
 
       [
         'Issues',
         'Projects',
         /Explore/,
         /Traces/,
-        /Metrics/,
         'Profiles',
         'Replays',
         'Discover',

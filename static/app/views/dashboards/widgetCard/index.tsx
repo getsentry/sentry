@@ -32,7 +32,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
@@ -79,6 +78,7 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: string;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -137,6 +137,7 @@ function WidgetCard(props: Props) {
     widgetLegendState,
     disableFullscreen,
     showConfidenceWarning,
+    minTableColumnWidth,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -162,26 +163,6 @@ function WidgetCard(props: Props) {
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
-
-  if (widget.widgetType === WidgetType.METRICS) {
-    return (
-      <MetricWidgetCard
-        index={props.index}
-        isEditingDashboard={props.isEditingDashboard}
-        onEdit={props.onEdit}
-        onDelete={props.onDelete}
-        onDuplicate={props.onDuplicate}
-        router={props.router}
-        location={props.location}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        dashboardFilters={dashboardFilters}
-        renderErrorMessage={renderErrorMessage}
-        showContextMenu={props.showContextMenu}
-      />
-    );
-  }
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -256,7 +237,7 @@ function WidgetCard(props: Props) {
 
   return (
     <ErrorBoundary
-      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
@@ -313,7 +294,7 @@ function WidgetCard(props: Props) {
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
                   borderless={props.borderless}
-                  forceDescriptionTooltip={props.forceDescriptionTooltip}
+                  revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
                 />
               );
             }}
@@ -330,7 +311,8 @@ function WidgetCard(props: Props) {
             actions={actions}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
-            forceDescriptionTooltip={props.forceDescriptionTooltip}
+            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+            noVisualizationPadding
           >
             <WidgetCardChartContainer
               location={location}
@@ -351,6 +333,7 @@ function WidgetCard(props: Props) {
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
+              minTableColumnWidth={minTableColumnWidth}
             />
           </WidgetFrame>
         )}

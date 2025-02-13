@@ -181,11 +181,9 @@ class GitHubEnterpriseIntegration(
 
     # RepositoryIntegration methods
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         if not query:
-            all_repos = self.get_client().get_repos(fetch_max_pages)
+            all_repos = self.get_client().get_repos()
             return [
                 {
                     "name": i["name"],

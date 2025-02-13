@@ -1,85 +1,131 @@
-import type {CheckInBucket as CheckInStats, JobTickData} from '../types';
+import chunk from 'lodash/chunk';
+
+import type {CheckInBucket as CheckInStats, JobTickData, RollupConfig} from '../types';
 
 import {getAggregateStatus} from './getAggregateStatus';
-import {getAggregateStatusFromMultipleBuckets} from './getAggregateStatusFromMultipleBuckets';
 import {isStatsBucketEmpty} from './isStatsBucketEmpty';
 import {mergeStats} from './mergeStats';
 
-function generateJobTickFromBucketWithStats<Status extends string>(
-  bucket: CheckInStats<Status>,
-  options?: Partial<JobTickData<Status>>
-) {
-  const [timestamp, stats] = bucket;
+// The smallest size in pixels that a tick should be represented on the timeline
+const MINIMUM_TICK_WIDTH = 4;
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+function makeTick<Status extends string>(
+  options: MakeOptional<JobTickData<Status>, 'isStarting' | 'isEnding'>
+): JobTickData<Status> {
   return {
-    endTs: timestamp,
-    startTs: timestamp,
-    width: 1,
-    stats,
-    roundedLeft: false,
-    roundedRight: false,
+    isStarting: false,
+    isEnding: false,
     ...options,
   };
 }
 
 export function mergeBuckets<Status extends string>(
   statusPrecedent: Status[],
+  rollupConfig: RollupConfig,
   data: Array<CheckInStats<Status>>
 ): Array<JobTickData<Status>> {
-  const minTickWidth = 4;
+  const {bucketPixels, interval} = rollupConfig;
+
   const jobTicks: Array<JobTickData<Status>> = [];
 
-  data.reduce<JobTickData<Status> | null>((currentJobTick, [timestamp, stats], i) => {
-    const statsEmpty = isStatsBucketEmpty(stats);
+  // In the case where multiple buckets fit into a single pixel partition the
+  // buckets together so we have a single bucket per pixel to deal with
+  const groupedBuckets =
+    bucketPixels < 1 ? chunk(data, 1 / bucketPixels) : data.map(d => [d]);
 
-    // If no current job tick, we start the first one
-    if (!currentJobTick) {
-      return statsEmpty
-        ? currentJobTick
-        : generateJobTickFromBucketWithStats([timestamp, stats], {roundedLeft: true});
+  // How many pixels does each one of our bucket groups take up?
+  const width = Math.max(1, bucketPixels);
+
+  // Take groupedBuckets to fill up ticks until we can't anymore
+  groupedBuckets.forEach((currentGroup, index) => {
+    const lastTick = jobTicks.at(-1);
+
+    const lastTickBigEnough = lastTick && lastTick.width >= MINIMUM_TICK_WIDTH;
+
+    const left = index * width;
+
+    const startTs = currentGroup?.at(0)![0];
+    const endTs = currentGroup.at(-1)![0] + interval;
+    const stats = mergeStats(statusPrecedent, ...currentGroup.map(b => b[1]));
+
+    const emptyBucket = isStatsBucketEmpty(stats);
+
+    // Nothing to do if we don't have any data yet
+    if (emptyBucket && !lastTick) {
+      return;
     }
 
-    const bucketStatus = getAggregateStatus(statusPrecedent, stats);
-    const currJobTickStatus = getAggregateStatus(statusPrecedent, currentJobTick.stats);
-
-    // If the current stats are empty and our job tick has reached the min width, finalize the tick
-    if (statsEmpty && currentJobTick.width >= minTickWidth) {
-      currentJobTick.roundedRight = true;
-      jobTicks.push(currentJobTick);
-      return null;
+    // No data, either expand the previous bucket if it's not big enough or cap
+    // off the last tick.
+    if (emptyBucket && lastTick) {
+      if (lastTickBigEnough === true) {
+        lastTick.isEnding = true;
+      } else {
+        lastTick.endTs = endTs;
+        lastTick.width += width;
+      }
+      return;
     }
 
-    // Calculate the aggregate status for the next minTickWidth buckets
-    const nextTickAggregateStatus = getAggregateStatusFromMultipleBuckets(
-      statusPrecedent,
-      data.slice(i, i + minTickWidth).map(([_, sliceStats]) => sliceStats)
-    );
+    const startingNewTick = lastTick?.isEnding;
+    const isFirstTick = !lastTick;
 
-    // If the status changes or we reach the min width, push the current tick and start a new one
-    if (
-      bucketStatus !== currJobTickStatus &&
-      nextTickAggregateStatus !== currJobTickStatus &&
-      currentJobTick.width >= minTickWidth
-    ) {
-      jobTicks.push(currentJobTick);
-      return generateJobTickFromBucketWithStats([timestamp, stats]);
+    if (isFirstTick || (startingNewTick && lastTickBigEnough === true)) {
+      const tick = makeTick({stats, startTs, endTs, left, width, isStarting: true});
+      jobTicks.push(tick);
+      return;
     }
 
-    // Otherwise, continue merging data into the current job tick
-    currentJobTick = {
-      ...currentJobTick,
-      endTs: timestamp,
-      stats: mergeStats(statusPrecedent, currentJobTick.stats, stats),
-      width: currentJobTick.width + 1,
-    };
+    const currentStatus = getAggregateStatus(statusPrecedent, stats);
+    const lastTickStatus = lastTick?.stats
+      ? getAggregateStatus(statusPrecedent, lastTick.stats)
+      : null;
 
-    // Ensure we render the last tick if it's the final bucket
-    if (i === data.length - 1) {
-      currentJobTick.roundedRight = true;
-      jobTicks.push(currentJobTick);
+    // We are extending the previous tick if the status's are equal OR if the
+    // previous bucket has not reached it's minimum size yet.
+    if (currentStatus === lastTickStatus || lastTickBigEnough === false) {
+      lastTick.endTs = endTs;
+      lastTick.stats = mergeStats(statusPrecedent, lastTick.stats, stats);
+      lastTick.width += width;
+
+      // If we extended the previous tick and the status didn't change there's
+      // nothing left to do
+      if (lastTickStatus === getAggregateStatus(statusPrecedent, lastTick.stats)) {
+        return;
+      }
+
+      // We've aggregated a new status into the last tick, we may need to merge
+      // the last tick into other ticks prior to the lastTick, otherwise we may
+      // end up with multiple ticks that have the same status
+      while (jobTicks.length > 2) {
+        const currentTick = jobTicks.at(-1)!;
+        const priorTick = jobTicks.at(-2)!;
+
+        const currentTickStatus = getAggregateStatus(statusPrecedent, currentTick.stats);
+        const priorTickStatus = getAggregateStatus(statusPrecedent, priorTick.stats);
+
+        // Nothing to change if the tick prior is an ending tick or has a
+        // different status from the
+        if (priorTick.isEnding || currentTickStatus !== priorTickStatus) {
+          break;
+        }
+
+        jobTicks.pop()!;
+        priorTick.endTs = currentTick.endTs;
+        priorTick.stats = mergeStats(statusPrecedent, priorTick.stats, currentTick.stats);
+        priorTick.width += currentTick.width;
+      }
+
+      return;
     }
 
-    return currentJobTick;
-  }, null);
+    // Status between the previous tick and the new one is different. Create a
+    // new tick conjoined to the previous tick.
+    const tick = makeTick({stats, startTs, endTs, left, width});
+    jobTicks.push(tick);
+  });
 
   return jobTicks;
 }

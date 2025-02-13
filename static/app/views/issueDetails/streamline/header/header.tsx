@@ -141,7 +141,7 @@ export default function StreamlinedGroupHeader({
                 size="xs"
                 external
                 title={t('Learn more about the new UI')}
-                href={`https://sentry.zendesk.com/hc/en-us/articles/30882241712795`}
+                href={`https://docs.sentry.io/product/issues/issue-details/`}
                 aria-label={t('Learn more about the new UI')}
                 icon={<IconInfo />}
                 analyticsEventKey="issue_details.streamline_ui_learn_more"

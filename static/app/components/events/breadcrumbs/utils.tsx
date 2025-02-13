@@ -244,9 +244,10 @@ export function getBreadcrumbTitle(crumb: RawCrumb) {
     case null:
     case undefined:
       return BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
-    default:
+    default: {
       const titleCategory = crumb?.category.split('.').join(' ');
       return toTitleCase(titleCategory, {allowInnerUpperCase: true});
+    }
   }
 }
 

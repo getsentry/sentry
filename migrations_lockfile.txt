@@ -15,12 +15,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0822_alert_rule_always_organization
+sentry: 0832_make_grouphash_metadata_date_added_nullable
 
 social_auth: 0002_default_auto_field
 
 tempest: 0001_create_tempest_credentials_model
 
-uptime: 0024_add_status_to_project_uptime_subscription
+uptime: 0025_uptime_migrate_constraint
 
-workflow_engine: 0027_drop_org_detector_req_action
+workflow_engine: 0029_ds_query_id_to_pending

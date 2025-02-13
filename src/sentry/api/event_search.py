@@ -135,6 +135,9 @@ text_filter = negation? text_key sep operator? search_value
 
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
+explicit_flag_key       = "flags" open_bracket search_key closed_bracket
+explicit_string_flag_key = "flags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key = "flags" open_bracket search_key spaces comma spaces "number" closed_bracket
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
@@ -143,8 +146,8 @@ function_args          = aggregate_param (spaces comma spaces !comma aggregate_p
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = explicit_number_tag_key / key / quoted_key
-text_key               = explicit_tag_key / explicit_string_tag_key / search_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -541,10 +544,6 @@ class SearchConfig:
     # Keys which are considered valid for duration filters
     duration_keys: set[str] = field(default_factory=set)
 
-    # Keys considered valid for the percentage aggregate and may have
-    # percentage search values
-    percentage_keys: set[str] = field(default_factory=set)
-
     # Keys considered valid for numeric filter types
     numeric_keys: set[str] = field(default_factory=set)
 
@@ -634,6 +633,7 @@ class SearchVisitor(NodeVisitor):
             or is_span_op_breakdown(key)
             or self.get_field_type(key) in ["number", "integer"]
             or self.is_duration_key(key)
+            or self.is_size_key(key)
         )
 
     def is_duration_key(self, key):
@@ -653,9 +653,6 @@ class SearchVisitor(NodeVisitor):
 
     def is_boolean_key(self, key):
         return key in self.config.boolean_keys
-
-    def is_percentage_key(self, key):
-        return key in self.config.percentage_keys
 
     def visit_search(self, node, children):
         return flatten(remove_space(children[1]))
@@ -1082,6 +1079,15 @@ class SearchVisitor(NodeVisitor):
     def visit_explicit_number_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name},number]")
 
+    def visit_explicit_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name}]")
+
+    def visit_explicit_string_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},string]")
+
+    def visit_explicit_number_flag_key(self, node, children):
+        return SearchKey(f"flags[{children[2].name},number]")
+
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
         children = remove_space(children)
@@ -1234,7 +1240,6 @@ class SearchVisitor(NodeVisitor):
 
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
-    percentage_keys={"percentage"},
     text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
     # do not put aggregate functions in this list
     numeric_keys={

@@ -14,9 +14,11 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
@@ -189,7 +191,7 @@ export function generateProfileLink() {
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
       return generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(tableRow['project.name']),
         profileId: String(profileId),
       });
@@ -213,7 +215,7 @@ export function generateProfileLink() {
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(projectSlug),
         profilerId: String(profilerId),
         start: start.toISOString(),
@@ -241,9 +243,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: normalizeUrl(
-          `/organizations/${organization.slug}/replays/${replayId}/`
-        ),
+        pathname: makeReplaysPathname({
+          path: `/${replayId}/`,
+          organization,
+        }),
         query: {
           referrer,
         },
@@ -256,7 +259,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
       : undefined;
 
     return {
-      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
+      pathname: makeReplaysPathname({
+        path: `/${replayId}/`,
+        organization,
+      }),
       query: {
         event_t: transactionStartTimestamp,
         referrer,
@@ -270,6 +276,18 @@ export function getTransactionSummaryBaseUrl(
   view?: DomainView,
   bare: boolean = false
 ) {
+  const hasPerfLandingRemovalFlag = organization?.features.includes(
+    'insights-performance-landing-removal'
+  );
+
+  // Eventually the performance landing page will be removed, so there is no need to rely on `getPerformanceBaseUrl`
+  if (hasPerfLandingRemovalFlag) {
+    const url = view
+      ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
+      : `${DOMAIN_VIEW_BASE_URL}/summary`;
+
+    return bare ? url : normalizeUrl(`/organizations/${organization.slug}/${url}`);
+  }
   return `${getPerformanceBaseUrl(organization.slug, view, bare)}/summary`;
 }
 

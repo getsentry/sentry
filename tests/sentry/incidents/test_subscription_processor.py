@@ -2878,6 +2878,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_incident_is_latest_for_rule(new_incident)
 
     @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
         rule = self.rule
@@ -2907,6 +2908,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
 
     @with_feature("organizations:metric-issue-poc")
+    @with_feature("projects:metric-issue-creation")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
         from sentry.models.group import GroupStatus
@@ -2957,7 +2959,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_process_data_packets_called(self, mock_process_data_packets):
         rule = self.rule
         detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
-        data_source = self.create_data_source(query_id=self.sub.id)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
         assert mock_process_data_packets.call_count == 1
@@ -2966,7 +2968,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
-        assert data_packet_list[0].query_id == str(self.sub.id)
+        assert data_packet_list[0].source_id == str(self.sub.id)
         assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
 
 

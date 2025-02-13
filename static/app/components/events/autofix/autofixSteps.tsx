@@ -5,7 +5,11 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
-import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
+import {
+  AutofixRootCause,
+  replaceHeadersWithBold,
+} from 'sentry/components/events/autofix/autofixRootCause';
+import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixData,
   type AutofixProgressItem,
@@ -47,15 +51,6 @@ function isProgressLog(
   item: AutofixProgressItem | AutofixStep
 ): item is AutofixProgressItem {
   return 'message' in item && 'timestamp' in item;
-}
-
-function replaceHeadersWithBold(markdown: string) {
-  const headerRegex = /^(#{1,6})\s+(.*)$/gm;
-  const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
-    return ` **${content}** `;
-  });
-
-  return boldMarkdown;
 }
 
 export function Step({
@@ -104,6 +99,18 @@ export function Step({
                   previousInsightCount={previousInsightCount}
                 />
               )}
+              {step.type === AutofixStepType.SOLUTION && (
+                <AutofixSolution
+                  groupId={groupId}
+                  runId={runId}
+                  solution={step.solution}
+                  solutionSelected={step.solution_selected}
+                  customSolution={step.custom_solution}
+                  repos={repos}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                />
+              )}
               {step.type === AutofixStepType.CHANGES && (
                 <AutofixChanges
                   step={step}
@@ -127,7 +134,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
 
   const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-  if (!steps) {
+
+  if (!steps?.length) {
     return null;
   }
 
@@ -184,13 +192,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 hasErroredStepBefore={previousStepErrored}
                 shouldCollapseByDefault={
                   step.type === AutofixStepType.DEFAULT &&
-                  (step.status === 'ERROR' ||
-                    (nextStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-                      steps[index + 2]?.type === AutofixStepType.DEFAULT) ||
-                    (nextStep?.type === AutofixStepType.CHANGES &&
-                      nextStep.changes.every(
-                        change => change.pull_request || change.branch_name
-                      )))
+                  nextStep !== null &&
+                  !twoInsightStepsInARow
                 }
                 previousDefaultStepIndex={
                   previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined

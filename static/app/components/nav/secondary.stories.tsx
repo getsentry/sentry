@@ -5,10 +5,11 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import {NavContextProvider} from 'sentry/components/nav/context';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
+import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default storyBook(SecondaryNav, story => {
+export default storyBook('SecondaryNav', story => {
   story('Basics (WIP)', () => {
     const [activeItem, setActiveItem] = useState<string | null>('product-area-1');
 
@@ -16,7 +17,7 @@ export default storyBook(SecondaryNav, story => {
       <Container>
         <NavContextProvider>
           <SecondarySidebar />
-          <SecondaryNav>
+          <SecondaryNav group={PrimaryNavGroup.ISSUES}>
             <SecondaryNav.Body>
               <SecondaryNav.Section>
                 <SecondaryNav.Item
