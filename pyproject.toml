@@ -130,7 +130,6 @@ module = [
     "sentry.api.endpoints.organization_search_details",
     "sentry.api.endpoints.project_index",
     "sentry.api.endpoints.project_ownership",
-    "sentry.api.endpoints.project_release_files",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.user_subscriptions",
