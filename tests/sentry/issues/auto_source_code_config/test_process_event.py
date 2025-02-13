@@ -7,6 +7,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
+from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -85,10 +86,17 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             assert_halt_metric(mock_record, error)
 
     def test_generic_errors_fail(self, mock_record: Any) -> None:
-        """Failures require manual investigation."""
         with patch(GET_TREES_FOR_ORG, side_effect=Exception("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
+            # Failures require manual investigation.
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
+
+    def test_installation_not_found(self, mock_record: Any) -> None:
+        with patch(
+            f"{CODE_ROOT}.task.get_installation",
+            side_effect=InstallationNotFoundError("foo"),
+        ):
+            process_event(self.project.id, self.event.group_id, self.event.event_id)
 
 
 class TestGenericBehaviour(BaseDeriveCodeMappings):
