@@ -3,7 +3,11 @@ from django.db import router, transaction
 from django.db.utils import IntegrityError
 
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.models import UptimeSubscription, get_active_auto_monitor_count_for_org
+from sentry.uptime.models import (
+    UptimeSubscription,
+    get_active_auto_monitor_count_for_org,
+    get_top_hosting_provider_names,
+)
 
 
 class GetActiveMonitorCountForOrgTest(UptimeTestCase):
@@ -77,3 +81,21 @@ class UniqueMonitorTest(UptimeTestCase):
                 headers={"hi": "santry", "auth": "sentaur"},
                 body="hello",
             )
+
+
+class GetTopHostingProviderNamesTest(UptimeTestCase):
+    def test(self):
+        self.create_uptime_subscription(host_provider_name="prov1")
+        self.create_uptime_subscription(host_provider_name="prov1")
+        self.create_uptime_subscription(host_provider_name="prov2")
+        self.create_uptime_subscription(host_provider_name="prov2")
+        self.create_uptime_subscription(host_provider_name="prov3")
+        assert get_top_hosting_provider_names(2) == {"prov1", "prov2"}
+        self.create_uptime_subscription(host_provider_name="prov3")
+        self.create_uptime_subscription(host_provider_name="prov3")
+        self.create_uptime_subscription(host_provider_name="prov4")
+        # Cached, so should remain the same
+        assert get_top_hosting_provider_names(2) == {"prov1", "prov2"}
+        # Using a different arg should bust the cache
+        assert get_top_hosting_provider_names(1) == {"prov3"}
+        assert get_top_hosting_provider_names(3) == {"prov1", "prov2", "prov3"}
