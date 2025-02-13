@@ -161,6 +161,19 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         if self.parallel_executor:
             self.parallel_executor.shutdown()
 
+    def decode_payload(self, topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
+        assert not isinstance(payload, FilteredPayload)
+
+        try:
+            codec = get_topic_codec(topic_for_codec)
+            return codec.decode(payload.value)
+        except Exception:
+            logger.exception(
+                "Failed to decode message payload",
+                extra={"payload": payload.value},
+            )
+        return None
+
     def create_with_partitions(
         self,
         commit: Commit,
@@ -175,14 +188,14 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
     def create_serial_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=partial(process_single, self.result_processor, self.topic_for_codec),
+            function=partial(self.process_single, self.result_processor, self.topic_for_codec),
             next_step=CommitOffsets(commit),
         )
 
     def create_multiprocess_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.multiprocessing_pool is not None
         return run_task_with_multiprocessing(
-            function=partial(process_single, self.result_processor, self.topic_for_codec),
+            function=partial(self.process_single, self.result_processor, self.topic_for_codec),
             next_step=CommitOffsets(commit),
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -214,7 +227,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         for item in batch:
             assert isinstance(item, BrokerValue)
 
-            result = decode_payload(self.topic_for_codec, item.payload)
+            result = self.decode_payload(self.topic_for_codec, item.payload)
             if result is None:
                 continue
 
@@ -235,6 +248,16 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         )
 
         return list(batch_mapping.values())
+
+    def process_single(
+        self,
+        result_processor: ResultProcessor,
+        topic: Topic,
+        message: Message[KafkaPayload | FilteredPayload],
+    ):
+        result = self.decode_payload(topic, message.payload)
+        if result is not None:
+            result_processor(result)
 
     def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
         """
@@ -264,27 +287,3 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         """
         for item in items:
             self.result_processor(item)
-
-
-def decode_payload(topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
-    assert not isinstance(payload, FilteredPayload)
-
-    try:
-        codec = get_topic_codec(topic_for_codec)
-        return codec.decode(payload.value)
-    except Exception:
-        logger.exception(
-            "Failed to decode message payload",
-            extra={"payload": payload.value},
-        )
-    return None
-
-
-def process_single(
-    result_processor: ResultProcessor,
-    topic: Topic,
-    message: Message[KafkaPayload | FilteredPayload],
-):
-    result = decode_payload(topic, message.payload)
-    if result is not None:
-        result_processor(result)
