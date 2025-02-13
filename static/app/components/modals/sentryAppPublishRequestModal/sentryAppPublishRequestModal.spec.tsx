@@ -29,6 +29,7 @@ describe('SentryAppDetailsModal', function () {
         CloseButton={makeCloseButton(() => {})}
         organization={OrganizationFixture()}
         app={sentryApp}
+        onPublishSubmission={jest.fn()}
       />
     );
 
@@ -57,6 +58,7 @@ describe('SentryAppDetailsModal', function () {
         CloseButton={makeCloseButton(() => {})}
         organization={organization}
         app={sentryApp}
+        onPublishSubmission={jest.fn()}
       />
     );
 
@@ -90,6 +92,7 @@ describe('SentryAppDetailsModal', function () {
         CloseButton={makeCloseButton(() => {})}
         organization={OrganizationFixture()}
         app={sentryApp}
+        onPublishSubmission={jest.fn()}
       />
     );
 
@@ -174,6 +177,7 @@ describe('SentryAppDetailsModal', function () {
         CloseButton={makeCloseButton(() => {})}
         organization={organization}
         app={sentryApp}
+        onPublishSubmission={jest.fn()}
       />
     );
 
@@ -209,6 +213,7 @@ describe('SentryAppDetailsModal', function () {
         CloseButton={makeCloseButton(() => {})}
         organization={OrganizationFixture()}
         app={sentryApp}
+        onPublishSubmission={jest.fn()}
       />
     );
 

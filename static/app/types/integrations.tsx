@@ -238,7 +238,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
-  avatars?: Avatar[];
+  avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
   // optional params below

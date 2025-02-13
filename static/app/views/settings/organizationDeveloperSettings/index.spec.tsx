@@ -13,6 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
@@ -49,9 +50,28 @@ describe('Organization Developer Settings', function () {
 
   describe('with unpublished apps', () => {
     beforeEach(() => {
+      const sentryAppWithAvatars = SentryAppFixture({
+        avatars: [
+          {
+            avatarType: 'upload',
+            avatarUuid: '1234561234561234561234567',
+            avatarUrl: 'https://example.com/avatar/1234561234561234561234567/',
+            color: true,
+            photoType: SentryAppAvatarPhotoType.LOGO,
+          },
+        ],
+        scopes: [
+          'team:read',
+          'project:releases',
+          'event:read',
+          'event:write',
+          'org:read',
+          'org:write',
+        ],
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
-        body: [sentryApp],
+        body: [sentryAppWithAvatars],
       });
     });
 
