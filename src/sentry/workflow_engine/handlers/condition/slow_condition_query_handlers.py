@@ -230,9 +230,9 @@ class BaseEventFrequencyQueryHandler(ABC):
         if comparison_interval:
             current_time -= comparison_interval
         start, end = self.get_query_window(end=current_time, duration=duration)
+        conditions = []
 
         if filters:
-            conditions = []
             for filter in filters:
                 snuba_condition = self.convert_filter_to_snuba_condition(filter)
                 if snuba_condition:
@@ -244,7 +244,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                conditions=conditions,
+                conditions=conditions or None,
             )
         return result
 
