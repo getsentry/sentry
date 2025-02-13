@@ -209,7 +209,6 @@ module = [
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.history.preview",
     "sentry.scim.endpoints.teams",
-    "sentry.scim.endpoints.utils",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
