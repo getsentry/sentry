@@ -1,4 +1,5 @@
 import type {Config} from '@jest/types';
+const {execFileSync} = require('node:child_process');
 import path from 'node:path';
 import process from 'node:process';
 
@@ -6,7 +7,6 @@ import babelConfig from './babel.config';
 
 const {
   CI,
-  JEST_TESTS,
   JEST_TEST_BALANCER,
   CI_NODE_TOTAL,
   CI_NODE_INDEX,
@@ -39,10 +39,38 @@ if (!!JEST_TEST_BALANCER && !CI) {
   );
 }
 
+let JEST_TESTS;
+
+// prevents forkbomb as we don't want jest --listTests --json
+// to reexec itself here
+if (!process.env.JEST_LIST_TESTS_INNER) {
+  execFileSync(
+    'yarn',
+    ['-s', 'jest', '--listTests', '--json'],
+    {
+      encoding: 'utf-8',
+      env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
+    },
+    (error, stdout, stderr) => {
+      if (error) {
+        throw new Error(`
+Error listing jest tests: ${error}
+
+stdout:
+${stdout}
+
+stderr:
+${stderr}`);
+      }
+      JEST_TESTS = JSON.parse(stdout);
+    }
+  );
+}
+
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
- * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests`
+ * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests --json`
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
  */
@@ -164,9 +192,7 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JSON.parse(JEST_TESTS).map(file =>
-    file.replace(__dirname, '')
-  );
+  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
