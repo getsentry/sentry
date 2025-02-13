@@ -42,7 +42,7 @@ export const StyledPanelItem = styled(PanelItem)<{
 export const LogPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: 95px auto min-content;
+  grid-template-columns: min-content auto min-content;
 `;
 
 export const LogRowContent = styled('div')`
@@ -116,7 +116,7 @@ export const StyledChevronButton = styled(Button)`
 const DEFAULT_SIZE = '8px';
 
 export const ColoredLogCircle = styled('span')<{
-  level: 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
+  logColors: ReturnType<typeof getLogColors>;
   size?: string;
 }>`
   padding: 0;
@@ -128,13 +128,13 @@ export const ColoredLogCircle = styled('span')<{
   display: inline-block;
   border-radius: 50%;
   flex-shrink: 0;
-  background-color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
+  background-color: ${p => p.logColors.background};
 `;
 
 export const ColoredLogText = styled('span')<{
-  level: 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
+  logColors: ReturnType<typeof getLogColors>;
 }>`
-  color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
+  color: ${p => p.logColors.color};
   font-weight: ${p => p.theme.fontWeightBold};
   font-family: ${p => p.theme.text.familyMono};
 `;
@@ -164,7 +164,7 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         backgroundLight: theme.backgroundSecondary,
         border: theme.border,
         borderHover: theme.border,
-        color: 'inherit',
+        color: theme.gray200,
       };
     case SeverityLevel.TRACE:
       return {
@@ -183,12 +183,13 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         color: theme.yellow400,
       };
     case SeverityLevel.ERROR:
+      // All these colours are likely changing, so we'll hold off moving them into theme for now.
       return {
-        background: theme.red300,
-        backgroundLight: theme.red100,
-        border: theme.red200,
-        borderHover: theme.red300,
-        color: theme.red400,
+        background: '#FF7738', // Matches the legacy error level color
+        backgroundLight: 'rgba(245, 113, 54, 0.11)',
+        border: 'rgba(245, 113, 54, 0.55)',
+        borderHover: '#FF7738',
+        color: '#b34814',
       };
     case SeverityLevel.FATAL:
       return {
@@ -204,7 +205,7 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         backgroundLight: theme.gray100,
         border: theme.gray200,
         borderHover: theme.gray300,
-        color: theme.gray400,
+        color: theme.gray300,
       };
     case SeverityLevel.INFO:
       return {
@@ -220,7 +221,7 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
         backgroundLight: theme.gray100,
         border: theme.gray200,
         borderHover: theme.gray300,
-        color: theme.gray400,
+        color: theme.gray200,
       };
     default:
       unreachable(level);

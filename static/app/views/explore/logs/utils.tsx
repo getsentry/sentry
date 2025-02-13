@@ -6,6 +6,7 @@ export function getLogSeverityLevel(
   severityText: string | null
 ): SeverityLevel {
   // Defer to the severity number if it is provided
+  // Currently follows https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
   if (severityNumber) {
     if (severityNumber >= 1 && severityNumber <= 4) {
       return SeverityLevel.TRACE;
@@ -45,8 +46,8 @@ export function getLogSeverityLevel(
     }
   }
 
-  //
-  return SeverityLevel.DEFAULT;
+  // If the severity number isn't in range or the severity text can't map to a level, the severity level is unknown.
+  return SeverityLevel.UNKNOWN;
 }
 
 /**
@@ -77,40 +78,15 @@ export enum SeverityLevel {
  */
 export function severityLevelToText(level: SeverityLevel) {
   return {
-    [SeverityLevel.TRACE]: t('TRAC'),
-    [SeverityLevel.DEBUG]: t('DEBU'),
+    [SeverityLevel.TRACE]: t('TRACE'),
+    [SeverityLevel.DEBUG]: t('DEBUG'),
     [SeverityLevel.INFO]: t('INFO'),
     [SeverityLevel.WARN]: t('WARN'),
-    [SeverityLevel.ERROR]: t('ERRO'),
-    [SeverityLevel.FATAL]: t('CRIT'),
-    [SeverityLevel.DEFAULT]: t('DEFA'),
-    [SeverityLevel.UNKNOWN]: t('INFO'), // Maps to info for now.
+    [SeverityLevel.ERROR]: t('ERROR'),
+    [SeverityLevel.FATAL]: t('FATAL'),
+    [SeverityLevel.DEFAULT]: t('DEFAULT'),
+    [SeverityLevel.UNKNOWN]: t('UNKNOWN'), // Maps to info for now.
   }[level];
-}
-
-type SeverityColorLevel =
-  | 'sample'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'fatal'
-  | 'default'
-  | 'unknown';
-
-/**
- * Maps all internal severity levels to the appropriate color level, making use of the existing issues colors to maintain consistency.
- */
-export function severityLevelToColorLevel(level: SeverityLevel): SeverityColorLevel {
-  return {
-    [SeverityLevel.DEFAULT]: 'default',
-    [SeverityLevel.TRACE]: 'info',
-    [SeverityLevel.DEBUG]: 'info',
-    [SeverityLevel.INFO]: 'info',
-    [SeverityLevel.WARN]: 'warning',
-    [SeverityLevel.ERROR]: 'error',
-    [SeverityLevel.FATAL]: 'fatal',
-    [SeverityLevel.UNKNOWN]: 'info',
-  }[level] as SeverityColorLevel;
 }
 
 export function getLogBodySearchTerms(search: MutableSearch): string[] {

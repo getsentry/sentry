@@ -118,6 +118,12 @@ export function LogsTable(props: LogsTableProps) {
 function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
   const [expanded, setExpanded] = useState<boolean>(false);
   const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+  const theme = useTheme();
+  const level = getLogSeverityLevel(
+    dataRow['log.severity_number'],
+    dataRow['sentry.severity_text']
+  );
+  const logColors = getLogColors(level, theme);
 
   return (
     <Fragment>
@@ -131,11 +137,13 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
         />
         {severityCircleRenderer(
           dataRow['log.severity_number'],
-          dataRow['sentry.severity_text']
+          dataRow['sentry.severity_text'],
+          logColors
         )}
         {severityTextRenderer(
           dataRow['log.severity_number'],
-          dataRow['sentry.severity_text']
+          dataRow['sentry.severity_text'],
+          logColors
         )}
       </StyledPanelItem>
       <StyledPanelItem overflow>
@@ -177,6 +185,7 @@ function LogDetails({
             {severityTextRenderer(
               dataRow['log.severity_number'],
               dataRow['sentry.severity_text'],
+              logColors,
               true
             )}
           </DetailsValue>
