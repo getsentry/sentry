@@ -88,4 +88,29 @@ describe('useChonkTheme', () => {
     expect(result.current[0]).toBeNull();
     expect(removeBodyTheme).toHaveBeenCalled();
   });
+
+  it('unsets chonk theme if new organization does not have chonk-ui feature', async () => {
+    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    OrganizationStore.onUpdate(
+      OrganizationFixture({
+        features: ['chonk-ui'],
+      })
+    );
+
+    const {result} = renderHook(() => useChonkTheme());
+
+    await waitFor(() => {
+      expect(result.current[0]).toBe(DO_NOT_USE_darkChonkTheme);
+    });
+
+    await act(() => {
+      OrganizationStore.onUpdate(
+        OrganizationFixture({
+          features: [],
+        })
+      );
+    });
+
+    await waitFor(() => expect(result.current[0]).toBeNull());
+  });
 });

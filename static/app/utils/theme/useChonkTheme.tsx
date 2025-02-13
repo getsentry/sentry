@@ -46,11 +46,11 @@ export function useChonkTheme(): [
   // Only fire if the config theme changes
   const previousTheme = usePrevious(config.theme);
   useLayoutEffect(() => {
-    if (previousTheme !== config.theme) {
+    if (previousTheme !== config.theme || !organization?.features?.includes('chonk-ui')) {
       removeBodyTheme();
       setChonkTheme({theme: null});
     }
-  }, [config.theme, previousTheme, setChonkTheme]);
+  }, [config.theme, organization, previousTheme, setChonkTheme]);
 
   return [theme, setChonkWithSideEffect];
 }
