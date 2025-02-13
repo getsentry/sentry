@@ -399,7 +399,7 @@ class _StatsigEventSerializer(serializers.Serializer):
 
 
 class StatsigItemSerializer(serializers.Serializer):
-    data = serializers.ListField(child=_StatsigEventSerializer(), required=True)
+    data = serializers.ListField(child=_StatsigEventSerializer(), required=True)  # type: ignore[assignment]
 
 
 class StatsigProvider:
