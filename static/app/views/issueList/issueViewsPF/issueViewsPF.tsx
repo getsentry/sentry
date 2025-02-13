@@ -121,6 +121,7 @@ type DiscardTempViewAction = {
 } & BaseIssueViewsAction;
 
 type SaveTempViewAction = {
+  newViewId: string;
   type: 'SAVE_TEMP_VIEW';
 } & BaseIssueViewsAction;
 
@@ -330,12 +331,15 @@ function discardTempView(state: IssueViewsPFState, tabListState: TabListState<an
   return {...state, tempView: undefined};
 }
 
-function saveTempView(state: IssueViewsPFState, tabListState: TabListState<any>) {
+function saveTempView(
+  state: IssueViewsPFState,
+  action: SaveTempViewAction,
+  tabListState: TabListState<any>
+) {
   if (state.tempView) {
-    const tempId = generateTempViewId();
     const newTab: IssueViewPF = {
-      id: tempId,
-      key: tempId,
+      id: action.newViewId,
+      key: action.newViewId,
       label: 'New View',
       query: state.tempView?.query,
       querySort: state.tempView?.querySort,
@@ -344,7 +348,7 @@ function saveTempView(state: IssueViewsPFState, tabListState: TabListState<any>)
       projects: state.tempView?.projects,
       timeFilters: state.tempView?.timeFilters,
     };
-    tabListState?.setSelectedKey(tempId);
+    tabListState?.setSelectedKey(action.newViewId);
     return {...state, views: [...state.views, newTab], tempView: undefined};
   }
   return state;
@@ -528,7 +532,7 @@ export function IssueViewsPFStateProvider({
         case 'DISCARD_TEMP_VIEW':
           return discardTempView(state, tabListState);
         case 'SAVE_TEMP_VIEW':
-          return saveTempView(state, tabListState);
+          return saveTempView(state, action, tabListState);
         case 'UPDATE_UNSAVED_CHANGES':
           return updateUnsavedChanges(state, action, tabListState);
         case 'UPDATE_VIEW_IDS':
