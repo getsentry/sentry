@@ -244,9 +244,6 @@ class OutboxBase(Model):
         using = router.db_for_write(type(self))
         tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
 
-        if self.should_skip_shard():
-            return False
-
         try:
             now = timezone.now()
             with transaction.atomic(using=using, savepoint=False):
@@ -273,44 +270,52 @@ class OutboxBase(Model):
                 # Get all ids/scheduled times for coalesced messages
                 reserved_ids = list(
                     self.select_coalesced_messages()
-                    .filter(id__lte=coalesced.id)
-                    .values("id")
+                    .filter(id__lt=coalesced.id)
+                    .values_list("id", flat=True)
                     .order_by("id")
                 )
 
                 # Reserve all messages in the coalesce group
                 self.objects.filter(
                     id__in=reserved_ids,
-                ).update(schedule_for=coalesced.next_schedule(now))
+                ).update(scheduled_for=coalesced.next_schedule(now))
         except OperationalError:
             # We can hit lock contention here. If we do, skip the group and try later.
             return False
 
-        # With the reservation transaction commited, call signal handler
-        with (
-            metrics.timer(
-                "outbox.send_signal.duration",
-                tags={
-                    "category": OutboxCategory(coalesced.category).name,
-                    "synchronous": int(is_synchronous_flush),
-                },
-            ),
-            sentry_sdk.start_span(op="outbox.process") as span,
-        ):
-            self._set_span_data_for_coalesced_message(span=span, message=coalesced)
-            try:
-                coalesced.send_signal()
-            except Exception as e:
-                raise OutboxFlushError(
-                    f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
-                    coalesced,
-                ) from e
+        if not self.should_skip_shard():
+            # With the reservation transaction commited, call signal handler
+            with (
+                metrics.timer(
+                    "outbox.send_signal.duration",
+                    tags={
+                        "category": OutboxCategory(coalesced.category).name,
+                        "synchronous": int(is_synchronous_flush),
+                    },
+                ),
+                sentry_sdk.start_span(op="outbox.process") as span,
+            ):
+                self._set_span_data_for_coalesced_message(span=span, message=coalesced)
+                try:
+                    coalesced.send_signal()
+                except Exception as e:
+                    raise OutboxFlushError(
+                        f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
+                        coalesced,
+                    ) from e
 
         try:
             # The signal handler completed, delete the coalesced messages to awknowledge them.
+            processed = False
+            deleted_count = 0
             with transaction.atomic(using=using):
                 self.objects.filter(id__in=reserved_ids).delete()
                 deleted_count = len(reserved_ids)
+
+                if not self.should_skip_shard():
+                    deleted_count += 1
+                    coalesced.delete()
+                    processed = True
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -325,7 +330,7 @@ class OutboxBase(Model):
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
-            return True
+            return processed
         except Exception as err:
             sentry_sdk.capture_exception(err)
             return False

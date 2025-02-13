@@ -26,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, get_local_region
@@ -265,6 +266,183 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox1.id).first()
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    def test_drain_shard_flush_all__concurrent_processing__cooperation(
+        self, mock_process_region_outbox: Mock
+    ) -> None:
+        outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+
+        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        processing_thread_1 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+        processing_thread_1.start()
+
+        processing_thread_2 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            )
+        )
+
+        barrier.wait()
+        processing_thread_2.start()
+        barrier.wait()
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread_1.join()
+        processing_thread_2.join()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+        assert mock_process_region_outbox.call_count == 2
+
+
+class OutboxDrainReservationTest(TransactionTestCase):
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    def test_draining_with_disabled_shards(self, mock_send: Mock) -> None:
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
+        outbox3 = Organization(id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+            outbox3.save()
+
+        with self.options(
+            {
+                "hybrid_cloud.outbox.reservation_shards": [outbox1.shard_scope],
+                "hybrid_cloud.authentication.disabled_organization_shards": [1],
+            }
+        ):
+            outbox1.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox1.refresh_from_db()
+            outbox2.refresh_from_db()  # still exists
+
+            assert mock_send.call_count == 0
+
+            outbox3.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox3.refresh_from_db()
+
+            assert mock_send.call_count == 1
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_drain_shard_not_flush_all__upper_bound(self) -> None:
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        processing_thread = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+        processing_thread.start()
+
+        barrier.wait()
+
+        # Does not include outboxes created after starting process.
+        with outbox_context(flush=False):
+            outbox2.save()
+        barrier.wait()
+
+        processing_thread.join(timeout=1)
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert RegionOutbox.objects.filter(id=outbox2.id).first()
+
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_drain_shard_not_flush_all__concurrent_processing(
+        self, mock_process_region_outbox: Mock
+    ) -> None:
+        outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+
+        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        processing_thread_1 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+        processing_thread_1.start()
+
+        # This concurrent process will block on, and not duplicate, the effort of the first thread.
+        processing_thread_2 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+
+        barrier.wait()
+        processing_thread_2.start()
+        barrier.wait()
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread_1.join()
+        processing_thread_2.join()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+        assert mock_process_region_outbox.call_count == 2
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_drain_shard_flush_all__upper_bound(self) -> None:
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        processing_thread = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            )
+        )
+        processing_thread.start()
+
+        barrier.wait()
+
+        # Does include outboxes created after starting process.
+        with outbox_context(flush=False):
+            outbox2.save()
+        barrier.wait()
+
+        # Next iteration
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread.join(timeout=1)
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
     @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
         self, mock_process_region_outbox: Mock
