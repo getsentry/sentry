@@ -29,7 +29,7 @@ const getInstallConfig = (params: Params) => [
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (
-          <Alert margin={false} type="info" showIcon>
+          <Alert type="info" showIcon>
             {tct(
               'Make sure that Session Replay is enabled in your [link:project settings].',
               {

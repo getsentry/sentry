@@ -39,7 +39,7 @@ function ProjectFilters(props: Props) {
         )}
       </TextBlock>
 
-      <ProjectPermissionAlert margin={false} project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <div>
         <ProjectFiltersChart project={project} />

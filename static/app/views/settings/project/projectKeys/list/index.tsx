@@ -211,7 +211,7 @@ function ProjectKeys({project}: Props) {
         )}
       </TextBlock>
 
-      <ProjectPermissionAlert margin={false} project={project} />
+      <ProjectPermissionAlert project={project} />
 
       {isEmpty ? renderEmpty() : renderResults()}
     </div>

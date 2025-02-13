@@ -1311,7 +1311,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert margin={false} type="error">
+                              <Alert type="error">
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1398,9 +1398,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert margin={false} type="error">
-                                {detailedError?.filters![0]}
-                              </Alert>
+                              <Alert type="error">{detailedError?.filters![0]}</Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
@@ -1447,9 +1445,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert margin={false} type="error">
-                                {detailedError?.actions![0]}
-                              </Alert>
+                              <Alert type="error">{detailedError?.actions![0]}</Alert>
                             )
                           }
                           additionalAction={{

@@ -456,7 +456,6 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
 
   return (
     <StyledAlert
-      margin={false}
       defaultExpanded
       showIcon
       type={hasErrorAlert ? 'error' : 'warning'}

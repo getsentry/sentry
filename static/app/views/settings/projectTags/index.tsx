@@ -90,7 +90,7 @@ function ProjectTags(props: Props) {
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
       <SettingsPageHeader title={t('Tags & Context')} />
-      <PermissionAlert margin={false} project={project} />
+      <PermissionAlert project={project} />
       <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(

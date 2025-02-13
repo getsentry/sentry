@@ -12,7 +12,7 @@ export default function ReplayUnsupportedAlert({projectSlug}: Props) {
     <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#supported-sdks" />
   );
   return (
-    <Alert margin={false} type="info" icon={<IconInfo />}>
+    <Alert type="info" icon={<IconInfo />}>
       <strong>{t(`Session Replay isn't available for %s.`, projectSlug)}</strong>{' '}
       {tct(`[docsLink: See our docs] to find out which platforms are supported.`, {
         docsLink,

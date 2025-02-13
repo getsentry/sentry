@@ -53,7 +53,7 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
       <Panel>
         <PanelHeader>{t('Adjust Limits')}</PanelHeader>
         <PanelBody>
-          <PanelAlert margin={false} type="info">
+          <PanelAlert type="info">
             {t(`Rate limits allow you to control how much data is stored for this
                 organization. When a rate is exceeded the system will begin discarding
                 data until the next interval.`)}

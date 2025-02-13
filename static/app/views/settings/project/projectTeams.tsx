@@ -66,7 +66,7 @@ export function ProjectTeams({organization, project}: ProjectTeamsProps) {
             'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
           )}
         </TextBlock>
-        <ProjectPermissionAlert margin={false} project={project} />
+        <ProjectPermissionAlert project={project} />
 
         <TeamSelectForProject
           disabled={!hasWriteAccess}

@@ -19,7 +19,6 @@ function AlertMessage({alert, system}: Props) {
 
   return (
     <Alert
-      margin={false}
       type={type}
       showIcon
       system={system}

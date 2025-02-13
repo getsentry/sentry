@@ -48,7 +48,6 @@ export function CanvasSupportNotice() {
 
   return (
     <StyledAlert
-      margin={false}
       type="info"
       showIcon
       trailingItems={

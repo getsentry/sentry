@@ -301,7 +301,7 @@ function PageLayout(props: Props) {
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
                     {defined(error) && (
-                      <StyledAlert margin={false} type="error" showIcon>
+                      <StyledAlert type="error" showIcon>
                         {error}
                       </StyledAlert>
                     )}

@@ -169,7 +169,7 @@ export default function DataSecrecy() {
       <PanelHeader>{t('Support Access')}</PanelHeader>
       <PanelBody>
         {!allowAccess && (
-          <PanelAlert margin={false} type="info">
+          <PanelAlert type="info">
             {waiver?.accessEnd && moment().isBefore(moment(waiver.accessEnd))
               ? tct(`Sentry employees has access to your organization until [date]`, {
                   date: formatDateTime(waiver?.accessEnd),

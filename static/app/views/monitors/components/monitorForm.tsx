@@ -311,7 +311,7 @@ function MonitorForm({
         </ListItemSubText>
         <InputGroup noPadding>
           {monitor !== undefined && (
-            <Alert margin={false} type="info">
+            <Alert type="info">
               {t(
                 'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}

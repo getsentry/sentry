@@ -32,7 +32,7 @@ export default function CrashReportSection({
 
   if (!groupData) {
     return (
-      <Alert margin={false} type="error" showIcon>
+      <Alert type="error" showIcon>
         {tct('Unable to find error [id]', {id: crashReportId})}
       </Alert>
     );

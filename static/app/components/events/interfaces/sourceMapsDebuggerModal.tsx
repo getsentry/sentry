@@ -448,7 +448,7 @@ function InstalledSdkChecklistItem({
   if (sourceResolutionResults.sdkDebugIdSupport === 'needs-upgrade') {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Outdated SDK')}</h6>
           <p>
             {sourceResolutionResults.sdkVersion !== null
@@ -487,7 +487,7 @@ function InstalledSdkChecklistItem({
   if (sourceResolutionResults.sdkDebugIdSupport === 'not-supported') {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t("SDK Doesn't Support Debug IDs")}</h6>
           <p>
             {tct(
@@ -504,7 +504,7 @@ function InstalledSdkChecklistItem({
 
   return (
     <CheckListItem status="question" title={maybeErrorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('Unofficial SDK')}</h6>
         <p>
           {tct(
@@ -545,7 +545,7 @@ function HasDebugIdChecklistItem({
   if (sourceResolutionResults.eventHasDebugIds) {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Source Is Missing Injection')}</h6>
           <p>
             {tct(
@@ -561,7 +561,7 @@ function HasDebugIdChecklistItem({
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>Uploaded Files Not Deployed</h6>
           <p>
             {t(
@@ -606,7 +606,7 @@ function HasDebugIdChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('No Debug ID Tooling Used')}</h6>
         <p>
           {tct(
@@ -644,7 +644,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('No Source File With Matching Debug ID')}</h6>
           <p>
             {tct(
@@ -669,7 +669,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('No Artifacts With Debug IDs Uploaded')}</h6>
         <p>
           {tct(
@@ -708,7 +708,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('No Source Map With Matching Debug ID')}</h6>
           <p>
             {tct(
@@ -734,7 +734,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('No Artifacts Uploaded')}</h6>
         <p>
           {tct(
@@ -767,7 +767,7 @@ function EventHasReleaseNameChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('No Release Value')}</h6>
         <p>
           {tct(
@@ -821,7 +821,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('No Uploaded Artifacts')}</h6>
         <p>
           {t(
@@ -863,7 +863,7 @@ function ReleaseSourceFileMatchingChecklistItem({
   if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'wrong-dist') {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Dist Value Not Matching')}</h6>
           <p>
             {t(
@@ -895,7 +895,7 @@ function ReleaseSourceFileMatchingChecklistItem({
   if (sourceResolutionResults.stackFramePath === null) {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Stack Frame Without Path')}</h6>
           <p>
             {t(
@@ -909,7 +909,7 @@ function ReleaseSourceFileMatchingChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('Stack Frame Not Matching Artifact Name')}</h6>
         <p>
           {tct(
@@ -984,7 +984,7 @@ function ReleaseSourceMapMatchingChecklistItem({
   if (sourceResolutionResults.releaseSourceMapReference === null) {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Missing Source Map Reference')}</h6>
           <p>
             {tct(
@@ -1007,7 +1007,7 @@ function ReleaseSourceMapMatchingChecklistItem({
   if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'wrong-dist') {
     return (
       <CheckListItem status="alert" title={errorMessage}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Dist Value Not Matching')}</h6>
           <p>
             {t(
@@ -1038,7 +1038,7 @@ function ReleaseSourceMapMatchingChecklistItem({
 
   return (
     <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>{t('Not Found')}</h6>
         <p>
           {tct(
@@ -1081,7 +1081,7 @@ function ScrapingSourceFileAvailableChecklistItem({
   if (sourceResolutionResults.sourceFileScrapingStatus === null) {
     return (
       <CheckListItem status="alert" title={t('Source file was not fetched')}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Missing Information')}</h6>
           <p>
             {t(
@@ -1103,7 +1103,7 @@ function ScrapingSourceFileAvailableChecklistItem({
   if (sourceResolutionResults.sourceFileScrapingStatus.status === 'not_attempted') {
     return (
       <CheckListItem status="alert" title={t('Source file was not fetched')}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Fetching Was Not Attempted')}</h6>
           <p>
             {t(
@@ -1123,7 +1123,7 @@ function ScrapingSourceFileAvailableChecklistItem({
 
   return (
     <CheckListItem status="alert" title={t('Source file is not available to Sentry')}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>
           {t('Error While Fetching The Source File:')} {failureReasonTexts.shortName}
         </h6>
@@ -1161,7 +1161,7 @@ function ScrapingSourceMapAvailableChecklistItem({
   if (sourceResolutionResults.sourceMapScrapingStatus === null) {
     return (
       <CheckListItem status="none" title={t('Source map was not fetched')}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('No Source Map Reference')}</h6>
           <p>{t('There was no source map reference on the source file.')}</p>
         </CheckListInstruction>
@@ -1173,7 +1173,7 @@ function ScrapingSourceMapAvailableChecklistItem({
   if (sourceResolutionResults.sourceMapScrapingStatus.status === 'not_attempted') {
     return (
       <CheckListItem status="alert" title={t('Source map was not fetched')}>
-        <CheckListInstruction margin={false} type="muted">
+        <CheckListInstruction type="muted">
           <h6>{t('Fetching Was Not Attempted')}</h6>
           <p>
             {t(
@@ -1194,7 +1194,7 @@ function ScrapingSourceMapAvailableChecklistItem({
 
   return (
     <CheckListItem status="alert" title={t('Source map is not available to Sentry')}>
-      <CheckListInstruction margin={false} type="muted">
+      <CheckListInstruction type="muted">
         <h6>
           {t('Error While Fetching The Source Map:')} {failureReasonTexts.shortName}
         </h6>
@@ -1272,7 +1272,7 @@ function ChecklistDoneNote() {
 
 function SourceMapStepNotRequiredNote() {
   return (
-    <CheckListInstruction margin={false} type="muted" showIcon>
+    <CheckListInstruction type="muted" showIcon>
       {
         "You can safely ignore this step if you don't do any transformations to your code before deploying."
       }

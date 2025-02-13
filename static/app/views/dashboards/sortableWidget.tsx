@@ -82,9 +82,7 @@ function SortableWidget(props: Props) {
     renderErrorMessage: errorMessage => {
       return (
         typeof errorMessage === 'string' && (
-          <PanelAlert margin={false} type="error">
-            {errorMessage}
-          </PanelAlert>
+          <PanelAlert type="error">{errorMessage}</PanelAlert>
         )
       );
     },

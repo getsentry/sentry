@@ -404,7 +404,7 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <StyledAlert margin={false} type="warning" system>
+        <StyledAlert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (

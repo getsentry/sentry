@@ -31,7 +31,7 @@ export function RoleOverwritePanelAlert(props: Props) {
   }
 
   return (
-    <PanelAlert margin={false} data-test-id="alert-role-overwrite" type="info">
+    <PanelAlert data-test-id="alert-role-overwrite" type="info">
       {getOverwriteString(props)}
     </PanelAlert>
   );

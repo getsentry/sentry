@@ -151,7 +151,6 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'slack') {
       return (
         <MarginlessAlert
-          margin={false}
           type="info"
           showIcon
           trailingItems={
@@ -171,7 +170,6 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'discord') {
       return (
         <MarginlessAlert
-          margin={false}
           type="info"
           showIcon
           trailingItems={

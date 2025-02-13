@@ -23,7 +23,7 @@ export default function OrganizationGeneralSettings(props: RouteComponentProps<{
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Early Features')} />
-        <OrganizationPermissionAlert margin={false} />
+        <OrganizationPermissionAlert />
 
         <EarlyFeaturesSettingsForm {...props} access={access} />
       </div>

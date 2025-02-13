@@ -146,7 +146,7 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </p>
-              <Alert margin={false} type="info">
+              <Alert type="info">
                 engine-dir\Engine\Programs\CrashReportClient\Config\DefaultEngine.ini
               </Alert>
             </Fragment>

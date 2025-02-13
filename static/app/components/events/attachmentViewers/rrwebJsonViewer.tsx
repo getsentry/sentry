@@ -20,7 +20,7 @@ export default class RRWebJsonViewer extends Component<ViewerProps, State> {
 
     return (
       <Fragment>
-        <StyledPanelAlert margin={false} border={showRawJson} type="info">
+        <StyledPanelAlert border={showRawJson} type="info">
           {tct(
             'This is an attachment containing a session replay. [replayLink:View the replay] or [jsonLink:view the raw JSON].',
             {

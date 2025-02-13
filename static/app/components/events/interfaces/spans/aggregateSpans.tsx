@@ -101,7 +101,6 @@ export function AggregateSpans({transaction, httpMethod}: Props) {
     <Fragment>
       {isBannerOpen && (
         <StyledAlert
-          margin={false}
           type="info"
           showIcon
           trailingItems={<StyledCloseButton onClick={() => setIsBannerOpen(false)} />}

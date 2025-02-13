@@ -202,7 +202,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
           ) : (
             <React.Fragment>
               {error && (
-                <Alert margin={false} type="error" showIcon>
+                <Alert type="error" showIcon>
                   {errorType}
                 </Alert>
               )}
@@ -228,7 +228,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             resetOnError
           >
             {error && (
-              <Alert margin={false} type="error" showIcon>
+              <Alert type="error" showIcon>
                 {errorType}
               </Alert>
             )}

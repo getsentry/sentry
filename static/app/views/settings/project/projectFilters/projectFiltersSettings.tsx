@@ -379,11 +379,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
           ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert
-              margin={false}
-              type="warning"
-              data-test-id="error-message-disclaimer"
-            >
+            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}

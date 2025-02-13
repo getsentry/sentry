@@ -98,7 +98,7 @@ export default function ListContent() {
         </SearchWrapper>
       </FiltersContainer>
       {allMobileProj && mobileBetaOrg ? (
-        <Alert margin={false} type="info" icon={<IconInfo />} showIcon>
+        <Alert type="info" icon={<IconInfo />} showIcon>
           {tct(
             `[strong:Mobile Replay is now generally available.] Since your org participated in the beta, you'll have a two month grace period of unlimited usage until March 6. After that, we will only accept replay events that are included in your plan. If you'd like to increase your reserved replay quota, go to your [link:Subscription Settings] or speak to your organization owner.`,
             {

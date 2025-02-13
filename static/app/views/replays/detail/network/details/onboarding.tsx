@@ -76,7 +76,7 @@ export function Setup({
 
   return isVideoReplay ? (
     visibleTab === 'request' || visibleTab === 'response' ? (
-      <StyledAlert margin={false} type="info" showIcon>
+      <StyledAlert type="info" showIcon>
         {tct(
           'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
           {
@@ -113,12 +113,7 @@ function SetupInstructions({
 }) {
   if (showSnippet === Output.DATA && visibleTab === 'details') {
     return (
-      <NoMarginAlert
-        margin={false}
-        type="muted"
-        system
-        data-test-id="network-setup-steps"
-      >
+      <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
         {tct(
           'You can capture additional headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
           {

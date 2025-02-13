@@ -161,7 +161,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         },
       ],
       additionalInfo: (
-        <StyledAlert margin={false} type="info">
+        <StyledAlert type="info">
           {tct(
             'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {

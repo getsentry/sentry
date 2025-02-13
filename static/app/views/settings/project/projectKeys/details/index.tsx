@@ -67,7 +67,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   return (
     <SentryDocumentTitle title={t('Key Details')}>
       <SettingsPageHeader title={t('Key Details')} data-test-id="key-details" />
-      <ProjectPermissionAlert margin={false} project={project} />
+      <ProjectPermissionAlert project={project} />
       <KeyStats api={api} organization={organization} params={params} theme={theme} />
       <KeySettings
         data={projKeyData}

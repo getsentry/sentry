@@ -41,7 +41,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
     <Fragment>
       <SentryDocumentTitle title={title} projectSlug={projectSlug} />
       <SettingsPageHeader title={title} />
-      <ProjectPermissionAlert margin={false} project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <Form
         saveOnBlur

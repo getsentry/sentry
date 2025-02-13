@@ -177,7 +177,7 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <Alert margin={false} type="info">
+          <Alert type="info">
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentrygin]!",
               {code: <code />}

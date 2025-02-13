@@ -198,7 +198,7 @@ function TeamNotificationSettings() {
       <SentryDocumentTitle
         title={t('%s Team Notification Settings', `#${params.teamId}`)}
       />
-      <ProjectPermissionAlert margin={false} access={['team:write']} team={team} />
+      <ProjectPermissionAlert access={['team:write']} team={team} />
       <Panel>
         <PanelHeader>{t('Notifications')}</PanelHeader>
         <PanelBody>

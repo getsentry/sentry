@@ -253,7 +253,7 @@ function SudoModal({
               : t('You will need to reauthenticate to continue')}
           </StyledTextBlock>
           {error && (
-            <Alert margin={false} type="error" showIcon>
+            <Alert type="error" showIcon>
               {errorType}
             </Alert>
           )}
@@ -306,7 +306,7 @@ function SudoModal({
         </StyledTextBlock>
 
         {error && (
-          <Alert margin={false} type="error" showIcon>
+          <Alert type="error" showIcon>
             {errorType}
           </Alert>
         )}

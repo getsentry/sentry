@@ -110,13 +110,13 @@ export default function PluginConfig({
       </PanelHeader>
 
       {plugin.status === 'beta' && (
-        <PanelAlert margin={false} type="warning">
+        <PanelAlert type="warning">
           {t('This plugin is considered beta and may change in the future.')}
         </PanelAlert>
       )}
 
       {testResults !== '' && (
-        <PanelAlert margin={false} type="info">
+        <PanelAlert type="info">
           <strong>Test Results</strong>
           <div>{testResults}</div>
         </PanelAlert>

@@ -159,7 +159,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
 
       {organization.features.includes('symbol-sources') && (
         <Fragment>
-          <ProjectPermissionAlert margin={false} project={project} />
+          <ProjectPermissionAlert project={project} />
 
           {isLoadingSymbolSources ? (
             <LoadingIndicator />

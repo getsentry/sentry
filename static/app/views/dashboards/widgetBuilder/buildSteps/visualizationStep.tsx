@@ -134,9 +134,7 @@ export function VisualizationStep({
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
             typeof errorMessage === 'string' && (
-              <PanelAlert margin={false} type="error">
-                {errorMessage}
-              </PanelAlert>
+              <PanelAlert type="error">{errorMessage}</PanelAlert>
             )
           }
           isWidgetInvalid={isWidgetInvalid}

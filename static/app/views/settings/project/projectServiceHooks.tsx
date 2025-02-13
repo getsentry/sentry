@@ -139,7 +139,7 @@ function ProjectServiceHooks() {
       <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert margin={false} type="info" showIcon>
+          <PanelAlert type="info" showIcon>
             {t(
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}

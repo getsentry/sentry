@@ -73,7 +73,7 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
           </LinkButton>
         }
       />
-      <ProjectPermissionAlert margin={false} project={project} />
+      <ProjectPermissionAlert project={project} />
       <ReplaySettingsAlert />
 
       <Form

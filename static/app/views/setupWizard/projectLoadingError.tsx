@@ -39,7 +39,6 @@ export function ProjectLoadingError({
   if (code === 'sso-required' && ssoLoginUrl) {
     return (
       <Alert
-        margin={false}
         type="error"
         showIcon
         trailingItems={

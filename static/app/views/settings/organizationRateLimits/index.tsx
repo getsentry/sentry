@@ -13,7 +13,7 @@ function OrganizationRateLimitsContainer(
   return props.organization.access.includes('org:write') ? (
     <OrganizationRateLimits {...props} />
   ) : (
-    <OrganizationPermissionAlert margin={false} />
+    <OrganizationPermissionAlert />
   );
 }
 

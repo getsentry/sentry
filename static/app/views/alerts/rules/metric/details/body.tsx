@@ -139,7 +139,7 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <Alert margin={false} type="warning" showIcon>
+          <Alert type="warning" showIcon>
             {t('Alert Rule settings have been updated since this alert was triggered.')}
           </Alert>
         </StyledLayoutBody>

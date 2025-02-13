@@ -29,7 +29,7 @@ export default function ReplayProcessingError({className}: Props) {
   }, [sdk]);
 
   return (
-    <StyledAlert margin={false} type="error" showIcon className={className}>
+    <StyledAlert type="error" showIcon className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
       <p>{t('The replay you are looking for was not found.')}</p>
       <p>{t('The replay might be missing events or metadata.')}</p>

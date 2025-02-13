@@ -81,7 +81,6 @@ export default function AnomalyDetectionFeedbackBanner({
   }
   return (
     <StyledAlert
-      margin={false}
       type="info"
       trailingItems={
         <Fragment>

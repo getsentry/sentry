@@ -136,7 +136,7 @@ function Content() {
                 <DatePageFilter defaultPeriod="2h" />
               </PageFilterBar>
               {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
-                <Alert margin={false} type="error" showIcon>
+                <Alert type="error" showIcon>
                   {tracesQuery.error?.responseJSON?.detail}
                 </Alert>
               ) : null}

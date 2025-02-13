@@ -79,7 +79,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
         )}
       </TextBlock>
 
-      <ProjectPermissionAlert margin={false} project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <Form
         saveOnBlur

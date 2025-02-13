@@ -183,7 +183,7 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <Alert margin={false} type="info">
+                  <Alert type="info">
                     {t(
                       'Profiling for .NET Framework and .NET on Android are not supported.'
                     )}
