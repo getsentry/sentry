@@ -95,7 +95,7 @@ export default function DetectorsList() {
           lastSeen: new Date().toString(),
         },
       ],
-      id: '456',
+      id: '789',
       link: 'hello.com',
       name: 'Sample Detector 3',
       project: {

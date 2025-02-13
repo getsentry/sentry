@@ -48,24 +48,22 @@ export function DetectorListRow({
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
       <Flex justify="space-between">
-        <Flex flex={1}>
-          <StyledCheckbox
-            checked={selected}
-            onChange={() => {
-              handleSelect(id, !selected);
-            }}
+        <StyledCheckbox
+          checked={selected}
+          onChange={() => {
+            handleSelect(id, !selected);
+          }}
+        />
+        <CellWrapper>
+          <StyledTitleCell
+            name={name}
+            project={project}
+            link={link}
+            details={details}
+            disabled={disabled}
           />
-          <CellWrapper>
-            <StyledTitleCell
-              name={name}
-              project={project}
-              link={link}
-              details={details}
-              disabled={disabled}
-            />
-          </CellWrapper>
-        </Flex>
-        <StyledEmptyCell />
+        </CellWrapper>
+        <StyledGraphCell />
       </Flex>
       <CellWrapper className="last-issue">
         <StyledIssueCell
@@ -89,12 +87,12 @@ export function DetectorListRow({
 
 const StyledCheckbox = styled(Checkbox)<{checked?: boolean}>`
   visibility: ${p => (p.checked ? 'visible' : 'hidden')};
+  align-self: flex-start;
   opacity: 1;
 `;
 
-const StyledEmptyCell = styled(EmptyCell)`
+const StyledGraphCell = styled(EmptyCell)`
   width: 35%;
-  padding: 0 ${space(2)};
 `;
 
 const CellWrapper = styled(Flex)`
@@ -113,17 +111,25 @@ const StyledIssueCell = styled(IssueCell)`
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
+  display: grid;
   position: relative;
   align-items: center;
   padding: ${space(2)};
-  opacity: ${p => (p.disabled ? 0.6 : 1)};
-  display: grid;
+
+  ${p =>
+    p.disabled &&
+    `
+      ${CellWrapper}, ${StyledGraphCell} {
+        opacity: 0.6;
+      }
+    `}
 
   &:hover {
     ${StyledCheckbox} {
       visibility: visible;
     }
   }
+
   .open-issues,
   .last-issue,
   .connected-automations {
