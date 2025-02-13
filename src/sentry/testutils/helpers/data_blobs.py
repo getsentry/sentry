@@ -1,3 +1,5 @@
+from typing import Any
+
 """
 Contains data blobs that we store in the Rule.action json field.
 
@@ -753,7 +755,7 @@ JIRA_SERVER_ACTION_DATA_BLOBS = [
     },
 ]
 
-EMAIL_ACTION_DATA_BLOBS = [
+EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
     # IssueOwners (targetIdentifier is "None")
     {
         "targetType": "IssueOwners",

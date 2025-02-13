@@ -583,7 +583,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             build_notification_actions_from_rule_data_actions(action_data)
 
     def test_email_migration(self):
-        action_data: list[dict[str, Any]] = EMAIL_ACTION_DATA_BLOBS
+        action_data = EMAIL_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(
