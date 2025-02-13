@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import color from 'color';
 
 import commonTheme, {
@@ -11,7 +12,6 @@ import commonTheme, {
   generateThemePrismVariables,
   generateThemeUtils,
   lightTheme,
-  type SentryTheme,
 } from 'sentry/utils/theme';
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
@@ -721,7 +721,7 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-export const lightChonkTheme: SentryTheme = {
+export const lightChonkTheme: Theme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -761,7 +761,7 @@ export const lightChonkTheme: SentryTheme = {
   },
 };
 
-export const darkChonkTheme: SentryTheme = {
+export const darkChonkTheme: Theme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)

@@ -71,6 +71,7 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
     if not stacktrace_paths:
         return []
 
+    code_mappings = []
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
