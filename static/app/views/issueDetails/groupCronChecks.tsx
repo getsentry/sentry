@@ -85,7 +85,7 @@ export default function GroupCronChecks() {
           {key: 'dateCreated', width: 225, name: t('Timestamp')},
           {key: 'status', width: 100, name: t('Status')},
           {key: 'duration', width: 130, name: t('Duration')},
-          {key: 'environment', width: 100, name: t('Environment')},
+          {key: 'environment', width: 120, name: t('Environment')},
           {key: 'monitorConfig', width: 100, name: t('Config')},
           {key: 'id', width: 100, name: t('ID')},
         ]}
@@ -177,6 +177,7 @@ function CronCheckCell({
     }
     case 'monitorConfig': {
       const config = dataRow[columnKey];
+
       return (
         <HoverableCell>
           <Tooltip
@@ -184,18 +185,15 @@ function CronCheckCell({
             isHoverable
             title={
               <LabelledTooltip>
+                <dt>{t('Schedule')}</dt>
+                <dd>{scheduleAsText(config)}</dd>
                 {defined(config.schedule_type) && (
                   <Fragment>
                     <dt>{t('Schedule Type')}</dt>
                     <dd>{config.schedule_type}</dd>
                   </Fragment>
                 )}
-                {defined(config.schedule) && (
-                  <Fragment>
-                    <dt>{t('Schedule')}</dt>
-                    <dd>{scheduleAsText(config)}</dd>
-                  </Fragment>
-                )}
+
                 {defined(config.checkin_margin) && (
                   <Fragment>
                     <dt>{t('Check-in Margin')}</dt>

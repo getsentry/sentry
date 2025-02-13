@@ -19,15 +19,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
+import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
+import {useMonitorChecks} from 'sentry/views/monitors/utils/useMonitorChecks';
 
 type Props = {
   monitor: Monitor;
@@ -52,24 +52,20 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
-  const queryKey = [
-    `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
-    {
-      query: {
-        per_page: PER_PAGE,
-        environment: monitorEnvs.map(e => e.name),
-        expand: 'groups',
-        ...location.query,
-      },
-    },
-  ] as const;
 
   const {
     data: checkInList,
     getResponseHeader,
     isPending,
     isError,
-  } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
+  } = useMonitorChecks({
+    orgSlug: organization.slug,
+    monitorIdOrSlug: monitor.slug,
+    limit: PER_PAGE,
+    expand: 'groups',
+    environment: monitorEnvs.map(e => e.name),
+    queryParams: {...location.query},
+  });
 
   if (isError) {
     return <LoadingError />;
