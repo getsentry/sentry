@@ -7,6 +7,7 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
+from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -24,6 +25,26 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
         dc = self.create_data_condition(
             type=self.condition,
             comparison={"interval": self.payload["interval"], "value": self.payload["value"]},
+            condition_result=True,
+        )
+
+        results = [self.payload["value"] + 1]
+        self.assert_slow_condition_passes(dc, results)
+
+        results = [self.payload["value"] - 1]
+        self.assert_slow_condition_does_not_pass(dc, results)
+
+    def test_count_with_filters(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "filters": [
+                    {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
+                    {"match": MatchType.IS_SET, "key": "environment"},
+                ],
+            },
             condition_result=True,
         )
 
@@ -85,6 +106,27 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 "interval": self.payload["interval"],
                 "value": self.payload["value"],
                 "comparison_interval": self.payload["comparisonInterval"],
+            },
+            condition_result=True,
+        )
+
+        results = [16, 10]
+        self.assert_slow_condition_passes(dc, results)
+
+        results = [10, 10]
+        self.assert_slow_condition_does_not_pass(dc, results)
+
+    def test_percent_with_filters(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "comparison_interval": self.payload["comparisonInterval"],
+                "filters": [
+                    {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
+                    {"match": MatchType.IS_SET, "key": "environment"},
+                ],
             },
             condition_result=True,
         )
