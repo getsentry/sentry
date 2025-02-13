@@ -3177,6 +3177,10 @@ class UptimeTestCaseMixin:
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
 
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
@@ -3189,7 +3193,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             subscription_id = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
-        optional_fields = {}
+        optional_fields: _OptionalCheckResult = {}
         if uptime_region is not None:
             optional_fields["region"] = uptime_region
         return {
