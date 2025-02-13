@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -215,7 +216,7 @@ def _get_issues_for_file(
     project_ids = [project.id for project in projects]
     multi_if = language_parser.generate_multi_if(function_names)
 
-    # Fetch the roughly-latest event for each group for groups w/ an event where at least one
+    # Fetch the latest event for each group for groups w/ an event where at least one
     # stacktrace frame matches the function names and file names.
     query = (
         Query(Entity("events"))
@@ -224,7 +225,6 @@ def _get_issues_for_file(
                 Column("group_id"),
                 Function("argMax", [Column("event_id"), Column("timestamp")], "event_id"),
                 Function("argMax", [Column("title"), Column("timestamp")], "title"),
-                Function("argMax", [Column("culprit"), Column("timestamp")], "culprit"),
                 Function(
                     "argMax",
                     [Function("multiIf", multi_if), Column("timestamp")],
@@ -252,7 +252,7 @@ def _get_issues_for_file(
                     datetime.now().date() + timedelta(days=1),
                 ),
                 # Apply toStartOfDay to take advantage of the sorting key. TODO: measure w/ and w/o.
-                # Then, for precision, add the granular filters:
+                # Then, for precision, add the granular timestamp filters:
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
                 BooleanCondition(
@@ -297,7 +297,6 @@ def _get_issues_for_file(
 
 
 def _add_event_details(
-    organization_id: int,
     projects: list[Project],
     issues_result_set: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -310,7 +309,7 @@ def _add_event_details(
     events = eventstore.backend.get_events(
         filter=event_filter,
         referrer=Referrer.SEER_RPC.value,
-        tenant_ids={"organization_id": organization_id},
+        tenant_ids={"organization_id": projects[0].organization_id},
     )
     serialized_events = serialize(events, serializer=EventSerializer())
     return [
@@ -325,23 +324,24 @@ def _add_event_details(
 
 
 def _get_issues_with_event_details_for_file(
-    organization_id: int,
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
 ) -> list[dict[str, Any]]:
     issues_result_set = _get_issues_for_file(projects, sentry_filenames, function_names)
-    return _add_event_details(organization_id, projects, issues_result_set)
+    # TODO: there should prolly be a limit on the number of issues we fetch events for.
+    # Maybe 10 is reasonable?
+    return _add_event_details(projects, issues_result_set)
 
 
 def get_issues_related_to_file_patches(
     *, organization_id: int, provider: str, external_id: str, filename_to_patch: dict[str, str]
-) -> dict[str, list[dict[str, Any]]] | None:
+) -> dict[str, list[dict[str, Any]]]:
     """
     Get the top issues related to each file by looking at matches between functions in the patch
     and functions in the issue's event's stacktrace.
 
-    Each issue includes its roughly-latest serialized event.
+    Each issue includes its latest serialized event.
     """
 
     try:
@@ -357,7 +357,8 @@ def get_issues_related_to_file_patches(
                 "external_id": external_id,
             },
         )
-        return None
+        return {}
+
     repo_id = repo.id
 
     pullrequest_files = [
@@ -389,14 +390,14 @@ def get_issues_related_to_file_patches(
             continue
 
         issues = _get_issues_with_event_details_for_file(
-            organization_id, list(projects), list(sentry_filenames), list(function_names)
+            list(projects), list(sentry_filenames), list(function_names)
         )
         filename_to_issues[file.filename] = issues
 
     return filename_to_issues
 
 
-seer_method_registry = {
+seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
