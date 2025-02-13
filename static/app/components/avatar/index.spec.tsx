@@ -11,6 +11,7 @@ import AvatarComponent from 'sentry/components/avatar';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Avatar} from 'sentry/types/core';
+import {SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 
 describe('Avatar', function () {
   const avatar: Avatar = {
@@ -239,12 +240,14 @@ describe('Avatar', function () {
         avatarType: 'upload' as const,
         avatarUrl: 'https://sentry.io/sentry-app-avatar/abc/',
         color: true,
+        photoType: SentryAppAvatarPhotoType.LOGO,
       };
       const simpleAvatar = {
         avatarUuid: 'def',
         avatarType: 'upload' as const,
         avatarUrl: 'https://sentry.io/sentry-app-avatar/def/',
         color: false,
+        photoType: SentryAppAvatarPhotoType.ICON,
       };
 
       const sentryApp = SentryAppFixture({
@@ -275,6 +278,7 @@ describe('Avatar', function () {
         avatarType: 'upload' as const,
         avatarUrl: 'https://sentry.io/sentry-app-avatar/abc/',
         color: true,
+        photoType: SentryAppAvatarPhotoType.LOGO,
       };
       const sentryApp = SentryAppFixture({avatars: []});
 
