@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import sys
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
@@ -14,6 +14,7 @@ from rest_framework.request import Request
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
 from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -222,7 +223,16 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         return None
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    num_of_spans = len(event["spans"])
+    if isinstance(event["spans"], AnnotatedValue):
+        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
+        # complain. The TypeError should be unreachable.
+        if isinstance(event["spans"].value, Sized):
+            num_of_spans = len(event["spans"].value)
+        else:
+            raise TypeError("Expected a list of spans.")
+    else:
+        num_of_spans = len(event["spans"])
+
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
