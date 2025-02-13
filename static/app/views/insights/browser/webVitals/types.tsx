@@ -41,6 +41,7 @@ type Score = {
 };
 
 export type SpanSampleRow = {
+  id: string;
   'profile.id': string;
   projectSlug: string;
   replayId: string;

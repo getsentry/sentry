@@ -1,8 +1,15 @@
+import {defined} from 'sentry/utils';
 import {
+  CLS_SPANS_FILTER,
   INTERACTION_SPANS_FILTER,
+  LCP_SPANS_FILTER,
+  SPANS_FILTER,
   useSpanSamplesWebVitalsQuery,
 } from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
-import type {SpanSampleRowWithScore} from 'sentry/views/insights/browser/webVitals/types';
+import type {
+  SpanSampleRowWithScore,
+  WebVitals,
+} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
@@ -15,35 +22,51 @@ type Props = {
   enabled: boolean;
   subregions: SubregionCode[];
   transaction: string;
+  webVital: WebVitals | null;
 };
 
-export function useInteractionsCategorizedSamplesQuery({
+export function useSpanSamplesCategorizedQuery({
   transaction,
   enabled,
   browserTypes,
   subregions,
+  webVital,
 }: Props) {
+  const webVitalFilter =
+    webVital === 'inp'
+      ? INTERACTION_SPANS_FILTER
+      : webVital === 'lcp'
+        ? LCP_SPANS_FILTER
+        : webVital === 'cls'
+          ? CLS_SPANS_FILTER
+          : SPANS_FILTER;
   const {data: goodData, isFetching: isGoodDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
-    enabled,
+    enabled: enabled && defined(webVital),
     limit: 3,
-    filter: `measurements.inp:<${PERFORMANCE_SCORE_P90S.inp} ${INTERACTION_SPANS_FILTER}`,
+    filter: defined(webVital)
+      ? `measurements.${webVital}:<${PERFORMANCE_SCORE_P90S[webVital]} ${webVitalFilter}`
+      : undefined,
     browserTypes,
     subregions,
   });
   const {data: mehData, isFetching: isMehDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
-    enabled,
+    enabled: enabled && defined(webVital),
     limit: 3,
-    filter: `measurements.inp:>=${PERFORMANCE_SCORE_P90S.inp} measurements.inp:<${PERFORMANCE_SCORE_MEDIANS.inp} ${INTERACTION_SPANS_FILTER}`,
+    filter: defined(webVital)
+      ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_P90S[webVital]} measurements.${webVital}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} ${webVitalFilter}`
+      : undefined,
     browserTypes,
     subregions,
   });
   const {data: poorData, isFetching: isBadDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
-    enabled,
+    enabled: enabled && defined(webVital),
     limit: 3,
-    filter: `measurements.inp:>=${PERFORMANCE_SCORE_MEDIANS.inp} ${INTERACTION_SPANS_FILTER}`,
+    filter: defined(webVital)
+      ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]} ${webVitalFilter}`
+      : undefined,
     browserTypes,
     subregions,
   });
@@ -52,12 +75,12 @@ export function useInteractionsCategorizedSamplesQuery({
 
   const isLoading = isGoodDataLoading || isMehDataLoading || isBadDataLoading;
 
-  const interactionsTableData: SpanSampleRowWithScore[] = data.sort(
+  const spanSamplesTableData: SpanSampleRowWithScore[] = data.sort(
     (a, b) => a.totalScore - b.totalScore
   );
 
   return {
-    data: interactionsTableData,
+    data: spanSamplesTableData,
     isLoading,
   };
 }
