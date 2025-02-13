@@ -9,6 +9,7 @@ import sentry_sdk
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule, RuleSource
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.types.rules import RuleFuture
 from sentry.utils.registry import Registry
@@ -20,6 +21,9 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     DiscordDataBlob,
+    EmailActionHelper,
+    EmailDataBlob,
+    EmailFieldMappingKeys,
     OnCallDataBlob,
     SlackDataBlob,
     TicketFieldMappingKeys,
@@ -260,5 +264,48 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,
             **additional_fields,
         }
+
+        return final_blob
+
+
+@issue_alert_handler_registry.register(Action.Type.EMAIL)
+class EmailIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        # this would be when the target_type is IssueOwners
+        if action.target_identifier is None:
+            if action.target_type != ActionTarget.ISSUE_OWNERS.value:
+                raise ValueError(
+                    f"No target identifier found for {action.type} action {action.id}, target_type: {action.target_type}"
+                )
+            return {}
+        else:
+            return {
+                mapping[
+                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                ]: action.target_identifier
+            }
+
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        target_type = ActionTarget(action.target_type).value
+
+        final_blob = {
+            EmailFieldMappingKeys.TARGET_TYPE_KEY.value: EmailActionHelper.get_target_type_string(
+                target_type
+            ),
+        }
+
+        if target_type == ActionTarget.ISSUE_OWNERS.value:
+            blob = EmailDataBlob(**action.data)
+            final_blob[EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value] = blob.fallthroughType
 
         return final_blob

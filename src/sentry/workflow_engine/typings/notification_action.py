@@ -47,6 +47,15 @@ class TicketFieldMappingKeys(StrEnum):
     ADDITIONAL_FIELDS_KEY = "additional_fields"
 
 
+class EmailFieldMappingKeys(StrEnum):
+    """
+    EmailFieldMappingKeys is an enum that represents the keys of an email field mapping.
+    """
+
+    FALLTHROUGH_TYPE_KEY = "fallthroughType"
+    TARGET_TYPE_KEY = "targetType"
+
+
 class ActionFieldMapping(TypedDict):
     """Mapping between Action model fields and Rule Action blob fields"""
 
@@ -87,7 +96,6 @@ ACTION_FIELD_MAPPINGS: dict[Action.Type, ActionFieldMapping] = {
     Action.Type.GITHUB: ActionFieldMapping(
         id="sentry.integrations.github.notify_action.GitHubCreateTicketAction",
         integration_id_key="integration",
-        target_identifier_key="repo",
     ),
     Action.Type.GITHUB_ENTERPRISE: ActionFieldMapping(
         id="sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
@@ -465,15 +473,35 @@ class JiraServerActionTranslatorBase(TicketActionTranslator):
         return Action.Type.JIRA_SERVER
 
 
+class EmailActionHelper(ABC):
+    target_type_mapping = {
+        ActionTarget.USER: "Member",
+        ActionTarget.TEAM: "Team",
+        ActionTarget.ISSUE_OWNERS: "IssueOwners",
+    }
+
+    reverse_target_type_mapping = {v: k for k, v in target_type_mapping.items()}
+
+    @staticmethod
+    def get_target_type_object(target_type: str) -> ActionTarget:
+        return EmailActionHelper.reverse_target_type_mapping[target_type]
+
+    @staticmethod
+    def get_target_type_string(target_type: ActionTarget) -> str:
+        return EmailActionHelper.target_type_mapping[target_type]
+
+
 @issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.EMAIL]["id"])
-class EmailActionTranslator(BaseActionTranslator):
+class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
     @property
     def action_type(self) -> Action.Type:
         return Action.Type.EMAIL
 
     @property
     def required_fields(self) -> list[str]:
-        return ["targetType"]
+        return [
+            EmailFieldMappingKeys.TARGET_TYPE_KEY.value,
+        ]
 
     @property
     def target_type(self) -> ActionTarget:
@@ -481,16 +509,14 @@ class EmailActionTranslator(BaseActionTranslator):
         # if the targetType is Team, then set the target_type to Team,
         # otherwise return None (this would be for IssueOwners (suggested assignees))
 
-        target_type = self.action.get("targetType")
-        if target_type == ActionTargetType.MEMBER.value:
-            return ActionTarget.USER
-        elif target_type == ActionTargetType.TEAM.value:
-            return ActionTarget.TEAM
-        return ActionTarget.ISSUE_OWNERS
+        if (target_type := self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)) is None:
+            raise ValueError("Target type is required for email actions")
+
+        return EmailActionHelper.get_target_type_object(target_type)
 
     @property
     def target_identifier(self) -> str | None:
-        target_type = self.action.get("targetType")
+        target_type = self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
             return self.action.get(
                 ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
@@ -501,7 +527,7 @@ class EmailActionTranslator(BaseActionTranslator):
 
     @property
     def blob_type(self) -> type[DataBlob] | None:
-        target_type = self.action.get("targetType")
+        target_type = self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
         if target_type == ActionTargetType.ISSUE_OWNERS.value:
             return EmailDataBlob
         return None
@@ -510,12 +536,16 @@ class EmailActionTranslator(BaseActionTranslator):
         """
         Override to handle the special case of IssueOwners target type
         """
-        if self.action.get("targetType") == ActionTargetType.ISSUE_OWNERS.value:
+        if (
+            self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
+            == ActionTargetType.ISSUE_OWNERS.value
+        ):
             return dataclasses.asdict(
                 EmailDataBlob(
                     fallthroughType=self.action.get(
-                        "fallthroughType", FallthroughChoiceType.ACTIVE_MEMBERS.value
-                    )
+                        EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
+                        FallthroughChoiceType.ACTIVE_MEMBERS.value,
+                    ),
                 )
             )
         return {}
