@@ -1712,6 +1712,12 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
 EAP_COLUMNS = [
     "span.duration",
     "span.self_time",
+    "ai.total_tokens.used",
+    "ai.total_cost",
+    "cache.item_size",
+    "http.decoded_response_content_length",
+    "http.response_content_length",
+    "http.response_transfer_size",
 ]
 EAP_FUNCTIONS = [
     "count",
@@ -1724,6 +1730,7 @@ EAP_FUNCTIONS = [
     "p100",
     "max",
     "min",
+    "sum",
 ]
 
 
