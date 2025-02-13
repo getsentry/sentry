@@ -116,6 +116,50 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
             assert response.json()["provider"] == ['"other" is not a valid choice.']
             assert response.json()["secret"] == ["Ensure this field has at least 32 characters."]
 
+    def test_post_invalid_secret(self):
+        with self.feature(self.features):
+            for provider in ["launchdarkly", "generic", "unleash"]:
+                response = self.client.post(
+                    self.url, data={"secret": "a" * 31, "provider": provider}
+                )
+                assert response.status_code == 400, response.content
+                assert response.json()["secret"] == [
+                    "Ensure this field has at least 32 characters."
+                ], provider
+
+                response = self.client.post(
+                    self.url, data={"secret": "a" * 33, "provider": provider}
+                )
+                assert response.status_code == 400, response.content
+                assert response.json()["secret"] == [
+                    "Ensure this field has no more than 32 characters."
+                ], provider
+
+            # Statsig
+            response = self.client.post(self.url, data={"secret": "a" * 32, "provider": "statsig"})
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field is of the format webhook-<hash>"
+            ], "statsig"
+
+            response = self.client.post(
+                self.url,
+                data={"secret": "webhook-" + "a" * (31 - len("webhook-")), "provider": "statsig"},
+            )
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field has at least 32 characters."
+            ], "statsig"
+
+            response = self.client.post(
+                self.url,
+                data={"secret": "webhook-" + "a" * (65 - len("webhook-")), "provider": "statsig"},
+            )
+            assert response.status_code == 400, response.content
+            assert response.json()["secret"] == [
+                "Ensure this field has no more than 64 characters."
+            ], "statsig"
+
     def test_post_empty_request(self):
         with self.feature(self.features):
             response = self.client.post(self.url, data={})
