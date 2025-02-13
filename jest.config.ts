@@ -1,5 +1,5 @@
 import type {Config} from '@jest/types';
-const {execFile} = require('node:child_process');
+const {execFileSync} = require('node:child_process');
 import path from 'node:path';
 import process from 'node:process';
 
@@ -39,7 +39,9 @@ if (!!JEST_TEST_BALANCER && !CI) {
   );
 }
 
-execFile(
+let JEST_TESTS;
+
+execFileSync(
   'yarn',
   ['-s', 'jest', '--listTests', '--json'],
   {encoding: 'utf-8'},
@@ -54,7 +56,7 @@ ${stdout}
 stderr:
 ${stderr}`);
     }
-    const JEST_TESTS = JSON.parse(stdout);
+    JEST_TESTS = JSON.parse(stdout);
   }
 );
 
@@ -183,16 +185,16 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
+  const testList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
   if (balance) {
     optionalTags.balancer = true;
     optionalTags.balancer_strategy = 'by_path';
-    testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+    testMatch = getTestsForGroup(nodeIndex, nodeTotal, testList, balance);
   } else {
-    const tests = envTestList.sort((a, b) => b.localeCompare(a));
+    const tests = testList.sort((a, b) => b.localeCompare(a));
 
     const length = tests.length;
     const size = Math.floor(length / nodeTotal);
