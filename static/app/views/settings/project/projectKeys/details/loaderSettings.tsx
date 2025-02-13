@@ -283,5 +283,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 }
 
 function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
-  return sdkVersion === 'latest' || sdkVersion === '7.x' || sdkVersion === '8.x';
+  return (
+    sdkVersion === 'latest' ||
+    sdkVersion === '7.x' ||
+    sdkVersion === '8.x' ||
+    sdkVersion === '9.x'
+  );
 }
