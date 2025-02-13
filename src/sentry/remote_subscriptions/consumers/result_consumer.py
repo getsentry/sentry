@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import abc
 import logging
+import multiprocessing
 from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
+from functools import partial
 from typing import Generic, Literal, TypeVar
 
 import sentry_sdk
@@ -108,6 +110,8 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
                 metric_tags["workers"] = str(max_workers)
         if mode == "parallel":
             self.parallel = True
+            if num_processes is None:
+                num_processes = multiprocessing.cpu_count()
             self.multiprocessing_pool = MultiprocessingPool(num_processes)
 
         metrics.incr(
@@ -126,7 +130,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.output_block_size = output_block_size
 
         self.result_processor = self.result_processor_cls()
-        self.codec = get_topic_codec(self.topic_for_codec)
 
     @property
     @abc.abstractmethod
@@ -158,17 +161,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         if self.parallel_executor:
             self.parallel_executor.shutdown()
 
-    def decode_payload(self, payload: KafkaPayload | FilteredPayload) -> T | None:
-        assert not isinstance(payload, FilteredPayload)
-        try:
-            return self.codec.decode(payload.value)
-        except Exception:
-            logger.exception(
-                "Failed to decode message payload",
-                extra={"payload": payload.value},
-            )
-        return None
-
     def create_with_partitions(
         self,
         commit: Commit,
@@ -181,21 +173,16 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         else:
             return self.create_serial_worker(commit)
 
-    def process_single(self, message: Message[KafkaPayload | FilteredPayload]):
-        result = self.decode_payload(message.payload)
-        if result is not None:
-            self.result_processor(result)
-
     def create_serial_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=self.process_single,
+            function=partial(process_single, self.result_processor, self.topic_for_codec),
             next_step=CommitOffsets(commit),
         )
 
     def create_multiprocess_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.multiprocessing_pool is not None
         return run_task_with_multiprocessing(
-            function=self.process_single,
+            function=partial(process_single, self.result_processor, self.topic_for_codec),
             next_step=CommitOffsets(commit),
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -227,7 +214,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         for item in batch:
             assert isinstance(item, BrokerValue)
 
-            result = self.decode_payload(item.payload)
+            result = decode_payload(self.topic_for_codec, item.payload)
             if result is None:
                 continue
 
@@ -277,3 +264,27 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         """
         for item in items:
             self.result_processor(item)
+
+
+def decode_payload(topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
+    assert not isinstance(payload, FilteredPayload)
+
+    try:
+        codec = get_topic_codec(topic_for_codec)
+        return codec.decode(payload.value)
+    except Exception:
+        logger.exception(
+            "Failed to decode message payload",
+            extra={"payload": payload.value},
+        )
+    return None
+
+
+def process_single(
+    result_processor: ResultProcessor,
+    topic: Topic,
+    message: Message[KafkaPayload | FilteredPayload],
+):
+    result = decode_payload(topic, message.payload)
+    if result is not None:
+        result_processor(result)
