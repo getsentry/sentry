@@ -312,3 +312,18 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
             final_blob[EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value] = blob.fallthroughType
 
         return final_blob
+
+
+@issue_alert_handler_registry.register(Action.Type.PLUGIN)
+class PluginIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
