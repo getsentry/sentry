@@ -231,7 +231,8 @@ const GraphSection = styled('div')`
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   grid-area: timeline;
-  padding: ${space(2)} 0 0 ${space(2)};
+  padding: ${space(1)};
+  padding-left: 0;
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }

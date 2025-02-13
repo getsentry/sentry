@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import Link from 'sentry/components/links/link';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -115,17 +115,14 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
   return items.length > 0 ? (
     <div className={className}>
-      {items.map((item, i) => (
-        <Item key={i}>{item}</Item>
-      ))}
+      <ScrollCarousel gap={3} aria-label={t('Occurrence summary')} className={className}>
+        {items.map((item, i) => (
+          <div key={i}>{item}</div>
+        ))}
+      </ScrollCarousel>
     </div>
   ) : null;
 }
-
-const Item = styled('div')`
-  display: inline-block;
-  margin: 0 ${space(4)} ${space(2)} 0;
-`;
 
 const ItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
