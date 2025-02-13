@@ -11,6 +11,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.processing.processor import activate_downstream_actions
+from sentry.sentry_apps.services.app import app_service
 from sentry.types.rules import RuleFuture
 from sentry.utils.registry import Registry
 from sentry.utils.safe import safe_execute
@@ -25,6 +26,7 @@ from sentry.workflow_engine.typings.notification_action import (
     EmailDataBlob,
     EmailFieldMappingKeys,
     OnCallDataBlob,
+    SentryAppDataBlob,
     SlackDataBlob,
     TicketFieldMappingKeys,
     TicketingActionDataBlobHelper,
@@ -39,7 +41,9 @@ class BaseIssueAlertHandler(ABC):
     """
 
     @staticmethod
-    def get_integration_id(action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_integration_id(
+        action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.INTEGRATION_ID_KEY.value):
             if action.integration_id is None:
                 raise ValueError(f"No integration id found for action type: {action.type}")
@@ -47,7 +51,9 @@ class BaseIssueAlertHandler(ABC):
         raise ValueError(f"No integration id key found for action type: {action.type}")
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
             if action.target_identifier is None:
                 raise ValueError(f"No target identifier found for action type: {action.type}")
@@ -59,7 +65,9 @@ class BaseIssueAlertHandler(ABC):
         raise ValueError(f"No target identifier key found for action type: {action.type}")
 
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value):
             if action.target_display is None:
                 raise ValueError(f"No target display found for action type: {action.type}")
@@ -67,7 +75,9 @@ class BaseIssueAlertHandler(ABC):
         raise ValueError(f"No target display key found for action type: {action.type}")
 
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         """Add additional fields to the blob"""
         return {}
 
@@ -75,6 +85,7 @@ class BaseIssueAlertHandler(ABC):
     def build_rule_action_blob(
         cls,
         action: Action,
+        detector: Detector,
     ) -> dict[str, Any]:
         """Build the base action blob using the standard mapping"""
         mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
@@ -83,10 +94,10 @@ class BaseIssueAlertHandler(ABC):
         blob: dict[str, Any] = {
             "id": mapping["id"],
         }
-        blob.update(cls.get_integration_id(action, mapping))
-        blob.update(cls.get_target_identifier(action, mapping))
-        blob.update(cls.get_target_display(action, mapping))
-        blob.update(cls.get_additional_fields(action, mapping))
+        blob.update(cls.get_integration_id(action, mapping, detector))
+        blob.update(cls.get_target_identifier(action, mapping, detector))
+        blob.update(cls.get_target_display(action, mapping, detector))
+        blob.update(cls.get_additional_fields(action, mapping, detector))
         return blob
 
     @classmethod
@@ -113,7 +124,7 @@ class BaseIssueAlertHandler(ABC):
             project=detector.project,
             environment_id=environment_id,
             label=detector.name,
-            data={"actions": [cls.build_rule_action_blob(action)]},
+            data={"actions": [cls.build_rule_action_blob(action, detector)]},
             status=ObjectStatus.ACTIVE,
             source=RuleSource.ISSUE,
         )
@@ -190,12 +201,16 @@ issue_alert_handler_registry = Registry[BaseIssueAlertHandler](enable_reverse_lo
 @issue_alert_handler_registry.register(Action.Type.DISCORD)
 class DiscordIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         blob = DiscordDataBlob(**action.data)
         return {"tags": blob.tags}
 
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
 
@@ -207,7 +222,9 @@ class MSTeamsIssueAlertHandler(BaseIssueAlertHandler):
 @issue_alert_handler_registry.register(Action.Type.SLACK)
 class SlackIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         blob = SlackDataBlob(**action.data)
         return {
             "tags": blob.tags,
@@ -218,11 +235,15 @@ class SlackIssueAlertHandler(BaseIssueAlertHandler):
 @issue_alert_handler_registry.register(Action.Type.PAGERDUTY)
 class PagerDutyIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         blob = OnCallDataBlob(**action.data)
         return {"severity": blob.priority}
 
@@ -230,11 +251,15 @@ class PagerDutyIssueAlertHandler(BaseIssueAlertHandler):
 @issue_alert_handler_registry.register(Action.Type.OPSGENIE)
 class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         blob = OnCallDataBlob(**action.data)
         return {"priority": blob.priority}
 
@@ -246,15 +271,21 @@ class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
 @issue_alert_handler_registry.register(Action.Type.JIRA_SERVER)
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         # Use helper to separate fields
         dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
             action.data
@@ -271,15 +302,21 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
 @issue_alert_handler_registry.register(Action.Type.EMAIL)
 class EmailIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_integration_id(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         # this would be when the target_type is IssueOwners
         if action.target_identifier is None:
             if action.target_type != ActionTarget.ISSUE_OWNERS.value:
@@ -295,7 +332,9 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
             }
 
     @classmethod
-    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         if action.target_type is None:
             raise ValueError(f"No target type found for {action.type} action {action.id}")
 
@@ -317,24 +356,101 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
 @issue_alert_handler_registry.register(Action.Type.PLUGIN)
 class PluginIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_integration_id(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
 
 @issue_alert_handler_registry.register(Action.Type.WEBHOOK)
 class WebhookIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
-    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_integration_id(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
-    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
+        return {}
+
+
+@issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
+class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
+        if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
+            if action.target_identifier is None:
+                raise ValueError(f"No target identifier found for action type: {action.type}")
+
+            sentry_app_id = action.target_identifier
+
+            # TODO(iamrajjoshi): Remove this check once we make the project FK on the Detector model non-nullable
+            if not detector.project:
+                raise ValueError(
+                    f"No project found for action type: {action.type}, target_identifier: {sentry_app_id}"
+                )
+
+            sentry_app_installations = app_service.get_many(
+                filter=dict(
+                    app_ids=[sentry_app_id], organization_id=detector.project.organization.id
+                )
+            )
+
+            if len(sentry_app_installations) != 1:
+                raise ValueError(
+                    f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {sentry_app_id}, but got {len(sentry_app_installations)}"
+                )
+
+            sentry_app_installation = sentry_app_installations[0]
+
+            if sentry_app_installation is None:
+                raise ValueError(
+                    f"Sentry app not found for action type: {action.type}, target_identifier: {sentry_app_id}"
+                )
+
+            return {
+                mapping[
+                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                ]: sentry_app_installation.uuid
+            }
+        raise ValueError(f"No target identifier key found for action type: {action.type}")
+
+    @classmethod
+    def get_additional_fields(
+        cls, action: Action, mapping: ActionFieldMapping, detector: Detector
+    ) -> dict[str, Any]:
+        # Need to check for the settings key, if it exists, then we need to return the settings
+        # It won't exist for legacy webhook actions, but will exist for sentry app actions
+        if action.data.get("settings"):
+            blob = SentryAppDataBlob(**action.data)
+            return {"settings": blob.settings}
         return {}
