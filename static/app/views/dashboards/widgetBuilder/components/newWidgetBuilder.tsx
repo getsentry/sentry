@@ -6,6 +6,11 @@ import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -424,14 +429,13 @@ const ContainerWithoutSidebar = styled('div')<{sidebarCollapsed: boolean}>`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   position: fixed;
   top: 0;
-  left: ${p =>
-    p.sidebarCollapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth};
+  left: ${p => (p.sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH)};
   right: 0;
   bottom: 0;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     left: 0;
-    top: ${p => p.theme.sidebar.mobileHeight};
+    top: ${SIDEBAR_MOBILE_HEIGHT};
   }
 `;
 

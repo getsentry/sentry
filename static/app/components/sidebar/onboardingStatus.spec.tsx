@@ -127,7 +127,7 @@ describe('Onboarding Status', function () {
     expect(screen.queryByTestId('pending-seen-indicator')).not.toBeInTheDocument();
 
     // Shows the panel
-    expect(screen.getByText('Quick Setup')).toBeInTheDocument();
+    expect(screen.getAllByText('Onboarding')).toHaveLength(2);
 
     // Triggers a fetch request
     expect(getOnboardingTasksMock).toHaveBeenCalled();

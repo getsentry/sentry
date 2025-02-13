@@ -66,7 +66,7 @@ export default function getGuidesContent(
           ),
         },
         {
-          title: t('Quick Setup'),
+          title: t('Onboarding'),
           target: 'onboarding_sidebar',
           description: t(
             'Walk through this guide to get the most out of Sentry right away.'
@@ -207,6 +207,20 @@ export default function getGuidesContent(
           ),
         },
       ],
+    },
+    {
+      guide: 'issue_views_page_filters_persistence',
+      requiredTargets: ['issue_views_page_filters_persistence'],
+      steps: [
+        {
+          title: t('Save Filters to Issue Views'),
+          target: 'issue_views_page_filters_persistence',
+          description: t(
+            'We heard your feedback — Issue Views now save project, environment, and time range filters.'
+          ),
+        },
+      ],
+      dateThreshold: new Date('2025-02-11'),
     },
   ];
 }

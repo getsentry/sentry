@@ -4,39 +4,10 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCircleFill} from 'sentry/icons/iconCircleFill';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {Color} from 'sentry/utils/theme';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {useHasTraceNewUi} from './useHasTraceNewUi';
-import {useTraceEventView} from './useTraceEventView';
-import {type TraceViewQueryParams, useTraceQueryParams} from './useTraceQueryParams';
-
-function useTraceLevelOpsQuery(
-  traceSlug: string,
-  params: TraceViewQueryParams,
-  partialSavedQuery: Partial<NewQuery>,
-  enabled: boolean
-) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const eventView = useTraceEventView(traceSlug, params, {
-    ...partialSavedQuery,
-    dataset: DiscoverDatasets.SPANS_EAP,
-  });
-
-  return useDiscoverQuery({
-    eventView,
-    orgSlug: organization.slug,
-    location,
-    options: {
-      enabled,
-    },
-  });
-}
 
 function LoadingPlaceHolder() {
   return (
@@ -50,74 +21,44 @@ function LoadingPlaceHolder() {
 
 type Props = {
   isTraceLoading: boolean;
-  traceSlug: string;
+  metaQueryResults: TraceMetaQueryResults;
 };
 
-export function TraceLevelOpsBreakdown({traceSlug, isTraceLoading}: Props) {
+export function TraceLevelOpsBreakdown({metaQueryResults, isTraceLoading}: Props) {
   const hasNewTraceUi = useHasTraceNewUi();
-  const urlParams = useTraceQueryParams();
-  const {
-    data: opsCountsResult,
-    isPending: isOpsCountsLoading,
-    isError: isOpsCountsError,
-  } = useTraceLevelOpsQuery(
-    traceSlug ?? '',
-    urlParams,
-    {
-      fields: ['span.op', 'count()'],
-      orderby: '-count',
-    },
-    hasNewTraceUi
-  );
-  const {
-    data: totalCountResult,
-    isPending: isTotalCountLoading,
-    isError: isTotalCountError,
-  } = useTraceLevelOpsQuery(
-    traceSlug ?? '',
-    urlParams,
-    {
-      fields: ['count()'],
-    },
-    hasNewTraceUi
-  );
 
-  if (!hasNewTraceUi || isOpsCountsError || isTotalCountError) {
+  if (!hasNewTraceUi || metaQueryResults.status === 'error') {
     return null;
   }
 
-  if (isOpsCountsLoading || isTotalCountLoading || isTraceLoading) {
+  if (isTraceLoading || metaQueryResults.status === 'pending') {
     return <LoadingPlaceHolder />;
   }
 
-  const totalCount = totalCountResult?.data[0]?.['count()'] ?? 0;
+  const {span_count, span_count_map} = metaQueryResults.data!;
 
-  if (typeof totalCount !== 'number' || totalCount <= 0) {
+  if (span_count <= 0) {
     return null;
   }
 
   return (
     <Container>
-      {opsCountsResult?.data.slice(0, 4).map(currOp => {
-        const operationName = currOp['span.op'];
-        const count = currOp['count()'];
+      {Object.entries(span_count_map)
+        .sort((a, b) => b[1] - a[1]) // Sort by count
+        .slice(0, 4)
+        .map(([op, count]) => {
+          const percentage = count / span_count;
+          const color = pickBarColor(op);
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
-        if (typeof operationName !== 'string' || typeof count !== 'number') {
-          return null;
-        }
-
-        const percentage = count / totalCount;
-        const color = pickBarColor(operationName);
-        const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-
-        return (
-          <HighlightsOpRow key={operationName}>
-            <IconCircleFill size="xs" color={color as Color} />
-            {operationName}
-            <span>{pctLabel}%</span>
-          </HighlightsOpRow>
-        );
-      })}
+          return (
+            <HighlightsOpRow key={op}>
+              <IconCircleFill size="xs" color={color as Color} />
+              {op}
+              <span>{pctLabel}%</span>
+            </HighlightsOpRow>
+          );
+        })}
     </Container>
   );
 }

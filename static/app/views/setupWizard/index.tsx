@@ -3,7 +3,6 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {t} from 'sentry/locale';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
@@ -38,11 +37,9 @@ function SetupWizard({hash, enableProjectSelection = false}: Props) {
   );
 
   return (
-    <ThemeAndStyleProvider>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </ThemeAndStyleProvider>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   );
 }
 

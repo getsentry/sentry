@@ -11,7 +11,6 @@ from django.db.models import (
     When,
 )
 from drf_spectacular.utils import extend_schema
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, quotas
@@ -53,6 +52,7 @@ from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_create
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
+from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
@@ -102,7 +102,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: AuthenticatedHttpRequest, organization: Organization) -> Response:
         """
         Lists monitors, including nested monitor environments. May be filtered to a project or environment.
         """
@@ -124,9 +124,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         is_asc = request.GET.get("asc", "1") == "1"
         sort = request.GET.get("sort", "status")
 
-        environments = None
-        if "environment" in filter_params:
-            environments = filter_params["environment_objects"]
+        environments = filter_params.get("environment_objects")
+        if environments is not None:
             environment_ids = [e.id for e in environments]
             # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
@@ -187,15 +186,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
 
         if owners:
-            owners = set(owners)
+            owners_set = set(owners)
 
             # Remove special values from owners, this can't be parsed as an Actor
-            include_myteams = "myteams" in owners
-            owners.discard("myteams")
-            include_unassigned = "unassigned" in owners
-            owners.discard("unassigned")
+            include_myteams = "myteams" in owners_set
+            owners_set.discard("myteams")
+            include_unassigned = "unassigned" in owners_set
+            owners_set.discard("unassigned")
 
-            actors = [Actor.from_identifier(identifier) for identifier in owners]
+            actors = [Actor.from_identifier(identifier) for identifier in owners_set]
 
             user_ids = [actor.id for actor in actors if actor.is_user]
             team_ids = [actor.id for actor in actors if actor.is_team]
@@ -219,9 +218,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    text = " ".join(value)
                     queryset = queryset.filter(
-                        Q(name__icontains=value) | Q(id__iexact=value) | Q(slug__icontains=value)
+                        Q(name__icontains=text) | Q(id__iexact=text) | Q(slug__icontains=text)
                     )
                 elif key == "id":
                     queryset = queryset.filter(in_iexact("id", value))
@@ -268,7 +267,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: AuthenticatedHttpRequest, organization) -> Response:
         """
         Create a new monitor.
         """
@@ -338,7 +337,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: AuthenticatedHttpRequest, organization) -> Response:
         """
         Bulk edit the muted and disabled status of a list of monitors determined by slug
         """
@@ -359,7 +358,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         project_ids = [project.id for project in projects]
 
         monitor_guids = result.pop("ids", [])
-        monitors = Monitor.objects.filter(guid__in=monitor_guids, project_id__in=project_ids)
+        monitors = list(Monitor.objects.filter(guid__in=monitor_guids, project_id__in=project_ids))
 
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
