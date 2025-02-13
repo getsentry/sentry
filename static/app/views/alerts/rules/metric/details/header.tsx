@@ -12,6 +12,7 @@ import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -39,11 +40,17 @@ function DetailsHeader({
   const isRuleReady = !!rule && !hasMetricRuleDetailsError;
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink = rule
-    ? `/organizations/${organization.slug}/alerts/metric-rules/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`
+    ? makeAlertsPathname({
+        path: `/metric-rules/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`,
+        organization,
+      })
     : '#';
 
   const duplicateLink = {
-    pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+    pathname: makeAlertsPathname({
+      path: `/new/metric/`,
+      organization,
+    }),
     query: {
       project: project?.slug,
       duplicateRuleId: rule?.id,
@@ -66,7 +73,13 @@ function DetailsHeader({
       <Layout.HeaderContent>
         <Breadcrumbs
           crumbs={[
-            {label: t('Alerts'), to: `/organizations/${organization.slug}/alerts/rules/`},
+            {
+              label: t('Alerts'),
+              to: makeAlertsPathname({
+                path: `/rules/`,
+                organization,
+              }),
+            },
             {
               label: ruleType
                 ? t('%s Metric Alert', AlertWizardAlertNames[ruleType])

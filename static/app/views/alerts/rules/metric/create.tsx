@@ -5,6 +5,7 @@ import {metric} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   createDefaultRule,
   createRuleFromEventView,
@@ -42,10 +43,16 @@ function MetricRulesCreate(props: Props) {
     metric.endSpan({name: 'saveAlertRule'});
     const target = alertRuleId
       ? {
-          pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/details/${alertRuleId}/`,
+            organization,
+          }),
         }
       : {
-          pathname: `/organizations/${organization.slug}/alerts/rules/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/`,
+            organization,
+          }),
           query: {project: project.id},
         };
     router.push(normalizeUrl(target));

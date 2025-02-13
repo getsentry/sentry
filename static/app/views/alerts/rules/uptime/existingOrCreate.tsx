@@ -2,9 +2,9 @@ import {useEffect} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import {CombinedAlertType, type UptimeAlert} from '../../types';
 
@@ -34,26 +34,39 @@ export default function ExistingOrCreate() {
 
     // Has one single alert rule
     if (existingRules.length === 1) {
-      const url = normalizeUrl(
-        `/organizations/${organization.slug}/alerts/uptime-rules/${existingRules[0]?.projectSlug}/${existingRules[0]?.id}/`
-      );
+      const url = makeAlertsPathname({
+        path: `/uptime-rules/${existingRules[0]?.projectSlug}/${existingRules[0]?.id}/`,
+        organization,
+      });
       navigate(url, {replace: true});
       return;
     }
 
     // Has multiple existing alert rules
     if (existingRules.length > 1) {
-      const url = normalizeUrl(
-        `/organizations/${organization.slug}/alerts/rules/?alertType=uptime`
+      const url = makeAlertsPathname({
+        path: `/rules/`,
+        organization,
+      });
+      navigate(
+        {
+          pathname: url,
+          query: {
+            alertType: CombinedAlertType.UPTIME,
+          },
+        },
+        {replace: true}
       );
-      navigate(url, {replace: true});
       return;
     }
 
     // No alert rules, create a new one
-    const url = normalizeUrl(`/organizations/${organization.slug}/alerts/new/uptime/`);
+    const url = makeAlertsPathname({
+      path: `/new/uptime/`,
+      organization,
+    });
     navigate(url, {replace: true});
-  }, [existingRules, isPending, navigate, organization.slug]);
+  }, [existingRules, isPending, navigate, organization]);
 
   return <LoadingIndicator />;
 }
