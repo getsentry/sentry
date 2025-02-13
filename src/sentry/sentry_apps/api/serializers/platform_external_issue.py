@@ -1,10 +1,30 @@
+from collections.abc import Mapping
+from typing import Any, TypedDict
+
 from sentry.api.serializers import Serializer, register
+from sentry.models.team import AnonymousUser
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+
+class PlatformExternalIssueSerializer(TypedDict):
+    id: str
+    issueId: str
+    serviceType: str
+    displayName: str
+    webUrl: str
 
 
 @register(PlatformExternalIssue)
 class PlatformExternalIssueSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: PlatformExternalIssue,
+        attrs: Mapping[str, Any],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> PlatformExternalIssueSerializer:
         return {
             "id": str(obj.id),
             "issueId": str(obj.group_id),

@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,6 +9,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.sentry_apps.api.serializers.platform_external_issue import (
+    PlatformExternalIssueSerializer,
+)
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
 
@@ -15,10 +23,24 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 class GroupExternalIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="Retrieve the custom integrations associated with an issue id",
+        parameters=[IssueParams.ISSUE_ID, GlobalParams.ORG_ID_OR_SLUG],
+        responses={
+            200: inline_sentry_response_serializer(
+                "GroupExternalIssueResponse", Sequence[PlatformExternalIssueSerializer]
+            ),
+        },
+        examples=SentryAppExamples.RETRIEVE_SENTRY_APP,
+    )
     def get(self, request: Request, group) -> Response:
+        """
+        Retrieve the custom integrations associated with an issue
+
+        """
         external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
 
         return self.paginate(
