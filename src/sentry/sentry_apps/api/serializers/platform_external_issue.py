@@ -1,14 +1,15 @@
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
-from sentry.models.team import AnonymousUser
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
-class PlatformExternalIssueSerializer(TypedDict):
+class PlatformExternalIssueSerializerResponse(TypedDict):
     id: str
     issueId: str
     serviceType: str
@@ -24,7 +25,7 @@ class PlatformExternalIssueSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
-    ) -> PlatformExternalIssueSerializer:
+    ) -> PlatformExternalIssueSerializerResponse:
         return {
             "id": str(obj.id),
             "issueId": str(obj.group_id),

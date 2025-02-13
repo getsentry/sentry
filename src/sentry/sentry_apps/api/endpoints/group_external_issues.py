@@ -13,7 +13,7 @@ from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
-    PlatformExternalIssueSerializer,
+    PlatformExternalIssueSerializerResponse,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
@@ -31,7 +31,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         parameters=[IssueParams.ISSUE_ID, GlobalParams.ORG_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
-                "GroupExternalIssueResponse", Sequence[PlatformExternalIssueSerializer]
+                "GroupExternalIssueResponse", Sequence[PlatformExternalIssueSerializerResponse]
             ),
         },
         examples=SentryAppExamples.RETRIEVE_SENTRY_APP,
