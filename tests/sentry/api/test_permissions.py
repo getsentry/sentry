@@ -56,7 +56,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
         )
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_get_method(self):
+    def test_safe_method(self):
         assert self.user_permission.has_permission(
             self.make_request(self.readonly_user, method="GET"), None
         )
@@ -65,33 +65,34 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
         )
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_post_method(self):
-        assert not self.user_permission.has_permission(
-            self.make_request(self.readonly_user, method="POST"), None
+    def test_unsafe_methods(self):
+        for method in ("POST", "PUT", "PATCH", "DELETE"):
+            assert not self.user_permission.has_permission(
+                self.make_request(self.readonly_user, method=method), None
+            )
+
+        assert self.user_permission.has_permission(
+            self.make_request(self.normal_user, method=method), None
         )
 
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    def test_safe_method_disabled(self):
+        assert not self.user_permission.has_permission(
+            self.make_request(self.readonly_user, method="GET"), None
+        )
         assert self.user_permission.has_permission(
             self.make_request(self.normal_user, method="GET"), None
         )
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_put_method(self):
-        assert not self.user_permission.has_permission(
-            self.make_request(self.readonly_user, method="PUT"), None
-        )
+    @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+    def test_unsafe_methods_disabled(self):
+        for method in ("POST", "PUT", "PATCH", "DELETE"):
+            assert not self.user_permission.has_permission(
+                self.make_request(self.readonly_user, method=method), None
+            )
 
         assert self.user_permission.has_permission(
-            self.make_request(self.normal_user, method="GET"), None
-        )
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_delete_method(self):
-        assert not self.user_permission.has_permission(
-            self.make_request(self.readonly_user, method="DELETE"), None
-        )
-
-        assert self.user_permission.has_permission(
-            self.make_request(self.normal_user, method="GET"), None
+            self.make_request(self.normal_user, method=method), None
         )
 
 
@@ -104,21 +105,15 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
         self.readonly_user = self.create_user(id=2)
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_normal_user_has_permission(self):
+    def test_has_permission(self):
         assert self.user_permission.has_permission(self.make_request(self.normal_user), None)
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_readonly_user_has_no_permission(self):
         assert not self.user_permission.has_permission(self.make_request(self.readonly_user), None)
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_normal_user_has_object_permission(self):
+    def test_has_object_permission(self):
         assert self.user_permission.has_object_permission(
             self.make_request(self.normal_user), None, None
         )
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
-    def test_readonly_user_has_no_object_permission(self):
         assert not self.user_permission.has_object_permission(
             self.make_request(self.readonly_user), None, None
         )

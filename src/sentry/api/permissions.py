@@ -298,20 +298,22 @@ class ReadOnlyPermission(SentryPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
-        if demo_mode.is_readonly_user(request.user):
+        if demo_mode.is_demo_mode_enabled() and demo_mode.is_readonly_user(request.user):
             org_context.member.scopes = demo_mode.get_readonly_scopes()
 
         return super().determine_access(request, org_context)
 
     def has_permission(self, request: Request, view: object) -> bool:
-        if demo_mode.is_readonly_user(request.user) and request.method not in SAFE_METHODS:
-            return False
+        if demo_mode.is_readonly_user(request.user):
+            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+                return False
 
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
-        if demo_mode.is_readonly_user(request.user) and request.method not in SAFE_METHODS:
-            return False
+        if demo_mode.is_readonly_user(request.user):
+            if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
+                return False
 
         return super().has_object_permission(request, view, obj)
 
