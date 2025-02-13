@@ -24,7 +24,7 @@ export type AvatarUser = {
 
 // This object tracks the status of the quick start display for each organization.
 // The key is the organization ID, and the value represents the display status:
-// Null/0 = Hidden on the first visit
+// Null = Hidden on the first visit
 // 1 = Shown once (on the second visit)
 // 2 = Hidden automatically after the second visit
 type QuickStartDisplay = Record<string, number>;
