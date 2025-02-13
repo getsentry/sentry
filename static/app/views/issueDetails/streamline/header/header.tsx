@@ -87,9 +87,7 @@ export default function StreamlinedGroupHeader({
                   },
                 },
                 {
-                  label: (
-                    <IssueIdBreadcrumb project={project} group={group} event={event} />
-                  ),
+                  label: <IssueIdBreadcrumb project={project} group={group} />,
                 },
               ]}
             />

@@ -48,11 +48,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
+import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
+import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import StreamlinedShareIssueModal from './streamlinedShareModal';
-import SubscribeAction from './subscribeAction';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -338,14 +338,24 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     openModal(renderDiscardModal);
   };
 
-  const openStreamlinedShareModal = () => {
+  const openShareModal = () => {
     openModal(modalProps => (
-      <StreamlinedShareIssueModal
+      <ShareIssueModal
+        {...modalProps}
+        organization={organization}
+        groupId={group.id}
+        event={event}
+      />
+    ));
+  };
+
+  const openPublishModal = () => {
+    openModal(modalProps => (
+      <PublishIssueModal
         {...modalProps}
         organization={organization}
         projectSlug={group.project.slug}
         groupId={group.id}
-        eventId={event?.id}
         onToggle={onToggleShare}
       />
     ));
@@ -448,14 +458,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
               size="sm"
             />
-            {shareCap.enabled && (
-              <Button
-                size="sm"
-                onClick={openStreamlinedShareModal}
-                icon={<IconLink />}
-                aria-label={t('Share')}
-              />
-            )}
+            <Button
+              size="sm"
+              onClick={openShareModal}
+              icon={<IconLink />}
+              aria-label={t('Share')}
+              title={t('Share Issue')}
+            />
           </Fragment>
         ))}
       <DropdownMenu
@@ -508,11 +517,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             details: !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
             onAction: () => onUpdate({inbox: false}),
           },
-
           {
             key: bookmarkKey,
             label: bookmarkTitle,
             onAction: onToggleBookmark,
+          },
+          {
+            key: 'publish',
+            label: t('Publish'),
+            disabled: disabled || !shareCap.enabled,
+            hidden: !organization.features.includes('shared-issues'),
+            onAction: openPublishModal,
           },
           {
             key: 'reprocess',

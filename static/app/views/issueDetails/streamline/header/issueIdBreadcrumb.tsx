@@ -11,23 +11,21 @@ import {IconGlobe} from 'sentry/icons';
 import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
 import {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
-import StreamlinedShareIssueModal from 'sentry/views/issueDetails/actions/streamlinedShareModal';
 
 interface ShortIdBreadcrumbProps {
-  event: Event | null;
   group: Group;
   project: Project;
 }
 
-export function IssueIdBreadcrumb({project, group, event}: ShortIdBreadcrumbProps) {
+export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
@@ -96,7 +94,7 @@ export function IssueIdBreadcrumb({project, group, event}: ShortIdBreadcrumbProp
               color="subText"
               onClick={() =>
                 openModal(modalProps => (
-                  <StreamlinedShareIssueModal
+                  <PublishIssueModal
                     {...modalProps}
                     organization={organization}
                     projectSlug={group.project.slug}
@@ -106,7 +104,6 @@ export function IssueIdBreadcrumb({project, group, event}: ShortIdBreadcrumbProp
                         organization,
                       })
                     }
-                    event={event}
                   />
                 ))
               }
