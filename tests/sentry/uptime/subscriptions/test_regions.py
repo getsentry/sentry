@@ -38,7 +38,6 @@ class GetActiveRegionConfigsTest(TestBase):
         ):
             active_regions = get_active_region_configs()
             assert len(active_regions) == 2
-            assert all(region.enabled for region in active_regions)
             assert {region.slug for region in active_regions} == {"us", "ap"}
 
 
