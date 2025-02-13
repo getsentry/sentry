@@ -27,6 +27,10 @@ class ProjectDetectorIndexBaseTest(APITestCase):
         self.environment = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
+        self.data_condition_group = self.create_data_condition_group(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
 
 
 @region_silo_test
@@ -64,13 +68,19 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
                 "environment": self.environment.name,
                 "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
-            "dataConditions": [
-                {
-                    "type": Condition.GREATER,
-                    "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
-                }
-            ],
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    }
+                ],
+            },
         }
 
     def test_missing_group_type(self):
