@@ -30,6 +30,11 @@ describe('WhatsNew', function () {
   });
 
   it('displays the correct number of unseen broadcasts as a badge', async function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/',
+      method: 'PUT',
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
       body: [
@@ -60,7 +65,6 @@ describe('WhatsNew', function () {
       body: [],
     });
 
-    //
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
     await waitFor(() => {
       expect(screen.queryByTestId('whats-new-badge')).not.toBeInTheDocument();
