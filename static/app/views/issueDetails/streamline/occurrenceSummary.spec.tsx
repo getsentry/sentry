@@ -54,14 +54,12 @@ describe('OccurrenceSummary', () => {
       ],
     });
     const event = EventFixture();
-    render(<OccurrenceSummary group={group} event={event} />, {
-      organization,
-    });
+    render(<OccurrenceSummary group={group} event={event} />, {organization});
     expect(screen.getByText('Downtime')).toBeInTheDocument();
     expect(screen.getByText('1 day')).toBeInTheDocument();
   });
 
-  it('renders detector details if found', function () {
+  it('renders detector details correctly', function () {
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,
@@ -74,14 +72,12 @@ describe('OccurrenceSummary', () => {
         },
       ],
     });
-    render(<OccurrenceSummary group={group} event={event} />, {
-      organization,
-    });
+    render(<OccurrenceSummary group={group} event={event} />, {organization});
     expect(screen.getByText('Monitor ID')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
   });
 
-  it('renders evidence detailsif found', function () {
+  it('renders evidence details correctly', function () {
     const now = '2025-01-01T12:00:00Z';
     setMockDate(new Date(now));
 
@@ -111,9 +107,7 @@ describe('OccurrenceSummary', () => {
         ],
       },
     });
-    render(<OccurrenceSummary group={group} event={event} />, {
-      organization,
-    });
+    render(<OccurrenceSummary group={group} event={event} />, {organization});
     expect(screen.getByText('Environment')).toBeInTheDocument();
     expect(screen.getByText('production')).toBeInTheDocument();
 
@@ -125,5 +119,26 @@ describe('OccurrenceSummary', () => {
 
     expect(screen.getByText('Last Successful Check-In')).toBeInTheDocument();
     expect(screen.getByText('an hour ago')).toBeInTheDocument();
+  });
+
+  it('allows for invalid check-in dates', function () {
+    const group = GroupFixture({
+      issueCategory: IssueCategory.CRON,
+      issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+    });
+    const event = EventFixture({
+      occurrence: {
+        evidenceDisplay: [
+          {
+            name: 'Last successful check-in',
+            // This is sometimes returned from the API
+            value: 'Never',
+          },
+        ],
+      },
+    });
+    render(<OccurrenceSummary group={group} event={event} />, {organization});
+    expect(screen.getByText('Last Successful Check-In')).toBeInTheDocument();
+    expect(screen.getByText('Never')).toBeInTheDocument();
   });
 });

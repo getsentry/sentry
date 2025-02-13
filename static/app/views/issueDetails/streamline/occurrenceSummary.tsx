@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Flex} from 'sentry/components/container/flex';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
@@ -60,7 +61,11 @@ function getEvidenceItem({
       return (
         <Flex column>
           <ItemTitle>{t('Last Successful Check-In')}</ItemTitle>
-          <ItemTimeSince date={evidence.value} />
+          {moment(evidence.value).isValid() ? (
+            <ItemTimeSince date={evidence.value} />
+          ) : (
+            <ItemValue>{evidence.value}</ItemValue>
+          )}
         </Flex>
       );
     default:
