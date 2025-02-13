@@ -6,8 +6,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Switch from 'sentry/components/switchButton';
 import {IconRefresh} from 'sentry/icons';
@@ -54,10 +54,7 @@ export default function StreamlinedShareIssueModal({
     'issue-details-share-event-id',
     true
   );
-  const [hasMarkdownLink, setHasMarkdownLink] = useLocalStorageState(
-    'issue-details-share-markdown-link',
-    false
-  );
+
   const urlRef = useRef<UrlRef>(null);
   const groups = useLegacyStore(GroupStore);
   const group = (groups as Group[]).find(item => item.id === groupId);
@@ -71,11 +68,26 @@ export default function StreamlinedShareIssueModal({
     : window.location.origin +
       normalizeUrl(`/organizations/${organization.slug}/issues/${group?.id}/`);
 
-  const issueLink = hasMarkdownLink ? `[${group?.shortId}](${issueUrl})` : issueUrl;
+  const markdownLink = `[${group?.shortId}](${issueUrl})`;
 
-  const {onClick: handleCopyIssueUrl} = useCopyToClipboard({
-    text: issueLink,
-    successMessage: t('Copied Issue URL to clipboard'),
+  const {onClick: handleCopyIssueLink} = useCopyToClipboard({
+    text: issueUrl,
+    successMessage: t('Copied Issue Link to clipboard'),
+    onCopy: closeModal,
+  });
+
+  const {onClick: handleCopyMarkdownLink} = useCopyToClipboard({
+    text: markdownLink,
+    successMessage: t('Copied Markdown link to clipboard'),
+    onCopy: closeModal,
+  });
+
+  const shareUrl = group?.shareId ? getShareUrl(group) : null;
+
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: shareUrl!,
+    successMessage: t('Copied Shared Link to clipboard'),
+    onCopy: closeModal,
   });
 
   const handleShare = useCallback(
@@ -107,13 +119,6 @@ export default function StreamlinedShareIssueModal({
     [api, setLoading, onToggle, isShared, organization.slug, projectSlug, groupId]
   );
 
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
-
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: shareUrl!,
-    onCopy: closeModal,
-  });
-
   return (
     <Fragment>
       <Header closeButton>
@@ -124,18 +129,10 @@ export default function StreamlinedShareIssueModal({
           <IssueLinkWrapper>
             <UrlContainer>
               <TextContainer>
-                <StyledAutoSelectText ref={urlRef}>{issueLink}</StyledAutoSelectText>
+                <StyledAutoSelectText ref={urlRef}>{issueUrl}</StyledAutoSelectText>
               </TextContainer>
-              <ClipboardButton
-                text={issueLink}
-                title={t('Copy to clipboard')}
-                borderless
-                size="sm"
-                onClick={handleCopyIssueUrl}
-                aria-label={t('Copy to clipboard')}
-              />
             </UrlContainer>
-            <div>
+            <LinkActions>
               <CheckboxContainer>
                 {t('Include Event ID in link')}
                 <Checkbox
@@ -143,14 +140,15 @@ export default function StreamlinedShareIssueModal({
                   onChange={() => setHasEventId(!hasEventId)}
                 />
               </CheckboxContainer>
-              <CheckboxContainer>
-                {t('Copy as Markdown link')}
-                <Checkbox
-                  checked={hasMarkdownLink}
-                  onChange={() => setHasMarkdownLink(!hasMarkdownLink)}
-                />
-              </CheckboxContainer>
-            </div>
+              <ButtonBar gap={0.5}>
+                <Button size="sm" onClick={handleCopyMarkdownLink}>
+                  {t('Copy as Markdown')}
+                </Button>
+                <Button priority="primary" size="sm" onClick={handleCopyIssueLink}>
+                  {t('Copy Link')}
+                </Button>
+              </ButtonBar>
+            </LinkActions>
           </IssueLinkWrapper>
           <div>
             <SwitchWrapper>
@@ -173,29 +171,26 @@ export default function StreamlinedShareIssueModal({
               </LoadingContainer>
             )}
             {group && !loading && isShared && shareUrl && (
-              <UrlContainer>
-                <TextContainer>
-                  <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
-                </TextContainer>
-
-                <ClipboardButton
-                  text={shareUrl}
-                  title={t('Copy to clipboard')}
-                  borderless
-                  size="sm"
-                  onClick={handleCopy}
-                  aria-label={t('Copy to clipboard')}
-                />
-
-                <ReshareButton
-                  title={t('Generate new URL. Invalidates previous URL')}
-                  aria-label={t('Generate new URL')}
-                  borderless
-                  size="sm"
-                  icon={<IconRefresh />}
-                  onClick={() => handleShare(null, true)}
-                />
-              </UrlContainer>
+              <SharedIssueLinkContainer>
+                <UrlContainer>
+                  <TextContainer>
+                    <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
+                  </TextContainer>
+                  <ReshareButton
+                    title={t('Generate new URL. Invalidates previous URL')}
+                    aria-label={t('Generate new URL')}
+                    borderless
+                    size="sm"
+                    icon={<IconRefresh />}
+                    onClick={() => handleShare(null, true)}
+                  />
+                </UrlContainer>
+                <SharedLinkButtonContainer>
+                  <Button priority="primary" size="sm" onClick={handleCopy}>
+                    {t('Copy Link')}
+                  </Button>
+                </SharedLinkButtonContainer>
+              </SharedIssueLinkContainer>
             )}
           </div>
         </ModalContent>
@@ -211,7 +206,7 @@ const ModalContent = styled('div')`
   display: flex;
   gap: ${space(2)};
   flex-direction: column;
-  min-height: 175px;
+  min-height: 220px;
 `;
 
 const SwitchWrapper = styled('div')`
@@ -243,6 +238,7 @@ const SubText = styled('p')`
 const LoadingContainer = styled('div')`
   display: flex;
   justify-content: center;
+  padding-top: ${space(2)};
 `;
 
 const UrlContainer = styled('div')`
@@ -268,18 +264,6 @@ const TextContainer = styled('div')`
   min-width: 0;
 `;
 
-const ClipboardButton = styled(CopyToClipboardButton)`
-  border-radius: 0;
-  border-right: 1px solid ${p => p.theme.border};
-  height: 100%;
-  flex-shrink: 0;
-  margin: 0;
-
-  &:hover {
-    border-right: 1px solid ${p => p.theme.border};
-  }
-`;
-
 const ReshareButton = styled(Button)`
   border-radius: 0;
   height: 100%;
@@ -290,4 +274,21 @@ const CheckboxContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const LinkActions = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+const SharedIssueLinkContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const SharedLinkButtonContainer = styled('div')`
+  align-self: flex-end;
 `;
