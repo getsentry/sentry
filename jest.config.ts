@@ -41,13 +41,19 @@ if (!!JEST_TEST_BALANCER && !CI) {
 
 let JEST_TESTS;
 
-execFileSync(
-  'yarn',
-  ['-s', 'jest', '--listTests', '--json'],
-  {encoding: 'utf-8'},
-  (error, stdout, stderr) => {
-    if (error) {
-      throw new Error(`
+// prevents forkbomb as we don't want jest --listTests --json
+// to reexec itself here
+if (!process.env.JEST_LIST_TESTS_INNER) {
+  execFileSync(
+    'yarn',
+    ['-s', 'jest', '--listTests', '--json'],
+    {
+      encoding: 'utf-8',
+      env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
+    },
+    (error, stdout, stderr) => {
+      if (error) {
+        throw new Error(`
 Error listing jest tests: ${error}
 
 stdout:
@@ -55,10 +61,11 @@ ${stdout}
 
 stderr:
 ${stderr}`);
+      }
+      JEST_TESTS = JSON.parse(stdout);
     }
-    JEST_TESTS = JSON.parse(stdout);
-  }
-);
+  );
+}
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
