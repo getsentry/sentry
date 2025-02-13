@@ -50,11 +50,14 @@ class TestGetIssuesRelatedToFilePatches(CreateEventTestCase):
         group_id = [
             self._create_event(function_names=["blue", "planet"], user_id=str(i)) for i in range(7)
         ][0].group.id
-        top_5_issues = _get_issues_with_event_details_for_file(
-            [self.project], sentry_filenames=["baz.py"], function_names=["world", "planet"]
+        issues_with_event_details = _get_issues_with_event_details_for_file(
+            organization_id=self.organization.id,
+            projects=[self.project],
+            sentry_filenames=["baz.py"],
+            function_names=["world", "planet"],
         )
 
-        top_5_issue_ids = [issue["id"] for issue in top_5_issues]
-        function_names = [issue["function_name"] for issue in top_5_issues]
+        top_5_issue_ids = [issue["id"] for issue in issues_with_event_details]
+        function_names = [issue["function_name"] for issue in issues_with_event_details]
         assert top_5_issue_ids == [group_id, self.group_id]
         assert function_names == ["planet", "world"]

@@ -186,7 +186,7 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
 
 def _get_issues_for_file(
     projects: list[Project], sentry_filenames: list[str], function_names: list[str]
-) -> tuple[list[dict[str, Any]], dict[str, Group]]:
+) -> list[dict[str, Any]]:
     if not len(projects):
         return []
 
@@ -212,7 +212,7 @@ def _get_issues_for_file(
     group_id_to_group = {group.id: group for group in groups}
 
     group_ids = list(group_id_to_group.keys())
-    project_ids = [p.id for p in projects]
+    project_ids = [project.id for project in projects]
     multi_if = language_parser.generate_multi_if(function_names)
 
     # Fetch the roughly-latest event for each group for groups w/ an event where at least one
@@ -290,45 +290,48 @@ def _get_issues_for_file(
     )
 
     try:
-        issues_result_set: list[dict[str, Any]] = raw_snql_query(
-            request, referrer=Referrer.SEER_RPC.value
-        )["data"]
+        return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
     except Exception:
         logger.exception("Snuba query error", extra={"query": request.to_dict()["query"]})
-        return [], {}
-    else:
-        return issues_result_set, group_id_to_group
+        return []
 
 
 def _add_event_details(
-    issues_result_set: list[dict[str, Any]], group_id_to_group: dict[str, Group]
+    organization_id: int,
+    projects: list[Project],
+    issues_result_set: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    # TODO: bulk query like in group_ai_summary.py—see _get_trace_connected_issues
-    issues_with_event_details: list[dict[str, Any]] = []
-    for group_dict in issues_result_set:
-        group = group_id_to_group[group_dict["group_id"]]
-        event = eventstore.backend.get_event_by_id(
-            group.project.id, group_dict["event_id"], group_id=group_dict["group_id"]
-        )
-        serialized_event = serialize(event, user=None, serializer=EventSerializer())
-        issue_details = {
+    """
+    Bulk-fetch the events corresponding to the issues, and bulk-serialize them.
+    """
+    project_ids = [project.id for project in projects]
+    event_ids = [group_dict["event_id"] for group_dict in issues_result_set]
+    event_filter = eventstore.Filter(event_ids=event_ids, project_ids=project_ids)
+    events = eventstore.backend.get_events(
+        filter=event_filter,
+        referrer=Referrer.SEER_RPC.value,
+        tenant_ids={"organization_id": organization_id},
+    )
+    serialized_events = serialize(events, serializer=EventSerializer())
+    return [
+        {
             "id": group_dict["group_id"],
             "title": group_dict["title"],
             "function_name": group_dict["function_name"],
             "events": [serialized_event],
         }
-        issues_with_event_details.append(issue_details)
-
-    return issues_with_event_details
+        for group_dict, serialized_event in zip(issues_result_set, serialized_events, strict=True)
+    ]
 
 
 def _get_issues_with_event_details_for_file(
-    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+    organization_id: int,
+    projects: list[Project],
+    sentry_filenames: list[str],
+    function_names: list[str],
 ) -> list[dict[str, Any]]:
-    issues_result_set, group_id_to_group = _get_issues_for_file(
-        projects, sentry_filenames, function_names
-    )
-    return _add_event_details(issues_result_set, group_id_to_group)
+    issues_result_set = _get_issues_for_file(projects, sentry_filenames, function_names)
+    return _add_event_details(organization_id, projects, issues_result_set)
 
 
 def get_issues_related_to_file_patches(
@@ -338,16 +341,13 @@ def get_issues_related_to_file_patches(
     Get the top issues related to each file by looking at matches between functions in the patch
     and functions in the issue's event's stacktrace.
 
-    Each issue includes the serialized recommended event.
+    Each issue includes its roughly-latest serialized event.
     """
-
-    # For now, mock this with issues for quick testing of seer
 
     try:
         repo = Repository.objects.get(
             organization_id=organization_id, provider=provider, external_id=external_id
         )
-        # These uniquely define the repo
     except Repository.DoesNotExist:
         logger.exception(
             "Repo doesn't exist",
@@ -368,12 +368,12 @@ def get_issues_related_to_file_patches(
     filename_to_issues = {}
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
 
-    # fetch issues related to the files
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             organization_id, repo_id, file.filename
         )
         if not len(projects) or not len(sentry_filenames):
+            # TODO: metrics like in open_pr_comment?
             logger.error("No projects or filenames", extra={"file": file.filename})
             continue
 
@@ -389,7 +389,7 @@ def get_issues_related_to_file_patches(
             continue
 
         issues = _get_issues_with_event_details_for_file(
-            list(projects), list(sentry_filenames), list(function_names)
+            organization_id, list(projects), list(sentry_filenames), list(function_names)
         )
         filename_to_issues[file.filename] = issues
 
