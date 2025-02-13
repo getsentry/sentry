@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,7 +29,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         parameters=[IssueParams.ISSUE_ID, GlobalParams.ORG_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
-                "GroupExternalIssueResponse", Sequence[PlatformExternalIssueSerializerResponse]
+                "GroupExternalIssueResponse", list[PlatformExternalIssueSerializerResponse]
             ),
         },
         examples=SentryAppExamples.RETRIEVE_SENTRY_APP,
