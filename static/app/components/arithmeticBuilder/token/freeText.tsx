@@ -137,9 +137,7 @@ function InternalInput({
     (evt: ChangeEvent<HTMLInputElement>) => {
       const text = evt.target.value;
 
-      const tokens = tokenizeExpression(text, {
-        intersperseSpace: false,
-      });
+      const tokens = tokenizeExpression(text);
 
       for (const tok of tokens) {
         if (isTokenParenthesis(tok) || isTokenOperator(tok) || isTokenFunction(tok)) {
