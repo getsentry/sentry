@@ -60,7 +60,11 @@ function getEvidenceItem({
       return (
         <Flex column>
           <ItemTitle>{t('Last Successful Check-In')}</ItemTitle>
-          <ItemTimeSince date={evidence.value} />
+          {evidence.value === 'Never' ? (
+            <ItemValue>{evidence.value}</ItemValue>
+          ) : (
+            <ItemTimeSince date={evidence.value} />
+          )}
         </Flex>
       );
     default:
