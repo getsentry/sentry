@@ -89,10 +89,22 @@ export function IssueViewPFTab({
     }
   };
 
+  const handleSaveTempView = () => {
+    const newViewId = generateTempViewId();
+    dispatch({type: 'SAVE_TEMP_VIEW', newViewId, syncViews: true});
+    navigate({
+      ...location,
+      query: {
+        ...queryParams,
+        viewId: newViewId,
+      },
+    });
+  };
+
   const makeMenuOptions = (tab: IssueViewPF): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
-        onSaveTempView: () => dispatch({type: 'SAVE_TEMP_VIEW', syncViews: true}),
+        onSaveTempView: handleSaveTempView,
         onDiscardTempView: () => dispatch({type: 'DISCARD_TEMP_VIEW'}),
       });
     }
