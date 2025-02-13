@@ -67,7 +67,7 @@ export function useChonkTheme(): [
       : [];
   }, [organization, chonkTheme.theme, setChonkWithSideEffect]);
 
-  useHotkeys(chonkHotkey, [chonkTheme.theme, chonkHotkey]);
+  useHotkeys(chonkHotkey, [chonkHotkey]);
 
   return [theme, setChonkWithSideEffect];
 }
