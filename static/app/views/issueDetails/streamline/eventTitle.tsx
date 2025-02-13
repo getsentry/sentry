@@ -104,7 +104,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
         <EventInfoJumpToWrapper>
           <EventInfo>
             <EventIdWrapper>
-              {getShortEventId(event.id)}
+              <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
               <Button
                 aria-label={t('Copy Event ID')}
                 onClick={copyEventId}
@@ -286,4 +286,12 @@ const EventIdWrapper = styled('div')`
   align-items: center;
   margin-left: ${space(1.5)};
   font-weight: ${p => p.theme.fontWeightBold};
+
+  button {
+    visibility: hidden;
+  }
+
+  &:hover button {
+    visibility: visible;
+  }
 `;

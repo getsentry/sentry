@@ -150,6 +150,7 @@ export default function StreamlinedShareIssueModal({
               </ButtonBar>
             </LinkActions>
           </IssueLinkWrapper>
+          <SectionDivider />
           <div>
             <SwitchWrapper>
               <div>
@@ -204,9 +205,9 @@ export default function StreamlinedShareIssueModal({
  */
 const ModalContent = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   flex-direction: column;
-  min-height: 220px;
+  min-height: 225px;
 `;
 
 const SwitchWrapper = styled('div')`
@@ -291,4 +292,9 @@ const SharedIssueLinkContainer = styled('div')`
 
 const SharedLinkButtonContainer = styled('div')`
   align-self: flex-end;
+`;
+
+const SectionDivider = styled('hr')`
+  border-color: ${p => p.theme.translucentBorder};
+  margin: ${space(0.5)} 0;
 `;
