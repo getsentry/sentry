@@ -76,7 +76,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
         )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
-    def test_safe_method_disabled(self):
+    def test_safe_method_demo_mode_disabled(self):
         assert not self.user_permission.has_permission(
             self.make_request(self.readonly_user, method="GET"), None
         )
@@ -85,7 +85,7 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
         )
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
-    def test_unsafe_methods_disabled(self):
+    def test_unsafe_methods_demo_mode_disabled(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             assert not self.user_permission.has_permission(
                 self.make_request(self.readonly_user, method=method), None
@@ -94,6 +94,24 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
         assert self.user_permission.has_permission(
             self.make_request(self.normal_user, method=method), None
         )
+
+        @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+        def test_determine_access(self):
+            assert self.user_permission.determine_access(
+                self.make_request(self.readonly_user, method="GET"), None
+            )
+            assert self.user_permission.determine_access(
+                self.make_request(self.normal_user, method="GET"), None
+            )
+
+        @override_options({"demo-mode.enabled": False, "demo-mode.users": [2]})
+        def test_determine_access_disabled(self):
+            assert not self.user_permission.determine_access(
+                self.make_request(self.readonly_user, method="GET"), None
+            )
+            assert self.user_permission.determine_access(
+                self.make_request(self.normal_user, method="GET"), None
+            )
 
 
 class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):

@@ -298,7 +298,10 @@ class ReadOnlyPermission(SentryPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
-        if demo_mode.is_demo_mode_enabled() and demo_mode.is_readonly_user(request.user):
+        if demo_mode.is_readonly_user(request.user):
+            if not demo_mode.is_demo_mode_enabled():
+                return False
+
             org_context.member.scopes = demo_mode.get_readonly_scopes()
 
         return super().determine_access(request, org_context)
