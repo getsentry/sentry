@@ -13,7 +13,7 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
-import {IconDelete} from 'sentry/icons';
+import {IconDelete, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -104,7 +104,14 @@ function formatColumnOptions(
         dataset === WidgetType.SPANS ? (
           <TypeBadge kind={FieldKind.MEASUREMENT} />
         ) : (
-          renderTag(option.value.kind, option.value.meta.name)
+          renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType!
+              : undefined
+          )
         ),
     }));
 }
@@ -195,6 +202,15 @@ function canDeleteField(
     );
   }
   return true;
+}
+
+function renderDropdownMenuFooter() {
+  return (
+    <FooterWrapper>
+      <IconInfo size="xs" />
+      {t('Select relevant fields or tags to use as groups within the table')}
+    </FooterWrapper>
+  );
 }
 
 interface VisualizeProps {
@@ -446,7 +462,11 @@ function Visualize({error, setError}: VisualizeProps) {
                           textValue: option.value.meta.name,
                           trailingItems: renderTag(
                             option.value.kind,
-                            option.value.meta.name
+                            option.value.meta.name,
+                            option.value.kind !== FieldValueKind.FUNCTION &&
+                              option.value.kind !== FieldValueKind.EQUATION
+                              ? option.value.meta.dataType!
+                              : undefined
                           ),
                         })),
                     ];
@@ -566,6 +586,11 @@ function Visualize({error, setError}: VisualizeProps) {
                                     NONE
                                   }
                                   position="bottom-start"
+                                  menuFooter={
+                                    state.displayType === DisplayType.TABLE
+                                      ? renderDropdownMenuFooter
+                                      : undefined
+                                  }
                                   onChange={dropdownSelection => {
                                     const isNone = dropdownSelection.value === NONE;
                                     const newFields = cloneDeep(fields);
@@ -800,6 +825,12 @@ function Visualize({error, setError}: VisualizeProps) {
                                   <ColumnCompactSelect
                                     searchable
                                     position="bottom-start"
+                                    menuFooter={
+                                      state.displayType === DisplayType.TABLE &&
+                                      field.kind !== FieldValueKind.FUNCTION
+                                        ? renderDropdownMenuFooter
+                                        : undefined
+                                    }
                                     options={
                                       state.dataset === WidgetType.SPANS &&
                                       field.kind !== FieldValueKind.FUNCTION
@@ -1074,12 +1105,27 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function renderTag(kind: FieldValueKind, label: string) {
+function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
+  if (dataType) {
+    switch (dataType) {
+      case 'boolean':
+      case 'date':
+      case 'string':
+        return <BaseTag type="highlight">{t('string')}</BaseTag>;
+      case 'duration':
+      case 'integer':
+      case 'percentage':
+      case 'number':
+        return <BaseTag type="success">{t('number')}</BaseTag>;
+      default:
+        return <BaseTag>{dataType}</BaseTag>;
+    }
+  }
   let text, tagType;
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'success' as keyof Theme['tag'];
+      tagType = 'warning' as keyof Theme['tag'];
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
@@ -1096,7 +1142,7 @@ function renderTag(kind: FieldValueKind, label: string) {
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'success' as keyof Theme['tag'];
+      tagType = 'warning' as keyof Theme['tag'];
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
@@ -1218,4 +1264,14 @@ const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;
   padding: 0px;
   border-bottom: none;
+`;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(0.5)};
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
