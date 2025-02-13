@@ -13,7 +13,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
@@ -57,7 +56,7 @@ describe('Organization Developer Settings', function () {
             avatarUuid: '1234561234561234561234567',
             avatarUrl: 'https://example.com/avatar/1234561234561234561234567/',
             color: true,
-            photoType: SentryAppAvatarPhotoType.LOGO,
+            photoType: 'logo',
           },
         ],
         scopes: [
@@ -178,6 +177,25 @@ describe('Organization Developer Settings', function () {
           data: {questionnaire},
         })
       );
+    });
+    it('cannot make a request to publish an integration', async () => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [sentryApp],
+      });
+
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
+
+      const publishButton = await screen.findByRole('button', {name: 'Publish'});
+
+      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 

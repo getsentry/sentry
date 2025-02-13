@@ -3,9 +3,9 @@ import {t} from 'sentry/locale';
 import type {
   SentryApp,
   SentryAppAvatar,
+  SentryAppAvatarPhotoType,
   SentryAppSchemaElement,
 } from 'sentry/types/integrations';
-import {SentryAppAvatarPhotoType} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import ActionButtons from './actionButtons';
@@ -66,19 +66,11 @@ function SentryApplicationRowButtons({
           );
         } else if (hasInvalidStatus(app)) {
           disablePublishReason = t('Only unpublished integrations can be published');
-        } else if (
-          !hasUploadedSentryAppPhoto(
-            app.avatars as SentryAppAvatar[],
-            SentryAppAvatarPhotoType.LOGO
-          )
-        ) {
+        } else if (!hasUploadedSentryAppPhoto(app.avatars, 'logo')) {
           disablePublishReason = t('A logo is required to publish an integration');
         } else if (
           hasUIComponent(app.schema.elements) &&
-          !hasUploadedSentryAppPhoto(
-            app.avatars as SentryAppAvatar[],
-            SentryAppAvatarPhotoType.ICON
-          )
+          !hasUploadedSentryAppPhoto(app.avatars, 'icon')
         ) {
           disablePublishReason = t('Integrations with a UI component must have an icon');
         }

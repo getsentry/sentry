@@ -291,10 +291,7 @@ export type SentryAppAvatar = Avatar & {
   photoType: SentryAppAvatarPhotoType;
 };
 
-export enum SentryAppAvatarPhotoType {
-  ICON = 'icon',
-  LOGO = 'logo',
-}
+export type SentryAppAvatarPhotoType = 'icon' | 'logo';
 
 export type SentryAppWebhookRequest = {
   date: string;
