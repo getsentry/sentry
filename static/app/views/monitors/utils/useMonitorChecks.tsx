@@ -8,6 +8,7 @@ import type {CheckIn} from 'sentry/views/monitors/types';
 interface MonitorChecksParameters {
   monitorIdOrSlug: string;
   orgSlug: string;
+  projectSlug: string;
   cursor?: string;
   environment?: string[];
   expand?: 'groups';
@@ -16,8 +17,11 @@ interface MonitorChecksParameters {
   queryParams?: Record<string, string | string[] | null | undefined>;
 }
 
+// TODO(Leander): Fix pagination and dont commit this comment
+
 export function makeMonitorChecksQueryKey({
   orgSlug,
+  projectSlug,
   monitorIdOrSlug,
   cursor,
   limit,
@@ -26,7 +30,7 @@ export function makeMonitorChecksQueryKey({
   queryParams,
 }: MonitorChecksParameters): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/monitors/${monitorIdOrSlug}/checkins/`,
+    `/projects/${orgSlug}/${projectSlug}/monitors/${monitorIdOrSlug}/checkins/`,
     {query: {per_page: limit, cursor, environment, expand, ...queryParams}},
   ];
 }

@@ -60,6 +60,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
     isError,
   } = useMonitorChecks({
     orgSlug: organization.slug,
+    projectSlug: monitor.project.slug,
     monitorIdOrSlug: monitor.slug,
     limit: PER_PAGE,
     expand: 'groups',

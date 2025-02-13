@@ -43,9 +43,14 @@ export default function GroupCronChecks() {
   const canFetchMonitorChecks =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(cronAlertId);
 
-  const {data: uptimeData, getResponseHeader} = useMonitorChecks(
+  const {
+    data: cronData = [],
+    isPending: isDataPending,
+    getResponseHeader,
+  } = useMonitorChecks(
     {
       orgSlug: organization.slug,
+      projectSlug: group?.project.slug ?? '',
       monitorIdOrSlug: cronAlertId ?? '',
       limit: 50,
       queryParams: {...location.query},
@@ -57,14 +62,14 @@ export default function GroupCronChecks() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  if (isGroupPending || !uptimeData) {
+  if (isGroupPending) {
     return <LoadingIndicator />;
   }
 
   const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
   const previousDisabled = links?.previous?.results === false;
   const nextDisabled = links?.next?.results === false;
-  const pageCount = uptimeData.length;
+  const pageCount = cronData.length;
 
   return (
     <EventListTable
@@ -78,9 +83,9 @@ export default function GroupCronChecks() {
       }}
     >
       <GridEditable
-        isLoading={isGroupPending}
+        isLoading={isDataPending}
         emptyMessage={t('No matching monitor checks found')}
-        data={uptimeData}
+        data={cronData}
         columnOrder={[
           {key: 'dateCreated', width: 225, name: t('Timestamp')},
           {key: 'status', width: 100, name: t('Status')},
