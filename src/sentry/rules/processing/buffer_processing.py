@@ -89,6 +89,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     should_emit_logs = options.get("delayed_processing.emit_logs")
     log_format = "{}.{}"
 
+    print("PROCESS_IN_BATCHES")
     try:
         processing_info = delayed_processing_registry.get(processing_type)(project_id)
     except NoRegistrationExistsError:
@@ -105,6 +106,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     )
 
     if event_count < batch_size:
+        print("QUEUE TASK")
         return task.delay(project_id)
 
     if should_emit_logs:
@@ -131,6 +133,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
             # remove the batched items from the project alertgroup_to_event_data
             buffer.backend.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
 
+            print("QUEUE TASK")
             task.delay(project_id, batch_key)
 
 
@@ -139,6 +142,7 @@ def process_buffer() -> None:
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
+        print("PROCESS_CONDITIONS", processing_type)
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
             project_ids = buffer.backend.get_sorted_set(
                 handler.buffer_key, min=0, max=fetch_time.timestamp()

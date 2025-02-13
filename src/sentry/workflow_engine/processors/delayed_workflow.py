@@ -4,15 +4,23 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+from celery import Task
 from django.utils import timezone
 
 from sentry import buffer, nodestore
+from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
+from sentry.rules.processing.buffer_processing import (
+    BufferHashKeys,
+    DelayedProcessingBase,
+    FilterKeys,
+    delayed_processing_registry,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
@@ -35,7 +43,10 @@ from sentry.workflow_engine.models.data_condition_group import get_slow_conditio
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.processors.workflow import evaluate_workflows_action_filters
+from sentry.workflow_engine.processors.workflow import (
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    evaluate_workflows_action_filters,
+)
 from sentry.workflow_engine.types import DataConditionHandlerType, WorkflowJob
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
@@ -414,28 +425,35 @@ def process_delayed_workflows(
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
+    print("PROCESS_DELAYED_WORKFLOWS")
     project = fetch_project(project_id)
     if not project:
         return
 
+    print("FETCH_WORKFLOW_EVENT_DCG_DATA")
     workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
     # Get mappings from DataConditionGroups to other info
+    print("GET_DCG_GROUP_WORKFLOW_DETECTOR_DATA")
     dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
     dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER].copy()
     dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
 
+    print("FETCH_WORKFLOWS_ENVS, DCGS")
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
+    print("GET_CONDITION_QUERY_GROUPS")
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+    print("GET CONDITION GROUP RESULTS")
     condition_group_results = get_condition_group_results(condition_groups)
 
+    print("EVALUATE DCGS")
     # Evaluate DCGs
     groups_to_dcgs = get_groups_to_fire(
         data_condition_groups,
@@ -448,13 +466,31 @@ def process_delayed_workflows(
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
         workflow_event_dcg_data, groups_to_dcgs
     )
+    print("GET GROUP TO GROUPEVENT")
     group_to_groupevent = get_group_to_groupevent(
         dcg_group_to_event_data, list(groups_to_dcgs.keys()), event_ids, occurrence_ids, project_id
     )
 
+    print("FIRE ACTIONS")
     fire_actions_for_groups(groups_to_dcgs, trigger_type_to_dcg_model, group_to_groupevent)
 
-    # TODO(cathy): clean up redis buffer
+    print("CLEAN UP REDIS BUFFER")
+    hashes_to_delete = list(workflow_event_dcg_data.keys())
+    filters: dict[str, BufferField] = {"project_id": project_id}
+    if batch_key:
+        filters["batch_key"] = batch_key
+
+    buffer.backend.delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
 
 
-# TODO: add to registry
+@delayed_processing_registry.register("delayed_workflow")  # default delayed processing
+class DelayedWorkflow(DelayedProcessingBase):
+    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
+
+    @property
+    def hash_args(self) -> BufferHashKeys:
+        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
+
+    @property
+    def processing_task(self) -> Task:
+        return process_delayed_workflows

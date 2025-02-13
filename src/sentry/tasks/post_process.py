@@ -509,6 +509,7 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
+        print("POST PROCESS")
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
@@ -1505,7 +1506,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
-        process_rules,
+        process_workflow_engine,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
