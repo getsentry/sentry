@@ -205,7 +205,6 @@ module = [
     "sentry.plugins.config",
     "sentry.receivers.releases",
     "sentry.release_health.metrics_sessions_v2",
-    "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.history.preview",
     "sentry.scim.endpoints.teams",
