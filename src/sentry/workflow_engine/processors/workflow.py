@@ -106,12 +106,7 @@ def evaluate_workflows_action_filters(
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
-
-    return filter_recently_fired_workflow_actions(actions, job["event"].group)
+    return filter_recently_fired_workflow_actions(filtered_action_groups, job["event"].group)
 
 
 def process_workflows(job: WorkflowJob) -> set[Workflow]:
