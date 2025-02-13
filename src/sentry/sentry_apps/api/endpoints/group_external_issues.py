@@ -19,13 +19,13 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 @extend_schema(tags=["Integration"])
 @region_silo_endpoint
 class GroupExternalIssuesEndpoint(GroupEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Retrieve the custom integrations associated with an issue id",
+        operation_id="Retrieve custom integration issue links for the given Sentry issue",
         parameters=[IssueParams.ISSUE_ID, GlobalParams.ORG_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
@@ -36,7 +36,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group) -> Response:
         """
-        Retrieve the custom integrations associated with an issue
+        Retrieve custom integration issue links for the given Sentry issue
 
         """
         external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
