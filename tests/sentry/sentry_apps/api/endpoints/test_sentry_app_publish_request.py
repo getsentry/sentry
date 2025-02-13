@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.constants import SentryAppStatus
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -49,7 +50,6 @@ class SentryAppPublishRequestTest(APITestCase):
             "\n\n\n>First question\nFirst response"
             "\n\n>Second question\nSecond response"
         )
-
         send_mail.assert_called_with(
             "Sentry Integration Publication Request from my-org",
             message,
@@ -57,6 +57,47 @@ class SentryAppPublishRequestTest(APITestCase):
             ["partners@sentry.io"],
             reply_to=[self.user.email],
         )
+
+    @with_feature("organizations:streamlined-publishing-flow")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
+    def test_publish_request_new_format(self, send):
+        self.upload_logo()
+        self.upload_issue_link_logo()
+        send.return_value = 2
+        response = self.client.post(
+            self.url,
+            format="json",
+            data={
+                "questionnaire": [
+                    {"question": "First question", "answer": "First response"},
+                    {"question": "Second question", "answer": "Second response"},
+                ]
+            },
+        )
+        assert response.status_code == 201
+        send.assert_called_with(to=["partners@sentry.io", self.user.email])
+
+    @with_feature("organizations:streamlined-publishing-flow")
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
+    def test_publish_request_email_fails(self, send):
+        send.return_value = 0
+        self.upload_logo()
+        self.upload_issue_link_logo()
+        response = self.client.post(
+            self.url,
+            format="json",
+            data={
+                "questionnaire": [
+                    {"question": "First question", "answer": "First response"},
+                    {"question": "Second question", "answer": "Second response"},
+                ]
+            },
+        )
+        assert response.status_code == 500
+        assert response.data == {
+            "detail": "Something went wrong trying to send publish confirmation email"
+        }
+        send.assert_called_with(to=["partners@sentry.io", self.user.email])
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_already_published(self, send_mail):
