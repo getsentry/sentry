@@ -95,17 +95,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                            "uptime_region": "us-west",
+                        },
                     ),
                 ]
             )
@@ -121,10 +126,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -159,17 +165,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "default",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "host_provider": "other",
+                            "status": CHECKSTATUS_FAILURE,
+                            "uptime_region": "default",
+                        },
                     ),
                 ]
             )
@@ -199,7 +210,12 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.restricted_by_provider",
                         sample_rate=1.0,
-                        tags={"host_provider_id": "TEST", "uptime_region": "us-west"},
+                        tags={
+                            "host_provider_id": "TEST",
+                            "uptime_region": "us-west",
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                        },
                     ),
                 ],
                 any_order=True,
@@ -230,17 +246,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "uptime_region": "us-west",
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                        },
                     ),
                 ]
             )
@@ -257,10 +278,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -278,17 +300,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                            "uptime_region": "us-west",
+                        },
                     ),
                 ]
             )
@@ -314,10 +341,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     )
@@ -350,10 +378,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -371,10 +400,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -403,10 +433,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     )
@@ -504,10 +535,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -517,6 +549,7 @@ class ProcessResultTest(ConfigPusherTestMixin):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -542,8 +575,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                 tags={
                     "status": CHECKSTATUS_MISSED_WINDOW,
                     "mode": "auto_detected_active",
-                    "status_reason": "timeout",
+                    "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                     "uptime_region": "us-west",
+                    "host_provider": "other",
                 },
                 sample_rate=1.0,
             )
@@ -579,8 +613,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                         tags={
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_onboarding",
-                            "status_reason": "timeout",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -613,8 +648,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                         tags={
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_onboarding",
-                            "status_reason": "timeout",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -623,6 +659,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
                         tags={
                             "failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
+                            "host_provider": "other",
+                            "status": CHECKSTATUS_FAILURE,
                         },
                         sample_rate=1.0,
                     ),
@@ -662,10 +700,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_onboarding",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -703,16 +742,21 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_onboarding",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.autodetection.graduated_onboarding",
-                        tags={"uptime_region": "us-west"},
+                        tags={
+                            "status": CHECKSTATUS_SUCCESS,
+                            "uptime_region": "us-west",
+                            "host_provider": "other",
+                        },
                         sample_rate=1.0,
                     ),
                 ]
