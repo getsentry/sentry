@@ -8,6 +8,7 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
+    EMAIL_ACTION_DATA_BLOBS,
     GITHUB_ACTION_DATA_BLOBS,
     JIRA_ACTION_DATA_BLOBS,
     JIRA_SERVER_ACTION_DATA_BLOBS,
@@ -582,56 +583,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             build_notification_actions_from_rule_data_actions(action_data)
 
     def test_email_migration(self):
-        action_data: list[dict[str, Any]] = [
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "None",
-                "fallthroughType": "ActiveMembers",
-                "uuid": "2e8847d7-8fe4-44d2-8a16-e25040329790",
-            },
-            {
-                "targetType": "IssueOwners",
-                "targetIdentifier": "",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
-                "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
-            },
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": None,
-                "fallthroughType": "AllMembers",
-                "uuid": "41f13756-8f90-4afe-b162-55268c6e3cdb",
-            },
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "None",
-                "fallthroughType": "NoOne",
-                "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
-            },
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 2160509,
-                "targetType": "Member",
-                "uuid": "42c3e1d6-4004-4a51-a90b-13d3404f1e55",
-            },
-            {
-                "targetType": "Member",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 3234013,
-                "uuid": "6e83337b-9561-4167-a208-27d6bdf5e613",
-            },
-            {
-                "targetType": "Team",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "AllMembers",
-                "uuid": "71b445cf-573b-4e0c-86bc-8dfbad93c480",
-                "targetIdentifier": 188022,
-            },
-        ]
+        action_data = EMAIL_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(
