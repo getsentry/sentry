@@ -231,6 +231,7 @@ const EnvironmentLabel = styled(Tooltip)`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
+  white-space: nowrap;
 `;
 
 const IssueGridLineLabels = styled(GridLineLabels)<{envCount: number}>`
