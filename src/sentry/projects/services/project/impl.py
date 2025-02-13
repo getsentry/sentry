@@ -114,9 +114,9 @@ class DatabaseBackedProjectService(ProjectService):
         organization_id: int,
         project_name: str,
         platform: str,
-        external_id: str | None = None,
         user_id: int,
         add_org_default_team: bool | None = False,
+        external_id: str | None = None,
     ) -> RpcProject:
         with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(
@@ -155,9 +155,9 @@ class DatabaseBackedProjectService(ProjectService):
         organization_id: int,
         project_name: str,
         platform: str,
-        external_id: str | None = None,
         user_id: int,
         add_org_default_team: bool | None = False,
+        external_id: str | None = None,
     ) -> RpcProject:
         project_query = Project.objects.filter(
             organization_id=organization_id,
@@ -174,7 +174,7 @@ class DatabaseBackedProjectService(ProjectService):
             organization_id=organization_id,
             project_name=project_name,
             platform=platform,
-            external_id=external_id,
             user_id=user_id,
             add_org_default_team=add_org_default_team,
+            external_id=external_id,
         )

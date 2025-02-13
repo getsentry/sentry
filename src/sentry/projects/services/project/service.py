@@ -89,9 +89,9 @@ class ProjectService(RpcService):
         organization_id: int,
         project_name: str,
         platform: str,
-        external_id: str | None = None,
         user_id: int,
         add_org_default_team: bool | None = False,
+        external_id: str | None = None,
     ) -> RpcProject:
         pass
 
@@ -103,9 +103,9 @@ class ProjectService(RpcService):
         organization_id: int,
         project_name: str,
         platform: str,
-        external_id: str | None = None,
         user_id: int,
         add_org_default_team: bool | None = False,
+        external_id: str | None = None,
     ) -> RpcProject:
         pass
 
