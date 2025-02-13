@@ -46,6 +46,9 @@ export type DropdownAutoCompleteProps =
   | LazyDropdownAutoCompleteProps
   | StaticDropdownAutoCompleteProps;
 
+/**
+ * @deprecated prefer using CompactSelect
+ */
 function DropdownAutoComplete(
   props: LazyDropdownAutoCompleteProps | StaticDropdownAutoCompleteProps
 ) {
