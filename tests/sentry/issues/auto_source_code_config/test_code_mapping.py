@@ -132,22 +132,28 @@ class TestFrameFilename:
                 FrameFilename({"filename": filepath})
 
     @pytest.mark.parametrize(
-        "files,prefixes",
+        "frame_filename, prefix",
         [
-            ("FrameFilename('app:///utils/something.py').straight_path_prefix", "app:///"),
-            ("FrameFilename('./app/utils/something.py').straight_path_prefix", "./"),
-            (
-                "FrameFilename('../../../../../../packages/something.py').straight_path_prefix",
+            pytest.param(
+                FrameFilename({"filename": "app:///utils/something.py"}),
+                "app:///",
+            ),
+            pytest.param(
+                FrameFilename({"filename": "./app/utils/something.py"}),
+                "./",
+            ),
+            pytest.param(
+                FrameFilename({"filename": "../../../../../../packages/something.py"}),
                 "../../../../../../",
             ),
-            (
-                "FrameFilename('app:///../services/something.py').straight_path_prefix",
+            pytest.param(
+                FrameFilename({"filename": "app:///../services/something.py"}),
                 "app:///../",
             ),
         ],
     )
-    def test_straight_path_prefix(self, files: str, prefixes: str) -> None:
-        assert eval(files) == prefixes
+    def test_straight_path_prefix(self, frame_filename: FrameFilename, prefix: str) -> None:
+        assert frame_filename.straight_path_prefix == prefix
 
 
 class TestDerivedCodeMappings(TestCase):

@@ -12,4 +12,4 @@ SUPPORTED_LANGUAGES = [
 # These languages will run as dry-run mode by default
 DRY_RUN_PLATFORMS: list[str] = []
 # Some languages will also process system frames
-PROCESS_SYSTEM_FRAMES: list[str] = []
+PROCESS_ALL_FRAMES: list[str] = []

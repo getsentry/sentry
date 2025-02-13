@@ -126,7 +126,7 @@ class CodeMappingTreesHelper:
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 
-    def generate_code_mappings(self, frames: list[dict[str, Any]]) -> list[CodeMapping]:
+    def generate_code_mappings(self, frames: Sequence[Mapping[str, Any]]) -> list[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
@@ -191,7 +191,7 @@ class CodeMappingTreesHelper:
         return file_matches
 
     def _stacktrace_buckets(
-        self, frames: Sequence[dict[str, Any]]
+        self, frames: Sequence[Mapping[str, Any]]
     ) -> dict[str, list[FrameFilename]]:
         """Groups stacktraces into buckets based on the root of the stacktrace path"""
         buckets: defaultdict[str, list[FrameFilename]] = defaultdict(list)
@@ -207,7 +207,7 @@ class CodeMappingTreesHelper:
 
         return buckets
 
-    def _process_stackframes(self, buckets: dict[str, list[FrameFilename]]) -> bool:
+    def _process_stackframes(self, buckets: Mapping[str, Sequence[FrameFilename]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
@@ -305,7 +305,7 @@ class CodeMappingTreesHelper:
         source code. Use existing code mappings to exclude some source files
         """
 
-        def _list_endswith(l1: list[str], l2: list[str]) -> bool:
+        def _list_endswith(l1: Sequence[str], l2: Sequence[str]) -> bool:
             if len(l2) > len(l1):
                 l1, l2 = l2, l1
             l1_idx = len(l1) - 1
