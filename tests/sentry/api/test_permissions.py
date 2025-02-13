@@ -113,6 +113,16 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
                 self.make_request(self.normal_user, method="GET"), None
             )
 
+        @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+        def test_determine_access_superuser(self):
+            assert not self.user_permission.determine_access(
+                self.make_request(self.readonly_user, method="POST"), None
+            )
+            self.readonly_user.update(is_superuser=True)
+            assert self.user_permission.determine_access(
+                self.make_request(self.readonly_user, method="POST"), None
+            )
+
 
 class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
     user_permission = SentryIsAuthenticated()
