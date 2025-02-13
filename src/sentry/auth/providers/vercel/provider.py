@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 import jwt
 from django.http.request import HttpRequest
@@ -9,7 +9,6 @@ from sentry import options
 from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
 from sentry.auth.providers.oauth2 import OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
-from sentry.auth.view import AuthView
 from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
@@ -49,7 +48,7 @@ class VercelOAuth2Provider(OAuth2Provider):
         """
         return {"org": {"id": resource.get("id")}}
 
-    def get_pipeline_views(self) -> Sequence[AuthView]:
+    def get_pipeline_views(self):
         return [
             OAuth2CallbackView(
                 access_token_url=self.access_token_url,
@@ -67,7 +66,7 @@ class VercelOAuth2Provider(OAuth2Provider):
         """
 
         data = state["data"]
-        decoded_id_token = jwt.decode(data["id_token"], verify=False)
+        decoded_id_token = jwt.decode(data["id_token"], options={"verify_signature": False})
         return {
             "type": "vercel",
             "id": decoded_id_token["user_id"],
