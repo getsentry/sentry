@@ -425,28 +425,35 @@ def process_delayed_workflows(
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
+    print("PROCESS_DELAYED_WORKFLOWS")
     project = fetch_project(project_id)
     if not project:
         return
 
+    print("FETCH_WORKFLOW_EVENT_DCG_DATA")
     workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
     # Get mappings from DataConditionGroups to other info
+    print("GET_DCG_GROUP_WORKFLOW_DETECTOR_DATA")
     dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
     dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER].copy()
     dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
 
+    print("FETCH_WORKFLOWS_ENVS, DCGS")
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
+    print("GET_CONDITION_QUERY_GROUPS")
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+    print("GET CONDITION GROUP RESULTS")
     condition_group_results = get_condition_group_results(condition_groups)
 
+    print("EVALUATE DCGS")
     # Evaluate DCGs
     groups_to_dcgs = get_groups_to_fire(
         data_condition_groups,
@@ -459,12 +466,15 @@ def process_delayed_workflows(
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
         workflow_event_dcg_data, groups_to_dcgs
     )
+    print("GET GROUP TO GROUPEVENT")
     group_to_groupevent = get_group_to_groupevent(
         dcg_group_to_event_data, list(groups_to_dcgs.keys()), event_ids, occurrence_ids, project_id
     )
 
+    print("FIRE ACTIONS")
     fire_actions_for_groups(groups_to_dcgs, trigger_type_to_dcg_model, group_to_groupevent)
 
+    print("CLEAN UP REDIS BUFFER")
     hashes_to_delete = list(workflow_event_dcg_data.keys())
     filters: dict[str, BufferField] = {"project_id": project_id}
     if batch_key:
