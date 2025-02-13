@@ -2067,6 +2067,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupUptimeChecks'))}
       />
       <Route
+        path={TabPaths[Tab.CRON_CHECKS]}
+        component={make(() => import('sentry/views/issueDetails/groupCronChecks'))}
+      />
+      <Route
         path={TabPaths[Tab.TAGS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />
