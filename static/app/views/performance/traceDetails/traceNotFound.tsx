@@ -60,7 +60,7 @@ function TraceNotFound({
           if (error) {
             return (
               <Alert.Container>
-                <Alert margin type="error" showIcon>
+                <Alert type="error" showIcon>
                   <ErrorLabel>
                     {tct(
                       'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
@@ -74,7 +74,7 @@ function TraceNotFound({
 
           return (
             <Alert.Container>
-              <Alert margin type="error" showIcon>
+              <Alert type="error" showIcon>
                 <ErrorLabel>
                   {t('The trace cannot be shown when all events are errors.')}
                 </ErrorLabel>

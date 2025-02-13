@@ -122,7 +122,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       >
         <Layout.Page>
           <Alert.Container>
-            <Alert margin system type="warning" data-test-id="replay-deleted">
+            <Alert system type="warning" data-test-id="replay-deleted">
               <Flex gap={space(0.5)}>
                 <IconDelete color="gray500" size="sm" />
                 {t('This replay has been deleted.')}

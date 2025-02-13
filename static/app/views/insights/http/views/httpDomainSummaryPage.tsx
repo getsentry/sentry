@@ -218,7 +218,7 @@ export function HTTPDomainSummaryPage() {
           <Layout.Main fullWidth>
             {domain === '' && (
               <Alert.Container>
-                <Alert margin type="info">
+                <Alert type="info">
                   {tct(
                     '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                     {

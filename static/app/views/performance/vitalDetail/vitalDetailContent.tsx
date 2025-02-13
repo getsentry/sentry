@@ -168,7 +168,7 @@ function VitalDetailContent(props: Props) {
 
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {error}
         </Alert>
       </Alert.Container>

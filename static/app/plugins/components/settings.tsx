@@ -184,9 +184,7 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert.Container>
-            <Alert margin type="warning">
-              {data.config_error}
-            </Alert>
+            <Alert type="warning">{data.config_error}</Alert>
           </Alert.Container>
           <LinkButton priority="primary" href={authUrl}>
             {t('Associate Identity')}
@@ -198,7 +196,7 @@ class PluginSettings<
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert margin type="error">
+          <Alert type="error">
             {tct(
               'An unknown error occurred. Need help with this? [link:Contact support]',
               {

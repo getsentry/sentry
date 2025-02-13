@@ -298,7 +298,7 @@ function ErrorMessage({
   const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
   return (
     <Alert.Container>
-      <Alert margin type="error" showIcon>
+      <Alert type="error" showIcon>
         {errActors}
         {codeMapping && (
           <p>

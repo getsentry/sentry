@@ -436,7 +436,7 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
 
           return (
             <Alert.Container>
-              <Alert margin type="info" showIcon>
+              <Alert type="info" showIcon>
                 <AlertText>
                   <div>
                     {t(

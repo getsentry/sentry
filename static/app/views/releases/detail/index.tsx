@@ -181,7 +181,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
       return (
         <Layout.Page>
           <Alert.Container>
-            <Alert margin type="error" showIcon>
+            <Alert type="error" showIcon>
               {t('This release may not be in your selected project.')}
             </Alert>
           </Alert.Container>
@@ -314,7 +314,7 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
       return (
         <Layout.Page withPadding>
           <Alert.Container>
-            <Alert margin type="error" showIcon>
+            <Alert type="error" showIcon>
               {t('This release could not be found.')}
             </Alert>
           </Alert.Container>

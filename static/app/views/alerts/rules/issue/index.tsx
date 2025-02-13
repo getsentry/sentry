@@ -840,7 +840,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -964,7 +964,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert margin type="warning" showIcon>
+        <Alert type="warning" showIcon>
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'

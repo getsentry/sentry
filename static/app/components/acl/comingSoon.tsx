@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 function ComingSoon() {
   return (
     <Alert.Container>
-      <Alert margin type="info" showIcon>
+      <Alert type="info" showIcon>
         {t('This feature is coming soon!')}
       </Alert>
     </Alert.Container>

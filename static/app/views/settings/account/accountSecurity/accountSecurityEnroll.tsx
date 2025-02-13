@@ -460,7 +460,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
 
         {authenticator.rotationWarning && authenticator.status === 'rotation' && (
           <Alert.Container>
-            <Alert margin type="warning" showIcon>
+            <Alert type="warning" showIcon>
               {authenticator.rotationWarning}
             </Alert>
           </Alert.Container>

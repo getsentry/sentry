@@ -23,14 +23,12 @@ export default storyBook('Alert', story => {
         <p>
           The default <JSXNode name="Alert" /> looks like this:
         </p>
-        <Alert margin type="info">
-          Sentry is cool!!
-        </Alert>
+        <Alert type="info">Sentry is cool!!</Alert>
         <p>
           You can even add in links, which will be nicely formatted for you inside the
           alert:
         </p>
-        <Alert margin type="info">
+        <Alert type="info">
           Sentry is cool!{' '}
           <ExternalLink href="https://sentry.io/welcome/">Learn more here.</ExternalLink>
         </Alert>
@@ -46,19 +44,19 @@ export default storyBook('Alert', story => {
           changes the color and default icon of the alert.
         </p>
         <Alert.Container>
-          <Alert margin type="error" showIcon>
+          <Alert type="error" showIcon>
             This is an error alert. Something went wrong.
           </Alert>
-          <Alert margin type="info" showIcon>
+          <Alert type="info" showIcon>
             Info alert. Put some exciting info here.
           </Alert>
-          <Alert margin type="muted" showIcon>
+          <Alert type="muted" showIcon>
             Muted alerts look like this.
           </Alert>
-          <Alert margin type="success" showIcon>
+          <Alert type="success" showIcon>
             Success alert. Yay!
           </Alert>
-          <Alert margin type="warning" showIcon>
+          <Alert type="warning" showIcon>
             Warning alert. Something is about to go wrong, probably.
           </Alert>
         </Alert.Container>
@@ -75,10 +73,10 @@ export default storyBook('Alert', story => {
           <JSXNode name="IconDelete" /> for example, to the prop.
         </p>
         <Alert.Container>
-          <Alert margin type="warning" showIcon icon={<IconDelete />}>
+          <Alert type="warning" showIcon icon={<IconDelete />}>
             Are you sure you want to delete?
           </Alert>
-          <Alert margin type="error" showIcon icon={<IconSad />}>
+          <Alert type="error" showIcon icon={<IconSad />}>
             Oh no!
           </Alert>
         </Alert.Container>
@@ -95,10 +93,10 @@ export default storyBook('Alert', story => {
         </p>
         <SizingWindow display="block">
           <Alert.Container>
-            <Alert margin type="success" showIcon opaque>
+            <Alert type="success" showIcon opaque>
               This one is opaque.
             </Alert>
-            <Alert margin type="success" showIcon>
+            <Alert type="success" showIcon>
               This is not opaque.
             </Alert>
           </Alert.Container>
@@ -116,7 +114,7 @@ export default storyBook('Alert', story => {
           additional content when the alert is expanded.
         </p>
         <Alert.Container>
-          <Alert margin type="info" showIcon expand="Some extra info here.">
+          <Alert type="info" showIcon expand="Some extra info here.">
             Expand me
           </Alert>
           <Alert
@@ -203,10 +201,10 @@ export default storyBook('Alert', story => {
           all items within the container evenly.
         </p>
         <Alert.Container>
-          <Alert margin type="info" showIcon>
+          <Alert type="info" showIcon>
             These two alerts...
           </Alert>
-          <Alert margin type="info" showIcon>
+          <Alert type="info" showIcon>
             ...are both in one container.
           </Alert>
         </Alert.Container>

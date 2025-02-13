@@ -84,7 +84,7 @@ function ExistingMemberAlert() {
 
   return (
     <Alert.Container>
-      <Alert margin type="warning" data-test-id="existing-member">
+      <Alert type="warning" data-test-id="existing-member">
         {tct(
           'Your account ([email]) is already a member of this organization. [switchLink:Switch accounts]?',
           {
@@ -244,7 +244,7 @@ function AcceptOrganizationInvite() {
     return (
       <NarrowLayout>
         <Alert.Container>
-          <Alert margin type="warning">
+          <Alert type="warning">
             {tct(
               'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
               {
@@ -272,7 +272,7 @@ function AcceptOrganizationInvite() {
       <SettingsPageHeader title={t('Accept organization invite')} />
       {isAcceptError && (
         <Alert.Container>
-          <Alert margin type="error">
+          <Alert type="error">
             {t('Failed to join this organization. Please try again')}
           </Alert>
         </Alert.Container>

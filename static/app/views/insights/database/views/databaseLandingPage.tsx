@@ -228,7 +228,7 @@ function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
       <Alert.Container>
-        <Alert margin {...props} type="info" showIcon />
+        <Alert {...props} type="info" showIcon />
       </Alert.Container>
     </ModuleLayout.Full>
   );

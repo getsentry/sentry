@@ -51,7 +51,7 @@ export function IntegrationServerlessFunctions({
   return (
     <Fragment>
       <Alert.Container>
-        <Alert margin type="info">
+        <Alert type="info">
           {t(
             'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
           )}

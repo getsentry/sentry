@@ -227,7 +227,7 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
       </SearchbarContainer>
       {transactionsError && (
         <Alert.Container>
-          <Alert margin type="error" showIcon>
+          <Alert type="error" showIcon>
             {transactionsError}
           </Alert>
         </Alert.Container>

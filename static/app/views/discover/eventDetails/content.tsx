@@ -332,7 +332,7 @@ function EventDetailsContent(props: Props) {
 
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {error.message}
         </Alert>
       </Alert.Container>

@@ -578,7 +578,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {error}
         </Alert>
       </Alert.Container>
@@ -597,7 +597,7 @@ export class Results extends Component<Props, State> {
     ) {
       return (
         <Alert.Container>
-          <Alert margin type="info" showIcon>
+          <Alert type="info" showIcon>
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
@@ -608,7 +608,7 @@ export class Results extends Component<Props, State> {
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
-          <Alert margin type="info" showIcon>
+          <Alert type="info" showIcon>
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
               {
@@ -698,7 +698,7 @@ export class Results extends Component<Props, State> {
     if (tips) {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
-          <Alert margin type="info" showIcon key={`tip-${index}`}>
+          <Alert type="info" showIcon key={`tip-${index}`}>
             <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
           </Alert>
         </Alert.Container>

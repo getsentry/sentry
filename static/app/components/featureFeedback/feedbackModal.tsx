@@ -256,7 +256,7 @@ export function FeedbackModal<T extends Data>({
           {bodyChildren}
           {isSelfHosted && showSelfHostedMessage && (
             <Alert.Container>
-              <Alert margin type="info">
+              <Alert type="info">
                 {tct(
                   "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
                   {

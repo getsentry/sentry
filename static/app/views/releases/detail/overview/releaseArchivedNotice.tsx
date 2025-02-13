@@ -13,7 +13,7 @@ type Props = {
 function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (
     <Alert.Container>
-      <Alert margin type="warning">
+      <Alert type="warning">
         {multi
           ? t('These releases have been archived.')
           : t('This release has been archived.')}

@@ -71,7 +71,7 @@ function TraceErrorAlerts({
 
   return (
     <AlertContainer>
-      <Alert margin type={getCumulativeAlertLevelFromErrors(traceErrors) ?? 'info'}>
+      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors) ?? 'info'}>
         <ErrorLabel>{label}</ErrorLabel>
 
         <TraceErrorList

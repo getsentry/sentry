@@ -47,13 +47,13 @@ function OrganizationContainer({children}: Props) {
     const errorBody =
       errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS ? (
         <Alert.Container>
-          <Alert margin type="error" data-test-id="org-access-error">
+          <Alert type="error" data-test-id="org-access-error">
             {t('You do not have access to this organization.')}
           </Alert>
         </Alert.Container>
       ) : errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND ? (
         <Alert.Container>
-          <Alert margin type="error" data-test-id="org-loading-error">
+          <Alert type="error" data-test-id="org-loading-error">
             {t('The organization you were looking for was not found.')}
           </Alert>
         </Alert.Container>

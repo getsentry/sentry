@@ -108,7 +108,7 @@ SENTRY_DSN="${params.dsn.public}"
         {
           description: (
             <Alert.Container>
-              <Alert margin type="warning">
+              <Alert type="warning">
                 {tct(
                   'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
                   {

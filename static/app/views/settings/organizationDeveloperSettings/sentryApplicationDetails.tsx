@@ -328,7 +328,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert.Container>
-              <Alert margin type="info" showIcon>
+              <Alert type="info" showIcon>
                 {t('This will be the only time your client secret is visible!')}
               </Alert>
             </Alert.Container>

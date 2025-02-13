@@ -26,7 +26,7 @@ export function MissingExampleWarning({
 
   return (
     <Alert.Container>
-      <Alert margin type="warning" showIcon>
+      <Alert type="warning" showIcon>
         {tct(
           `Looks like this getting started example is still undergoing some
          work and doesn't include an example for triggering an event quite

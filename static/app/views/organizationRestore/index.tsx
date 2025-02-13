@@ -47,9 +47,7 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert margin type="error">
-          {t('There was an error loading your organization.')}
-        </Alert>
+        <Alert type="error">{t('There was an error loading your organization.')}</Alert>
       </Alert.Container>
     );
   }

@@ -147,7 +147,7 @@ function AccountClose() {
       </TextBlock>
 
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>

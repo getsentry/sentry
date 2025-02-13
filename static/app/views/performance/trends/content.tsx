@@ -128,7 +128,7 @@ class TrendsContent extends Component<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {error}
         </Alert>
       </Alert.Container>

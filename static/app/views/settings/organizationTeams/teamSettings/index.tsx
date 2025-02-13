@@ -85,7 +85,7 @@ function TeamSettings({team, params}: TeamSettingsProps) {
       <ProjectPermissionAlert margin access={['team:write']} team={team} />
       {isIdpProvisioned && (
         <Alert.Container>
-          <Alert margin type="warning" showIcon>
+          <Alert type="warning" showIcon>
             {t(
               "This team is managed through your organization's identity provider. These settings cannot be modified."
             )}

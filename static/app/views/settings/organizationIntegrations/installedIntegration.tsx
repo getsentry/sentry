@@ -67,7 +67,7 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert margin type="error" showIcon>
+          <Alert type="error" showIcon>
             {t('Deleting this integration has consequences!')}
           </Alert>
         </Alert.Container>
@@ -87,7 +87,7 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert margin type="error" showIcon>
+          <Alert type="error" showIcon>
             {t('This integration cannot be removed in Sentry')}
           </Alert>
         </Alert.Container>

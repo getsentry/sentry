@@ -93,7 +93,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
   // TODO(dcramer): show additional resource links
   return (
     <Alert.Container>
-      <Alert margin type="error">
+      <Alert type="error">
         <Heading>{t('Oops! Something went wrong')}</Heading>
         <p>
           {t(`

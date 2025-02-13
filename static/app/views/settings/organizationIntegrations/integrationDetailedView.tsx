@@ -291,7 +291,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       <Fragment>
         {alertText && (
           <Alert.Container>
-            <Alert margin type="warning" showIcon>
+            <Alert type="warning" showIcon>
               {alertText}
             </Alert>
           </Alert.Container>

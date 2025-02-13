@@ -41,7 +41,7 @@ function LinkedIssue({eventId, groupId}: Props) {
     if (hasNotFound) {
       return (
         <Alert.Container>
-          <Alert margin type="warning" showIcon>
+          <Alert type="warning" showIcon>
             {t('The linked issue cannot be found. It may have been deleted, or merged.')}
           </Alert>
         </Alert.Container>

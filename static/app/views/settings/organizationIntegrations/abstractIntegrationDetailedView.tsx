@@ -351,7 +351,7 @@ abstract class AbstractIntegrationDetailedView<
             {this.renderPermissions()}
             {this.alerts.map((alert, i) => (
               <Alert.Container key={i}>
-                <Alert margin key={i} type={alert.type} showIcon>
+                <Alert key={i} type={alert.type} showIcon>
                   <span
                     dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                   />

@@ -24,7 +24,7 @@ function GlobalEventProcessingAlert({className, projects}: Props) {
 
   return (
     <Alert.Container>
-      <Alert margin className={className} type="info" showIcon>
+      <Alert className={className} type="info" showIcon>
         {projectsInTheLowPriorityQueue.length === 1
           ? tct(
               'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',

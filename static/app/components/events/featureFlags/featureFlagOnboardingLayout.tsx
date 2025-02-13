@@ -97,7 +97,7 @@ export function FeatureFlagOnboardingLayout({
       <Wrapper>
         {!skipConfig ? null : (
           <Alert.Container>
-            <Alert margin type="info" showIcon>
+            <Alert type="info" showIcon>
               <Flex gap={space(3)}>
                 {t(
                   'Feature flag integration detected. Please follow the remaining steps.'

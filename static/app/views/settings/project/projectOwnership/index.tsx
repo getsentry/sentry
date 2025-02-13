@@ -168,7 +168,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
       />
       {isCodeownersError && (
         <Alert.Container>
-          <Alert margin type="error">
+          <Alert type="error">
             {t(
               "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
             )}
@@ -248,9 +248,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
         </Form>
       ) : (
         <Alert.Container>
-          <Alert margin type="error">
-            {t('There was an error issue owner settings.')}
-          </Alert>
+          <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
         </Alert.Container>
       )}
     </SentryDocumentTitle>

@@ -274,7 +274,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
           <Alert.Container>
-            <Alert margin type="error" showIcon>
+            <Alert type="error" showIcon>
               <p>
                 {tct(
                   `You do not have permission to install integrations in
@@ -323,7 +323,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
 
       return (
         <Alert.Container>
-          <Alert margin type="warning" showIcon>
+          <Alert type="warning" showIcon>
             {t(
               'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
             )}
@@ -359,7 +359,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
 
     return (
       <Alert.Container>
-        <Alert margin type="info" showIcon>
+        <Alert type="info" showIcon>
           {alertText}
         </Alert>
       </Alert.Container>

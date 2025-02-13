@@ -202,7 +202,7 @@ export function SpansTabContentImpl({
       <section>
         {(tableError || chartError) && (
           <Alert.Container>
-            <Alert margin type="error" showIcon>
+            <Alert type="error" showIcon>
               {tableError || chartError}
             </Alert>
           </Alert.Container>

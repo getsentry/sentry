@@ -60,7 +60,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
     if (error?.status === 404) {
       return (
         <Alert.Container>
-          <Alert margin type="error" showIcon>
+          <Alert type="error" showIcon>
             {t('This alert rule could not be found.')}
           </Alert>
         </Alert.Container>

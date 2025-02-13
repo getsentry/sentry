@@ -341,9 +341,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert margin type="error">
-          {t('No solution available.')}
-        </Alert>
+        <Alert type="error">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -492,9 +490,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert margin type="warning">
-              {t('No solution found.')}
-            </Alert>
+            <Alert type="warning">{t('No solution found.')}</Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>

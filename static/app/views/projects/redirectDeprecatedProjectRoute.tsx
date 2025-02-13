@@ -148,7 +148,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
               if (error && error.status === 404) {
                 return (
                   <Alert.Container>
-                    <Alert margin type="error">
+                    <Alert type="error">
                       {t('The project you were looking for was not found.')}
                     </Alert>
                   </Alert.Container>

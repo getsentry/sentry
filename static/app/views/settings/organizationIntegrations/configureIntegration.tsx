@@ -380,7 +380,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
 
         {instructions && instructions.length > 0 && (
           <Alert.Container>
-            <Alert margin type="info">
+            <Alert type="info">
               {instructions.length === 1 ? (
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}

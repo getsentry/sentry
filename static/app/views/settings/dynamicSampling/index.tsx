@@ -21,9 +21,7 @@ export default function DynamicSamplingSettings() {
   if (!hasDynamicSamplingCustomFeature(organization)) {
     return (
       <Alert.Container>
-        <Alert margin type="warning">
-          {t("You don't have access to this feature")}
-        </Alert>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
       </Alert.Container>
     );
   }
@@ -49,7 +47,7 @@ export default function DynamicSamplingSettings() {
       />
       {!hasWriteAccess && (
         <Alert.Container>
-          <Alert margin type="warning">
+          <Alert type="warning">
             {t(
               'These settings can only be edited by users with the organization owner or manager role.'
             )}

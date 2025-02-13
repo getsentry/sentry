@@ -9,7 +9,7 @@ export function ErrorAlert() {
   const {error} = useInviteMembersContext();
   return error ? (
     <Alert.Container>
-      <Alert margin type="error" showIcon>
+      <Alert type="error" showIcon>
         {error}
       </Alert>
     </Alert.Container>
@@ -22,7 +22,7 @@ export function InviteMessage() {
     <Subtext>{t('Invite unlimited new members to join your organization.')}</Subtext>
   ) : (
     <Alert.Container>
-      <Alert margin type="warning" showIcon>
+      <Alert type="warning" showIcon>
         {t(
           'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
         )}

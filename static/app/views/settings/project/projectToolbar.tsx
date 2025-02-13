@@ -96,7 +96,7 @@ export default function ProjectToolbarSettings({
         <ProjectPermissionAlert margin project={project} />
         {domain && (
           <Alert.Container>
-            <Alert margin type="info" showIcon>
+            <Alert type="info" showIcon>
               {tct(
                 'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
                 {domain: <strong>{domain}</strong>}

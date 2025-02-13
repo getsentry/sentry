@@ -440,7 +440,7 @@ function CreateProject() {
 
           {errors && (
             <Alert.Container>
-              <Alert margin type="error">
+              <Alert type="error">
                 {Object.keys(errors).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}

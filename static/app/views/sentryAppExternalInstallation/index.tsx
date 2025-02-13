@@ -246,7 +246,7 @@ function CheckAndRenderError({
   if (selectedOrgSlug && organization && !hasAccess(organization)) {
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           <p>
             {tct(
               `You do not have permission to install integrations in
@@ -264,7 +264,7 @@ function CheckAndRenderError({
   if (isInstalled && organization && sentryApp) {
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {tct('Integration [sentryAppName] already installed for [organization]', {
             organization: <strong>{organization.name}</strong>,
             sentryAppName: <strong>{sentryApp.name}</strong>,
@@ -279,7 +279,7 @@ function CheckAndRenderError({
     const ownerSlug = sentryApp?.owner?.slug ?? 'another organization';
     return (
       <Alert.Container>
-        <Alert margin type="error" showIcon>
+        <Alert type="error" showIcon>
           {tct(
             'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
             {

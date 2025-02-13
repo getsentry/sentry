@@ -253,7 +253,7 @@ class MetricAlertDetails extends Component<Props, State> {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert margin type="error" showIcon>
+          <Alert type="error" showIcon>
             {error?.status === 404
               ? t('This alert rule could not be found.')
               : t('An error occurred while fetching the alert rule.')}
@@ -284,7 +284,7 @@ class MetricAlertDetails extends Component<Props, State> {
       >
         {warning && (
           <Alert.Container>
-            <Alert margin type="warning" showIcon>
+            <Alert type="warning" showIcon>
               {warning}
             </Alert>
           </Alert.Container>

@@ -24,7 +24,7 @@ export function FeatureFlagOtherPlatformOnboarding({
       <Wrapper>
         {
           <Alert.Container>
-            <Alert margin type="info" showIcon>
+            <Alert type="info" showIcon>
               <Flex gap={space(3)}>
                 {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
                 <LinkButton

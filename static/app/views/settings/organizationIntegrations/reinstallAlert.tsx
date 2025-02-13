@@ -12,7 +12,7 @@ function ReinstallAlert({integrations = []}: Props) {
   if (statusList?.includes('disabled')) {
     return (
       <Alert.Container>
-        <Alert margin data-test-id="disabled-alert" type="warning" showIcon>
+        <Alert data-test-id="disabled-alert" type="warning" showIcon>
           {t('Reinstall required for disabled integrations.')}
         </Alert>
       </Alert.Container>
