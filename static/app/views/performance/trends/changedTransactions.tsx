@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -53,12 +54,12 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getTrendProjectId,
+  makeTrendToColorMapping,
   modifyTrendView,
   normalizeTrends,
   transformDeltaSpread,
   transformValueDelta,
   trendCursorNames,
-  trendToColor,
 } from './utils';
 
 type Props = {
@@ -377,6 +378,8 @@ function TrendsListItem(props: TrendsListItemProps) {
     handleSelectTransaction,
     trendView,
   } = props;
+  const theme = useTheme();
+  const trendToColor = makeTrendToColorMapping(theme);
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const color = trendToColor[trendChangeType].default;
 
