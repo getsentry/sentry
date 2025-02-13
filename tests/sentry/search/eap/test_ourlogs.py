@@ -2,7 +2,7 @@ import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
-    DoubleArray,
+    IntArray,
     StrArray,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -89,9 +89,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("log.severity_number:[123,456,789]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
+                value=AttributeValue(val_int_array=IntArray(values=[123, 456, 789])),
             )
         )
         assert having is None
@@ -100,9 +100,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("log.severity_number:>123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="sentry.severity_number", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_GREATER_THAN,
-                value=AttributeValue(val_double=123),
+                value=AttributeValue(val_int=123),
             )
         )
         assert having is None
