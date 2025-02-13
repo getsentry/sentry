@@ -212,20 +212,22 @@ def _get_last_deploy_metadata(item_list, user):
     return result
 
 
-def _user_to_author_cache_key(organization_id, author):
+def _user_to_author_cache_key(organization_id: int, author: CommitAuthor) -> str:
     author_hash = md5_text(author.email.lower()).hexdigest()
     return f"get_users_for_authors:{organization_id}:{author_hash}"
 
 
 class NonMappableUser(TypedDict):
-    name: str
+    name: str | None
     email: str
 
 
 Author = Union[UserSerializerResponse, NonMappableUser]
 
 
-def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, Author]:
+def get_users_for_authors(
+    organization_id: int, authors: list[CommitAuthor], user=None
+) -> Mapping[str, Author]:
     """
     Returns a dictionary of author_id => user, if a Sentry
     user object exists for that email. If there is no matching
