@@ -41,7 +41,7 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         insights: [],
         progress: [
           {
-            message: 'Ingesting error data...',
+            message: 'Ingesting Sentry data...',
             timestamp: new Date().toISOString(),
             type: 'INFO',
           },
