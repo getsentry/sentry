@@ -246,8 +246,10 @@ export default typescript.config([
       'multiline-comment-style': ['error', 'separate-lines'],
       'no-alert': 'error',
       'no-caller': 'error',
+      'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-console': 'error',
       'no-else-return': ['error', {allowElseIf: false}],
+      'no-empty-pattern': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-eval': 'error',
       'no-extend-native': 'error',
       'no-extra-bind': 'error',
