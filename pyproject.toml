@@ -136,7 +136,6 @@ module = [
     "sentry.api.invite_helper",
     "sentry.api.paginator",
     "sentry.api.permissions",
-    "sentry.api.serializers.models.event",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.db.mixin",
