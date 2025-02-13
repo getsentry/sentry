@@ -33,9 +33,9 @@ import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIss
 import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
+import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -92,13 +92,7 @@ export default function StreamlinedGroupHeader({
                   },
                 },
                 {
-                  label: (
-                    <ShortIdBreadcrumb
-                      organization={organization}
-                      project={project}
-                      group={group}
-                    />
-                  ),
+                  label: <IssueIdBreadcrumb project={project} group={group} />,
                 },
               ]}
             />

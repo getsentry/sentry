@@ -20,6 +20,7 @@ import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
+  IconLink,
   IconSubscribed,
   IconUnsubscribed,
 } from 'sentry/icons';
@@ -50,7 +51,7 @@ import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIss
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import ShareIssueModal from './shareModal';
+import StreamlinedShareIssueModal from './streamlinedShareModal';
 import SubscribeAction from './subscribeAction';
 
 type UpdateData =
@@ -337,13 +338,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     openModal(renderDiscardModal);
   };
 
-  const openShareModal = () => {
+  const openStreamlinedShareModal = () => {
     openModal(modalProps => (
-      <ShareIssueModal
+      <StreamlinedShareIssueModal
         {...modalProps}
         organization={organization}
         projectSlug={group.project.slug}
         groupId={group.id}
+        eventId={event?.id}
         onToggle={onToggleShare}
       />
     ));
@@ -446,6 +448,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
               size="sm"
             />
+            {shareCap.enabled && (
+              <Button
+                size="sm"
+                onClick={openStreamlinedShareModal}
+                icon={<IconLink />}
+                aria-label={t('Share')}
+              />
+            )}
           </Fragment>
         ))}
       <DropdownMenu
@@ -498,13 +508,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             details: !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
             onAction: () => onUpdate({inbox: false}),
           },
-          {
-            key: 'share',
-            label: t('Share'),
-            disabled: disabled || !shareCap.enabled,
-            hidden: !organization.features.includes('shared-issues'),
-            onAction: openShareModal,
-          },
+
           {
             key: bookmarkKey,
             label: bookmarkTitle,
