@@ -99,6 +99,7 @@ function PlanMigrationRow(props: Props) {
       break;
     case 'error':
       currentValue = formatCategoryRowString(props.type, props.currentValue, options);
+      // eslint-disable-next-line no-case-declarations
       const formattedErrors = formatCategoryRowString(
         props.type,
         props.nextValue,
