@@ -137,6 +137,7 @@ export function IssueViewPFTab({
           (tabListState && tabListState?.selectedKey === view.key) ||
           (!tabListState && view.key === initialTabKey)
         }
+        disableEditing={view.key === TEMPORARY_TAB_KEY}
       />
       <IssueViewQueryCountPF view={view} />
       {/* If tablistState isn't initialized, we want to load the elipsis menu
