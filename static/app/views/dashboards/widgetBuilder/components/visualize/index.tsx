@@ -197,6 +197,26 @@ function canDeleteField(
   return true;
 }
 
+// Prefixes a value with `function:` because we need to ensure tags
+// and functions do not overlap in value for the dropdowns
+// Conflicting values seems to cause duplicate aggregate options
+function getAggregateValueKey(value: string | undefined) {
+  if (!value) {
+    return '';
+  }
+
+  return `function:${value}`;
+}
+
+// When we set the aggregate, we need to split out the function prefix
+function parseAggregateFromValueKey(value: string) {
+  if (!value.startsWith('function:')) {
+    return value;
+  }
+
+  return value.split(':')[1];
+}
+
 interface VisualizeProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
@@ -410,7 +430,10 @@ function Visualize({error, setError}: VisualizeProps) {
                     }
                   | SelectValue<string>
                 > = aggregates.map(option => ({
-                  value: option.value.meta.name,
+                  value:
+                    option.value.kind === FieldValueKind.FUNCTION
+                      ? getAggregateValueKey(option.value.meta.name)
+                      : option.value.meta.name,
                   label: option.value.meta.name,
                   trailingItems:
                     renderTag(option.value.kind, option.value.meta.name) ?? null,
@@ -562,8 +585,11 @@ function Visualize({error, setError}: VisualizeProps) {
                                   disabled={aggregateOptions.length <= 1}
                                   options={aggregateOptions}
                                   value={
-                                    parseFunction(stringFields?.[index] ?? '')?.name ??
-                                    NONE
+                                    parseFunction(stringFields?.[index] ?? '')?.name
+                                      ? getAggregateValueKey(
+                                          parseFunction(stringFields?.[index] ?? '')?.name
+                                        )
+                                      : NONE
                                   }
                                   position="bottom-start"
                                   onChange={dropdownSelection => {
@@ -572,7 +598,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                     const currentField = newFields[index]!;
                                     const selectedAggregate = aggregates.find(
                                       option =>
-                                        option.value.meta.name === dropdownSelection.value
+                                        // Convert the aggregate key to the same format as the dropdown value
+                                        // when checking for a match
+                                        getAggregateValueKey(option.value.meta.name) ===
+                                        dropdownSelection.value
                                     );
                                     // Update the current field's aggregate with the new aggregate
                                     if (!selectedAggregate && !isNone) {
@@ -597,7 +626,9 @@ function Visualize({error, setError}: VisualizeProps) {
                                       if (currentField.kind === FieldValueKind.FUNCTION) {
                                         // Handle setting an aggregate from an aggregate
                                         currentField.function[0] =
-                                          dropdownSelection.value as AggregationKeyWithAlias;
+                                          parseAggregateFromValueKey(
+                                            dropdownSelection.value as string
+                                          ) as AggregationKeyWithAlias;
                                         if (
                                           selectedAggregate?.value.meta &&
                                           'parameters' in selectedAggregate.value.meta
@@ -677,7 +708,9 @@ function Visualize({error, setError}: VisualizeProps) {
 
                                         // Handle setting an aggregate from a field
                                         const newFunction: AggregateFunction = [
-                                          dropdownSelection.value as AggregationKeyWithAlias,
+                                          parseAggregateFromValueKey(
+                                            dropdownSelection.value as string
+                                          ) as AggregationKeyWithAlias,
                                           ((selectedAggregate?.value.meta?.parameters
                                             .length > 0 &&
                                             currentField.field) ||

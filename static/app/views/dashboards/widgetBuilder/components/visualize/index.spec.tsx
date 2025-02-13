@@ -1162,5 +1162,49 @@ describe('Visualize', () => {
       expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
       expect(within(listbox).getByText('span.description')).toBeInTheDocument();
     });
+
+    it('differentiates between function and column values in selection', async () => {
+      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+        if (type === 'number') {
+          return {
+            'tags[count,number]': {
+              key: 'count',
+              name: 'count',
+              kind: 'measurement',
+            },
+          } as TagCollection;
+        }
+
+        return {
+          count: {
+            key: 'count',
+            name: 'count',
+            kind: 'tag',
+          },
+        } as TagCollection;
+      });
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['count(span.duration)'],
+              },
+            }),
+          }),
+        }
+      );
+
+      // Only one count option should be shown as selected
+      expect(
+        await screen.findByRole('button', {name: 'Aggregate Selection'})
+      ).toHaveTextContent(/^count$/);
+    });
   });
 });
