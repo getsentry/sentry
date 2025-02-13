@@ -13,22 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # We only care about extensions of files which would show up in stacktraces after symbolication
-SUPPORTED_EXTENSIONS = [
-    "clj",
-    "cs",
-    "go",
-    "groovy",
-    "js",
-    "jsx",
-    "mjs",
-    "php",
-    "py",
-    "rake",
-    "rb",
-    "scala",
-    "ts",
-    "tsx",
-]
+SUPPORTED_EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
