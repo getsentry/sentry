@@ -37,7 +37,7 @@ def is_demo_org(organization: Organization | None):
     return organization.id in options.get("demo-mode.orgs")
 
 
-def get_readonly_user():
+def get_demo_user():
     if not is_demo_mode_enabled():
         return None
 

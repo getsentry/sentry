@@ -3,11 +3,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.utils.demo_mode import is_demo_mode_enabled
 from sentry.utils.marketo_client import MarketoClient
 
 client = MarketoClient()
@@ -27,7 +27,7 @@ class EmailCaptureEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request) -> Response:
-        if not options.get("demo-mode.enabled"):
+        if not is_demo_mode_enabled():
             return Response(status=404)
 
         serializer = EmailCaptureSerializer(data=request.data)
