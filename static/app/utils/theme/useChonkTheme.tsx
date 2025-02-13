@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -9,6 +9,7 @@ import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
 } from 'sentry/utils/theme/theme.chonk';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
@@ -51,6 +52,22 @@ export function useChonkTheme(): [
       setChonkTheme({theme: null});
     }
   }, [config.theme, organization, previousTheme, setChonkTheme]);
+
+  const chonkHotkey = useMemo(() => {
+    return organization?.features?.includes('chonk-ui')
+      ? [
+          {
+            match: ['command+shift+2', 'ctrl+shift+2'],
+            includeInputs: true,
+            callback: () => {
+              setChonkWithSideEffect(chonkTheme.theme === 'dark' ? 'light' : 'dark');
+            },
+          },
+        ]
+      : [];
+  }, [organization, chonkTheme.theme, setChonkWithSideEffect]);
+
+  useHotkeys(chonkHotkey, [chonkHotkey]);
 
   return [theme, setChonkWithSideEffect];
 }
