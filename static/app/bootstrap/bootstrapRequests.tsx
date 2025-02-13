@@ -65,7 +65,7 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
   return projectsQuery;
 }
 
-export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
+function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-organization', orgSlug],
     queryFn: orgSlug
@@ -114,7 +114,7 @@ function createTeamsObject(response: ApiResult): {
   return {teams, hasMore, cursor};
 }
 
-export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
+function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-teams', orgSlug],
     queryFn: orgSlug
@@ -150,7 +150,7 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   });
 }
 
-export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
+function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-projects', orgSlug],
     queryFn: orgSlug
