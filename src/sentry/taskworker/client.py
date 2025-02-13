@@ -13,6 +13,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
 
@@ -57,7 +58,8 @@ class TaskworkerClient:
         """
         request = GetTaskRequest(namespace=namespace)
         try:
-            response = self._stub.GetTask(request)
+            with metrics.timer("taskworker.get_task.rpc"):
+                response = self._stub.GetTask(request)
         except grpc.RpcError as err:
             if err.code() == grpc.StatusCode.NOT_FOUND:
                 return None
@@ -83,7 +85,8 @@ class TaskworkerClient:
             fetch_next_task=fetch_next_task,
         )
         try:
-            response = self._stub.SetTaskStatus(request)
+            with metrics.timer("taskworker.update_task.rpc"):
+                response = self._stub.SetTaskStatus(request)
         except grpc.RpcError as err:
             if err.code() == grpc.StatusCode.NOT_FOUND:
                 return None
