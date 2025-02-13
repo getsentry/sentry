@@ -71,7 +71,7 @@ sentry-ophio==1.0.0
 sentry-protos>=0.1.58
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.9.6
-sentry-sdk[http2]>=2.20.0
+sentry-sdk[http2]>=2.21.0
 slack-sdk>=3.27.2
 snuba-sdk>=3.0.43
 simplejson>=3.17.6
