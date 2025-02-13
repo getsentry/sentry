@@ -888,16 +888,11 @@ def update_alert_rule(
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
-        # NOTE: do we need to wrap this in a transaction? So if dual update fails the alert rule also doesn't update?
+        # TODO (mifu67): wrap these two calls in a transaction
         alert_rule.update(**updated_fields)
-        try:
-            dual_update_migrated_alert_rule(alert_rule, updated_fields)
-        except Exception as e:
-            logger.exception(
-                "Error when dual updating alert rule",
-                extra={"details": str(e)},
-            )
-            raise ValidationError("Error when dual updating alert rule.")
+        # if an exception occurs in this helper, don't catch it so we can see the full stack trace
+        dual_update_migrated_alert_rule(alert_rule, updated_fields)
+
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -1123,15 +1118,10 @@ def update_alert_rule_trigger(
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
 
+    # TODO (mifu67): wrap both update calls in a transaction
     if updated_fields:
-        try:
-            dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
-        except Exception as e:
-            logger.exception(
-                "Error when dual updating alert rule trigger",
-                extra={"details": str(e)},
-            )
-            raise ValidationError("Error when dual updating alert rule trigger.")
+        # exceptions from this helper are purposely uncaught
+        dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
             trigger.update(**updated_fields)
@@ -1414,15 +1404,10 @@ def update_alert_rule_trigger_action(
         else:
             updated_fields["sentry_app_config"] = {"priority": priority}
 
+    # TODO (mifu67): wrap these calls in a transaction
     trigger_action.update(**updated_fields)
-    try:
-        dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
-    except Exception as e:
-        logger.exception(
-            "Error when dual updating alert rule trigger action",
-            extra={"details": str(e)},
-        )
-        raise ValidationError("Error when dual updating alert rule trigger action.")
+    # exceptions from this helper are purposely left uncaught
+    dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 

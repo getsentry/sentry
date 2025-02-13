@@ -1,10 +1,8 @@
-import logging
-
+from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics, features
-from sentry.api.exceptions import BadRequest
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.auth.access import Access
 from sentry.incidents.logic import (
@@ -22,8 +20,6 @@ from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
-
-logger = logging.getLogger(__name__)
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
@@ -197,6 +193,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # TODO (mifu67): wrap the two create calls in a transaction
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
 
@@ -219,11 +216,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         ):
             try:
                 migrate_metric_action(action)
-            except Exception as e:
-                logger.exception(
-                    "Error when dual writing alert rule trigger", extra={"details": str(e)}
-                )
-                raise BadRequest
+            except ValidationError as e:
+                # invalid action type
+                raise serializers.ValidationError(str(e))
 
         return action
 

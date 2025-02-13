@@ -1,10 +1,7 @@
-import logging
-
 from django import forms
 from rest_framework import serializers
 
 from sentry import features
-from sentry.api.exceptions import BadRequest
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
@@ -22,8 +19,6 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 )
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
-
-logger = logging.getLogger(__name__)
 
 
 class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
@@ -48,6 +43,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
+        # TODO (mifu67): wrap the two calls in a transaction
         try:
             actions = validated_data.pop("actions", None)
             alert_rule_trigger = create_alert_rule_trigger(
@@ -64,13 +60,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             "organizations:workflow-engine-metric-alert-dual-write",
             alert_rule_trigger.alert_rule.organization,
         ):
-            try:
-                migrate_metric_data_conditions(alert_rule_trigger)
-            except Exception as e:
-                logger.exception(
-                    "Error when dual writing alert rule trigger", extra={"details": str(e)}
-                )
-                raise BadRequest
+            migrate_metric_data_conditions(alert_rule_trigger)
         self._handle_actions(alert_rule_trigger, actions)
         return alert_rule_trigger
 
@@ -97,15 +87,8 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 alert_rule_trigger=alert_rule_trigger
             ).exclude(id__in=action_ids)
             for action in actions_to_delete:
-                try:
-                    dual_delete_migrated_alert_rule_trigger_action(action)
-                except Exception as e:
-                    logger.exception(
-                        "Error when dual deleting trigger action", extra={"details": str(e)}
-                    )
-                    raise serializers.ValidationError(
-                        "Error when dual deleting alert rule trigger action."
-                    )
+                # TODO (mifu67): wrap these two calls in a transaction
+                dual_delete_migrated_alert_rule_trigger_action(action)
                 delete_alert_rule_trigger_action(action)
 
             for action_data in actions:
