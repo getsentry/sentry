@@ -721,7 +721,7 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-export const lightChonkTheme: Theme = {
+export const DO_NOT_USE_lightChonkTheme: Theme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -761,7 +761,7 @@ export const lightChonkTheme: Theme = {
   },
 };
 
-export const darkChonkTheme: Theme = {
+export const DO_NOT_USE_darkChonkTheme: Theme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
