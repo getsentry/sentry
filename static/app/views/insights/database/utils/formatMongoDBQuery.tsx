@@ -2,7 +2,8 @@ import type {ReactElement} from 'react';
 import * as Sentry from '@sentry/react';
 import {jsonrepair} from 'jsonrepair';
 
-type JSONValue = string | number | object | boolean | null;
+type JsonPrimitive = string | number | boolean | null;
+type JSONValue = JsonPrimitive | Record<string, JsonPrimitive>;
 
 /**
  * Takes in a MongoDB query JSON string and outputs it as HTML tokens.

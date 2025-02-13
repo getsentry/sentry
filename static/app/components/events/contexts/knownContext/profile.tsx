@@ -57,7 +57,7 @@ function getProfileIdEntry(
   }
   const link = project?.slug
     ? generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: project.slug,
         profileId,
       })
@@ -84,7 +84,7 @@ function getProfilerIdEntry(
   const link =
     project?.slug && start && end
       ? generateContinuousProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profilerId,
           start,

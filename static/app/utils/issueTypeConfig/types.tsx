@@ -69,7 +69,7 @@ export type IssueTypeConfig = {
       fixedEnvironment?: boolean;
     };
     graph: DisabledWithReasonConfig & {
-      type?: 'discover-events' | 'uptime-checks' | 'detector-history';
+      type?: 'detector-history' | 'discover-events' | 'cron-checks' | 'uptime-checks';
     };
     occurrenceSummary: DisabledWithReasonConfig & {
       downtime?: boolean;

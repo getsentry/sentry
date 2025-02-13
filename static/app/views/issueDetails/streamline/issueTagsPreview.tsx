@@ -16,9 +16,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -142,6 +144,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
           setPrefetchTagValue(tag.key);
         }}
       >
+        <TagKey>{tag.key}</TagKey>
         <TagBarPlaceholder>
           <SegmentedBar segments={segments} />
         </TagBarPlaceholder>
@@ -154,10 +157,20 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: string}) {
+function IssueTagButton({
+  tags,
+  searchQuery,
+  isScreenSmall,
+}: {
+  tags: GroupTag[];
+  isScreenSmall?: boolean;
+  searchQuery?: string;
+}) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  if (tags.length === 0 || searchQuery) {
+  const organization = useOrganization();
+
+  if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
       <VerticalIssueTagsButton
         aria-label={t('View issue tag distributions')}
@@ -165,29 +178,27 @@ function IssueTagButton({tags, searchQuery}: {tags: GroupTag[]; searchQuery?: st
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
           query: location.query,
-          replace: true,
         }}
+        replace
         disabled={tags.length === 0}
       >
-        {t('All Tags')}
+        {t('View All Tags')}
       </VerticalIssueTagsButton>
     );
   }
 
   return (
-    <IssueTagsButton
-      aria-label={t('View issue tag distributions')}
-      size="xs"
+    <IssueTagsLink
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
         query: location.query,
-        replace: true,
       }}
-      analyticsEventKey="issue_details.issue_tags_clicked"
-      analyticsEventName="Issue Details: Issue Tags Clicked"
+      onClick={() => {
+        trackAnalytics('issue_details.issue_tags_click', {organization});
+      }}
     >
-      {t('All Tags')}
-    </IssueTagsButton>
+      {t('View all tags')}
+    </IssueTagsLink>
   );
 }
 
@@ -202,6 +213,8 @@ export default function IssueTagsPreview({
 }) {
   const searchQuery = useEventQuery({groupId});
   const organization = useOrganization();
+  const theme = useTheme();
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
     orgSlug: organization.slug,
@@ -223,6 +236,7 @@ export default function IssueTagsPreview({
     groupId,
     environment: environments,
   });
+
   const tagsToPreview = useMemo(() => {
     if (!tags) {
       return [];
@@ -255,7 +269,7 @@ export default function IssueTagsPreview({
       <Fragment>
         <SectionDivider />
         <IssueTagPreviewSection>
-          <Placeholder width="240px" height="100px" />
+          <Placeholder width="340px" height="90px" />
         </IssueTagPreviewSection>
       </Fragment>
     );
@@ -265,8 +279,14 @@ export default function IssueTagsPreview({
     return null;
   }
 
-  if (tagsToPreview.length === 0 || searchQuery) {
-    return <IssueTagButton tags={tagsToPreview} searchQuery={searchQuery} />;
+  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
   }
 
   return (
@@ -293,9 +313,9 @@ const IssueTagPreviewSection = styled('div')`
 `;
 
 const TagsPreview = styled('div')`
-  width: 240px;
+  width: 340px;
   display: grid;
-  grid-template-columns: 45% min-content auto;
+  grid-template-columns: auto 30% min-content auto;
   align-items: center;
   align-content: center;
   gap: 1px;
@@ -387,13 +407,12 @@ const LegendTitle = styled('div')`
   margin-bottom: ${space(0.75)};
 `;
 
-const IssueTagsButton = styled(LinkButton)`
-  display: block;
-  flex: 0;
-  height: unset;
-  text-align: center;
-  span {
-    white-space: unset;
+const IssueTagsLink = styled(Link)`
+  color: ${p => p.theme.purple300};
+  align-self: flex-start;
+
+  &:hover {
+    color: ${p => p.theme.purple400};
   }
 `;
 
@@ -415,4 +434,8 @@ const SectionDivider = styled('div')`
   display: flex;
   align-items: center;
   margin: ${space(1)};
+`;
+
+const TagKey = styled(TextOverflow)`
+  font-weight: bold;
 `;

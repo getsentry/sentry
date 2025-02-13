@@ -268,7 +268,7 @@ export function PageOverviewWebVitalsDetailPanel({
         );
       }
       const target = generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug,
         profileId: String(row['profile.id']),
       });
@@ -350,7 +350,7 @@ export function PageOverviewWebVitalsDetailPanel({
         );
       }
       const target = generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: project.slug,
         profileId: String(row['profile.id']),
       });

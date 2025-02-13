@@ -22,6 +22,7 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {MetricIssueChart} from 'sentry/views/issueDetails/streamline/metricIssueChart';
@@ -65,6 +66,15 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     'Filter %s\u2026',
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
+
+  const hasHeader =
+    issueTypeConfig.header.filterBar.enabled ||
+    issueTypeConfig.header.graph.enabled ||
+    issueTypeConfig.header.occurrenceSummary.enabled;
+
+  if (!hasHeader) {
+    return null;
+  }
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -115,6 +125,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />
+            )}
+            {issueTypeConfig.header.graph.type === 'cron-checks' && (
+              <IssueCronCheckTimeline group={group} />
             )}
             {issueTypeConfig.header.tagDistribution.enabled && (
               <IssueTagsPreview

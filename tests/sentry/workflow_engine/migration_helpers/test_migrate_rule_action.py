@@ -6,14 +6,15 @@ import pytest
 from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.data_blobs import GITHUB_ACTION_DATA_BLOBS
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
 )
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
-    JiraActionTranslator,
-    JiraDataBlob,
+    TicketDataBlob,
+    TicketFieldMappingKeys,
     issue_alert_action_translator_registry,
 )
 
@@ -23,24 +24,22 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
-    def assert_jira_action_data_blob(
+    def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict, exclude_keys: list[str]
     ):
-        # Get standard fields from JiraDataBlob, excluding additional_fields
-        standard_fields = JiraActionTranslator.standard_fields()
 
-        # Check standard fields
-        for field in standard_fields:
-            assert action.data.get(field, "") == compare_dict.get(field, "")
+        # Check dynamic_form_fields
+        assert action.data.get(
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
+        ) == compare_dict.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
 
         # Check that additional_fields contains all other non-excluded fields
-        additional_fields = action.data.get("additional_fields", {})
+        additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
         for key, value in compare_dict.items():
             if (
                 key not in exclude_keys
-                and key not in standard_fields
+                and key not in TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value
                 and key != "id"
-                and value  # Only check non-empty values
             ):
                 assert additional_fields.get(key) == value
 
@@ -73,9 +72,9 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # If we have a blob type, verify the data matches the blob structure
         if translator.blob_type:
-            # Special handling for JiraDataBlob which has additional_fields
-            if translator.blob_type == JiraDataBlob:
-                self.assert_jira_action_data_blob(action, compare_dict, exclude_keys)
+            # Special handling for TicketDataBlob which has additional_fields
+            if translator.blob_type == TicketDataBlob:
+                self.assert_ticketing_action_data_blob(action, compare_dict, exclude_keys)
             else:
                 # Original logic for other blob types
                 for field in translator.blob_type.__dataclass_fields__:
@@ -542,226 +541,7 @@ class TestNotificationActionMigrationUtils(TestCase):
     def test_github_action_migration(self):
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
         # The Github Enterprise action should have the same shape as the Github action.
-        action_data = [
-            {
-                "integration": "123456",
-                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "repo",
-                        "label": "GitHub Repository",
-                        "type": "select",
-                        "default": "bufobot/bufo-bot",
-                        "choices": [
-                            ["bufobot/bufo-bot", "bufo-bot"],
-                            ["bufobot/bufo-bot-2", "bufo-bot-2"],
-                            [
-                                "bufobot/bufo-bot-3",
-                                {
-                                    "key": "bufobot/bufo-bot-3",
-                                    "ref": None,
-                                    "props": {
-                                        "children": [
-                                            {
-                                                "key": "bufobot/bufo-bot-3",
-                                                "ref": None,
-                                                "props": {
-                                                    "title": {
-                                                        "key": "bufobot/bufo-bot-3",
-                                                        "ref": None,
-                                                        "_owner": None,
-                                                    },
-                                                    "size": "xs",
-                                                },
-                                            },
-                                            " ",
-                                            "bufo-bot-3",
-                                        ]
-                                    },
-                                    "_owner": None,
-                                },
-                            ],
-                        ],
-                        "url": "/extensions/github/search/bufobot/123456/",
-                        "updatesForm": True,
-                        "required": True,
-                    },
-                    {
-                        "name": "assignee",
-                        "label": "Assignee",
-                        "default": "",
-                        "type": "select",
-                        "required": False,
-                        "choices": [
-                            ["", "Unassigned"],
-                            ["bufo-bot", "bufo-bot"],
-                            ["bufo-bot-2", "bufo-bot-2"],
-                            ["bufo-bot-3", "bufo-bot-3"],
-                        ],
-                    },
-                    {
-                        "name": "labels",
-                        "label": "Labels",
-                        "default": [],
-                        "type": "select",
-                        "multiple": True,
-                        "required": False,
-                        "choices": [
-                            ["bug", "bug"],
-                            ["documentation", "documentation"],
-                            ["duplicate", "duplicate"],
-                            ["enhancement", "enhancement"],
-                            ["good first issue", "good first issue"],
-                            ["invalid", "invalid"],
-                            ["question", "question"],
-                            ["security", "security"],
-                        ],
-                    },
-                ],
-                "repo": "bufobot/bufo-bot",
-                "labels": ["bug", "documentation"],
-                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
-            },
-            {
-                "integration": "00000",
-                "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "repo",
-                        "label": "GitHub Repository",
-                        "type": "select",
-                        "default": "bufobot/bufo-bot-3",
-                        "choices": [
-                            [
-                                "bufobot/bufo-bot-3",
-                                "bufo-bot-3",
-                            ]
-                        ],
-                        "url": "/extensions/github/search/bufobot/00000/",
-                        "updatesForm": True,
-                        "required": True,
-                    },
-                    {
-                        "name": "assignee",
-                        "label": "Assignee",
-                        "default": "",
-                        "type": "select",
-                        "required": False,
-                        "choices": [["", "Unassigned"], ["bufo-bot", "bufo-bot"]],
-                    },
-                    {
-                        "name": "labels",
-                        "label": "Labels",
-                        "default": [],
-                        "type": "select",
-                        "multiple": True,
-                        "required": False,
-                        "choices": [
-                            ["bug", "bug"],
-                            ["documentation", "documentation"],
-                            ["duplicate", "duplicate"],
-                            ["enhancement", "enhancement"],
-                            ["good first issue", "good first issue"],
-                            ["help wanted", "help wanted"],
-                            ["invalid", "invalid"],
-                            ["question", "question"],
-                            ["wontfix", "wontfix"],
-                        ],
-                    },
-                ],
-                "repo": "bufobot/bufo-bot-3",
-                "assignee": "bufo-bot-3",
-                "labels": ["bug", "documentation"],
-                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
-            },
-            {
-                "integration": "22222",
-                "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                "dynamic_form_fields": [
-                    {
-                        "name": "repo",
-                        "label": "GitHub Repository",
-                        "type": "select",
-                        "default": "bufobot/bufo-bot-3",
-                        "choices": [
-                            ["bufobot/bufo-bot-3", "bufo-bot-3"],
-                            [
-                                "bufobot/bufo-bot-3",
-                                {
-                                    "key": "bufobot/bufo-bot-3",
-                                    "ref": None,
-                                    "props": {
-                                        "children": [
-                                            {
-                                                "key": "bufobot/bufo-bot-3",
-                                                "ref": None,
-                                                "props": {
-                                                    "title": {
-                                                        "key": "bufobot/bufo-bot-3",
-                                                        "ref": None,
-                                                        "props": {
-                                                            "children": {
-                                                                "key": "5",
-                                                                "ref": None,
-                                                                "_owner": None,
-                                                            }
-                                                        },
-                                                        "_owner": None,
-                                                    },
-                                                    "size": "xs",
-                                                },
-                                                "_owner": None,
-                                            },
-                                            " ",
-                                            "Project_topup",
-                                        ]
-                                    },
-                                    "_owner": None,
-                                },
-                            ],
-                        ],
-                        "url": "/extensions/github/search/bufobot/22222/",
-                        "updatesForm": True,
-                        "required": True,
-                    },
-                    {
-                        "name": "assignee",
-                        "label": "Assignee",
-                        "default": "",
-                        "type": "select",
-                        "required": False,
-                        "choices": [
-                            ["", "Unassigned"],
-                            ["bufo-bot", "bufo-bot"],
-                            ["bufo-bot-2", "bufo-bot-2"],
-                            ["bufo-bot-3", "bufo-bot-3"],
-                        ],
-                    },
-                    {
-                        "name": "labels",
-                        "label": "Labels",
-                        "default": [],
-                        "type": "select",
-                        "multiple": True,
-                        "required": False,
-                        "choices": [
-                            ["bug", "bug"],
-                            ["documentation", "documentation"],
-                            ["duplicate", "duplicate"],
-                            ["enhancement", "enhancement"],
-                            ["good first issue", "good first issue"],
-                            ["help wanted", "help wanted"],
-                            ["invalid", "invalid"],
-                            ["question", "question"],
-                        ],
-                    },
-                ],
-                "repo": "bufobot/bufo-bot-3",
-                "assignee": "",
-                "labels": [],
-                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
-            },
-        ]
+        action_data = GITHUB_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
 

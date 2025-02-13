@@ -247,12 +247,14 @@ export enum SpanIndexedField {
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
   REPLAY_ID = 'replay.id',
+  REPLAY = 'replay', // Field alias that coalesces `replay.id` and `replayId`
   BROWSER_NAME = 'browser.name',
   USER = 'user',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_EMAIL = 'user.email',
   USER_USERNAME = 'user.username',
+  USER_DISPLAY = 'user.display', // Field alias that coalesces `user.id`, `user.email`, `user.username`, `user.ip`, and `user`
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_RATIO = 'measurements.score.ratio.inp',
@@ -329,12 +331,14 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
   [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.REPLAY]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
   [SpanIndexedField.USER_ID]: string;
   [SpanIndexedField.USER_EMAIL]: string;
   [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.USER_IP]: string;
+  [SpanIndexedField.USER_DISPLAY]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
