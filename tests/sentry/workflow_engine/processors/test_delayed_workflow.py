@@ -670,18 +670,12 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             condition_group=self.workflow1_dcgs[1], action=action1
         )
 
-        # action2 = self.create_action(
-        #     type=Action.Type.SLACK,
-        #     integration_id="1234567890",
-        #     target_identifier="channel789",
-        #     target_display="#general",
-        #     data={"tags": "environment,user", "notes": "Important alert"},
-        # )
         action2 = self.create_action(
-            type=Action.Type.DISCORD,
+            type=Action.Type.SLACK,
             integration_id="1234567890",
-            target_identifier="channel456",
-            data={"tags": "environment,user,my_tag"},
+            target_identifier="channel789",
+            target_display="#general",
+            data={"tags": "environment,user", "notes": "Important alert"},
         )
         self.create_data_condition_group_action(
             condition_group=self.workflow2_dcgs[1], action=action2
@@ -740,7 +734,6 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
     @patch("sentry.workflow_engine.models.action.Action.trigger")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
-        # only fires each action once, even though both the triggers and filters pass
         fire_actions_for_groups(
             self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
         )
@@ -759,10 +752,6 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
         # enqueue the IF DCGs with slow conditions!
 
-        self.groups_to_dcgs = {
-            self.group1.id: {self.workflow1_dcgs[0]},
-            self.group2.id: {self.workflow2_dcgs[0]},
-        }
         fire_actions_for_groups(
             self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
         )

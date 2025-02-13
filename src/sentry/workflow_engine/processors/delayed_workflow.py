@@ -386,10 +386,10 @@ def fire_actions_for_groups(
             elif dcg.id in trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER]:
                 action_filters.add(dcg)
 
-        filtered_actions: list[Action] = []
-
-        # process action_filters
-        filtered_actions.extend(list(filter_recently_fired_workflow_actions(action_filters, group)))
+        # process action filters
+        filtered_actions: list[Action] = list(
+            filter_recently_fired_workflow_actions(action_filters, group)
+        )
 
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
