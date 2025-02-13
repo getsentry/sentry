@@ -1,3 +1,5 @@
+import type {Scope} from '@sentry/core';
+import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -6,10 +8,13 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
+import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
@@ -35,6 +40,7 @@ describe('useBootstrapOrganizationQuery', function () {
     MockApiClient.clearMockResponses();
     OrganizationStore.reset();
     queryClient.clear();
+    localStorageWrapper.clear();
   });
 
   it('updates organization store with fetched data', async function () {
@@ -47,7 +53,9 @@ describe('useBootstrapOrganizationQuery', function () {
     const {result} = renderHook(() => useBootstrapOrganizationQuery(orgSlug), {wrapper});
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(OrganizationStore.get().organization).toEqual(org);
+    expect(JSON.stringify(OrganizationStore.get().organization)).toEqual(
+      JSON.stringify(org)
+    );
   });
 
   it('handles api errors', async function () {
@@ -80,6 +88,41 @@ describe('useBootstrapOrganizationQuery', function () {
     const {result} = renderHook(() => useBootstrapOrganizationQuery(orgSlug), {wrapper});
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(window.__sentry_preload?.organization).toBeUndefined();
+  });
+
+  it('sets feature flags, activates organization, and sets sentry tags', async function () {
+    // Feature flag overrides are loaded from localstorage
+    localStorageWrapper.setItem('feature-flag-overrides', '{"enable-issues":true}');
+
+    const mockScope = {
+      setTag: jest.fn(),
+      setContext: jest.fn(),
+    } as unknown as Scope;
+    jest.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/`,
+      body: org,
+      query: {detailed: 0, include_feature_flags: 1},
+    });
+
+    const {result} = renderHook(() => useBootstrapOrganizationQuery(orgSlug), {wrapper});
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(JSON.stringify(OrganizationStore.get().organization?.features)).toEqual(
+      JSON.stringify(['enable-issues'])
+    );
+    expect(JSON.stringify(LatestContextStore.get().organization)).toEqual(
+      JSON.stringify({...org, features: ['enable-issues']})
+    );
+    expect(FeatureFlagOverrides.singleton().getEnabledFeatureFlagList(org)).toEqual([
+      'enable-issues',
+    ]);
+    expect(mockScope.setTag).toHaveBeenCalledWith('organization', org.id);
+    expect(mockScope.setTag).toHaveBeenCalledWith('organization.slug', org.slug);
+    expect(mockScope.setContext).toHaveBeenCalledWith('organization', {
+      id: org.id,
+      slug: org.slug,
+    });
   });
 });
 
