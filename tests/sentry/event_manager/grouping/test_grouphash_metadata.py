@@ -63,6 +63,7 @@ class GroupHashMetadataTest(TestCase):
         self.assert_metadata_value(grouphash, "latest_grouping_config", DEFAULT_GROUPING_CONFIG)
 
     @with_feature("organizations:grouphash-metadata-creation")
+    @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     def test_updates_grouping_config(self):
         self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
