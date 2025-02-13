@@ -30,11 +30,13 @@ jobs:
           committer_email: bot@sentry.io
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
       - name: comment on failure
+        env:
+          PR: ${{ github.event.number || github.event.inputs.pr }}
         run: |
           curl \
               --silent \
               -X POST \
               -H 'Authorization: token ${{ secrets.BUMP_SENTRY_TOKEN }}' \
               -d'{"body": "revert failed (conflict? already reverted?) -- [check the logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"}' \
-              https://api.github.com/repositories/${{ github.event.repository.id }}/issues/${{ github.event.number || github.event.inputs.pr }}/comments
+              https://api.github.com/repositories/${{ github.event.repository.id }}/issues/${PR}/comments
         if: failure()
