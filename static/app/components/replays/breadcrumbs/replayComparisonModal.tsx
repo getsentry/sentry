@@ -22,7 +22,6 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {type HydrationErrorFrame, isHydrateCrumb} from 'sentry/utils/replays/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
   frameOrEvent: HydrationErrorFrame | Event;
@@ -38,7 +37,6 @@ export default function ReplayComparisonModal({
   frameOrEvent,
   initialLeftOffsetMs,
   initialRightOffsetMs,
-  organization,
   replay,
 }: Props) {
   // Callbacks set by GlobalModal on-render.
@@ -48,84 +46,82 @@ export default function ReplayComparisonModal({
   const isSameTimestamp = initialLeftOffsetMs === initialRightOffsetMs;
 
   return (
-    <OrganizationContext.Provider value={organization}>
-      <AnalyticsArea name="hydration-error-modal">
-        <DiffCompareContextProvider
-          replay={replay}
-          frameOrEvent={frameOrEvent}
-          initialLeftOffsetMs={initialLeftOffsetMs}
-          initialRightOffsetMs={initialRightOffsetMs}
-        >
-          <Header closeButton>
-            <ModalHeader>
-              <Title>
-                {t('Hydration Error')}
-                <Tooltip
-                  isHoverable
-                  title={tct(
-                    'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
-                    {
-                      boldBefore: <Before />,
-                      boldAfter: <After />,
-                      link: (
-                        <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
-                      ),
-                    }
-                  )}
-                >
-                  <IconInfo />
-                </Tooltip>
-              </Title>
-              <Flex gap={space(1)}>
-                {isHydrateCrumb(frameOrEvent) ? (
-                  <AutoWideHovercard
-                    body={<DiffTimestampPicker />}
-                    onHover={() => focusTrap?.pause()}
-                    onBlur={() => focusTrap?.unpause()}
-                  >
-                    <Button
-                      aria-label={t('Adjust diff')}
-                      icon={<IconSliders size="md" direction="up" />}
-                      borderless
-                    />
-                  </AutoWideHovercard>
-                ) : null}
-                {focusTrap ? (
-                  <FeedbackWidgetButton
-                    optionOverrides={{
-                      onFormOpen: () => {
-                        focusTrap.pause();
-                      },
-                      onFormClose: () => {
-                        focusTrap.unpause();
-                      },
-                    }}
-                  />
-                ) : null}
-              </Flex>
-            </ModalHeader>
-          </Header>
-          <Body>
-            {isSameTimestamp ? (
-              <Alert type="warning" showIcon>
-                {t(
-                  "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
+    <AnalyticsArea name="hydration-error-modal">
+      <DiffCompareContextProvider
+        replay={replay}
+        frameOrEvent={frameOrEvent}
+        initialLeftOffsetMs={initialLeftOffsetMs}
+        initialRightOffsetMs={initialRightOffsetMs}
+      >
+        <Header closeButton>
+          <ModalHeader>
+            <Title>
+              {t('Hydration Error')}
+              <Tooltip
+                isHoverable
+                title={tct(
+                  'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
+                  {
+                    boldBefore: <Before />,
+                    boldAfter: <After />,
+                    link: (
+                      <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
+                    ),
+                  }
                 )}
-              </Alert>
-            ) : null}
-            <RelativePosition>
-              <ReplayDiffChooser />
-              <AbsoluteTopRight>
-                <LearnMoreButton
+              >
+                <IconInfo />
+              </Tooltip>
+            </Title>
+            <Flex gap={space(1)}>
+              {isHydrateCrumb(frameOrEvent) ? (
+                <AutoWideHovercard
+                  body={<DiffTimestampPicker />}
                   onHover={() => focusTrap?.pause()}
                   onBlur={() => focusTrap?.unpause()}
+                >
+                  <Button
+                    aria-label={t('Adjust diff')}
+                    icon={<IconSliders size="md" direction="up" />}
+                    borderless
+                  />
+                </AutoWideHovercard>
+              ) : null}
+              {focusTrap ? (
+                <FeedbackWidgetButton
+                  optionOverrides={{
+                    onFormOpen: () => {
+                      focusTrap.pause();
+                    },
+                    onFormClose: () => {
+                      focusTrap.unpause();
+                    },
+                  }}
                 />
-              </AbsoluteTopRight>
-            </RelativePosition>
-          </Body>
-        </DiffCompareContextProvider>
-      </AnalyticsArea>
-    </OrganizationContext.Provider>
+              ) : null}
+            </Flex>
+          </ModalHeader>
+        </Header>
+        <Body>
+          {isSameTimestamp ? (
+            <Alert type="warning" showIcon>
+              {t(
+                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
+              )}
+            </Alert>
+          ) : null}
+          <RelativePosition>
+            <ReplayDiffChooser />
+            <AbsoluteTopRight>
+              <LearnMoreButton
+                onHover={() => focusTrap?.pause()}
+                onBlur={() => focusTrap?.unpause()}
+              />
+            </AbsoluteTopRight>
+          </RelativePosition>
+        </Body>
+      </DiffCompareContextProvider>
+    </AnalyticsArea>
   );
 }
 
