@@ -186,8 +186,15 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
 
 
 def _get_issues_for_file(
-    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+    projects: list[Project],
+    sentry_filenames: list[str],
+    function_names: list[str],
+    max_num_issues: int = 5,
 ) -> list[dict[str, Any]]:
+    """
+    Fetch issues with their latest event if its stacktrace frames match the function names
+    and file names.
+    """
     if not len(projects):
         return []
 
@@ -202,33 +209,45 @@ def _get_issues_for_file(
         return []
 
     # Fetch an initial, candidate set of groups.
-    groups: list[Group] = list(
+    group_ids: list[int] = list(
         Group.objects.filter(
             first_seen__gte=datetime.now(UTC) - timedelta(days=90),
             last_seen__gte=datetime.now(UTC) - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
-        ).order_by("-times_seen")
+        )
+        .order_by("-times_seen")
+        .values_list("id", flat=True)
     )[:MAX_RECENT_ISSUES]
-    group_id_to_group = {group.id: group for group in groups}
-
-    group_ids = list(group_id_to_group.keys())
     project_ids = [project.id for project in projects]
     multi_if = language_parser.generate_multi_if(function_names)
 
-    # Fetch the latest event for each group for groups w/ an event where at least one
-    # stacktrace frame matches the function names and file names.
-    query = (
+    # Fetch the latest event for each group, along with some other event data we'll need for
+    # filtering by function names and file names.
+    subquery = (
         Query(Entity("events"))
         .set_select(
             [
                 Column("group_id"),
-                Function("argMax", [Column("event_id"), Column("timestamp")], "event_id"),
-                Function("argMax", [Column("title"), Column("timestamp")], "title"),
                 Function(
                     "argMax",
-                    [Function("multiIf", multi_if), Column("timestamp")],
-                    "function_name",
+                    [Column("event_id"), Column("timestamp")],
+                    "event_id",
+                ),
+                Function(
+                    "argMax",
+                    [Column("title"), Column("timestamp")],
+                    "title",
+                ),
+                Function(
+                    "argMax",
+                    [Column("exception_frames.filename"), Column("timestamp")],
+                    "exception_frames.filename",
+                ),
+                Function(
+                    "argMax",
+                    [Column("exception_frames.function"), Column("timestamp")],
+                    "exception_frames.function",
                 ),
             ]
         )
@@ -251,10 +270,28 @@ def _get_issues_for_file(
                     Op.LT,
                     datetime.now().date() + timedelta(days=1),
                 ),
-                # Apply toStartOfDay to take advantage of the sorting key. TODO: measure w/ and w/o.
+                # Apply toStartOfDay to take advantage of the sorting key. TODO: measure.
                 # Then, for precision, add the granular timestamp filters:
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Function("notHandled", []), Op.EQ, 1),
+            ]
+        )
+    )
+
+    # Filter out groups whose event's stacktrace doesn't match the function names and file names.
+    query = (
+        Query(subquery)
+        .set_select(
+            [
+                Column("group_id"),
+                Column("event_id"),
+                Column("title"),
+                Function("multiIf", multi_if, "function_name"),
+            ]
+        )
+        .set_where(
+            [
                 BooleanCondition(
                     BooleanOp.OR,
                     [
@@ -277,23 +314,18 @@ def _get_issues_for_file(
                         for stackframe_idx in range(-STACKFRAME_COUNT, 0)  # first n frames
                     ],
                 ),
-                Condition(Function("notHandled", []), Op.EQ, 1),
             ]
         )
+        .set_limit(max_num_issues)  # TODO: order by something? Should be made reproducible.
     )
-
     request = SnubaRequest(
         dataset=Dataset.Events.value,
         app_id="default",
         tenant_ids={"organization_id": projects[0].organization_id},
         query=query,
     )
-
-    try:
-        return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
-    except Exception:
-        logger.exception("Snuba query error", extra={"query": request.to_dict()["query"]})
-        return []
+    # TODO: error handling.
+    return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
 
 
 def _add_event_details(
@@ -323,14 +355,12 @@ def _add_event_details(
     ]
 
 
-def _get_issues_with_event_details_for_file(
+def get_issues_with_event_details_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
 ) -> list[dict[str, Any]]:
     issues_result_set = _get_issues_for_file(projects, sentry_filenames, function_names)
-    # TODO: there should prolly be a limit on the number of issues we fetch events for.
-    # Maybe 10 is reasonable?
     return _add_event_details(projects, issues_result_set)
 
 
@@ -389,7 +419,7 @@ def get_issues_related_to_file_patches(
             logger.error("No function names", extra={"file": file.filename})
             continue
 
-        issues = _get_issues_with_event_details_for_file(
+        issues = get_issues_with_event_details_for_file(
             list(projects), list(sentry_filenames), list(function_names)
         )
         filename_to_issues[file.filename] = issues
