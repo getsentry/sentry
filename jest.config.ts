@@ -1,4 +1,5 @@
 import type {Config} from '@jest/types';
+const {execFile} = require('node:child_process');
 import path from 'node:path';
 import process from 'node:process';
 
@@ -6,7 +7,6 @@ import babelConfig from './babel.config';
 
 const {
   CI,
-  JEST_TESTS,
   JEST_TEST_BALANCER,
   CI_NODE_TOTAL,
   CI_NODE_INDEX,
@@ -38,6 +38,25 @@ if (!!JEST_TEST_BALANCER && !CI) {
     '[Operation only allowed in CI]: Jest test balancer should never be ran manually as you risk skewing the numbers - please trigger the automated github workflow at https://github.com/getsentry/sentry/actions/workflows/jest-balance.yml'
   );
 }
+
+execFile(
+  'yarn',
+  ['-s', 'jest', '--listTests', '--json'],
+  {encoding: 'utf-8'},
+  (error, stdout, stderr) => {
+    if (error) {
+      throw new Error(`
+Error listing jest tests: ${error}
+
+stdout:
+${stdout}
+
+stderr:
+${stderr}`);
+    }
+    const JEST_TESTS = JSON.parse(stdout);
+  }
+);
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -164,9 +183,7 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JSON.parse(JEST_TESTS).map(file =>
-    file.replace(__dirname, '')
-  );
+  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
