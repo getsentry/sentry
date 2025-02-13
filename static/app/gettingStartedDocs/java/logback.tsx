@@ -125,7 +125,10 @@ SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-ag
 `;
 
 const getSentryPropertiesSnippet = (params: Params) => `
-dsn=${params.dsn.public}${
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info
+send-defaut-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -147,6 +150,8 @@ const getConsoleAppenderSnippet = (params: Params) => `
       ? `
     <options>
       <dsn>${params.dsn.public}</dsn>
+      <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
+      <sendDefaultPii>true</sendDefaultPii>
     </options>`
       : ''
   }
@@ -166,6 +171,8 @@ const getLogLevelSnippet = (params: Params) => `
     ? `
   <options>
     <dsn>${params.dsn.public}</dsn>
+    <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
+    <sendDefaultPii>true</sendDefaultPii>
   </options>`
     : ''
 }

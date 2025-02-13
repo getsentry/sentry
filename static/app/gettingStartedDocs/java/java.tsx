@@ -139,7 +139,10 @@ SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-ag
 `;
 
 const getSentryPropertiesSnippet = (params: Params) => `
-dsn=${params.dsn.public}${
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
+send-defaut-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -150,7 +153,11 @@ const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry;
 
 Sentry.init(options -> {
-  options.setDsn("${params.dsn.public}");${
+  options.setDsn("${params.dsn.public}");
+
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
+  options.setSendDefaultPii(true);${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.

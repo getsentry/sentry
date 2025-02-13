@@ -125,7 +125,10 @@ SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-ag
 `;
 
 const getSentryPropertiesSnippet = (params: Params) => `
-dsn=${params.dsn.public}${
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/guides/log4j2/data-management/data-collected/ for more info
+send-defaut-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
