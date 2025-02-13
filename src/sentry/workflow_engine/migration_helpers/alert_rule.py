@@ -2,7 +2,6 @@ import dataclasses
 import logging
 from typing import Any
 
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -788,13 +787,13 @@ def dual_delete_migrated_alert_rule(
     # make sure there are no other detectors associated with the workflow, then delete it if so
     if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
         # also deletes alert_rule_workflow
-        RegionScheduledDeletion.schedule(instance=workflow, days=0, actor=user)
+        workflow.delete()
     # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
-    RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
+    detector.delete()
     if data_condition_group:
-        RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
+        data_condition_group.delete()
     if data_source:
-        RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+        data_source.delete()
 
     return
 
