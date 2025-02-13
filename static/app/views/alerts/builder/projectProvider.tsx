@@ -12,7 +12,7 @@ import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   organization: Organization;
   children?: React.ReactNode;

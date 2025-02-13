@@ -16,7 +16,7 @@ import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}, {}>;
+type Props = RouteComponentProps<{projectId?: string}>;
 
 function OrganizationCrumb({params, routes, route, ...props}: Props) {
   const navigate = useNavigate();

@@ -46,7 +46,7 @@ import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
 import {getFilter, getPeriodInterval} from './utils';
 
-export interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
+export interface MetricDetailsBodyProps extends RouteComponentProps {
   api: Client;
   location: Location;
   organization: Organization;

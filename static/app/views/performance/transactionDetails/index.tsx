@@ -8,7 +8,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import EventDetailsContent from './content';
 
-type Props = RouteComponentProps<{}, {eventSlug: string}> & {
+type Props = RouteComponentProps<
+  Record<PropertyKey, string | undefined>,
+  {eventSlug: string}
+> & {
   organization: Organization;
 };
 

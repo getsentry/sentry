@@ -147,7 +147,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{appSlug?: string}, {}> & {
+type Props = RouteComponentProps<{appSlug?: string}> & {
   organization: Organization;
 };
 
