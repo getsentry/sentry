@@ -129,7 +129,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
             instruction,
           },
         });
-        setCurrentRunId(response.run_id);
+        setCurrentRunId(response.run_id ?? null);
       } catch (e) {
         setApiQueryData<AutofixResponse>(
           queryClient,
