@@ -26,12 +26,18 @@ class BaseDataConditionValidator(CamelSnakeSerializer):
         return attrs
 
 
+class BaseDataConditionGroupValidator(CamelSnakeSerializer):
+    logic_type = serializers.CharField(required=True)
+    organization_id = serializers.IntegerField(required=True)
+    conditions = BaseDataConditionValidator(many=True)
+
+
 class NumericComparisonConditionValidator(BaseDataConditionValidator):
     comparison = serializers.FloatField(
         required=True,
         help_text="Comparison value to be compared against value from data.",
     )
-    result = serializers.ChoiceField(
+    condition_result = serializers.ChoiceField(
         choices=[
             (DetectorPriorityLevel.HIGH, "High"),
             (DetectorPriorityLevel.MEDIUM, "Medium"),
@@ -44,7 +50,7 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
         raise NotImplementedError
 
     @property
-    def supported_results(self) -> frozenset[DetectorPriorityLevel]:
+    def supported_condition_results(self) -> frozenset[DetectorPriorityLevel]:
         raise NotImplementedError
 
     def validate_type(self, value: str) -> Condition:
@@ -57,11 +63,11 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
             raise serializers.ValidationError(f"Unsupported type {value}")
         return type
 
-    def validate_result(self, value: str) -> DetectorPriorityLevel:
+    def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
         try:
             result = DetectorPriorityLevel(int(value))
         except ValueError:
             result = None
-        if result not in self.supported_results:
+        if result not in self.supported_condition_results:
             raise serializers.ValidationError("Unsupported condition result")
         return result
