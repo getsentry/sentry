@@ -16,7 +16,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
 
     To run this locally you may need to set the ENABLE_SPANS_CONSUMER flag to True in Snuba.
     A way to do this is
-    1. run: `sentry devservices down snuba`
+    1. run: `docker container rm snuba-snuba-1`
     2. clone snuba locally
     3. run: `export ENABLE_SPANS_CONSUMER=True`
     4. run snuba
