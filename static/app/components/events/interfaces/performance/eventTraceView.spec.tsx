@@ -62,6 +62,8 @@ describe('EventTraceView', () => {
         transaction_child_count_map: new Array(20)
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({
@@ -180,6 +182,8 @@ describe('EventTraceView', () => {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({

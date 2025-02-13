@@ -2855,6 +2855,12 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "grouping.grouphash_metadata.backfill_sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -2869,6 +2875,18 @@ register(
 # provider blocks the uptime checker causing false positives.
 register(
     "uptime.restrict-issue-creation-by-hosting-provider-id",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Disables specific uptime checker regions. This is a list of region slugs
+# which must match regions available in the settings.UPTIME_REGIONS list.
+#
+# Useful to remove a region from check rotation if there is some kind of
+# problem with the region.
+register(
+    "uptime.disabled-checker-regions",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

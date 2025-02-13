@@ -28,5 +28,7 @@ export default function useSessionProjectTotal() {
     return 0;
   }
 
-  return projSessionData.groups[0]!.totals['sum(session)'] ?? 0;
+  return projSessionData.groups.length
+    ? projSessionData.groups[0]!.totals['sum(session)'] ?? 0
+    : 0;
 }

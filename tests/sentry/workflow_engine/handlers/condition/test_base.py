@@ -39,6 +39,14 @@ class ConditionTestCase(BaseWorkflowTest):
     def assert_does_not_pass(self, data_condition: DataCondition, job: WorkflowJob) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 
+    def assert_slow_condition_passes(self, data_condition: DataCondition, value: list[int]) -> None:
+        assert data_condition.evaluate_value(value) == data_condition.get_condition_result()
+
+    def assert_slow_condition_does_not_pass(
+        self, data_condition: DataCondition, value: list[int]
+    ) -> None:
+        assert data_condition.evaluate_value(value) != data_condition.get_condition_result()
+
     # TODO: activity
 
 

@@ -16,6 +16,7 @@ export interface DetectorDetails {
   description?: string;
   detectorId?: string;
   detectorPath?: string;
+  detectorSlug?: string;
   detectorType?: 'metric_alert' | 'cron_monitor' | 'uptime_monitor';
 }
 
@@ -50,10 +51,12 @@ export function getDetectorDetails({
   }
 
   const cronSlug = event?.tags?.find(({key}) => key === 'monitor.slug')?.value;
+  const cronId = event?.tags?.find(({key}) => key === 'monitor.id')?.value;
   if (cronSlug) {
     return {
       detectorType: 'cron_monitor',
-      detectorId: cronSlug,
+      detectorId: cronId,
+      detectorSlug: cronSlug,
       detectorPath: makeAlertsPathname({
         path: `/rules/crons/${project.slug}/${cronSlug}/details/`,
         organization,

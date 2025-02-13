@@ -44,7 +44,9 @@ describe('TraceDetailsContent', () => {
         projects: 1,
         transactions: 0,
         performance_issues: 1,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       };
 
       render(
@@ -92,7 +94,9 @@ describe('TraceDetailsContent', () => {
         projects: 1,
         transactions: 0,
         performance_issues: 0,
-        transactiontoSpanChildrenCount: {},
+        transaction_child_count_map: {},
+        span_count: 0,
+        span_count_map: {},
       };
 
       render(
