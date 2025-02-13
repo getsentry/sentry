@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
@@ -304,13 +304,13 @@ class ReadOnlyPermission(SentryPermission):
         return super().determine_access(request, org_context)
 
     def has_permission(self, request: Request, view: object) -> bool:
-        if demo_mode.is_readonly_user(request.user) and request.method not in ("GET", "HEAD"):
+        if demo_mode.is_readonly_user(request.user) and request.method not in SAFE_METHODS:
             return False
 
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
-        if demo_mode.is_readonly_user(request.user) and request.method not in ("GET", "HEAD"):
+        if demo_mode.is_readonly_user(request.user) and request.method not in SAFE_METHODS:
             return False
 
         return super().has_object_permission(request, view, obj)

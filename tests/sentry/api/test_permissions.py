@@ -1,5 +1,6 @@
 from sentry.api.permissions import (
     ReadOnlyPermission,
+    SentryIsAuthenticated,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
@@ -91,4 +92,33 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
 
         assert self.user_permission.has_permission(
             self.make_request(self.normal_user, method="GET"), None
+        )
+
+
+class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
+    user_permission = SentryIsAuthenticated()
+
+    def setUp(self):
+        super().setUp()
+        self.normal_user = self.create_user(id=1)
+        self.readonly_user = self.create_user(id=2)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_normal_user_has_permission(self):
+        assert self.user_permission.has_permission(self.make_request(self.normal_user), None)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_readonly_user_has_no_permission(self):
+        assert not self.user_permission.has_permission(self.make_request(self.readonly_user), None)
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_normal_user_has_object_permission(self):
+        assert self.user_permission.has_object_permission(
+            self.make_request(self.normal_user), None, None
+        )
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_readonly_user_has_no_object_permission(self):
+        assert not self.user_permission.has_object_permission(
+            self.make_request(self.readonly_user), None, None
         )
