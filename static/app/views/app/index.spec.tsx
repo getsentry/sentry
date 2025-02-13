@@ -1,6 +1,4 @@
 import {useTheme} from '@emotion/react';
-import type {Scope} from '@sentry/core';
-import * as Sentry from '@sentry/react';
 import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -64,16 +62,10 @@ describe('App', function () {
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture(),
     });
-
-    const mockScope = {
-      setTag: jest.fn(),
-      setContext: jest.fn(),
-    } as unknown as Scope;
-    jest.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders', async function () {
