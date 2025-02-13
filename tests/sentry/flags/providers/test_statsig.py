@@ -334,3 +334,8 @@ def test_handle_unsupported_action():
         }
     )
     assert len(logs) == 0
+
+
+def test_handle_empty_data():
+    logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({"data": []})
+    assert len(logs) == 0
