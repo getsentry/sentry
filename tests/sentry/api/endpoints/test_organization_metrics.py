@@ -38,25 +38,21 @@ MOCKED_DERIVED_METRICS.update(
 
 
 class OrganizationMetricsPermissionTest(APITestCase):
-    endpoints = (
-        (
-            "get",
-            "sentry-api-0-organization-metrics-details",
-        ),
-        (
+    endpoints = [
+        ["get", "sentry-api-0-organization-metrics-details"],
+        [
             "get",
             "sentry-api-0-organization-metrics-tags",
-        ),
-        ("get", "sentry-api-0-organization-metrics-tag-details", "foo"),
-        (
+        ],
+        [
             "get",
             "sentry-api-0-organization-metrics-data",
-        ),
-        (
+        ],
+        [
             "post",
             "sentry-api-0-organization-metrics-query",
-        ),
-    )
+        ],
+    ]
 
     def setUp(self):
         self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)

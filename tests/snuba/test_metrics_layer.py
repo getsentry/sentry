@@ -29,7 +29,6 @@ from sentry.snuba.metrics_layer.query import (
     bulk_run_query,
     fetch_metric_mris,
     fetch_metric_tag_keys,
-    fetch_metric_tag_values,
     run_query,
 )
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -989,48 +988,3 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         assert len(tag_keys) == 1
         assert len(tag_keys[self.project.id]) == 3
         assert tag_keys[self.project.id] == ["status_code", "device", "transaction"]
-
-    def test_fetch_metric_tag_values(self) -> None:
-        tag_values = fetch_metric_tag_values(
-            self.org_id,
-            [self.project.id],
-            UseCaseID.TRANSACTIONS,
-            "g:transactions/test_gauge@none",
-            "transaction",
-        )
-        assert len(tag_values) == 2
-        assert tag_values == ["transaction_0", "transaction_1"]
-
-    def test_fetch_metric_tag_values_with_prefix(self) -> None:
-        tag_values = fetch_metric_tag_values(
-            self.org_id,
-            [self.project.id],
-            UseCaseID.TRANSACTIONS,
-            "g:transactions/test_gauge@none",
-            "status_code",
-            "5",
-        )
-        assert len(tag_values) == 1
-        assert tag_values == ["500"]
-
-    def test_fetch_metric_tag_values_for_multiple_projects(self) -> None:
-        new_project = self.create_project(name="New Project")
-        self.store_metric(
-            self.org_id,
-            new_project.id,
-            "g:transactions/test_gauge@none",
-            {"status_code": "524"},
-            self.ts(self.hour_ago + timedelta(minutes=10)),
-            10,
-        )
-
-        tag_values = fetch_metric_tag_values(
-            self.org_id,
-            [self.project.id, new_project.id],
-            UseCaseID.TRANSACTIONS,
-            "g:transactions/test_gauge@none",
-            "status_code",
-            "5",
-        )
-        assert len(tag_values) == 2
-        assert tag_values == ["500", "524"]
