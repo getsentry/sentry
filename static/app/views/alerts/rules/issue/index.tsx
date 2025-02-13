@@ -1194,7 +1194,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           orgSlug={organization.slug}
           projectSlug={project.slug}
         />
-        <ProjectPermissionAlert margin access={['alerts:write']} project={project} />
+        <ProjectPermissionAlert access={['alerts:write']} project={project} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}

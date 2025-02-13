@@ -173,7 +173,7 @@ function ProjectDataForwarding({project}: Props) {
                 }
               )}
             </TextBlock>
-            <ProjectPermissionAlert margin project={project} />
+            <ProjectPermissionAlert project={project} />
 
             <Alert.Container>
               <Alert showIcon type="info">

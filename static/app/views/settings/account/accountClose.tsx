@@ -157,7 +157,7 @@ function AccountClose() {
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
-          <PanelAlert margin type="warning">
+          <PanelAlert type="warning">
             <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
             <br />
             {t(

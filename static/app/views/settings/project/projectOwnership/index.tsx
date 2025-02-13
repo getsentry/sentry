@@ -162,7 +162,6 @@ export default function ProjectOwnership({project}: {project: Project}) {
         )}
       </TextBlock>
       <ProjectPermissionAlert
-        margin
         access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
         project={project}
       />
@@ -188,7 +187,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </ErrorBoundary>
       )}
-      <ProjectPermissionAlert margin project={project} />
+      <ProjectPermissionAlert project={project} />
       {hasCodeowners && (
         <CodeOwnerFileTable
           project={project}

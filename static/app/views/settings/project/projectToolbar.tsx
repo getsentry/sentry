@@ -93,7 +93,7 @@ export default function ProjectToolbarSettings({
             `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
           )}
         </TextBlock>
-        <ProjectPermissionAlert margin project={project} />
+        <ProjectPermissionAlert project={project} />
         {domain && (
           <Alert.Container>
             <Alert type="info" showIcon>

@@ -193,7 +193,7 @@ export function TransactionNodeDetails({
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
         {!node.canFetch ? (
           <Alert.Container>
-            <StyledAlert margin type="info" showIcon>
+            <StyledAlert type="info" showIcon>
               {tct(
                 'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
                 {

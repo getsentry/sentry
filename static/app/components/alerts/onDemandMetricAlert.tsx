@@ -53,7 +53,7 @@ export function OnDemandMetricAlert({
 
   return (
     <Alert.Container>
-      <InfoAlert margin type="info" showIcon>
+      <InfoAlert type="info" showIcon>
         {message}
         {dismissable && (
           <DismissButton

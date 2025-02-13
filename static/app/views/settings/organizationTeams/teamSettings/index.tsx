@@ -82,7 +82,7 @@ function TeamSettings({team, params}: TeamSettingsProps) {
     <Fragment>
       <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
 
-      <ProjectPermissionAlert margin access={['team:write']} team={team} />
+      <ProjectPermissionAlert access={['team:write']} team={team} />
       {isIdpProvisioned && (
         <Alert.Container>
           <Alert type="warning" showIcon>
