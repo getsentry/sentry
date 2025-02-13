@@ -126,11 +126,7 @@ function SearchIndicator({
   initialQuery?: string;
   showUnsubmittedIndicator?: boolean;
 }) {
-  const {size, query} = useSearchQueryBuilder();
-
-  if (size === 'small') {
-    return null;
-  }
+  const {query} = useSearchQueryBuilder();
 
   const unSubmittedChanges = query !== initialQuery;
   const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;

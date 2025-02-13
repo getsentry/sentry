@@ -81,7 +81,6 @@ function Grid(props: GridProps) {
     <SearchQueryGridWrapper
       {...gridProps}
       ref={ref}
-      size={size}
       style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
     >
       <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
@@ -161,10 +160,10 @@ export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridPr
   );
 }
 
-const SearchQueryGridWrapper = styled('div')<{size: 'small' | 'normal'}>`
+const SearchQueryGridWrapper = styled('div')`
   padding-top: ${space(0.75)};
   padding-bottom: ${space(0.75)};
-  padding-left: ${p => (p.size === 'small' ? space(0.75) : '32px')};
+  padding-left: 32px;
   padding-right: ${space(0.75)};
   display: flex;
   align-items: stretch;
