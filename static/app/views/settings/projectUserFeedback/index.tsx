@@ -76,7 +76,7 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
             your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs.`
         )}
       </TextBlock>
-      <ProjectPermissionAlert project={project} />
+      <ProjectPermissionAlert margin={false} project={project} />
       <Form
         saveOnBlur
         apiMethod="PUT"

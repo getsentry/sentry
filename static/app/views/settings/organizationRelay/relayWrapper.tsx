@@ -67,7 +67,7 @@ export function RelayWrapper() {
           </Button>
         }
       />
-      <OrganizationPermissionAlert />
+      <OrganizationPermissionAlert margin={false} />
       <TextBlock>
         {tct(
           'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',

@@ -374,6 +374,7 @@ function TeamMembers({team}: TeamMembersProps) {
       <TextBlock>{renderPageTextBlock()}</TextBlock>
 
       <ProjectPermissionAlert
+        margin={false}
         access={organization.openMembership ? ['org:read'] : ['team:write']}
         team={team}
       />

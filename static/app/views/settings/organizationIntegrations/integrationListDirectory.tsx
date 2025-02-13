@@ -543,7 +543,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-        <OrganizationPermissionAlert access={['org:integrations']} />
+        <OrganizationPermissionAlert margin={false} access={['org:integrations']} />
         <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">

@@ -314,7 +314,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
       <div>
         <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Project Settings')} />
-        <ProjectPermissionAlert project={project} />
+        <ProjectPermissionAlert margin={false} project={project} />
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
@@ -349,7 +349,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
               fields.verifySSL!,
             ]}
             renderHeader={() => (
-              <PanelAlert type="info">
+              <PanelAlert margin={false} type="info">
                 <TextBlock noMargin>
                   {tct(
                     'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',

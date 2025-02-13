@@ -66,7 +66,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         </Actions>
       </PanelHeader>
       <PanelBody>
-        <PanelAlert type="warning">
+        <PanelAlert margin={false} type="warning">
           {t(
             'Make sure to save a copy of your recovery codes and store them in a safe place.'
           )}

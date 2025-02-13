@@ -113,7 +113,7 @@ export default function OrganizationGeneralSettings() {
           title={t('Organization Settings')}
           action={organizationRegionInfo}
         />
-        <OrganizationPermissionAlert />
+        <OrganizationPermissionAlert margin={false} />
 
         <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 

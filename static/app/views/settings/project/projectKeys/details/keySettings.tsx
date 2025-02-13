@@ -117,7 +117,7 @@ export function KeySettings({
             <Panel>
               <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info" showIcon>
+                <PanelAlert margin={false} type="info" showIcon>
                   {t(
                     'Note that it can take a few minutes until changed options are live.'
                   )}
@@ -136,7 +136,7 @@ export function KeySettings({
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info" showIcon>
+                <PanelAlert margin={false} type="info" showIcon>
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}

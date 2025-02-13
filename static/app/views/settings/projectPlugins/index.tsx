@@ -64,7 +64,7 @@ class ProjectPluginsContainer extends Component<Props> {
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
-        <ProjectPermissionAlert project={project} />
+        <ProjectPermissionAlert margin={false} project={project} />
 
         <ProjectPlugins
           {...this.props}

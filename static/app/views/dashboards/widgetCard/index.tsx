@@ -55,7 +55,9 @@ export const SESSION_DURATION_ALERT_TEXT = t(
 );
 
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
+  <PanelAlert margin={false} type="warning">
+    {SESSION_DURATION_ALERT_TEXT}
+  </PanelAlert>
 );
 
 type Props = WithRouterProps & {

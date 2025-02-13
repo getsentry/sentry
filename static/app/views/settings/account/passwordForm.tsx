@@ -46,7 +46,7 @@ function PasswordForm() {
           </Actions>
         )}
         renderHeader={() => (
-          <PanelAlert type="info">
+          <PanelAlert margin={false} type="info">
             {t('Changing your password will invalidate all logged in sessions.')}
           </PanelAlert>
         )}

@@ -874,7 +874,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
       <Fragment>
         <SentryDocumentTitle title={t('Performance')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Performance')} />
-        <ProjectPermissionAlert project={project} />
+        <ProjectPermissionAlert margin={false} project={project} />
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
             <Feature features="organizations:insights-initial-modules">

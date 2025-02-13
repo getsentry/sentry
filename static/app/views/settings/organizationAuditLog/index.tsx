@@ -126,7 +126,7 @@ function OrganizationAuditLog({location}: Props) {
           onCursor={handleCursor}
         />
       ) : (
-        <OrganizationPermissionAlert />
+        <OrganizationPermissionAlert margin={false} />
       )}
     </Fragment>
   );

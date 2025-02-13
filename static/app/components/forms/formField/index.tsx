@@ -408,6 +408,7 @@ function FormField(props: FormFieldProps) {
 
                 return (
                   <PanelAlert
+                    margin={false}
                     type={saveMessageAlertType ?? 'info'}
                     trailingItems={
                       <Fragment>

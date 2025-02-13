@@ -120,7 +120,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
           </LinkButton>
         }
       />
-      <ProjectPermissionAlert project={project} />
+      <ProjectPermissionAlert margin={false} project={project} />
       <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
         {t(
           'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
@@ -153,7 +153,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
               disabled={!canEditRule}
               fields={[fields.digestsMinDelay!, fields.digestsMaxDelay!]}
               renderHeader={() => (
-                <PanelAlert type="info">
+                <PanelAlert margin={false} type="info">
                   {t(
                     'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. To control how frequently notifications are delivered, use the sliders below.'
                   )}

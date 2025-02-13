@@ -166,7 +166,7 @@ export function DataScrubbing({
       <PanelHeader>
         <div>{t('Advanced Data Scrubbing')}</div>
       </PanelHeader>
-      <PanelAlert type="info">
+      <PanelAlert margin={false} type="info">
         {additionalContext}{' '}
         {tct(
           'The new rules will only apply to upcoming events. For more details, see [linkToDocs].',

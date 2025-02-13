@@ -206,7 +206,7 @@ class ProjectEnvironments extends Component<Props, State> {
             </NavTabs>
           }
         />
-        <ProjectPermissionAlert project={project} />
+        <ProjectPermissionAlert margin={false} project={project} />
 
         <Panel>
           <PanelHeader>{isHidden ? t('Hidden') : t('Active Environments')}</PanelHeader>
