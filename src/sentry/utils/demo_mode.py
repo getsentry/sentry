@@ -21,7 +21,7 @@ def is_demo_mode_enabled():
     return options.get("demo-mode.enabled")
 
 
-def is_readonly_user(user: User | AnonymousUser | None) -> bool:
+def is_demo_user(user: User | AnonymousUser | None) -> bool:
 
     if not user:
         return False

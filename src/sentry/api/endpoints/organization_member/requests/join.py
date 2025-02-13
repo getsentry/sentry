@@ -18,7 +18,7 @@ from sentry.notifications.notifications.organization_request import JoinRequestN
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.demo_mode import is_readonly_user
+from sentry.utils.demo_mode import is_demo_user
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
                 {"detail": "Your organization does not allow join requests."}, status=403
             )
 
-        if is_readonly_user(request.user):
+        if is_demo_user(request.user):
             return Response(status=403)
 
         # users can already join organizations with SSO enabled without an invite
