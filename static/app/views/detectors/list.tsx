@@ -20,19 +20,22 @@ export default function DetectorsList() {
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <ActionsProvider actions={<Actions />}>
         <ListLayout>
-          <h2>Monitors</h2>
-          <Flex gap={space(1.5)} column>
-            <Flex gap={space(1.5)}>
-              <ProjectPageFilter />
-              <div style={{flex: 1}}>
-                <SearchBar placeholder={t('Search by name')} />
-              </div>
-            </Flex>
-            <DetectorListTable detectors={[]} />
-          </Flex>
+          <TableHeader />
+          <DetectorListTable detectors={[]} />
         </ListLayout>
       </ActionsProvider>
     </SentryDocumentTitle>
+  );
+}
+
+function TableHeader() {
+  return (
+    <Flex gap={space(2)}>
+      <ProjectPageFilter />
+      <div style={{flexGrow: 1}}>
+        <SearchBar placeholder={t('Search by name')} />
+      </div>
+    </Flex>
   );
 }
 
