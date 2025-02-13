@@ -40,7 +40,7 @@ class VercelOAuth2Provider(OAuth2Provider):
         return vercel_configure_view
 
     @classmethod
-    def build_config(self, resource):
+    def build_config(cls, resource):
         """
         On configuration, we determine which provider organization to configure sentry SSO for.
         This configuration is then stored and passed into the pipeline instances during SSO
