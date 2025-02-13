@@ -17,7 +17,7 @@ UPTIME_CHECK_ATTRIBUTE_DEFINITIONS = {
     + [
         ResolvedColumn(
             public_alias="environment",
-            internal_name="sentry.environment",
+            internal_name="environment",
             search_type="string",
         ),
         ResolvedColumn(
