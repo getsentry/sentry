@@ -39,7 +39,13 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         status: AutofixStatus.PROCESSING,
         title: 'Starting Autofix...',
         insights: [],
-        progress: [],
+        progress: [
+          {
+            message: 'Ingesting error data...',
+            timestamp: new Date().toISOString(),
+            type: 'INFO',
+          },
+        ],
       },
     ],
     created_at: new Date().toISOString(),
@@ -92,6 +98,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   const [isReset, setIsReset] = useState<boolean>(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
 
   const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
     staleTime: 0,
@@ -102,22 +109,12 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       }
       return false;
     },
-    select: useCallback(
-      (response: AutofixResponse) => {
-        if (currentRunId && response.autofix?.run_id !== currentRunId) {
-          return {autofix: null};
-        }
-        return response;
-      },
-      [currentRunId]
-    ),
   } as UseApiQueryOptions<AutofixResponse, RequestError>);
 
   const triggerAutofix = useCallback(
     async (instruction: string) => {
       setIsReset(false);
       setCurrentRunId(null);
-
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(group.id),
@@ -132,10 +129,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
             instruction,
           },
         });
-        // Save the run_id from the response
-        if (response.autofix?.run_id) {
-          setCurrentRunId(response.autofix.run_id);
-        }
+        setCurrentRunId(response.run_id);
       } catch (e) {
         setApiQueryData<AutofixResponse>(
           queryClient,
@@ -150,9 +144,21 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const reset = useCallback(() => {
     setIsReset(true);
     setCurrentRunId(null);
+    setWaitingForNextRun(true);
   }, []);
 
-  const autofixData = isReset ? null : apiData?.autofix ?? null;
+  let autofixData = apiData?.autofix ?? null;
+  let usingInitialData = false;
+  if (waitingForNextRun && apiData?.autofix?.run_id !== currentRunId) {
+    autofixData = makeInitialAutofixData().autofix;
+    usingInitialData = true;
+  }
+  if (isReset) {
+    autofixData = null;
+  }
+  if (autofixData?.steps?.length && !usingInitialData && waitingForNextRun) {
+    setWaitingForNextRun(false);
+  }
 
   return {
     autofixData,

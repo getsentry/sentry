@@ -126,6 +126,10 @@ export function AutofixOutputStream({
 
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (activeLog === 'Ingesting error data...') {
+      // don't send message during loading state
+      return;
+    }
     if (message.trim() !== '') {
       send({message});
       setMessage('');
