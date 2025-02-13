@@ -1,3 +1,5 @@
+import type {Theme} from '@emotion/react';
+
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   makeColorMapByApplicationFrame,
@@ -13,15 +15,12 @@ import type {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/fla
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {hexToColorChannels} from 'sentry/utils/profiling/gl/utils';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 import {makeColorBucketTheme} from '../speedscope';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
 'Courier New', monospace`;
-
-const FRAME_FONT = lightTheme.text.familyMono;
 
 // Luma chroma hue settings
 export interface LCH {
@@ -182,115 +181,121 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   CHART_PX_PADDING: 30,
 };
 
-const FONTS: FlamegraphTheme['FONTS'] = {
-  FONT: MONOSPACE_FONT,
-  FRAME_FONT,
-};
+function makeFlamegraphFonts(theme: Theme): FlamegraphTheme['FONTS'] {
+  return {
+    FONT: MONOSPACE_FONT,
+    FRAME_FONT: theme.text.familyMono,
+  };
+}
 
-export const LightFlamegraphTheme: FlamegraphTheme = {
-  SIZES,
-  COLORS: {
-    BAR_LABEL_FONT_COLOR: '#000',
-    BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.65]],
-    COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
-    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
-    COLOR_MAPS: {
-      'by symbol name': makeColorMapBySymbolName,
-      'by system frame': makeColorMapBySystemFrame,
-      'by application frame': makeColorMapByApplicationFrame,
-      'by library': makeColorMapByLibrary,
-      'by recursion': makeColorMapByRecursion,
-      'by frequency': makeColorMapByFrequency,
-      'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
+export function makeLightFlamegraphTheme(theme: Theme): FlamegraphTheme {
+  return {
+    SIZES,
+    COLORS: {
+      BAR_LABEL_FONT_COLOR: '#000',
+      BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.65]],
+      COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
+      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
+      COLOR_MAPS: {
+        'by symbol name': makeColorMapBySymbolName,
+        'by system frame': makeColorMapBySystemFrame,
+        'by application frame': makeColorMapByApplicationFrame,
+        'by library': makeColorMapByLibrary,
+        'by recursion': makeColorMapByRecursion,
+        'by frequency': makeColorMapByFrequency,
+        'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
+      },
+      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      MEMORY_CHART_COLORS: [
+        hexToColorChannels(CHART_PALETTE[4][2], 0.8),
+        hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+      ],
+      CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
+      CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
+      CURSOR_CROSSHAIR: '#bbbbbb',
+      DIFFERENTIAL_DECREASE: [0.309, 0.2558, 0.78],
+      DIFFERENTIAL_INCREASE: [0.84, 0.3, 0.33],
+      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
+      FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.6, 0.1],
+      FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.2],
+      FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.2],
+      SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
+      GRID_FRAME_BACKGROUND_COLOR: 'rgb(250, 249, 251, 1)', // theme.backgroundSecondary
+      GRID_LINE_COLOR: '#e5e7eb',
+      HIGHLIGHTED_LABEL_COLOR: [240, 240, 0, 1],
+      HOVERED_FRAME_BORDER_COLOR: 'rgba(0, 0, 0, 0.8)',
+      LABEL_FONT_COLOR: '#1f233a',
+      MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
+      MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
+      SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
+      // Yellow 200
+      UI_FRAME_COLOR_SLOW: [0.96, 0.69, 0.0, 0.55],
+      // Red 200 but stronger opacity
+      UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.8],
+      SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
+      SEARCH_RESULT_SPAN_COLOR: '#fdb359',
+      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
+      SPAN_FRAME_LINE_PATTERN: '#dedae3',
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
+      SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
+      STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
     },
-    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
-    MEMORY_CHART_COLORS: [
-      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
-      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
-    ],
-    CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
-    CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
-    CURSOR_CROSSHAIR: '#bbbbbb',
-    DIFFERENTIAL_DECREASE: [0.309, 0.2558, 0.78],
-    DIFFERENTIAL_INCREASE: [0.84, 0.3, 0.33],
-    FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
-    FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.6, 0.1],
-    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.2],
-    FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.2],
-    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
-    GRID_FRAME_BACKGROUND_COLOR: 'rgb(250, 249, 251, 1)', // theme.backgroundSecondary
-    GRID_LINE_COLOR: '#e5e7eb',
-    HIGHLIGHTED_LABEL_COLOR: [240, 240, 0, 1],
-    HOVERED_FRAME_BORDER_COLOR: 'rgba(0, 0, 0, 0.8)',
-    LABEL_FONT_COLOR: '#1f233a',
-    MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
-    MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
-    SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
-    // Yellow 200
-    UI_FRAME_COLOR_SLOW: [0.96, 0.69, 0.0, 0.55],
-    // Red 200 but stronger opacity
-    UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.8],
-    SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
-    SEARCH_RESULT_SPAN_COLOR: '#fdb359',
-    SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
-    SPAN_FRAME_LINE_PATTERN: '#dedae3',
-    SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
-    SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
-    STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
-  },
-  FONTS,
-};
+    FONTS: makeFlamegraphFonts(theme),
+  };
+}
 
-export const DarkFlamegraphTheme: FlamegraphTheme = {
-  SIZES,
-  COLORS: {
-    BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
-    BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.5]],
-    COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
-    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
-    COLOR_MAPS: {
-      'by symbol name': makeColorMapBySymbolName,
-      'by system frame': makeColorMapBySystemFrame,
-      'by application frame': makeColorMapByApplicationFrame,
-      'by library': makeColorMapByLibrary,
-      'by recursion': makeColorMapByRecursion,
-      'by frequency': makeColorMapByFrequency,
-      'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
+export function makeDarkFlamegraphTheme(theme: Theme): FlamegraphTheme {
+  return {
+    SIZES,
+    COLORS: {
+      BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
+      BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.5]],
+      COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
+      SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
+      COLOR_MAPS: {
+        'by symbol name': makeColorMapBySymbolName,
+        'by system frame': makeColorMapBySystemFrame,
+        'by application frame': makeColorMapByApplicationFrame,
+        'by library': makeColorMapByLibrary,
+        'by recursion': makeColorMapByRecursion,
+        'by frequency': makeColorMapByFrequency,
+        'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
+      },
+      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      MEMORY_CHART_COLORS: [
+        hexToColorChannels(CHART_PALETTE[4][2], 0.5),
+        hexToColorChannels(CHART_PALETTE[4][3], 0.5),
+      ],
+      CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
+      CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
+      CURSOR_CROSSHAIR: '#828285',
+      DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
+      DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
+      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
+      FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
+      FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
+      FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
+      SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
+      GRID_FRAME_BACKGROUND_COLOR: 'rgb(26, 20, 31,1)',
+      GRID_LINE_COLOR: '#222227',
+      HIGHLIGHTED_LABEL_COLOR: [136, 50, 0, 1],
+      HOVERED_FRAME_BORDER_COLOR: 'rgba(255, 255, 255, 0.8)',
+      LABEL_FONT_COLOR: 'rgba(255, 255, 255, 0.8)',
+      MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(255,255,255, 0.35)',
+      MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(255,255,255,0.1)',
+      SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
+      // Yellow 200
+      UI_FRAME_COLOR_SLOW: [0.96, 0.69, 0.0, 0.6],
+      // Red 200 but stronger opacity
+      UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.5],
+      SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
+      SPAN_FRAME_LINE_PATTERN: '#594b66',
+      SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
+      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
+      SEARCH_RESULT_SPAN_COLOR: '#b9834a',
+      SPAN_FRAME_BORDER: '#57575b',
+      STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
     },
-    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
-    MEMORY_CHART_COLORS: [
-      hexToColorChannels(CHART_PALETTE[4][2], 0.5),
-      hexToColorChannels(CHART_PALETTE[4][3], 0.5),
-    ],
-    CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
-    CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
-    CURSOR_CROSSHAIR: '#828285',
-    DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
-    DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
-    FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
-    FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
-    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
-    FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
-    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
-    GRID_FRAME_BACKGROUND_COLOR: 'rgb(26, 20, 31,1)',
-    GRID_LINE_COLOR: '#222227',
-    HIGHLIGHTED_LABEL_COLOR: [136, 50, 0, 1],
-    HOVERED_FRAME_BORDER_COLOR: 'rgba(255, 255, 255, 0.8)',
-    LABEL_FONT_COLOR: 'rgba(255, 255, 255, 0.8)',
-    MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(255,255,255, 0.35)',
-    MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(255,255,255,0.1)',
-    SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
-    // Yellow 200
-    UI_FRAME_COLOR_SLOW: [0.96, 0.69, 0.0, 0.6],
-    // Red 200 but stronger opacity
-    UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.5],
-    SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
-    SPAN_FRAME_LINE_PATTERN: '#594b66',
-    SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
-    SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
-    SEARCH_RESULT_SPAN_COLOR: '#b9834a',
-    SPAN_FRAME_BORDER: '#57575b',
-    STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
-  },
-  FONTS,
-};
+    FONTS: makeFlamegraphFonts(theme),
+  };
+}
