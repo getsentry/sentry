@@ -86,5 +86,7 @@ class SentryAppExamples:
                     "webUrl": "https://example.com/my-test-project/issue/example-issue-2/this-is-an-example-python-exception",
                 }
             ],
+            status_codes=["200"],
+            response_only=True,
         )
     ]
