@@ -311,7 +311,6 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       {hasIssues && (
         <Alert.Container>
           <Alert
-            margin
             system
             defaultExpanded
             type="error"

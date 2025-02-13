@@ -32,7 +32,6 @@ function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
   return (
     <Alert.Container>
       <Alert
-        margin
         type="warning"
         showIcon
         trailingItems={

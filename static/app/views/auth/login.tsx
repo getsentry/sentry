@@ -126,7 +126,6 @@ class Login extends Component<Props, State> {
             {orgId !== undefined && (
               <Alert.Container>
                 <Alert
-                  margin
                   type="warning"
                   trailingItems={
                     <LinkButton to="/" size="xs">

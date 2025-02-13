@@ -74,7 +74,6 @@ function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
   return (
     <Alert.Container>
       <StyledAlert
-        margin
         type="error"
         showIcon
         expand={

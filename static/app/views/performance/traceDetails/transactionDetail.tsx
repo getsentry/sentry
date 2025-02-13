@@ -63,7 +63,6 @@ class TransactionDetail extends Component<Props> {
     return (
       <Alert.Container>
         <Alert
-          margin
           system
           type="error"
           expand={[...errors, ...performance_issues].map(error => (

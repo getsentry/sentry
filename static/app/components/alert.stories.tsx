@@ -117,13 +117,7 @@ export default storyBook('Alert', story => {
           <Alert type="info" showIcon expand="Some extra info here.">
             Expand me
           </Alert>
-          <Alert
-            margin
-            type="info"
-            showIcon
-            defaultExpanded
-            expand="Some extra info here."
-          >
+          <Alert type="info" showIcon defaultExpanded expand="Some extra info here.">
             This one is expanded by default.
           </Alert>
         </Alert.Container>
@@ -148,7 +142,6 @@ export default storyBook('Alert', story => {
         <Alert.Container>
           {isDismissed ? null : (
             <Alert
-              margin
               type="info"
               showIcon
               icon={<IconSentry />}
@@ -169,7 +162,6 @@ export default storyBook('Alert', story => {
             <Button onClick={() => setStateDismissed(false)}>Bring the alert back</Button>
           ) : (
             <Alert
-              margin
               type="info"
               showIcon
               icon={<IconStar />}

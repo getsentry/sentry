@@ -99,7 +99,6 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   return (
     <Alert.Container>
       <Alert
-        margin
         type="warning"
         showIcon
         trailingItems={

@@ -114,7 +114,6 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   return (
     <Alert.Container>
       <StyledAlert
-        margin
         type="info"
         showIcon
         trailingItems={

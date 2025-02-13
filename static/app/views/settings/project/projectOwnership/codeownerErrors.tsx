@@ -160,7 +160,6 @@ export function CodeOwnerErrors({
         return (
           <Alert.Container key={id}>
             <Alert
-              margin
               key={id}
               type="error"
               showIcon

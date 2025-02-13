@@ -32,7 +32,6 @@ class PluginDeprecationAlert extends Component<Props, State> {
       <div>
         <Alert.Container>
           <Alert
-            margin
             type="warning"
             showIcon
             trailingItems={

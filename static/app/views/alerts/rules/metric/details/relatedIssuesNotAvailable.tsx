@@ -21,7 +21,6 @@ export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
   return (
     <Alert.Container>
       <StyledAlert
-        margin
         type="info"
         showIcon
         trailingItems={

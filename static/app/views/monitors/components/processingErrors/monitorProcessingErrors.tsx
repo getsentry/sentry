@@ -153,7 +153,6 @@ export function MonitorProcessingErrors({
   return (
     <Alert.Container>
       <ScrollableAlert
-        margin
         type="error"
         showIcon
         expand={

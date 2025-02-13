@@ -287,7 +287,6 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   return (
     <Alert.Container>
       <Alert
-        margin
         defaultExpanded
         showIcon
         type="error"

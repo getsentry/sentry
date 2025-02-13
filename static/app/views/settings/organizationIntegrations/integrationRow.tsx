@@ -120,7 +120,6 @@ function IntegrationRow(props: Props) {
         <AlertContainer>
           <Alert.Container>
             <Alert
-              margin
               type="warning"
               showIcon
               trailingItems={

@@ -159,7 +159,6 @@ function MonitorDetails({params, location}: Props) {
             {monitor.status === 'disabled' && (
               <Alert.Container>
                 <Alert
-                  margin
                   type="muted"
                   showIcon
                   trailingItems={

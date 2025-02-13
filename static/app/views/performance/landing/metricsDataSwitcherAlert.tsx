@@ -113,7 +113,6 @@ export function MetricsDataSwitcherAlert(
         return (
           <Alert.Container>
             <Alert
-              margin
               type="warning"
               showIcon
               data-test-id="landing-mep-alert-multi-project-all-incompatible"
@@ -131,7 +130,6 @@ export function MetricsDataSwitcherAlert(
       return (
         <Alert.Container>
           <Alert
-            margin
             type="warning"
             showIcon
             data-test-id="landing-mep-alert-multi-project-incompatible"
@@ -155,7 +153,6 @@ export function MetricsDataSwitcherAlert(
     return (
       <Alert.Container>
         <Alert
-          margin
           type="warning"
           showIcon
           data-test-id="landing-mep-alert-single-project-incompatible"
@@ -177,7 +174,6 @@ export function MetricsDataSwitcherAlert(
       return (
         <Alert.Container>
           <Alert
-            margin
             type="warning"
             showIcon
             data-test-id="landing-mep-alert-unnamed-discover"
@@ -196,7 +192,6 @@ export function MetricsDataSwitcherAlert(
     return (
       <Alert.Container>
         <Alert
-          margin
           type="warning"
           showIcon
           data-test-id="landing-mep-alert-unnamed-discover-or-set"

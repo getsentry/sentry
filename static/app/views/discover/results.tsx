@@ -630,7 +630,6 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            margin
             type="warning"
             showIcon
             trailingItems={
@@ -667,7 +666,6 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            margin
             type="warning"
             showIcon
             trailingItems={

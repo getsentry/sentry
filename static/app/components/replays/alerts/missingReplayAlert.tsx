@@ -39,7 +39,6 @@ export default function MissingReplayAlert({orgSlug}: Props) {
   return (
     <Alert.Container>
       <Alert
-        margin
         type="info"
         showIcon
         data-test-id="replay-error"

@@ -109,7 +109,6 @@ export function PageAlert() {
   return (
     <Alert.Container>
       <Alert
-        margin
         type={pageAlert.type}
         data-test-id="page-error-alert"
         showIcon

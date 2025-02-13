@@ -20,7 +20,6 @@ function LoadingError({
   return (
     <Alert.Container>
       <Alert
-        margin
         type="error"
         data-test-id="loading-error"
         showIcon

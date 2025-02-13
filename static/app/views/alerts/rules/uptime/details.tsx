@@ -169,7 +169,6 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           {uptimeRule.status === 'disabled' && (
             <Alert.Container>
               <Alert
-                margin
                 type="muted"
                 showIcon
                 trailingItems={
