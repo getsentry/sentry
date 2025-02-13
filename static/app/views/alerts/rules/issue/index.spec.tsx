@@ -459,9 +459,9 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-      });
+      expect(router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+      );
     });
 
     it('pending status keeps loading true', async function () {

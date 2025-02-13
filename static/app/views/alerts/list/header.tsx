@@ -9,10 +9,10 @@ import {TabList} from 'sentry/components/tabs';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = {
   activeTab: 'stream' | 'rules';
@@ -34,7 +34,10 @@ function AlertHeader({activeTab}: Props) {
   const alertRulesLink = (
     <TabList.Item
       key="rules"
-      to={normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`)}
+      to={makeAlertsPathname({
+        path: '/rules/',
+        organization,
+      })}
     >
       {t('Alert Rules')}
     </TabList.Item>
@@ -85,7 +88,10 @@ function AlertHeader({activeTab}: Props) {
           {alertRulesLink}
           <TabList.Item
             key="stream"
-            to={normalizeUrl(`/organizations/${organization.slug}/alerts/`)}
+            to={makeAlertsPathname({
+              path: '/',
+              organization,
+            })}
           >
             {t('History')}
           </TabList.Item>

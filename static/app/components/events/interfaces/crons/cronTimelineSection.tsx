@@ -23,6 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
@@ -77,7 +78,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
         size="xs"
         icon={<IconOpen />}
         to={{
-          pathname: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${monitorSlug}/details/`,
+          pathname: makeAlertsPathname({
+            path: `/rules/crons/${project.slug}/${monitorSlug}/details/`,
+            organization,
+          }),
           query: {environment},
         }}
       >
