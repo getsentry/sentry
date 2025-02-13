@@ -54,6 +54,9 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
+MAX_NUM_ISSUES = 5
+
+
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
     """
     Compare request data + signature signed by one of the shared secrets.
@@ -189,7 +192,7 @@ def _get_issues_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
-    max_num_issues: int = 5,
+    max_num_issues: int = MAX_NUM_ISSUES,
 ) -> list[dict[str, Any]]:
     """
     Fetch issues with their latest event if its stacktrace frames match the function names
@@ -359,13 +362,21 @@ def get_issues_with_event_details_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
+    max_num_issues: int = MAX_NUM_ISSUES,
 ) -> list[dict[str, Any]]:
-    issues_result_set = _get_issues_for_file(projects, sentry_filenames, function_names)
+    issues_result_set = _get_issues_for_file(
+        projects, sentry_filenames, function_names, max_num_issues=max_num_issues
+    )
     return _add_event_details(projects, issues_result_set)
 
 
 def get_issues_related_to_file_patches(
-    *, organization_id: int, provider: str, external_id: str, filename_to_patch: dict[str, str]
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    filename_to_patch: dict[str, str],
+    max_num_issues: int = MAX_NUM_ISSUES,
 ) -> dict[str, list[dict[str, Any]]]:
     """
     Get the top issues related to each file by looking at matches between functions in the patch
@@ -420,7 +431,10 @@ def get_issues_related_to_file_patches(
             continue
 
         issues = get_issues_with_event_details_for_file(
-            list(projects), list(sentry_filenames), list(function_names)
+            list(projects),
+            list(sentry_filenames),
+            list(function_names),
+            max_num_issues=max_num_issues,
         )
         filename_to_issues[file.filename] = issues
 
