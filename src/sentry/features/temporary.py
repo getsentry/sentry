@@ -315,6 +315,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable combined envelope Kafka items in Relay
     manager.add("organizations:session-replay-combined-envelope-items", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable Session Replay SDK session sample rate (will set to 1.0 if True)
+    manager.add("organizations:session-replay-sdk", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Session Replay SDK on error sample rate (will set to 1.0 if True)
+    manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable canvas recording
     manager.add("organizations:session-replay-enable-canvas", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable canvas replaying
