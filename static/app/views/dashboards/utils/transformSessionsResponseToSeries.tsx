@@ -4,8 +4,7 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
-
-import {derivedMetricsToField} from './releaseWidgetQueries';
+import {derivedMetricsToField} from '../widgetCard/releaseWidgetQueries';
 
 export function getSeriesName(
   field: string,
