@@ -649,7 +649,7 @@ const darkColors: Colors = {
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
-  gray300: '#998DA5',
+  gray300: '#A398AE',
   gray200: '#393041',
   gray100: '#302735',
 
