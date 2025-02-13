@@ -297,7 +297,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
-        if is_demo_user(request.user):
+
+        # Allows demo user to log out from its current session but not others
+        if is_demo_user(request.user) and request.data.get("all", None) is True:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         # If there is an SLO URL, return it to frontend so the browser can redirect
