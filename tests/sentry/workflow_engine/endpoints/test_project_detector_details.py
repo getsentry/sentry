@@ -14,6 +14,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -23,6 +24,8 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 @pytest.mark.snuba_ci
