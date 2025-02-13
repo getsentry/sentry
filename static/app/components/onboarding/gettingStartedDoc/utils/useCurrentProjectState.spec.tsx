@@ -202,4 +202,25 @@ describe('useCurrentProjectState', () => {
     act(() => result.current.setCurrentProject(angular));
     expect(result.current.currentProject).toBe(angular);
   });
+
+  it('should update when the page filters store changes', () => {
+    ProjectsStore.loadInitialData([javascript, angular]);
+    mockPageFilterStore([angular]);
+    const {result} = renderHook(useCurrentProjectState, {
+      initialProps: {
+        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        onboardingPlatforms: feedbackOnboardingPlatforms,
+        allPlatforms: feedbackOnboardingPlatforms,
+      },
+      wrapper: createWrapper(),
+    });
+
+    // Starts with angular
+    expect(result.current.currentProject).toBe(angular);
+
+    // Changes to javascript when page filters change
+    act(() => mockPageFilterStore([javascript]));
+    expect(result.current.currentProject).toBe(javascript);
+  });
 });
