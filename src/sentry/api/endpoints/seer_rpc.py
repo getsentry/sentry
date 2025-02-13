@@ -241,9 +241,20 @@ def _get_issues_for_file(
             [
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("group_id"), Op.IN, group_ids),
+                Condition(
+                    Function("toStartOfDay", [Column("timestamp")]),
+                    Op.GTE,
+                    datetime.now().date() - timedelta(days=14),
+                ),
+                Condition(
+                    Function("toStartOfDay", [Column("timestamp")]),
+                    Op.LT,
+                    datetime.now().date() + timedelta(days=1),
+                ),
+                # Apply toStartOfDay to take advantage of the sorting key. TODO: measure w/ and w/o.
+                # Then, for precision, add the granular filters:
                 Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                 Condition(Column("timestamp"), Op.LT, datetime.now()),
-                # NOTE: ideally this would follow suspect commit logic
                 BooleanCondition(
                     BooleanOp.OR,
                     [
