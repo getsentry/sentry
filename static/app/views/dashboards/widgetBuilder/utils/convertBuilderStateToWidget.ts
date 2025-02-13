@@ -41,8 +41,11 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       ? state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 
-  // If there's no sort, use the first field as the default sort
-  const defaultSort = fields?.[0] ?? defaultQuery.orderby;
+  // If there's no sort, use the first field as the default sort (this doesn't apply to release table widgets)
+  const defaultSort =
+    state.displayType === DisplayType.TABLE && state.dataset === WidgetType.RELEASE
+      ? ''
+      : fields?.[0] ?? defaultQuery.orderby;
   const sort =
     defined(state.sort) && state.sort.length > 0
       ? _formatSort(state.sort[0]!)
