@@ -755,8 +755,7 @@ const DescriptionWrapper = styled('div')`
 `;
 
 function Onboarding(props: OnboardingProps) {
-  const showNewUi =
-    props.organization.features.includes('tracing-onboarding-new-ui') || true;
+  const showNewUi = props.organization.features.includes('tracing-onboarding-new-ui');
 
   if (!showNewUi) {
     return <LegacyOnboarding {...props} />;
