@@ -205,6 +205,7 @@ class OutboxBase(Model):
         using: str = db.router.db_for_write(type(self))
         with transaction.atomic(using=using), django_test_transaction_water_mark(using=using):
             try:
+                # Could be the same as latest_shard_row
                 next_shard_row = (
                     self.selected_messages_in_shard(latest_shard_row=latest_shard_row)
                     .select_for_update(nowait=flush_all)
@@ -219,11 +220,122 @@ class OutboxBase(Model):
 
             yield next_shard_row
 
+    def process_coalesced_messages(
+        self,
+        is_synchronous_flush: bool,
+    ) -> bool:
+        """
+        Process a coalesced group of messages. This takes a few steps:
+
+        1. We need to reserve the group of messages by getting locks on the top
+        and bottom of the coalesce group.
+        2. We advance the schedule_for of all messages in the coalesce group. This
+        combined with the locks from 1. prevent concurrent deliveries of the same messages.
+        3. We commit the update transaction, and call the signal handler. Signal handler
+        need to be called outside of transactions as they frequently use RPC which
+        can have long latency. If a transaction was held during this time it could
+        hit statement timeouts and the transaction would be aborted.
+        4. Once the signal handler completes, we delete the coalesced messages
+        as they have been 'delivered'.
+
+        If the signal handler fails, we leave the messages alone and they will be
+        processed in the future when their schedule is due again.
+        """
+        using = router.db_for_write(type(self))
+        tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
+
+        if self.should_skip_shard():
+            return False
+
+        try:
+            now = timezone.now()
+            with transaction.atomic(using=using, savepoint=False):
+                # TODO could be better to get a lock on all the messages in the group
+                coalesced: OutboxBase | None = (
+                    self.select_coalesced_messages().select_for_update(nowait=True).last()
+                )
+                first_coalesced: OutboxBase | None = (
+                    self.select_coalesced_messages().select_for_update(nowait=True).first()
+                    or coalesced
+                )
+                if coalesced is None:
+                    return False
+
+                tags["category"] = OutboxCategory(self.category).name
+                assert (
+                    first_coalesced
+                ), "first_coalesced incorrectly set for non-empty coalesce group"
+                metrics.timing(
+                    "outbox.coalesced_net_queue_time",
+                    now.timestamp() - first_coalesced.date_added.timestamp(),
+                    tags=tags,
+                )
+                # Get all ids/scheduled times for coalesced messages
+                reserved_ids = list(
+                    self.select_coalesced_messages()
+                    .filter(id__lte=coalesced.id)
+                    .values("id")
+                    .order_by("id")
+                )
+
+                # Reserve all messages in the coalesce group
+                self.objects.filter(
+                    id__in=reserved_ids,
+                ).update(schedule_for=coalesced.next_schedule(now))
+        except OperationalError:
+            # We can hit lock contention here. If we do, skip the group and try later.
+            return False
+
+        # With the reservation transaction commited, call signal handler
+        with (
+            metrics.timer(
+                "outbox.send_signal.duration",
+                tags={
+                    "category": OutboxCategory(coalesced.category).name,
+                    "synchronous": int(is_synchronous_flush),
+                },
+            ),
+            sentry_sdk.start_span(op="outbox.process") as span,
+        ):
+            self._set_span_data_for_coalesced_message(span=span, message=coalesced)
+            try:
+                coalesced.send_signal()
+            except Exception as e:
+                raise OutboxFlushError(
+                    f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
+                    coalesced,
+                ) from e
+
+        try:
+            # The signal handler completed, delete the coalesced messages to awknowledge them.
+            with transaction.atomic(using=using):
+                self.objects.filter(id__in=reserved_ids).delete()
+                deleted_count = len(reserved_ids)
+
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
+            metrics.timing(
+                "outbox.processing_lag",
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
+                - first_coalesced.date_added.timestamp(),
+                tags=tags,
+            )
+            return True
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+            return False
+
     @contextlib.contextmanager
     def process_coalesced(
         self,
         is_synchronous_flush: bool,
     ) -> Generator[OutboxBase | None]:
+        # For the current outbox, find all the coalesced messages that share a category + object_identifier
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
         tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
@@ -289,6 +401,8 @@ class OutboxBase(Model):
 
     def process(self, is_synchronous_flush: bool) -> bool:
         with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
+            # coalesced is the latest record in the coalesce group
+            # cleanup of coalesce rows is done in the exit of the context manager
             if coalesced is not None and not self.should_skip_shard():
                 with (
                     metrics.timer(
@@ -333,21 +447,46 @@ class OutboxBase(Model):
                 return
 
         shard_row: OutboxBase | None
-        while True:
-            with self.process_shard(latest_shard_row) as shard_row:
-                if shard_row is None:
+        reservation_shards = options.get("hybrid_cloud.outbox.reservation_shards")
+        if self.shard_scope in reservation_shards:
+            # Reservation shard logic does not fire signal handlers within a database transaction
+            while True:
+                # Fetch messages from the shard until it is empty
+                next_outbox = self.selected_messages_in_shard(
+                    latest_shard_row=latest_shard_row
+                ).first()
+                if next_outbox is None:
                     break
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                processed = shard_row.process(is_synchronous_flush=not flush_all)
+                processed = next_outbox.process_coalesced_messages(
+                    is_synchronous_flush=not flush_all
+                )
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
                 if not processed:
                     break
+        else:
+            while True:
+                with self.process_shard(latest_shard_row) as shard_row:
+                    # All of this logic is in the select_for_update block, with row locks
+                    if shard_row is None:
+                        break
+
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
+
+                    processed = shard_row.process(is_synchronous_flush=not flush_all)
+
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
+
+                    if not processed:
+                        break
 
     @classmethod
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:

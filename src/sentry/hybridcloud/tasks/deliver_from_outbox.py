@@ -178,6 +178,7 @@ def process_outbox_batch(
     for shard_attributes in outbox_model.find_scheduled_shards(
         outbox_identifier_low, outbox_identifier_hi
     ):
+        # The shard outboxes have schedule_for updated here
         shard_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attributes)
         if not shard_outbox:
             continue
