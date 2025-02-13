@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 
 import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -23,7 +23,6 @@ function useCurrentProjectState({
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
   const {getParamValue: projectIds} = useUrlParams('project');
   const projectId = projectIds()?.split('&').at(0);
   const isActive = currentPanel === targetPanel;
@@ -37,26 +36,23 @@ function useCurrentProjectState({
     return partition(projects, p => p.platform && allPlatforms.includes(p.platform));
   }, [projects, allPlatforms]);
 
-  useEffect(() => {
+  const getDefaultCurrentProject = useCallback((): Project | undefined => {
     if (!isActive) {
-      setCurrentProject(undefined);
-      return;
+      return undefined;
     }
 
     if (
-      currentProject ||
       !projectsLoaded ||
       !projects.length ||
       !isReady ||
       !projectsWithOnboarding ||
       !supportedProjects
     ) {
-      return;
+      return undefined;
     }
 
     if (projectId) {
-      setCurrentProject(projects.find(p => p.id === projectId) ?? undefined);
-      return;
+      return projects.find(p => p.id === projectId);
     }
 
     if (selection.projects.length) {
@@ -68,8 +64,7 @@ function useCurrentProjectState({
       );
 
       if (projectForOnboarding) {
-        setCurrentProject(projectForOnboarding);
-        return;
+        return projectForOnboarding;
       }
 
       // If we selected something that supports the product pick that
@@ -78,18 +73,36 @@ function useCurrentProjectState({
       );
 
       if (projectSupportsProduct) {
-        setCurrentProject(projectSupportsProduct);
-        return;
+        return projectSupportsProduct;
       }
 
       // Otherwise, just pick the first selected project
       const firstSelectedProject = projects.find(p => selectedProjectIds.includes(p.id));
-      setCurrentProject(firstSelectedProject);
-      return;
+      return firstSelectedProject;
     }
     // No selection, so pick the first project with onboarding
-    setCurrentProject(projectsWithOnboarding.at(0) || supportedProjects.at(0));
-    return;
+    return projectsWithOnboarding.at(0) || supportedProjects.at(0);
+  }, [
+    isActive,
+    isReady,
+    projectId,
+    projects,
+    projectsLoaded,
+    projectsWithOnboarding,
+    selection.projects,
+    supportedProjects,
+  ]);
+
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(
+    getDefaultCurrentProject
+  );
+
+  // Update default project if none is set
+  useEffect(() => {
+    if (currentProject) {
+      return;
+    }
+    setCurrentProject(getDefaultCurrentProject());
   }, [
     currentProject,
     projectsLoaded,
@@ -100,6 +113,7 @@ function useCurrentProjectState({
     projectsWithOnboarding,
     supportedProjects,
     projectId,
+    getDefaultCurrentProject,
   ]);
 
   return {
