@@ -168,6 +168,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="environment"
             label={t('Environment')}
             placeholder={t('Select an environment')}
+            noOptionsMessage={() => t('Start typing to create an environment')}
             hideLabel
             onCreateOption={(env: any) => {
               setNewEnvironment(env);
