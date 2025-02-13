@@ -15,7 +15,6 @@ __all__ = (
     "TS_COL_GROUP",
     "TAG_REGEX",
     "MetricOperationType",
-    "MetricUnit",
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
@@ -92,31 +91,6 @@ MetricOperationType = Literal[
     "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
-]
-MetricUnit = Literal[
-    "nanosecond",
-    "microsecond",
-    "millisecond",
-    "second",
-    "minute",
-    "hour",
-    "day",
-    "week",
-    "bit",
-    "byte",
-    "kibibyte",
-    "mebibyte",
-    "gibibyte",
-    "tebibyte",
-    "pebibyte",
-    "exbibyte",
-    "kilobyte",
-    "megabyte",
-    "gigabyte",
-    "terabyte",
-    "petabyte",
-    "exabyte",
-    "none",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal[
@@ -338,7 +312,7 @@ class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
-    unit: MetricUnit | None
+    unit: str | None
     metric_id: NotRequired[int]
     mri: str
     projectIds: Sequence[int]
