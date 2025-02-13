@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,7 +8,10 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  useLogsSearch,
+  useSetLogsQuery,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
 
@@ -24,7 +26,8 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const [search, setSearch] = useState(new MutableSearch(''));
+  const setLogsQuery = useSetLogsQuery();
+  const logsSearch = useLogsSearch();
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -45,14 +48,14 @@ export function LogsTabContent({
             placeholder={t('Search for logs')}
             filterKeys={{}}
             getTagValues={() => new Promise<string[]>(() => [])}
-            initialQuery=""
+            initialQuery={logsSearch.formatString()}
             searchSource="ourlogs"
-            onSearch={query => setSearch(new MutableSearch(query))}
+            onSearch={setLogsQuery}
           />
         </FilterBarContainer>
       </Layout.Main>
       <LogsTableContainer fullWidth>
-        <LogsTable search={search} />
+        <LogsTable search={logsSearch} />
       </LogsTableContainer>
     </Layout.Body>
   );
