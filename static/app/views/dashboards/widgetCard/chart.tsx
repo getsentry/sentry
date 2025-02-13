@@ -51,8 +51,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';

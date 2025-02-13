@@ -8,7 +8,7 @@ import {
   SESSIONS_TAGS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
-import {derivedMetricsToField} from './releaseWidgetQueries';
+import {derivedMetricsToField} from '../widgetCard/releaseWidgetQueries';
 
 export function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
