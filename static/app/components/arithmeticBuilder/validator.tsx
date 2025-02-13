@@ -34,7 +34,7 @@ class ExpressionValidator {
 
   push(token: Token): boolean {
     if (isTokenFunction(token)) {
-      return this.pushFunction();
+      return this.pushExpression();
     }
 
     if (isTokenFreeText(token)) {
@@ -52,7 +52,7 @@ class ExpressionValidator {
     return false;
   }
 
-  pushFunction(): boolean {
+  pushExpression(): boolean {
     if (this.empty()) {
       // first token found, just push it
       this.stack.push(Part.EXPRESSION);
@@ -66,6 +66,9 @@ class ExpressionValidator {
 
     if (this.end() === Part.OPERATOR) {
       if (this.end(1) === Part.EXPRESSION) {
+        // combine the 2 expressions with the operator
+        // we can just pop off the operator as we
+        // want an expression on the stack
         this.stack.pop();
         return true;
       }
@@ -107,9 +110,15 @@ class ExpressionValidator {
     if (parenthesis === Parenthesis.CLOSE) {
       if (this.end() === Part.EXPRESSION) {
         if (this.end(1) === Part.OPEN_PAREN) {
+          // found a parenthesized expression
+          // we can strip the parenthesis and
+          // leave just an expression
           this.stack.pop();
           this.stack.pop();
-          return this.pushFunction();
+
+          // pushing an expression can trigger
+          // additional changes so use the helper
+          return this.pushExpression();
         }
       }
     }
