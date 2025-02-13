@@ -213,7 +213,7 @@ class MonitorConsumerTest(TestCase):
         into groups by their monitor slug / environment
         """
         factory = StoreMonitorCheckInStrategyFactory(
-            mode="parallel",
+            mode="batched-parallel",
             max_batch_size=4,
             max_workers=1,
         )
@@ -1049,7 +1049,7 @@ class MonitorConsumerTest(TestCase):
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
     def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
@@ -1077,7 +1077,7 @@ class MonitorConsumerTest(TestCase):
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
     def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 

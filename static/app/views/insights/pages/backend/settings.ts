@@ -14,3 +14,5 @@ export const MODULES = [
   ModuleName.UPTIME,
   ModuleName.SESSIONS,
 ];
+
+export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];
