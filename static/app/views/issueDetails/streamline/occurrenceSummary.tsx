@@ -1,21 +1,71 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import Link from 'sentry/components/links/link';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 
+enum KnownEvidence {
+  ENVIRONMENT = 'Environment',
+  STATUS_CODE = 'Status Code',
+  FAILURE_REASON = 'Failure reason',
+  LAST_SUCCESSFUL_CHECK_IN = 'Last successful check-in',
+}
+
+const KnownEvidenceKeys = new Set<string>(Object.values(KnownEvidence));
+
 interface OccurrenceSummaryProps {
   group: Group;
   className?: string;
   event?: Event;
+}
+
+function getEvidenceItem({
+  evidence,
+  evidenceKey,
+}: {
+  evidence: EventEvidenceDisplay;
+  evidenceKey: KnownEvidence;
+}) {
+  switch (evidenceKey) {
+    case KnownEvidence.ENVIRONMENT:
+      return (
+        <Flex column>
+          <ItemTitle>{t('Environment')}</ItemTitle>
+          <ItemValue>{evidence.value}</ItemValue>
+        </Flex>
+      );
+    case KnownEvidence.STATUS_CODE:
+      return (
+        <Flex column>
+          <ItemTitle>{t('Status Code')}</ItemTitle>
+          <ItemValue>{evidence.value}</ItemValue>
+        </Flex>
+      );
+    case KnownEvidence.FAILURE_REASON:
+      return (
+        <Flex column>
+          <ItemTitle>{t('Reason')}</ItemTitle>
+          <ItemValue>{evidence.value}</ItemValue>
+        </Flex>
+      );
+    case KnownEvidence.LAST_SUCCESSFUL_CHECK_IN:
+      return (
+        <Flex column>
+          <ItemTitle>{t('Last Successful Check-In')}</ItemTitle>
+          <ItemTimeSince date={evidence.value} />
+        </Flex>
+      );
+    default:
+      return null;
+  }
 }
 
 /**
@@ -70,40 +120,31 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
     }
   }
 
-  const evidenceMap = event?.occurrence?.evidenceDisplay?.reduce<
-    Record<string, EventEvidenceDisplay>
-  >((map, eed) => {
-    map[eed.name] = eed;
-    return map;
-  }, {});
+  const knownEvidence =
+    event?.occurrence?.evidenceDisplay?.reduce(
+      (map, eed) => {
+        if (KnownEvidenceKeys.has(eed.name)) {
+          map[eed.name as KnownEvidence] = eed;
+        }
+        return map;
+      },
+      {} as Record<KnownEvidence, EventEvidenceDisplay>
+    ) ?? ({} as Record<KnownEvidence, EventEvidenceDisplay>);
 
-  if (evidenceMap?.['Status Code']) {
-    items.push(
-      <Flex column>
-        <ItemTitle>{t('Status Code')}</ItemTitle>
-        <ItemValue>{evidenceMap['Status Code'].value}</ItemValue>
-      </Flex>
-    );
-  }
-
-  if (evidenceMap?.['Failure reason']) {
-    items.push(
-      <Flex column>
-        <ItemTitle>{t('Reason')}</ItemTitle>
-        <ItemValue>{evidenceMap['Failure reason'].value}</ItemValue>
-      </Flex>
-    );
-  }
-
-  // TODO(Leander): Add last successful check-in when the data is available
-  // TODO(Leander): Add Incident ID when the data is available
+  (Object.entries(knownEvidence) as Array<[KnownEvidence, EventEvidenceDisplay]>).forEach(
+    ([evidenceKey, evidence]) => {
+      items.push(getEvidenceItem({evidence, evidenceKey}));
+    }
+  );
 
   return items.length > 0 ? (
-    <Flex align="start" gap={space(4)} className={className}>
-      {items.map((item, i) => (
-        <Fragment key={i}>{item}</Fragment>
-      ))}
-    </Flex>
+    <div className={className}>
+      <ScrollCarousel gap={3} aria-label={t('Occurrence summary')} className={className}>
+        {items.map((item, i) => (
+          <div key={i}>{item}</div>
+        ))}
+      </ScrollCarousel>
+    </div>
   ) : null;
 }
 
@@ -117,6 +158,10 @@ const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightNormal};
   max-width: 400px;
+`;
+
+const ItemTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const ItemLink = styled(Link)`
