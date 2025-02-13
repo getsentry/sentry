@@ -721,7 +721,7 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-export const lightChonkTheme: SentryTheme = {
+export const DO_NOT_USE_lightChonkTheme: SentryTheme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
@@ -761,7 +761,7 @@ export const lightChonkTheme: SentryTheme = {
   },
 };
 
-export const darkChonkTheme: SentryTheme = {
+export const DO_NOT_USE_darkChonkTheme: SentryTheme = {
   isChonk: true,
 
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)

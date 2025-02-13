@@ -28,19 +28,20 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
+  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const themeValue = config.theme === 'dark' ? darkTheme : lightTheme;
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+    <ThemeProvider theme={themeValue}>
+      <GlobalStyles isDark={config.theme === 'dark'} theme={themeValue} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>
           <meta name="color-scheme" content={config.theme} />
-          <meta name="theme-color" content={theme.sidebar.background} />
+          <meta name="theme-color" content={themeValue.sidebar.background} />
         </Fragment>,
         document.head
       )}
