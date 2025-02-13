@@ -107,6 +107,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               <span onClick={copyEventId}>{t('ID: %s', getShortEventId(event.id))}</span>
               <Button
                 aria-label={t('Copy Event ID')}
+                title={t('Copy Event ID')}
                 onClick={copyEventId}
                 size="zero"
                 borderless

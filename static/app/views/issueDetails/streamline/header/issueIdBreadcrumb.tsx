@@ -15,6 +15,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
@@ -33,6 +34,13 @@ export function IssueIdBreadcrumb({project, group, event}: ShortIdBreadcrumbProp
   const {onClick: handleCopyShortId} = useCopyToClipboard({
     text: group.shortId,
     successMessage: t('Copied Short-ID to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_short_id_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        streamline: true,
+      });
+    },
   });
 
   if (!group.shortId) {
@@ -98,7 +106,7 @@ export function IssueIdBreadcrumb({project, group, event}: ShortIdBreadcrumbProp
                         organization,
                       })
                     }
-                    eventId={event?.id}
+                    event={event}
                   />
                 ))
               }

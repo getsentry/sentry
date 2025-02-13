@@ -15,15 +15,17 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 interface ShareIssueModalProps extends ModalRenderProps {
-  eventId: string | undefined;
+  event: Event | null;
   groupId: string;
   onToggle: () => void;
   organization: Organization;
@@ -46,11 +48,11 @@ export default function StreamlinedShareIssueModal({
   groupId,
   onToggle,
   closeModal,
-  eventId,
+  event,
 }: ShareIssueModalProps) {
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
-  const [hasEventId, setHasEventId] = useLocalStorageState(
+  const [includeEventId, setIncludeEventId] = useLocalStorageState(
     'issue-details-share-event-id',
     true
   );
@@ -60,13 +62,14 @@ export default function StreamlinedShareIssueModal({
   const group = (groups as Group[]).find(item => item.id === groupId);
   const isShared = group?.isPublic;
 
-  const issueUrl = hasEventId
-    ? window.location.origin +
-      normalizeUrl(
-        `/organizations/${organization.slug}/issues/${group?.id}/events/${eventId}/`
-      )
-    : window.location.origin +
-      normalizeUrl(`/organizations/${organization.slug}/issues/${group?.id}/`);
+  const issueUrl =
+    includeEventId && event
+      ? window.location.origin +
+        normalizeUrl(
+          `/organizations/${organization.slug}/issues/${group?.id}/events/${event.id}/`
+        )
+      : window.location.origin +
+        normalizeUrl(`/organizations/${organization.slug}/issues/${group?.id}/`);
 
   const markdownLink = `[${group?.shortId}](${issueUrl})`;
 
@@ -133,18 +136,55 @@ export default function StreamlinedShareIssueModal({
               </TextContainer>
             </UrlContainer>
             <LinkActions>
-              <CheckboxContainer>
-                {t('Include Event ID in link')}
-                <Checkbox
-                  checked={hasEventId}
-                  onChange={() => setHasEventId(!hasEventId)}
-                />
-              </CheckboxContainer>
+              {event && (
+                <CheckboxContainer>
+                  {t('Include Event ID in link')}
+                  <Checkbox
+                    checked={includeEventId}
+                    onChange={() => setIncludeEventId(!includeEventId)}
+                  />
+                </CheckboxContainer>
+              )}
               <ButtonBar gap={0.5}>
-                <Button size="sm" onClick={handleCopyMarkdownLink}>
+                <Button
+                  size="sm"
+                  onClick={handleCopyMarkdownLink}
+                  analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
+                  analyticsEventName="Issue Details: Copy Issue Markdown Link"
+                  analyticsParams={{
+                    ...getAnalyticsDataForGroup(group),
+                    streamline: true,
+                  }}
+                >
                   {t('Copy as Markdown')}
                 </Button>
-                <Button priority="primary" size="sm" onClick={handleCopyIssueLink}>
+                <Button
+                  priority="primary"
+                  size="sm"
+                  onClick={handleCopyIssueLink}
+                  analyticsEventKey={
+                    includeEventId
+                      ? 'issue_details.copy_event_link_clicked'
+                      : 'issue_details.copy_issue_url_clicked'
+                  }
+                  analyticsEventName={
+                    includeEventId
+                      ? 'Issue Details: Copy Event Link Clicked'
+                      : 'Issue Details: Copy Issue URL'
+                  }
+                  analyticsParams={
+                    includeEventId && event
+                      ? {
+                          ...getAnalyticsDataForGroup(group),
+                          ...getAnalyticsDataForEvent(event),
+                          streamline: true,
+                        }
+                      : {
+                          ...getAnalyticsDataForGroup(group),
+                          streamline: true,
+                        }
+                  }
+                >
                   {t('Copy Link')}
                 </Button>
               </ButtonBar>
