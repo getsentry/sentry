@@ -1,6 +1,6 @@
 import {SessionUserCountByStatusByReleaseFixture} from 'sentry-fixture/sessions';
 
-import {transformSessionsResponseToTable} from 'sentry/views/dashboards/widgetCard/transformSessionsResponseToTable';
+import {transformSessionsResponseToTable} from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
 
 describe('transformSessionsResponseToTable', function () {
   it('transforms sessions into table', () => {
