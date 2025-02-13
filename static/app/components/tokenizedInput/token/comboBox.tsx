@@ -33,10 +33,11 @@ interface ComboBoxProps<T extends SelectOptionWithKey<string>> {
    */
   ['data-test-id']?: string;
   onClick?: MouseEventHandler<HTMLInputElement>;
-  onInputBlur?: (value: string) => void;
+  onInputBlur?: () => void;
   onInputChange?: ChangeEventHandler<HTMLInputElement>;
   onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
+  onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
@@ -51,14 +52,15 @@ interface ComboBoxProps<T extends SelectOptionWithKey<string>> {
 function ComboBoxInner<T extends SelectOptionWithKey<string>>(
   {
     children,
-    items,
     inputLabel,
     inputValue,
+    items,
     shouldCloseOnInteractOutside,
     onClick,
     onInputBlur,
     onInputCommit,
     onInputEscape,
+    onInputFocus,
     onOpenChange,
     onOptionSelected,
     ['data-test-id']: dataTestId,
@@ -111,8 +113,11 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
   });
 
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(
-    _evt => state.open(),
-    [state]
+    evt => {
+      onInputFocus?.(evt);
+      state.open();
+    },
+    [onInputFocus, state]
   );
 
   const handleComboBoxBlur: FocusEventHandler<HTMLInputElement> = useCallback(
@@ -120,10 +125,10 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
       if (evt.relatedTarget && !shouldCloseOnInteractOutside?.(evt.relatedTarget)) {
         return;
       }
-      onInputBlur?.(inputValue);
+      onInputBlur?.();
       state.close();
     },
-    [inputValue, onInputBlur, shouldCloseOnInteractOutside, state]
+    [onInputBlur, shouldCloseOnInteractOutside, state]
   );
 
   const isOpen = state.isOpen;
@@ -134,6 +139,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
       switch (evt.key) {
         case 'Escape':
           state.close();
+          state.setFocused(false);
           onInputEscape?.();
           return;
         case 'Enter':
@@ -141,6 +147,7 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
             return;
           }
           state.close();
+          state.setFocused(false);
           onInputCommit?.(inputValue);
           return;
         default:
@@ -188,9 +195,9 @@ function ComboBoxInner<T extends SelectOptionWithKey<string>>(
   );
 
   const handleOnInteractOutside = useCallback(() => {
-    onInputBlur?.(inputValue);
+    onInputBlur?.();
     state.close();
-  }, [inputValue, onInputBlur, state]);
+  }, [onInputBlur, state]);
 
   const {
     overlayProps,
