@@ -134,8 +134,9 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
   );
 
   const onInputCommit = useCallback(() => {
+    const value = inputValue.trim() || token.attribute;
     dispatch({
-      text: `${functionToken.function}(${inputValue.trim()})`,
+      text: `${functionToken.function}(${value})`,
       type: 'REPLACE_TOKEN',
       token: functionToken,
       focusOverride: {
@@ -143,7 +144,7 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
       },
     });
     resetInputValue();
-  }, [dispatch, state, functionToken, inputValue, resetInputValue]);
+  }, [dispatch, state, functionToken, token, inputValue, resetInputValue]);
 
   const onInputEscape = useCallback(() => {
     resetInputValue();

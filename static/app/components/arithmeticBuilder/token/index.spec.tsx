@@ -342,6 +342,39 @@ describe('token', function () {
         })
       ).toBeInTheDocument();
     });
+
+    it('doesnt change argument on enter if input is empty', async function () {
+      render(<Tokens expression="avg(span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveAttribute('placeholder', 'span.duration');
+      expect(input).toHaveValue('');
+
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+      await userEvent.type(input, '{Enter}');
+
+      const lastInput = getLastInput();
+      await waitFor(() => expect(lastInput).toHaveFocus());
+      await userEvent.type(lastInput, '{Escape}');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+    });
   });
 
   describe('ArithmeticTokenOperator', function () {
