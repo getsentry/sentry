@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -34,6 +32,11 @@ const ALL_AVAILABLE_FEATURES = [
 describe('Nav', function () {
   beforeEach(() => {
     localStorage.clear();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/broadcasts/`,
+      body: [],
+    });
   });
 
   function renderNav({
@@ -71,9 +74,9 @@ describe('Nav', function () {
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).getAllByRole('link');
-      expect(links).toHaveLength(6);
+      expect(links).toHaveLength(5);
 
-      ['Issues', 'Explore', 'Boards', 'Insights', 'Stats', 'Settings'].forEach(
+      ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
         (title, index) => {
           expect(links[index]).toHaveAccessibleName(title);
         }
@@ -178,6 +181,20 @@ describe('Nav', function () {
     });
   });
 
+  describe('analytics', function () {
+    it('tracks primary sidebar item', async function () {
+      renderNav();
+      const issues = screen.getByRole('link', {name: 'Issues'});
+      await userEvent.click(issues);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'growth.clicked_sidebar',
+        expect.objectContaining({
+          item: 'issues',
+        })
+      );
+    });
+  });
+
   describe('mobile navigation', function () {
     beforeEach(() => {
       // Need useMedia() to return true for isMobile query
@@ -217,37 +234,13 @@ describe('Nav', function () {
       ).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Explore'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Boards'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Dashboards'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Insights'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Stats'})).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Settings'})).toBeInTheDocument();
 
       // Tapping one of the primary navigation items should close the menu
       await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
       expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     });
-  });
-});
-
-describe('analytics', function () {
-  function renderNav() {
-    render(<Nav />, {
-      router: RouterFixture({
-        location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-      }),
-      organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-    });
-  }
-
-  it('tracks primary sidebar item', async function () {
-    renderNav();
-    const issues = screen.getByRole('link', {name: 'Issues'});
-    await userEvent.click(issues);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'growth.clicked_sidebar',
-      expect.objectContaining({
-        item: 'issues',
-      })
-    );
   });
 });

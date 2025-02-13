@@ -261,7 +261,7 @@ export function GroupTagValues() {
                   key: 'open-in-discover',
                   label: t('Open in Discover'),
                   to: discoverView.getResultsViewUrlTarget(
-                    orgId,
+                    organization,
                     false,
                     hasDatasetSelector(organization)
                       ? SavedQueryDatasets.ERRORS

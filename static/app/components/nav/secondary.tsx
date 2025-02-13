@@ -21,11 +21,16 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
   /**
+   * Will display the link as active under the given path.
+   */
+  activeTo?: To;
+  /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
    */
   end?: boolean;
   isActive?: boolean;
+  trailingItems?: ReactNode;
 }
 
 export function SecondaryNav({children, group}: SecondaryNavProps) {
@@ -45,6 +50,16 @@ export function SecondaryNav({children, group}: SecondaryNavProps) {
 
   return createPortal(children, secondaryNavEl);
 }
+
+SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
+  const {layout} = useNavContext();
+
+  if (layout === NavLayout.MOBILE) {
+    return null;
+  }
+
+  return <Header>{children}</Header>;
+};
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
   const {layout} = useNavContext();
@@ -73,12 +88,14 @@ SecondaryNav.Section = function SecondaryNavSection({
 SecondaryNav.Item = function SecondaryNavItem({
   children,
   to,
+  activeTo = to,
   isActive: incomingIsActive,
   end = false,
+  trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
   const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(to, location.pathname, {end});
+  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
 
@@ -91,7 +108,8 @@ SecondaryNav.Item = function SecondaryNavItem({
       layout={layout}
     >
       <InteractionStateLayer hasSelectedBackground={isActive} />
-      {children}
+      <ItemText>{children}</ItemText>
+      {trailingItems}
     </Item>
   );
 };
@@ -101,6 +119,12 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
   return <Footer layout={layout}>{children}</Footer>;
 };
+
+const Header = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+`;
 
 const Body = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)};
@@ -146,7 +170,7 @@ const SectionSeparator = styled('hr')`
 const Item = styled(Link)<{layout: NavLayout}>`
   position: relative;
   display: flex;
-  padding: 5px ${space(1.5)};
+  padding: 4px ${space(1.5)};
   height: 34px;
   align-items: center;
   color: inherit;
@@ -180,6 +204,10 @@ const Item = styled(Link)<{layout: NavLayout}>`
       padding: 0 ${space(1.5)} 0 48px;
       border-radius: 0;
     `}
+`;
+
+const ItemText = styled('span')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`

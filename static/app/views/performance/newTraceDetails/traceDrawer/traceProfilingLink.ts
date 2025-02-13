@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
@@ -31,16 +32,16 @@ function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefine
 export function makeTransactionProfilingLink(
   profileId: string,
   options: {
-    orgSlug: string;
+    organization: Organization;
     projectSlug: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.orgSlug) {
+  if (!options.projectSlug || !options.organization) {
     return null;
   }
   return generateProfileFlamechartRouteWithQuery({
-    orgSlug: options.orgSlug,
+    organization: options.organization,
     projectSlug: options.projectSlug,
     profileId,
     query,
@@ -54,14 +55,14 @@ export function makeTraceContinuousProfilingLink(
   node: TraceTreeNode<TraceTree.NodeValue>,
   profilerId: string,
   options: {
-    orgSlug: string;
+    organization: Organization;
     projectSlug: string;
     threadId: string | undefined;
     traceId: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.orgSlug) {
+  if (!options.projectSlug || !options.organization) {
     return null;
   }
 
@@ -119,7 +120,7 @@ export function makeTraceContinuousProfilingLink(
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery({
-    orgSlug: options.orgSlug,
+    organization: options.organization,
     projectSlug: options.projectSlug,
     profilerId,
     start: start.toISOString(),

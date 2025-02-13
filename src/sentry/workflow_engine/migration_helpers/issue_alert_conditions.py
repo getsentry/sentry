@@ -8,6 +8,7 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
+from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.level import LevelCondition
@@ -34,16 +35,28 @@ data_condition_translator_registry = Registry[
 ](enable_reverse_lookup=False)
 
 
-def translate_to_data_condition(data: dict[str, Any], dcg: DataConditionGroup):
+def translate_to_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
     translator = data_condition_translator_registry.get(data["id"])
     return translator(data, dcg)
+
+
+@data_condition_translator_registry.register(EveryEventCondition.id)
+def create_every_event_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    return DataCondition(
+        type=Condition.EVERY_EVENT,
+        comparison=True,
+        condition_result=True,
+        condition_group=dcg,
+    )
 
 
 @data_condition_translator_registry.register(ReappearedEventCondition.id)
 def create_reappeared_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.REAPPEARED_EVENT,
         comparison=True,
         condition_result=True,
@@ -55,7 +68,7 @@ def create_reappeared_event_data_condition(
 def create_regression_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.REGRESSION_EVENT,
         comparison=True,
         condition_result=True,
@@ -67,7 +80,7 @@ def create_regression_event_data_condition(
 def create_existing_high_priority_issue_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
         comparison=True,
         condition_result=True,
@@ -86,7 +99,7 @@ def create_event_attribute_data_condition(
         "attribute": data["attribute"],
     }
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.EVENT_ATTRIBUTE,
         comparison=comparison,
         condition_result=True,
@@ -98,7 +111,7 @@ def create_event_attribute_data_condition(
 def create_first_seen_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.FIRST_SEEN_EVENT,
         comparison=True,
         condition_result=True,
@@ -110,7 +123,7 @@ def create_first_seen_event_data_condition(
 def create_new_high_priority_issue_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.NEW_HIGH_PRIORITY_ISSUE,
         comparison=True,
         condition_result=True,
@@ -123,7 +136,7 @@ def create_new_high_priority_issue_data_condition(
 def create_level_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
     comparison = {"match": data["match"], "level": data["level"]}
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.LEVEL,
         comparison=comparison,
         condition_result=True,
@@ -143,7 +156,7 @@ def create_tagged_event_data_condition(
     if comparison["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
         comparison["value"] = data["value"]
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.TAGGED_EVENT,
         comparison=comparison,
         condition_result=True,
@@ -161,7 +174,7 @@ def create_age_comparison_data_condition(
         "time": data["time"],
     }
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.AGE_COMPARISON,
         comparison=comparison,
         condition_result=True,
@@ -178,7 +191,7 @@ def create_assigned_to_data_condition(
         "target_identifier": data["targetIdentifier"],
     }
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.ASSIGNED_TO,
         comparison=comparison,
         condition_result=True,
@@ -194,7 +207,7 @@ def create_issue_category_data_condition(
         "value": data["value"],
     }
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.ISSUE_CATEGORY,
         comparison=comparison,
         condition_result=True,
@@ -210,7 +223,7 @@ def create_issue_occurrences_data_condition(
         "value": data["value"],
     }
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.ISSUE_OCCURRENCES,
         comparison=comparison,
         condition_result=True,
@@ -222,7 +235,7 @@ def create_issue_occurrences_data_condition(
 def create_latest_release_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.LATEST_RELEASE,
         comparison=True,
         condition_result=True,
@@ -239,7 +252,7 @@ def create_latest_adopted_release_data_condition(
         "age_comparison": data["older_or_newer"],
         "environment": data["environment"],
     }
-    return DataCondition.objects.create(
+    return DataCondition(
         type=Condition.LATEST_ADOPTED_RELEASE,
         comparison=comparison,
         condition_result=True,
@@ -262,7 +275,7 @@ def create_base_event_frequency_data_condition(
         type = percent_type
         comparison["comparison_interval"] = data["comparisonInterval"]
 
-    return DataCondition.objects.create(
+    return DataCondition(
         type=type,
         comparison=comparison,
         condition_result=True,

@@ -143,9 +143,7 @@ class TestGetEventSeverity(TestCase):
             )
         )
         event = manager.save(self.project.id)
-        # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
-        # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
-        event.get_event_metadata()["title"] = "Dogs are great!"  # type: ignore[index]
+        event.data["metadata"]["title"] = "Dogs are great!"
 
         _get_severity_score(event)
 

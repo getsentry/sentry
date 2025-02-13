@@ -3,6 +3,7 @@ from jsonschema.exceptions import ValidationError
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.rules.age import AgeComparisonType
+from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
@@ -43,7 +44,7 @@ class RuleMigrationHelpersTest(APITestCase):
             },
         ]
         integration = install_slack(self.organization)
-        action_data = [
+        self.action_data = [
             {
                 "channel": "#my-channel",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -57,7 +58,7 @@ class RuleMigrationHelpersTest(APITestCase):
             condition_data=conditions,
             action_match="any",
             filter_match="any",
-            action_data=action_data,
+            action_data=self.action_data,
         )
         self.issue_alert.data["frequency"] = 5
         self.issue_alert.save()
@@ -123,6 +124,40 @@ class RuleMigrationHelpersTest(APITestCase):
 
         detector = Detector.objects.get(project_id=self.project.id)
         assert detector == project_detector
+
+    def test_skip_every_event_condition__any(self):
+        conditions = [
+            {"id": EveryEventCondition.id},
+            {"id": RegressionEventCondition.id},
+        ]
+        issue_alert = self.create_project_rule(
+            condition_data=conditions,
+            action_match="any",
+            filter_match="any",
+            action_data=self.action_data,
+        )
+
+        migrate_issue_alert(issue_alert, self.user.id)
+        assert DataCondition.objects.all().count() == 1
+        dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
+        assert dc.condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+
+    def test_skip_every_event_condition__all(self):
+        conditions = [
+            {"id": EveryEventCondition.id},
+            {"id": RegressionEventCondition.id},
+        ]
+        issue_alert = self.create_project_rule(
+            condition_data=conditions,
+            action_match="all",
+            filter_match="any",
+            action_data=self.action_data,
+        )
+
+        migrate_issue_alert(issue_alert, self.user.id)
+        assert DataCondition.objects.all().count() == 1
+        dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
+        assert dc.condition_group.logic_type == DataConditionGroup.Type.ALL
 
     def test_update_issue_alert(self):
         migrate_issue_alert(self.issue_alert, self.user.id)

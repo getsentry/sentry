@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import GroupList from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 
 type RelatedIssuesResponse = {
   data: number[];
@@ -21,47 +23,39 @@ type RelatedIssuesResponse = {
   type: string;
 };
 
-interface RelatedIssuesSectionProps {
-  groupId: string;
-  orgSlug: string;
-  relationType: string;
-}
-
-function GroupRelatedIssues() {
-  const params = useParams<{groupId: string}>();
-
-  const organization = useOrganization();
-  const orgSlug = organization.slug;
-
+function GroupRelatedIssues({group}: {group: Group}) {
   return (
     <Fragment>
-      <RelatedIssuesSection
-        groupId={params.groupId}
-        orgSlug={orgSlug}
-        relationType="same_root_cause"
-      />
-      <RelatedIssuesSection
-        groupId={params.groupId}
-        orgSlug={orgSlug}
-        relationType="trace_connected"
-      />
+      <RelatedIssuesSection group={group} relationType="same_root_cause" />
+      <RelatedIssuesSection group={group} relationType="trace_connected" />
     </Fragment>
   );
 }
 
-function RelatedIssuesSection({
-  groupId,
-  orgSlug,
-  relationType,
-}: RelatedIssuesSectionProps) {
+interface RelatedIssuesSectionProps {
+  group: Group;
+  relationType: string;
+}
+
+function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) {
+  const organization = useOrganization();
   // Fetch the list of related issues
+  const hasGlobalViewsFeature = organization.features.includes('global-views');
   const {
     isPending,
     isError,
     data: relatedIssues,
     refetch,
   } = useApiQuery<RelatedIssuesResponse>(
-    [`/issues/${groupId}/related-issues/?type=${relationType}`],
+    [
+      `/issues/${group.id}/related-issues/`,
+      {
+        query: {
+          ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
+          type: relationType,
+        },
+      },
+    ],
     {
       staleTime: 0,
     }
@@ -70,17 +64,14 @@ function RelatedIssuesSection({
   const traceMeta = relationType === 'trace_connected' ? relatedIssues?.meta : undefined;
   const issues = relatedIssues?.data ?? [];
   const query = `issue.id:[${issues}]`;
-  // project=-1 allows ensuring that the query will show issues from any projects for the org
-  // This is important for traces since issues can be for any project in the org
-  const baseUrl = `/organizations/${orgSlug}/issues/?project=-1`;
   let title: React.ReactNode = null;
   let extraInfo: React.ReactNode = null;
   let openIssuesButton: React.ReactNode = null;
   if (relationType === 'trace_connected' && traceMeta) {
     ({title, extraInfo, openIssuesButton} = getTraceConnectedContent(
       traceMeta,
-      baseUrl,
-      orgSlug
+      organization,
+      group
     ));
   } else {
     title = t('Issues with similar titles');
@@ -88,7 +79,15 @@ function RelatedIssuesSection({
       'These issues have the same title and may have been caused by the same root cause.'
     );
     openIssuesButton = getLinkButton(
-      `${baseUrl}&query=issue.id:[${groupId},${issues}]`,
+      {
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {
+          // project=-1 allows ensuring that the query will show issues from any projects for the org
+          // This is important for traces since issues can be for any project in the org
+          ...(hasGlobalViewsFeature ? {project: '-1'} : {project: group.project.id}),
+          query: `issue.id:[${group.id},${issues}]`,
+        },
+      },
       'Clicked Open Issues from same-root related issues',
       'similar_issues.same_root_cause_clicked_open_issues'
     );
@@ -113,8 +112,11 @@ function RelatedIssuesSection({
             </TextButtonWrapper>
           </HeaderWrapper>
           <GroupList
-            orgSlug={orgSlug}
-            queryParams={{query}}
+            orgSlug={organization.slug}
+            queryParams={{
+              query,
+              ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
+            }}
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}
@@ -128,19 +130,29 @@ function RelatedIssuesSection({
 
 const getTraceConnectedContent = (
   traceMeta: RelatedIssuesResponse['meta'],
-  baseUrl: string,
-  orgSlug: string
+  organization: Organization,
+  group: Group
 ) => {
+  const hasGlobalViewsFeature = organization.features.includes('global-views');
   const title = t('Issues in the same trace');
-  const url = `/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
+  const url = `/organizations/${organization.slug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
   const extraInfo = (
     <small>
-      {t('These issues were all found within')}
-      <Link to={url}>{t('this trace')}</Link>.
+      {tct('These issues were all found within [traceLink:this trace]', {
+        traceLink: <Link to={url}>{t('this trace')}</Link>,
+      })}
     </small>
   );
   const openIssuesButton = getLinkButton(
-    `${baseUrl}&query=trace:${traceMeta.trace_id}`,
+    {
+      pathname: `/organizations/${organization.slug}/issues/`,
+      query: {
+        // project=-1 allows ensuring that the query will show issues from any projects for the org
+        // This is important for traces since issues can be for any project in the org
+        ...(hasGlobalViewsFeature ? {project: '-1'} : {project: group.project.id}),
+        query: `trace:${traceMeta.trace_id}`,
+      },
+    },
     'Clicked Open Issues from trace-connected related issues',
     'similar_issues.trace_connected_issues_clicked_open_issues'
   );
@@ -148,7 +160,7 @@ const getTraceConnectedContent = (
   return {title, extraInfo, openIssuesButton};
 };
 
-const getLinkButton = (to: string, eventName: string, eventKey: string) => {
+const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: string) => {
   return (
     <LinkButton
       to={to}

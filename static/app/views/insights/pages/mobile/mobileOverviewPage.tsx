@@ -98,6 +98,7 @@ function MobileOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   let columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
@@ -226,7 +227,7 @@ function MobileOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}

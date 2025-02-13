@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -7,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -33,6 +33,7 @@ function GroupChart({
   showSecondaryPoints = false,
   showMarkLine = false,
 }: Props) {
+  const theme = useTheme();
   const graphOptions = useMemo<{
     colors: [string] | undefined;
     emphasisColors: [string] | undefined;
@@ -87,7 +88,7 @@ function GroupChart({
       },
     ];
     return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
-  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
+  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 30 : height}>
