@@ -300,7 +300,7 @@ class ReadOnlyPermission(SentryPermission):
 
         if demo_mode.is_demo_user(request.user):
             if not demo_mode.is_demo_mode_enabled():
-                return False
+                return
 
             org_context.member.scopes = demo_mode.get_readonly_scopes()
 
