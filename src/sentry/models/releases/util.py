@@ -79,14 +79,15 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                     "release_id", flat=True
                 )
             )
-        if isinstance(build, str):
-            build = [build]
+
+        # Convert single string to list to simplify logic
+        builds = [build] if isinstance(build, str) else build
 
         build_number_filters = Q()
         build_code_filters = Q()
-        for b in build:
+        for b in builds:
             if b.isdecimal() and validate_bigint(int(b)):
-                build_number_filters |= Q(**{f"build_number__{operator}": [int(b)]})
+                build_number_filters |= Q(**{f"build_number__{operator}": int(b)})
             else:
                 if not b or b.endswith("*"):
                     build_code_filters |= Q(build_code__startswith=b[:-1])
@@ -98,14 +99,20 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         if build_code_filters:
             qs = getattr(qs, query_func)(build_code_filters)
 
-        return qs.filter(
-            Q(build_number__in=[int(b) for b in build if b.isdecimal() and validate_bigint(int(b))])
-            | Q(
-                build_code__in=[
-                    b for b in build if not b.isdecimal() or not validate_bigint(int(b))
-                ]
+        if operator == "in":
+            return qs.filter(
+                Q(
+                    build_number__in=[
+                        int(b) for b in builds if b.isdecimal() and validate_bigint(int(b))
+                    ]
+                )
+                | Q(
+                    build_code__in=[
+                        b for b in builds if not b.isdecimal() or not validate_bigint(int(b))
+                    ]
+                )
             )
-        )
+        return qs
 
     def filter_by_semver(
         self,
