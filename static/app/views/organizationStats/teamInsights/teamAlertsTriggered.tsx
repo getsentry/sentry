@@ -19,6 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -154,7 +155,10 @@ function TeamAlertsTriggered({
             <LinkButton
               priority="primary"
               size="sm"
-              to={`/organizations/${organization.slug}/alerts/rules/`}
+              to={makeAlertsPathname({
+                path: `/rules/`,
+                organization,
+              })}
             >
               {t('Create Alert')}
             </LinkButton>
@@ -182,7 +186,10 @@ function TeamAlertsTriggered({
             <Fragment key={rule.id}>
               <AlertNameContainer>
                 <Link
-                  to={`/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`}
+                  to={makeAlertsPathname({
+                    path: `/rules/details/${rule.id}/`,
+                    organization,
+                  })}
                 >
                   {rule.name}
                 </Link>

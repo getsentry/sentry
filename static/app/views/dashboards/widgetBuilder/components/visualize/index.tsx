@@ -13,7 +13,7 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import Radio from 'sentry/components/radio';
-import {IconDelete} from 'sentry/icons';
+import {IconDelete, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -49,6 +49,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
@@ -104,7 +105,14 @@ function formatColumnOptions(
         dataset === WidgetType.SPANS ? (
           <TypeBadge kind={FieldKind.MEASUREMENT} />
         ) : (
-          renderTag(option.value.kind, option.value.meta.name)
+          renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType!
+              : undefined
+          )
         ),
     }));
 }
@@ -143,15 +151,17 @@ function getColumnOptions(
     if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
       return formatColumnOptions(
         dataset,
-        fieldValues.filter(
-          ({value}) =>
-            (value.kind === FieldValueKind.FIELD ||
-              value.kind === FieldValueKind.TAG ||
-              value.kind === FieldValueKind.MEASUREMENT ||
-              value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
-              value.kind === FieldValueKind.METRICS ||
-              value.kind === FieldValueKind.BREAKDOWN) &&
-            validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
+        fieldValues.filter(({value}) =>
+          dataset === WidgetType.RELEASE
+            ? value.kind === FieldValueKind.METRICS &&
+              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
+            : (value.kind === FieldValueKind.FIELD ||
+                value.kind === FieldValueKind.TAG ||
+                value.kind === FieldValueKind.MEASUREMENT ||
+                value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+                value.kind === FieldValueKind.METRICS ||
+                value.kind === FieldValueKind.BREAKDOWN) &&
+              validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, value)
         ),
         columnFilterMethod
       );
@@ -215,6 +225,15 @@ function parseAggregateFromValueKey(value: string) {
   }
 
   return value.split(':')[1];
+}
+
+function renderDropdownMenuFooter() {
+  return (
+    <FooterWrapper>
+      <IconInfo size="xs" />
+      {t('Select relevant fields or tags to use as groups within the table')}
+    </FooterWrapper>
+  );
 }
 
 interface VisualizeProps {
@@ -439,13 +458,7 @@ function Visualize({error, setError}: VisualizeProps) {
                     renderTag(option.value.kind, option.value.meta.name) ?? null,
                 }));
 
-                // TODO: These options should be exposing other Release health options such as
-                // environment, project, release, session.status
-                if (
-                  !isChartWidget &&
-                  !isBigNumberWidget &&
-                  !(state.dataset === WidgetType.RELEASE && !canDelete)
-                ) {
+                if (!isChartWidget && !isBigNumberWidget) {
                   const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
 
                   if (state.dataset === WidgetType.ISSUE) {
@@ -454,6 +467,22 @@ function Visualize({error, setError}: VisualizeProps) {
                   } else if (state.dataset === WidgetType.SPANS) {
                     // Add span column options for Spans dataset
                     aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                  } else if (state.dataset === WidgetType.RELEASE) {
+                    aggregateOptions = [
+                      ...(canDelete ? baseOptions : aggregateOptions),
+                      ...Object.values(fieldOptions)
+                        // release dataset tables only use specific fields "SESSION_TAGS"
+                        .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
+                        .map(option => ({
+                          label: option.value.meta.name,
+                          value: option.value.meta.name,
+                          textValue: option.value.meta.name,
+                          trailingItems: renderTag(
+                            option.value.kind,
+                            option.value.meta.name
+                          ),
+                        })),
+                    ];
                   } else {
                     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
                     aggregateOptions = [
@@ -469,7 +498,11 @@ function Visualize({error, setError}: VisualizeProps) {
                           textValue: option.value.meta.name,
                           trailingItems: renderTag(
                             option.value.kind,
-                            option.value.meta.name
+                            option.value.meta.name,
+                            option.value.kind !== FieldValueKind.FUNCTION &&
+                              option.value.kind !== FieldValueKind.EQUATION
+                              ? option.value.meta.dataType!
+                              : undefined
                           ),
                         })),
                     ];
@@ -592,9 +625,14 @@ function Visualize({error, setError}: VisualizeProps) {
                                       : NONE
                                   }
                                   position="bottom-start"
+                                  menuFooter={
+                                    state.displayType === DisplayType.TABLE
+                                      ? renderDropdownMenuFooter
+                                      : undefined
+                                  }
                                   onChange={dropdownSelection => {
                                     const isNone = dropdownSelection.value === NONE;
-                                    const newFields = cloneDeep(fields);
+                                    let newFields = cloneDeep(fields);
                                     const currentField = newFields[index]!;
                                     const selectedAggregate = aggregates.find(
                                       option =>
@@ -605,11 +643,44 @@ function Visualize({error, setError}: VisualizeProps) {
                                     );
                                     // Update the current field's aggregate with the new aggregate
                                     if (!selectedAggregate && !isNone) {
-                                      // Handles new selection of a field from the aggregate dropdown
-                                      newFields[index] = {
-                                        kind: FieldValueKind.FIELD,
-                                        field: dropdownSelection.value as string,
-                                      };
+                                      const functionFields = newFields.filter(
+                                        newField =>
+                                          newField.kind === FieldValueKind.FUNCTION
+                                      );
+                                      // Handles selection of release tags from aggregate dropdown
+                                      if (
+                                        state.dataset === WidgetType.RELEASE &&
+                                        state.displayType === DisplayType.TABLE &&
+                                        functionFields.length === 1
+                                      ) {
+                                        newFields = [
+                                          {
+                                            kind: FieldValueKind.FIELD,
+                                            field: dropdownSelection.value as string,
+                                          },
+                                          ...newFields,
+                                        ];
+
+                                        const atLeastOneFunction = newFields.some(
+                                          newField =>
+                                            newField.kind === FieldValueKind.FUNCTION
+                                        );
+
+                                        // add a function in the off chance the user gets into a state where
+                                        // they don't already have a function there
+                                        if (!atLeastOneFunction) {
+                                          newFields = [
+                                            ...newFields,
+                                            datasetConfig.defaultField,
+                                          ];
+                                        }
+                                      } else {
+                                        // Handles new selection of a field from the aggregate dropdown
+                                        newFields[index] = {
+                                          kind: FieldValueKind.FIELD,
+                                          field: dropdownSelection.value as string,
+                                        };
+                                      }
                                       trackAnalytics(
                                         'dashboards_views.widget_builder.change',
                                         {
@@ -833,6 +904,12 @@ function Visualize({error, setError}: VisualizeProps) {
                                   <ColumnCompactSelect
                                     searchable
                                     position="bottom-start"
+                                    menuFooter={
+                                      state.displayType === DisplayType.TABLE &&
+                                      field.kind !== FieldValueKind.FUNCTION
+                                        ? renderDropdownMenuFooter
+                                        : undefined
+                                    }
                                     options={
                                       state.dataset === WidgetType.SPANS &&
                                       field.kind !== FieldValueKind.FUNCTION
@@ -1107,12 +1184,27 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function renderTag(kind: FieldValueKind, label: string) {
+function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
+  if (dataType) {
+    switch (dataType) {
+      case 'boolean':
+      case 'date':
+      case 'string':
+        return <BaseTag type="highlight">{t('string')}</BaseTag>;
+      case 'duration':
+      case 'integer':
+      case 'percentage':
+      case 'number':
+        return <BaseTag type="success">{t('number')}</BaseTag>;
+      default:
+        return <BaseTag>{dataType}</BaseTag>;
+    }
+  }
   let text, tagType;
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'success' as keyof Theme['tag'];
+      tagType = 'warning' as keyof Theme['tag'];
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
@@ -1129,7 +1221,7 @@ function renderTag(kind: FieldValueKind, label: string) {
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'success' as keyof Theme['tag'];
+      tagType = 'warning' as keyof Theme['tag'];
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
@@ -1251,4 +1343,14 @@ const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;
   padding: 0px;
   border-bottom: none;
+`;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(0.5)};
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
