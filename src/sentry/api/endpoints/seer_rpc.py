@@ -1,5 +1,7 @@
 import hashlib
 import hmac
+import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import orjson
@@ -16,17 +18,50 @@ from rest_framework.exceptions import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, capture_exception
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Op,
+    OrderBy,
+    Query,
+)
+from snuba_sdk import Request as SnubaRequest
 
-from sentry import options
+from sentry import eventstore, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.integrations.github.constants import STACKFRAME_COUNT
+from sentry.integrations.github.tasks.language_parsers import (
+    PATCH_PARSERS,
+    LanguageParser,
+    SimpleLanguageParser,
+)
+from sentry.integrations.github.tasks.open_pr_comment import (
+    MAX_RECENT_ISSUES,
+    get_projects_and_filenames_from_source_file,
+)
+from sentry.integrations.github.tasks.utils import PullRequestFile
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.utils.env import in_test_environment
+from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -160,9 +195,246 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+# Fetch issues related to PR
+
+
+def get_top_5_issues_by_count_for_file(
+    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+) -> list[dict[str, Any]]:
+    """
+    Lightly modified from open_pr_comment.get_top_5_issues_by_count_for_file
+
+    Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
+    and function names representing the list of functions changed in a PR file, return a
+    sublist of the top 5 recent unhandled issues ordered by event count.
+    """
+    if not len(projects):
+        return []
+
+    patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
+
+    # fetches the appropriate parser for formatting the snuba query given the file extension
+    # the extension is never replaced in reverse codemapping
+    language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
+
+    if not language_parser:
+        return []
+
+    groups: list[Group] = list(
+        Group.objects.filter(
+            first_seen__gte=datetime.now(UTC) - timedelta(days=90),
+            last_seen__gte=datetime.now(UTC) - timedelta(days=14),
+            status=GroupStatus.UNRESOLVED,
+            project__in=projects,
+        ).order_by("-times_seen")
+    )[:MAX_RECENT_ISSUES]
+    group_id_to_group = {group.id: group for group in groups}
+
+    # fetch the count of events for each group_id
+    group_ids = list(group_id_to_group.keys())
+    project_ids = [p.id for p in projects]
+    multi_if = language_parser.generate_multi_if(function_names)
+
+    subquery = (
+        Query(Entity("events"))
+        .set_select(
+            [
+                Column("title"),
+                Column("culprit"),
+                Column("group_id"),
+                Function("count", [], "event_count"),
+                Function(
+                    "multiIf",
+                    multi_if,
+                    "function_name",
+                ),
+            ]
+        )
+        .set_groupby(
+            [
+                Column("title"),
+                Column("culprit"),
+                Column("group_id"),
+                Column("exception_frames.function"),
+            ]
+        )
+        .set_where(
+            [
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("group_id"), Op.IN, group_ids),
+                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                # NOTE: ideally this would follow suspect commit logic
+                BooleanCondition(
+                    BooleanOp.OR,
+                    [
+                        BooleanCondition(
+                            BooleanOp.AND,
+                            [
+                                Condition(
+                                    Function(
+                                        "arrayElement",
+                                        (Column("exception_frames.filename"), i),
+                                    ),
+                                    Op.IN,
+                                    sentry_filenames,
+                                ),
+                                language_parser.generate_function_name_conditions(
+                                    function_names, i
+                                ),
+                            ],
+                        )
+                        for i in range(-STACKFRAME_COUNT, 0)  # first n frames
+                    ],
+                ),
+                Condition(Function("notHandled", []), Op.EQ, 1),
+            ]
+        )
+        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+    )
+
+    # filter on the subquery to squash group_ids with the same title and culprit
+    # return the group_id with the greatest count of events
+    query = (
+        Query(subquery)
+        .set_select(
+            [
+                Column("function_name"),
+                Function(
+                    "arrayElement",
+                    (Function("groupArray", [Column("group_id")]), 1),
+                    "group_id",
+                ),
+                Function(
+                    "arrayElement",
+                    (Function("groupArray", [Column("event_count")]), 1),
+                    "event_count",
+                ),
+            ]
+        )
+        .set_groupby(
+            [
+                Column("title"),
+                Column("culprit"),
+                Column("function_name"),
+            ]
+        )
+        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+        .set_limit(5)
+    )
+
+    request = SnubaRequest(
+        dataset=Dataset.Events.value,
+        app_id="default",
+        tenant_ids={"organization_id": projects[0].organization_id},
+        query=query,
+    )
+
+    try:
+        result_set: list[dict[str, Any]] = raw_snql_query(
+            request, referrer=Referrer.SEER_RPC.value
+        )["data"]
+    except Exception:
+        logger.exception("Snuba query error", extra={"query": request.to_dict()["query"]})
+        return []
+
+    # TODO: ideally we don't loop. Is there a bulk query for recommended event?
+    issues_with_event_details: list[dict[str, Any]] = []
+    for group_dict in result_set:
+        group = group_id_to_group[group_dict["group_id"]]
+        event = group.get_recommended_event()
+        if event is None:
+            # TODO: log
+            continue
+        event = eventstore.backend.get_event_by_id(
+            group.project.id, event.event_id, group_id=group_dict["group_id"]
+        )
+        serialized_event = serialize(event, user=None, serializer=EventSerializer())
+        # TODO: check if default (anonymous) user is ok
+
+        issue_details = {
+            "id": group_dict["group_id"],
+            "title": group_dict["title"],
+            "function_name": group_dict["function_name"],
+            "events": [serialized_event],
+        }
+        # Structured like seer.automation.models.IssueDetails
+        issues_with_event_details.append(issue_details)
+
+    return issues_with_event_details
+
+
+def get_issues_related_to_file_patches(
+    *, organization_id: int, provider: str, external_id: str, filename_to_patch: dict[str, str]
+) -> dict[str, list[dict[str, Any]]] | None:
+    """
+    Get the top issues related to each file by looking at matches between functions in the patch
+    and functions in the issue's event's stacktrace.
+
+    Each issue includes the serialized recommended event.
+    """
+
+    # For now, mock this with issues for quick testing of seer
+
+    try:
+        repo = Repository.objects.get(
+            organization_id=organization_id, provider=provider, external_id=external_id
+        )
+        # These uniquely define the repo
+    except Repository.DoesNotExist:
+        logger.exception(
+            "Repo doesn't exist",
+            extra={
+                "organization_id": organization_id,
+                "provider": provider,
+                "external_id": external_id,
+            },
+        )
+        return None
+    repo_id = repo.id
+
+    pullrequest_files = [
+        PullRequestFile(filename=filename, patch=patch)
+        for filename, patch in filename_to_patch.items()
+    ]
+
+    filename_to_issues = {}
+    patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
+
+    # fetch issues related to the files
+    for file in pullrequest_files:
+        projects, sentry_filenames = get_projects_and_filenames_from_source_file(
+            organization_id, repo_id, file.filename
+        )
+        if not len(projects) or not len(sentry_filenames):
+            logger.error("No projects or filenames", extra={"file": file.filename})
+            continue
+
+        file_extension = file.filename.split(".")[-1]
+        language_parser = patch_parsers.get(file_extension, None)
+        if not language_parser:
+            logger.error("No language parser", extra={"file": file.filename})
+            continue
+
+        function_names = language_parser.extract_functions_from_patch(file.patch)
+        if not len(function_names):
+            logger.error("No function names", extra={"file": file.filename})
+            continue
+
+        top_issues = get_top_5_issues_by_count_for_file(
+            list(projects), list(sentry_filenames), list(function_names)
+        )
+        # TODO: write a different query
+        filename_to_issues[file.filename] = top_issues
+
+    return filename_to_issues
+
+
 seer_method_registry = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
+    "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
 }
 
 
