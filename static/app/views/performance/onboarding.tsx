@@ -420,6 +420,20 @@ function NewOnboarding({organization, project}: OnboardingProps) {
   const configureStep = performanceDocs.configure(docParams)[0]!;
   const verifyStep = performanceDocs.verify(docParams)[0]!;
 
+  const eventWaitingIndicator = (
+    <EventWaiter
+      api={api}
+      organization={organization}
+      project={project}
+      eventType="transaction"
+      onIssueReceived={() => {
+        setReceived(true);
+      }}
+    >
+      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+    </EventWaiter>
+  );
+
   return (
     <Panel>
       <PanelBody>
@@ -482,25 +496,9 @@ function NewOnboarding({organization, project}: OnboardingProps) {
                             </CodeSnippetWrapper>
                           </div>
                         ))}
-                        {!configureStep.configurations && !verifyStep.configurations && (
-                          <EventWaiter
-                            api={api}
-                            organization={organization}
-                            project={project}
-                            eventType="transaction"
-                            onIssueReceived={() => {
-                              setReceived(true);
-                            }}
-                          >
-                            {() =>
-                              received ? (
-                                <EventReceivedIndicator />
-                              ) : (
-                                <EventWaitingIndicator />
-                              )
-                            }
-                          </EventWaiter>
-                        )}
+                        {!configureStep.configurations && !verifyStep.configurations
+                          ? eventWaitingIndicator
+                          : null}
                       </div>
                       <GuidedSteps.ButtonWrapper>
                         <GuidedSteps.BackButton size="md" />
@@ -551,6 +549,7 @@ function NewOnboarding({organization, project}: OnboardingProps) {
                               </DescriptionWrapper>
                             </div>
                           ))}
+                          {!verifyStep.configurations ? eventWaitingIndicator : null}
                         </div>
                         <GuidedSteps.ButtonWrapper>
                           <GuidedSteps.BackButton size="md" />
@@ -585,23 +584,7 @@ function NewOnboarding({organization, project}: OnboardingProps) {
                             </CodeSnippetWrapper>
                           </div>
                         ))}
-                        <EventWaiter
-                          api={api}
-                          organization={organization}
-                          project={project}
-                          eventType="transaction"
-                          onIssueReceived={() => {
-                            setReceived(true);
-                          }}
-                        >
-                          {() =>
-                            received ? (
-                              <EventReceivedIndicator />
-                            ) : (
-                              <EventWaitingIndicator />
-                            )
-                          }
-                        </EventWaiter>
+                        {eventWaitingIndicator}
                       </div>
                       <GuidedSteps.ButtonWrapper>
                         <GuidedSteps.BackButton size="md" />
