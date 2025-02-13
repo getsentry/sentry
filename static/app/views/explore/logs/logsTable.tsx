@@ -45,10 +45,10 @@ type LogsRowProps = {
 };
 
 const LOG_FIELDS: Array<keyof OurlogsFields> = [
-  'sentry.severity_text',
+  'log.severity_text',
   'log.severity_number',
-  'sentry.body',
-  'sentry.timestamp',
+  'log.body',
+  'timestamp',
 ];
 
 export function LogsTable(props: LogsTableProps) {
@@ -121,7 +121,7 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
   const theme = useTheme();
   const level = getLogSeverityLevel(
     dataRow['log.severity_number'],
-    dataRow['sentry.severity_text']
+    dataRow['log.severity_text']
   );
   const logColors = getLogColors(level, theme);
 
@@ -137,20 +137,20 @@ function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
         />
         {severityCircleRenderer(
           dataRow['log.severity_number'],
-          dataRow['sentry.severity_text'],
+          dataRow['log.severity_text'],
           logColors
         )}
         {severityTextRenderer(
           dataRow['log.severity_number'],
-          dataRow['sentry.severity_text'],
+          dataRow['log.severity_text'],
           logColors
         )}
       </StyledPanelItem>
       <StyledPanelItem overflow>
-        {bodyRenderer(dataRow['sentry.body'], highlightTerms)}
+        {bodyRenderer(dataRow['log.body'], highlightTerms)}
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <TimestampRenderer timestamp={dataRow['sentry.timestamp']} />
+        <TimestampRenderer timestamp={dataRow.timestamp} />
       </StyledPanelItem>
       {expanded && <LogDetails dataRow={dataRow} highlightTerms={highlightTerms} />}
     </Fragment>
@@ -166,7 +166,7 @@ function LogDetails({
 }) {
   const level = getLogSeverityLevel(
     dataRow['log.severity_number'],
-    dataRow['sentry.severity_text']
+    dataRow['log.severity_text']
   );
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
@@ -176,7 +176,7 @@ function LogDetails({
         <DetailsSubGrid>
           <DetailsLabel>Timestamp</DetailsLabel>
           <DetailsValue>
-            <TimestampRenderer timestamp={dataRow['sentry.timestamp']} />
+            <TimestampRenderer timestamp={dataRow.timestamp} />
           </DetailsValue>
         </DetailsSubGrid>
         <DetailsSubGrid>
@@ -184,7 +184,7 @@ function LogDetails({
           <DetailsValue>
             {severityTextRenderer(
               dataRow['log.severity_number'],
-              dataRow['sentry.severity_text'],
+              dataRow['log.severity_text'],
               logColors,
               true
             )}
@@ -192,7 +192,7 @@ function LogDetails({
         </DetailsSubGrid>
       </DetailsGrid>
       <DetailsFooter logColors={logColors}>
-        {bodyRenderer(dataRow['sentry.body'], highlightTerms, true)}
+        {bodyRenderer(dataRow['log.body'], highlightTerms, true)}
       </DetailsFooter>
     </DetailsWrapper>
   );

@@ -24,7 +24,7 @@ export const StyledPanelItem = styled(PanelItem)<{
   span?: number;
 }>`
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(1)};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
   ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
