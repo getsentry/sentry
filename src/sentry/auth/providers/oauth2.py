@@ -214,7 +214,3 @@ class OAuth2Provider(Provider, abc.ABC):
 
         auth_identity.data.update(self.get_oauth_data(payload))
         auth_identity.update(data=auth_identity.data)
-
-    @classmethod
-    def build_config(cls, resource: dict) -> dict:
-        raise NotImplementedError

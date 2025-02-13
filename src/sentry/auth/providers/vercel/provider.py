@@ -39,7 +39,6 @@ class VercelOAuth2Provider(OAuth2Provider):
     ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse | str]:
         return vercel_configure_view
 
-    @classmethod
     def build_config(cls, resource):
         """
         On configuration, we determine which provider organization to configure sentry SSO for.
