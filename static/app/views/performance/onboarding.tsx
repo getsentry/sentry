@@ -1,8 +1,9 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
+import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 import tourAlert from 'sentry-images/spot/performance-tour-alert.svg';
 import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
 import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
@@ -13,28 +14,47 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
+import type {Client} from 'sentry/api';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import FeatureTourModal, {
   TourImage,
   TourText,
 } from 'sentry/components/modals/featureTourModal';
+import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  type DocsParams,
+  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -98,12 +118,74 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
+type SampleButtonProps = {
+  api: Client;
+  errorMessage: React.ReactNode;
+  loadingMessage: React.ReactNode;
+  organization: Organization;
+  project: Project;
+  triggerText: React.ReactNode;
+};
+
+function SampleButton({
+  triggerText,
+  loadingMessage,
+  errorMessage,
+  project,
+  organization,
+  api,
+}: SampleButtonProps) {
+  const location = useLocation();
+  return (
+    <Button
+      data-test-id="create-sample-transaction-btn"
+      onClick={async () => {
+        trackAnalytics('performance_views.create_sample_transaction', {
+          platform: project.platform,
+          organization,
+        });
+        addLoadingMessage(loadingMessage, {
+          duration: 15000,
+        });
+        const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
+        try {
+          const eventData = await api.requestPromise(url, {method: 'POST'});
+          const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
+
+          browserHistory.push(
+            generateLinkToEventInTraceView({
+              eventId: eventData.eventID,
+              location,
+              projectSlug: project.slug,
+              organization,
+              timestamp: eventData.endTimestamp,
+              traceSlug,
+              demo: `${project.slug}:${eventData.eventID}`,
+            })
+          );
+          clearIndicators();
+        } catch (error) {
+          Sentry.withScope(scope => {
+            scope.setExtra('error', error);
+            Sentry.captureException(new Error('Failed to create sample event'));
+          });
+          clearIndicators();
+          addErrorMessage(errorMessage);
+          return;
+        }
+      }}
+    >
+      {triggerText}
+    </Button>
+  );
+}
+
+type OnboardingProps = {
   organization: Organization;
   project: Project;
 };
 
-function Onboarding({organization, project}: Props) {
+function LegacyOnboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const {projects} = useProjects();
   const location = useLocation();
@@ -186,46 +268,14 @@ function Onboarding({organization, project}: Props) {
         </p>
         <ButtonList gap={1}>
           {setupButton}
-          <Button
-            data-test-id="create-sample-transaction-btn"
-            onClick={async () => {
-              trackAnalytics('performance_views.create_sample_transaction', {
-                platform: project.platform,
-                organization,
-              });
-              addLoadingMessage(t('Processing sample event...'), {
-                duration: 15000,
-              });
-              const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
-              try {
-                const eventData = await api.requestPromise(url, {method: 'POST'});
-                const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
-
-                browserHistory.push(
-                  generateLinkToEventInTraceView({
-                    eventId: eventData.eventID,
-                    location,
-                    projectSlug: project.slug,
-                    organization,
-                    timestamp: eventData.endTimestamp,
-                    traceSlug,
-                    demo: `${project.slug}:${eventData.eventID}`,
-                  })
-                );
-                clearIndicators();
-              } catch (error) {
-                Sentry.withScope(scope => {
-                  scope.setExtra('error', error);
-                  Sentry.captureException(new Error('Failed to create sample event'));
-                });
-                clearIndicators();
-                addErrorMessage(t('Failed to create a new sample event'));
-                return;
-              }
-            }}
-          >
-            {t('View Sample Transaction')}
-          </Button>
+          <SampleButton
+            triggerText={t('View Sample Transaction')}
+            loadingMessage={t('Processing sample transaction...')}
+            errorMessage={t('Failed to create sample transaction')}
+            organization={organization}
+            project={project}
+            api={api}
+          />
         </ButtonList>
         <FeatureTourModal
           steps={PERFORMANCE_TOUR_STEPS}
@@ -276,5 +326,460 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
   margin-bottom: 16px;
 `;
+
+function NewOnboarding({organization, project}: OnboardingProps) {
+  const api = useApi();
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const [received, setReceived] = useState<boolean>(false);
+
+  const currentPlatform = project.platform
+    ? platforms.find(p => p.id === project.platform)
+    : undefined;
+
+  const {isLoading, docs, dsn, projectKeyId} = useLoadGettingStarted({
+    platform: currentPlatform || otherPlatform,
+    orgSlug: organization.slug,
+    projSlug: project.slug,
+    productType: 'performance',
+  });
+
+  const performanceDocs = docs?.performanceOnboarding;
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  const doesNotSupportPerformance = project.platform
+    ? withoutPerformanceSupport.has(project.platform)
+    : false;
+
+  if (doesNotSupportPerformance) {
+    return (
+      <Fragment>
+        <div>
+          {tct(
+            'Fiddlesticks. Performance isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            {platform: currentPlatform?.name || project.slug}
+          )}
+        </div>
+        <div>
+          <LinkButton size="sm" href="https://docs.sentry.io/platforms/" external>
+            {t('Go to Sentry Documentation')}
+          </LinkButton>
+        </div>
+      </Fragment>
+    );
+  }
+
+  if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
+    return (
+      <Fragment>
+        <div>
+          {tct(
+            'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+            {project: project.slug}
+          )}
+        </div>
+        <div>
+          <LinkButton
+            size="sm"
+            href="https://docs.sentry.io/product/performance/getting-started/"
+            external
+          >
+            {t('Go to documentation')}
+          </LinkButton>
+        </div>
+      </Fragment>
+    );
+  }
+
+  const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
+    dsn,
+    organization,
+    platformKey: project.platform || 'other',
+    projectId: project.id,
+    projectSlug: project.slug,
+    isFeedbackSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: false,
+    isReplaySelected: false,
+    sourcePackageRegistries: {
+      isLoading: false,
+      data: undefined,
+    },
+    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    newOrg: false,
+    feedbackOptions: {},
+    urlPrefix,
+    isSelfHosted,
+  };
+
+  const installStep = performanceDocs.install(docParams)[0]!;
+  const configureStep = performanceDocs.configure(docParams)[0]!;
+  const verifyStep = performanceDocs.verify(docParams)[0]!;
+
+  return (
+    <Panel>
+      <PanelBody>
+        <AuthTokenGeneratorProvider projectSlug={project?.slug}>
+          <div>
+            <HeaderWrapper>
+              <HeaderText>
+                <Title>{t('Query for Traces, Get Answers')}</Title>
+                <SubTitle>
+                  {t(
+                    'You can query and aggregate spans to create metrics that help you debug busted API calls, slow image loads, or any other metrics you’d like to track.'
+                  )}
+                </SubTitle>
+                <BulletList>
+                  <li>
+                    {t(
+                      'Find traces tied to a user complaint and pinpoint exactly what broke'
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'Debug persistent issues by investigating API payloads, cache sizes, user tokens, and more'
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'Track any span attribute as a metric to catch slowdowns before they escalate'
+                    )}
+                  </li>
+                </BulletList>
+              </HeaderText>
+              <Image src={emptyTraceImg} />
+            </HeaderWrapper>
+            <Divider />
+            <Body>
+              <Setup>
+                <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+                <GuidedSteps>
+                  <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
+                    <div>
+                      <div>
+                        <DescriptionWrapper>{installStep.description}</DescriptionWrapper>
+                        {installStep.configurations?.map((configuration, index) => (
+                          <div key={index}>
+                            <DescriptionWrapper>
+                              {configuration.description}
+                            </DescriptionWrapper>
+                            <CodeSnippetWrapper>
+                              {configuration.code ? (
+                                Array.isArray(configuration.code) ? (
+                                  <TabbedCodeSnippet tabs={configuration.code} />
+                                ) : (
+                                  <OnboardingCodeSnippet
+                                    language={configuration.language}
+                                  >
+                                    {configuration.code}
+                                  </OnboardingCodeSnippet>
+                                )
+                              ) : null}
+                            </CodeSnippetWrapper>
+                          </div>
+                        ))}
+                        {!configureStep.configurations && !verifyStep.configurations && (
+                          <EventWaiter
+                            api={api}
+                            organization={organization}
+                            project={project}
+                            eventType="transaction"
+                            onIssueReceived={() => {
+                              setReceived(true);
+                            }}
+                          >
+                            {() =>
+                              received ? (
+                                <EventReceivedIndicator />
+                              ) : (
+                                <EventWaitingIndicator />
+                              )
+                            }
+                          </EventWaiter>
+                        )}
+                      </div>
+                      <GuidedSteps.ButtonWrapper>
+                        <GuidedSteps.BackButton size="md" />
+                        <GuidedSteps.NextButton size="md" />
+                      </GuidedSteps.ButtonWrapper>
+                    </div>
+                  </GuidedSteps.Step>
+                  {configureStep.configurations ? (
+                    <GuidedSteps.Step
+                      stepKey="configure-sentry"
+                      title={t('Configure Sentry')}
+                    >
+                      <div>
+                        <div>
+                          <DescriptionWrapper>
+                            {configureStep.description}
+                          </DescriptionWrapper>
+                          {configureStep.configurations.map((configuration, index) => (
+                            <div key={index}>
+                              <DescriptionWrapper>
+                                {configuration.description}
+                              </DescriptionWrapper>
+                              <CodeSnippetWrapper>
+                                {configuration.code ? (
+                                  Array.isArray(configuration.code) ? (
+                                    <TabbedCodeSnippet tabs={configuration.code} />
+                                  ) : (
+                                    <OnboardingCodeSnippet
+                                      language={configuration.language}
+                                    >
+                                      {configuration.code}
+                                    </OnboardingCodeSnippet>
+                                  )
+                                ) : null}
+                              </CodeSnippetWrapper>
+                              <CodeSnippetWrapper>
+                                {configuration.configurations &&
+                                configuration.configurations.length > 0 ? (
+                                  Array.isArray(configuration.configurations[0]!.code) ? (
+                                    <TabbedCodeSnippet
+                                      tabs={configuration.configurations[0]!.code}
+                                    />
+                                  ) : null
+                                ) : null}
+                              </CodeSnippetWrapper>
+                              <DescriptionWrapper>
+                                {configuration.additionalInfo}
+                              </DescriptionWrapper>
+                            </div>
+                          ))}
+                        </div>
+                        <GuidedSteps.ButtonWrapper>
+                          <GuidedSteps.BackButton size="md" />
+                          <GuidedSteps.NextButton size="md" />
+                        </GuidedSteps.ButtonWrapper>
+                      </div>
+                    </GuidedSteps.Step>
+                  ) : (
+                    <Fragment />
+                  )}
+                  {verifyStep.configurations || verifyStep.description ? (
+                    <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
+                      <div>
+                        <DescriptionWrapper>{verifyStep.description}</DescriptionWrapper>
+                        {verifyStep.configurations?.map((configuration, index) => (
+                          <div key={index}>
+                            <DescriptionWrapper>
+                              {configuration.description}
+                            </DescriptionWrapper>
+                            <CodeSnippetWrapper>
+                              {configuration.code ? (
+                                Array.isArray(configuration.code) ? (
+                                  <TabbedCodeSnippet tabs={configuration.code} />
+                                ) : (
+                                  <OnboardingCodeSnippet
+                                    language={configuration.language}
+                                  >
+                                    {configuration.code}
+                                  </OnboardingCodeSnippet>
+                                )
+                              ) : null}
+                            </CodeSnippetWrapper>
+                          </div>
+                        ))}
+                        <EventWaiter
+                          api={api}
+                          organization={organization}
+                          project={project}
+                          eventType="transaction"
+                          onIssueReceived={() => {
+                            setReceived(true);
+                          }}
+                        >
+                          {() =>
+                            received ? (
+                              <EventReceivedIndicator />
+                            ) : (
+                              <EventWaitingIndicator />
+                            )
+                          }
+                        </EventWaiter>
+                      </div>
+                      <GuidedSteps.ButtonWrapper>
+                        <GuidedSteps.BackButton size="md" />
+                        <SampleButton
+                          triggerText={t('Take me to an example')}
+                          loadingMessage={t('Processing sample trace...')}
+                          errorMessage={t('Failed to create sample trace')}
+                          organization={organization}
+                          project={project}
+                          api={api}
+                        />
+                      </GuidedSteps.ButtonWrapper>
+                    </GuidedSteps.Step>
+                  ) : (
+                    <Fragment />
+                  )}
+                </GuidedSteps>
+              </Setup>
+              <Preview>
+                <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
+                <Arcade
+                  src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </Preview>
+            </Body>
+          </div>
+        </AuthTokenGeneratorProvider>
+      </PanelBody>
+    </Panel>
+  );
+}
+
+const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {t("Waiting for this project's first trace")}
+    <PulsingIndicator />
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.pink400};
+`;
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  margin-left: ${space(1)};
+`;
+
+const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {'🎉 '}
+    {t("We've received this project's first trace!")}
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.successText};
+`;
+
+const SubTitle = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+const Title = styled('div')`
+  font-size: 26px;
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const BulletList = styled('ul')`
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-bottom: ${space(2)};
+
+  li {
+    margin-bottom: ${space(1)};
+  }
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(3)};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(4)};
+`;
+
+const HeaderText = styled('div')`
+  flex: 0.65;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex: 1;
+  }
+`;
+
+const BodyTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(1)};
+`;
+
+const Setup = styled('div')`
+  padding: ${space(4)};
+
+  &:after {
+    content: '';
+    position: absolute;
+    right: 50%;
+    top: 2.5%;
+    height: 95%;
+    border-right: 1px ${p => p.theme.border} solid;
+  }
+`;
+
+const Preview = styled('div')`
+  padding: ${space(4)};
+`;
+
+const Body = styled('div')`
+  display: grid;
+  position: relative;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+
+  h4 {
+    margin-bottom: 0;
+  }
+`;
+
+const Image = styled('img')`
+  display: block;
+  pointer-events: none;
+  height: 120px;
+  overflow: hidden;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
+`;
+
+const Divider = styled('hr')`
+  height: 1px;
+  width: 95%;
+  background: ${p => p.theme.border};
+  border: none;
+  margin-top: 0;
+  margin-bottom: 0;
+`;
+
+const Arcade = styled('iframe')`
+  width: 750px;
+  max-width: 100%;
+  height: 500px;
+  border: 0;
+`;
+
+const CodeSnippetWrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const DescriptionWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+function Onboarding(props: OnboardingProps) {
+  const showNewUi =
+    props.organization.features.includes('tracing-onboarding-new-ui') || true;
+
+  if (!showNewUi) {
+    return <LegacyOnboarding {...props} />;
+  }
+
+  return <NewOnboarding {...props} />;
+}
 
 export default Onboarding;
