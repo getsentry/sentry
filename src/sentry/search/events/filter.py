@@ -53,8 +53,8 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 
 class FilterConvertParams(TypedDict, total=False):
     organization_id: int
-    project_id: list[int]
-    environment: list[str]
+    project_id: Sequence[int]
+    environment: Sequence[str] | None
     environment_id: list[int] | None
 
 

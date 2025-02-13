@@ -51,6 +51,7 @@ from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
+    METRIC_TYPE_TO_METRIC_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
@@ -181,7 +182,7 @@ def get_custom_measurements(
                         name=parsed_mri.name,
                         type=metric_type,
                         operations=AVAILABLE_GENERIC_OPERATIONS[
-                            METRIC_TYPE_TO_ENTITY[metric_type].value
+                            METRIC_TYPE_TO_METRIC_ENTITY[metric_type]
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],

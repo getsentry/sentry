@@ -310,7 +310,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> dict[str, Any]:
         """
         Return the metadata of this event.
 
