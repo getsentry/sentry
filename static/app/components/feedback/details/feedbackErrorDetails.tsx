@@ -10,9 +10,11 @@ interface Props extends ComponentProps<typeof FluidHeight> {
 
 const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
   <FluidHeight {...props}>
-    <Alert type="error" showIcon>
-      {error}
-    </Alert>
+    <Alert.Container>
+      <Alert margin type="error" showIcon>
+        {error}
+      </Alert>
+    </Alert.Container>
   </FluidHeight>
 ))`
   display: grid;

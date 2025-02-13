@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -175,11 +174,11 @@ const onboarding: OnboardingConfig = {
           additionalInfo: params.isPerformanceSelected ? (
             <Fragment>
               <p>{configureAdditionalInfo}</p>
-              <AlertWithoutMarginBottom type="info">
+              <Alert margin={false} type="info">
                 {t(
                   'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                 )}
-              </AlertWithoutMarginBottom>
+              </Alert>
             </Fragment>
           ) : (
             configureAdditionalInfo
@@ -333,7 +332,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

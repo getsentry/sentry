@@ -162,15 +162,18 @@ export default function ProjectOwnership({project}: {project: Project}) {
         )}
       </TextBlock>
       <ProjectPermissionAlert
+        margin
         access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
         project={project}
       />
       {isCodeownersError && (
-        <Alert type="error">
-          {t(
-            "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="error">
+            {t(
+              "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
       <CodeOwnerErrors
         orgSlug={organization.slug}
@@ -185,7 +188,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </ErrorBoundary>
       )}
-      <ProjectPermissionAlert project={project} />
+      <ProjectPermissionAlert margin project={project} />
       {hasCodeowners && (
         <CodeOwnerFileTable
           project={project}
@@ -244,7 +247,11 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </Form>
       ) : (
-        <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+        <Alert.Container>
+          <Alert margin type="error">
+            {t('There was an error issue owner settings.')}
+          </Alert>
+        </Alert.Container>
       )}
     </SentryDocumentTitle>
   );

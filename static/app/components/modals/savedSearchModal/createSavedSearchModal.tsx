@@ -110,7 +110,13 @@ export function CreateSavedSearchModal({
       </Header>
 
       <Body>
-        {error && <Alert type="error">{error}</Alert>}
+        {error && (
+          <Alert.Container>
+            <Alert margin type="error">
+              {error}
+            </Alert>
+          </Alert.Container>
+        )}
         <SavedSearchModalContent organization={organization} />
       </Body>
     </Form>

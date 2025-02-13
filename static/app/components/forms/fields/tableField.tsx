@@ -117,15 +117,18 @@ export default class TableField extends Component<InputFieldProps> {
     const renderConfirmMessage = () => {
       return (
         <Fragment>
-          <Alert type="error">
-            <span
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(
-                  confirmDeleteMessage || t('Are you sure you want to delete this item?')
-                ),
-              }}
-            />
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="error">
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(
+                    confirmDeleteMessage ||
+                      t('Are you sure you want to delete this item?')
+                  ),
+                }}
+              />
+            </Alert>
+          </Alert.Container>
         </Fragment>
       );
     };

@@ -339,7 +339,13 @@ function AutofixSolutionDisplay({
   const [userCustomSolution, setUserCustomSolution] = useState('');
 
   if (!solution || solution.length === 0) {
-    return <Alert type="error">{t('No solution available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert margin type="error">
+          {t('No solution available.')}
+        </Alert>
+      </Alert.Container>
+    );
   }
 
   if (customSolution) {
@@ -486,7 +492,9 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning">{t('No solution found.')}</Alert>
+            <Alert margin type="warning">
+              {t('No solution found.')}
+            </Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>

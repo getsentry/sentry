@@ -94,6 +94,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
     if (!provider.canAdd && metadata.aspects.externalInstall) {
       alerts.push({
+        margin: true,
         type: 'warning',
         showIcon: true,
         text: metadata.aspects.externalInstall.noticeText,
@@ -289,9 +290,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <Fragment>
         {alertText && (
-          <Alert type="warning" showIcon>
-            {alertText}
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="warning" showIcon>
+              {alertText}
+            </Alert>
+          </Alert.Container>
         )}
         <Panel>
           {configurations.map(integration => (

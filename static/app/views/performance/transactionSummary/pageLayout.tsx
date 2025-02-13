@@ -301,7 +301,7 @@ function PageLayout(props: Props) {
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
                     {defined(error) && (
-                      <StyledAlert type="error" showIcon>
+                      <StyledAlert margin={false} type="error" showIcon>
                         {error}
                       </StyledAlert>
                     )}
@@ -328,7 +328,13 @@ function PageLayout(props: Props) {
 }
 
 export function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  return (
+    <Alert.Container>
+      <Alert margin type="warning">
+        {t("You don't have access to this feature")}
+      </Alert>
+    </Alert.Container>
+  );
 }
 
 const StyledAlert = styled(Alert)`

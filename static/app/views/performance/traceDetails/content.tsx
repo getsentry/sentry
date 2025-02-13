@@ -290,31 +290,37 @@ class TraceDetailsContent extends Component<Props, State> {
 
     if (roots === 0 && orphans > 0) {
       warning = (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-            {t(
-              'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-            )}
-          </ExternalLink>
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="info" showIcon>
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+              {t(
+                'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+              )}
+            </ExternalLink>
+          </Alert>
+        </Alert.Container>
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-            {t(
-              'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-            )}
-          </ExternalLink>
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="info" showIcon>
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+              {t(
+                'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+              )}
+            </ExternalLink>
+          </Alert>
+        </Alert.Container>
       );
     } else if (roots > 1) {
       warning = (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
-            {t('Multiple root transactions have been found with this trace ID.')}
-          </ExternalLink>
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="info" showIcon>
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
+              {t('Multiple root transactions have been found with this trace ID.')}
+            </ExternalLink>
+          </Alert>
+        </Alert.Container>
       );
     } else if (orphanErrors && orphanErrors.length > 0) {
       warning = <OnlyOrphanErrorWarnings orphanErrors={orphanErrors} />;
@@ -463,11 +469,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
 
   if (!hasPerformanceOnboarding) {
     return (
-      <Alert type="info" showIcon>
-        {t(
-          "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert margin type="info" showIcon>
+          {t(
+            "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -182,11 +181,11 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <AlertWithoutMarginBottom type="info">
+                  <Alert margin={false} type="info">
                     {t(
                       'Profiling for .NET Framework and .NET on Android are not supported.'
                     )}
-                  </AlertWithoutMarginBottom>
+                  </Alert>
                 ),
               },
             ]
@@ -333,7 +332,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

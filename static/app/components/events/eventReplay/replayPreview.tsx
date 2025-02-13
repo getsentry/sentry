@@ -90,12 +90,14 @@ function ReplayPreview({
 
   if (replayRecord?.is_archived) {
     return (
-      <Alert type="warning" data-test-id="replay-error">
-        <Flex gap={space(0.5)}>
-          <IconDelete color="gray500" size="sm" />
-          {t('The replay for this event has been deleted.')}
-        </Flex>
-      </Alert>
+      <Alert.Container>
+        <Alert margin type="warning" data-test-id="replay-error">
+          <Flex gap={space(0.5)}>
+            <IconDelete color="gray500" size="sm" />
+            {t('The replay for this event has been deleted.')}
+          </Flex>
+        </Alert>
+      </Alert.Container>
     );
   }
 

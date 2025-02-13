@@ -92,43 +92,45 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 
   // TODO(dcramer): show additional resource links
   return (
-    <Alert type="error">
-      <Heading>{t('Oops! Something went wrong')}</Heading>
-      <p>
-        {t(`
+    <Alert.Container>
+      <Alert margin type="error">
+        <Heading>{t('Oops! Something went wrong')}</Heading>
+        <p>
+          {t(`
           It looks like you've hit an issue in our client application. Don't worry though!
           We use Sentry to monitor Sentry and it's likely we're already looking into this!
           `)}
-      </p>
-      <p>{t("If you're daring, you may want to try the following:")}</p>
-      <List symbol="bullet">
-        {window?.adblockSuspected && (
+        </p>
+        <p>{t("If you're daring, you may want to try the following:")}</p>
+        <List symbol="bullet">
+          {window?.adblockSuspected && (
+            <ListItem>
+              {t(
+                "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."
+              )}
+            </ListItem>
+          )}
           <ListItem>
-            {t(
-              "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."
-            )}
+            {tct(`Give it a few seconds and [link:reload the page].`, {
+              link: (
+                <a
+                  onClick={() => {
+                    window.location.href = String(window.location.href);
+                  }}
+                />
+              ),
+            })}
           </ListItem>
-        )}
-        <ListItem>
-          {tct(`Give it a few seconds and [link:reload the page].`, {
-            link: (
-              <a
-                onClick={() => {
-                  window.location.href = String(window.location.href);
-                }}
-              />
-            ),
-          })}
-        </ListItem>
-        <ListItem>
-          {tct(`If all else fails, [link:contact us] with more details.`, {
-            link: (
-              <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
-            ),
-          })}
-        </ListItem>
-      </List>
-    </Alert>
+          <ListItem>
+            {tct(`If all else fails, [link:contact us] with more details.`, {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
+              ),
+            })}
+          </ListItem>
+        </List>
+      </Alert>
+    </Alert.Container>
   );
 }
 

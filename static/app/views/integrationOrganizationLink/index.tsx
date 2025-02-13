@@ -273,17 +273,19 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" showIcon>
-            <p>
-              {tct(
-                `You do not have permission to install integrations in
+          <Alert.Container>
+            <Alert margin type="error" showIcon>
+              <p>
+                {tct(
+                  `You do not have permission to install integrations in
                 [organization]. Ask an organization owner or manager to
                 visit this page to finish installing this integration.`,
-                {organization: <strong>{organization.slug}</strong>}
-              )}
-            </p>
-            <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
-          </Alert>
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider && organization && this.hasAccess() && FeatureList && (
@@ -320,11 +322,13 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
       }
 
       return (
-        <Alert type="warning" showIcon>
-          {t(
-            'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="warning" showIcon>
+            {t(
+              'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -354,9 +358,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     );
 
     return (
-      <Alert type="info" showIcon>
-        {alertText}
-      </Alert>
+      <Alert.Container>
+        <Alert margin type="info" showIcon>
+          {alertText}
+        </Alert>
+      </Alert.Container>
     );
   }
 

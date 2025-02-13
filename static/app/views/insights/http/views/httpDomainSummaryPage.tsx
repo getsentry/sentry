@@ -217,16 +217,18 @@ export function HTTPDomainSummaryPage() {
         <Layout.Body>
           <Layout.Main fullWidth>
             {domain === '' && (
-              <Alert type="info">
-                {tct(
-                  '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
-                  {
-                    link: (
-                      <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>
-                    ),
-                  }
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert margin type="info">
+                  {tct(
+                    '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
+                    {
+                      link: (
+                        <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>
+                      ),
+                    }
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
 
             <ModuleLayout.Layout>

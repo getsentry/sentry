@@ -81,9 +81,11 @@ export default function Stories() {
             </VerticalScroll>
           ) : story.isError ? (
             <VerticalScroll style={{gridArea: 'body'}}>
-              <Alert type="error" showIcon>
-                <strong>{story.error.name}:</strong> {story.error.message}
-              </Alert>
+              <Alert.Container>
+                <Alert margin type="error" showIcon>
+                  <strong>{story.error.name}:</strong> {story.error.message}
+                </Alert>
+              </Alert.Container>
             </VerticalScroll>
           ) : story.isSuccess ? (
             <StoryMainContainer>

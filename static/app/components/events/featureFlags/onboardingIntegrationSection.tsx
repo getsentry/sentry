@@ -171,11 +171,11 @@ export default function OnboardingIntegrationSection({
             </Tooltip>
           </InputArea>
           {secretSaved ? (
-            <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
+            <StyledAlert margin showIcon type="success" icon={<IconCheckmark />}>
               {t('Secret verified.')}
             </StyledAlert>
           ) : secret ? (
-            <StyledAlert showIcon type="warning" icon={<IconWarning />}>
+            <StyledAlert margin showIcon type="warning" icon={<IconWarning />}>
               {t('Make sure the secret is 32 characters long.')}
             </StyledAlert>
           ) : null}

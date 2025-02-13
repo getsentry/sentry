@@ -104,14 +104,16 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: (
-            <Alert type="warning">
-              {tct(
-                'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-                {
-                  code: <code />,
-                }
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert margin type="warning">
+                {tct(
+                  'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
           ),
         },
       ],

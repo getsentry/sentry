@@ -54,9 +54,11 @@ function PerformanceIssueAlert({
   }
 
   return (
-    <Alert type="info" showIcon>
-      {children}
-    </Alert>
+    <Alert.Container>
+      <Alert margin type="info" showIcon>
+        {children}
+      </Alert>
+    </Alert.Container>
   );
 }
 

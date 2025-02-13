@@ -137,7 +137,7 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <StyledAlert type="warning" showIcon>
+          <StyledAlert margin={false} type="warning" showIcon>
             {t('Alert Rule settings have been updated since this alert was triggered.')}
           </StyledAlert>
         </StyledLayoutBody>
@@ -145,20 +145,22 @@ export default function MetricDetailsBody({
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert type="warning" showIcon>
-              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                ? tct(
-                    "[creator] muted this alert so these notifications won't be sent in the future.",
-                    {creator: rule.snoozeCreatedBy}
-                  )
-                : tct(
-                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                    }
-                  )}
-            </Alert>
+            <Alert.Container>
+              <Alert margin type="warning" showIcon>
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            </Alert.Container>
           )}
           <StyledSubHeader>
             <StyledTimeRangeSelector

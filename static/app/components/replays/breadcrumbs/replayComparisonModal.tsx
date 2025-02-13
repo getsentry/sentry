@@ -107,11 +107,13 @@ export default function ReplayComparisonModal({
           </Header>
           <Body>
             {isSameTimestamp ? (
-              <Alert type="warning" showIcon>
-                {t(
-                  "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert margin type="warning" showIcon>
+                  {t(
+                    "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
+                  )}
+                </Alert>
+              </Alert.Container>
             ) : null}
             <RelativePosition>
               <ReplayDiffChooser />

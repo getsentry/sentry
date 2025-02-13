@@ -327,9 +327,11 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
-            <Alert type="info" showIcon>
-              {t('This will be the only time your client secret is visible!')}
-            </Alert>
+            <Alert.Container>
+              <Alert margin type="info" showIcon>
+                {t('This will be the only time your client secret is visible!')}
+              </Alert>
+            </Alert.Container>
             <TextCopyInput aria-label={t('new-client-secret')}>
               {rotateResponse.clientSecret}
             </TextCopyInput>

@@ -161,7 +161,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         },
       ],
       additionalInfo: (
-        <AlertWithMarginBottom type="info">
+        <StyledAlert margin={false} type="info">
           {tct(
             'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {
@@ -170,7 +170,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               ),
             }
           )}
-        </AlertWithMarginBottom>
+        </StyledAlert>
       ),
     },
   ],
@@ -198,7 +198,6 @@ const docs: Docs<PlatformOptions> = {
 
 export default docs;
 
-const AlertWithMarginBottom = styled(Alert)`
+const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
-  margin-bottom: 0;
 `;

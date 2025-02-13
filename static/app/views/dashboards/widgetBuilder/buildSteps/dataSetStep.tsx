@@ -30,21 +30,24 @@ function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
     : null;
 
   return (
-    <Alert
-      type="warning"
-      showIcon
-      trailingItems={
-        <StyledCloseButton
-          icon={<IconClose size="sm" />}
-          aria-label={t('Close')}
-          onClick={onDismiss}
-          size="zero"
-          borderless
-        />
-      }
-    >
-      {splitAlertMessage}
-    </Alert>
+    <Alert.Container>
+      <Alert
+        margin
+        type="warning"
+        showIcon
+        trailingItems={
+          <StyledCloseButton
+            icon={<IconClose size="sm" />}
+            aria-label={t('Close')}
+            onClick={onDismiss}
+            size="zero"
+            borderless
+          />
+        }
+      >
+        {splitAlertMessage}
+      </Alert>
+    </Alert.Container>
   );
 }
 

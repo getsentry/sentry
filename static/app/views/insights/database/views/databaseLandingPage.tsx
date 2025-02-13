@@ -227,7 +227,9 @@ const DEFAULT_SORT = {
 function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
-      <Alert {...props} type="info" showIcon />
+      <Alert.Container>
+        <Alert margin {...props} type="info" showIcon />
+      </Alert.Container>
     </ModuleLayout.Full>
   );
 }

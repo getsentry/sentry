@@ -93,15 +93,17 @@ export default function ProjectToolbarSettings({
             `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
           )}
         </TextBlock>
-        <ProjectPermissionAlert project={project} />
+        <ProjectPermissionAlert margin project={project} />
         {domain && (
-          <Alert type="info" showIcon>
-            {tct(
-              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
-              {domain: <strong>{domain}</strong>}
-            )}
-            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="info" showIcon>
+              {tct(
+                'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+                {domain: <strong>{domain}</strong>}
+              )}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+            </Alert>
+          </Alert.Container>
         )}
 
         <Form

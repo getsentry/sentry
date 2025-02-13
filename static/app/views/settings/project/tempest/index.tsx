@@ -70,7 +70,13 @@ export default function TempestSettings({organization, project}: Props) {
   }, [tempestCredentials]);
 
   if (!hasTempestAccess(organization)) {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert margin type="warning">
+          {t("You don't have access to this feature")}
+        </Alert>
+      </Alert.Container>
+    );
   }
 
   return (
@@ -82,16 +88,18 @@ export default function TempestSettings({organization, project}: Props) {
       />
 
       {credentialErrors && credentialErrors?.length > 0 && (
-        <Alert type="error" showIcon>
-          {t('There was a problem with following credentials:')}
-          <List symbol="bullet">
-            {credentialErrors.map(credential => (
-              <ListItem key={credential.id}>
-                {credential.clientId} - {credential.message}
-              </ListItem>
-            ))}
-          </List>
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="error" showIcon>
+            {t('There was a problem with following credentials:')}
+            <List symbol="bullet">
+              {credentialErrors.map(credential => (
+                <ListItem key={credential.id}>
+                  {credential.clientId} - {credential.message}
+                </ListItem>
+              ))}
+            </List>
+          </Alert>
+        </Alert.Container>
       )}
 
       <Form

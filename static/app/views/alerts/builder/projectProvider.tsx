@@ -65,7 +65,11 @@ function AlertBuilderProjectProvider(props: Props) {
   // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
   if (!project || fetchError) {
     return (
-      <Alert type="warning">{t('The project you were looking for was not found.')}</Alert>
+      <Alert.Container>
+        <Alert margin type="warning">
+          {t('The project you were looking for was not found.')}
+        </Alert>
+      </Alert.Container>
     );
   }
 

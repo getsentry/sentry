@@ -118,11 +118,13 @@ function ResourceInfo(props: Props) {
       </ReadoutRibbon>
 
       {hasNoData && (
-        <Alert style={{width: '100%'}} type="warning" showIcon>
-          {t(
-            "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert margin style={{width: '100%'}} type="warning" showIcon>
+            {t(
+              "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
     </Fragment>
   );

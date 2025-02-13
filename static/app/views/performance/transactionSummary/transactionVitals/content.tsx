@@ -75,18 +75,20 @@ function VitalsContent(props: Props) {
               return (
                 <Fragment>
                   {shouldDisplayMissingVitalsAlert && (
-                    <Alert type="info" showIcon>
-                      {tct(
-                        'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
-                              {t('Read more about browser support.')}
-                            </ExternalLink>
-                          ),
-                        }
-                      )}
-                    </Alert>
+                    <Alert.Container>
+                      <Alert margin type="info" showIcon>
+                        {tct(
+                          'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
+                                {t('Read more about browser support.')}
+                              </ExternalLink>
+                            ),
+                          }
+                        )}
+                      </Alert>
+                    </Alert.Container>
                   )}
                   <FilterActions>
                     <PageFilterBar condensed>

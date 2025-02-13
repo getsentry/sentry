@@ -90,7 +90,13 @@ function LoginForm({authConfig}: Props) {
           </LostPasswordLink>
         }
       >
-        {error && <Alert type="error">{error}</Alert>}
+        {error && (
+          <Alert.Container>
+            <Alert margin type="error">
+              {error}
+            </Alert>
+          </Alert.Container>
+        )}
         <TextField
           name="username"
           placeholder={t('username or email')}

@@ -201,9 +201,11 @@ export function SpansTabContentImpl({
       </SideSection>
       <section>
         {(tableError || chartError) && (
-          <Alert type="error" showIcon>
-            {tableError || chartError}
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="error" showIcon>
+              {tableError || chartError}
+            </Alert>
+          </Alert.Container>
         )}
         <MainContent>
           <ExploreCharts

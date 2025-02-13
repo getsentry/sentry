@@ -34,7 +34,13 @@ function SsoForm({authConfig}: Props) {
         padding: 0,
       }}
     >
-      {error && <Alert type="error">{error}</Alert>}
+      {error && (
+        <Alert.Container>
+          <Alert margin type="error">
+            {error}
+          </Alert>
+        </Alert.Container>
+      )}
       <TextField
         name="organization"
         placeholder="acme"

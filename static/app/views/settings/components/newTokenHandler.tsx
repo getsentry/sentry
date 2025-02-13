@@ -18,9 +18,11 @@ function NewTokenHandler({
 }) {
   return (
     <div>
-      <Alert type="warning" showIcon system>
-        {t("Please copy this token to a safe place — it won't be shown again!")}
-      </Alert>
+      <Alert.Container>
+        <Alert margin type="warning" showIcon system>
+          {t("Please copy this token to a safe place — it won't be shown again!")}
+        </Alert>
+      </Alert.Container>
 
       <PanelItem>
         <InputWrapper>

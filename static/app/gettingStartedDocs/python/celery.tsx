@@ -196,7 +196,7 @@ def init_sentry(**_kwargs):
               "To verify if your SDK is initialized on worker start, you can pass `debug=True` to `sentry_sdk.init()` to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly."
             )}
           </p>
-          <AlertWithMarginBottom type="info">
+          <StyledAlert margin={false} type="info">
             {tct(
               `Sentry uses custom message headers for distributed tracing. For Celery versions 4.x, with [celeryDocLink: message protocol of version 1], this functionality is broken, and Celery fails to propagate custom headers to the worker. Protocol version 2, which is the default since Celery version 4.0, is not affected.
 
@@ -211,7 +211,7 @@ def init_sentry(**_kwargs):
                 ),
               }
             )}
-          </AlertWithMarginBottom>
+          </StyledAlert>
         </Fragment>
       ),
     },
@@ -226,7 +226,6 @@ const docs: Docs = {
 
 export default docs;
 
-const AlertWithMarginBottom = styled(Alert)`
+const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
-  margin-bottom: 0;
 `;

@@ -252,11 +252,13 @@ class MetricAlertDetails extends Component<Props, State> {
 
     return (
       <Layout.Page withPadding>
-        <Alert type="error" showIcon>
-          {error?.status === 404
-            ? t('This alert rule could not be found.')
-            : t('An error occurred while fetching the alert rule.')}
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="error" showIcon>
+            {error?.status === 404
+              ? t('This alert rule could not be found.')
+              : t('An error occurred while fetching the alert rule.')}
+          </Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }
@@ -281,9 +283,11 @@ class MetricAlertDetails extends Component<Props, State> {
         forceProject={project}
       >
         {warning && (
-          <Alert type="warning" showIcon>
-            {warning}
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="warning" showIcon>
+              {warning}
+            </Alert>
+          </Alert.Container>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
 

@@ -76,17 +76,21 @@ function RecoveryOptionsModal({
 
         {displaySmsPrompt ? (
           // set up backup phone number
-          <Alert type="warning">
-            {t('We recommend adding a phone number as a backup 2FA method.')}
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="warning">
+              {t('We recommend adding a phone number as a backup 2FA method.')}
+            </Alert>
+          </Alert.Container>
         ) : (
           // get recovery codes
-          <Alert type="warning">
-            {t(
-              `Recovery codes are the only way to access your account if you lose
+          <Alert.Container>
+            <Alert margin type="warning">
+              {t(
+                `Recovery codes are the only way to access your account if you lose
                   your device and cannot receive two-factor authentication codes.`
-            )}
-          </Alert>
+              )}
+            </Alert>
+          </Alert.Container>
         )}
       </Body>
 

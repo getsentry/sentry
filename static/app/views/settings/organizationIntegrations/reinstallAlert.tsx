@@ -11,9 +11,11 @@ function ReinstallAlert({integrations = []}: Props) {
   const statusList = integrations?.map(getIntegrationStatus);
   if (statusList?.includes('disabled')) {
     return (
-      <Alert data-test-id="disabled-alert" type="warning" showIcon>
-        {t('Reinstall required for disabled integrations.')}
-      </Alert>
+      <Alert.Container>
+        <Alert margin data-test-id="disabled-alert" type="warning" showIcon>
+          {t('Reinstall required for disabled integrations.')}
+        </Alert>
+      </Alert.Container>
     );
   }
   return null;

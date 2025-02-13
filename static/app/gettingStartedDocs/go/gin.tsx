@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -178,12 +177,12 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <AlertWithoutMarginBottom type="info">
+          <Alert margin={false} type="info">
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentrygin]!",
               {code: <code />}
             )}
-          </AlertWithoutMarginBottom>
+          </Alert>
         </Fragment>
       ),
       configurations: [
@@ -231,7 +230,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

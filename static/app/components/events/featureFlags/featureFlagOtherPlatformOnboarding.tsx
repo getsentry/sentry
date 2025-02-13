@@ -23,17 +23,19 @@ export function FeatureFlagOtherPlatformOnboarding({
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         {
-          <Alert type="info" showIcon>
-            <Flex gap={space(3)}>
-              {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
-              <LinkButton
-                href={`https://docs.sentry.io/organization/integrations/feature-flag/${provider.toLowerCase()}/#evaluation-tracking/`}
-                external
-              >
-                {t('Read the docs')}
-              </LinkButton>
-            </Flex>
-          </Alert>
+          <Alert.Container>
+            <Alert margin type="info" showIcon>
+              <Flex gap={space(3)}>
+                {t('Read the docs to learn more about setting up the Feature Flags SDK.')}
+                <LinkButton
+                  href={`https://docs.sentry.io/organization/integrations/feature-flag/${provider.toLowerCase()}/#evaluation-tracking/`}
+                  external
+                >
+                  {t('Read the docs')}
+                </LinkButton>
+              </Flex>
+            </Alert>
+          </Alert.Container>
         }
         <OnboardingIntegrationSection provider={provider} integration={integration} />
       </Wrapper>

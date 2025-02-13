@@ -23,27 +23,29 @@ function GlobalEventProcessingAlert({className, projects}: Props) {
   }
 
   return (
-    <Alert className={className} type="info" showIcon>
-      {projectsInTheLowPriorityQueue.length === 1
-        ? tct(
-            'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
-            {
-              link: <ExternalLink href={sentryStatusPageLink} />,
-            }
-          )
-        : tct(
-            'Event Processing for the [projectSlugs] projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
-            {
-              projectSlugs: projectsInTheLowPriorityQueue.map(({slug}, index) => (
-                <Fragment key={slug}>
-                  <strong>{slug}</strong>
-                  {index !== projectsInTheLowPriorityQueue.length - 1 && ', '}
-                </Fragment>
-              )),
-              link: <ExternalLink href={sentryStatusPageLink} />,
-            }
-          )}
-    </Alert>
+    <Alert.Container>
+      <Alert margin className={className} type="info" showIcon>
+        {projectsInTheLowPriorityQueue.length === 1
+          ? tct(
+              'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
+              {
+                link: <ExternalLink href={sentryStatusPageLink} />,
+              }
+            )
+          : tct(
+              'Event Processing for the [projectSlugs] projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
+              {
+                projectSlugs: projectsInTheLowPriorityQueue.map(({slug}, index) => (
+                  <Fragment key={slug}>
+                    <strong>{slug}</strong>
+                    {index !== projectsInTheLowPriorityQueue.length - 1 && ', '}
+                  </Fragment>
+                )),
+                link: <ExternalLink href={sentryStatusPageLink} />,
+              }
+            )}
+      </Alert>
+    </Alert.Container>
   );
 }
 

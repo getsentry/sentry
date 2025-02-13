@@ -117,9 +117,11 @@ function FeatureDisabled({
 
   const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
   return (
-    <AlertComponent type="warning" showIcon expand={renderHelp()}>
-      {message}
-    </AlertComponent>
+    <Alert.Container>
+      <AlertComponent margin type="warning" showIcon expand={renderHelp()}>
+        {message}
+      </AlertComponent>
+    </Alert.Container>
   );
 }
 

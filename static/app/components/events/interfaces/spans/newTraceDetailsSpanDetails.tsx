@@ -286,11 +286,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     return (
-      <Alert type="info" showIcon system>
-        {t(
-          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert margin type="info" showIcon system>
+          {t(
+            'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

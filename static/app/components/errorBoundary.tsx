@@ -110,9 +110,11 @@ class ErrorBoundary extends Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" showIcon className={className}>
-          {message || t('There was a problem rendering this component')}
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="error" showIcon className={className}>
+            {message || t('There was a problem rendering this component')}
+          </Alert>
+        </Alert.Container>
       );
     }
 

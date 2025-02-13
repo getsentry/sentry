@@ -132,11 +132,13 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
       </TextBlock>
 
       {!hasWrite && (
-        <Alert type="warning">
-          {t(
-            'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert margin type="warning">
+            {t(
+              'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
+            )}
+          </Alert>
+        </Alert.Container>
       )}
 
       <Panel>

@@ -1280,7 +1280,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // Rendering the main form body
     return (
       <Main fullWidth>
-        <ProjectPermissionAlert access={['alerts:write']} project={project} />
+        <ProjectPermissionAlert margin access={['alerts:write']} project={project} />
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
@@ -1362,14 +1362,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
             {showErrorMigrationWarning && (
-              <Alert type="warning" showIcon>
-                {tct(
-                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
-                  {
-                    code: <code />,
-                  }
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert margin type="warning" showIcon>
+                  {tct(
+                    "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
+                    {
+                      code: <code />,
+                    }
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
             {triggerForm(formDisabled)}
             {ruleNameOwnerForm(formDisabled)}

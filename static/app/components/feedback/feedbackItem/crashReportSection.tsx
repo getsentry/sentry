@@ -32,9 +32,9 @@ export default function CrashReportSection({
 
   if (!groupData) {
     return (
-      <AlertNoMargin type="error" showIcon>
+      <Alert margin={false} type="error" showIcon>
         {tct('Unable to find error [id]', {id: crashReportId})}
-      </AlertNoMargin>
+      </Alert>
     );
   }
 
@@ -49,10 +49,6 @@ export default function CrashReportSection({
     </IssueDetailsContainer>
   );
 }
-
-const AlertNoMargin = styled(Alert)`
-  margin: 0;
-`;
 
 const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
