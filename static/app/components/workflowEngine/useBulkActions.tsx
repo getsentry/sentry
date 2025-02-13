@@ -7,7 +7,7 @@ import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/views/detectors/detectorListRow';
+import type {Detector} from 'sentry/views/detectors/components/detectorListRow';
 
 // TODO: Adjust to work for automations once type is available
 export function useBulkActions(detectors: Detector[]) {

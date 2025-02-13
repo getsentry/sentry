@@ -67,7 +67,7 @@ export function DetectorListRow({
       </Flex>
       <CellWrapper className="last-issue">
         <StyledIssueCell
-          {...(groups.length > 0 ? {group: groups[0]} : {})}
+          group={groups.length > 0 ? groups[0] : undefined}
           disabled={disabled}
         />
       </CellWrapper>
