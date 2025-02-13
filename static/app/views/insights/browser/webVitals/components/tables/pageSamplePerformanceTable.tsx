@@ -422,8 +422,8 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    if (key === 'id' && 'id' in row) {
-      const eventTarget = generateLinkToEventInTraceView({
+    if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
+      const traceViewLink = generateLinkToEventInTraceView({
         projectSlug: row.projectSlug,
         traceSlug: row.trace,
         eventId: row.id,
@@ -434,21 +434,32 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
-      return (
-        <Tooltip title={t('View Transaction')}>
-          <NoOverflow>
-            <Link to={eventTarget}>{getShortEventId(row.trace)}</Link>
-          </NoOverflow>
-        </Tooltip>
-      );
-    }
+      if (key === 'id' && 'id' in row) {
+        return (
+          <Tooltip title={t('View Transaction')}>
+            <NoOverflow>
+              <Link to={traceViewLink}>{getShortEventId(row.trace)}</Link>
+            </NoOverflow>
+          </Tooltip>
+        );
+      }
 
-    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
-      return (
-        <Tooltip title={(row as any)[key]}>
-          <NoOverflow>{(row as any)[key]}</NoOverflow>
-        </Tooltip>
-      );
+      if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+        return (
+          <Tooltip title={(row as any)[key]}>
+            <NoOverflow>
+              {organization.features.includes('performance-vitals-standalone-cls-lcp') &&
+              'span.op' in row &&
+              row['span.op'] === 'pageload' &&
+              traceViewLink ? (
+                <Link to={traceViewLink}>{(row as any)[key]}</Link>
+              ) : (
+                (row as any)[key]
+              )}
+            </NoOverflow>
+          </Tooltip>
+        );
+      }
     }
 
     return (

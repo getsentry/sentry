@@ -30,8 +30,8 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useInteractionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useInteractionsCategorizedSamplesQuery';
-import {useTransactionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionsCategorizedSamplesQuery';
+import {useSpanSamplesCategorizedQuery} from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesCategorizedQuery';
+import {useTransactionSamplesCategorizedQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionSamplesCategorizedQuery';
 import type {
   SpanSampleRowWithScore,
   TransactionSampleRowWithScore,
@@ -88,7 +88,11 @@ export function PageOverviewWebVitalsDetailPanel({
   const subregions = location.query[
     SpanIndexedField.USER_GEO_SUBREGION
   ] as SubregionCode[];
+  const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
   const isInp = webVital === 'inp';
+  const useSpansWebVitals = organization.features.includes(
+    'performance-vitals-standalone-cls-lcp'
+  );
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -118,24 +122,25 @@ export function PageOverviewWebVitalsDetailPanel({
   const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.data?.[0]);
 
   const {data: transactionsTableData, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionsCategorizedSamplesQuery({
+    useTransactionSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && !isInp,
+      enabled: Boolean(webVital) && (!isInp || (!isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
 
-  const {data: inpTableData, isLoading: isInteractionsLoading} =
-    useInteractionsCategorizedSamplesQuery({
+  const {data: spansTableData, isLoading: isSpansLoading} =
+    useSpanSamplesCategorizedQuery({
       transaction: transaction ?? '',
-      enabled: Boolean(webVital) && isInp,
+      webVital,
+      enabled: Boolean(webVital) && (isInp || (isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
 
   const {profileExists} = useProfileExists(
-    inpTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
+    spansTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
@@ -278,13 +283,15 @@ export function PageOverviewWebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
-  const renderInpBodyCell = (col: Column, row: SpanSampleRowWithScore) => {
+  const renderSpansBodyCell = (col: Column, row: SpanSampleRowWithScore) => {
     const {key} = col;
     if (key === 'score') {
-      if (row[`measurements.${webVital}` as keyof typeof row] !== undefined) {
+      if (row[`${webVital}Score` as keyof typeof row] !== undefined) {
         return (
           <AlignCenter>
-            <PerformanceBadge score={row[`totalScore` as keyof typeof row] as number} />
+            <PerformanceBadge
+              score={row[`${webVital}Score` as keyof typeof row] as number}
+            />
           </AlignCenter>
         );
       }
@@ -310,10 +317,11 @@ export function PageOverviewWebVitalsDetailPanel({
         {
           replayId: row.replayId,
           id: '', // id doesn't actually matter here. Just to satisfy type.
-          'transaction.duration': isInp
-            ? row[SpanIndexedField.SPAN_SELF_TIME]
-            : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              row['transaction.duration'],
+          'transaction.duration':
+            isInp || (isSpansWebVital && useSpansWebVitals)
+              ? row[SpanIndexedField.SPAN_SELF_TIME]
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                row['transaction.duration'],
           timestamp: row.timestamp,
         },
         undefined
@@ -360,6 +368,29 @@ export function PageOverviewWebVitalsDetailPanel({
         </NoOverflow>
       );
     }
+    if (key === 'id') {
+      const eventTarget =
+        project?.slug &&
+        generateLinkToEventInTraceView({
+          eventId: row.id,
+          traceSlug: row.trace,
+          timestamp: row.timestamp,
+          projectSlug: project.slug,
+          organization,
+          location,
+          view: domainViewFilters.view,
+          source: TraceViewSources.WEB_VITALS_MODULE,
+        });
+      return (
+        <NoOverflow>
+          {eventTarget ? (
+            <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
+          ) : (
+            <span>{getShortEventId(row.id)}</span>
+          )}
+        </NoOverflow>
+      );
+    }
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
@@ -394,13 +425,24 @@ export function PageOverviewWebVitalsDetailPanel({
         <TableContainer>
           {isInp ? (
             <GridEditable
-              data={inpTableData}
-              isLoading={isInteractionsLoading}
+              data={spansTableData}
+              isLoading={isSpansLoading}
               columnOrder={inpColumnOrder}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
-                renderBodyCell: renderInpBodyCell,
+                renderBodyCell: renderSpansBodyCell,
+              }}
+            />
+          ) : isSpansWebVital && useSpansWebVitals ? (
+            <GridEditable
+              data={spansTableData}
+              isLoading={isSpansLoading}
+              columnOrder={columnOrder}
+              columnSortBy={[sort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell: renderSpansBodyCell,
               }}
             />
           ) : (
