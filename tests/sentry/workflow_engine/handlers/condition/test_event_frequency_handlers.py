@@ -88,6 +88,20 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
                 condition_result=True,
             )
 
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                    "filters": [
+                        {"match": MatchType.IS_SET, "key": "LOGGER", "value": "sentry.example"}
+                    ],
+                },
+                condition_result=True,
+            )
+
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
     condition = Condition.EVENT_FREQUENCY_PERCENT
@@ -181,6 +195,18 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                     "interval": "1d",
                     "value": 100,
                     "comparison_interval": "asdf",
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                    "filters": [{"match": "asdf", "key": "LOGGER", "value": "sentry.example"}],
                 },
                 condition_result=True,
             )
