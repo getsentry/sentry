@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
-import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
+import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
