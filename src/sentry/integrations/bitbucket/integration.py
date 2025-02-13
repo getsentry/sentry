@@ -27,6 +27,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -224,6 +225,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             username = principal_data.get("username", principal_data["display_name"])
             account_type = principal_data["type"]
             domain = f"{base_url}/{username}" if account_type == "team" else username
+            secret = generate_token()
 
             return {
                 "provider": self.key,
@@ -232,6 +234,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                 "metadata": {
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
+                    "webhook_secret": secret,
                     "base_url": state["baseApiUrl"],
                     "domain_name": domain,
                     "icon": principal_data["links"]["avatar"]["href"],
