@@ -49,7 +49,7 @@ class UnsupportedFrameFilename(Exception):
 
 def derive_code_mappings(
     organization: Organization,
-    frame: dict[str, Any],
+    frame: Mapping[str, Any],
 ) -> list[dict[str, str]]:
     installation = get_installation(organization)
     if not isinstance(installation, RepoTreesIntegration):
@@ -122,7 +122,7 @@ class FrameFilename:
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
-    def __init__(self, trees: dict[str, RepoTree]):
+    def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
         self.code_mappings: dict[str, CodeMapping] = {}
 
@@ -201,7 +201,7 @@ class CodeMappingTreesHelper:
                 # Any files without a top directory will be grouped together
                 buckets[frame_filename.root].append(frame_filename)
             except UnsupportedFrameFilename:
-                logger.info("Frame's filepath not supported: %s", frame["filename"])
+                logger.info("Frame's filepath not supported: %s", frame.get("filename"))
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
