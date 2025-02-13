@@ -28,6 +28,7 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
+  // @TODO(jonasbadalic): the preferences state here seems related to just the sidebar collapse state
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
