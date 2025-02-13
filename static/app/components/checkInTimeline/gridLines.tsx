@@ -279,7 +279,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
     `}
 `;
 
-const Gridline = styled('div')<{labelPosition: LabelPosition; left: number}>`
+export const Gridline = styled('div')<{labelPosition: LabelPosition; left: number}>`
   position: absolute;
   left: ${p => p.left}px;
   ${p =>
