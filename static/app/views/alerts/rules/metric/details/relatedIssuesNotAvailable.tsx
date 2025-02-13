@@ -19,21 +19,24 @@ export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
  */
 export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
   return (
-    <StyledAlert
-      type="info"
-      showIcon
-      trailingItems={
-        <Feature features="discover-basic">
-          <LinkButton priority="default" size="xs" to={buttonTo}>
-            {buttonText}
-          </LinkButton>
-        </Feature>
-      }
-    >
-      <div data-test-id="loading-error-message">
-        Related Issues unavailable for this alert.
-      </div>
-    </StyledAlert>
+    <Alert.Container>
+      <StyledAlert
+        margin
+        type="info"
+        showIcon
+        trailingItems={
+          <Feature features="discover-basic">
+            <LinkButton priority="default" size="xs" to={buttonTo}>
+              {buttonText}
+            </LinkButton>
+          </Feature>
+        }
+      >
+        <div data-test-id="loading-error-message">
+          Related Issues unavailable for this alert.
+        </div>
+      </StyledAlert>
+    </Alert.Container>
   );
 }
 

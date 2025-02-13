@@ -85,7 +85,7 @@ function SuggestedOwnerHovercard(props: Props) {
             {actor.name || actor.email}
           </HovercardHeader>
           {actor.id === undefined && (
-            <EmailAlert type="warning" showIcon>
+            <EmailAlert margin={false} type="warning" showIcon>
               {tct(
                 'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
                 {

@@ -64,7 +64,7 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
               ) {
                 if (!widgetContainsErrorFields) {
                   return (
-                    <StoredDataAlert type="info" showIcon>
+                    <StoredDataAlert margin={false} type="info" showIcon>
                       {tct(
                         "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                         {
@@ -88,5 +88,4 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
 
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
-  margin-bottom: 0;
 `;

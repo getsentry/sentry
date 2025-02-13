@@ -139,9 +139,9 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <StyledAlert margin={false} type="warning" showIcon>
+          <Alert margin={false} type="warning" showIcon>
             {t('Alert Rule settings have been updated since this alert was triggered.')}
-          </StyledAlert>
+          </Alert>
         </StyledLayoutBody>
       )}
       <Layout.Body>
@@ -283,10 +283,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`

@@ -25,9 +25,9 @@ function NewSecretHandler({
 
   return (
     <div>
-      <StyledAlert type="success" showIcon system>
+      <Alert margin={false} type="success" showIcon system>
         {t('The secret has been posted.')}
-      </StyledAlert>
+      </Alert>
 
       <StyledPanelItem>
         <InputWrapper>
@@ -94,7 +94,4 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1.5)};
 `;
 
-const StyledAlert = styled(Alert)`
-  margin: 0;
-`;
 export default NewSecretHandler;

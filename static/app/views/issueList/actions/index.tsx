@@ -404,7 +404,7 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <StyledAlert type="warning" system>
+        <StyledAlert margin={false} type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
@@ -597,7 +597,6 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
   border-bottom: none;
 `;
 

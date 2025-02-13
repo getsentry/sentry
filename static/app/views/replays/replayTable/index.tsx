@@ -99,7 +99,7 @@ function ReplayTable({
         data-test-id="replay-table"
         gridRows={undefined}
       >
-        <StyledAlert type="error" showIcon>
+        <StyledAlert margin={false} type="error" showIcon>
           {t('Sorry, the list of replays could not be loaded. ')}
           {getErrorMessage(fetchError)}
         </StyledAlert>
@@ -260,7 +260,6 @@ const StyledAlert = styled(Alert)`
   border-radius: 0;
   border-width: 1px 0 0 0;
   grid-column: 1/-1;
-  margin-bottom: 0;
 `;
 
 const Row = styled('div')<{

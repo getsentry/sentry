@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {Alert} from 'sentry/components/alert';
@@ -30,7 +29,7 @@ const getInstallConfig = (params: Params) => [
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (
-          <StyledAlert type="info" showIcon>
+          <Alert margin={false} type="info" showIcon>
             {tct(
               'Make sure that Session Replay is enabled in your [link:project settings].',
               {
@@ -43,7 +42,7 @@ const getInstallConfig = (params: Params) => [
                 ),
               }
             )}
-          </StyledAlert>
+          </Alert>
         ),
       },
     ],
@@ -163,9 +162,5 @@ const replayOnboardingJsLoader: OnboardingConfig = {
   ],
   nextSteps: () => [],
 };
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
-`;
 
 export {feedbackOnboardingJsLoader, replayOnboardingJsLoader};

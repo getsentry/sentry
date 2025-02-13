@@ -81,6 +81,7 @@ export default function AnomalyDetectionFeedbackBanner({
   }
   return (
     <StyledAlert
+      margin={false}
       type="info"
       trailingItems={
         <Fragment>
@@ -113,7 +114,6 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
   padding-top: ${space(3)};
   padding-bottom: ${space(3)};
 `;

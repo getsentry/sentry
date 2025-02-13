@@ -160,7 +160,7 @@ function StacktraceLinkModal({
       <Body>
         <ModalContainer>
           {error && (
-            <StyledAlert type="error" showIcon>
+            <Alert margin={false} type="error" showIcon>
               {error === 'Could not find repo'
                 ? tct(
                     'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
@@ -181,7 +181,7 @@ function StacktraceLinkModal({
                 : error.includes('blank')
                   ? t('URL is required.')
                   : error}
-            </StyledAlert>
+            </Alert>
           )}
           <div>
             {tct(
@@ -306,10 +306,6 @@ const ModalContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledCode = styled('code')`

@@ -76,7 +76,7 @@ export function Setup({
 
   return isVideoReplay ? (
     visibleTab === 'request' || visibleTab === 'response' ? (
-      <StyledAlert margin type="info" showIcon>
+      <StyledAlert margin={false} type="info" showIcon>
         {tct(
           'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
           {
@@ -224,7 +224,6 @@ const NetworkUrlWrapper = styled('div')`
 `;
 
 const NoMarginAlert = styled(Alert)`
-  margin: 0;
   border-width: 1px 0 0 0;
 `;
 

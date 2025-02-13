@@ -428,7 +428,7 @@ function RuleNode({
     if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
-          <MarginlessAlert type="error">
+          <MarginlessAlert margin={false} type="error">
             {tct(
               "This project doesn't support sessions. [link:View supported platforms]",
               {
@@ -442,7 +442,7 @@ function RuleNode({
       }
 
       return (
-        <MarginlessAlert type="warning">
+        <MarginlessAlert margin={false} type="warning">
           {tct(
             'Percent of sessions affected is approximated by the ratio of the issue frequency to the number of sessions in the project. [link:Learn more.]',
             {
@@ -458,6 +458,7 @@ function RuleNode({
     if (data.id === IssueAlertActionType.SLACK) {
       return (
         <MarginlessAlert
+          margin={false}
           type="info"
           showIcon
           trailingItems={
@@ -478,6 +479,7 @@ function RuleNode({
     if (data.id === IssueAlertActionType.DISCORD) {
       return (
         <MarginlessAlert
+          margin={false}
           type="info"
           showIcon
           trailingItems={
@@ -503,7 +505,7 @@ function RuleNode({
       return null;
     }
     return (
-      <MarginlessAlert type="error" showIcon>
+      <MarginlessAlert margin={false} type="error" showIcon>
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}
@@ -632,6 +634,5 @@ const MarginlessAlert = styled(Alert)`
   border-top-right-radius: 0;
   border-width: 0;
   border-top: 1px ${p => p.theme.innerBorder} solid;
-  margin: 0;
   padding: ${space(1)} ${space(1)};
 `;

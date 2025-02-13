@@ -219,11 +219,13 @@ export function ProjectInstallPlatform({
                 return null;
               }
               return (
-                <StyledAlert type="info" showIcon>
-                  {t(
-                    `Your selected platform supports performance, but your organization does not have performance enabled.`
-                  )}
-                </StyledAlert>
+                <Alert.Container>
+                  <StyledAlert margin type="info" showIcon>
+                    {t(
+                      `Your selected platform supports performance, but your organization does not have performance enabled.`
+                    )}
+                  </StyledAlert>
+                </Alert.Container>
               );
             }}
           </Feature>

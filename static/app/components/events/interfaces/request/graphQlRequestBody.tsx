@@ -72,23 +72,26 @@ function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
   }
 
   return (
-    <StyledAlert
-      type="error"
-      showIcon
-      expand={
-        <List symbol="bullet">
-          {errorsWithMessage.map((error, i) => (
-            <li key={i}>{formatErrorAlertMessage(error)}</li>
-          ))}
-        </List>
-      }
-    >
-      {tn(
-        'There was %s GraphQL error raised during this request.',
-        'There were %s errors raised during this request.',
-        errorsWithMessage.length
-      )}
-    </StyledAlert>
+    <Alert.Container>
+      <StyledAlert
+        margin
+        type="error"
+        showIcon
+        expand={
+          <List symbol="bullet">
+            {errorsWithMessage.map((error, i) => (
+              <li key={i}>{formatErrorAlertMessage(error)}</li>
+            ))}
+          </List>
+        }
+      >
+        {tn(
+          'There was %s GraphQL error raised during this request.',
+          'There were %s errors raised during this request.',
+          errorsWithMessage.length
+        )}
+      </StyledAlert>
+    </Alert.Container>
   );
 }
 

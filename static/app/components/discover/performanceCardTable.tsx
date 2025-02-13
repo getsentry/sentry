@@ -671,7 +671,7 @@ function PerformanceCardTable({
         {platformPerformanceRender[performanceType]?.title}
       </HeadCellContainer>
       {isUnknownPlatform && (
-        <StyledAlert type="warning" showIcon system>
+        <StyledAlert margin={false} type="warning" showIcon system>
           {tct(
             'For more performance metrics, specify which platform this project is using in [link]',
             {
@@ -830,7 +830,6 @@ const StyledAlert = styled(Alert)`
   border-top: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
-  margin-bottom: 0;
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

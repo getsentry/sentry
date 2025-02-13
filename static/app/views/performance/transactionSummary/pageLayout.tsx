@@ -339,7 +339,6 @@ export function NoAccess() {
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
-  margin: 0;
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`

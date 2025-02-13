@@ -1311,7 +1311,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <StyledAlert margin={false} type="error">
+                              <Alert margin={false} type="error">
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1323,7 +1323,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                                     </ExternalLink>
                                   </Fragment>
                                 )}
-                              </StyledAlert>
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleConditions}
@@ -1398,9 +1398,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <StyledAlert margin={false} type="error">
+                              <Alert margin={false} type="error">
                                 {detailedError?.filters![0]}
-                              </StyledAlert>
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
@@ -1447,9 +1447,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <StyledAlert margin={false} type="error">
+                              <Alert margin={false} type="error">
                                 {detailedError?.actions![0]}
-                              </StyledAlert>
+                              </Alert>
                             )
                           }
                           additionalAction={{
@@ -1620,10 +1620,6 @@ const StyledForm = styled(Form)<FormProps>`
 const ConditionsPanel = styled(Panel)`
   padding-top: ${space(0.5)};
   padding-bottom: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledListItem = styled(ListItem)`
