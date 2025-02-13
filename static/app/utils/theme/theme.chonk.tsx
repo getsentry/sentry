@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import color from 'color';
 
 import commonTheme, {
@@ -11,7 +12,6 @@ import commonTheme, {
   generateThemePrismVariables,
   generateThemeUtils,
   lightTheme,
-  type SentryTheme,
 } from 'sentry/utils/theme';
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
