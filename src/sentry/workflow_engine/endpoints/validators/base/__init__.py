@@ -1,11 +1,16 @@
 __all__ = [
     "BaseDataConditionValidator",
+    "BaseDataConditionGroupValidator",
     "BaseDataSourceValidator",
-    "BaseGroupTypeDetectorValidator",
+    "BaseDetectorTypeValidator",
     "DataSourceCreator",
     "NumericComparisonConditionValidator",
 ]
 
-from .data_condition import BaseDataConditionValidator, NumericComparisonConditionValidator
+from .data_condition import (
+    BaseDataConditionGroupValidator,
+    BaseDataConditionValidator,
+    NumericComparisonConditionValidator,
+)
 from .data_source import BaseDataSourceValidator, DataSourceCreator
-from .detector import BaseGroupTypeDetectorValidator
+from .detector import BaseDetectorTypeValidator

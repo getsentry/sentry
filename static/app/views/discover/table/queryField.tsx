@@ -1,10 +1,10 @@
 import {Component, createRef} from 'react';
-import type {SingleValueProps} from 'react-select';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import Tag from 'sentry/components/badge/tag';
+import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {InputProps} from 'sentry/components/input';

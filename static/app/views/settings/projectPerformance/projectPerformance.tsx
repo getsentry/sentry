@@ -7,7 +7,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
@@ -33,7 +33,7 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 // These labels need to be exported so that they can be used in audit logs
 export const retentionPrioritiesLabels = {
@@ -874,7 +874,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
       <Fragment>
         <SentryDocumentTitle title={t('Performance')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
             <Feature features="organizations:insights-initial-modules">

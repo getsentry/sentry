@@ -32,6 +32,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
@@ -94,6 +95,7 @@ function FrontendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
@@ -122,6 +124,8 @@ function FrontendOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
+  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
+  existingQuery.addOp('(');
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
@@ -131,6 +135,8 @@ function FrontendOverviewPage() {
       `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
     );
   }
+  existingQuery.addOp(')');
+  existingQuery.addFilterValues('!transaction.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -212,7 +218,7 @@ function FrontendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}

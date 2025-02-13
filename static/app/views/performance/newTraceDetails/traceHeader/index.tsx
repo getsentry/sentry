@@ -38,7 +38,7 @@ import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 
-interface TraceMetadataHeaderProps {
+export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -203,7 +203,7 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
           <DiscoverButton
             size="sm"
             to={props.traceEventView.getResultsViewUrlTarget(
-              props.organization.slug,
+              props.organization,
               false,
               hasDatasetSelector(props.organization)
                 ? SavedQueryDatasets.TRANSACTIONS

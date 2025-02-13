@@ -6,7 +6,6 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from enum import Enum, auto
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -98,19 +97,13 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
 WINDOWED_STATS_DATA_POINTS = 200
-
-
-class NotSet(Enum):
-    TOKEN = auto()
-
-
-NOT_SET = NotSet.TOKEN
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
@@ -1726,6 +1719,12 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
 EAP_COLUMNS = [
     "span.duration",
     "span.self_time",
+    "ai.total_tokens.used",
+    "ai.total_cost",
+    "cache.item_size",
+    "http.decoded_response_content_length",
+    "http.response_content_length",
+    "http.response_transfer_size",
 ]
 EAP_FUNCTIONS = [
     "count",
@@ -1738,6 +1737,7 @@ EAP_FUNCTIONS = [
     "p100",
     "max",
     "min",
+    "sum",
 ]
 
 

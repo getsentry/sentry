@@ -21,11 +21,15 @@ from sentry.lang.native.sources import (
     get_scraping_config,
     sources_for_symbolication,
 )
+from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
+
+BACKOFF_INITIAL = 0.1
+BACKOFF_MAX = 5
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +115,8 @@ class Symbolicator:
         task_id: str | None = None
         json_response = None
 
+        backoff = Backoff(BACKOFF_INITIAL, BACKOFF_MAX)
+
         with session:
             while True:
                 try:
@@ -128,6 +134,7 @@ class Symbolicator:
                     # in a staggered fashion, we do not want to create a new `session`, being assigned a different
                     # Symbolicator instance just to it restarted next.
                     task_id = None
+                    backoff.reset()
                     continue
                 except ServiceUnavailable:
                     # This error means that the Symbolicator instance bound to our `session` is not healthy.
@@ -135,10 +142,13 @@ class Symbolicator:
                     # Symbolicator instance.
                     session.reset_worker_id()
                     task_id = None
+                    # Backoff on repeated failures to create or query a task.
+                    backoff.sleep_failure()
                     continue
                 finally:
                     self.on_request()
 
+                backoff.reset()
                 metrics.incr(
                     "events.symbolicator.response",
                     tags={

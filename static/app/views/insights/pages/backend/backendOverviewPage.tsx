@@ -33,7 +33,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {
+  BACKEND_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {
   FRONTEND_PLATFORMS,
@@ -100,6 +103,7 @@ function BackendOverviewPage() {
     withStaticFilters,
     organization
   );
+  const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -138,6 +142,7 @@ function BackendOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addOp('(');
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
@@ -149,6 +154,9 @@ function BackendOverviewPage() {
       ]}]`
     );
   }
+  existingQuery.addOp(')');
+  existingQuery.addOp('OR');
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
 
   eventView.query = existingQuery.formatString();
 
@@ -236,7 +244,7 @@ function BackendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={eventView}
+                    eventView={searchBarEventView}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}

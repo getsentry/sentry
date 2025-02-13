@@ -46,7 +46,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     !issueTypeConfig.pages.replays.enabled;
 
   const discoverUrl = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
@@ -212,7 +212,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 {t('All Open Periods')}
               </LinkButton>
             )}
-            {issueTypeConfig.pages.checkIns.enabled && (
+            {issueTypeConfig.pages.uptimeChecks.enabled && (
               <LinkButton
                 to={{
                   pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,

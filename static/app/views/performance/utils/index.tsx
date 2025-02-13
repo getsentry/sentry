@@ -78,7 +78,7 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
     props.location
   ).withSorts([{field: 'epm', kind: 'desc'}]);
   const target = discoverEventView.getResultsViewUrlTarget(
-    props.organization.slug,
+    props.organization,
     false,
     hasDatasetSelector(props.organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );

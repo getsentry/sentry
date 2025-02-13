@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -22,6 +21,7 @@ import {
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
@@ -115,7 +115,6 @@ type Props = {
   disableProjectSelector?: boolean;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
-  isForLlmMetric?: boolean;
   isLowConfidenceChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
@@ -482,15 +481,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {
-      organization,
-      timeWindow,
-      disabled,
-      alertType,
-      project,
-      isForLlmMetric,
-      onTimeWindowChange,
-    } = this.props;
+    const {organization, timeWindow, disabled, alertType, project, onTimeWindowChange} =
+      this.props;
 
     return (
       <Fragment>
@@ -500,24 +492,22 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {isForLlmMetric ? null : (
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              project={project}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            project={project}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+          />
           <SelectControl
             name="timeWindow"
             styles={this.selectControlStyles}

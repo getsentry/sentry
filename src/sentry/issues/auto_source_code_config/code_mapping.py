@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from typing import NamedTuple
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
+    RepoTreesIntegration,
     get_extension,
 )
 from sentry.models.organization import Organization
@@ -49,7 +51,9 @@ def derive_code_mappings(
     stacktrace_filename: str,
 ) -> list[dict[str, str]]:
     installation = get_installation(organization)
-    trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
+    if not isinstance(installation, RepoTreesIntegration):
+        return []
+    trees = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     frame_filename = FrameFilename(stacktrace_filename)
     return trees_helper.list_file_matches(frame_filename)
@@ -185,17 +189,12 @@ class CodeMappingTreesHelper:
 
     def _stacktrace_buckets(self, stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
         """Groups stacktraces into buckets based on the root of the stacktrace path"""
-        buckets: dict[str, list[FrameFilename]] = {}
+        buckets: defaultdict[str, list[FrameFilename]] = defaultdict(list)
         for stacktrace_frame_file_path in stacktraces:
             try:
                 frame_filename = FrameFilename(stacktrace_frame_file_path)
                 # Any files without a top directory will be grouped together
-                bucket_key = frame_filename.root
-
-                if not buckets.get(bucket_key):
-                    buckets[bucket_key] = []
-                buckets[bucket_key].append(frame_filename)
-
+                buckets[frame_filename.root].append(frame_filename)
             except UnsupportedFrameFilename:
                 logger.info("Frame's filepath not supported: %s", stacktrace_frame_file_path)
             except Exception:

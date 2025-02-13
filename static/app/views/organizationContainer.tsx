@@ -9,8 +9,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 
-import {useEnsureOrganization} from './organizationContext';
-
 interface Props {
   children: JSX.Element;
 }
@@ -21,7 +19,6 @@ interface Props {
  */
 function OrganizationContainer({children}: Props) {
   const {loading, error, errorType} = useLegacyStore(OrganizationStore);
-  useEnsureOrganization();
 
   if (loading) {
     return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;

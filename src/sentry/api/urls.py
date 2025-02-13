@@ -514,7 +514,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
     OrganizationOnDemandMetricsEstimationStatsEndpoint,
@@ -563,6 +562,7 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )
+from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
 from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
@@ -1442,6 +1442,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-spans-fields-values",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/stats/$",
+        OrganizationSpansFieldsStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields-stats",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-estimation-stats/$",
         OrganizationOnDemandMetricsEstimationStatsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-estimation-stats",
@@ -2086,11 +2091,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
         OrganizationMetricsTagsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tags",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
-        OrganizationMetricsTagDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-tag-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",

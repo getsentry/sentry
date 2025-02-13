@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
+    from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.workflow_engine.models import Action, Detector, Workflow
@@ -46,7 +47,6 @@ class WorkflowJob(EventJob, total=False):
     has_alert: bool
     has_escalated: bool
     workflow: Workflow
-    snuba_results: list[int]  # TODO - @saponifi3 / TODO(cathy): audit this
 
 
 class ActionHandler:
@@ -58,6 +58,10 @@ class ActionHandler:
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+        raise NotImplementedError
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
         raise NotImplementedError
 
 
