@@ -5,7 +5,12 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.testutils.helpers.data_blobs import GITHUB_ACTION_DATA_BLOBS
+from sentry.testutils.helpers.data_blobs import (
+    AZURE_DEVOPS_ACTION_DATA_BLOBS,
+    GITHUB_ACTION_DATA_BLOBS,
+    JIRA_ACTION_DATA_BLOBS,
+    JIRA_SERVER_ACTION_DATA_BLOBS,
+)
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     BaseIssueAlertHandler,
     DiscordIssueAlertHandler,
@@ -334,26 +339,46 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
         }
 
 
-class TestGithubIssueAlertHandler(BaseWorkflowTest):
+class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
     def setUp(self):
         super().setUp()
         self.handler = TicketingIssueAlertHandler()
 
+    def _test_build_rule_action_blob(self, expected, action_type: Action.Type):
+        action_data = pop_keys_from_data_blob(expected, action_type)
+        action = self.create_action(
+            type=action_type,
+            integration_id=expected["integration"],
+            data=action_data,
+        )
+        blob = self.handler.build_rule_action_blob(action)
+
+        assert blob == {
+            "id": expected["id"],
+            "integration": expected["integration"],
+            **blob,
+        }
+
+
+class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
     def test_build_rule_action_blob(self):
-        """Test that build_rule_action_blob creates correct Github action data"""
         for expected in GITHUB_ACTION_DATA_BLOBS:
-            action_data = pop_keys_from_data_blob(expected, Action.Type.GITHUB)
+            self._test_build_rule_action_blob(expected, Action.Type.GITHUB)
 
-            action = self.create_action(
-                type=Action.Type.GITHUB,
-                integration_id=expected["integration"],
-                data=action_data,
-            )
 
-            blob = self.handler.build_rule_action_blob(action)
+class TestAzureDevopsIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def test_build_rule_action_blob(self):
+        for expected in AZURE_DEVOPS_ACTION_DATA_BLOBS:
+            self._test_build_rule_action_blob(expected, Action.Type.AZURE_DEVOPS)
 
-            assert blob == {
-                "id": expected["id"],
-                "integration": expected["integration"],
-                **blob,
-            }
+
+class TestJiraIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def test_build_rule_action_blob(self):
+        for expected in JIRA_ACTION_DATA_BLOBS:
+            self._test_build_rule_action_blob(expected, Action.Type.JIRA)
+
+
+class TestJiraServerIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def test_build_rule_action_blob(self):
+        for expected in JIRA_SERVER_ACTION_DATA_BLOBS:
+            self._test_build_rule_action_blob(expected, Action.Type.JIRA_SERVER)

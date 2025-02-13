@@ -180,7 +180,7 @@ class BaseIssueAlertHandler(ABC):
             cls.execute_futures(job, futures)
 
 
-issue_alert_handler_registry = Registry[BaseIssueAlertHandler]()
+issue_alert_handler_registry = Registry[BaseIssueAlertHandler](enable_reverse_lookup=False)
 
 
 @issue_alert_handler_registry.register(Action.Type.DISCORD)
@@ -236,6 +236,10 @@ class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
 
 
 @issue_alert_handler_registry.register(Action.Type.GITHUB)
+@issue_alert_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
+@issue_alert_handler_registry.register(Action.Type.AZURE_DEVOPS)
+@issue_alert_handler_registry.register(Action.Type.JIRA)
+@issue_alert_handler_registry.register(Action.Type.JIRA_SERVER)
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
