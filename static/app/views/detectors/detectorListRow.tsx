@@ -147,7 +147,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 0.75fr;
+    grid-template-columns: 2.5fr 1fr 0.75fr 1fr;
 
     .connected-automations {
       display: flex;
