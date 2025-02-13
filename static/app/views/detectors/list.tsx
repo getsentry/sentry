@@ -11,101 +11,10 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/views/detectors/detectorListRow';
 import DetectorListTable from 'sentry/views/detectors/detectorListTable';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-
-  const detectors: Detector[] = [
-    {
-      automations: [
-        {
-          name: '/endpoint',
-          project: {slug: 'javascript', platform: 'javascript'},
-          description: 'transaction.duration',
-          link: 'monitors/def456',
-        },
-        {
-          name: '/checkout',
-          project: {slug: 'javascript', platform: 'javascript'},
-          description: 'transaction.duration',
-          link: 'monitors/ghi789',
-        },
-      ],
-      groups: [
-        {
-          shortId: 'abc123',
-          project: {
-            platform: 'javascript',
-          },
-          lastSeen: new Date().toString(),
-        },
-      ],
-      id: '123',
-      link: 'hello.com',
-      name: 'Sample Detector 1',
-      project: {
-        slug: 'javascript',
-        platform: 'javascript',
-      },
-      details: ['transaction.duration'],
-    },
-    {
-      automations: [],
-      groups: [
-        {
-          shortId: 'def123',
-          project: {
-            platform: 'android',
-          },
-          lastSeen: new Date().toString(),
-        },
-      ],
-      id: '456',
-      link: 'hello.com',
-      name: 'Sample Detector 2',
-      project: {
-        slug: 'android',
-        platform: 'android',
-      },
-      details: ['transaction.duration'],
-    },
-    {
-      automations: [
-        {
-          name: '/endpoint',
-          project: {slug: 'javascript', platform: 'javascript'},
-          description: 'transaction.duration',
-          link: 'monitors/def456',
-        },
-        {
-          name: '/checkout',
-          project: {slug: 'javascript', platform: 'javascript'},
-          description: 'transaction.duration',
-          link: 'monitors/ghi789',
-        },
-      ],
-      groups: [
-        {
-          shortId: 'rip',
-          project: {
-            platform: 'android',
-          },
-          lastSeen: new Date().toString(),
-        },
-      ],
-      id: '789',
-      link: 'hello.com',
-      name: 'Sample Detector 3',
-      project: {
-        slug: 'android',
-        platform: 'android',
-      },
-      details: ['transaction.duration'],
-      disabled: true,
-    },
-  ];
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -119,7 +28,7 @@ export default function DetectorsList() {
                 <SearchBar placeholder={t('Search by name')} />
               </div>
             </Flex>
-            <DetectorListTable detectors={detectors} />
+            <DetectorListTable detectors={[]} />
           </Flex>
         </ListLayout>
       </ActionsProvider>
