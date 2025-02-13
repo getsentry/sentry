@@ -238,7 +238,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
-  avatars?: SentryAppAvatar[];
+  avatars?: Avatar[];
   clientId?: string;
   clientSecret?: string;
   // optional params below
@@ -254,7 +254,7 @@ export type AvatarSentryApp = {
   name: string;
   slug: string;
   uuid: string;
-  avatars?: SentryAppAvatar[];
+  avatars?: Avatar[];
 };
 
 export type SentryAppInstallation = {
@@ -277,7 +277,7 @@ export type SentryAppComponent<
 > = {
   schema: Schema;
   sentryApp: {
-    avatars: SentryAppAvatar[];
+    avatars: Avatar[];
     name: string;
     slug: string;
     uuid: string;
@@ -288,7 +288,7 @@ export type SentryAppComponent<
 };
 
 export type SentryAppAvatar = Avatar & {
-  photo_type: SentryAppAvatarPhotoType;
+  photoType: SentryAppAvatarPhotoType;
 };
 
 export enum SentryAppAvatarPhotoType {

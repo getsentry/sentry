@@ -26,11 +26,11 @@ const hasInvalidStatus = (app: SentryApp): boolean => {
 
 const hasUploadedSentryAppPhoto = (
   avatars: SentryAppAvatar[] | undefined,
-  photo_type: SentryAppAvatarPhotoType
+  photoType: SentryAppAvatarPhotoType
 ): boolean => {
   return avatars
     ? avatars.some(
-        avatar => avatar.avatarType === 'upload' && avatar.photo_type === photo_type
+        avatar => avatar.avatarType === 'upload' && avatar.photoType === photoType
       )
     : false;
 };
@@ -67,12 +67,18 @@ function SentryApplicationRowButtons({
         } else if (hasInvalidStatus(app)) {
           disablePublishReason = t('Only unpublished integrations can be published');
         } else if (
-          !hasUploadedSentryAppPhoto(app.avatars, SentryAppAvatarPhotoType.LOGO)
+          !hasUploadedSentryAppPhoto(
+            app.avatars as SentryAppAvatar[],
+            SentryAppAvatarPhotoType.LOGO
+          )
         ) {
           disablePublishReason = t('A logo is required to publish an integration');
         } else if (
           hasUIComponent(app.schema.elements) &&
-          !hasUploadedSentryAppPhoto(app.avatars, SentryAppAvatarPhotoType.ICON)
+          !hasUploadedSentryAppPhoto(
+            app.avatars as SentryAppAvatar[],
+            SentryAppAvatarPhotoType.ICON
+          )
         ) {
           disablePublishReason = t('Integrations with a UI component must have an icon');
         }
