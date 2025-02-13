@@ -25,7 +25,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+pytestmark = requires_snuba
 
 
 @pytest.mark.snuba_ci
