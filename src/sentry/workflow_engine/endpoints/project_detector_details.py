@@ -21,7 +21,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
 from sentry.models.project import Project
-from sentry.workflow_engine.endpoints.project_detector_index import get_validator
+from sentry.workflow_engine.endpoints.project_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
 
@@ -106,7 +106,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         Update an existing detector for a project.
         """
         group_type = request.data.get("detector_type") or detector.group_type.slug
-        validator = get_validator(request, project, group_type, detector)
+        validator = get_detector_validator(request, project, group_type, detector)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 

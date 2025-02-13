@@ -76,43 +76,42 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
                 )
         return data_condition_group
 
-    def update_data_sources(self, instance, data_sources):
-        for source in data_sources:
+    def update_data_source(self, instance, data_source):
+        try:
+            source_instance = DataSource.objects.get(detector=instance)
+        except DataSource.DoesNotExist:
+            return
+        if source_instance:
             try:
-                source_instance = DataSource.objects.get(detector=instance)
-            except DataSource.DoesNotExist:
-                continue
-            if source_instance:
-                try:
-                    snuba_query = SnubaQuery.objects.get(id=source_instance.source_id)
-                except SnubaQuery.DoesNotExist:
-                    raise serializers.ValidationError("SnubaQuery not found, can't update")
+                snuba_query = SnubaQuery.objects.get(id=source_instance.source_id)
+            except SnubaQuery.DoesNotExist:
+                raise serializers.ValidationError("SnubaQuery not found, can't update")
 
-            event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
-            update_snuba_query(
-                snuba_query=snuba_query,
-                query_type=source.get("query_type", snuba_query.type),
-                dataset=source.get("dataset", snuba_query.dataset),
-                query=source.get("query", snuba_query.query),
-                aggregate=source.get("aggregate", snuba_query.aggregate),
-                time_window=timedelta(minutes=source.get("time_window", snuba_query.time_window)),
-                resolution=timedelta(seconds=source.get("resolution", snuba_query.resolution)),
-                environment=source.get("environment", snuba_query.environment),
-                event_types=source.get("event_types", [event_types]),
-            )
+        event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+        update_snuba_query(
+            snuba_query=snuba_query,
+            query_type=data_source.get("query_type", snuba_query.type),
+            dataset=data_source.get("dataset", snuba_query.dataset),
+            query=data_source.get("query", snuba_query.query),
+            aggregate=data_source.get("aggregate", snuba_query.aggregate),
+            time_window=timedelta(minutes=data_source.get("time_window", snuba_query.time_window)),
+            resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
+            environment=data_source.get("environment", snuba_query.environment),
+            event_types=data_source.get("event_types", [event_types]),
+        )
 
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
-        instance.type = validated_data.get("detector_type", instance.group_type.slug)
+        instance.type = validated_data.get("detector_type", instance.group_type).slug
         condition_group = validated_data.pop("condition_group")
         data_conditions = condition_group.get("conditions")
 
         if data_conditions:
             self.update_data_conditions(instance, data_conditions)
 
-        data_sources = validated_data.pop("data_sources")
-        if data_sources:
-            self.update_data_sources(instance, data_sources)
+        data_source = validated_data.pop("data_source")
+        if data_source:
+            self.update_data_source(instance, data_source)
 
         instance.save()
         return instance
