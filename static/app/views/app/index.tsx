@@ -74,19 +74,6 @@ function App({children, params}: Props) {
     []
   );
 
-  // Theme toggle global shortcut
-  useHotkeys(
-    [
-      {
-        match: ['command+shift+l', 'ctrl+shift+l'],
-        includeInputs: true,
-        callback: () =>
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
-      },
-    ],
-    [config.theme]
-  );
-
   /**
    * Loads the users organization list into the OrganizationsStore
    */
