@@ -48,7 +48,6 @@ from sentry.snuba.metrics.utils import (
     OP_REGEX,
     MetricEntity,
     MetricOperationType,
-    MetricUnit,
 )
 
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
@@ -274,8 +273,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+        return format_value_using_unit_and_op(
+            float(value), parsed_mri_field.mri.unit, parsed_mri_field.op
+        )
 
     except InvalidParams:
         return value

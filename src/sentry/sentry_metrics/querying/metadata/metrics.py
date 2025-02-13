@@ -7,7 +7,7 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, get_available_operations
-from sentry.snuba.metrics.utils import MetricMeta, MetricType, MetricUnit
+from sentry.snuba.metrics.utils import MetricMeta, MetricType
 from sentry.snuba.metrics_layer.query import fetch_metric_mris
 
 
@@ -75,7 +75,7 @@ def _build_metric_meta(
     return MetricMeta(
         type=cast(MetricType, parsed_mri.entity),
         name=parsed_mri.name,
-        unit=cast(MetricUnit, parsed_mri.unit),
+        unit=parsed_mri.unit,
         mri=parsed_mri.mri_string,
         operations=available_operations,
         projectIds=project_ids,
