@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
@@ -70,6 +71,7 @@ export default function MetricDetailsBody({
   router,
   anomalies,
 }: MetricDetailsBodyProps) {
+  const theme = useTheme();
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
@@ -219,6 +221,7 @@ export default function MetricDetailsBody({
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter(rule)}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
+            theme={theme}
           />
           <DetailWrapper>
             <ActivityWrapper>
