@@ -92,6 +92,10 @@ const restrictedImportPaths = [
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
   },
   {
+    name: 'react-select',
+    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+  },
+  {
     name: 'sentry/utils/withSentryRouter',
     message:
       "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
@@ -107,7 +111,7 @@ const restrictedImportPaths = [
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
-const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
+const ecmaVersion = 'latest';
 
 export default typescript.config([
   {
@@ -372,11 +376,11 @@ export default typescript.config([
         'error',
         {
           types: {
-            // TODO(scttcper): Turn object on to make our types more strict
-            // object: {
-            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-            //   fixWith: 'Record<string, unknown>'
-            // },
+            object: {
+              message:
+                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+              fixWith: 'Record<PropertyKey, unknown>',
+            },
             Buffer: {
               message:
                 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',

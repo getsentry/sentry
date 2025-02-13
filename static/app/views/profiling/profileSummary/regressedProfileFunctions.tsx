@@ -275,7 +275,7 @@ function RegressedFunctionDifferentialFlamegraph(
   }, [props.organization]);
 
   const differentialFlamegraphLink = generateProfileDifferentialFlamegraphRouteWithQuery({
-    orgSlug: props.organization.slug,
+    organization: props.organization,
     projectSlug: props.project?.slug ?? '',
     transaction: props.transaction,
     fingerprint: props.fn.fingerprint,
@@ -332,7 +332,7 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: example,
           // specify the frame to focus, the flamegraph will switch
@@ -354,7 +354,7 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: props.before,
           // specify the frame to focus, the flamegraph will switch
@@ -376,7 +376,7 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: props.after,
           // specify the frame to focus, the flamegraph will switch

@@ -14,7 +14,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {type DataCategory, Outcome} from 'sentry/types/core';
 
-const generateAliases = (colors: Colors) => ({
+export const generateThemeAliases = (colors: Colors) => ({
   /**
    * Heading text color
    */
@@ -247,7 +247,7 @@ type AlertColors = {
   };
 };
 
-const generateUtils = (colors: Colors, aliases: Aliases) => ({
+export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: `underline dotted ${
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -275,7 +275,7 @@ const generateUtils = (colors: Colors, aliases: Aliases) => ({
   `,
 });
 
-const generatePrismVariables = (
+export const generateThemePrismVariables = (
   prismColors: typeof prismLight,
   blockBackground: string
 ) =>
@@ -286,7 +286,7 @@ const generatePrismVariables = (
     ...prismColors,
   });
 
-const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
+export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
   default: {
     color: alias.textColor,
     colorActive: alias.textColor,
@@ -344,7 +344,7 @@ const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColors => ({
   },
 });
 
-const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
+export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   muted: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
@@ -383,7 +383,7 @@ const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (colors: Colors): LevelColors => ({
+export const generateLevelTheme = (colors: Colors): LevelColors => ({
   sample: colors.purple300,
   info: colors.blue300,
   warning: colors.yellow300,
@@ -396,7 +396,7 @@ const generateLevelTheme = (colors: Colors): LevelColors => ({
   unknown: colors.gray200,
 });
 
-const generateBadgeTheme = (colors: Colors): BadgeColors => ({
+export const generateBadgeTheme = (colors: Colors): BadgeColors => ({
   default: {
     background: colors.gray100,
     indicatorColor: colors.gray100,
@@ -439,7 +439,7 @@ const generateBadgeTheme = (colors: Colors): BadgeColors => ({
   },
 });
 
-const generateTagTheme = (colors: Colors): TagColors => ({
+export const generateTagTheme = (colors: Colors): TagColors => ({
   default: {
     background: colors.surface400,
     border: colors.translucentGray200,
@@ -649,7 +649,7 @@ const darkColors: Colors = {
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
-  gray300: '#998DA5',
+  gray300: '#A398AE',
   gray200: '#393041',
   gray100: '#302735',
 
@@ -735,16 +735,6 @@ const darkShadows = {
   dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
-
-/**
- * Background used in the theme-color meta tag
- * The colors below are an approximation of the colors used in the sidebar (sidebarGradient).
- * Unfortunately the exact colors cannot be used, as the theme-color tag does not support linear-gradient()
- */
-const sidebarBackground = {
-  light: '#2f1937',
-  dark: '#181622',
 };
 
 type Badge =
@@ -979,7 +969,6 @@ const outcome: OutcomeColors = {
  * Values shared between light and dark theme
  */
 const commonTheme = {
-  isChonk: false,
   breakpoints,
 
   ...lightColors,
@@ -1069,21 +1058,6 @@ const commonTheme = {
   fontWeightNormal: 400,
   fontWeightBold: 600,
 
-  // @TOOD(jonasbadalic) This should exist on sidebar component
-  sidebar: {
-    boxShadow: '0 3px 3px #2f2936',
-    color: '#9586a5',
-    divider: '#493e54',
-    badgeSize: '22px',
-    smallBadgeSize: '11px',
-    collapsedWidth: '70px',
-    semiCollapsedWidth: '100px',
-    expandedWidth: '220px',
-    mobileHeightNumber: 54,
-    mobileHeight: '54px',
-    menuSpacing: '15px',
-  },
-
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",
     familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
@@ -1121,26 +1095,14 @@ const commonTheme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
   },
-
-  diff: {
-    removedRow: 'hsl(358deg 89% 65% / 15%)',
-    removed: 'hsl(358deg 89% 65% / 30%)',
-    addedRow: 'hsl(100deg 100% 87% / 18%)',
-    added: 'hsl(166deg 58% 47% / 32%)',
-  },
-
-  // Similarity spectrum used in "Similar Issues" in group details
-  similarity: {
-    empty: '#e2dee6',
-    colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'] as const,
-  },
 };
 
 // Light and dark theme definitions
-const lightAliases = generateAliases(lightColors);
-const darkAliases = generateAliases(darkColors);
+const lightAliases = generateThemeAliases(lightColors);
+const darkAliases = generateThemeAliases(darkColors);
 
 export const lightTheme = {
+  isChonk: false,
   ...commonTheme,
   ...lightColors,
   ...lightAliases,
@@ -1149,7 +1111,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
-  ...generateUtils(lightColors, lightAliases),
+  ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -1157,21 +1119,27 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
-  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
+  prismVariables: generateThemePrismVariables(
+    prismLight,
+    lightAliases.backgroundSecondary
+  ),
+  prismDarkVariables: generateThemePrismVariables(
+    prismDark,
+    darkAliases.backgroundElevated
+  ),
   sidebar: {
-    ...commonTheme.sidebar,
-    background: sidebarBackground.light,
-    scrollbarWidth: 'thin',
+    // @TODO(jonasbadalic) What are these colors and where do they come from?
+    background: '#2f1937',
     scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: `linear-gradient(294.17deg, #2f1937 35.57%,#452650 92.42%,#452650 92.42%)`,
+    border: 'transparent',
+    superuser: '#880808',
   },
-  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
-  sidebarBorder: 'transparent',
-  superuserSidebar: '#880808',
 };
 
-export const darkTheme = {
+export const darkTheme: typeof lightTheme = {
+  isChonk: false,
   ...commonTheme,
   ...darkColors,
   ...darkAliases,
@@ -1180,42 +1148,49 @@ export const darkTheme = {
     ...lightColors,
     ...lightAliases,
   },
-  ...generateUtils(darkColors, lightAliases),
+  ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
-  prismVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
-  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismDarkVariables: generateThemePrismVariables(
+    prismDark,
+    darkAliases.backgroundSecondary
+  ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
   sidebar: {
-    ...commonTheme.sidebar,
-    background: sidebarBackground.dark,
-    scrollbarWidth: 'thin',
+    // @TODO(jonasbadalic) What are these colors and where do they come from?
+    background: '#181622',
     scrollbarThumbColor: '#808080',
     scrollbarColorTrack: '#1B1825', // end of the gradient which is used for background
+    gradient: `linear-gradient(180deg, #181622 0%, #1B1825 100%)`,
+    border: darkAliases.border,
+    superuser: '#620808',
   },
-  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
-  sidebarBorder: darkAliases.border,
-  superuserSidebar: '#620808',
-} satisfies SentryTheme;
+};
 
-// Theme type exports
-type SentryTheme = typeof lightTheme;
-
+export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
 export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 
-export default commonTheme;
+/**
+ * Do not import theme values directly as they only define light color theme.
+ * Consuming it directly means that you won't get the correct colors in dark mode.
+ * @deprecated use useTheme hook instead.
+ */
+const commonThemeExport = {...commonTheme};
+export default commonThemeExport;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
   // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
+  type SentryTheme = typeof lightTheme;
   export interface Theme extends SentryTheme {}
 }

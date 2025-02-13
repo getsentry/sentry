@@ -21,12 +21,14 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
 
+from .constants import DRY_RUN_PLATFORMS
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
     get_installation,
 )
 from .stacktraces import identify_stacktrace_paths
+from .utils import supported_platform
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_event(project_id: int, group_id: int, event_id: str) -> None:
+def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMapping]:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -60,24 +62,27 @@ def process_event(project_id: int, group_id: int, event_id: str) -> None:
     event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
-        return
+        return []
+
+    if not supported_platform(event.platform):
+        return []
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
-        return
+        return []
 
+    code_mappings = []
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-        set_project_codemappings(code_mappings, installation, project)
-    except InstallationNotFoundError:
-        logger.info("No installation or organization integration found.", extra=extra)
-        return
-    except InstallationCannotGetTreesError:
-        logger.info("Installation does not have required method get_trees_for_org", extra=extra)
-        return
+        if event.platform not in DRY_RUN_PLATFORMS:
+            set_project_codemappings(code_mappings, installation, project)
+    except (InstallationNotFoundError, InstallationCannotGetTreesError):
+        pass
+
+    return code_mappings
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -125,18 +130,14 @@ def get_trees_for_org(
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
     if not hasattr(installation, "get_trees_for_org"):
-        # XXX: We should not get to this point, thus, report it as an error
-        logger.error(
-            "Installation does not have required method get_trees_for_org",
-            extra={"installation_type": type(installation).__name__, **extra},
-        )
         return trees
 
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
     with SCMIntegrationInteractionEvent(
-        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS, provider_key=installation.model.provider
+        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+        provider_key=installation.model.provider,
     ).capture() as lifecycle:
         try:
             with lock.acquire():
@@ -147,7 +148,6 @@ def get_trees_for_org(
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
         except UnableToAcquireLock as error:
-            extra["error"] = str(error)
             lifecycle.record_halt(error, extra)
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)

@@ -48,7 +48,6 @@ from sentry.snuba.metrics.utils import (
     OP_REGEX,
     MetricEntity,
     MetricOperationType,
-    MetricUnit,
 )
 
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
@@ -246,7 +245,7 @@ def format_mri_field(field: str) -> str:
     """
     Format a metric field to be used in a metric expression.
 
-    For example, if the field is `avg(c:custom/foo@none)`, it will be returned as `avg(foo)`.
+    For example, if the field is `avg(c:transactions/foo@none)`, it will be returned as `avg(foo)`.
     """
     try:
         parsed = parse_mri_field(field)
@@ -265,7 +264,7 @@ def format_mri_field_value(field: str, value: str) -> str:
     """
     Formats MRI field value to a human-readable format using unit.
 
-    For example, if the value of avg(c:custom/duration@second) is 60,
+    For example, if the value of avg(c:transactions/duration@second) is 60,
     it will be returned as 1 minute.
 
     """
@@ -274,8 +273,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+        return format_value_using_unit_and_op(
+            float(value), parsed_mri_field.mri.unit, parsed_mri_field.op
+        )
 
     except InvalidParams:
         return value

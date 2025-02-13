@@ -502,7 +502,7 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
   });
 
-  it('disables the aggregate selection when there is only one aggregate option', async () => {
+  it('disables the aggregate selection for issue widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -632,9 +632,9 @@ describe('Visualize', () => {
     expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
 
     // Add 3 fields
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
     expect(screen.getAllByText('count')).toHaveLength(3);
@@ -980,6 +980,36 @@ describe('Visualize', () => {
 
     expect(await screen.findAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(
       2
+    );
+  });
+
+  it('allows for selecting a column from the aggregate dropdown', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+    // Component automatically populates the selection as a column
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'field (no aggregate)'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'message'
     );
   });
 

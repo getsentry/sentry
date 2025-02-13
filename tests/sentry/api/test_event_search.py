@@ -99,6 +99,15 @@ def result_transformer(result):
         if token["type"] == "keyExplicitNumberTag":
             return SearchKey(name=f"tags[{token['key']['value']},number]")
 
+        if token["type"] == "keyExplicitFlag":
+            return SearchKey(name=f"flags[{token['key']['value']}]")
+
+        if token["type"] == "keyExplicitStringFlag":
+            return SearchKey(name=f"flags[{token['key']['value']},string]")
+
+        if token["type"] == "keyExplicitNumberFlag":
+            return SearchKey(name=f"flags[{token['key']['value']},number]")
+
         if token["type"] == "keyAggregate":
             name = node_visitor(token["name"]).name
             # Consistent join aggregate function parameters
@@ -536,7 +545,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_allowed_keys(self):
-        config = SearchConfig(allowed_keys=["good_key"])
+        config = SearchConfig(allowed_keys={"good_key"})
 
         assert parse_search_query("good_key:123 bad_key:123 text") == [
             SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
@@ -553,7 +562,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_blocked_keys(self):
-        config = SearchConfig(blocked_keys=["bad_key"])
+        config = SearchConfig(blocked_keys={"bad_key"})
 
         assert parse_search_query("some_key:123 bad_key:123 text") == [
             SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -24,7 +25,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import useMedia from 'sentry/utils/useMedia';
@@ -207,6 +207,7 @@ function IssueListActions({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const theme = useTheme();
 
   const disableActions = useMedia(
     `(max-width: ${
@@ -533,7 +534,7 @@ const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
   padding-bottom: ${p => (p.narrowHeader ? space(0.5) : space(1))};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: 6px 6px 0 0;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`

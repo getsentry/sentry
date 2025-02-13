@@ -8,7 +8,6 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -21,10 +20,6 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
         "comparisonType": ComparisonType.COUNT,
     }
 
-    def setUp(self):
-        super().setUp()
-        self.job = WorkflowJob({"event": self.group_event})
-
     def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
@@ -32,15 +27,16 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [self.payload["value"] + 1]
-        self.assert_passes(dc, self.job)
+        results = [self.payload["value"] + 1]
+        self.assert_slow_condition_passes(dc, results)
 
-        self.job["snuba_results"] = [self.payload["value"] - 1]
-        self.assert_does_not_pass(dc, self.job)
+        results = [self.payload["value"] - 1]
+        self.assert_slow_condition_does_not_pass(dc, results)
 
     def test_dual_write_count(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {
@@ -82,10 +78,6 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         "comparisonInterval": "1d",
     }
 
-    def setUp(self):
-        super().setUp()
-        self.job = WorkflowJob({"event": self.group_event})
-
     def test_percent(self):
         dc = self.create_data_condition(
             type=self.condition,
@@ -97,15 +89,16 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [16, 10]
-        self.assert_passes(dc, self.job)
+        results = [16, 10]
+        self.assert_slow_condition_passes(dc, results)
 
-        self.job["snuba_results"] = [10, 10]
-        self.assert_does_not_pass(dc, self.job)
+        results = [10, 10]
+        self.assert_slow_condition_does_not_pass(dc, results)
 
     def test_dual_write_percent(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
+        assert dc
 
         assert dc.type == self.condition
         assert dc.comparison == {

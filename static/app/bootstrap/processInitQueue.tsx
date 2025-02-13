@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
@@ -31,12 +32,12 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
    * password strength estimation library. Load it on demand.
    */
   if (initConfig.name === 'passwordStrength') {
-    const {input, element} = initConfig;
-    if (!input || !element) {
+    if (!initConfig.input || !initConfig.element) {
       return;
     }
-    const inputElem = document.querySelector(input);
-    const rootEl = document.querySelector(element);
+    const inputElem = document.querySelector(initConfig.input);
+    const rootEl = document.querySelector(initConfig.element);
+
     if (!inputElem || !rootEl) {
       return;
     }
@@ -49,7 +50,16 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     inputElem.addEventListener(
       'input',
       throttle(e => {
-        root.render(<PasswordStrength value={e.target.value} />);
+        root.render(
+          /**
+           * The screens and components rendering here will always render in light mode.
+           * This is because config is not available at this point (user might not be logged in yet),
+           * and so we dont know which theme to pick.
+           */
+          <ThemeAndStyleProvider>
+            <PasswordStrength value={e.target.value} />
+          </ThemeAndStyleProvider>
+        );
       })
     );
 
@@ -68,7 +78,20 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
 
     renderOnDomReady(() =>
       // TODO(ts): Unsure how to type this, complains about u2fsign's required props
-      renderDom(Component as any, initConfig.container, initConfig.props)
+      renderDom(
+        (props: any) => (
+          /**
+           * The screens and components rendering here will always render in light mode.
+           * This is because config is not available at this point (user might not be logged in yet),
+           * and so we dont know which theme to pick.
+           */
+          <ThemeAndStyleProvider>
+            <Component {...props} />
+          </ThemeAndStyleProvider>
+        ),
+        initConfig.container,
+        initConfig.props
+      )
     );
   }
 
