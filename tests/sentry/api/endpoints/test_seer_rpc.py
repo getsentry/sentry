@@ -5,8 +5,8 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.seer_rpc import (
+    _get_issues_with_event_details_for_file,
     generate_request_signature,
-    get_top_5_issues_by_count_for_file,
 )
 from sentry.testutils.cases import APITestCase
 from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
@@ -50,7 +50,7 @@ class TestGetIssuesRelatedToFilePatches(CreateEventTestCase):
         group_id = [
             self._create_event(function_names=["blue", "planet"], user_id=str(i)) for i in range(7)
         ][0].group.id
-        top_5_issues = get_top_5_issues_by_count_for_file(
+        top_5_issues = _get_issues_with_event_details_for_file(
             [self.project], sentry_filenames=["baz.py"], function_names=["world", "planet"]
         )
 

@@ -18,18 +18,7 @@ from rest_framework.exceptions import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, capture_exception
-from snuba_sdk import (
-    BooleanCondition,
-    BooleanOp,
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Op,
-    OrderBy,
-    Query,
-)
+from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Entity, Function, Op, Query
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import eventstore, options
@@ -195,32 +184,23 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
-# Fetch issues related to PR
-
-
-def get_top_5_issues_by_count_for_file(
+def _get_issues_for_file(
     projects: list[Project], sentry_filenames: list[str], function_names: list[str]
-) -> list[dict[str, Any]]:
-    """
-    Lightly modified from open_pr_comment.get_top_5_issues_by_count_for_file
-
-    Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
-    and function names representing the list of functions changed in a PR file, return a
-    sublist of the top 5 recent unhandled issues ordered by event count.
-    """
+) -> tuple[list[dict[str, Any]], dict[str, Group]]:
     if not len(projects):
         return []
 
     patch_parsers: dict[str, LanguageParser | SimpleLanguageParser] = PATCH_PARSERS
-    # NOTE: if we are testing beta patch parsers, add check here
 
-    # fetches the appropriate parser for formatting the snuba query given the file extension
-    # the extension is never replaced in reverse codemapping
-    language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
+    # Gets the appropriate parser for formatting the snuba query given the file extension.
+    # The extension is never replaced in reverse codemapping.
+    file_extension = sentry_filenames[0].split(".")[-1]
+    language_parser = patch_parsers.get(file_extension, None)
 
     if not language_parser:
         return []
 
+    # Fetch an initial, candidate set of groups.
     groups: list[Group] = list(
         Group.objects.filter(
             first_seen__gte=datetime.now(UTC) - timedelta(days=90),
@@ -231,32 +211,30 @@ def get_top_5_issues_by_count_for_file(
     )[:MAX_RECENT_ISSUES]
     group_id_to_group = {group.id: group for group in groups}
 
-    # fetch the count of events for each group_id
     group_ids = list(group_id_to_group.keys())
     project_ids = [p.id for p in projects]
     multi_if = language_parser.generate_multi_if(function_names)
 
-    subquery = (
+    # Fetch the roughly-latest event for each group for groups w/ an event where at least one
+    # stacktrace frame matches the function names and file names.
+    query = (
         Query(Entity("events"))
         .set_select(
             [
-                Column("title"),
-                Column("culprit"),
                 Column("group_id"),
-                Function("count", [], "event_count"),
+                Function("argMax", [Column("event_id"), Column("timestamp")], "event_id"),
+                Function("argMax", [Column("title"), Column("timestamp")], "title"),
+                Function("argMax", [Column("culprit"), Column("timestamp")], "culprit"),
                 Function(
-                    "multiIf",
-                    multi_if,
+                    "argMax",
+                    [Function("multiIf", multi_if), Column("timestamp")],
                     "function_name",
                 ),
             ]
         )
         .set_groupby(
             [
-                Column("title"),
-                Column("culprit"),
                 Column("group_id"),
-                Column("exception_frames.function"),
             ]
         )
         .set_where(
@@ -275,53 +253,22 @@ def get_top_5_issues_by_count_for_file(
                                 Condition(
                                     Function(
                                         "arrayElement",
-                                        (Column("exception_frames.filename"), i),
+                                        (Column("exception_frames.filename"), stackframe_idx),
                                     ),
                                     Op.IN,
                                     sentry_filenames,
                                 ),
                                 language_parser.generate_function_name_conditions(
-                                    function_names, i
+                                    function_names, stackframe_idx
                                 ),
                             ],
                         )
-                        for i in range(-STACKFRAME_COUNT, 0)  # first n frames
+                        for stackframe_idx in range(-STACKFRAME_COUNT, 0)  # first n frames
                     ],
                 ),
                 Condition(Function("notHandled", []), Op.EQ, 1),
             ]
         )
-        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-    )
-
-    # filter on the subquery to squash group_ids with the same title and culprit
-    # return the group_id with the greatest count of events
-    query = (
-        Query(subquery)
-        .set_select(
-            [
-                Column("function_name"),
-                Function(
-                    "arrayElement",
-                    (Function("groupArray", [Column("group_id")]), 1),
-                    "group_id",
-                ),
-                Function(
-                    "arrayElement",
-                    (Function("groupArray", [Column("event_count")]), 1),
-                    "event_count",
-                ),
-            ]
-        )
-        .set_groupby(
-            [
-                Column("title"),
-                Column("culprit"),
-                Column("function_name"),
-            ]
-        )
-        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-        .set_limit(5)
     )
 
     request = SnubaRequest(
@@ -332,37 +279,45 @@ def get_top_5_issues_by_count_for_file(
     )
 
     try:
-        result_set: list[dict[str, Any]] = raw_snql_query(
+        issues_result_set: list[dict[str, Any]] = raw_snql_query(
             request, referrer=Referrer.SEER_RPC.value
         )["data"]
     except Exception:
         logger.exception("Snuba query error", extra={"query": request.to_dict()["query"]})
-        return []
+        return [], {}
+    else:
+        return issues_result_set, group_id_to_group
 
-    # TODO: ideally we don't loop. Is there a bulk query for recommended event?
+
+def _add_event_details(
+    issues_result_set: list[dict[str, Any]], group_id_to_group: dict[str, Group]
+) -> list[dict[str, Any]]:
+    # TODO: bulk query like in group_ai_summary.py—see _get_trace_connected_issues
     issues_with_event_details: list[dict[str, Any]] = []
-    for group_dict in result_set:
+    for group_dict in issues_result_set:
         group = group_id_to_group[group_dict["group_id"]]
-        event = group.get_recommended_event()
-        if event is None:
-            # TODO: log
-            continue
         event = eventstore.backend.get_event_by_id(
-            group.project.id, event.event_id, group_id=group_dict["group_id"]
+            group.project.id, group_dict["event_id"], group_id=group_dict["group_id"]
         )
         serialized_event = serialize(event, user=None, serializer=EventSerializer())
-        # TODO: check if default (anonymous) user is ok
-
         issue_details = {
             "id": group_dict["group_id"],
             "title": group_dict["title"],
             "function_name": group_dict["function_name"],
             "events": [serialized_event],
         }
-        # Structured like seer.automation.models.IssueDetails
         issues_with_event_details.append(issue_details)
 
     return issues_with_event_details
+
+
+def _get_issues_with_event_details_for_file(
+    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+) -> list[dict[str, Any]]:
+    issues_result_set, group_id_to_group = _get_issues_for_file(
+        projects, sentry_filenames, function_names
+    )
+    return _add_event_details(issues_result_set, group_id_to_group)
 
 
 def get_issues_related_to_file_patches(
@@ -422,11 +377,10 @@ def get_issues_related_to_file_patches(
             logger.error("No function names", extra={"file": file.filename})
             continue
 
-        top_issues = get_top_5_issues_by_count_for_file(
+        issues = _get_issues_with_event_details_for_file(
             list(projects), list(sentry_filenames), list(function_names)
         )
-        # TODO: write a different query
-        filename_to_issues[file.filename] = top_issues
+        filename_to_issues[file.filename] = issues
 
     return filename_to_issues
 
