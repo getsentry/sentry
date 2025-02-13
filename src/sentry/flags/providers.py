@@ -567,14 +567,14 @@ class PayloadSignatureValidator:
         self,
         organization_id: int,
         provider: str,
-        payload: bytes,
+        message: bytes,
         signature: str | None,
         secret_finder: Callable[[int, str], Iterator[str]] | None = None,
         secret_validator: Callable[[str, bytes], str] | None = None,
     ) -> None:
         self.organization_id = organization_id
         self.provider = provider
-        self.payload = payload
+        self.message = message
         self.signature = signature
         self.secret_finder = secret_finder or _query_signing_secrets
         self.secret_validator = secret_validator or hmac_sha256_hex_digest
@@ -584,7 +584,7 @@ class PayloadSignatureValidator:
             return False
 
         for secret in self.secret_finder(self.organization_id, self.provider):
-            if self.secret_validator(secret, self.payload) == self.signature:
+            if self.secret_validator(secret, self.message) == self.signature:
                 return True
         return False
 
