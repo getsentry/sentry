@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import type {Theme} from '@emotion/react';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -9,6 +9,7 @@ import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
 } from 'sentry/utils/theme/theme.chonk';
+import usePrevious from 'sentry/utils/usePrevious';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 export function useChonkTheme(): [
@@ -20,27 +21,36 @@ export function useChonkTheme(): [
   // before release, as we may not always have an organization. When we release, chonk should
   // be the value that we receive from the server config - the theme should ultimately be toggled there
   const {organization} = useLegacyStore(OrganizationStore);
-
-  const [chonkTheme, setChonkTheme] = useSessionStorage<'light' | 'dark' | null>(
+  const [chonkTheme, setChonkTheme] = useSessionStorage<{theme: 'light' | 'dark' | null}>(
     'chonk-theme',
-    null
+    {theme: null}
   );
 
   let theme = null;
-
   // Check feature access and if chonk theme is enabled
-  if (organization?.features?.includes('chonk-ui') && chonkTheme) {
+  if (organization?.features?.includes('chonk-ui') && chonkTheme.theme) {
     theme =
-      config.theme === 'dark' ? DO_NOT_USE_darkChonkTheme : DO_NOT_USE_lightChonkTheme;
+      chonkTheme.theme === 'dark'
+        ? DO_NOT_USE_darkChonkTheme
+        : DO_NOT_USE_lightChonkTheme;
   }
 
   const setChonkWithSideEffect = useCallback(
     (value: 'light' | 'dark' | null) => {
       removeBodyTheme();
-      setChonkTheme(value);
+      setChonkTheme({theme: value});
     },
     [setChonkTheme]
   );
+
+  // Only fire if the config theme changes
+  const previousTheme = usePrevious(config.theme);
+  useLayoutEffect(() => {
+    if (previousTheme !== config.theme) {
+      removeBodyTheme();
+      setChonkTheme({theme: null});
+    }
+  }, [config.theme, previousTheme, setChonkTheme]);
 
   return [theme, setChonkWithSideEffect];
 }

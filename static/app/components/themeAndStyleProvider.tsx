@@ -32,16 +32,16 @@ export function ThemeAndStyleProvider({children}: Props) {
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
-  const themeValue = config.theme === 'dark' ? darkTheme : lightTheme;
+  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   return (
-    <ThemeProvider theme={themeValue}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={themeValue} />
+    <ThemeProvider theme={theme}>
+      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>
           <meta name="color-scheme" content={config.theme} />
-          <meta name="theme-color" content={themeValue.sidebar.background} />
+          <meta name="theme-color" content={theme.sidebar.background} />
         </Fragment>,
         document.head
       )}
