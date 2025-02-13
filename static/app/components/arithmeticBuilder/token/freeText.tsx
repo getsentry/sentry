@@ -1,42 +1,46 @@
-import type {ChangeEvent, FocusEvent, RefObject} from 'react';
+import type {ChangeEvent, FocusEvent, MouseEvent, RefObject} from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
-import type {
-  Token,
-  TokenAttribute,
-  TokenFunction,
+import type {Token, TokenFreeText} from 'sentry/components/arithmeticBuilder/token';
+import {
+  isTokenFreeText,
+  isTokenFunction,
+  isTokenOperator,
+  isTokenParenthesis,
+  TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
-import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {
+  nextSimilarTokenKey,
+  nextTokenKeyOfKind,
+  tokenizeExpression,
+} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusNext, focusPrev} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 
-interface ArithmeticTokenFunctionProps {
+interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
+  showPlaceholder: boolean;
   state: ListState<Token>;
-  token: TokenFunction;
+  token: TokenFreeText;
 }
 
-export function ArithmeticTokenFunction({
+export function ArithmeticTokenFreeText({
+  showPlaceholder,
   item,
   state,
   token,
-}: ArithmeticTokenFunctionProps) {
-  if (token.attributes.length !== 1) {
-    throw new Error('Only functions with 1 argument supported.');
-  }
-  const attribute = token.attributes[0]!;
-
+}: ArithmeticTokenFreeTextProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
@@ -44,71 +48,70 @@ export function ArithmeticTokenFunction({
     state,
   });
 
-  const isFocused = item.key === state.selectionManager.focusedKey;
-
   return (
-    <FunctionWrapper
+    <Row
       {...rowProps}
       ref={ref}
-      tabIndex={isFocused ? 0 : -1}
-      aria-label={`${token.function}(${attribute.format()})`}
+      tabIndex={-1}
+      aria-label={token.text}
       aria-invalid={false}
-      state={'valid'}
     >
-      <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
-      {'('}
-      <BaseGridCell {...gridCellProps}>
+      <GridCell {...gridCellProps} onClick={stopPropagation}>
         <InternalInput
+          showPlaceholder={showPlaceholder}
           item={item}
           state={state}
-          functionToken={token}
-          token={attribute}
+          token={token}
           rowRef={ref}
         />
-        {!isFocused && (
-          // Inject a floating span with the attribute name so when it's
-          // not focused, it doesn't look like the placeholder text
-          <FunctionArgument>{attribute.attribute}</FunctionArgument>
-        )}
-      </BaseGridCell>
-      {')'}
-    </FunctionWrapper>
+      </GridCell>
+    </Row>
   );
 }
 
-interface InternalInputProps {
-  functionToken: TokenFunction;
-  item: Node<Token>;
+interface InternalInputProps extends ArithmeticTokenFreeTextProps {
   rowRef: RefObject<HTMLDivElement>;
-  state: ListState<Token>;
-  token: TokenAttribute;
 }
 
-function InternalInput({functionToken, item, state, token, rowRef}: InternalInputProps) {
+function InternalInput({
+  showPlaceholder,
+  item,
+  state,
+  token,
+  rowRef,
+}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  const trimmedTokenValue = token.text.trim();
+  const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
 
   const filterValue = inputValue.trim();
+
+  // When token value changes, reset the input value
+  const [prevValue, setPrevValue] = useState(inputValue);
+  if (trimmedTokenValue !== prevValue) {
+    setPrevValue(trimmedTokenValue);
+    setInputValue(trimmedTokenValue);
+  }
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, [setSelectionIndex]);
 
   const resetInputValue = useCallback(() => {
-    setInputValue('');
+    setInputValue(trimmedTokenValue);
     updateSelectionIndex();
-  }, [updateSelectionIndex]);
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const {dispatch} = useArithmeticBuilder();
 
-  const allowedAttributes: string[] = useMemo(() => {
-    return ['span.duration', 'span.self_time'];
+  const allowedFunctions: string[] = useMemo(() => {
+    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES;
   }, []);
 
-  const items = useAttributeItems({
-    allowedAttributes,
+  const items = useFunctionItems({
+    allowedFunctions,
     filterValue,
   });
 
@@ -122,40 +125,79 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
   }, [updateSelectionIndex]);
 
   const onInputBlur = useCallback(() => {
+    dispatch({
+      type: 'REPLACE_TOKEN',
+      token,
+      text: inputValue.trim(),
+    });
     resetInputValue();
-  }, [resetInputValue]);
+  }, [dispatch, inputValue, token, resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
+      const text = evt.target.value;
+
+      const tokens = tokenizeExpression(text);
+
+      for (const tok of tokens) {
+        if (isTokenParenthesis(tok) || isTokenOperator(tok) || isTokenFunction(tok)) {
+          dispatch({
+            type: 'REPLACE_TOKEN',
+            token,
+            text,
+            focusOverride: {itemKey: nextSimilarTokenKey(token.key)},
+          });
+          resetInputValue();
+          return;
+        }
+
+        if (isTokenFreeText(tok)) {
+          const input = text.trim();
+          if (input.endsWith('(')) {
+            const maybeFunc = input.substring(0, input.length - 1);
+            if (allowedFunctions.includes(maybeFunc)) {
+              dispatch({
+                type: 'REPLACE_TOKEN',
+                token,
+                text: getInitialText(maybeFunc),
+                focusOverride: {
+                  itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION),
+                },
+              });
+              resetInputValue();
+              return;
+            }
+          }
+        }
+      }
+
       setInputValue(evt.target.value);
       setSelectionIndex(evt.target.selectionStart ?? 0);
     },
-    [setInputValue]
+    [allowedFunctions, dispatch, resetInputValue, setInputValue, state, token]
   );
 
   const onInputCommit = useCallback(() => {
-    const value = inputValue.trim() || token.attribute;
     dispatch({
-      text: `${functionToken.function}(${value})`,
       type: 'REPLACE_TOKEN',
-      token: functionToken,
-      focusOverride: {
-        itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
-      },
+      token,
+      text: inputValue.trim(),
     });
     resetInputValue();
-  }, [dispatch, state, functionToken, token, inputValue, resetInputValue]);
+  }, [dispatch, inputValue, token, resetInputValue]);
 
   const onInputEscape = useCallback(() => {
+    dispatch({
+      type: 'REPLACE_TOKEN',
+      token,
+      text: inputValue,
+    });
     resetInputValue();
-  }, [resetInputValue]);
+  }, [dispatch, token, inputValue, resetInputValue]);
 
-  const onInputFocus = useCallback(
-    (_evt: FocusEvent<HTMLInputElement>) => {
-      resetInputValue();
-    },
-    [resetInputValue]
-  );
+  const onInputFocus = useCallback((_evt: FocusEvent<HTMLInputElement>) => {
+    // TODO
+  }, []);
 
   const onKeyDownCapture = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
@@ -186,16 +228,14 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
     (evt: KeyboardEvent) => {
       // TODO: handle meta keys
 
-      // At start and pressing backspace, delete this token
+      // At start and pressing backspace, focus the previous full token
       if (
         evt.currentTarget.selectionStart === 0 &&
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'Backspace'
       ) {
-        dispatch({
-          type: 'DELETE_TOKEN',
-          token: functionToken,
-        });
+        focusPrev(state, item);
+        return;
       }
 
       // At end and pressing delete, focus the next full token
@@ -204,28 +244,27 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'Delete'
       ) {
-        dispatch({
-          type: 'DELETE_TOKEN',
-          token: functionToken,
-        });
+        focusNext(state, item);
+        return;
       }
     },
-    [dispatch, functionToken]
+    [state, item]
   );
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
+      // TODO: assumes we only autocomplete functions
+      // need to figure out parens and operators
+
       dispatch({
-        text: `${functionToken.function}(${option.value})`,
         type: 'REPLACE_TOKEN',
-        token: functionToken,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
-        },
+        token,
+        text: getInitialText(option.value),
+        focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION)},
       });
       resetInputValue();
     },
-    [dispatch, state, functionToken, resetInputValue]
+    [dispatch, state, token, resetInputValue]
   );
 
   const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
@@ -237,8 +276,8 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
       <ComboBox
         ref={inputRef}
         items={items}
-        placeholder={token.attribute}
-        inputLabel={t('Select an attribute')}
+        placeholder={showPlaceholder ? t('Enter equation') : ''}
+        inputLabel={t('Add a term')}
         inputValue={inputValue}
         filterValue={filterValue}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
@@ -256,7 +295,7 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         onPaste={onPaste}
         data-test-id={
           state.collection.getLastKey() === item.key
-            ? 'arithmetic-builder-argument-input'
+            ? 'arithmetic-builder-input'
             : undefined
         }
       >
@@ -280,74 +319,85 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
   );
 }
 
-function useAttributeItems({
-  allowedAttributes,
+function useFunctionItems({
+  allowedFunctions,
   filterValue,
 }: {
-  allowedAttributes: string[];
+  allowedFunctions: string[];
   filterValue: string;
 }): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config
+  // TODO: use a config and maybe we want operators and parenthesis too
   const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
     const items = filterValue
-      ? allowedAttributes.filter(agg => agg.includes(filterValue))
-      : allowedAttributes;
+      ? allowedFunctions.filter(agg => agg.includes(filterValue))
+      : allowedFunctions;
 
     return items.map(item => ({
       key: item,
-      label: item,
+      label: `${item}(\u2026)`,
       value: item,
       hideCheck: true,
     }));
-  }, [allowedAttributes, filterValue]);
+  }, [allowedFunctions, filterValue]);
 
   return functions;
 }
 
-const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
-  display: flex;
-  align-items: center;
+function stopPropagation(evt: MouseEvent<HTMLElement>) {
+  evt.stopPropagation();
+}
+
+function getInitialText(key: string) {
+  // TODO: generate this
+  return `${key}(span.duration)`;
+}
+
+const Row = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
-  /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
-
-  :focus {
-    background-color: ${p => p.theme.gray100};
-    outline: none;
-  }
-
-  ${p =>
-    p.state === 'invalid'
-      ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
-        `
-      : p.state === 'warning'
-        ? css`
-            border-color: ${p.theme.gray300};
-            background-color: ${p.theme.gray100};
-          `
-        : ''}
-
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-  }
-`;
-
-const BaseGridCell = styled('div')`
   display: flex;
   align-items: stretch;
+  height: 24px;
+  max-width: 100%;
+
+  &:last-child {
+    flex-grow: 1;
+  }
+
+  &[aria-invalid='true'] {
+    input {
+      color: ${p => p.theme.red400};
+    }
+  }
+
+  &[aria-selected='true'] {
+    [data-hidden-text='true']::before {
+      content: '';
+      position: absolute;
+      left: ${space(0.5)};
+      right: ${space(0.5)};
+      top: 0;
+      bottom: 0;
+      background-color: ${p => p.theme.gray100};
+    }
+  }
+
+  input {
+    &::selection {
+      background-color: ${p => p.theme.gray100};
+    }
+  }
+`;
+
+const GridCell = styled('div')`
   position: relative;
-`;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  width: 100%;
 
-const FunctionGridCell = styled(BaseGridCell)`
-  color: ${p => p.theme.green400};
-`;
-
-const FunctionArgument = styled('div')`
-  position: absolute;
-  pointer-events: none;
+  input {
+    padding: 0 ${space(0.5)};
+    min-width: 9px;
+    width: 100%;
+  }
 `;
