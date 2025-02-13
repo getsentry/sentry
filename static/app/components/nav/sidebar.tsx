@@ -7,7 +7,7 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
+import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
