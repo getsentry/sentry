@@ -98,7 +98,6 @@ interface UseHoverOverlayProps {
    * Offset along the main axis.
    */
   offset?: number;
-
   /**
    * Callback whenever the hovercard is blurred
    * See also `onHover`
@@ -115,6 +114,7 @@ interface UseHoverOverlayProps {
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
+
   /**
    * Only display the overlay only if the content overflows
    */
@@ -128,6 +128,10 @@ interface UseHoverOverlayProps {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
+  /**
+   * style for when a wrapper is used. Does nothing using skipWrapper.
+   */
+  style?: React.CSSProperties;
 
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
@@ -162,6 +166,7 @@ function useHoverOverlay(
   overlayType: string,
   {
     className,
+    style,
     delay,
     displayTimeout,
     isHoverable,
@@ -304,6 +309,7 @@ function useHoverOverlay(
           ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
           maxWidth: '100%',
+          ...style,
         },
         className,
       });
@@ -320,6 +326,7 @@ function useHoverOverlay(
       showUnderline,
       skipWrapper,
       describeById,
+      style,
       theme,
       underlineColor,
     ]

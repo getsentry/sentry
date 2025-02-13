@@ -24,8 +24,8 @@ const cronConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     header: {
-      filterBar: {enabled: false, fixedEnvironment: true},
-      graph: {enabled: false},
+      filterBar: {enabled: true},
+      graph: {enabled: true, type: 'cron-checks'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },

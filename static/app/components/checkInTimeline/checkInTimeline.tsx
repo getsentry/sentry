@@ -25,6 +25,8 @@ interface CheckInTimelineConfig<Status extends string> {
    */
   statusStyle: Record<Status, TickStyle>;
   timeWindowConfig: TimeWindowConfig;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export interface CheckInTimelineProps<Status extends string>
@@ -50,6 +52,8 @@ export function CheckInTimeline<Status extends string>({
   statusLabel,
   statusStyle,
   statusPrecedent,
+  className,
+  style,
 }: CheckInTimelineProps<Status>) {
   const jobTicks = mergeBuckets(
     statusPrecedent,
@@ -58,7 +62,7 @@ export function CheckInTimeline<Status extends string>({
   );
 
   return (
-    <TimelineContainer role="figure">
+    <TimelineContainer role="figure" className={className} style={style}>
       {jobTicks.map(jobTick => {
         const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
 
