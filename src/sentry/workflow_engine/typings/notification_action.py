@@ -475,9 +475,9 @@ class JiraServerActionTranslatorBase(TicketActionTranslator):
 
 class EmailActionHelper(ABC):
     target_type_mapping = {
-        ActionTarget.USER: "Member",
-        ActionTarget.TEAM: "Team",
-        ActionTarget.ISSUE_OWNERS: "IssueOwners",
+        ActionTarget.USER: ActionTargetType.MEMBER.value,
+        ActionTarget.TEAM: ActionTargetType.TEAM.value,
+        ActionTarget.ISSUE_OWNERS: ActionTargetType.ISSUE_OWNERS.value,
     }
 
     reverse_target_type_mapping = {v: k for k, v in target_type_mapping.items()}
