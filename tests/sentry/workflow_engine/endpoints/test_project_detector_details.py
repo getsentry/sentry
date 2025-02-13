@@ -135,11 +135,11 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
             "dataSource": {
-                "query_type": self.snuba_query.type,
+                "queryType": self.snuba_query.type,
                 "dataset": self.snuba_query.dataset,
                 "query": "updated query",
                 "aggregate": self.snuba_query.aggregate,
-                "time_window": 5,  # minutes
+                "timeWindow": 5,  # minutes
                 "environment": self.environment.name,
                 "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
             },

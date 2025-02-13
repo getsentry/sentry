@@ -29,7 +29,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
     def validate_detector_type(self, value: str) -> type[GroupType]:
         detector_type = grouptype.registry.get_by_slug(value)
-
         if detector_type is None:
             raise serializers.ValidationError("Unknown detector type")
         if detector_type.detector_validator is None:
