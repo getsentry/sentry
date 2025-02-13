@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -10,6 +11,8 @@ import ApiChart from './apiChart';
 import EventChart from './eventChart';
 
 function AdminOverview() {
+  const theme = useTheme();
+
   const resolution = '1h';
   const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
 
@@ -21,7 +24,7 @@ function AdminOverview() {
         <Panel key="events">
           <PanelHeader>{t('Event Throughput')}</PanelHeader>
           <PanelBody withPadding>
-            <EventChart since={since} resolution={resolution} />
+            <EventChart since={since} resolution={resolution} theme={theme} />
           </PanelBody>
         </Panel>
 
