@@ -5,6 +5,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
+from sentry.testutils.helpers.data_blobs import GITHUB_ACTION_DATA_BLOBS
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     BaseIssueAlertHandler,
     DiscordIssueAlertHandler,
@@ -12,11 +13,37 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     OpsgenieIssueAlertHandler,
     PagerDutyIssueAlertHandler,
     SlackIssueAlertHandler,
+    TicketingIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
-from sentry.workflow_engine.typings.notification_action import ActionFieldMapping
+from sentry.workflow_engine.typings.notification_action import (
+    ACTION_FIELD_MAPPINGS,
+    EXCLUDED_ACTION_DATA_KEYS,
+    ActionFieldMapping,
+    ActionFieldMappingKeys,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+
+def pop_keys_from_data_blob(data_blob: dict, action_type: Action.Type) -> dict:
+    """
+    Remove standard action fields from each dictionary in the data blob.
+
+    Args:
+        data_blob: List of dictionaries containing action data
+
+    Returns:
+        List of dictionaries with standard action fields removed
+    """
+    KEYS_TO_REMOVE = {
+        *EXCLUDED_ACTION_DATA_KEYS,
+        ACTION_FIELD_MAPPINGS[action_type].get(ActionFieldMappingKeys.INTEGRATION_ID_KEY.value),
+        ACTION_FIELD_MAPPINGS[action_type].get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value),
+        ACTION_FIELD_MAPPINGS[action_type].get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value),
+    }
+
+    return {k: v for k, v in data_blob.items() if k not in KEYS_TO_REMOVE}
 
 
 class TestBaseIssueAlertHandler(BaseWorkflowTest):
@@ -305,3 +332,28 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "team": "team789",
             "priority": "",
         }
+
+
+class TestGithubIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = TicketingIssueAlertHandler()
+
+    def test_build_rule_action_blob(self):
+        """Test that build_rule_action_blob creates correct Github action data"""
+        for expected in GITHUB_ACTION_DATA_BLOBS:
+            action_data = pop_keys_from_data_blob(expected, Action.Type.GITHUB)
+
+            action = self.create_action(
+                type=Action.Type.GITHUB,
+                integration_id=expected["integration"],
+                data=action_data,
+            )
+
+            blob = self.handler.build_rule_action_blob(action)
+
+            assert blob == {
+                "id": expected["id"],
+                "integration": expected["integration"],
+                **blob,
+            }
