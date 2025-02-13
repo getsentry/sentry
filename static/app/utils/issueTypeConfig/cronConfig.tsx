@@ -39,6 +39,7 @@ const cronConfig: IssueCategoryConfigMapping = {
       events: {enabled: true},
       openPeriods: {enabled: false},
       uptimeChecks: {enabled: false},
+      cronChecks: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: false},
       replays: {enabled: false},
