@@ -25,9 +25,7 @@ export function IssueCell({group, disabled = false, className}: IssueCellProps) 
       <ShortId
         shortId={group.shortId}
         avatar={<ProjectAvatar project={group.project} />}
-        className="shortId"
       />
-
       <LastSeenWrapper gap={space(0.5)}>
         {t('Last seen')}
         <TimeSince
@@ -55,7 +53,7 @@ const IssueWrapper = styled(Link)<{disabled: boolean}>`
   ${p =>
     !p.disabled &&
     `
-    &:hover .shortId {
+    &:hover ${Wrapper} {
       color: ${p.theme.textColor};
       text-decoration: underline;
     }
