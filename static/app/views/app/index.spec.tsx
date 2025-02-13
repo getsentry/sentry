@@ -65,7 +65,7 @@ describe('App', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders', async function () {
