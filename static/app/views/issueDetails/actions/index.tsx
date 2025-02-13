@@ -518,16 +518,16 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             onAction: () => onUpdate({inbox: false}),
           },
           {
-            key: bookmarkKey,
-            label: bookmarkTitle,
-            onAction: onToggleBookmark,
-          },
-          {
             key: 'publish',
             label: t('Publish'),
             disabled: disabled || !shareCap.enabled,
             hidden: !organization.features.includes('shared-issues'),
             onAction: openPublishModal,
+          },
+          {
+            key: bookmarkKey,
+            label: bookmarkTitle,
+            onAction: onToggleBookmark,
           },
           {
             key: 'reprocess',
