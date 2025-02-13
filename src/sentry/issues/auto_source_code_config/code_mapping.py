@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from typing import NamedTuple
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -189,12 +188,17 @@ class CodeMappingTreesHelper:
 
     def _stacktrace_buckets(self, stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
         """Groups stacktraces into buckets based on the root of the stacktrace path"""
-        buckets: defaultdict[str, list[FrameFilename]] = defaultdict(list)
+        buckets: dict[str, list[FrameFilename]] = {}
         for stacktrace_frame_file_path in stacktraces:
             try:
                 frame_filename = FrameFilename(stacktrace_frame_file_path)
                 # Any files without a top directory will be grouped together
-                buckets[frame_filename.root].append(frame_filename)
+                bucket_key = frame_filename.root
+
+                if not buckets.get(bucket_key):
+                    buckets[bucket_key] = []
+                buckets[bucket_key].append(frame_filename)
+
             except UnsupportedFrameFilename:
                 logger.info("Frame's filepath not supported: %s", stacktrace_frame_file_path)
             except Exception:

@@ -21,14 +21,13 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.locking import UnableToAcquireLock
 
-from .constants import DRY_RUN_PLATFORMS
+from .constants import SUPPORTED_LANGUAGES
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
     get_installation,
 )
 from .stacktraces import identify_stacktrace_paths
-from .utils import supported_platform
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,7 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMapping]:
+def process_event(project_id: int, group_id: int, event_id: str) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -62,26 +61,27 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
     event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
-        return []
+        return
 
     if not supported_platform(event.platform):
-        return []
+        return
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
-        return []
+        return
 
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-        if event.platform not in DRY_RUN_PLATFORMS:
-            set_project_codemappings(code_mappings, installation, project)
+        set_project_codemappings(code_mappings, installation, project)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
-    return code_mappings
+
+def supported_platform(platform: str | None) -> bool:
+    return (platform or "") in SUPPORTED_LANGUAGES
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
