@@ -1,9 +1,9 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import Link from 'sentry/components/links/link';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
@@ -77,6 +77,15 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
     return map;
   }, {});
 
+  if (evidenceMap?.Environment) {
+    items.push(
+      <Flex column>
+        <ItemTitle>{t('Environment')}</ItemTitle>
+        <ItemValue>{evidenceMap.Environment.value}</ItemValue>
+      </Flex>
+    );
+  }
+
   if (evidenceMap?.['Status Code']) {
     items.push(
       <Flex column>
@@ -95,17 +104,28 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
     );
   }
 
-  // TODO(Leander): Add last successful check-in when the data is available
-  // TODO(Leander): Add Incident ID when the data is available
+  if (evidenceMap?.['Last successful check-in']) {
+    items.push(
+      <Flex column>
+        <ItemTitle>{t('Last Successful Check-In')}</ItemTitle>
+        <ItemTimeSince date={evidenceMap['Last successful check-in'].value} />
+      </Flex>
+    );
+  }
 
   return items.length > 0 ? (
-    <Flex align="start" gap={space(4)} className={className}>
+    <div className={className}>
       {items.map((item, i) => (
-        <Fragment key={i}>{item}</Fragment>
+        <Item key={i}>{item}</Item>
       ))}
-    </Flex>
+    </div>
   ) : null;
 }
+
+const Item = styled('div')`
+  display: inline-block;
+  margin: 0 ${space(4)} ${space(2)} 0;
+`;
 
 const ItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
@@ -117,6 +137,10 @@ const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightNormal};
   max-width: 400px;
+`;
+
+const ItemTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const ItemLink = styled(Link)`
