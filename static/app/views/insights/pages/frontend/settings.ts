@@ -14,6 +14,8 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'interaction',
 ];
 
+export const OVERVIEW_PAGE_DISALLOWED_OPS = ['http.server'];
+
 export const MODULES = [
   ModuleName.VITAL,
   ModuleName.HTTP,
