@@ -346,7 +346,6 @@ function useWidgetBuilderState(): {
             const firstActionPayloadNotEquation: QueryFieldValue | undefined =
               action.payload.filter(field => field.kind !== FieldValueKind.EQUATION)[0];
 
-            // add something else here , figure out what the release sortable options are
             let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
               ? [firstActionPayloadNotEquation]
               : [];
