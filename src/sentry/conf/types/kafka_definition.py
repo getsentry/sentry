@@ -6,6 +6,7 @@ from typing import Any, Required, TypedDict
 
 import click
 from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec
 
 
 class Topic(Enum):
@@ -102,7 +103,7 @@ def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> Non
         )
 
 
-def get_topic_codec(topic: Topic):
+def get_topic_codec(topic: Topic) -> Codec:
     """
     Like sentry_kafka_schemas.get_codec, but only accepts a Topic enum
     """

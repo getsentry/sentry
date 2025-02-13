@@ -1,6 +1,8 @@
+import abc
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+from typing import Literal
 from unittest import mock
 from unittest.mock import call
 
@@ -23,6 +25,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
@@ -44,7 +47,14 @@ from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
-class ProcessResultTest(ConfigPusherTestMixin):
+class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
+    __test__ = Abstract(__module__, __qualname__)
+
+    @property
+    @abc.abstractmethod
+    def strategy_processing_mode(self) -> Literal["batched-parallel", "parallel", "serial"]:
+        pass
+
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -70,7 +80,7 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             if consumer is None:
-                factory = UptimeResultsStrategyFactory()
+                factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
                 commit = mock.Mock()
                 consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
@@ -777,102 +787,6 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         assert uptime_subscription.url == new_uptime_subscription.url
 
-    def test_parallel(self) -> None:
-        """
-        Validates that the consumer in parallel mode correctly groups check-ins
-        into groups by their monitor slug / environment
-        """
-
-        factory = UptimeResultsStrategyFactory(
-            mode="batched-parallel",
-            max_batch_size=3,
-            max_workers=1,
-        )
-        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
-        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
-            subscription_2 = self.create_uptime_subscription(
-                subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
-            )
-
-            result_1 = self.create_uptime_result(
-                self.subscription.subscription_id,
-                scheduled_check_time=datetime.now() - timedelta(minutes=5),
-            )
-
-            self.send_result(result_1, consumer=consumer)
-            result_2 = self.create_uptime_result(
-                self.subscription.subscription_id,
-                scheduled_check_time=datetime.now() - timedelta(minutes=4),
-            )
-
-            self.send_result(result_2, consumer=consumer)
-            # This will fill the batch
-            result_3 = self.create_uptime_result(
-                subscription_2.subscription_id,
-                scheduled_check_time=datetime.now() - timedelta(minutes=4),
-            )
-            self.send_result(result_3, consumer=consumer)
-            # Should be no calls yet, since we didn't send the batch
-            assert mock_processor_call.call_count == 0
-            # One more causes the previous batch to send
-            self.send_result(
-                self.create_uptime_result(
-                    subscription_2.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
-                ),
-                consumer=consumer,
-            )
-
-            assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
-
-    @mock.patch(
-        "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
-    )
-    def test_parallel_grouping(self, mock_process_group) -> None:
-        """
-        Validates that the consumer in parallel mode correctly groups check-ins
-        into groups by their monitor slug / environment
-        """
-
-        factory = UptimeResultsStrategyFactory(
-            mode="batched-parallel",
-            max_batch_size=3,
-            max_workers=1,
-        )
-        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
-        subscription_2 = self.create_uptime_subscription(
-            subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
-        )
-
-        result_1 = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-        )
-
-        self.send_result(result_1, consumer=consumer)
-        result_2 = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=4),
-        )
-
-        self.send_result(result_2, consumer=consumer)
-        # This will fill the batch
-        result_3 = self.create_uptime_result(
-            subscription_2.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=4),
-        )
-        self.send_result(result_3, consumer=consumer)
-        # Should be no calls yet, since we didn't send the batch
-        assert mock_process_group.call_count == 0
-        # One more causes the previous batch to send
-        self.send_result(result_3, consumer=consumer)
-        assert mock_process_group.call_count == 2
-        group_1 = mock_process_group.mock_calls[0].args[0]
-        group_2 = mock_process_group.mock_calls[1].args[0]
-        assert group_1 == [result_1, result_2]
-        assert group_2 == [result_3]
-
     @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
     @override_options({"uptime.snuba_uptime_results.enabled": True})
     def test_produces_snuba_uptime_results(self, mock_produce) -> None:
@@ -1046,3 +960,107 @@ class ProcessResultTest(ConfigPusherTestMixin):
             [("region1", "upsert"), ("region2", "delete")],
             current_minute=5,
         )
+
+
+class ProcessResultSerialTest(ProcessResultTest):
+    strategy_processing_mode = "serial"
+
+    def test_parallel(self) -> None:
+        """
+        Validates that the consumer in parallel mode correctly groups check-ins
+        into groups by their monitor slug / environment
+        """
+
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
+            subscription_2 = self.create_uptime_subscription(
+                subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
+            )
+
+            result_1 = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            )
+
+            self.send_result(result_1, consumer=consumer)
+            result_2 = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            )
+
+            self.send_result(result_2, consumer=consumer)
+            # This will fill the batch
+            result_3 = self.create_uptime_result(
+                subscription_2.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            )
+            self.send_result(result_3, consumer=consumer)
+            # Should be no calls yet, since we didn't send the batch
+            assert mock_processor_call.call_count == 0
+            # One more causes the previous batch to send
+            self.send_result(
+                self.create_uptime_result(
+                    subscription_2.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
+                ),
+                consumer=consumer,
+            )
+
+            assert mock_processor_call.call_count == 3
+            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+
+    @mock.patch(
+        "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
+    )
+    def test_parallel_grouping(self, mock_process_group) -> None:
+        """
+        Validates that the consumer in parallel mode correctly groups check-ins
+        into groups by their monitor slug / environment
+        """
+
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+        subscription_2 = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
+        )
+
+        result_1 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        self.send_result(result_1, consumer=consumer)
+        result_2 = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+
+        self.send_result(result_2, consumer=consumer)
+        # This will fill the batch
+        result_3 = self.create_uptime_result(
+            subscription_2.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+        self.send_result(result_3, consumer=consumer)
+        # Should be no calls yet, since we didn't send the batch
+        assert mock_process_group.call_count == 0
+        # One more causes the previous batch to send
+        self.send_result(result_3, consumer=consumer)
+        assert mock_process_group.call_count == 2
+        group_1 = mock_process_group.mock_calls[0].args[0]
+        group_2 = mock_process_group.mock_calls[1].args[0]
+        assert group_1 == [result_1, result_2]
+        assert group_2 == [result_3]
+
+
+class ProcessResultParallelTest(ProcessResultTest):
+    strategy_processing_mode = "parallel"
