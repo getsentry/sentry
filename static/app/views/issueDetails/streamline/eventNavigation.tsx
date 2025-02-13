@@ -212,7 +212,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 {t('All Open Periods')}
               </LinkButton>
             )}
-            {issueTypeConfig.pages.checkIns.enabled && (
+            {issueTypeConfig.pages.uptimeChecks.enabled && (
               <LinkButton
                 to={{
                   pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
