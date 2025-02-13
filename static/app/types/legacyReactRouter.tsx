@@ -91,7 +91,7 @@ export interface RouteComponentProps<
   Q = any,
 > {
   location: Location<Q>;
-  params: P & R;
+  params: P;
   route: PlainRoute<ComponentProps>;
   routeParams: R;
   router: InjectedRouter;
@@ -120,7 +120,7 @@ export interface InjectedRouter<P = Record<string, string | undefined>, Q = any>
   setRouteLeaveHook: LeaveHookFunction;
 }
 
-export interface WithRouterProps<P = Record<PropertyKey, string | undefined>, Q = any> {
+export interface WithRouterProps<P = Record<string, string | undefined>, Q = any> {
   location: Location<Q>;
   params: P;
   router: InjectedRouter<P, Q>;
