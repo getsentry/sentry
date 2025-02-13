@@ -139,8 +139,9 @@ export default storyBook('Alert', story => {
           enable this functionality with local storage. Or you can use{' '}
           <code>useState</code> to bring it back on re-render.
         </p>
-        <Alert.Container>
-          {isDismissed ? null : (
+
+        {isDismissed ? null : (
+          <Alert.Container>
             <Alert
               type="info"
               showIcon
@@ -157,28 +158,28 @@ export default storyBook('Alert', story => {
             >
               This alert can be dismissed!
             </Alert>
-          )}
-          {stateDismissed ? (
-            <Button onClick={() => setStateDismissed(false)}>Bring the alert back</Button>
-          ) : (
-            <Alert
-              type="info"
-              showIcon
-              icon={<IconStar />}
-              trailingItems={
-                <Button
-                  aria-label="Dismiss banner"
-                  icon={<IconClose />}
-                  onClick={() => setStateDismissed(true)}
-                  size="zero"
-                  borderless
-                />
-              }
-            >
-              Try dismissing this one
-            </Alert>
-          )}
-        </Alert.Container>
+          </Alert.Container>
+        )}
+        {stateDismissed ? (
+          <Button onClick={() => setStateDismissed(false)}>Bring the alert back</Button>
+        ) : (
+          <Alert
+            type="info"
+            showIcon
+            icon={<IconStar />}
+            trailingItems={
+              <Button
+                aria-label="Dismiss banner"
+                icon={<IconClose />}
+                onClick={() => setStateDismissed(true)}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            Try dismissing this one
+          </Alert>
+        )}
       </Fragment>
     );
   });
