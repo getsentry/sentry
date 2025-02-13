@@ -11,6 +11,7 @@ from sentry.testutils.helpers.data_blobs import (
     GITHUB_ACTION_DATA_BLOBS,
     JIRA_ACTION_DATA_BLOBS,
     JIRA_SERVER_ACTION_DATA_BLOBS,
+    WEBHOOK_ACTION_DATA_BLOBS,
 )
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     BaseIssueAlertHandler,
@@ -22,6 +23,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     PluginIssueAlertHandler,
     SlackIssueAlertHandler,
     TicketingIssueAlertHandler,
+    WebhookIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
@@ -486,3 +488,23 @@ class TestPluginIssueAlertHandler(BaseWorkflowTest):
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.PLUGIN]["id"],
         }
+
+
+class TestWebhookIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = WebhookIssueAlertHandler()
+
+    def test_build_rule_action_blob(self):
+        for expected in WEBHOOK_ACTION_DATA_BLOBS:
+            action = self.create_action(
+                type=Action.Type.WEBHOOK,
+                target_identifier=expected["service"],
+            )
+
+            # pop uuid from blob
+            expected.pop("uuid")
+
+            blob = self.handler.build_rule_action_blob(action)
+
+            assert blob == expected
