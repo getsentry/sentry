@@ -327,3 +327,14 @@ class PluginIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         return {}
+
+
+@issue_alert_handler_registry.register(Action.Type.WEBHOOK)
+class WebhookIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
