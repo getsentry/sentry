@@ -544,5 +544,5 @@ class MockConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MockDetectorValidator(BaseDetectorTypeValidator):
-    data_source = MockDataSourceValidator(many=True)
+    data_source = MockDataSourceValidator()
     condition_group = MockConditionGroupValidator()
