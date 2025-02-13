@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
-  DEFAULT_INDEXED_INTERACTION_SORT,
+  DEFAULT_INDEXED_SPANS_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
   type SpanSampleRowWithScore,
@@ -39,7 +39,7 @@ export function useSpanSamplesWebVitalsQuery({
   ];
   const sort = useWebVitalsSort({
     sortName,
-    defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
+    defaultSort: DEFAULT_INDEXED_SPANS_SORT,
     sortableFields: filteredSortableFields as unknown as string[],
   });
 
@@ -74,12 +74,8 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.TOTAL_SCORE,
         SpanIndexedField.TRACE,
         SpanIndexedField.PROFILE_ID,
-        SpanIndexedField.REPLAY_ID,
-        SpanIndexedField.USER,
-        SpanIndexedField.USER_EMAIL,
-        SpanIndexedField.USER_USERNAME,
-        SpanIndexedField.USER_ID,
-        SpanIndexedField.USER_IP,
+        SpanIndexedField.REPLAY,
+        SpanIndexedField.USER_DISPLAY,
         SpanIndexedField.PROJECT,
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.TIMESTAMP,
@@ -102,15 +98,8 @@ export function useSpanSamplesWebVitalsQuery({
               row[SpanIndexedField.LCP_SCORE] > 0 ? row[SpanIndexedField.LCP] : undefined,
             'measurements.cls':
               row[SpanIndexedField.CLS_SCORE] > 0 ? row[SpanIndexedField.CLS] : undefined,
-            'user.display':
-              [
-                row[SpanIndexedField.USER_EMAIL],
-                row[SpanIndexedField.USER_USERNAME],
-                row[SpanIndexedField.USER_ID],
-                row[SpanIndexedField.USER_IP],
-                row[SpanIndexedField.USER],
-              ].find(field => field && field !== '') ?? undefined,
-            replayId: row[SpanIndexedField.REPLAY_ID],
+            'user.display': row[SpanIndexedField.USER_DISPLAY],
+            replayId: row[SpanIndexedField.REPLAY],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
             projectSlug: row[SpanIndexedField.PROJECT],
