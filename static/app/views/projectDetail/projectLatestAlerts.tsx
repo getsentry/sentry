@@ -15,6 +15,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -25,10 +27,10 @@ const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
 interface AlertRowProps {
   alert: Incident;
-  orgSlug: string;
 }
 
-function AlertRow({alert, orgSlug}: AlertRowProps) {
+function AlertRow({alert}: AlertRowProps) {
+  const organization = useOrganization();
   const {status, identifier, title, dateClosed, dateStarted} = alert;
   const isResolved = status === IncidentStatus.CLOSED;
   const isWarning = status === IncidentStatus.WARNING;
@@ -40,7 +42,10 @@ function AlertRow({alert, orgSlug}: AlertRowProps) {
   return (
     <AlertRowLink
       aria-label={title}
-      to={`/organizations/${orgSlug}/alerts/${identifier}/`}
+      to={makeAlertsPathname({
+        path: `/${identifier}/`,
+        organization,
+      })}
     >
       <AlertBadgeWrapper icon={Icon}>
         <AlertBadge status={status} />
@@ -154,9 +159,7 @@ function ProjectLatestAlerts({
 
     return alertsUnresolvedAndResolved
       .slice(0, 3)
-      .map(alert => (
-        <AlertRow key={alert.id} alert={alert} orgSlug={organization.slug} />
-      ));
+      .map(alert => <AlertRow key={alert.id} alert={alert} />);
   }
 
   return (
@@ -166,7 +169,10 @@ function ProjectLatestAlerts({
         {/* as this is a link to latest alerts, we want to only preserve project and environment */}
         <SectionHeadingLink
           to={{
-            pathname: `/organizations/${organization.slug}/alerts/`,
+            pathname: makeAlertsPathname({
+              path: `/`,
+              organization,
+            }),
             query: {
               statsPeriod: undefined,
               start: undefined,
