@@ -109,35 +109,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "string"}
-            )
-            assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-
-    def test_tags_list_str_processed(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                tags={tag: tag},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(
                 features=features, query={"dataset": "spans", "type": "string", "process": 1}
             )
             assert response.status_code == 200, response.data
@@ -151,35 +122,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ]
 
     def test_tags_list_nums(self):
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                measurements={tag: 0},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "number"}
-            )
-            assert response.status_code == 200, response.data
-            assert {"key": "bar", "name": "Bar"} in response.data
-            assert {"key": "baz", "name": "Baz"} in response.data
-            assert {"key": "foo", "name": "Foo"} in response.data
-
-    def test_tags_list_nums_processed(self):
         for tag in [
             "foo",
             "bar",

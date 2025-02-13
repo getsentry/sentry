@@ -69,7 +69,6 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
     type = serializers.ChoiceField(["string", "number"], required=False)
-    process = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         if attrs["dataset"] == "spans" and attrs.get("type") is None:
@@ -129,11 +128,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             paginator = ChainPaginator(
                 [
                     [
-                        (
-                            as_tag_key(attribute.name, serialized["type"])
-                            if serialized["process"]
-                            else TagKey(attribute.name)
-                        )
+                        as_tag_key(attribute.name, serialized["type"])
                         for attribute in rpc_response.attributes
                         if attribute.name
                     ],
