@@ -9,6 +9,7 @@ class SentryAppAvatarSerializerResponse(TypedDict):
     avatarUuid: str
     avatarUrl: str
     color: bool
+    photoType: str
 
 
 @register(SentryAppAvatar)
@@ -21,4 +22,5 @@ class SentryAppAvatarSerializer(Serializer):
             "avatarUuid": obj.ident,
             "avatarUrl": obj.absolute_url(),
             "color": obj.color,
+            "photoType": obj.get_avatar_photo_type(),
         }
