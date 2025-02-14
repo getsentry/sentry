@@ -5,9 +5,11 @@ import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import Pagination from 'sentry/components/pagination';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,9 +20,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useOrganizationReleases';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
-
-import Pagination from '../pagination';
-import TextOverflow from '../textOverflow';
 
 type ReleaseHealthItem = {
   adoption_stage: string;

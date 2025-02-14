@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/button';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
@@ -37,6 +38,7 @@ export interface InsightsTimeSeriesWidgetProps {
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
   const releases =
@@ -100,7 +102,12 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     <ChartContainer>
       <Widget
         Title={Title}
-        Visualization={<TimeSeriesWidgetVisualization {...visualizationProps} />}
+        Visualization={
+          <TimeSeriesWidgetVisualization
+            {...(organization.features.includes('release-bubbles-ui') ? {releases} : {})}
+            {...visualizationProps}
+          />
+        }
         Actions={
           <Widget.WidgetToolbar>
             <Button

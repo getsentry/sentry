@@ -1,6 +1,7 @@
 import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -9,23 +10,12 @@ import {
   Header,
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
+import {ReleaseDrawerTable} from 'sentry/components/releases/releasesDrawerTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Release} from 'sentry/views/dashboards/widgets/common/types';
-import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-
-import {DateTime} from '../dateTime';
-
-import {ReleaseDrawerTable} from './releasesDrawerTable';
-
-type Bucket = [
-  start: number,
-  placeholder: number,
-  end: number,
-  numReleases: number,
-  releases: Release[],
-];
 
 interface ReleasesDrawerProps {
   /**
@@ -46,9 +36,11 @@ interface ReleasesDrawerProps {
    * it to make the props more generic, e.g. pass start/end timestamps and do
    * the series manipulation when we call the bubble hook.
    */
-  chartRenderer?: (
-    rendererProps: Partial<TimeSeriesWidgetVisualizationProps>
-  ) => ReactElement;
+  chartRenderer?: (rendererProps: {
+    end: Date;
+    releases: Release[];
+    start: Date;
+  }) => ReactElement;
 }
 
 export function ReleasesDrawer({
@@ -78,6 +70,11 @@ export function ReleasesDrawer({
                   <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
                 </Fragment>
               }
+              Visualization={chartRenderer?.({
+                releases,
+                start,
+                end,
+              })}
             />
           </ChartContainer>
         ) : null}
