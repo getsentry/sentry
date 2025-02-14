@@ -1358,10 +1358,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     isErrorMigration={showErrorMigrationWarning}
                     isExtrapolatedChartData={isExtrapolatedChartData}
                     isOnDemandLimitReached={isOnDemandLimitReached}
-                    isForLlmMetric={[
-                      'sum(ai.total_tokens.used)',
-                      'sum(ai.total_cost)',
-                    ].includes(aggregate)}
                     isTransactionMigration={isMigration && !showErrorMigrationWarning}
                     onComparisonDeltaChange={value =>
                       this.handleFieldChange('comparisonDelta', value)

@@ -2497,6 +2497,13 @@ register(
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relocation.outbox-orgslug.killswitch",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # max number of profiles to use for computing
 # the aggregated flamegraph.
 register(
@@ -2853,6 +2860,12 @@ register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "grouping.grouphash_metadata.backfill_sample_rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

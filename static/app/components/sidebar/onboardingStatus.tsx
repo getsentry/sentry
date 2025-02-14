@@ -1,6 +1,6 @@
 import {useCallback, useContext, useEffect, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -19,7 +19,6 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
-import theme from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,6 +39,7 @@ export function OnboardingStatus({
   onShowPanel,
 }: OnboardingStatusProps) {
   const user = useUser();
+  const theme = useTheme();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();

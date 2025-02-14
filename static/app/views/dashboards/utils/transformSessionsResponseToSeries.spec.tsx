@@ -3,7 +3,7 @@ import {
   SessionUserCountByStatusByReleaseFixture,
 } from 'sentry-fixture/sessions';
 
-import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/widgetCard/transformSessionsResponseToSeries';
+import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/transformSessionsResponseToSeries';
 
 describe('transformSessionsResponseToSeries', function () {
   it('transforms sessions into series', () => {

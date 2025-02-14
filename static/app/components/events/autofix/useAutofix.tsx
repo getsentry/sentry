@@ -11,8 +11,10 @@ import {
   type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
+  type UseApiQueryOptions,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 export type AutofixResponse = {
@@ -37,7 +39,13 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         status: AutofixStatus.PROCESSING,
         title: 'Starting Autofix...',
         insights: [],
-        progress: [],
+        progress: [
+          {
+            message: 'Ingesting Sentry data...',
+            timestamp: new Date().toISOString(),
+            type: 'INFO',
+          },
+        ],
       },
     ],
     created_at: new Date().toISOString(),
@@ -89,6 +97,8 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const queryClient = useQueryClient();
 
   const [isReset, setIsReset] = useState<boolean>(false);
+  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
 
   const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
     staleTime: 0,
@@ -99,11 +109,12 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       }
       return false;
     },
-  });
+  } as UseApiQueryOptions<AutofixResponse, RequestError>);
 
   const triggerAutofix = useCallback(
     async (instruction: string) => {
       setIsReset(false);
+      setCurrentRunId(null);
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(group.id),
@@ -111,13 +122,14 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       );
 
       try {
-        await api.requestPromise(`/issues/${group.id}/autofix/`, {
+        const response = await api.requestPromise(`/issues/${group.id}/autofix/`, {
           method: 'POST',
           data: {
             event_id: event.id,
             instruction,
           },
         });
+        setCurrentRunId(response.run_id ?? null);
       } catch (e) {
         setApiQueryData<AutofixResponse>(
           queryClient,
@@ -131,9 +143,22 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   const reset = useCallback(() => {
     setIsReset(true);
+    setCurrentRunId(null);
+    setWaitingForNextRun(true);
   }, []);
 
-  const autofixData = isReset ? null : apiData?.autofix ?? null;
+  let autofixData = apiData?.autofix ?? null;
+  let usingInitialData = false;
+  if (waitingForNextRun && apiData?.autofix?.run_id !== currentRunId) {
+    autofixData = makeInitialAutofixData().autofix;
+    usingInitialData = true;
+  }
+  if (isReset) {
+    autofixData = null;
+  }
+  if (autofixData?.steps?.length && !usingInitialData && waitingForNextRun) {
+    setWaitingForNextRun(false);
+  }
 
   return {
     autofixData,
