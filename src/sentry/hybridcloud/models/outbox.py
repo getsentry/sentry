@@ -245,10 +245,15 @@ class OutboxBase(Model):
         using = router.db_for_write(type(self))
         tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
 
-        # If we have a latest_row, only operate on messages that were created before it.
-        filters = {} if latest_shard_row is None else dict(id__lte=latest_shard_row.id)
+        now = timezone.now()
+
+        filters: dict[str, Any] = {}
+        if latest_shard_row is not None:
+            # If we have a latest row, only operate on messages that were created earlier
+            # and haven't been scheduled to run the future.
+            filters = {"id__lte": latest_shard_row.id, "scheduled_for__lte": now}
+
         try:
-            now = timezone.now()
             with transaction.atomic(using=using, savepoint=False):
                 # Lock all the rows we're going to process and attempt to reserve them.
                 reserved_ids = list(
