@@ -228,7 +228,7 @@ def _get_issues_for_file(
         Group.objects.filter(
             first_seen__gte=datetime.now(UTC) - timedelta(days=90),
             last_seen__gte=event_timestamp_start,
-            status=GroupStatus.UNRESOLVED,
+            status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED],
             project__in=projects,
         )
         .order_by("-times_seen")
