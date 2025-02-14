@@ -7,17 +7,19 @@ describe('ArithmeticBuilder', function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilder expression={expression} />);
 
-    expect(screen.getAllByRole('row')).toHaveLength(11);
+    expect(screen.queryAllByRole('row')).toHaveLength(11);
 
-    const freeTextTokens = screen.getAllByRole('combobox', {name: 'Add a term'});
+    // the combobox inside the free text tokens will get the focus
+    const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
     expect(freeTextTokens).toHaveLength(6);
 
-    const openParenToken = screen.getByRole('gridcell', {name: 'Delete left'});
-    const closeParenToken = screen.getByRole('gridcell', {name: 'Delete right'});
+    // the delete button inside the parenthesis and operation tokens will get the focus
+    const openParenToken = screen.queryByRole('gridcell', {name: 'Delete left'});
+    const closeParenToken = screen.queryByRole('gridcell', {name: 'Delete right'});
+    const addOpToken = screen.queryByRole('gridcell', {name: 'Delete +'});
 
-    const addOpToken = screen.getByRole('gridcell', {name: 'Delete +'});
-
-    const functionTokens = screen.getAllByRole('combobox', {
+    // the combobox inside the function tokens will get the focus
+    const functionTokens = screen.queryAllByRole('combobox', {
       name: 'Select an attribute',
     });
     expect(functionTokens).toHaveLength(2);
@@ -56,23 +58,25 @@ describe('ArithmeticBuilder', function () {
       await waitFor(focus);
     }
 
-    expect(screen.getAllByRole('row')).toHaveLength(1);
+    expect(screen.queryAllByRole('row')).toHaveLength(1);
   });
 
   it('can delete tokens with backspace', async function () {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilder expression={expression} />);
 
-    expect(screen.getAllByRole('row')).toHaveLength(11);
+    expect(screen.queryAllByRole('row')).toHaveLength(11);
 
-    const freeTextTokens = screen.getAllByRole('combobox', {name: 'Add a term'});
+    // the combobox inside the free text tokens will get the focus
+    const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
     expect(freeTextTokens).toHaveLength(6);
 
-    const openParenToken = screen.getByRole('gridcell', {name: 'Delete left'});
-    const closeParenToken = screen.getByRole('gridcell', {name: 'Delete right'});
+    // the delete button inside the parenthesis and operation tokens will get the focus
+    const openParenToken = screen.queryByRole('gridcell', {name: 'Delete left'});
+    const closeParenToken = screen.queryByRole('gridcell', {name: 'Delete right'});
+    const addOpToken = screen.queryByRole('gridcell', {name: 'Delete +'});
 
-    const addOpToken = screen.getByRole('gridcell', {name: 'Delete +'});
-
+    // the combobox inside the function tokens will get the focus
     const functionTokens = screen.getAllByRole('combobox', {
       name: 'Select an attribute',
     });
@@ -122,12 +126,16 @@ describe('ArithmeticBuilder', function () {
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(11);
 
+    // the combobox inside the free text tokens will get the focus
     const freeTextTokens = screen.getAllByRole('combobox', {name: 'Add a term'});
     expect(freeTextTokens).toHaveLength(6);
 
     const firstFreeText = () =>
       screen.getAllByRole('combobox', {name: 'Add a term'}).at(0)!;
 
+    // Because we're deleting tokens from the start, we cannot get them
+    // up front as they will change as we delete. We have to get the
+    // element once we reach that position.
     const tokens: Array<() => HTMLElement | null> = [
       firstFreeText,
       () => screen.queryByRole('gridcell', {name: 'Delete left'}),
