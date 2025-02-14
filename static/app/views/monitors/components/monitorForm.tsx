@@ -30,6 +30,7 @@ import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
@@ -494,7 +495,10 @@ function MonitorForm({
           {monitor?.config.alert_rule_id && (
             <AlertLink
               priority="muted"
-              to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
+              to={makeAlertsPathname({
+                path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
+                organization,
+              })}
               withoutMarginBottom
             >
               {t('Customize this monitors notification configuration in Alerts')}
