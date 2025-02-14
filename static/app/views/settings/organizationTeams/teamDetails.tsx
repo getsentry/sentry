@@ -81,9 +81,11 @@ function TeamDetails({children}: Props) {
 
   if (!team || isError) {
     return (
-      <Alert type="warning">
-        <div>{t('This team does not exist, or you do not have access to it.')}</div>
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning">
+          <div>{t('This team does not exist, or you do not have access to it.')}</div>
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -101,22 +103,24 @@ function TeamDetails({children}: Props) {
           {isValidElement(children) ? cloneElement<any>(children, {team}) : null}
         </div>
       ) : (
-        <Alert type="warning">
-          <RequestAccessWrapper>
-            <div>
-              {tct('You do not have access to the [teamSlug] team.', {
-                teamSlug: <strong>{`#${team.slug}`}</strong>,
-              })}
-            </div>
-            <Button
-              disabled={requesting || team.isPending}
-              size="sm"
-              onClick={() => handleRequestAccess(team.slug)}
-            >
-              {team.isPending ? t('Request Pending') : t('Request Access')}
-            </Button>
-          </RequestAccessWrapper>
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning">
+            <RequestAccessWrapper>
+              <div>
+                {tct('You do not have access to the [teamSlug] team.', {
+                  teamSlug: <strong>{`#${team.slug}`}</strong>,
+                })}
+              </div>
+              <Button
+                disabled={requesting || team.isPending}
+                size="sm"
+                onClick={() => handleRequestAccess(team.slug)}
+              >
+                {team.isPending ? t('Request Pending') : t('Request Access')}
+              </Button>
+            </RequestAccessWrapper>
+          </Alert>
+        </Alert.Container>
       )}
     </div>
   );

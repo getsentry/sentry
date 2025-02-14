@@ -38,7 +38,7 @@ export function ProjectLoadingError({
 
   if (code === 'sso-required' && ssoLoginUrl) {
     return (
-      <AlertWithoutMargin
+      <Alert
         type="error"
         showIcon
         trailingItems={
@@ -48,7 +48,7 @@ export function ProjectLoadingError({
         }
       >
         {t('This organization requires Single Sign-On.')}
-      </AlertWithoutMargin>
+      </Alert>
     );
   }
 
@@ -61,10 +61,6 @@ export function ProjectLoadingError({
     />
   );
 }
-
-const AlertWithoutMargin = styled(Alert)`
-  margin: 0;
-`;
 
 const LoadingErrorWithoutMargin = styled(LoadingError)`
   margin: 0;
