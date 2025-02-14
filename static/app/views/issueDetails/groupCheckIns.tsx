@@ -41,7 +41,7 @@ export default function GroupCheckIns() {
     refetch: refetchGroup,
   } = useGroup({groupId});
 
-  const canFetchMonitorChecks =
+  const canFetchMonitorCheckIns =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(cronAlertId);
 
   const {
