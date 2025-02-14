@@ -58,12 +58,12 @@ describe('GroupCheckIns', () => {
       'Status',
       'Duration',
       'Environment',
-      'Config',
+      'Monitor Config',
       'ID',
     ]) {
       expect(screen.getByText(column)).toBeInTheDocument();
     }
-    expect(screen.getByText('No matching checks-ins found')).toBeInTheDocument();
+    expect(screen.getByText('No matching check-ins found')).toBeInTheDocument();
   });
 
   it('renders the check-in table with data', async () => {
@@ -74,9 +74,9 @@ describe('GroupCheckIns', () => {
     });
 
     render(<GroupCheckIns />, {organization, router});
-    expect(await screen.findByText('All Checks-Ins')).toBeInTheDocument();
-    expect(screen.queryByText('No matching checks-ins found')).not.toBeInTheDocument();
-    expect(screen.getByText('Showing 1-1 matching checks-ins')).toBeInTheDocument();
+    expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
+    expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 1-1 matching check-ins')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
 

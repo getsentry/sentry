@@ -77,9 +77,9 @@ export default function GroupCheckIns() {
 
   return (
     <EventListTable
-      title={t('All Checks-Ins')}
+      title={t('All Check-Ins')}
       pagination={{
-        tableUnits: t('checks-ins'),
+        tableUnits: t('check-ins'),
         links,
         pageCount,
         nextDisabled,
@@ -88,7 +88,7 @@ export default function GroupCheckIns() {
     >
       <GridEditable
         isLoading={isDataPending}
-        emptyMessage={t('No matching checks-ins found')}
+        emptyMessage={t('No matching check-ins found')}
         data={cronData}
         columnOrder={[
           {key: 'dateCreated', width: 225, name: t('Timestamp')},
