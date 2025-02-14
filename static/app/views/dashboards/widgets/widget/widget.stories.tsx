@@ -12,7 +12,12 @@ import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidge
 
 import {Widget} from './widget';
 
-export default storyBook('Widget', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
+
+export default storyBook('Widget', (story, APIReference) => {
+  APIReference(types.exported);
+
   story('Getting Started', () => {
     const isLoading: boolean = false;
     const hasError: boolean = false;
