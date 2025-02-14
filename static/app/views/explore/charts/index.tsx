@@ -18,7 +18,6 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
-import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loadingPanel';
 import {WidgetLayout} from 'sentry/views/dashboards/widgets/widgetLayout/widgetLayout';
 import {WidgetTitle} from 'sentry/views/dashboards/widgets/widgetLayout/widgetTitle';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
@@ -190,7 +189,7 @@ export function ExploreCharts({
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<LoadingPanel />}
+                Visualization={<TimeSeriesWidgetVisualization.Placeholder />}
                 revealActions="always"
               />
             );
