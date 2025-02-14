@@ -214,7 +214,7 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
                 self.organization.slug,
                 self.project.slug,
                 self.detector.id,
-                **self.valid_data,
+                **data,
                 status_code=200,
             )
 
@@ -223,3 +223,24 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         assert condition_group
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 2
+
+    def test_update_bad_schema(self):
+        """
+        Test when we encounter bad data in the payload
+        """
+        data = {**self.valid_data}
+        condition_group_data = {
+            "comparison": "betterThan",
+            "type": Condition.GREATER,
+            "conditionResult": DetectorPriorityLevel.MEDIUM,
+            "conditionGroupId": self.condition.condition_group.id,
+        }
+        data["conditionGroup"]["conditions"].append(condition_group_data)
+        with self.tasks():
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.detector.id,
+                **data,
+                status_code=400,
+            )

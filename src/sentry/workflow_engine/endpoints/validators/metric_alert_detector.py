@@ -10,8 +10,8 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
     NumericComparisonConditionValidator,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models import DataConditionGroup, DataSource
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -67,6 +67,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
 
             if current_data_condition:
                 current_data_condition.update(**data_condition)
+                current_data_condition.save()
             else:
                 DataCondition.objects.create(
                     type=data_condition.get("type"),
