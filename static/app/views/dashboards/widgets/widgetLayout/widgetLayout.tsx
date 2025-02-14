@@ -8,6 +8,7 @@ import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {Description} from './description';
 import {TextTitle} from './textTitle';
+import {Toolbar} from './toolbar';
 
 export interface WidgetLayoutProps {
   Actions?: React.ReactNode;
@@ -57,6 +58,7 @@ function WidgetLayoutComponent(props: WidgetLayoutProps) {
 const exported = Object.assign(WidgetLayoutComponent, {
   Description,
   TextTitle,
+  Toolbar,
 });
 
 export {exported as WidgetLayout};
