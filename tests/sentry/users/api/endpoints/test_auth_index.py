@@ -546,6 +546,16 @@ class AuthLogoutEndpointDemoUserTest(APITestCase):
         self.readonly_user = self.create_user("bar@example.com", id=2)
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
+    def test_authenticate(self):
+        self.login_as(self.normal_user)
+        response = self.client.post(self.path)
+        assert response.status_code == 200
+
+        self.login_as(self.readonly_user)
+        response = self.client.post(self.path)
+        assert response.status_code == 403
+
+    @override_options({"demo-mode.enabled": True, "demo-mode.users": [2]})
     def test_log_out_single_session(self):
         self.login_as(self.normal_user)
         response = self.client.delete(self.path)

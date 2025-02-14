@@ -184,6 +184,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        if is_demo_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
         if request.user.has_2fa():
