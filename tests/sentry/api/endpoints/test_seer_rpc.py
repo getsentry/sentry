@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import Mock, patch
 
 import orjson
 from django.test import override_settings
@@ -6,11 +7,15 @@ from django.urls import reverse
 
 from sentry.api.endpoints.seer_rpc import (
     NUM_DAYS_AGO,
+    _add_event_details,
     generate_request_signature,
+    get_issues_related_to_file_patches,
     get_issues_with_event_details_for_file,
 )
 from sentry.integrations.github.constants import STACKFRAME_COUNT
-from sentry.testutils.cases import APITestCase
+from sentry.models.group import Group
+from sentry.models.repository import Repository
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
 
@@ -116,3 +121,79 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         issue_ids = [issue["id"] for issue in issues]
         assert group_id != self.group_id
         assert issue_ids == [self.group_id]
+
+
+class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+
+        self.group_id_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][
+            0
+        ].group.id
+        self.group_id_2 = [
+            self._create_event(
+                culprit="issue2",
+                filenames=["foo.py", "bar.py"],
+                function_names=["blue", "planet"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+
+        self.gh_repo: Repository = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            project=self.project,
+            url="https://github.com/getsentry/sentry",
+        )
+
+        groups: list[Group] = list(Group.objects.all())
+        issues_result_set = [
+            {
+                "group_id": group.id,
+                "event_id": group.get_latest_event().event_id,
+                "title": f"title_{i}",
+                "function_name": f"function_{i}",
+            }
+            for i, group in enumerate(groups)
+        ]
+        self.issues_with_event_details = _add_event_details(
+            projects=[self.project],
+            issues_result_set=issues_result_set,
+            event_timestamp_start=None,
+            event_timestamp_end=None,
+        )
+
+    @patch("sentry.api.endpoints.seer_rpc.get_projects_and_filenames_from_source_file")
+    @patch(
+        "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+    )
+    @patch("sentry.api.endpoints.seer_rpc.get_issues_with_event_details_for_file")
+    def test_get_issues_related_to_file_patches(
+        self,
+        mock_get_issues_with_event_details_for_file: Mock,
+        mock_extract_functions_from_patch: Mock,
+        mock_get_projects_and_filenames_from_source_file: Mock,
+    ):
+        mock_get_issues_with_event_details_for_file.side_effect = (
+            lambda *args, **kwargs: self.issues_with_event_details
+        )
+        mock_extract_functions_from_patch.return_value = ["world", "planet"]
+        mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
+
+        filename_to_patch = {"foo.py": "a", "bar.py": "b"}
+        filename_to_issues_expected = {
+            filename: self.issues_with_event_details for filename in filename_to_patch
+        }
+
+        filename_to_issues = get_issues_related_to_file_patches(
+            organization_id=self.organization.id,
+            provider=self.gh_repo.provider,
+            external_id=self.gh_repo.external_id,
+            filename_to_patch=filename_to_patch,
+        )
+        assert filename_to_issues == filename_to_issues_expected

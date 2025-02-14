@@ -205,7 +205,7 @@ def _get_issues_for_file(
     event_timestamp_start: datetime,
     event_timestamp_end: datetime,
     max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
-):
+) -> list[dict[str, Any]]:
     """
     Fetch issues with their latest event if its stacktrace frames match the function names
     and file names.
@@ -340,10 +340,7 @@ def _get_issues_for_file(
         query=query,
     )
     # TODO: error handling.
-    issues_result_set: list[dict[str, Any]] = raw_snql_query(
-        request, referrer=Referrer.SEER_RPC.value
-    )["data"]
-    return issues_result_set
+    return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
 
 
 def _add_event_details(
@@ -381,6 +378,7 @@ def _add_event_details(
             # function_name is used for testing
         }
         for event_dict in serialized_events
+        if event_dict["groupID"] is not None
     ]
 
 
