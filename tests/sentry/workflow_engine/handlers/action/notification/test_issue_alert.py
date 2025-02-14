@@ -26,7 +26,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     TicketingIssueAlertHandler,
     WebhookIssueAlertHandler,
 )
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
@@ -75,15 +75,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
-            def get_additional_fields(
-                cls, action: Action, mapping: ActionFieldMapping, detector: Detector
-            ):
+            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
                 return {"tags": "environment,user,my_tag"}
 
             @classmethod
-            def get_target_display(
-                cls, action: Action, mapping: ActionFieldMapping, detector: Detector
-            ):
+            def get_target_display(cls, action: Action, mapping: ActionFieldMapping):
                 return {}
 
         self.handler = TestHandler()
@@ -91,9 +87,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     def test_create_rule_instance_from_action_missing_properties_raises_value_error(self):
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
-            def get_additional_fields(
-                cls, action: Action, mapping: ActionFieldMapping, detector: Detector
-            ):
+            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
                 return {"tags": "environment,user,my_tag"}
 
         handler = TestHandler()
@@ -198,7 +192,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Discord action data"""
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -210,7 +204,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob_no_tags(self):
         """Test that build_rule_action_blob handles missing tags"""
         self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -234,7 +228,7 @@ class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct MSTeams action data"""
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
@@ -259,7 +253,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Slack action data"""
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -273,7 +267,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob_no_data(self):
         """Test that build_rule_action_blob handles missing data"""
         self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -299,7 +293,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct PagerDuty action data"""
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
@@ -311,7 +305,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob_no_priority(self):
         """Test that build_rule_action_blob handles missing priority"""
         self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
@@ -335,7 +329,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Opsgenie action data"""
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
@@ -347,7 +341,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
     def test_build_rule_action_blob_no_priority(self):
         """Test that build_rule_action_blob handles missing priority"""
         self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
@@ -370,7 +364,7 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
             integration_id=expected["integration"],
             data=action_data,
         )
-        blob = self.handler.build_rule_action_blob(action, self.detector)
+        blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
         # pop uuid from blob
         # (we don't store it anymore since its a legacy artifact when we didn't have the action model)
@@ -483,7 +477,7 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
                 target_type=target_type,
                 target_identifier=target_identifier,
             )
-            blob = self.handler.build_rule_action_blob(action, self.detector)
+            blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
             assert blob == healed
 
@@ -498,7 +492,7 @@ class TestPluginIssueAlertHandler(BaseWorkflowTest):
         )
 
     def test_build_rule_action_blob(self):
-        blob = self.handler.build_rule_action_blob(self.action, self.detector)
+        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.PLUGIN]["id"],
@@ -521,7 +515,7 @@ class TestWebhookIssueAlertHandler(BaseWorkflowTest):
             # pop uuid from blob
             expected.pop("uuid")
 
-            blob = self.handler.build_rule_action_blob(action, self.detector)
+            blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
             assert blob == expected
 
@@ -567,7 +561,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             data=data_blob,
             target_identifier=self.sentry_app.id,
         )
-        blob = self.handler.build_rule_action_blob(action, self.detector)
+        blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
@@ -582,7 +576,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             data=data_blob,
             target_identifier=self.sentry_app.id,
         )
-        blob = self.handler.build_rule_action_blob(action, self.detector2)
+        blob = self.handler.build_rule_action_blob(action, self.org2.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
@@ -602,7 +596,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
         )
 
         # sentry app with no settings
-        blob = self.handler.build_rule_action_blob(action, self.detector)
+        blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
@@ -615,7 +609,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             type=Action.Type.SENTRY_APP,
             target_identifier=self.sentry_app.id,
         )
-        blob = self.handler.build_rule_action_blob(action, self.detector2)
+        blob = self.handler.build_rule_action_blob(action, self.org2.id)
 
         assert blob == {
             "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
