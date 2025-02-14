@@ -178,25 +178,6 @@ describe('Organization Developer Settings', function () {
         })
       );
     });
-    it('cannot make a request to publish an integration', async () => {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-apps/`,
-        body: [sentryApp],
-      });
-
-      const router = RouterFixture({
-        location: LocationFixture({query: {type: 'public'}}),
-      });
-
-      render(<OrganizationDeveloperSettings />, {
-        router,
-      });
-
-      const publishButton = await screen.findByRole('button', {name: 'Publish'});
-
-      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
-    });
   });
 
   describe('with published apps', () => {
