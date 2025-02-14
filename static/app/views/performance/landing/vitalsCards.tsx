@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -306,7 +305,6 @@ type SparklineChartProps = {
 };
 
 function SparklineChart(props: SparklineChartProps) {
-  const theme = useTheme();
   const {data} = props;
   const width = 150;
   const height = 24;
