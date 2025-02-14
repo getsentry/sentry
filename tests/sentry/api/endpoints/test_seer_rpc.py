@@ -194,12 +194,11 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         }
 
         assert self.gh_repo.provider is not None
-        assert self.gh_repo.external_id is not None
 
         filename_to_issues = get_issues_related_to_file_patches(
             organization_id=self.organization.id,
             provider=self.gh_repo.provider,
-            external_id=self.gh_repo.external_id,
+            external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
             filename_to_patch=filename_to_patch,
         )
         assert filename_to_issues == filename_to_issues_expected

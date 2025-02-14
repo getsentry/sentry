@@ -407,7 +407,7 @@ def get_issues_related_to_file_patches(
     *,
     organization_id: int,
     provider: str,
-    external_id: str,
+    external_id: str,  # type: ignore[arg-type]
     filename_to_patch: dict[str, str],
     max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
 ) -> dict[str, list[dict[str, Any]]]:
