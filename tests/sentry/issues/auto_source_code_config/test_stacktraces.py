@@ -77,6 +77,7 @@ def test_get_frames_to_process(
     "frames, expected",
     [
         ([], []),
+        ([None], []),
         ([{"in_app": True}], []),
     ],
 )
