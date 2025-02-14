@@ -50,7 +50,7 @@ import TraceNotFound from './traceNotFound';
 import TraceViewDetailPanel from './traceViewDetailPanel';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
-type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
   error: QueryError | null;
   isLoading: boolean;

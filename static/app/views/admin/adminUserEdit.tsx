@@ -120,7 +120,7 @@ class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
   }
 }
 
-type Props = DeprecatedAsyncComponent['props'] & RouteComponentProps<{id: string}, {}>;
+type Props = DeprecatedAsyncComponent['props'] & RouteComponentProps<{id: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   user: User | null;

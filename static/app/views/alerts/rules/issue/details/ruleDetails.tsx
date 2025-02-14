@@ -47,7 +47,7 @@ import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
 interface AlertRuleDetailsProps
-  extends RouteComponentProps<{projectId: string; ruleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; ruleId: string}> {}
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
