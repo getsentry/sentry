@@ -116,8 +116,8 @@ function ProjectApdexScoreCard(props: Props) {
   if (!hasTransactions || !organization.features.includes('performance-view')) {
     return (
       <Widget
-        Title={<Widget.TextTitle title={cardTitle} />}
-        Actions={<Widget.Description description={cardHelp} />}
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={<Widget.WidgetDescription description={cardHelp} />}
         Visualization={
           <ActionWrapper>
             <MissingPerformanceButtons organization={organization} />

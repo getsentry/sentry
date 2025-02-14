@@ -134,8 +134,8 @@ function ProjectStabilityScoreCard(props: Props) {
   if (hasSessions === false) {
     return (
       <Widget
-        Title={<Widget.TextTitle title={cardTitle} />}
-        Actions={<Widget.Description description={cardHelp} />}
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={<Widget.WidgetDescription description={cardHelp} />}
         Visualization={
           <ActionWrapper>
             <MissingReleasesButtons
