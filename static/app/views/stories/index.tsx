@@ -47,7 +47,10 @@ export default function Stories() {
     [location.query, navigate]
   );
 
-  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
+  const storiesSearchHotkeys = useMemo(() => {
+    return [{match: '/', callback: () => searchInput.current?.focus()}];
+  }, []);
+  useHotkeys(storiesSearchHotkeys);
 
   return (
     <RouteAnalyticsContextProvider>

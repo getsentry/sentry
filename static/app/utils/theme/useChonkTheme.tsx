@@ -53,7 +53,7 @@ export function useChonkTheme(): [
     }
   }, [config.theme, organization, previousTheme, setChonkTheme]);
 
-  const chonkHotkey = useMemo(() => {
+  const chonkToggleHotkeys = useMemo(() => {
     return organization?.features?.includes('chonk-ui')
       ? [
           {
@@ -67,7 +67,7 @@ export function useChonkTheme(): [
       : [];
   }, [organization, chonkTheme.theme, setChonkWithSideEffect]);
 
-  useHotkeys(chonkHotkey, [chonkHotkey]);
+  useHotkeys(chonkToggleHotkeys);
 
   return [theme, setChonkWithSideEffect];
 }

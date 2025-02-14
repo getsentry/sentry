@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -37,8 +37,8 @@ export function ThemeAndStyleProvider({children}: Props) {
   const [chonkTheme] = useChonkTheme();
 
   // Theme toggle global shortcut
-  useHotkeys(
-    [
+  const themeToggleHotkeys = useMemo(() => {
+    return [
       {
         match: ['command+shift+1', 'ctrl+shift+1'],
         includeInputs: true,
@@ -46,9 +46,10 @@ export function ThemeAndStyleProvider({children}: Props) {
           ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
         },
       },
-    ],
-    [config.theme]
-  );
+    ];
+  }, [config.theme]);
+
+  useHotkeys(themeToggleHotkeys);
 
   // Use default theme or chonk theme if set.
   let theme = config.theme === 'dark' ? darkTheme : lightTheme;

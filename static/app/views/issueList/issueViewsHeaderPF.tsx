@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 import isEqual from 'lodash/isEqual';
@@ -392,8 +392,8 @@ function IssueViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewId, query]);
 
-  useHotkeys(
-    [
+  const issuesViewSaveHotkeys = useMemo(() => {
+    return [
       {
         match: ['command+s', 'ctrl+s'],
         includeInputs: true,
@@ -404,9 +404,10 @@ function IssueViewsIssueListHeaderTabsContent({
           }
         },
       },
-    ],
-    [dispatch, tabListState?.selectedKey, views]
-  );
+    ];
+  }, [dispatch, tabListState?.selectedKey, views]);
+
+  useHotkeys(issuesViewSaveHotkeys);
 
   const handleCreateNewView = () => {
     const tempId = generateTempViewId();
