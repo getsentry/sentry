@@ -464,6 +464,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               icon={<IconLink />}
               aria-label={t('Share')}
               title={t('Share Issue')}
+              analyticsEventKey="issue_details.share_action_clicked"
+              analyticsEventName="Issue Details: Share Action Clicked"
             />
           </Fragment>
         ))}
