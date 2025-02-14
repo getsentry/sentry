@@ -1074,12 +1074,12 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
 
     def __init__(
         self,
-        mode: Literal["batched-parallel", "serial"] | None = None,
+        mode: Literal["batched-parallel", "parallel", "serial"] | None = None,
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
     ) -> None:
-        if mode == "batched-parallel":
+        if mode == "batched-parallel" or mode == "parallel":
             self.parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
