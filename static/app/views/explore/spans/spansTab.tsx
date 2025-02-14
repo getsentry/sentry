@@ -79,9 +79,14 @@ export function SpansTabContentImpl({
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
 
-  const toolbarExtras = organization?.features?.includes('visibility-explore-dataset')
-    ? ['dataset toggle' as const]
-    : [];
+  const toolbarExtras = [
+    ...(organization?.features?.includes('visibility-explore-dataset')
+      ? ['dataset toggle' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-equations')
+      ? ['equations' as const]
+      : []),
+  ];
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     mode === Mode.AGGREGATE
