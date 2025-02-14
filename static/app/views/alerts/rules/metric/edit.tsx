@@ -12,7 +12,6 @@ import {metric} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -75,13 +74,10 @@ export function MetricRulesEdit({
     metric.endSpan({name: 'saveAlertRule'});
     navigate(
       normalizeUrl({
-        pathname: makeAlertsPathname({
-          path: `/rules/details/${params.ruleId}/`,
-          organization,
-        }),
+        pathname: `/organizations/${organization.slug}/alerts/rules/details/${params.ruleId}/`,
       })
     );
-  }, [navigate, params.ruleId, organization]);
+  }, [params.ruleId, navigate, organization.slug]);
 
   if (isPending) {
     return <LoadingIndicator />;
