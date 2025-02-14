@@ -32,22 +32,22 @@ export default storyBook('Widget', (story, APIReference) => {
 
         <SmallSizingWindow>
           <Widget
-            Title={<Widget.TextTitle title="epm() : /insights/frontend/assets" />}
+            Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
             Actions={
-              <Widget.Toolbar>
+              <Widget.WidgetToolbar>
                 <Button size="xs">Say More</Button>
                 <Button size="xs">Say Less</Button>
-                <Widget.Description
+                <Widget.WidgetDescription
                   title="epm() : /insights/frontend/assets"
                   description="Events received, tracked per minute"
                 />
-              </Widget.Toolbar>
+              </Widget.WidgetToolbar>
             }
             Visualization={
               isLoading ? (
-                <TimeSeriesWidgetVisualization.Placeholder />
+                <TimeSeriesWidgetVisualization.LoadingPlaceholder />
               ) : hasError ? (
-                <Widget.Error error="Oh no!" />
+                <Widget.WidgetError error="Oh no!" />
               ) : (
                 <TimeSeriesWidgetVisualization
                   visualizationType="line"

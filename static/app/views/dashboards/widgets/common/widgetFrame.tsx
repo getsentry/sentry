@@ -10,15 +10,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import type {DescriptionProps} from '../widget/description';
 import {Widget} from '../widget/widget';
+import type {WidgetDescriptionProps} from '../widget/widgetDescription';
 
 import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, DescriptionProps {
+export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
@@ -69,7 +69,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <Widget.TextTitle title={props.title} />
+          <Widget.WidgetTitle title={props.title} />
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
@@ -84,7 +84,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <Widget.Description
+            <Widget.WidgetDescription
               title={props.title}
               description={props.description}
               revealTooltip={props.revealTooltip ?? 'hover'}
@@ -149,10 +149,12 @@ export function WidgetFrame(props: WidgetFrameProps) {
       }
       Visualization={
         props.error ? (
-          <Widget.Error error={error} />
+          <Widget.WidgetError error={error} />
         ) : (
           <ErrorBoundary
-            customComponent={() => <Widget.Error error={WIDGET_RENDER_ERROR_MESSAGE} />}
+            customComponent={() => (
+              <Widget.WidgetError error={WIDGET_RENDER_ERROR_MESSAGE} />
+            )}
           >
             {props.children}
           </ErrorBoundary>

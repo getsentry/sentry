@@ -177,7 +177,7 @@ export function ExploreCharts({
           const Title = (
             <Fragment>
               {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
-              <Widget.TextTitle
+              <Widget.WidgetTitle
                 title={chartInfo.formattedYAxes.filter(Boolean).join(', ')}
               />
             </Fragment>
@@ -189,7 +189,7 @@ export function ExploreCharts({
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.Placeholder />}
+                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
               />
             );
@@ -201,7 +201,7 @@ export function ExploreCharts({
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<Widget.Error error={chartInfo.error} />}
+                Visualization={<Widget.WidgetError error={chartInfo.error} />}
                 revealActions="always"
               />
             );

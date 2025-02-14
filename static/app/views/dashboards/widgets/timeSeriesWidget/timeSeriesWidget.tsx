@@ -29,7 +29,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
         revealActions={props.revealActions}
         revealTooltip={props.revealTooltip}
       >
-        <TimeSeriesWidgetVisualization.Placeholder />
+        <TimeSeriesWidgetVisualization.LoadingPlaceholder />
       </WidgetFrame>
     );
   }

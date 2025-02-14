@@ -366,6 +366,6 @@ const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
 `;
 
-TimeSeriesWidgetVisualization.Placeholder = LoadingPanel;
+TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
 
 const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

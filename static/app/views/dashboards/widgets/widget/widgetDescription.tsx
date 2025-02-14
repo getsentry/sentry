@@ -6,13 +6,13 @@ import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface DescriptionProps {
+export interface WidgetDescriptionProps {
   description?: React.ReactElement | string;
   revealTooltip?: 'hover' | 'always';
   title?: string;
 }
 
-export function Description(props: DescriptionProps) {
+export function WidgetDescription(props: WidgetDescriptionProps) {
   return (
     <Tooltip
       title={

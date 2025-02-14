@@ -34,7 +34,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
         revealActions={props.revealActions}
         revealTooltip={props.revealTooltip}
       >
-        <BigNumberWidgetVisualization.Placeholder />
+        <BigNumberWidgetVisualization.LoadingPlaceholder />
       </WidgetFrame>
     );
   }

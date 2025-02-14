@@ -176,6 +176,6 @@ const LoadingPlaceholder = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-BigNumberWidgetVisualization.Placeholder = function () {
+BigNumberWidgetVisualization.LoadingPlaceholder = function () {
   return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
 };
