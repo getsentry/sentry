@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import type {
   BarSeriesOption,
@@ -7,19 +9,17 @@ import type {
   CustomSeriesRenderItemReturn,
   LineSeriesOption,
 } from 'echarts';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import {useRef} from 'react';
-import {useNavigate} from 'react-router-dom';
+import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {isChartHovered} from 'sentry/components/charts/utils';
+import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -34,18 +34,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {NO_PLOTTABLE_VALUES} from '../common/settings';
 import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatYAxisValue} from './formatYAxisValue';
-import {markDelayedData} from './markDelayedData';
-import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
 import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
 import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
 import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
 import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
+import {formatTooltipValue} from './formatTooltipValue';
+import {formatYAxisValue} from './formatYAxisValue';
+import {markDelayedData} from './markDelayedData';
+import {ReleaseSeries} from './releaseSeries';
+import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
@@ -101,6 +102,18 @@ const renderReleaseBubble: CustomSeriesRenderItem = (
 };
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
+  if (
+    props.timeSeries
+      .flatMap(timeSeries => timeSeries.data)
+      .every(item => item.value === null)
+  ) {
+    throw new Error(NO_PLOTTABLE_VALUES);
+  }
+
+  // TODO: It would be polite to also scan for gaps (i.e., the items don't all
+  // have the same difference in `timestamp`s) even though this is rare, since
+  // the backend zerofills the data
+
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
@@ -495,7 +508,14 @@ Click to view them
               top: 0,
               left: 0,
               formatter(name: string) {
-                return props.aliases?.[name] ?? formatSeriesName(name);
+                return truncationFormatter(
+                  props.aliases?.[name] ?? formatSeriesName(name),
+                  true,
+                  // Escaping the legend string will cause some special
+                  // characters to render as their HTML equivalents.
+                  // So disable it here.
+                  false
+                );
               },
               selected: props.timeseriesSelection,
             }
