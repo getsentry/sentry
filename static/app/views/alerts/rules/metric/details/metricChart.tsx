@@ -557,13 +557,13 @@ class MetricChart extends PureComponent<Props, State> {
     );
 
     // Events Analytics Platform Span queries only support up to 2016 buckets.
-    // 14 day 10m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
+    // 14 day 10m and 7 day 5m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
     // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
     if (
       dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
       timePeriod.usingPeriod &&
-      timePeriod.period === TimePeriod.FOURTEEN_DAYS &&
-      interval === '10m'
+      ((timePeriod.period === TimePeriod.FOURTEEN_DAYS && interval === '10m') ||
+        (timePeriod.period === TimePeriod.SEVEN_DAYS && interval === '5m'))
     ) {
       viableStartDate = getUtcDateString(
         moment.utc(viableStartDate).add(timeWindow, 'minutes')
