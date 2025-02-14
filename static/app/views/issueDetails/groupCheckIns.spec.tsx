@@ -9,10 +9,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import GroupCronChecks from 'sentry/views/issueDetails/groupCronChecks';
+import GroupCheckIns from 'sentry/views/issueDetails/groupCheckIns';
 import {statusToText} from 'sentry/views/monitors/utils';
 
-describe('GroupCronChecks', () => {
+describe('GroupCheckIns', () => {
   const monitorId = 'f75a223c-aae1-47e4-8f77-6c72243cb76e';
   const event = EventFixture({
     tags: [
@@ -45,14 +45,14 @@ describe('GroupCronChecks', () => {
     });
   });
 
-  it('renders the empty cron check table', async () => {
+  it('renders the empty check-in table', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitorId}/checkins/`,
       body: [],
     });
 
-    render(<GroupCronChecks />, {organization, router});
-    expect(await screen.findByText('All Monitor Checks')).toBeInTheDocument();
+    render(<GroupCheckIns />, {organization, router});
+    expect(await screen.findByText('All Checks-Ins')).toBeInTheDocument();
     for (const column of [
       'Timestamp',
       'Status',
@@ -63,22 +63,20 @@ describe('GroupCronChecks', () => {
     ]) {
       expect(screen.getByText(column)).toBeInTheDocument();
     }
-    expect(screen.getByText('No matching monitor checks found')).toBeInTheDocument();
+    expect(screen.getByText('No matching checks-ins found')).toBeInTheDocument();
   });
 
-  it('renders the cron check table with data', async () => {
+  it('renders the check-in table with data', async () => {
     const check = CheckInFixture();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitorId}/checkins/`,
       body: [check],
     });
 
-    render(<GroupCronChecks />, {organization, router});
-    expect(await screen.findByText('All Monitor Checks')).toBeInTheDocument();
-    expect(
-      screen.queryByText('No matching monitor checks found')
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('Showing 1-1 matching monitor checks')).toBeInTheDocument();
+    render(<GroupCheckIns />, {organization, router});
+    expect(await screen.findByText('All Checks-Ins')).toBeInTheDocument();
+    expect(screen.queryByText('No matching checks-ins found')).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 1-1 matching checks-ins')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
 

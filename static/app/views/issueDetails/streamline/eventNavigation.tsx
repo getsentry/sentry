@@ -35,7 +35,7 @@ interface IssueEventNavigationProps {
 const LIST_VIEW_TABS = new Set([
   Tab.EVENTS,
   Tab.OPEN_PERIODS,
-  Tab.CRON_CHECKS,
+  Tab.CHECK_INS,
   Tab.UPTIME_CHECKS,
 ]);
 
@@ -220,14 +220,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             {issueTypeConfig.pages.cronChecks.enabled && (
               <LinkButton
                 to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.CRON_CHECKS]}`,
+                  pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
                   query: location.query,
                 }}
                 size="xs"
-                analyticsEventKey="issue_details.all_cron_checks_clicked"
-                analyticsEventName="Issue Details: All Monitor Checks Clicked"
+                analyticsEventKey="issue_details.all_checks_ins_clicked"
+                analyticsEventName="Issue Details: All Checks-Ins Clicked"
               >
-                {t('All Monitor Checks')}
+                {t('All Checks-Ins')}
               </LinkButton>
             )}
             {issueTypeConfig.pages.uptimeChecks.enabled && (

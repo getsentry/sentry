@@ -8,6 +8,7 @@ import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
@@ -26,7 +27,7 @@ import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 import {useMonitorChecks} from 'sentry/views/monitors/utils/useMonitorChecks';
 
-export default function GroupCronChecks() {
+export default function GroupCheckIns() {
   const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
@@ -73,9 +74,9 @@ export default function GroupCronChecks() {
 
   return (
     <EventListTable
-      title={t('All Monitor Checks')}
+      title={t('All Checks-Ins')}
       pagination={{
-        tableUnits: t('monitor checks'),
+        tableUnits: t('checks-ins'),
         links,
         pageCount,
         nextDisabled,
@@ -84,7 +85,7 @@ export default function GroupCronChecks() {
     >
       <GridEditable
         isLoading={isDataPending}
-        emptyMessage={t('No matching monitor checks found')}
+        emptyMessage={t('No matching checks-ins found')}
         data={cronData}
         columnOrder={[
           {key: 'dateCreated', width: 225, name: t('Timestamp')},
@@ -96,9 +97,9 @@ export default function GroupCronChecks() {
         ]}
         columnSortBy={[]}
         grid={{
-          renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
+          renderHeadCell: (column: GridColumnOrder) => <CheckInHeader column={column} />,
           renderBodyCell: (column, dataRow) => (
-            <CronCheckCell column={column} dataRow={dataRow} userOptions={user.options} />
+            <CheckInCell column={column} dataRow={dataRow} userOptions={user.options} />
           ),
         }}
       />
@@ -106,7 +107,26 @@ export default function GroupCronChecks() {
   );
 }
 
-function CronCheckCell({
+function CheckInHeader({column}: {column: GridColumnOrder}) {
+  if (column.key === 'monitorConfig') {
+    return (
+      <Cell>
+        {t('Config')}
+        <Tooltip
+          title={t(
+            'These are snapshots of the monitor configuration at the time of the check-in. They may differ from the current monitor config.'
+          )}
+          style={{lineHeight: 0}}
+        >
+          <IconInfo size="xs" />
+        </Tooltip>
+      </Cell>
+    );
+  }
+  return <Cell>{column.name}</Cell>;
+}
+
+function CheckInCell({
   dataRow,
   column,
   userOptions,
