@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {Tooltip} from 'sentry/components/tooltip';
 
-export interface WidgetTitleProps {
+export interface TextTitleProps {
   title?: string;
 }
 
-export function TextTitle(props: WidgetTitleProps) {
+export function TextTitle(props: TextTitleProps) {
   return (
     <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
       <TitleText>{props.title}</TitleText>

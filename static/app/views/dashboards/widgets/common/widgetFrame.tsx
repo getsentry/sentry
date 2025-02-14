@@ -10,16 +10,16 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import type {WidgetDescriptionProps} from '../widgetLayout/description';
-import {ErrorPanel} from '../widgetLayout/errorPanel';
-import {WidgetLayout} from '../widgetLayout/widgetLayout';
+import type {DescriptionProps} from '../widget/description';
+import {ErrorPanel} from '../widget/errorPanel';
+import {Widget} from '../widget/widget';
 
 import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
+export interface WidgetFrameProps extends StateProps, DescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
@@ -57,7 +57,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const shouldShowActions = actions && actions.length > 0;
 
   return (
-    <WidgetLayout
+    <Widget
       ariaLabel="Widget panel"
       borderless={props.borderless}
       Title={
@@ -70,7 +70,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <WidgetLayout.TextTitle title={props.title} />
+          <Widget.TextTitle title={props.title} />
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
@@ -85,7 +85,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <WidgetLayout.Description
+            <Widget.Description
               title={props.title}
               description={props.description}
               revealTooltip={props.revealTooltip ?? 'hover'}

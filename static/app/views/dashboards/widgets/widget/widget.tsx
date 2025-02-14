@@ -10,7 +10,7 @@ import {Description} from './description';
 import {TextTitle} from './textTitle';
 import {Toolbar} from './toolbar';
 
-export interface WidgetLayoutProps {
+export interface Widget {
   Actions?: React.ReactNode;
   Footer?: React.ReactNode;
   Title?: React.ReactNode;
@@ -24,7 +24,7 @@ export interface WidgetLayoutProps {
   revealActions?: 'hover' | 'always';
 }
 
-function WidgetLayoutComponent(props: WidgetLayoutProps) {
+function WidgetLayout(props: Widget) {
   const {revealActions = 'hover'} = props;
 
   return (
@@ -53,15 +53,15 @@ function WidgetLayoutComponent(props: WidgetLayoutProps) {
 }
 
 // `Object.assign` ensures correct types by intersection the component with the
-// extra properties. This allows rendering `<WidgetLayout>` as well as
-// `<WidgetLayout.Description` and others
-const exported = Object.assign(WidgetLayoutComponent, {
+// extra properties. This allows rendering `<Widget>` as well as
+// `<Widget.Description` and others
+const exported = Object.assign(WidgetLayout, {
   Description,
   TextTitle,
   Toolbar,
 });
 
-export {exported as WidgetLayout};
+export {exported as Widget};
 
 const HEADER_HEIGHT = '26px';
 

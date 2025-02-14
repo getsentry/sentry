@@ -17,8 +17,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
-import {WidgetLayout} from 'sentry/views/dashboards/widgets/widgetLayout/widgetLayout';
+import {ErrorPanel} from 'sentry/views/dashboards/widgets/widget/errorPanel';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
@@ -178,7 +178,7 @@ export function ExploreCharts({
           const Title = (
             <Fragment>
               {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
-              <WidgetLayout.TextTitle
+              <Widget.TextTitle
                 title={chartInfo.formattedYAxes.filter(Boolean).join(', ')}
               />
             </Fragment>
@@ -186,7 +186,7 @@ export function ExploreCharts({
 
           if (chartInfo.loading) {
             return (
-              <WidgetLayout
+              <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
@@ -198,7 +198,7 @@ export function ExploreCharts({
 
           if (chartInfo.error) {
             return (
-              <WidgetLayout
+              <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
@@ -209,7 +209,7 @@ export function ExploreCharts({
           }
 
           return (
-            <WidgetLayout
+            <Widget
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
