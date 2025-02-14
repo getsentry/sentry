@@ -25,7 +25,7 @@ import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {type CheckIn, CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
-import {useMonitorChecks} from 'sentry/views/monitors/utils/useMonitorChecks';
+import {useMonitorCheckIns} from 'sentry/views/monitors/utils/useMonitorCheckIns';
 
 export default function GroupCheckIns() {
   const organization = useOrganization();
@@ -48,7 +48,7 @@ export default function GroupCheckIns() {
     data: cronData = [],
     isPending: isDataPending,
     getResponseHeader,
-  } = useMonitorChecks(
+  } = useMonitorCheckIns(
     {
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',

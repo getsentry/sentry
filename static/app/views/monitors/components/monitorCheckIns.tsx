@@ -27,7 +27,7 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
-import {useMonitorChecks} from 'sentry/views/monitors/utils/useMonitorChecks';
+import {useMonitorCheckIns} from 'sentry/views/monitors/utils/useMonitorCheckIns';
 
 type Props = {
   monitor: Monitor;
@@ -58,7 +58,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
     getResponseHeader,
     isPending,
     isError,
-  } = useMonitorChecks({
+  } = useMonitorCheckIns({
     orgSlug: organization.slug,
     projectSlug: monitor.project.slug,
     monitorIdOrSlug: monitor.slug,

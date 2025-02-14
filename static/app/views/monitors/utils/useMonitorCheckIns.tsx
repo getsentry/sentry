@@ -19,7 +19,7 @@ interface MonitorChecksParameters {
 
 // TODO(Leander): Fix pagination and dont commit this comment
 
-export function makeMonitorChecksQueryKey({
+export function makeMonitorCheckInsQueryKey({
   orgSlug,
   projectSlug,
   monitorIdOrSlug,
@@ -35,10 +35,10 @@ export function makeMonitorChecksQueryKey({
   ];
 }
 
-export function useMonitorChecks(
+export function useMonitorCheckIns(
   params: MonitorChecksParameters,
   options: Partial<UseApiQueryOptions<CheckIn[]>> = {}
 ) {
-  const queryKey = makeMonitorChecksQueryKey(params);
+  const queryKey = makeMonitorCheckInsQueryKey(params);
   return useApiQuery<CheckIn[]>(queryKey, {staleTime: 0, ...options});
 }
