@@ -116,7 +116,6 @@ export {IconTelescope} from './iconTelescope';
 export {IconThumb} from './iconThumb';
 export {IconTerminal} from './iconTerminal';
 export {IconTimer} from './iconTimer';
-export {IconToggle} from './iconToggle';
 export {IconImage} from './iconImage';
 export {IconTrello} from './iconTrello';
 export {IconUnsubscribed} from './iconUnsubscribed';
