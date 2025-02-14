@@ -134,6 +134,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
     async (instruction: string) => {
       setIsReset(false);
       setCurrentRunId(null);
+      setWaitingForNextRun(true);
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(group.id),
