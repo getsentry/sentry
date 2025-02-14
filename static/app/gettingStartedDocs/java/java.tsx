@@ -142,7 +142,7 @@ const getSentryPropertiesSnippet = (params: Params) => `
 dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
-send-defaut-pii=true${
+send-default-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`

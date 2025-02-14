@@ -132,7 +132,7 @@ const getConfigurationPropertiesSnippet = (params: Params) => `
 sentry.dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
-sentry.send-defaut-pii=true${
+sentry.send-default-pii=true${
   params.isPerformanceSelected
     ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
@@ -146,7 +146,7 @@ sentry:
   dsn: ${params.dsn.public}
   # Add data like request headers and IP for users,
   # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
-  send-defaut-pii: true${
+  send-default-pii: true${
     params.isPerformanceSelected
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
