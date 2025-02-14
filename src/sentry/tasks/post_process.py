@@ -994,7 +994,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.issues.auto_source_code_config.stacktraces import identify_stacktrace_paths
+    from sentry.issues.auto_source_code_config.stacktraces import get_frames_to_process
     from sentry.issues.auto_source_code_config.utils import supported_platform
     from sentry.tasks.auto_source_code_config import auto_source_code_config
 
@@ -1006,8 +1006,8 @@ def process_code_mappings(job: PostProcessJob) -> None:
         if not supported_platform(event.data.get("platform")):
             return
 
-        stacktrace_paths = identify_stacktrace_paths(event.data)
-        if not stacktrace_paths:
+        frames_to_process = get_frames_to_process(event.data, event.platform)
+        if not frames_to_process:
             return
 
         # To limit the overall number of tasks, only process one issue per project per hour. In
