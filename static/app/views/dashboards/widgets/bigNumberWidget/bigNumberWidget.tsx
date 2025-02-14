@@ -17,8 +17,6 @@ import {
 } from '../common/settings';
 import type {StateProps} from '../common/types';
 
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
-
 export interface BigNumberWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
@@ -36,7 +34,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
         revealActions={props.revealActions}
         revealTooltip={props.revealTooltip}
       >
-        <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
+        <BigNumberWidgetVisualization.Placeholder />
       </WidgetFrame>
     );
   }
@@ -90,9 +88,4 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
 const BigNumberResizeWrapper = styled('div')`
   position: relative;
   flex-grow: 1;
-`;
-
-const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;
