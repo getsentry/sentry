@@ -26,6 +26,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import (
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
     MonitorType,
@@ -464,6 +465,9 @@ class Fixtures:
 
     def create_monitor_incident(self, **kwargs):
         return MonitorIncident.objects.create(**kwargs)
+
+    def create_monitor_checkin(self, **kwargs):
+        return MonitorCheckIn.objects.create(**kwargs)
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
