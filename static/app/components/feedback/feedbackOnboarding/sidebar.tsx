@@ -53,14 +53,24 @@ export function useFeedbackOnboardingDrawer() {
 
   useEffect(() => {
     if (isActive && hasProjectAccess) {
-      openDrawer(() => <SidebarContent />, {
+      openDrawer(() => <DrawerContent />, {
         ariaLabel: t('Getting Started with User Feedback'),
-        onClose: () => {
-          SidebarPanelStore.hidePanel();
-        },
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== window.location.pathname,
       });
     }
   }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
 }
 
 // Used by legacy navigation
