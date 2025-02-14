@@ -899,12 +899,13 @@ export const FieldBar = styled('div')`
   grid-template-columns: 1fr;
   gap: ${space(1)};
   flex: 3;
+  min-width: 0;
 `;
 
 export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   display: flex;
   width: 100%;
-  flex: 3;
+  min-width: 0;
 
   & > ${ColumnCompactSelect} > button {
     border-top-left-radius: 0;
@@ -926,6 +927,7 @@ export const FieldRow = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   width: 100%;
+  min-width: 0;
 `;
 
 export const StyledDeleteButton = styled(Button)``;
