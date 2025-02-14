@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.db import connections
+from django.db import connections, router, transaction
 from django.test import RequestFactory
 from pytest import raises
 
@@ -305,6 +305,38 @@ class OutboxDrainTest(TransactionTestCase):
 
         assert mock_process_region_outbox.call_count == 2
 
+    def test_drain_shard_not_flush_all__old_records_schedule_future(self) -> None:
+        # Test to ensure that old records with future schedules
+        # are processed cooperatively.
+        now = datetime.now(tz=timezone.utc)
+
+        # setup outboxes that failed a few times and are scheduled in the future.
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox1.scheduled_for = now + timedelta(hours=1)
+        outbox2 = Organization(id=1).outbox_for_update()
+        outbox2.scheduled_for = now + timedelta(hours=1)
+
+        # a new outbox created later.
+        outbox3 = Organization(id=1).outbox_for_update()
+
+        # Unrelated outbox
+        outbox4 = Organization(id=2).outbox_for_update()
+
+        # Save the 'old' outboxes
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+            outbox4.save()
+
+        # Will drain the shard of all messages
+        with outbox_context(transaction.atomic(using=router.db_for_write(Organization))):
+            outbox3.save()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox3.id).first()
+        assert RegionOutbox.objects.filter(id=outbox4.id).first()
+
 
 class OutboxDrainReservationTest(TransactionTestCase):
     @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
@@ -481,6 +513,41 @@ class OutboxDrainReservationTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
         assert mock_process_region_outbox.call_count == 2
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_drain_shard_not_flush_all__old_records_schedule_future(self) -> None:
+        # Test to ensure that old records with future schedules
+        # are processed cooperatively.
+        now = datetime.now(tz=timezone.utc)
+
+        # setup outboxes that failed a few times and are scheduled in the future.
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox1.scheduled_for = now + timedelta(hours=1)
+        outbox2 = Organization(id=1).outbox_for_update()
+        outbox2.scheduled_for = now + timedelta(hours=1)
+
+        # a new outbox created later.
+        outbox3 = Organization(id=1).outbox_for_update()
+
+        # Unrelated outbox
+        outbox4 = Organization(id=2).outbox_for_update()
+
+        # Save the 'old' outboxes
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+            outbox4.save()
+
+        # Will drain the shard of all messages
+        with outbox_context(transaction.atomic(using=router.db_for_write(Organization))):
+            outbox3.save()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox3.id).first()
+        assert RegionOutbox.objects.filter(id=outbox4.id).first()
 
 
 class RegionReservationOutboxTest(TestCase):

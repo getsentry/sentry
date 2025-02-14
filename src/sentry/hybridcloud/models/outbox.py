@@ -250,8 +250,7 @@ class OutboxBase(Model):
         filters: dict[str, Any] = {}
         if latest_shard_row is not None:
             # If we have a latest row, only operate on messages that were created earlier
-            # and haven't been scheduled to run the future.
-            filters = {"id__lte": latest_shard_row.id, "scheduled_for__lte": now}
+            filters = {"id__lte": latest_shard_row.id}
 
         try:
             with transaction.atomic(using=using, savepoint=False):
