@@ -140,7 +140,6 @@ module = [
     "sentry.db.mixin",
     "sentry.db.postgres.base",
     "sentry.eventstore.models",
-    "sentry.grouping.strategies.legacy",
     "sentry.identity.bitbucket.provider",
     "sentry.identity.gitlab.provider",
     "sentry.identity.oauth2",
