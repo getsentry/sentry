@@ -79,7 +79,7 @@ class GroupHashMetadataTest(TestCase):
 
     @with_feature("organizations:grouphash-metadata-creation")
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
-    def test_updates_grouping_config(self):
+    def test_does_grouping_config_update(self):
         self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -90,7 +90,7 @@ class GroupHashMetadataTest(TestCase):
         self.assert_metadata_values(grouphash1, {"latest_grouping_config": LEGACY_GROUPING_CONFIG})
 
         # Update the grouping config. Since there's nothing to parameterize in the message, the
-        # result should be the same under both configs.
+        # hash should be the same under both configs, meaning we'll hit the same grouphash.
         self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
 
         event2 = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -98,7 +98,7 @@ class GroupHashMetadataTest(TestCase):
             project=self.project, hash=event2.get_primary_hash()
         ).first()
 
-        self.assert_metadata_values(grouphash2, {"latest_grouping_config": DEFAULT_GROUPING_CONFIG})
+        # Make sure we're dealing with the same grouphash
+        assert grouphash1 == grouphash2
 
-        # Make sure we're dealing with a single grouphash that got updated rather than two different grouphashes
-        assert grouphash1 and grouphash2 and grouphash1.id == grouphash2.id
+        self.assert_metadata_values(grouphash2, {"latest_grouping_config": DEFAULT_GROUPING_CONFIG})
