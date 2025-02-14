@@ -22,12 +22,14 @@ import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 
 import type {CombinedAlerts} from '../../types';
@@ -38,7 +40,7 @@ type Props = {
   hasEditAccess: boolean;
   onDelete: (projectId: string, rule: CombinedAlerts) => void;
   onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
-  orgId: string;
+  organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedAlerts;
@@ -48,7 +50,7 @@ function RuleListRow({
   rule,
   projectsLoaded,
   projects,
-  orgId,
+  organization,
   onDelete,
   onOwnerChange,
   hasEditAccess,
@@ -72,7 +74,10 @@ function RuleListRow({
     [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
-  const editLink = `/organizations/${orgId}/alerts/${editKey[rule.type]}/${slug}/${rule.id}/`;
+  const editLink = makeAlertsPathname({
+    path: `/${editKey[rule.type]}/${slug}/${rule.id}/`,
+    organization,
+  });
 
   const mutateKey = {
     [CombinedAlertType.ISSUE]: 'issue',
@@ -82,7 +87,10 @@ function RuleListRow({
   } satisfies Record<CombinedAlertType, string>;
 
   const duplicateLink = {
-    pathname: `/organizations/${orgId}/alerts/new/${mutateKey[rule.type]}/`,
+    pathname: makeAlertsPathname({
+      path: `/new/${mutateKey[rule.type]}/`,
+      organization,
+    }),
     query: {
       project: slug,
       duplicateRuleId: rule.id,
@@ -222,13 +230,25 @@ function RuleListRow({
   function ruleUrl() {
     switch (rule.type) {
       case CombinedAlertType.METRIC:
-        return `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
+        return makeAlertsPathname({
+          path: `/rules/details/${rule.id}/`,
+          organization,
+        });
       case CombinedAlertType.CRONS:
-        return `/organizations/${orgId}/alerts/rules/crons/${rule.project.slug}/${rule.id}/details/`;
+        return makeAlertsPathname({
+          path: `/rules/crons/${rule.project.slug}/${rule.id}/details/`,
+          organization,
+        });
       case CombinedAlertType.UPTIME:
-        return `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`;
+        return makeAlertsPathname({
+          path: `/rules/uptime/${rule.projectSlug}/${rule.id}/details/`,
+          organization,
+        });
       default:
-        return `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`;
+        return makeAlertsPathname({
+          path: `/rules/${rule.projects[0]}/${rule.id}/details/`,
+          organization,
+        });
     }
   }
 
