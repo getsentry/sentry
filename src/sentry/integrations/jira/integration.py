@@ -171,20 +171,6 @@ class JiraIntegration(IssueSyncIntegration):
 
         return configuration
 
-    def get_active_config_projects(
-        self, jira_project_configs: list[JiraProjectMapping]
-    ) -> list[JiraProjectMapping]:
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
-        )
-        jira_project_set = {p["value"]: p["label"] for p in jira_project_configs}
-        active_projects = [
-            JiraProjectMapping(value=p.external_id, label=jira_project_set[p.external_id])
-            for p in project_mappings
-            if p.external_id in jira_project_set
-        ]
-        return active_projects
-
     def _set_status_choices_in_organization_config(
         self, configuration: list[dict[str, Any]], jira_projects: list[JiraProjectMapping]
     ) -> list[dict[str, Any]]:
@@ -357,16 +343,24 @@ class JiraIntegration(IssueSyncIntegration):
             config=config,
         )
 
+    def _filter_active_projects(self, project_mappings: Sequence[IntegrationExternalProject]):
+        project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
+
+        return [pm for pm in project_mappings if pm.external_id in project_ids_set]
+
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
+        project_mappings: Sequence[IntegrationExternalProject] = (
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            )
         )
         sync_status_forward = {}
-        project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
+
+        if features.has("organizations:jira-per-project-statuses", self.organization):
+            project_mappings = self._filter_active_projects(project_mappings)
+
         for pm in project_mappings:
-            if pm.external_id not in project_ids_set:
-                continue
             sync_status_forward[pm.external_id] = {
                 "on_unresolve": pm.unresolved_status,
                 "on_resolve": pm.resolved_status,
