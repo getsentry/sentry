@@ -5,10 +5,6 @@ from django.conf import settings
 from sentry import http
 
 
-def marketo_option(field):
-    return settings.MARKETO[field]
-
-
 class ErrorDict(TypedDict):
     code: str
     message: str
@@ -34,9 +30,8 @@ class MarketoClient:
     SUBMIT_FORM_URL = "/rest/v1/leads/submitForm.json"
 
     def make_request(self, url: str, *args, method="GET", **kwargs):
-        base_url = marketo_option("base-url")
+        base_url = settings.MARKETO_BASE_URL
         full_url = base_url + url
-        method = kwargs.pop("method", "GET")
         session = http.build_session()
         resp = getattr(session, method.lower())(full_url, *args, **kwargs)
         resp.raise_for_status()
@@ -57,15 +52,15 @@ class MarketoClient:
         return data
 
     def retrieve_token(self):
-        client_id = marketo_option("client-id")
-        clint_secret = marketo_option("client-secret")
+        client_id = settings.MARKETO_CLIENT_ID
+        clint_secret = settings.MARKETO_CLIENT_SECRET
 
         url = f"{self.OAUTH_URL}?grant_type=client_credentials&client_id={client_id}&client_secret={clint_secret}"
         return self.make_request(url)
 
     def submit_form(self, fields):
         body = {
-            "formId": marketo_option("form-id"),
+            "formId": settings.MARKETO_FORM_ID,
             "input": [
                 {
                     "leadFormFields": fields,
