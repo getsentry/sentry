@@ -374,6 +374,7 @@ class Factories:
                 shard_identifier=org.id,
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                 category=OutboxCategory.ORGANIZATION_UPDATE,
+                object_identifier=org.id,
             ).drain_shard()
 
         if owner:

@@ -253,7 +253,7 @@ class OutboxBase(Model):
                 # Lock all the rows we're going to process and attempt to reserve them.
                 reserved_ids = list(
                     self.select_coalesced_messages()
-                    .filter(scheduled_for__lte=now, **filters)
+                    .filter(**filters)
                     .select_for_update(nowait=True)
                     .order_by("id")
                     .values_list("id", flat=True)
@@ -267,11 +267,11 @@ class OutboxBase(Model):
                     self.objects.filter(id=reserved_ids[0]).first() or coalesced
                 )
 
-                # Reserve all messages in the coalesce group so they cannot
+                # Reserve all messages in the coalesce group for a short time so they cannot
                 # be selected by concurrent calls.
                 self.objects.filter(
                     id__in=reserved_ids,
-                ).update(scheduled_for=coalesced.next_schedule(now))
+                ).update(scheduled_for=now + datetime.timedelta(minutes=5))
         except OperationalError as e:
             # If concurrent locking is happening on the table, gracefully pass and allow
             # that work to process.

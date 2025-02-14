@@ -483,6 +483,253 @@ class OutboxDrainReservationTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
 
+class RegionReservationOutboxTest(TestCase):
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_creating_org_outboxes(self) -> None:
+        with outbox_context(flush=False):
+            Organization(id=10).outbox_for_update().save()
+            OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
+        assert RegionOutbox.objects.count() == 2
+
+        with outbox_runner():
+            # drain outboxes
+            pass
+        assert RegionOutbox.objects.count() == 0
+
+    def test_skip_shards(self) -> None:
+        with self.options(
+            {
+                "hybrid_cloud.authentication.disabled_organization_shards": [100],
+                "hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value],
+            }
+        ):
+            assert Organization(id=100).outbox_for_update().should_skip_shard()
+            assert not Organization(id=101).outbox_for_update().should_skip_shard()
+
+        assert not Organization(id=100).outbox_for_update().should_skip_shard()
+
+    @patch("sentry.hybridcloud.models.outbox.metrics")
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_concurrent_coalesced_object_processing(self, mock_metrics: Mock) -> None:
+        # Two objects coalesced
+        outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+        with outbox_context(flush=False):
+            outbox.save()
+            OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
+
+            # Unrelated
+            OrganizationMember(organization_id=1, id=2).outbox_for_update().save()
+            OrganizationMember(organization_id=2, id=2).outbox_for_update().save()
+
+        assert len(list(RegionOutbox.find_scheduled_shards())) == 2
+
+        ctx = outbox.process_coalesced(is_synchronous_flush=True)
+        try:
+            ctx.__enter__()
+            assert RegionOutbox.objects.count() == 4
+            assert outbox.select_coalesced_messages().count() == 2
+
+            # concurrent write of coalesced object update.
+            with outbox_context(flush=False):
+                OrganizationMember(organization_id=1, id=1).outbox_for_update().save()
+            assert RegionOutbox.objects.count() == 5
+            assert outbox.select_coalesced_messages().count() == 3
+
+            ctx.__exit__(None, None, None)
+
+            # does not remove the concurrent write, which is still going to update.
+            assert RegionOutbox.objects.count() == 3
+            assert outbox.select_coalesced_messages().count() == 1
+            assert len(list(RegionOutbox.find_scheduled_shards())) == 2
+
+            expected = [
+                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call(
+                    "outbox.processed",
+                    2,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
+            ]
+            assert mock_metrics.incr.mock_calls == expected
+        except Exception as e:
+            ctx.__exit__(type(e), e, None)
+            raise
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_outbox_rescheduling(self) -> None:
+        with patch(
+            "sentry.hybridcloud.models.outbox.process_region_outbox.send"
+        ) as mock_process_region_outbox:
+
+            def raise_exception(**kwargs: Any) -> None:
+                raise ValueError("This is just a test mock exception")
+
+            def run_with_error(concurrency: int = 1) -> None:
+                mock_process_region_outbox.side_effect = raise_exception
+                mock_process_region_outbox.reset_mock()
+                with self.tasks():
+                    with raises(OutboxFlushError):
+                        enqueue_outbox_jobs(concurrency=concurrency, process_outbox_backfills=False)
+                    assert mock_process_region_outbox.call_count == 1
+
+            def ensure_converged() -> None:
+                mock_process_region_outbox.reset_mock()
+                with self.tasks():
+                    enqueue_outbox_jobs(process_outbox_backfills=False)
+                    assert mock_process_region_outbox.call_count == 0
+
+            def assert_called_for_org(org: int) -> None:
+                mock_process_region_outbox.assert_called_with(
+                    sender=OutboxCategory.ORGANIZATION_UPDATE,
+                    payload=None,
+                    object_identifier=org,
+                    shard_identifier=org,
+                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                )
+
+            with outbox_context(flush=False):
+                Organization(id=10001).outbox_for_update().save()
+                Organization(id=10002).outbox_for_update().save()
+
+            start_time = datetime(2022, 10, 1, 0)
+            with freeze_time(start_time):
+                run_with_error()
+                assert_called_for_org(10001)
+
+            # Runs things in ascending order of the scheduled_for
+            with freeze_time(start_time + timedelta(minutes=10)):
+                run_with_error()
+                assert_called_for_org(10002)
+
+            # Has rescheduled all objects into the future.
+            with freeze_time(start_time):
+                ensure_converged()
+
+            # Next would run the original rescheduled org1 entry
+            with freeze_time(start_time + timedelta(minutes=10)):
+                run_with_error()
+                assert_called_for_org(10001)
+                ensure_converged()
+
+                # Concurrently added items will favor a newer scheduling time,
+                # but eventually converges.
+                with outbox_context(flush=False):
+                    Organization(id=10002).outbox_for_update().save()
+                run_with_error()
+                ensure_converged()
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_outbox_converges(self) -> None:
+        with (
+            patch(
+                "sentry.hybridcloud.models.outbox.process_region_outbox.send"
+            ) as mock_process_region_outbox,
+            outbox_context(flush=False),
+        ):
+            Organization(id=10001).outbox_for_update().save()
+            Organization(id=10001).outbox_for_update().save()
+
+            Organization(id=10002).outbox_for_update().save()
+            Organization(id=10002).outbox_for_update().save()
+
+            last_call_count = 0
+            while True:
+                with self.tasks():
+                    enqueue_outbox_jobs(process_outbox_backfills=False)
+                    if last_call_count == mock_process_region_outbox.call_count:
+                        break
+                    last_call_count = mock_process_region_outbox.call_count
+
+            assert last_call_count == 2
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_region_sharding_keys(self) -> None:
+        org1 = Factories.create_organization()
+        org2 = Factories.create_organization()
+
+        with outbox_context(flush=False):
+            Organization(id=org1.id).outbox_for_update().save()
+            Organization(id=org2.id).outbox_for_update().save()
+
+            OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
+            OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
+
+        shards = {
+            (row["shard_scope"], row["shard_identifier"])
+            for row in RegionOutbox.find_scheduled_shards()
+        }
+        assert shards == {
+            (OutboxScope.ORGANIZATION_SCOPE.value, org1.id),
+            (OutboxScope.ORGANIZATION_SCOPE.value, org2.id),
+        }
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_scheduling_with_future_outbox_time(self) -> None:
+        with outbox_runner():
+            pass
+
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=timezone.utc)
+        with freeze_time(start_time):
+            future_scheduled_outbox = Organization(id=10001).outbox_for_update()
+            future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
+            future_scheduled_outbox.save()
+            assert future_scheduled_outbox.scheduled_for > start_time
+            assert RegionOutbox.objects.count() == 1
+
+            assert len(RegionOutbox.find_scheduled_shards()) == 0
+
+            with outbox_runner():
+                pass
+
+            # Since the event is sometime in the future, we expect the single
+            #  outbox message not to be processed
+            assert RegionOutbox.objects.count() == 1
+
+    @override_options(
+        {"hybrid_cloud.outbox.reservation_shards": [OutboxScope.ORGANIZATION_SCOPE.value]}
+    )
+    def test_scheduling_with_past_and_future_outbox_times(self) -> None:
+        with outbox_runner():
+            pass
+
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=timezone.utc)
+        with freeze_time(start_time):
+            future_scheduled_outbox = Organization(id=10001).outbox_for_update()
+            future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
+            future_scheduled_outbox.save()
+            assert future_scheduled_outbox.scheduled_for > start_time
+
+            past_scheduled_outbox = Organization(id=10001).outbox_for_update()
+            past_scheduled_outbox.save()
+            assert past_scheduled_outbox.scheduled_for < start_time
+            assert RegionOutbox.objects.count() == 2
+
+            assert len(RegionOutbox.find_scheduled_shards()) == 1
+
+            with outbox_runner():
+                pass
+
+            # We expect the shard to be drained if at *least* one scheduled
+            # message is in the past.
+            assert RegionOutbox.objects.count() == 0
+
+
 class RegionOutboxTest(TestCase):
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
