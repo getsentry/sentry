@@ -386,12 +386,19 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete +'}));
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
           kind: TokenKind.OPERATOR,
           operator: Operator.PLUS,
         }),
+        focusOverride: {
+          itemKey: 'str:0',
+        },
+      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {
+        type: 'RESET_FOCUS_OVERRIDE',
       });
     });
 
@@ -403,12 +410,19 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete -'}));
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
           kind: TokenKind.OPERATOR,
           operator: Operator.MINUS,
         }),
+        focusOverride: {
+          itemKey: 'str:0',
+        },
+      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {
+        type: 'RESET_FOCUS_OVERRIDE',
       });
     });
 
@@ -420,12 +434,19 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete *'}));
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
           kind: TokenKind.OPERATOR,
           operator: Operator.MULTIPLY,
         }),
+        focusOverride: {
+          itemKey: 'str:0',
+        },
+      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {
+        type: 'RESET_FOCUS_OVERRIDE',
       });
     });
 
@@ -437,12 +458,19 @@ describe('token', function () {
       expect(operator).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete /'}));
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
           kind: TokenKind.OPERATOR,
           operator: Operator.DIVIDE,
         }),
+        focusOverride: {
+          itemKey: 'str:0',
+        },
+      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {
+        type: 'RESET_FOCUS_OVERRIDE',
       });
     });
   });
@@ -457,12 +485,19 @@ describe('token', function () {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'left');
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete left'}));
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
           kind: TokenKind.PARENTHESIS,
           parenthesis: Parenthesis.OPEN,
         }),
+        focusOverride: {
+          itemKey: 'str:0',
+        },
+      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {
+        type: 'RESET_FOCUS_OVERRIDE',
       });
     });
 
@@ -475,12 +510,19 @@ describe('token', function () {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
 
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete right'}));
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatch).toHaveBeenNthCalledWith(1, {
         type: 'DELETE_TOKEN',
         token: expect.objectContaining({
           kind: TokenKind.PARENTHESIS,
           parenthesis: Parenthesis.CLOSE,
         }),
+        focusOverride: {
+          itemKey: 'str:0',
+        },
+      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {
+        type: 'RESET_FOCUS_OVERRIDE',
       });
     });
   });

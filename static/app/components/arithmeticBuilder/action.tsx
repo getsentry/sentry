@@ -9,7 +9,7 @@ type ArithmeticBuilderUpdateResetFocusOverrideAction = {
   type: 'RESET_FOCUS_OVERRIDE';
 };
 
-type FocusOverride = {
+export type FocusOverride = {
   itemKey: Key;
 };
 
