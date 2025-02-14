@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
@@ -6,7 +8,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -94,6 +95,7 @@ function GroupList({
   onActionTaken,
 }: GroupListProps) {
   const organization = useOrganization();
+  const theme = useTheme();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false

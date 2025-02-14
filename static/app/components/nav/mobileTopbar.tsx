@@ -10,7 +10,6 @@ import {SecondaryMobile} from 'sentry/components/nav/secondaryMobile';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -108,7 +107,7 @@ const Topbar = styled('header')`
   justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: ${theme.zIndex.sidebar};
+  z-index: ${p => p.theme.zIndex.sidebar};
 `;
 
 const HomeLink = styled(Link)`
