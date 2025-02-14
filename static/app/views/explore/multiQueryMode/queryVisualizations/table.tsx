@@ -178,9 +178,7 @@ function AggregatesTable({
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              console.log(row);
               const target = getSamplesTargetAtIndex(index, [...queries], row, location);
-              console.log(target.query.queries[0]);
               return (
                 <TableRow key={i}>
                   <TableBodyCell key={`samples-${i}`}>

@@ -72,8 +72,6 @@ export function MultiQueryFieldRenderer({
   const userQuery = queries[index]!.query;
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
-  console.log('rendering multi query renderer');
-
   return (
     <BaseExploreFieldRenderer
       data={data}

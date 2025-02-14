@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
-import {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
@@ -132,9 +131,9 @@ function getUpdatedLocationWithQueries(
   location: Location,
   queries: WritableExploreQueryParts[] | null | undefined
 ) {
-  const target = {...location};
+  let targetQueries: string[] | null = null;
   if (defined(queries)) {
-    target.query.queries = queries.map(query =>
+    targetQueries = queries.map(query =>
       JSON.stringify({
         chartType: query.chartType,
         fields: query.fields,
@@ -144,10 +143,15 @@ function getUpdatedLocationWithQueries(
         yAxes: query.yAxes,
       })
     );
-  } else if (queries === null) {
-    delete target.query.queries;
   }
-  return target;
+
+  return {
+    ...location,
+    query: {
+      ...location.query,
+      queries: targetQueries,
+    },
+  };
 }
 
 export function useUpdateQueryAtIndex(index: number) {
