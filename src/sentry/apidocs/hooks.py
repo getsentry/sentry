@@ -288,7 +288,8 @@ def _check_description(json_body: Mapping[str, Any], err_str: str) -> None:
 def _fix_issue_paths(result: Any) -> Any:
     """
     The way we define `/issues/` paths causes some problems with drf-spectacular:
-    - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and without
+    - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and
+      without. We want to use the `/organizations` prefixed path as it works across regions.
     - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
       but we only want to use `issues` in the docs
 
@@ -305,9 +306,9 @@ def _fix_issue_paths(result: Any) -> Any:
 
     for path in modified_paths:
         updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
-        if path.startswith("/api/0/organizations/{organization_id_or_slug}/"):
+        if path.startswith("/api/0/issues/"):
             updated_path = updated_path.replace(
-                "/api/0/organizations/{organization_id_or_slug}/", "/api/0/"
+                "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
             )
         endpoint = result["paths"][path]
         for method in endpoint.keys():
