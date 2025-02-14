@@ -30,7 +30,7 @@ function SortableVisualizeFieldWrapper({
     transition,
     zIndex: 'auto',
     display: 'flex',
-    gap: space(1),
+    gap: space(0.5),
     width: '100%',
   } as React.CSSProperties;
 
