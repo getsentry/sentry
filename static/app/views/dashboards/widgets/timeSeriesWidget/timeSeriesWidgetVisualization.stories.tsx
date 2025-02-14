@@ -176,6 +176,22 @@ export default storyBook('TimeSeriesWidgetVisualization', story => {
     );
   });
 
+  story('Loading Placeholder', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> includes a loading placeholder.
+          You can use it via{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization.LoadingPlaceholder" />
+        </p>
+
+        <SmallWidget>
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+        </SmallWidget>
+      </Fragment>
+    );
+  });
+
   story('Stacking', () => {
     return (
       <Fragment>
@@ -394,11 +410,13 @@ const FillParent = styled('div')`
 `;
 
 const MediumWidget = styled('div')`
+  position: relative;
   width: 420px;
   height: 250px;
 `;
 
 const SmallWidget = styled('div')`
+  position: relative;
   width: 360px;
   height: 160px;
 `;

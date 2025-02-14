@@ -130,6 +130,22 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     );
   });
 
+  story('Loading Placeholder', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidgetVisualization" /> includes a loading placeholder.
+          You can use it via{' '}
+          <JSXNode name="BigNumberWidgetVisualization.LoadingPlaceholder" />
+        </p>
+
+        <SmallWidget>
+          <BigNumberWidgetVisualization.LoadingPlaceholder />
+        </SmallWidget>
+      </Fragment>
+    );
+  });
+
   story('Maximum Value', () => {
     return (
       <Fragment>
