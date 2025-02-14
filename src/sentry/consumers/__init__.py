@@ -109,8 +109,8 @@ def ingest_monitors_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel", "batched-parallel"]),
-            default="parallel",
+            type=click.Choice(["serial", "batched-parallel"]),
+            default="batched-parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
