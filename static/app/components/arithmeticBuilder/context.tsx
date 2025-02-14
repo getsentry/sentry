@@ -1,8 +1,10 @@
 import type {Dispatch} from 'react';
 import {createContext, useContext} from 'react';
 
-import type {ArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
-import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  ArithmeticBuilderAction,
+  FocusOverride,
+} from 'sentry/components/arithmeticBuilder/action';
 
 interface ArithmeticBuilderContextData {
   dispatch: Dispatch<ArithmeticBuilderAction>;

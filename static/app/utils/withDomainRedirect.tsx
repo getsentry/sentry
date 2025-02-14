@@ -30,7 +30,7 @@ import useOrganization from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
+function withDomainRedirect<P extends RouteComponentProps>(
   WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
@@ -60,7 +60,6 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
       // Regenerate the full route with the :orgId parameter omitted.
       const newParams = {...params};
       Object.keys(params).forEach(param => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         newParams[param] = `:${param}`;
       });
       const fullRoute = recreateRoute('', {routes, params: newParams});

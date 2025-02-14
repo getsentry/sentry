@@ -31,10 +31,11 @@ const ALLOWED_PARAMS = [
   'statsPeriod',
 ];
 
-type Props = RouteComponentProps<
-  {dashboardId: string; orgId: string; widgetId?: number},
-  {}
-> & {
+type Props = RouteComponentProps<{
+  dashboardId: string;
+  orgId: string;
+  widgetId?: number | string;
+}> & {
   children: React.ReactNode;
   organization: Organization;
 };

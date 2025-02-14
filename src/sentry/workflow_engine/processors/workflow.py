@@ -47,7 +47,7 @@ def enqueue_workflow(
     value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
     buffer.backend.push_to_hash(
         model=Workflow,
-        filters={"project": project_id},
+        filters={"project_id": project_id},
         field=f"{workflow.id}:{event.group.id}:{condition_groups}:{source}",
         value=value,
     )

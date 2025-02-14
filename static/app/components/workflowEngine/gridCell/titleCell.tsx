@@ -11,6 +11,7 @@ export type TitleCellProps = {
   link: string;
   name: string;
   project: AvatarProject;
+  className?: string;
   details?: string[];
   disabled?: boolean;
 };
@@ -21,34 +22,33 @@ export function TitleCell({
   details,
   link,
   disabled = false,
+  className,
 }: TitleCellProps) {
   return (
-    <div>
-      <TitleWrapper to={link} disabled={disabled}>
-        <Name disabled={disabled}>
-          <strong>{name}</strong>
-          {disabled && <span>&mdash; Disabled</span>}
-        </Name>
-        <DetailsWrapper>
-          <StyledProjectBadge
-            css={css`
-              && img {
-                box-shadow: none;
-              }
-            `}
-            project={project}
-            avatarSize={16}
-            disableLink
-          />
-          {details?.map((detail, index) => (
-            <Fragment key={index}>
-              <Separator />
-              {detail}
-            </Fragment>
-          ))}
-        </DetailsWrapper>
-      </TitleWrapper>
-    </div>
+    <TitleWrapper to={link} disabled={disabled} className={className}>
+      <Name disabled={disabled}>
+        <strong>{name}</strong>
+        {disabled && <span>&mdash; Disabled</span>}
+      </Name>
+      <DetailsWrapper>
+        <StyledProjectBadge
+          css={css`
+            && img {
+              box-shadow: none;
+            }
+          `}
+          project={project}
+          avatarSize={16}
+          disableLink
+        />
+        {details?.map((detail, index) => (
+          <Fragment key={index}>
+            <Separator />
+            {detail}
+          </Fragment>
+        ))}
+      </DetailsWrapper>
+    </TitleWrapper>
   );
 }
 
@@ -69,6 +69,7 @@ const TitleWrapper = styled(Link)<{disabled: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  flex: 1;
 
   ${p =>
     !p.disabled &&
@@ -77,7 +78,7 @@ const TitleWrapper = styled(Link)<{disabled: boolean}>`
       color: ${p.theme.textColor};
       text-decoration: underline;
     }
-  `}
+  `};
 `;
 
 const DetailsWrapper = styled('div')`
@@ -87,7 +88,6 @@ const DetailsWrapper = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.subText};
-  min-width: 500px;
   white-space: nowrap;
   line-height: 1.2;
 

@@ -27,7 +27,7 @@ type ActiveTab = keyof typeof FORM_COMPONENTS;
 
 type TabConfig = [key: ActiveTab, label: string, disabled?: boolean];
 
-type Props = RouteComponentProps<{orgId?: string}, {}> & {
+type Props = RouteComponentProps<{orgId?: string}> & {
   api: Client;
 };
 

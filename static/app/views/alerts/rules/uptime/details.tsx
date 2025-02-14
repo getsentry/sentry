@@ -34,7 +34,6 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {
   CheckStatus,
@@ -48,7 +47,7 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
@@ -121,10 +120,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             crumbs={[
               {
                 label: t('Alerts'),
-                to: makeAlertsPathname({
-                  path: `/rules/`,
-                  organization,
-                }),
+                to: `/organizations/${organization.slug}/alerts/rules/`,
               },
               {
                 label: t('Uptime Monitor'),
@@ -151,10 +147,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <LinkButton
               size="sm"
               icon={<IconEdit />}
-              to={makeAlertsPathname({
-                path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
-                organization,
-              })}
+              to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
             >
               {t('Edit Rule')}
             </LinkButton>
