@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
@@ -16,7 +18,9 @@ pytestmark = [requires_snuba]
 class GroupHashMetadataTest(TestCase):
     # Helper method to save us from having to assert the existence of `grouphash` and
     # `grouphash.metadata` every time we want to check a value
-    def assert_metadata_value(self, grouphash, value_name, value):
+    def assert_metadata_value(
+        self, grouphash: GroupHash | None, value_name: str, value: Any
+    ) -> None:
         assert grouphash and grouphash.metadata
         assert getattr(grouphash.metadata, value_name) == value
 
