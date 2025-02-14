@@ -30,7 +30,13 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class UserPermission(SentryPermission):
+class DemoUserPermission(SentryPermission):
+    """
+    A permission class that extends `SentryPermission` to provide read-only access for users
+    in a demo mode. This class modifies the access control logic to ensure that users identified
+    as read-only can only perform safe operations, such as GET and HEAD requests, on resources.
+    """
+
     def determine_access(
         self,
         request: Request,
@@ -63,12 +69,19 @@ class UserPermission(SentryPermission):
 
         return super().has_permission(request, view)
 
-    def has_object_permission(
-        self, request: Request, view: object | None, user: User | RpcUser | None = None
-    ) -> bool:
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
         if demo_mode.is_demo_user(request.user):
             if not demo_mode.is_demo_mode_enabled() or request.method not in SAFE_METHODS:
                 return False
+
+        return super().has_object_permission(request, view, obj)
+
+
+class UserPermission(DemoUserPermission):
+
+    def has_object_permission(
+        self, request: Request, view: object | None, user: User | RpcUser | None = None
+    ) -> bool:
 
         if user is None or request.user.id == user.id:
             return True
