@@ -57,7 +57,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
             | SpanIndexedField.PROJECT
             | SpanIndexedField.TRANSACTION_ID
             | SpanIndexedField.TIMESTAMP
-            | SpanIndexedField.ID
+            | SpanIndexedField.SPAN_ID
             | SpanIndexedField.PROFILE_ID
             | SpanIndexedField.SPAN_SELF_TIME
           >

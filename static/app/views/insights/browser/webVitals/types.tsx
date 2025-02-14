@@ -120,7 +120,7 @@ export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
   SpanIndexedField.INP_SCORE,
   SpanIndexedField.INP_SCORE_WEIGHT,
   SpanIndexedField.TOTAL_SCORE,
-  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_ID,
   SpanIndexedField.TIMESTAMP,
   SpanIndexedField.PROFILE_ID,
   SpanIndexedField.REPLAY_ID,
