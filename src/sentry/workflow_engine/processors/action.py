@@ -54,8 +54,13 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
 
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    actions: BaseQuerySet[Action], group: Group
+    filtered_action_groups: set[DataConditionGroup], group: Group
 ) -> BaseQuerySet[Action]:
+    # get the actions for any of the triggered data condition groups
+    actions = Action.objects.filter(
+        dataconditiongroupaction__condition_group__in=filtered_action_groups
+    ).distinct()
+
     now = timezone.now()
     statuses = get_action_last_updated_statuses(now, actions, group)
 

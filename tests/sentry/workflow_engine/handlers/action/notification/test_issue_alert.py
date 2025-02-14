@@ -7,18 +7,23 @@ from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
+    EMAIL_ACTION_DATA_BLOBS,
     GITHUB_ACTION_DATA_BLOBS,
     JIRA_ACTION_DATA_BLOBS,
     JIRA_SERVER_ACTION_DATA_BLOBS,
+    WEBHOOK_ACTION_DATA_BLOBS,
 )
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     BaseIssueAlertHandler,
     DiscordIssueAlertHandler,
+    EmailIssueAlertHandler,
     MSTeamsIssueAlertHandler,
     OpsgenieIssueAlertHandler,
     PagerDutyIssueAlertHandler,
+    PluginIssueAlertHandler,
     SlackIssueAlertHandler,
     TicketingIssueAlertHandler,
+    WebhookIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowJob
@@ -27,6 +32,7 @@ from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
     ActionFieldMapping,
     ActionFieldMappingKeys,
+    EmailActionHelper,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -353,17 +359,24 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
         )
         blob = self.handler.build_rule_action_blob(action)
 
+        # pop uuid from blob
+        # (we don't store it anymore since its a legacy artifact when we didn't have the action model)
+        expected.pop("uuid")
+
         assert blob == {
             "id": expected["id"],
             "integration": expected["integration"],
-            **blob,
+            **expected,
         }
 
 
 class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
     def test_build_rule_action_blob(self):
         for expected in GITHUB_ACTION_DATA_BLOBS:
-            self._test_build_rule_action_blob(expected, Action.Type.GITHUB)
+            if expected["id"] == ACTION_FIELD_MAPPINGS[Action.Type.GITHUB]["id"]:
+                self._test_build_rule_action_blob(expected, Action.Type.GITHUB)
+            else:
+                self._test_build_rule_action_blob(expected, Action.Type.GITHUB_ENTERPRISE)
 
 
 class TestAzureDevopsIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
@@ -382,3 +395,116 @@ class TestJiraServerIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
     def test_build_rule_action_blob(self):
         for expected in JIRA_SERVER_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.JIRA_SERVER)
+
+
+class TestEmailIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = EmailIssueAlertHandler()
+        # These are the actions that are healed from the old email action data blobs
+        # It removes targetIdentifier for IssueOwner targets (since that shouldn't be set for those)
+        # It also removes the fallthroughType for Team and Member targets (since that shouldn't be set for those)
+        self.HEALED_EMAIL_ACTION_DATA_BLOBS = [
+            # IssueOwners (targetIdentifier is "None")
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "ActiveMembers",
+            },
+            # NoOne Fallthrough (targetIdentifier is "")
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "NoOne",
+            },
+            # AllMembers Fallthrough (targetIdentifier is None)
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "AllMembers",
+            },
+            # NoOne Fallthrough (targetIdentifier is "None")
+            {
+                "targetType": "IssueOwners",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "fallthroughType": "NoOne",
+            },
+            # ActiveMembers Fallthrough
+            {
+                "targetType": "Member",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": 3234013,
+            },
+            # Member Email
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": 2160509,
+                "targetType": "Member",
+            },
+            # Team Email
+            {
+                "targetType": "Team",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": 188022,
+            },
+        ]
+
+    def test_build_rule_action_blob(self):
+        for expected, healed in zip(EMAIL_ACTION_DATA_BLOBS, self.HEALED_EMAIL_ACTION_DATA_BLOBS):
+            action_data = pop_keys_from_data_blob(expected, Action.Type.EMAIL)
+
+            # pop the targetType from the action_data
+            target_type = EmailActionHelper.get_target_type_object(action_data.pop("targetType"))
+
+            # Handle all possible targetIdentifier formats
+            target_identifier = expected["targetIdentifier"]
+            if target_identifier in ("None", "", None):
+                target_identifier = None
+            elif str(target_identifier).isnumeric():
+                target_identifier = int(target_identifier)
+
+            action = self.create_action(
+                type=Action.Type.EMAIL,
+                data=action_data,
+                target_type=target_type,
+                target_identifier=target_identifier,
+            )
+            blob = self.handler.build_rule_action_blob(action)
+
+            assert blob == healed
+
+
+class TestPluginIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = PluginIssueAlertHandler()
+        self.action = self.create_action(
+            type=Action.Type.PLUGIN,
+        )
+
+    def test_build_rule_action_blob(self):
+        blob = self.handler.build_rule_action_blob(self.action)
+
+        assert blob == {
+            "id": ACTION_FIELD_MAPPINGS[Action.Type.PLUGIN]["id"],
+        }
+
+
+class TestWebhookIssueAlertHandler(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.handler = WebhookIssueAlertHandler()
+
+    def test_build_rule_action_blob(self):
+        for expected in WEBHOOK_ACTION_DATA_BLOBS:
+            action = self.create_action(
+                type=Action.Type.WEBHOOK,
+                target_identifier=expected["service"],
+            )
+
+            # pop uuid from blob
+            expected.pop("uuid")
+
+            blob = self.handler.build_rule_action_blob(action)
+
+            assert blob == expected

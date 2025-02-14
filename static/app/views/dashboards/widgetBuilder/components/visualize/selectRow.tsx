@@ -21,8 +21,10 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
   AggregateCompactSelect,
+  getAggregateValueKey,
   getColumnOptions,
   NONE,
+  parseAggregateFromValueKey,
   PrimarySelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -124,7 +126,11 @@ export function SelectRow({
         hasColumnParameter={hasColumnParameter}
         disabled={aggregateOptions.length <= 1}
         options={aggregateOptions}
-        value={parseFunction(stringFields?.[index] ?? '')?.name ?? NONE}
+        value={
+          parseFunction(stringFields?.[index] ?? '')?.name
+            ? getAggregateValueKey(parseFunction(stringFields?.[index] ?? '')?.name)
+            : NONE
+        }
         position="bottom-start"
         menuFooter={
           state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
@@ -134,7 +140,10 @@ export function SelectRow({
           let newFields = cloneDeep(fields);
           const currentField = newFields[index]!;
           const selectedAggregate = aggregates.find(
-            option => option.value.meta.name === dropdownSelection.value
+            option =>
+              // Convert the aggregate key to the same format as the dropdown value
+              // when checking for a match
+              getAggregateValueKey(option.value.meta.name) === dropdownSelection.value
           );
           // Update the current field's aggregate with the new aggregate
           if (!selectedAggregate && !isNone) {
@@ -183,8 +192,9 @@ export function SelectRow({
           } else if (!isNone) {
             if (currentField.kind === FieldValueKind.FUNCTION) {
               // Handle setting an aggregate from an aggregate
-              currentField.function[0] =
-                dropdownSelection.value as AggregationKeyWithAlias;
+              currentField.function[0] = parseAggregateFromValueKey(
+                dropdownSelection.value as string
+              ) as AggregationKeyWithAlias;
               if (
                 selectedAggregate?.value.meta &&
                 'parameters' in selectedAggregate.value.meta
@@ -247,7 +257,9 @@ export function SelectRow({
 
               // Handle setting an aggregate from a field
               const newFunction: AggregateFunction = [
-                dropdownSelection.value as AggregationKeyWithAlias,
+                parseAggregateFromValueKey(
+                  dropdownSelection.value as string
+                ) as AggregationKeyWithAlias,
                 ((selectedAggregate?.value.meta?.parameters.length > 0 &&
                   currentField.field) ||
                   selectedAggregate?.value.meta?.parameters?.[0]?.defaultValue) ??

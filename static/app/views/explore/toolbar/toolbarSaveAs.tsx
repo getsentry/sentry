@@ -46,7 +46,7 @@ export function ToolbarSaveAs() {
       query,
       pageFilters: pageFilters.selection,
       aggregate: yAxis,
-      organization,
+      orgSlug: organization.slug,
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       interval,
     }),

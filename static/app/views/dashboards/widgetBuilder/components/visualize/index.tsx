@@ -172,6 +172,26 @@ function canDeleteField(
   return true;
 }
 
+// Prefixes a value with `function:` because we need to ensure tags
+// and functions do not overlap in value for the dropdowns
+// Conflicting values seems to cause duplicate aggregate options
+export function getAggregateValueKey(value: string | undefined) {
+  if (!value) {
+    return '';
+  }
+
+  return `function:${value}`;
+}
+
+// When we set the aggregate, we need to split out the function prefix
+export function parseAggregateFromValueKey(value: string) {
+  if (!value.startsWith('function:')) {
+    return value;
+  }
+
+  return value.split(':')[1];
+}
+
 interface VisualizeProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
@@ -388,7 +408,10 @@ function Visualize({error, setError}: VisualizeProps) {
                     }
                   | SelectValue<string>
                 > = aggregates.map(option => ({
-                  value: option.value.meta.name,
+                  value:
+                    option.value.kind === FieldValueKind.FUNCTION
+                      ? getAggregateValueKey(option.value.meta.name)
+                      : option.value.meta.name,
                   label: option.value.meta.name,
                   trailingItems:
                     renderTag(option.value.kind, option.value.meta.name) ?? null,
