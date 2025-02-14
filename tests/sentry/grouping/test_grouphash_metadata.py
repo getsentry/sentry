@@ -9,7 +9,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
-    get_hash_basis_and_metadata,
+    get_grouphash_metadata_data,
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.strategies.base import StrategyConfiguration
@@ -139,7 +139,7 @@ def _assert_and_snapshot_results(
     lines: list[str] = []
     variants = event.get_grouping_variants()
 
-    hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
+    hash_basis, hashing_metadata = get_grouphash_metadata_data(event, project, variants)
 
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(

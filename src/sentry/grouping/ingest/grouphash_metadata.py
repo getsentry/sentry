@@ -124,7 +124,7 @@ def create_or_update_grouphash_metadata_if_needed(
     # we'll have to override the metadata creation date for them.
 
     if grouphash_is_new:
-        hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
+        hash_basis, hashing_metadata = get_grouphash_metadata_data(event, project, variants)
 
         GroupHashMetadata.objects.create(
             grouphash=grouphash,
@@ -140,7 +140,7 @@ def create_or_update_grouphash_metadata_if_needed(
         grouphash.metadata.update(latest_grouping_config=grouping_config)
 
 
-def get_hash_basis_and_metadata(
+def get_grouphash_metadata_data(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
@@ -162,7 +162,7 @@ def get_hash_basis_and_metadata(
     method_description = contributing_variant.description.replace("modified ", "")
 
     with metrics.timer(
-        "grouping.grouphashmetadata.get_hash_basis_and_metadata"
+        "grouping.grouphashmetadata.get_grouphash_metadata_data"
     ) as metrics_timer_tags:
         try:
             hash_basis = GROUPING_METHODS_BY_DESCRIPTION[method_description]
