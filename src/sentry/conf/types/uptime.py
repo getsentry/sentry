@@ -1,7 +1,5 @@
 import dataclasses
 
-from sentry.conf.types.kafka_definition import Topic
-
 
 @dataclasses.dataclass
 class UptimeRegionConfig:
@@ -13,8 +11,6 @@ class UptimeRegionConfig:
     name: str
     # TODO: Remove once no region configurations are setting this
     enabled: bool = True
-    # TODO: Remove once we've removed config that relies on this
-    config_topic: Topic | None = None
     # Temporarily defaulted for backwards compat
     config_redis_cluster: str = "default"
     # Prefix we'll add to keys in the redis config. Currently just used in tests
