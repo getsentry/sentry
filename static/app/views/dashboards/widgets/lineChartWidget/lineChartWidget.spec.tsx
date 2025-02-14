@@ -20,9 +20,11 @@ describe('LineChartWidget', () => {
 
   describe('Visualization', () => {
     it('Explains missing data', () => {
+      jest.spyOn(console, 'error').mockImplementation();
       render(<LineChartWidget />);
 
       expect(screen.getByText('No Data')).toBeInTheDocument();
+      jest.resetAllMocks();
     });
 
     const UNPLOTTABLE_CASES = [
@@ -50,6 +52,7 @@ describe('LineChartWidget', () => {
     ] satisfies Array<[TimeSeriesItem[]]>;
 
     it.each(UNPLOTTABLE_CASES)('Explains no plottable values for %s', data => {
+      jest.spyOn(console, 'error').mockImplementation();
       render(
         <LineChartWidget
           timeSeries={[
@@ -70,6 +73,7 @@ describe('LineChartWidget', () => {
       expect(
         screen.getByText(/does not contain any plottable values/)
       ).toBeInTheDocument();
+      jest.resetAllMocks();
     });
   });
 

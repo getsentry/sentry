@@ -15,6 +15,8 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
+
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -36,6 +38,10 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     preferredPolarity,
     meta,
   } = props;
+
+  if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
+    throw new Error(NON_FINITE_NUMBER_MESSAGE);
+  }
 
   const location = useLocation();
   const organization = useOrganization();

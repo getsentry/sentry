@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import type {BadgeProps} from 'sentry/components/badge/badge';
 import {LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +17,6 @@ import {
 import {WidgetLayout} from '../widgetLayout/widgetLayout';
 import {WidgetTitle} from '../widgetLayout/widgetTitle';
 
-import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -150,17 +148,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
         </Fragment>
       }
-      Visualization={
-        props.error ? (
-          <ErrorPanel error={error} />
-        ) : (
-          <ErrorBoundary
-            customComponent={() => <ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
-          >
-            {props.children}
-          </ErrorBoundary>
-        )
-      }
+      Visualization={props.error ? <ErrorPanel error={error} /> : props.children}
       noVisualizationPadding={props.noVisualizationPadding}
     />
   );

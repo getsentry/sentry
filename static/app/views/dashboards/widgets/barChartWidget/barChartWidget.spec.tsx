@@ -19,9 +19,11 @@ describe('BarChartWidget', () => {
 
   describe('Visualization', () => {
     it('Explains missing data', () => {
+      jest.spyOn(console, 'error').mockImplementation();
       render(<BarChartWidget />);
 
       expect(screen.getByText('No Data')).toBeInTheDocument();
+      jest.resetAllMocks();
     });
   });
 
