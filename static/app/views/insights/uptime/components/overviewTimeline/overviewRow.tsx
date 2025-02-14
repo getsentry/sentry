@@ -16,7 +16,6 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {checkStatusPrecedent, statusToText, tickStyle} from '../../timelineConfig';
@@ -52,10 +51,7 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
     <DetailsArea>
       <DetailsLink
         to={{
-          pathname: makeAlertsPathname({
-            path: `/uptime-rules/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
-            organization,
-          }),
+          pathname: `/organizations/${organization.slug}/alerts/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
           query,
         }}
       >

@@ -2,7 +2,6 @@ import type {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 interface Props {
   organization: Organization;
@@ -14,10 +13,7 @@ interface Props {
 function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props) {
   const crumbs: Array<Crumb | CrumbDropdown> = [
     {
-      to: makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      }),
+      to: `/organizations/${organization.slug}/alerts/rules/`,
       label: t('Alerts'),
       preservePageFilters: true,
     },
@@ -25,10 +21,7 @@ function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props
       label: title,
       ...(alertName
         ? {
-            to: makeAlertsPathname({
-              path: `/${projectSlug}/wizard/`,
-              organization,
-            }),
+            to: `/organizations/${organization.slug}/alerts/${projectSlug}/wizard`,
             preservePageFilters: true,
           }
         : {}),

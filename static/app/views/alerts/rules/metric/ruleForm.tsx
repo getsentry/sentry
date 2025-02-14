@@ -43,8 +43,8 @@ import {
   hasOnDemandMetricAlertFeature,
   shouldShowOnDemandMetricAlertUI,
 } from 'sentry/utils/onDemandMetrics/features';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withProjects from 'sentry/utils/withProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
@@ -271,12 +271,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {router} = this.props;
     const {organization} = this.props;
 
-    router.push(
-      makeAlertsPathname({
-        path: `/rules/`,
-        organization,
-      })
-    );
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   }
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
