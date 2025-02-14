@@ -17,9 +17,10 @@ import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer'
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
-import {focusNext, focusPrev} from 'sentry/components/tokenizedInput/grid/utils';
+import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
 interface ArithmeticTokenFunctionProps {
   item: Node<Token>;
@@ -165,7 +166,7 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'ArrowLeft'
       ) {
-        focusPrev(state, item);
+        focusTarget(state, state.collection.getKeyBefore(item.key));
         return;
       }
 
@@ -175,7 +176,7 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'ArrowRight'
       ) {
-        focusNext(state, item);
+        focusTarget(state, state.collection.getKeyAfter(item.key));
         return;
       }
     },
@@ -192,9 +193,11 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'Backspace'
       ) {
+        const itemKey = state.collection.getKeyBefore(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
           token: functionToken,
+          focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
 
@@ -204,13 +207,15 @@ function InternalInput({functionToken, item, state, token, rowRef}: InternalInpu
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'Delete'
       ) {
+        const itemKey = state.collection.getKeyBefore(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
           token: functionToken,
+          focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
     },
-    [dispatch, functionToken]
+    [dispatch, functionToken, state, item]
   );
 
   const onOptionSelected = useCallback(

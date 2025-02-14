@@ -22,7 +22,7 @@ import {
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
-import {focusNext, focusPrev} from 'sentry/components/tokenizedInput/grid/utils';
+import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -208,7 +208,7 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'ArrowLeft'
       ) {
-        focusPrev(state, item);
+        focusTarget(state, state.collection.getKeyBefore(item.key));
         return;
       }
 
@@ -218,7 +218,7 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'ArrowRight'
       ) {
-        focusNext(state, item);
+        focusTarget(state, state.collection.getKeyAfter(item.key));
         return;
       }
     },
@@ -235,7 +235,7 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'Backspace'
       ) {
-        focusPrev(state, item);
+        focusTarget(state, state.collection.getKeyBefore(item.key));
         return;
       }
 
@@ -245,7 +245,7 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'Delete'
       ) {
-        focusNext(state, item);
+        focusTarget(state, state.collection.getKeyAfter(item.key));
         return;
       }
     },

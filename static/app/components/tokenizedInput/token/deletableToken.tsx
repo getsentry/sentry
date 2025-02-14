@@ -6,7 +6,7 @@ import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
-import {focusNext, focusPrev} from 'sentry/components/tokenizedInput/grid/utils';
+import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -36,28 +36,28 @@ export function DeletableToken<T>({
   const onKeyDownCapture = useCallback(
     (evt: KeyboardEvent<HTMLInputElement>) => {
       if (evt.key === 'ArrowLeft') {
-        focusPrev(state, item);
+        focusTarget(state, state.collection.getKeyBefore(item.key));
         return;
       }
 
       if (evt.key === 'ArrowRight') {
-        focusNext(state, item);
+        focusTarget(state, state.collection.getKeyAfter(item.key));
         return;
       }
     },
     [state, item]
   );
 
-  const onKeyDown = useCallback(
+  const handleOnKeyDown = useCallback(
     (evt: KeyboardEvent<HTMLDivElement>) => {
       if (evt.key === 'Backspace' || evt.key === 'Delete') {
-        onDelete(evt);
+        onDelete?.(evt);
       }
     },
     [onDelete]
   );
 
-  const onClick = useCallback(
+  const handleOnClick = useCallback(
     (evt: MouseEvent<HTMLDivElement>) => {
       evt.stopPropagation();
       shiftFocusToChild(evt.currentTarget, item, state);
@@ -68,8 +68,8 @@ export function DeletableToken<T>({
   return (
     <Wrapper
       {...rowProps}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
+      onClick={handleOnClick}
+      onKeyDown={handleOnKeyDown}
       onKeyDownCapture={onKeyDownCapture}
       aria-invalid={false} // TODO: handle invalid state
       ref={ref}
