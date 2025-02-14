@@ -154,12 +154,13 @@ function InternalInput({
         if (isTokenFreeText(tok)) {
           const input = text.trim();
           if (input.endsWith('(')) {
-            const maybeFunc = input.substring(0, input.length - 1);
+            const pos = input.lastIndexOf(' ');
+            const maybeFunc = input.substring(pos + 1, input.length - 1);
             if (allowedFunctions.includes(maybeFunc)) {
               dispatch({
                 type: 'REPLACE_TOKEN',
                 token,
-                text: getInitialText(maybeFunc),
+                text: `${input.substring(0, pos + 1)}${getInitialText(maybeFunc)}`,
                 focusOverride: {
                   itemKey: nextTokenKeyOfKind(state, token, TokenKind.FUNCTION),
                 },
