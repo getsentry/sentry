@@ -10,7 +10,6 @@ import {
 
 import {MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';
-import {LoadingPanel} from '../widgetLayout/loadingPanel';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
@@ -30,7 +29,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
         revealActions={props.revealActions}
         revealTooltip={props.revealTooltip}
       >
-        <LoadingPanel />
+        <TimeSeriesWidgetVisualization.LoadingPlaceholder />
       </WidgetFrame>
     );
   }

@@ -17,6 +17,7 @@ import type {
 
 import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
 
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -175,3 +176,12 @@ const NumberContainerOverride = styled('div')`
     white-space: nowrap;
   }
 `;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+BigNumberWidgetVisualization.LoadingPlaceholder = function () {
+  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+};
