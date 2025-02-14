@@ -12,16 +12,46 @@ import {TextTitle} from './textTitle';
 import {Toolbar} from './toolbar';
 
 export interface Widget {
+  /**
+   * Placed in the top right of the frame
+   */
   Actions?: React.ReactNode;
+  /**
+   * Placed below the visualization, inside the frame
+   */
   Footer?: React.ReactNode;
+  /**
+   * Placed in the top left of the frame
+   */
   Title?: React.ReactNode;
+  /**
+   * Placed in the main area of the frame
+   */
   Visualization?: React.ReactNode;
   ariaLabel?: string;
+  /**
+   * Removes frame border
+   */
   borderless?: boolean;
+  /**
+   * Height in pixels. If omitted, the widget grows to fill the parent element. Avoid this! Setting the height via the parent element is more robust
+   */
   height?: number;
+  /**
+   * Removes padding from the footer area
+   */
   noFooterPadding?: boolean;
+  /**
+   * Removes padding from the header area
+   */
   noHeaderPadding?: boolean;
+  /**
+   * Removes padding from the visualization area
+   */
   noVisualizationPadding?: boolean;
+  /**
+   * If set to `"hover"`, the contents of the `Actions` slot are only shown on mouseover. If set to `"always"`, the contents of `Actions` are always shown
+   */
   revealActions?: 'hover' | 'always';
 }
 
