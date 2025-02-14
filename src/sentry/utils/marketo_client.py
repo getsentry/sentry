@@ -30,7 +30,7 @@ class MarketoClient:
     SUBMIT_FORM_URL = "/rest/v1/leads/submitForm.json"
 
     def make_request(self, url: str, *args, method="GET", **kwargs):
-        base_url = settings.MARKETO_BASE_URL
+        base_url = settings.MARKETO_BASE_URL or ""
         full_url = base_url + url
         session = http.build_session()
         resp = getattr(session, method.lower())(full_url, *args, **kwargs)
@@ -48,7 +48,6 @@ class MarketoClient:
             raise MarketoError(data)
 
         # not handling field level errors where success=True
-
         return data
 
     def retrieve_token(self):
