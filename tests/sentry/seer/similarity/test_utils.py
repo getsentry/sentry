@@ -8,6 +8,7 @@ from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
+    IGNORED_FILENAMES,
     MAX_FRAME_COUNT,
     ReferrerOptions,
     _is_snipped_context_line,
@@ -810,6 +811,21 @@ class GetStacktraceStringTest(TestCase):
             stacktrace_string
             == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
         )
+
+    def test_ignores_meaningless_filenames(self):
+        for ignored_filename in IGNORED_FILENAMES:
+            exception = copy.deepcopy(self.BASE_APP_DATA)
+            # delete module from the exception so we don't fall back to that
+            del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+            # replace filename with ignored value
+            exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0][
+                "values"
+            ][0] = ignored_filename
+            stacktrace_string = get_stacktrace_string(exception)
+            assert (
+                stacktrace_string
+                == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
+            )
 
     @patch("sentry.seer.similarity.utils.metrics")
     def test_no_header_one_frame_no_filename(self, mock_metrics):
