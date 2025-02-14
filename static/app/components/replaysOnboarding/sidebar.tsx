@@ -68,7 +68,7 @@ function DrawerContent() {
   return <SidebarContent />;
 }
 
-function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
+function LegacyReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
@@ -491,4 +491,4 @@ const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
 
-export default ReplaysOnboardingSidebar;
+export default LegacyReplaysOnboardingSidebar;
