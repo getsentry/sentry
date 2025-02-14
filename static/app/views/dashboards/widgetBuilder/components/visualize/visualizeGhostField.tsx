@@ -14,7 +14,6 @@ import {
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
   AggregateCompactSelect,
-  ColumnCompactSelect,
   FieldBar,
   FieldExtras,
   FieldRow,
@@ -24,6 +23,7 @@ import {
   StyledArithmeticInput,
   StyledDeleteButton,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
+import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
 type VisualizeGhostFieldProps = {
