@@ -1057,7 +1057,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]) -> None:
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     parallel_executor: ThreadPoolExecutor | None = None
 
-    parallel = False
+    batched_parallel = False
     """
     Does the consumer process unrelated check-ins in parallel?
     """
@@ -1080,7 +1080,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         max_workers: int | None = None,
     ) -> None:
         if mode == "batched-parallel":
-            self.parallel = True
+            self.batched_parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
@@ -1115,7 +1115,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if self.parallel:
+        if self.batched_parallel:
             return self.create_parallel_worker(commit)
         else:
             return self.create_synchronous_worker(commit)
