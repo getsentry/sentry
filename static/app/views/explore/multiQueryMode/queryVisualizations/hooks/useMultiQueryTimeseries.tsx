@@ -67,7 +67,7 @@ export function useMultiQueryTimeseries({
       topEvents: mode === Mode.SAMPLES ? undefined : 5,
       enabled,
     };
-  }, [query, yAxes, fields, orderby, enabled]);
+  }, [query, yAxes, fields, orderby, mode, enabled]);
 
   const previousQuery = usePrevious(query);
   const previousOptions = usePrevious(options);

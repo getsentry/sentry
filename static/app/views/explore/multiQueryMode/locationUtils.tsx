@@ -147,7 +147,6 @@ function getUpdatedLocationWithQueries(
   } else if (queries === null) {
     delete target.query.queries;
   }
-  console.log('here');
   return target;
 }
 
