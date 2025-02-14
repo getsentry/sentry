@@ -1,5 +1,3 @@
-import builtins
-
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -19,14 +17,13 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupType
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: builtins.type[GroupType], instance=None
+    request: Request, project: Project, detector_type_slug: str, instance=None
 ):
     detector_type = grouptype.registry.get_by_slug(detector_type_slug)
     if detector_type is None:
