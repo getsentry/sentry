@@ -2,82 +2,84 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.auto_source_code_config.stacktraces import Stacktrace, identify_stacktrace_paths
+from sentry.issues.auto_source_code_config.stacktraces import get_frames_to_process
 
 
-def _stacktrace_with_frames(frames: list[dict[str, Any]]) -> Stacktrace:
-    return {"stacktrace": {"frames": frames}}
+def _exception_with_stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"exception": {"values": [{"stacktrace": {"frames": frames}}]}}
 
 
 @pytest.mark.parametrize(
-    "stacktrace, expected",
+    "frames, platform, expected",
     [
         pytest.param(
-            _stacktrace_with_frames(
-                [
-                    {"filename": "../node_modules/@foo/hub.js", "in_app": False},
-                    {"filename": "./app/utils/handle.tsx", "in_app": True},
-                    {"filename": "./app/utils/Test.tsx", "in_app": True},
-                ]
-            ),
-            {
-                "./app/utils/handle.tsx",
-                "./app/utils/Test.tsx",
-            },
+            [
+                # Excluded because it's not in_app
+                {"filename": "../node_modules/@foo/hub.js", "in_app": False},
+                {"filename": "./app/utils/handle.tsx", "in_app": True},
+                {"filename": "./app/utils/Test.tsx", "in_app": True},
+            ],
+            "javascript",
+            [
+                {"filename": "./app/utils/handle.tsx", "in_app": True},
+                {"filename": "./app/utils/Test.tsx", "in_app": True},
+            ],
             id="javascript_relative_paths_with_node_modules",
         ),
         pytest.param(
-            _stacktrace_with_frames(
-                [
-                    {"filename": "path/test.rb", "in_app": True},
-                    {"filename": "path/crontask.rake", "in_app": True},
-                ]
-            ),
-            {"path/test.rb", "path/crontask.rake"},
+            [
+                {"filename": "path/test.rb", "in_app": True},
+                {"filename": "path/crontask.rake", "in_app": True},
+            ],
+            "ruby",
+            [
+                {"filename": "path/test.rb", "in_app": True},
+                {"filename": "path/crontask.rake", "in_app": True},
+            ],
             id="ruby_files_with_different_extensions",
         ),
         pytest.param(
-            _stacktrace_with_frames(
-                [
-                    {"filename": "app:///utils/errors.js", "in_app": True},
-                    {"filename": "../../packages/api/src/response.ts", "in_app": True},
-                    {"filename": "app:///../foo/bar/index.js", "in_app": True},
-                ]
-            ),
-            {
-                "app:///utils/errors.js",
-                "../../packages/api/src/response.ts",
-                "app:///../foo/bar/index.js",
-            },
+            [
+                {"filename": "app:///utils/errors.js", "in_app": True},
+                {"filename": "../../packages/api/src/response.ts", "in_app": True},
+                {"filename": "app:///../foo/bar/index.js", "in_app": True},
+            ],
+            "node",
+            [
+                {"filename": "app:///utils/errors.js", "in_app": True},
+                {"filename": "../../packages/api/src/response.ts", "in_app": True},
+                {"filename": "app:///../foo/bar/index.js", "in_app": True},
+            ],
             id="node_app_protocol_and_relative_paths",
         ),
         pytest.param(
-            _stacktrace_with_frames(
-                [
-                    {"filename": "sentry/tasks.py", "in_app": True},
-                    {"filename": "sentry/models/release.py", "in_app": True},
-                ]
-            ),
-            {
-                "sentry/tasks.py",
-                "sentry/models/release.py",
-            },
+            [
+                {"filename": "sentry/tasks.py", "in_app": True},
+                {"filename": "sentry/models/release.py", "in_app": True},
+            ],
+            "python",
+            [
+                {"filename": "sentry/tasks.py", "in_app": True},
+                {"filename": "sentry/models/release.py", "in_app": True},
+            ],
             id="python_paths",
         ),
     ],
 )
-def test_identify_stacktrace_paths(stacktrace: Stacktrace, expected: set[str]) -> None:
-    stacktrace_paths = identify_stacktrace_paths(stacktrace)
-    assert set(stacktrace_paths) == expected
+def test_get_frames_to_process(
+    frames: list[dict[str, Any]], platform: str, expected: set[str]
+) -> None:
+    frames = get_frames_to_process(_exception_with_stacktrace(frames), platform)
+    assert frames == expected
 
 
 @pytest.mark.parametrize(
-    "stacktrace, expected",
+    "frames, expected",
     [
-        (_stacktrace_with_frames([]), []),
-        (_stacktrace_with_frames([{"in_app": True}]), []),
+        ([], []),
+        ([{"in_app": True}], []),
     ],
 )
-def test_find_stacktrace_empty(stacktrace: Stacktrace, expected: list[str]) -> None:
-    stacktrace_paths = identify_stacktrace_paths(stacktrace)
-    assert stacktrace_paths == expected
+def test_find_stacktrace_empty(frames: list[dict[str, Any]], expected: list[str]) -> None:
+    frames = get_frames_to_process(_exception_with_stacktrace(frames))
+    assert frames == expected
