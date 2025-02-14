@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {Description} from './description';
+import {TextTitle} from './textTitle';
 
 export interface WidgetLayoutProps {
   Actions?: React.ReactNode;
@@ -55,6 +56,7 @@ function WidgetLayoutComponent(props: WidgetLayoutProps) {
 // `<WidgetLayout.Description` and others
 const exported = Object.assign(WidgetLayoutComponent, {
   Description,
+  TextTitle,
 });
 
 export {exported as WidgetLayout};

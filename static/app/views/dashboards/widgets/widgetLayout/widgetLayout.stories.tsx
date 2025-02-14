@@ -11,7 +11,6 @@ import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVi
 
 import {WidgetButton} from './widgetButton';
 import {WidgetLayout} from './widgetLayout';
-import {WidgetTitle} from './widgetTitle';
 
 export default storyBook('WidgetLayout', story => {
   story('Getting Started', () => {
@@ -81,7 +80,7 @@ import {WidgetTitle} from './widgetTitle';
 
         <SmallSizingWindow>
           <WidgetLayout
-            Title={<WidgetTitle title="epm() : /insights/frontend/assets" />}
+            Title={<WidgetLayout.TextTitle title="epm() : /insights/frontend/assets" />}
             Actions={
               <Fragment>
                 <WidgetButton>Say More</WidgetButton>

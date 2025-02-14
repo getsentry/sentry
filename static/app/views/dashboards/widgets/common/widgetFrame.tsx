@@ -13,7 +13,6 @@ import {ErrorPanel} from '../widgetLayout/errorPanel';
 import {WidgetBadge} from '../widgetLayout/widgetBadge';
 import {WidgetButton} from '../widgetLayout/widgetButton';
 import {WidgetLayout} from '../widgetLayout/widgetLayout';
-import {WidgetTitle} from '../widgetLayout/widgetTitle';
 
 import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
@@ -71,7 +70,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <WidgetTitle title={props.title} />
+          <WidgetLayout.TextTitle title={props.title} />
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(

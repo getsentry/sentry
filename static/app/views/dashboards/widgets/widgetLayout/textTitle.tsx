@@ -7,7 +7,7 @@ export interface WidgetTitleProps {
   title?: string;
 }
 
-export function WidgetTitle(props: WidgetTitleProps) {
+export function TextTitle(props: WidgetTitleProps) {
   return (
     <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
       <TitleText>{props.title}</TitleText>
