@@ -1,3 +1,4 @@
+from django.db import router, transaction
 from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
@@ -193,16 +194,24 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # TODO (mifu67): wrap the two create calls in a transaction
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
-
-        try:
-            action = create_alert_rule_trigger_action(
-                trigger=self.context["trigger"], **validated_data
-            )
-        except (ApiRateLimitedError, InvalidTriggerActionError) as e:
-            raise serializers.ValidationError(force_str(e))
+        with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+            try:
+                action = create_alert_rule_trigger_action(
+                    trigger=self.context["trigger"], **validated_data
+                )
+            except (ApiRateLimitedError, InvalidTriggerActionError) as e:
+                raise serializers.ValidationError(force_str(e))
+            if features.has(
+                "organizations:workflow-engine-metric-alert-dual-write",
+                action.alert_rule_trigger.alert_rule.organization,
+            ):
+                try:
+                    migrate_metric_action(action)
+                except ValidationError as e:
+                    # invalid action type
+                    raise serializers.ValidationError(str(e))
 
         analytics.record(
             "metric_alert_with_ui_component.created",
@@ -210,15 +219,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             alert_rule_id=getattr(self.context["alert_rule"], "id"),
             organization_id=getattr(self.context["organization"], "id"),
         )
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-write",
-            action.alert_rule_trigger.alert_rule.organization,
-        ):
-            try:
-                migrate_metric_action(action)
-            except ValidationError as e:
-                # invalid action type
-                raise serializers.ValidationError(str(e))
 
         return action
 
