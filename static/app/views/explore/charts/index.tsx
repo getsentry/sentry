@@ -17,10 +17,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
-import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loadingPanel';
-import {WidgetLayout} from 'sentry/views/dashboards/widgets/widgetLayout/widgetLayout';
-import {WidgetTitle} from 'sentry/views/dashboards/widgets/widgetLayout/widgetTitle';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
@@ -180,17 +177,19 @@ export function ExploreCharts({
           const Title = (
             <Fragment>
               {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
-              <WidgetTitle title={chartInfo.formattedYAxes.filter(Boolean).join(', ')} />
+              <Widget.WidgetTitle
+                title={chartInfo.formattedYAxes.filter(Boolean).join(', ')}
+              />
             </Fragment>
           );
 
           if (chartInfo.loading) {
             return (
-              <WidgetLayout
+              <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<LoadingPanel />}
+                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
               />
             );
@@ -198,18 +197,18 @@ export function ExploreCharts({
 
           if (chartInfo.error) {
             return (
-              <WidgetLayout
+              <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<ErrorPanel error={chartInfo.error} />}
+                Visualization={<Widget.WidgetError error={chartInfo.error} />}
                 revealActions="always"
               />
             );
           }
 
           return (
-            <WidgetLayout
+            <Widget
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
