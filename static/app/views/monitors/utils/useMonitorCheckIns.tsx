@@ -17,8 +17,6 @@ interface MonitorChecksParameters {
   queryParams?: Record<string, string | string[] | null | undefined>;
 }
 
-// TODO(Leander): Fix pagination and dont commit this comment
-
 export function makeMonitorCheckInsQueryKey({
   orgSlug,
   projectSlug,

@@ -15,6 +15,7 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -44,6 +45,7 @@ export default function GroupCheckIns() {
   const canFetchMonitorCheckIns =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(cronAlertId);
 
+  const {cursor, ...locationQuery} = location.query;
   const {
     data: cronData = [],
     isPending: isDataPending,
@@ -54,9 +56,10 @@ export default function GroupCheckIns() {
       projectSlug: group?.project.slug ?? '',
       monitorIdOrSlug: cronAlertId ?? '',
       limit: 50,
-      queryParams: {...location.query},
+      cursor: decodeScalar(cursor),
+      queryParams: locationQuery,
     },
-    {enabled: canFetchMonitorChecks}
+    {enabled: canFetchMonitorCheckIns}
   );
 
   if (isGroupError) {
