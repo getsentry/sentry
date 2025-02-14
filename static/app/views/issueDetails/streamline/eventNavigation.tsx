@@ -32,6 +32,13 @@ interface IssueEventNavigationProps {
   group: Group;
 }
 
+const LIST_VIEW_TABS = new Set([
+  Tab.EVENTS,
+  Tab.OPEN_PERIODS,
+  Tab.CHECK_INS,
+  Tab.UPTIME_CHECKS,
+]);
+
 export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
@@ -77,9 +84,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.USER_FEEDBACK]: t('Feedback'),
   };
 
-  const isListView = [Tab.UPTIME_CHECKS, Tab.EVENTS, Tab.OPEN_PERIODS].includes(
-    currentTab
-  );
+  const isListView = LIST_VIEW_TABS.has(currentTab);
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -210,6 +215,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventName="Issue Details: All Open Periods Clicked"
               >
                 {t('All Open Periods')}
+              </LinkButton>
+            )}
+            {issueTypeConfig.pages.checkIns.enabled && (
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                  query: location.query,
+                }}
+                size="xs"
+                analyticsEventKey="issue_details.all_checks_ins_clicked"
+                analyticsEventName="Issue Details: All Checks-Ins Clicked"
+              >
+                {t('All Check-Ins')}
               </LinkButton>
             )}
             {issueTypeConfig.pages.uptimeChecks.enabled && (

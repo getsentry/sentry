@@ -51,7 +51,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     landingPage: Tab.DETAILS,
     events: {enabled: true},
     openPeriods: {enabled: false},
-    cronChecks: {enabled: false},
+    checkIns: {enabled: false},
     uptimeChecks: {enabled: false},
     attachments: {enabled: false},
     userFeedback: {enabled: false},

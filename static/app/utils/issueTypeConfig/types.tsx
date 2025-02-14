@@ -99,7 +99,7 @@ export type IssueTypeConfig = {
     /**
      * Is the Cron Checks page shown for this issue
      */
-    cronChecks: DisabledWithReasonConfig;
+    checkIns: DisabledWithReasonConfig;
     /**
      * Is the All Events/Occurrences page shown for this issue
      */

@@ -33,7 +33,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       landingPage: Tab.DETAILS,
       events: {enabled: false},
       openPeriods: {enabled: true},
-      cronChecks: {enabled: false},
+      checkIns: {enabled: false},
       uptimeChecks: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: false},
