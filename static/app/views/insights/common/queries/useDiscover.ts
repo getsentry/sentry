@@ -11,6 +11,7 @@ import type {
   MetricsProperty,
   MetricsResponse,
   OurlogsFields,
+  SpanIndexedField,
   SpanIndexedProperty,
   SpanIndexedResponse,
   SpanMetricsProperty,
@@ -33,7 +34,7 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   referrer: string
 ) => {
   // Indexed spans dataset always returns an `id`
-  return useDiscover<Fields | ['id'], SpanIndexedResponse>(
+  return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
     DiscoverDatasets.SPANS_INDEXED,
     referrer

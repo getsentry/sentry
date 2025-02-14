@@ -36,7 +36,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.TRANSACTION_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.PROFILE_ID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanIndexedField.TRACE
