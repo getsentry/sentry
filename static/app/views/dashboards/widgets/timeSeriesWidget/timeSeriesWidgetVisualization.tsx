@@ -1,5 +1,3 @@
-import {useRef} from 'react';
-import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import type {
   BarSeriesOption,
@@ -9,11 +7,13 @@ import type {
   CustomSeriesRenderItemReturn,
   LineSeriesOption,
 } from 'echarts';
+import type EChartsReactCore from 'echarts-for-react/lib/core';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
+import {useRef} from 'react';
+import {useNavigate} from 'react-router-dom';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -36,16 +36,16 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
 
-import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
-import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
-import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
-import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
-import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
 import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
+import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
+import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
+import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
+import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
+import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
@@ -310,7 +310,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // If release timestamp is within bounds of the current bucket, add the release to list
         if (releaseTs >= start && releaseTs < end) {
           releasesInBucket.push(props.releases[j]);
-          allReleasesInBucket.push(props.releases[j]);
         }
         // Since releases are sorted, once a release timestamp is more recent than the bucket timestamp,
         // we want to break this innerloop and move on to the next bucket.
