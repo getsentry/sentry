@@ -180,51 +180,30 @@ export const CHART_PALETTE = [
 
 export type ChartColorPalette = typeof CHART_PALETTE;
 
+type ColorLength = (typeof CHART_PALETTE)['length'];
+
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
-type GetRange<N extends number, A extends unknown[] = []> = A['length'] extends N
-  ? A[number]
-  : GetRange<N, [...A, A['length']]>;
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A
+  : TupleOf<N, [...A, A['length']]>;
 
-type ValidLengthArgument = GetRange<ChartColorPalette['length']>;
+type ValidLengthArgument = TupleOf<ColorLength>[number];
 
-// @TODO(jonasbadalic) I hate this, but iirc it is the only way to the type to the next index
-type LengthPlusOne<T extends ValidLengthArgument> = T extends 0
-  ? 1
-  : T extends 1
-    ? 2
-    : T extends 2
-      ? 3
-      : T extends 3
-        ? 4
-        : T extends 4
-          ? 5
-          : T extends 5
-            ? 6
-            : T extends 6
-              ? 7
-              : T extends 7
-                ? 8
-                : T extends 8
-                  ? 9
-                  : T extends 9
-                    ? 10
-                    : T extends 10
-                      ? 11
-                      : T extends 11
-                        ? 12
-                        : T extends 12
-                          ? 13
-                          : T extends 13
-                            ? 14
-                            : T extends 14
-                              ? 15
-                              : T extends 15
-                                ? 16
-                                : T extends 16
-                                  ? 17
-                                  : T extends 17
-                                    ? 18
-                                    : never;
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
+  infer _First,
+  ...infer Rest,
+]
+  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
+      Rest,
+      [...A, unknown]
+    >
+  : {};
+
+type NextMap = NextTuple<TupleOf<ColorLength>>;
+type Next<R extends ValidLengthArgument> = NextMap[R];
+
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -235,12 +214,9 @@ type LengthPlusOne<T extends ValidLengthArgument> = T extends 0
  */
 export function getChartColorPalette<Length extends ValidLengthArgument>(
   length: Length | number
-): Exclude<ChartColorPalette[LengthPlusOne<Length>], undefined> {
+): Exclude<ChartColorPalette[Next<Length>], undefined> {
   // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
   // the palette is not sparse, but we should probably add a runtime check here as well.
   const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
-  return CHART_PALETTE[index] as Exclude<
-    ChartColorPalette[LengthPlusOne<Length>],
-    undefined
-  >;
+  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
 }
