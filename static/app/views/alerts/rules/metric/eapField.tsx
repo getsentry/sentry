@@ -1,10 +1,12 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import type {TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
@@ -36,12 +38,23 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
-  const numberTags = useSpanTags('number');
+  const storedTags = useSpanTags('number');
+  const numberTags: TagCollection = useMemo(() => {
+    const availableTags: TagCollection = storedTags;
+    if (field && !defined(storedTags[field])) {
+      availableTags[field] = {
+        key: field,
+        name: prettifyTagKey(field),
+      };
+    }
+    return availableTags;
+  }, [field, storedTags]);
+
   const fieldsArray = Object.values(numberTags);
 
   useEffect(() => {
     const selectedMeta = field ? numberTags[field] : undefined;
-    if (field && !selectedMeta) {
+    if (!field && !selectedMeta) {
       const newSelection = fieldsArray[0];
       if (newSelection) {
         onChange(`count(${newSelection.name})`, {});
