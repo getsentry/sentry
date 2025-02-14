@@ -229,7 +229,9 @@ export function SentryAppPublishRequestModal(props: Props) {
   const handleSubmitSuccess = () => {
     addSuccessMessage(t('Request to publish %s successful.', app.slug));
     closeModal();
-    onPublishSubmission();
+    if (isNewModalVisible) {
+      onPublishSubmission();
+    }
   };
 
   const handleSubmitError = (err: any) => {
