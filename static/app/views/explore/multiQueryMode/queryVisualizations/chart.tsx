@@ -11,9 +11,10 @@ import {WidgetTitle} from 'sentry/views/dashboards/widgets/widgetLayout/widgetTi
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+const CHART_HEIGHT = 260;
 export interface MultiQueryChartProps {
   index: number;
   mode: Mode;

@@ -46,6 +46,8 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
+const TABLE_HEIGHT = 258;
+
 interface MultiQueryTableProps {
   confidences: Confidence[];
   index: number;
@@ -115,7 +117,7 @@ function AggregatesTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={258}>
+      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -244,7 +246,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={258}>
+      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
