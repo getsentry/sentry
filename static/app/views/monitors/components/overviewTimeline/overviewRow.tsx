@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
@@ -80,7 +81,10 @@ export function OverviewRow({
 
   const to = linkToAlerts
     ? {
-        pathname: `/organizations/${organization.slug}/alerts/rules/crons/${monitor.project.slug}/${monitor.slug}/details/`,
+        pathname: makeAlertsPathname({
+          path: `/rules/crons/${monitor.project.slug}/${monitor.slug}/details/`,
+          organization,
+        }),
         query,
       }
     : {
