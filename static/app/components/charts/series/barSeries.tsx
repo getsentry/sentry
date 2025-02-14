@@ -8,6 +8,7 @@ import type {BarSeriesOption, LineSeriesOption} from 'echarts';
  */
 function barSeries(props: BarSeriesOption): BarSeriesOption | LineSeriesOption {
   return {
+    id: props.name,
     ...props,
     type: props.type ?? 'bar',
   };
