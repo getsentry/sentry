@@ -298,35 +298,32 @@ class OutboxBase(Model):
 
         # If the block didn't raise, delivery was successful, and we
         # can delete messages to acknowledge them.
-        try:
-            deleted_count = 0
-            with transaction.atomic(using=using):
-                # The last message in a coalesce group should be preserved if we're
-                # skipping the shard, as we need to delay signals, and keep
-                # backlogs shorter, but not lose updates.
-                cleanup_ids = reserved_ids[:-1]
-                if cleanup_ids:
-                    self.objects.filter(id__in=cleanup_ids).delete()
-                    deleted_count = len(cleanup_ids)
-                if not self.should_skip_shard():
-                    deleted_count += 1
-                    coalesced.delete()
+        deleted_count = 0
+        with transaction.atomic(using=using):
+            # The last message in a coalesce group should be preserved if we're
+            # skipping the shard, as we need to delay signals, and keep
+            # backlogs shorter, but not lose updates.
+            cleanup_ids = reserved_ids[:-1]
+            if cleanup_ids:
+                self.objects.filter(id__in=cleanup_ids).delete()
+                deleted_count = len(cleanup_ids)
+            if not self.should_skip_shard():
+                deleted_count += 1
+                coalesced.delete()
 
-            # refresh now, as signal handlers can take full seconds to run
-            now = timezone.now()
-            metrics.incr("outbox.processed", deleted_count, tags=tags)
-            metrics.timing(
-                "outbox.processing_lag",
-                now.timestamp() - first_coalesced.scheduled_from.timestamp(),
-                tags=tags,
-            )
-            metrics.timing(
-                "outbox.coalesced_net_processing_time",
-                now.timestamp() - first_coalesced.date_added.timestamp(),
-                tags=tags,
-            )
-        except Exception as err:
-            sentry_sdk.capture_exception(err)
+        # refresh now, as signal handlers can take full seconds to run
+        now = timezone.now()
+        metrics.incr("outbox.processed", deleted_count, tags=tags)
+        metrics.timing(
+            "outbox.processing_lag",
+            now.timestamp() - first_coalesced.scheduled_from.timestamp(),
+            tags=tags,
+        )
+        metrics.timing(
+            "outbox.coalesced_net_processing_time",
+            now.timestamp() - first_coalesced.date_added.timestamp(),
+            tags=tags,
+        )
 
     def process_signal(self, is_synchronous_flush: bool) -> bool:
         """
