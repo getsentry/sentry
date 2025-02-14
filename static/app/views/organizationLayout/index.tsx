@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
@@ -56,6 +57,8 @@ interface LayoutProps extends Props {
 }
 
 function AppLayout({children, organization}: LayoutProps) {
+  useFeedbackOnboardingDrawer();
+
   return (
     <NavContextProvider>
       <AppContainer>
