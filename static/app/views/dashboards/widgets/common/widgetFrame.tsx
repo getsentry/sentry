@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import type {BadgeProps} from 'sentry/components/badge/badge';
-import {LinkButton} from 'sentry/components/button';
+import Badge from 'sentry/components/badge/badge';
+import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -10,8 +12,6 @@ import {t} from 'sentry/locale';
 
 import type {WidgetDescriptionProps} from '../widgetLayout/description';
 import {ErrorPanel} from '../widgetLayout/errorPanel';
-import {WidgetBadge} from '../widgetLayout/widgetBadge';
-import {WidgetButton} from '../widgetLayout/widgetButton';
 import {WidgetLayout} from '../widgetLayout/widgetLayout';
 
 import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
@@ -108,12 +108,13 @@ export function WidgetFrame(props: WidgetFrameProps) {
                     {actions[0]!.label}
                   </LinkButton>
                 ) : (
-                  <WidgetButton
+                  <Button
+                    size="xs"
                     disabled={props.actionsDisabled}
                     onClick={actions[0]!.onAction}
                   >
                     {actions[0]!.label}
-                  </WidgetButton>
+                  </Button>
                 )
               ) : null}
 
@@ -135,7 +136,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
 
           {shouldShowFullScreenViewButton && (
-            <WidgetButton
+            <Button
+              size="xs"
               aria-label={t('Open Full-Screen View')}
               borderless
               icon={<IconExpand />}
@@ -167,6 +169,10 @@ interface TitleActionsProps {
   disabled: boolean;
   disabledMessage: string;
 }
+
+const WidgetBadge = styled(Badge)`
+  flex-shrink: 0;
+`;
 
 function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActionsProps) {
   if (!disabled || !disabledMessage) {

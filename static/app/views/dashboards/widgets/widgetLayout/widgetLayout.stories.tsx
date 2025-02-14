@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -9,7 +10,6 @@ import storyBook from 'sentry/stories/storyBook';
 import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurationTimeSeries';
 import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
 
-import {WidgetButton} from './widgetButton';
 import {WidgetLayout} from './widgetLayout';
 
 export default storyBook('WidgetLayout', story => {
@@ -83,8 +83,8 @@ import {WidgetTitle} from './widgetTitle';
             Title={<WidgetLayout.TextTitle title="epm() : /insights/frontend/assets" />}
             Actions={
               <Fragment>
-                <WidgetButton>Say More</WidgetButton>
-                <WidgetButton>Say Less</WidgetButton>
+                <Button size="xs">Say More</Button>
+                <Button size="xs">Say Less</Button>
                 <WidgetLayout.Description
                   title="epm() : /insights/frontend/assets"
                   description="Events received, tracked per minute"
