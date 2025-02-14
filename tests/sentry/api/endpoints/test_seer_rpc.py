@@ -5,6 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.seer_rpc import (
+    NUM_DAYS_AGO,
     generate_request_signature,
     get_issues_with_event_details_for_file,
 )
@@ -108,7 +109,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
 
     def test_event_too_old(self):
         group_id = self._create_event(
-            timestamp=before_now(days=15).isoformat(), filenames=["bar.py", "baz.py"]
+            timestamp=before_now(days=NUM_DAYS_AGO + 1).isoformat(), filenames=["bar.py", "baz.py"]
         ).group.id
 
         issues = get_issues_with_event_details_for_file([self.project], ["baz.py"], ["world"])
