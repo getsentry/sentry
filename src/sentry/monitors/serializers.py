@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
@@ -331,9 +331,7 @@ class MonitorCheckInSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
-        config: MonitorConfigSerializerResponse = (
-            obj.monitor_config.copy() if obj.monitor_config else {}
-        )
+        config = obj.monitor_config.copy() if obj.monitor_config else {}
         if "schedule_type" in config:
             # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
             # config saved on the check-in
@@ -345,7 +343,7 @@ class MonitorCheckInSerializer(Serializer):
             "duration": obj.duration,
             "dateCreated": obj.date_added,
             "expectedTime": obj.expected_time,
-            "monitorConfig": config,
+            "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }
 
         if self._expand("groups"):
