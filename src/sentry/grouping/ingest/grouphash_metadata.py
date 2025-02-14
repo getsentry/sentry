@@ -129,11 +129,17 @@ def create_or_update_grouphash_metadata_if_needed(
 
         GroupHashMetadata.objects.create(**new_data)
 
-    elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
-        # Keep track of the most recent config which computed this hash, so that once a
-        # config is deprecated, we can clear out the GroupHash records which are no longer
-        # being produced
-        grouphash.metadata.update(latest_grouping_config=grouping_config)
+    elif grouphash.metadata:
+        updated_data: dict[str, Any] = {}
+
+        # Keep track of the most recent config which computed this hash, so that once a config is
+        # deprecated, we can clear out the GroupHash records which are no longer being produced
+        if grouphash.metadata.latest_grouping_config != grouping_config:
+            updated_data = {"latest_grouping_config": grouping_config}
+
+        # Only hit the DB if there's something to change
+        if updated_data:
+            grouphash.metadata.update(**updated_data)
 
 
 def get_grouphash_metadata_data(
