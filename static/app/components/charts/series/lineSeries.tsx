@@ -4,6 +4,7 @@ import type {LineSeriesOption} from 'echarts';
 
 export default function LineSeries(props: LineSeriesOption): LineSeriesOption {
   return {
+    id: props.name,
     showSymbol: false,
     // @TODO(jonasbadalic): this used to be defined on the theme, but
     // not actually used in a number of charts, defeating the purpose of the
