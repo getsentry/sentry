@@ -249,10 +249,10 @@ def update_dcg(
     if type == WorkflowDataConditionGroupType.ACTION_FILTER:
         conditions_ids = [condition["id"] for condition in conditions]
         # skip migrating filters for special case
-        if EventUniqueUserFrequencyConditionWithConditions.id in conditions_ids:
-            return dcg
-
-    bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=dcg)
+        if EventUniqueUserFrequencyConditionWithConditions.id not in conditions_ids:
+            bulk_create_data_conditions(conditions=filters, dcg=dcg)
+    else:
+        bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=dcg)
 
     return dcg
 
