@@ -114,9 +114,11 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
   );
 
   const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
+    <Alert.Container>
+      <Alert type="warning">
+        Platform documentation is not rendered in for tests in CI
+      </Alert>
+    </Alert.Container>
   );
 
   const renderIntegrationInstructions = () => {

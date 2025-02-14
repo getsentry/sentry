@@ -311,11 +311,11 @@ function MonitorForm({
         </ListItemSubText>
         <InputGroup noPadding>
           {monitor !== undefined && (
-            <StyledAlert type="info">
+            <Alert type="info">
               {t(
                 'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}
-            </StyledAlert>
+            </Alert>
           )}
           <SelectField
             name="config.scheduleType"
@@ -555,10 +555,6 @@ export default MonitorForm;
 
 const StyledList = styled(List)`
   width: 800px;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledListItem = styled(ListItem)`

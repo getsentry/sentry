@@ -570,7 +570,6 @@ const MarginlessAlert = styled(Alert)`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.border} solid;
   border-top-width: 0;
-  margin: 0;
   padding: ${space(1)} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

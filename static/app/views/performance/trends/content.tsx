@@ -127,9 +127,11 @@ class TrendsContent extends Component<Props, State> {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error}
+        </Alert>
+      </Alert.Container>
     );
   }
 

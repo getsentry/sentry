@@ -83,24 +83,26 @@ function ExistingMemberAlert() {
   const user = ConfigStore.get('user');
 
   return (
-    <Alert type="warning" data-test-id="existing-member">
-      {tct(
-        'Your account ([email]) is already a member of this organization. [switchLink:Switch accounts]?',
-        {
-          email: user.email,
-          switchLink: (
-            <Link
-              to=""
-              data-test-id="existing-member-link"
-              onClick={e => {
-                e.preventDefault();
-                logout(api);
-              }}
-            />
-          ),
-        }
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="warning" data-test-id="existing-member">
+        {tct(
+          'Your account ([email]) is already a member of this organization. [switchLink:Switch accounts]?',
+          {
+            email: user.email,
+            switchLink: (
+              <Link
+                to=""
+                data-test-id="existing-member-link"
+                onClick={e => {
+                  e.preventDefault();
+                  logout(api);
+                }}
+              />
+            ),
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 
@@ -241,23 +243,25 @@ function AcceptOrganizationInvite() {
   if (isError) {
     return (
       <NarrowLayout>
-        <Alert type="warning">
-          {tct(
-            'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
-            {
-              switchLink: (
-                <Link
-                  to=""
-                  data-test-id="existing-member-link"
-                  onClick={e => {
-                    e.preventDefault();
-                    logout(api, `/accept/${params.memberId}/${params.token}/`);
-                  }}
-                />
-              ),
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning">
+            {tct(
+              'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
+              {
+                switchLink: (
+                  <Link
+                    to=""
+                    data-test-id="existing-member-link"
+                    onClick={e => {
+                      e.preventDefault();
+                      logout(api, `/accept/${params.memberId}/${params.token}/`);
+                    }}
+                  />
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       </NarrowLayout>
     );
   }
@@ -267,9 +271,11 @@ function AcceptOrganizationInvite() {
       <SentryDocumentTitle title={t('Accept Organization Invite')} />
       <SettingsPageHeader title={t('Accept organization invite')} />
       {isAcceptError && (
-        <Alert type="error">
-          {t('Failed to join this organization. Please try again')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error">
+            {t('Failed to join this organization. Please try again')}
+          </Alert>
+        </Alert.Container>
       )}
       <InviteDescription data-test-id="accept-invite">
         {tct('[orgSlug] is using Sentry to track and debug errors.', {

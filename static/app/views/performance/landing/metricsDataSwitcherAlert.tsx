@@ -111,54 +111,60 @@ export function MetricsDataSwitcherAlert(
     if (getIsMultiProject(props.eventView.project)) {
       if ((props.compatibleProjects ?? []).length === 0) {
         return (
-          <Alert
-            type="warning"
-            showIcon
-            data-test-id="landing-mep-alert-multi-project-all-incompatible"
-          >
-            {tct(
-              `A few projects are incompatible with dynamic sampling. To enable this feature [updateSDK].`,
-              {
-                updateSDK,
-              }
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert
+              type="warning"
+              showIcon
+              data-test-id="landing-mep-alert-multi-project-all-incompatible"
+            >
+              {tct(
+                `A few projects are incompatible with dynamic sampling. To enable this feature [updateSDK].`,
+                {
+                  updateSDK,
+                }
+              )}
+            </Alert>
+          </Alert.Container>
         );
       }
       return (
-        <Alert
-          type="warning"
-          showIcon
-          data-test-id="landing-mep-alert-multi-project-incompatible"
-        >
-          {tct(
-            `A few projects are incompatible with dynamic sampling. You can either [updateSDK] or [onlyViewCompatible]`,
-            {
-              updateSDK,
-              onlyViewCompatible: (
-                <Link to="" onClick={handleSwitchToCompatibleProjects}>
-                  {t('only view compatible projects.')}
-                </Link>
-              ),
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert
+            type="warning"
+            showIcon
+            data-test-id="landing-mep-alert-multi-project-incompatible"
+          >
+            {tct(
+              `A few projects are incompatible with dynamic sampling. You can either [updateSDK] or [onlyViewCompatible]`,
+              {
+                updateSDK,
+                onlyViewCompatible: (
+                  <Link to="" onClick={handleSwitchToCompatibleProjects}>
+                    {t('only view compatible projects.')}
+                  </Link>
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
     return (
-      <Alert
-        type="warning"
-        showIcon
-        data-test-id="landing-mep-alert-single-project-incompatible"
-      >
-        {tct(
-          `Your project has an outdated SDK which is incompatible with dynamic sampling. To enable this feature [updateSDK].`,
-          {
-            updateSDK,
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert
+          type="warning"
+          showIcon
+          data-test-id="landing-mep-alert-single-project-incompatible"
+        >
+          {tct(
+            `Your project has an outdated SDK which is incompatible with dynamic sampling. To enable this feature [updateSDK].`,
+            {
+              updateSDK,
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -166,33 +172,41 @@ export function MetricsDataSwitcherAlert(
     const discover = <Link to={discoverTarget}>{t('open them in Discover.')}</Link>;
     if (!docsLink) {
       return (
-        <Alert type="warning" showIcon data-test-id="landing-mep-alert-unnamed-discover">
-          {tct(
-            `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
-            {
-              discover,
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert
+            type="warning"
+            showIcon
+            data-test-id="landing-mep-alert-unnamed-discover"
+          >
+            {tct(
+              `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
+              {
+                discover,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
     return (
-      <Alert
-        type="warning"
-        showIcon
-        data-test-id="landing-mep-alert-unnamed-discover-or-set"
-      >
-        {tct(
-          `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
-          {
-            setNames: (
-              <ExternalLink href={docsLink}>{t('set names manually')}</ExternalLink>
-            ),
-            discover,
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert
+          type="warning"
+          showIcon
+          data-test-id="landing-mep-alert-unnamed-discover-or-set"
+        >
+          {tct(
+            `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
+            {
+              setNames: (
+                <ExternalLink href={docsLink}>{t('set names manually')}</ExternalLink>
+              ),
+              discover,
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

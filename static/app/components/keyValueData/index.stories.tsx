@@ -277,7 +277,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         subject: 'null-subject-node',
         subjectNode: null,
         value: (
-          <Alert type="warning" showIcon style={{margin: 0}}>
+          <Alert type="warning" showIcon>
             Custom value can also span full length
           </Alert>
         ),

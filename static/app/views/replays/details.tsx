@@ -120,12 +120,14 @@ function ReplayDetails({params: {replaySlug}}: Props) {
         replayErrors={replayErrors}
       >
         <Layout.Page>
-          <Alert system type="warning" data-test-id="replay-deleted">
-            <Flex gap={space(0.5)}>
-              <IconDelete color="gray500" size="sm" />
-              {t('This replay has been deleted.')}
-            </Flex>
-          </Alert>
+          <Alert.Container>
+            <Alert system type="warning" data-test-id="replay-deleted">
+              <Flex gap={space(0.5)}>
+                <IconDelete color="gray500" size="sm" />
+                {t('This replay has been deleted.')}
+              </Flex>
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       </Page>
     );

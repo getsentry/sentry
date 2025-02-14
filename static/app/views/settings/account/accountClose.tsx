@@ -146,11 +146,13 @@ function AccountClose() {
         )}
       </TextBlock>
 
-      <Alert type="error" showIcon>
-        <Important>
-          {t('Closing your account is permanent and cannot be undone')}!
-        </Important>
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          <Important>
+            {t('Closing your account is permanent and cannot be undone')}!
+          </Important>
+        </Alert>
+      </Alert.Container>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>

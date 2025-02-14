@@ -21,11 +21,13 @@ export function ProjectPermissionAlert({
     <Access access={access} project={project} team={team}>
       {({hasAccess}) =>
         !hasAccess && (
-          <Alert data-test-id="project-permission-alert" type="warning" {...props}>
-            {t(
-              'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.'
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert data-test-id="project-permission-alert" type="warning" {...props}>
+              {t(
+                'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.'
+              )}
+            </Alert>
+          </Alert.Container>
         )
       }
     </Access>

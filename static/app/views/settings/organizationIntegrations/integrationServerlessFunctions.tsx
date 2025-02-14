@@ -50,11 +50,13 @@ export function IntegrationServerlessFunctions({
 
   return (
     <Fragment>
-      <Alert type="info">
-        {t(
-          'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info">
+          {t(
+            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
+          )}
+        </Alert>
+      </Alert.Container>
       <Panel>
         <StyledPanelHeader disablePadding hasButtons>
           <NameHeader>{t('Name')}</NameHeader>

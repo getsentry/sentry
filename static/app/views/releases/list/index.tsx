@@ -435,21 +435,23 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
           }
 
           return (
-            <Alert type="info" showIcon>
-              <AlertText>
-                <div>
-                  {t(
-                    'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
-                  )}
-                </div>
-                <ExternalLink
-                  href="https://docs.sentry.io/product/releases/setup/#release-health"
-                  onClick={this.trackAddReleaseHealth}
-                >
-                  {t('Add Release Health')}
-                </ExternalLink>
-              </AlertText>
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon>
+                <AlertText>
+                  <div>
+                    {t(
+                      'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
+                    )}
+                  </div>
+                  <ExternalLink
+                    href="https://docs.sentry.io/product/releases/setup/#release-health"
+                    onClick={this.trackAddReleaseHealth}
+                  >
+                    {t('Add Release Health')}
+                  </ExternalLink>
+                </AlertText>
+              </Alert>
+            </Alert.Container>
           );
         }}
       </Projects>

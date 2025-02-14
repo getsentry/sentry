@@ -878,11 +878,13 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <Alert type="info" showIcon>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+              )}
+            </Alert>
+          </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>

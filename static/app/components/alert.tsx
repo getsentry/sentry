@@ -167,7 +167,6 @@ const AlertContainer = styled('div')<
     ${p => defined(p.trailingItems) && 'max-content'}
     ${p => defined(p.expand) && 'max-content'};
   gap: ${space(1)};
-  margin: 0 0 ${space(2)};
   color: ${p => p.alertColors.color};
   font-size: ${p => p.theme.fontSizeMedium};
   border-radius: ${p => p.theme.borderRadius};
@@ -294,3 +293,14 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
 
   return null;
 }
+
+// Spaces items within the container evenly.
+const Container = styled('div')`
+  > div {
+    margin-bottom: ${space(2)};
+  }
+`;
+
+Alert.Container = Container;
+
+export default Alert;

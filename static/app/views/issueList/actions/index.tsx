@@ -597,7 +597,6 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
   border-bottom: none;
 `;
 
