@@ -54,7 +54,7 @@ function EAPField({aggregate, onChange}: Props) {
 
   useEffect(() => {
     const selectedMeta = field ? numberTags[field] : undefined;
-    if (!field && !selectedMeta) {
+    if (!field || !selectedMeta) {
       const newSelection = fieldsArray[0];
       if (newSelection) {
         onChange(`count(${newSelection.name})`, {});
