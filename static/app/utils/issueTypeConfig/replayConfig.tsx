@@ -28,7 +28,7 @@ const replayConfig: IssueCategoryConfigMapping = {
       events: {enabled: true},
       openPeriods: {enabled: false},
       uptimeChecks: {enabled: false},
-      cronChecks: {enabled: false},
+      checkIns: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: true},
       replays: {enabled: true},
