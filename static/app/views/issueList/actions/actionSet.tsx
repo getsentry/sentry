@@ -67,8 +67,13 @@ function ActionSet({
   const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;
   const {enabled: mergeSupported, disabledReason: mergeDisabledReason} =
     isActionSupported(selectedIssues, 'merge');
-  const {enabled: deleteSupported, disabledReason: deleteDisabledReason} =
-    isActionSupported(selectedIssues, 'delete');
+
+  // Members may or may not have access to delete events based on organization settings
+  const hasDeleteAccess = organization.access.includes('event:admin');
+  const {enabled: deleteSupported, disabledReason: deleteDisabledReason} = hasDeleteAccess
+    ? isActionSupported(selectedIssues, 'delete')
+    : {enabled: false, disabledReason: t('You do not have permission to delete issues')};
+
   const mergeDisabled =
     !multiSelected || multipleIssueProjectsSelected || !mergeSupported;
   const ignoreDisabled = !anySelected;
