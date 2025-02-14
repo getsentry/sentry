@@ -124,17 +124,11 @@ def create_or_update_grouphash_metadata_if_needed(
     # we'll have to override the metadata creation date for them.
 
     if grouphash_is_new:
-        hash_basis, hashing_metadata = get_grouphash_metadata_data(
-            event, project, variants, grouping_config
-        )
+        new_data: dict[str, Any] = {"grouphash": grouphash}
+        new_data.update(get_grouphash_metadata_data(event, project, variants, grouping_config))
 
-        GroupHashMetadata.objects.create(
-            grouphash=grouphash,
-            latest_grouping_config=grouping_config,
-            hash_basis=hash_basis,
-            hashing_metadata=hashing_metadata,
-            platform=event.platform,
-        )
+        GroupHashMetadata.objects.create(**new_data)
+
     elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
         # Keep track of the most recent config which computed this hash, so that once a
         # config is deprecated, we can clear out the GroupHash records which are no longer
@@ -147,7 +141,11 @@ def get_grouphash_metadata_data(
     project: Project,
     variants: dict[str, BaseVariant],
     grouping_config: str,
-) -> tuple[HashBasis, HashingMetadata]:
+) -> dict[str, Any]:
+    base_data = {
+        "latest_grouping_config": grouping_config,
+        "platform": event.platform or "unknown",
+    }
     hashing_metadata: HashingMetadata = {}
     # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
     # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
@@ -175,7 +173,7 @@ def get_grouphash_metadata_data(
                 contributing_variant.description,
                 extra={"project": project.id, "event_id": event.event_id},
             )
-            return (HashBasis.UNKNOWN, {})
+            return {**base_data, "hash_basis": HashBasis.UNKNOWN, "hashing_metadata": {}}
 
         metrics_timer_tags["hash_basis"] = hash_basis
 
@@ -218,7 +216,7 @@ def get_grouphash_metadata_data(
                 _get_fingerprint_hashing_metadata(contributing_variant, is_hybrid=True)
             )
 
-        return hash_basis, hashing_metadata
+        return {**base_data, "hash_basis": hash_basis, "hashing_metadata": hashing_metadata}
 
 
 def record_grouphash_metadata_metrics(

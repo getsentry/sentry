@@ -139,9 +139,9 @@ def _assert_and_snapshot_results(
     lines: list[str] = []
     variants = event.get_grouping_variants()
 
-    hash_basis, hashing_metadata = get_grouphash_metadata_data(
-        event, project, variants, config_name
-    )
+    metadata = get_grouphash_metadata_data(event, project, variants, config_name)
+    hash_basis = metadata["hash_basis"]
+    hashing_metadata = metadata["hashing_metadata"]
 
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
