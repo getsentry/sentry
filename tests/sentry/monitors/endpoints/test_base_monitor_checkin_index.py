@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_snuba
@@ -225,3 +225,42 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[0]["groups"] == []
         assert resp.data[1]["id"] == str(checkin1.guid)
         assert resp.data[1]["groups"] == [{"id": group.id, "shortId": group.qualified_short_id}]
+
+    def test_serializes_monitor_config_correctly(self):
+        monitor = self.create_monitor(project=self.project)
+        config = {
+            "schedule": "0 0 * * *",
+            "schedule_type": ScheduleType.CRONTAB,
+            "timezone": "US/Arizona",
+            "max_runtime": None,
+            "checkin_margin": None,
+        }
+        monitor_environment = self._create_monitor_environment(monitor)
+        self.create_monitor_checkin(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+            monitor_config=config,
+        )
+        # Mutating the monitor config to test that the check-in config is used
+        monitor.config = {
+            "schedule": "0 * * * *",
+            "schedule_type": ScheduleType.INTERVAL,
+            "timezone": "CA/Toronto",
+            "max_runtime": 1000,
+            "checkin_margin": 100,
+        }
+        monitor.save()
+        response = self.get_success_response(
+            self.project.organization.slug,
+            monitor.slug,
+        )
+        assert response.data[0]["monitorConfig"]["schedule_type"] == ScheduleType.get_name(
+            config["schedule_type"]
+        )
+        assert response.data[0]["monitorConfig"]["schedule"] == config["schedule"]
+        assert response.data[0]["monitorConfig"]["timezone"] == config["timezone"]
+        assert response.data[0]["monitorConfig"]["max_runtime"] == config["max_runtime"]
+        assert response.data[0]["monitorConfig"]["checkin_margin"] == config["checkin_margin"]
