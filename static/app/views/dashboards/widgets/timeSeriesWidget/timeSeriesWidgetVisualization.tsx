@@ -1,7 +1,14 @@
 import {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import type {BarSeriesOption, LineSeriesOption} from 'echarts';
+import type {
+  BarSeriesOption,
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+  CustomSeriesRenderItemReturn,
+  LineSeriesOption,
+} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -55,6 +62,44 @@ export interface TimeSeriesWidgetVisualizationProps {
   timeseriesSelection?: TimeseriesSelection;
 }
 
+const RELEASE_BUBBLE_SIZE = 12; // TODO: find a proper size
+
+/**
+ * Renders release bubbles underneath the main chart
+ */
+const renderReleaseBubble: CustomSeriesRenderItem = (
+  _params: CustomSeriesRenderItemParams,
+  api: CustomSeriesRenderItemAPI
+) => {
+  const start = api.coord([api.value(0), 0]);
+  const end = api.coord([api.value(2), api.value(1)]);
+
+  const width = end[0]! - start[0]!;
+  const shape = {
+    x: start[0],
+    y: start[1]! + 2,
+    width,
+    height: RELEASE_BUBBLE_SIZE - 4,
+    r: 2,
+  };
+
+  return {
+    type: 'rect',
+    transition: ['shape'],
+    shape,
+    style: {
+      fill: '#444674', // @TODO figure out proper colors
+      // @TODO figure out correct opacity calculations
+      opacity: api.value(1) * 0.1,
+    },
+    emphasis: {
+      style: {
+        stroke: '#000', // @TODO styling
+      },
+    },
+  } as CustomSeriesRenderItemReturn;
+};
+
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
@@ -68,7 +113,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  let releaseSeries: Series | undefined = undefined;
+  const releaseSeries: Series | undefined = undefined;
   if (props.releases) {
     const onClick = (release: Release) => {
       navigate(
@@ -80,7 +125,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       );
     };
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
+    // releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
 
   const formatSeriesName: (string: string) => string = name => {
@@ -242,6 +287,47 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const showLegend = visibleSeriesCount > 1;
 
+  const buckets = [];
+  if (props.releases?.length) {
+    // we need to create release buckets using the time intervals specified in `timeseries`
+    // assume that all timeseries will be equal in length, if not we'll need to search all timeseries
+    const {data} = props.timeSeries[0];
+
+    const MAGIC_INTERVAL = 30; // @TODO figure out how to calculate the magic interval
+    let releaseIterator = props.releases.length - 1;
+
+    for (let i = 0; i < data.length; i += MAGIC_INTERVAL) {
+      const start = new Date(data[i].timestamp);
+      const end = new Date(data[Math.min(i + MAGIC_INTERVAL, data.length - 1)].timestamp);
+
+      const releasesInBucket = [];
+
+      // For my test data, props.releases is in descending order, whereas `timeSeries` is ascending
+      // We probably should ensure it's sorted and order it ascending
+      for (let j = releaseIterator; j >= 0; j--) {
+        const releaseTs = new Date(props.releases[j]?.timestamp);
+
+        // If release timestamp is within bounds of the current bucket, add the release to list
+        if (releaseTs >= start && releaseTs < end) {
+          releasesInBucket.push(props.releases[j]);
+          allReleasesInBucket.push(props.releases[j]);
+        }
+        // Since releases are sorted, once a release timestamp is more recent than the bucket timestamp,
+        // we want to break this innerloop and move on to the next bucket.
+        //
+        // Also we can preserve releaseIterator as it is sorted so we can skip
+        // releases that have already been processed
+        if (releaseTs >= end) {
+          // break this innner for loop and move to next bucket
+          releaseIterator = j;
+          break;
+        }
+      }
+
+      buckets.push([start.getTime(), releasesInBucket.length, end.getTime()]);
+    }
+  }
+
   return (
     <BaseChart
       ref={e => {
@@ -250,16 +336,149 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         if (e?.getEchartsInstance) {
           registerWithWidgetSyncContext(e.getEchartsInstance());
         }
+        const highlightedBuckets = new Set();
+
+        if (e) {
+          e.getEchartsInstance()
+            .getZr()
+            .on('mousemove', function (params) {
+              // Tracks movement across the chart and highlights the corresponding release bubble
+              const pointInPixel = [params.offsetX, params.offsetY];
+              const instance = e.getEchartsInstance();
+              const pointInGrid = instance.convertFromPixel('grid', pointInPixel);
+
+              const bucketIndex = buckets.findIndex(([bucketStart, , bucketEnd]) => {
+                const ts = pointInGrid[0] ?? -1;
+                return ts >= bucketStart && ts < bucketEnd;
+              });
+
+              // Already highlighted, no need to do anything
+              if (highlightedBuckets.has(bucketIndex)) {
+                return;
+              }
+
+              const seriesIndex = instance
+                .getOption()
+                .series.findIndex(s => s.id === 'release-bubble');
+
+              // No release bubble series found (shouldn't happen)
+              if (seriesIndex === -1) {
+                return;
+              }
+
+              // If next bucket is not already highlighted, clear all existing
+              // highlights.
+              if (!highlightedBuckets.has(bucketIndex)) {
+                highlightedBuckets.forEach(dataIndex => {
+                  instance.dispatchAction({
+                    type: 'downplay',
+                    seriesIndex,
+                    dataIndex,
+                  });
+                });
+                highlightedBuckets.clear();
+              }
+
+              if (bucketIndex > -1) {
+                highlightedBuckets.add(bucketIndex);
+                instance.dispatchAction({
+                  type: 'highlight',
+                  seriesIndex,
+                  dataIndex: bucketIndex,
+                });
+              }
+            });
+        }
+      }}
+      onClick={(...params) => {
+        // TODO: open flyout panel
+      }}
+      onMouseOut={(params, instance) => {
+        if (params.seriesId === 'release-bubble') {
+          instance.setOption(
+            {
+              series: instance.getOption().series.map(s => {
+                if (s.id === 'release-mark-area') {
+                  return {
+                    id: 'release-mark-area',
+                    markArea: {data: []},
+                  };
+                }
+                return {
+                  id: s.id,
+                };
+              }),
+            },
+            {replaceMerge: ['series']}
+          );
+        }
+      }}
+      onMouseOver={(params, instance) => {
+        if (params.seriesId === 'release-bubble') {
+          instance.setOption({
+            series: [
+              {
+                id: 'release-mark-area',
+                type: 'custom',
+                renderItem: () => {},
+                markArea: {
+                  data: [
+                    [
+                      {
+                        xAxis: params.data[0],
+                      },
+                      {
+                        xAxis: params.data[2],
+                      },
+                    ],
+                  ],
+                },
+              },
+            ],
+          });
+        }
       }}
       autoHeightResize
       series={[
         ...plottableSeries,
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
+        buckets.length
+          ? {
+              id: 'release-bubble',
+              type: 'custom',
+              name: 'release bubble',
+              renderItem: renderReleaseBubble,
+              data: buckets,
+              triggerLineEvent: true,
+              tooltip: {
+                trigger: 'item',
+                backgroundColor: `${theme.backgroundElevated}`,
+                borderWidth: 0,
+                extraCssText: `box-shadow: 0 0 0 1px ${theme.translucentBorder}, ${theme.dropShadowHeavy}`,
+                transitionDuration: 0,
+                padding: 0,
+                className: 'tooltip-container',
+                formatter: (
+                  params: any,
+                  ticket: string,
+                  callback: (
+                    ticket: string,
+                    html: string
+                  ) => string | HTMLElement | HTMLElement[]
+                ) => {
+                  return `<div class="tooltip-series">
+<div>
+${params.data[1]} Releases
+</div>
+</div>
+
+<div class="tooltip-footer">
+Click to view them
+</div>
+<div class="tooltip-arrow"></div>`;
+                },
+              },
+            }
+          : null,
       ].filter(defined)}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -268,7 +487,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         left: 2,
         top: showLegend ? 25 : 10,
         right: 4,
-        bottom: 0,
+        bottom: RELEASE_BUBBLE_SIZE,
         containLabel: true,
       }}
       legend={
@@ -295,6 +514,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       xAxis={{
         animation: false,
+        axisLine: {onZero: props.releases ? false : true},
+        offset: props.releases ? RELEASE_BUBBLE_SIZE : 0,
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
