@@ -27,7 +27,7 @@ const cronConfig: IssueCategoryConfigMapping = {
       filterBar: {enabled: true},
       graph: {enabled: true, type: 'cron-checks'},
       tagDistribution: {enabled: false},
-      occurrenceSummary: {enabled: false},
+      occurrenceSummary: {enabled: true},
     },
     detector: {
       enabled: true,
@@ -38,7 +38,8 @@ const cronConfig: IssueCategoryConfigMapping = {
       landingPage: Tab.DETAILS,
       events: {enabled: true},
       openPeriods: {enabled: false},
-      checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
+      cronChecks: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: false},
       replays: {enabled: false},

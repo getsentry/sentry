@@ -32,6 +32,9 @@ interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsP
 interface StreamlineGroupEventParams extends GroupEventParams {
   streamline: boolean;
 }
+interface StreamlineGroupParams extends CommonGroupAnalyticsData {
+  streamline: boolean;
+}
 
 interface EventDropdownParams {
   event_id: string;
@@ -110,6 +113,9 @@ export type IssueEventParameters = {
   };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
     is_high_priority: boolean;
@@ -386,6 +392,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
   'highlights.project_settings.updated_manually':
     'Highlights: Updated Manually from Settings',
+  'issue_details.copy_issue_short_id_clicked': 'Issue Details: Copy Issue Short ID',
+  'issue_details.copy_issue_url_clicked': 'Issue Details: Copy Issue URL',
+  'issue_details.copy_issue_markdown_link_clicked':
+    'Issue Details: Copy Issue Markdown Link',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':

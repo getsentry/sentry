@@ -14,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,6 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -71,6 +73,21 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     isSelfHosted,
     organizationSettingsUrl,
   };
+
+  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+
+  // For the new navigation, we are removing this page. The default base route should
+  // be the organization settings page.
+  // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
+  if (hasNavigationV2) {
+    return (
+      <Redirect
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/settings/${organization.slug}/`
+        )}
+      />
+    );
+  }
 
   const myAccount = (
     <GridPanel>

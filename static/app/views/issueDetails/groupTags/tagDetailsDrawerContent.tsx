@@ -158,7 +158,12 @@ function TagDetailsRow({
   const organization = useOrganization();
 
   const key = tagValue.key ?? tag.key;
-  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const query =
+    key === 'environment'
+      ? {
+          environment: tagValue.value,
+        }
+      : {query: tagValue.query || `${key}:"${tagValue.value}"`};
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,

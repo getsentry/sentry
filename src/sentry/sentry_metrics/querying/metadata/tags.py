@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics_layer.query import fetch_metric_tag_keys, fetch_metric_tag_values
+from sentry.snuba.metrics_layer.query import fetch_metric_tag_keys
 
 
 @dataclass
@@ -45,14 +45,8 @@ def get_tag_values(
     tag_value_prefix: str = "",
 ) -> list[str]:
     """
+    DEPRECATED: This query path is not in use in production
+
     Get all available tag values for an MRI and tag key from metrics.
     """
-    project_ids = [project.id for project in projects]
-    tag_values: set[str] = set()
-    for use_case_id in use_case_ids:
-        use_case_tag_values = fetch_metric_tag_values(
-            organization.id, project_ids, use_case_id, mri, tag_key, tag_value_prefix
-        )
-        tag_values = tag_values.union(use_case_tag_values)
-
-    return list(tag_values)
+    return []

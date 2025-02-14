@@ -99,7 +99,6 @@ module = [
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
     "rb.*",
-    "sqlparse.*",
     "statsd.*",
     "u2flib_server.model.*",
 ]
@@ -246,7 +245,6 @@ disable_error_code = [
     "misc",
     "operator",
     "override",
-    "typeddict-item",
     "union-attr",
     "unreachable",
     "var-annotated",

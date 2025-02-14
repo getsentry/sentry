@@ -1,4 +1,4 @@
-import type {ChangeEvent, RefObject} from 'react';
+import type {ChangeEvent, FocusEvent, RefObject} from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -49,23 +49,27 @@ export function ArithmeticTokenFunction({
   return (
     <FunctionWrapper
       {...rowProps}
+      ref={ref}
       tabIndex={isFocused ? 0 : -1}
       aria-label={`${token.function}(${attribute.format()})`}
       aria-invalid={false}
       state={'valid'}
-      ref={ref}
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       {'('}
       <BaseGridCell {...gridCellProps}>
         <InternalInput
-          isFocused={isFocused}
           item={item}
           state={state}
           functionToken={token}
           token={attribute}
           rowRef={ref}
         />
+        {!isFocused && (
+          // Inject a floating span with the attribute name so when it's
+          // not focused, it doesn't look like the placeholder text
+          <FunctionArgument>{attribute.attribute}</FunctionArgument>
+        )}
       </BaseGridCell>
       {')'}
     </FunctionWrapper>
@@ -74,21 +78,13 @@ export function ArithmeticTokenFunction({
 
 interface InternalInputProps {
   functionToken: TokenFunction;
-  isFocused: boolean;
   item: Node<Token>;
   rowRef: RefObject<HTMLDivElement>;
   state: ListState<Token>;
   token: TokenAttribute;
 }
 
-function InternalInput({
-  functionToken,
-  isFocused,
-  item,
-  state,
-  token,
-  rowRef,
-}: InternalInputProps) {
+function InternalInput({functionToken, item, state, token, rowRef}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
@@ -121,54 +117,45 @@ function InternalInput({
     [rowRef]
   );
 
-  const validateAndUpdateArgument = useCallback(
-    (value: string) => {
-      // If it's not a validate argument, we fall back
-      // to using the what was originally in the token
-      const text = allowedAttributes.includes(value)
-        ? `${functionToken.function}(${value})`
-        : `${functionToken.function}(${token.attribute})`;
-
-      dispatch({
-        text,
-        type: 'REPLACE_TOKEN',
-        token: functionToken,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
-        },
-      });
-    },
-    [allowedAttributes, dispatch, functionToken, token, state]
-  );
-
   const onClick = useCallback(() => {
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const onInputBlur = useCallback(
-    (value: string) => {
-      validateAndUpdateArgument(value);
-    },
-    [validateAndUpdateArgument]
-  );
+  const onInputBlur = useCallback(() => {
+    resetInputValue();
+  }, [resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
       setInputValue(evt.target.value);
+      setSelectionIndex(evt.target.selectionStart ?? 0);
     },
     [setInputValue]
   );
 
-  const onInputCommit = useCallback(
-    (value: string) => {
-      validateAndUpdateArgument(value);
-    },
-    [validateAndUpdateArgument]
-  );
+  const onInputCommit = useCallback(() => {
+    const value = inputValue.trim() || token.attribute;
+    dispatch({
+      text: `${functionToken.function}(${value})`,
+      type: 'REPLACE_TOKEN',
+      token: functionToken,
+      focusOverride: {
+        itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
+      },
+    });
+    resetInputValue();
+  }, [dispatch, state, functionToken, token, inputValue, resetInputValue]);
 
   const onInputEscape = useCallback(() => {
-    validateAndUpdateArgument(inputValue);
-  }, [inputValue, validateAndUpdateArgument]);
+    resetInputValue();
+  }, [resetInputValue]);
+
+  const onInputFocus = useCallback(
+    (_evt: FocusEvent<HTMLInputElement>) => {
+      resetInputValue();
+    },
+    [resetInputValue]
+  );
 
   const onKeyDownCapture = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
@@ -228,10 +215,8 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      const text = `${functionToken.function}(${option.value})`;
-
       dispatch({
-        text,
+        text: `${functionToken.function}(${option.value})`,
         type: 'REPLACE_TOKEN',
         token: functionToken,
         focusOverride: {
@@ -254,7 +239,7 @@ function InternalInput({
         items={items}
         placeholder={token.attribute}
         inputLabel={t('Select an attribute')}
-        inputValue={isFocused ? inputValue : token.attribute}
+        inputValue={inputValue}
         filterValue={filterValue}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
@@ -263,6 +248,7 @@ function InternalInput({
         onInputChange={onInputChange}
         onInputCommit={onInputCommit}
         onInputEscape={onInputEscape}
+        onInputFocus={onInputFocus}
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
@@ -301,7 +287,7 @@ function useAttributeItems({
   allowedAttributes: string[];
   filterValue: string;
 }): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config and maybe we want operators and parenthesis too
+  // TODO: use a config
   const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
     const items = filterValue
       ? allowedAttributes.filter(agg => agg.includes(filterValue))
@@ -359,4 +345,9 @@ const BaseGridCell = styled('div')`
 
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
+`;
+
+const FunctionArgument = styled('div')`
+  position: absolute;
+  pointer-events: none;
 `;
