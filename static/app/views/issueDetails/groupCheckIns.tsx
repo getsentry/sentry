@@ -95,7 +95,7 @@ export default function GroupCheckIns() {
           {key: 'status', width: 100, name: t('Status')},
           {key: 'duration', width: 130, name: t('Duration')},
           {key: 'environment', width: 120, name: t('Environment')},
-          {key: 'monitorConfig', width: 100, name: t('Config')},
+          {key: 'monitorConfig', width: 145, name: t('Monitor Config')},
           {key: 'id', width: 100, name: t('ID')},
         ]}
         columnSortBy={[]}
@@ -114,7 +114,7 @@ function CheckInHeader({column}: {column: GridColumnOrder}) {
   if (column.key === 'monitorConfig') {
     return (
       <Cell>
-        {t('Config')}
+        {t('Monitor Config')}
         <Tooltip
           title={t(
             'These are snapshots of the monitor configuration at the time of the check-in. They may differ from the current monitor config.'
