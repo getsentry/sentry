@@ -22,7 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}, {}> {
+interface ProjectAlertSettingsProps extends RouteComponentProps<{projectId: string}> {
   canEditRule: boolean;
 }
 

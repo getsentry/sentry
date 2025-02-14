@@ -18,7 +18,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{orgId: string}>;
 
 function OrganizationRestore(_props: Props) {
   const params = useParams<{orgId: string}>();

@@ -6,6 +6,7 @@ import type {Node} from '@react-types/shared';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {DeletableToken as GenericDeletableToken} from 'sentry/components/tokenizedInput/token/deletableToken';
+import {defined} from 'sentry/utils';
 
 interface DeletableTokenProps {
   children: React.ReactNode;
@@ -28,9 +29,14 @@ export function DeletableToken({
     (evt: KeyboardEvent<HTMLDivElement> | MouseEvent<HTMLButtonElement>) => {
       evt.preventDefault();
       evt.stopPropagation();
-      dispatch({type: 'DELETE_TOKEN', token});
+      const itemKey = state.collection.getKeyBefore(item.key);
+      dispatch({
+        type: 'DELETE_TOKEN',
+        token,
+        focusOverride: defined(itemKey) ? {itemKey} : undefined,
+      });
     },
-    [dispatch, token]
+    [dispatch, token, state, item]
   );
 
   return (

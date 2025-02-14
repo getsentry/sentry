@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {space} from 'sentry/styles/space';
 
 import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
@@ -71,9 +72,15 @@ function WidgetLayout(props: Widget) {
       </Header>
 
       {props.Visualization && (
-        <VisualizationWrapper noPadding={props.noVisualizationPadding}>
-          {props.Visualization}
-        </VisualizationWrapper>
+        <ErrorBoundary
+          customComponent={({error}) => (
+            <Widget.WidgetError error={error?.message ?? undefined} />
+          )}
+        >
+          <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+            {props.Visualization}
+          </VisualizationWrapper>
+        </ErrorBoundary>
       )}
 
       {props.Footer && (

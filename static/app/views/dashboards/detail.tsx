@@ -115,7 +115,7 @@ type RouteParams = {
   widgetIndex?: number;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   api: Client;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];

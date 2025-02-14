@@ -17,7 +17,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function UnsubscribeProject({location}: Props) {
   const signature = decodeScalar(location.query._);

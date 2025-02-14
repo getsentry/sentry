@@ -19,7 +19,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{teamId: string}, {}>;
+} & RouteComponentProps<{teamId: string}>;
 
 function TeamDetails({children}: Props) {
   const api = useApi();

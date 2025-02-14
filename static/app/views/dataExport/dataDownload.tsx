@@ -44,7 +44,7 @@ type Download = {
   dateFinished?: string;
 };
 
-type Props = {} & RouteComponentProps<RouteParams, {}>;
+type Props = {} & RouteComponentProps<RouteParams>;
 
 function DataDownload({params: {orgId, dataExportId}}: Props) {
   const {

@@ -32,7 +32,7 @@ type Props = {
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   organization: Organization;
   requestList: AccessRequest[];
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 function OrganizationTeams({
   organization,

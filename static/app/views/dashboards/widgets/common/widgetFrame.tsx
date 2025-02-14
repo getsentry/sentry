@@ -5,7 +5,6 @@ import type {BadgeProps} from 'sentry/components/badge/badge';
 import Badge from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,7 +12,6 @@ import {t} from 'sentry/locale';
 import {Widget} from '../widget/widget';
 import type {WidgetDescriptionProps} from '../widget/widgetDescription';
 
-import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -147,19 +145,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
         </Fragment>
       }
-      Visualization={
-        props.error ? (
-          <Widget.WidgetError error={error} />
-        ) : (
-          <ErrorBoundary
-            customComponent={() => (
-              <Widget.WidgetError error={WIDGET_RENDER_ERROR_MESSAGE} />
-            )}
-          >
-            {props.children}
-          </ErrorBoundary>
-        )
-      }
+      Visualization={props.error ? <Widget.WidgetError error={error} /> : props.children}
       noVisualizationPadding={props.noVisualizationPadding}
     />
   );
