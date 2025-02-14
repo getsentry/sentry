@@ -8,13 +8,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
+import type {WidgetDescriptionProps} from '../widgetLayout/description';
 import {ErrorPanel} from '../widgetLayout/errorPanel';
 import {WidgetBadge} from '../widgetLayout/widgetBadge';
 import {WidgetButton} from '../widgetLayout/widgetButton';
-import {
-  WidgetDescription,
-  type WidgetDescriptionProps,
-} from '../widgetLayout/widgetDescription';
 import {WidgetLayout} from '../widgetLayout/widgetLayout';
 import {WidgetTitle} from '../widgetLayout/widgetTitle';
 
@@ -89,7 +86,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <WidgetDescription
+            <WidgetLayout.Description
               title={props.title}
               description={props.description}
               revealTooltip={props.revealTooltip ?? 'hover'}

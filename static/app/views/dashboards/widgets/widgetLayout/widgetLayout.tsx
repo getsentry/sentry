@@ -6,6 +6,8 @@ import {space} from 'sentry/styles/space';
 
 import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
+import {Description} from './description';
+
 export interface WidgetLayoutProps {
   Actions?: React.ReactNode;
   Footer?: React.ReactNode;
@@ -20,7 +22,7 @@ export interface WidgetLayoutProps {
   revealActions?: 'hover' | 'always';
 }
 
-export function WidgetLayout(props: WidgetLayoutProps) {
+function WidgetLayoutComponent(props: WidgetLayoutProps) {
   const {revealActions = 'hover'} = props;
 
   return (
@@ -47,6 +49,15 @@ export function WidgetLayout(props: WidgetLayoutProps) {
     </Frame>
   );
 }
+
+// `Object.assign` ensures correct types by intersection the component with the
+// extra properties. This allows rendering `<WidgetLayout>` as well as
+// `<WidgetLayout.Description` and others
+const exported = Object.assign(WidgetLayoutComponent, {
+  Description,
+});
+
+export {exported as WidgetLayout};
 
 const HEADER_HEIGHT = '26px';
 

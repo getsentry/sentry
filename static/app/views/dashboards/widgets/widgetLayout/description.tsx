@@ -12,7 +12,7 @@ export interface WidgetDescriptionProps {
   title?: string;
 }
 
-export function WidgetDescription(props: WidgetDescriptionProps) {
+export function Description(props: WidgetDescriptionProps) {
   return (
     <Tooltip
       title={

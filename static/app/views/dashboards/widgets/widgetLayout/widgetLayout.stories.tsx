@@ -10,7 +10,6 @@ import {sampleDurationTimeSeries} from '../lineChartWidget/fixtures/sampleDurati
 import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
 
 import {WidgetButton} from './widgetButton';
-import {WidgetDescription} from './widgetDescription';
 import {WidgetLayout} from './widgetLayout';
 import {WidgetTitle} from './widgetTitle';
 
@@ -65,7 +64,7 @@ import {WidgetTitle} from './widgetTitle';
     <Fragment>
       <WidgetButton>Say More</WidgetButton>
       <WidgetButton>Say Less</WidgetButton>
-      <WidgetDescription
+      <WidgetLayout.Description
         title="epm()"
         description="Events received, tracked per minute"
       />
@@ -87,7 +86,7 @@ import {WidgetTitle} from './widgetTitle';
               <Fragment>
                 <WidgetButton>Say More</WidgetButton>
                 <WidgetButton>Say Less</WidgetButton>
-                <WidgetDescription
+                <WidgetLayout.Description
                   title="epm() : /insights/frontend/assets"
                   description="Events received, tracked per minute"
                 />
