@@ -52,7 +52,7 @@ describe('GroupCheckIns', () => {
     });
 
     render(<GroupCheckIns />, {organization, router});
-    expect(await screen.findByText('All Checks-Ins')).toBeInTheDocument();
+    expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     for (const column of [
       'Timestamp',
       'Status',
