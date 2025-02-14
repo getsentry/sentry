@@ -9,6 +9,7 @@ from sentry.auth.superuser import COOKIE_NAME
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
@@ -162,6 +163,16 @@ class AuthVerifyEndpointTest(APITestCase):
             mock.call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
             not in mock_metrics.incr.call_args_list
         )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limit(self):
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        with freeze_time("2025-02-13"):
+
+            for _ in range(5 + 1):
+                response = self.client.put(self.path, data={"password": "wrongguess"})
+            assert response.status_code == 429
 
 
 @control_silo_test
