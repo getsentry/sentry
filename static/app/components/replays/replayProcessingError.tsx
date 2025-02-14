@@ -58,7 +58,6 @@ export default function ReplayProcessingError({className}: Props) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
   height: 100%;
 `;
 

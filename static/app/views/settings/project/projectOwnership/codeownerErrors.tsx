@@ -158,24 +158,26 @@ export function CodeOwnerErrors({
           0
         );
         return (
-          <Alert
-            key={id}
-            type="error"
-            showIcon
-            expand={
-              <AlertContentContainer key="container">
-                {errorPairs.map(([type, values]) => (
-                  <ErrorContainer key={`${id}-${type}`}>
-                    {errMessage(codeMapping!, type, values)}
-                  </ErrorContainer>
-                ))}
-              </AlertContentContainer>
-            }
-          >
-            {errorCount === 1
-              ? `There was ${errorCount} ownership issue within Sentry on the latest sync with the CODEOWNERS file`
-              : `There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
-          </Alert>
+          <Alert.Container key={id}>
+            <Alert
+              key={id}
+              type="error"
+              showIcon
+              expand={
+                <AlertContentContainer key="container">
+                  {errorPairs.map(([type, values]) => (
+                    <ErrorContainer key={`${id}-${type}`}>
+                      {errMessage(codeMapping!, type, values)}
+                    </ErrorContainer>
+                  ))}
+                </AlertContentContainer>
+              }
+            >
+              {errorCount === 1
+                ? `There was ${errorCount} ownership issue within Sentry on the latest sync with the CODEOWNERS file`
+                : `There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
+            </Alert>
+          </Alert.Container>
         );
       })}
     </Fragment>

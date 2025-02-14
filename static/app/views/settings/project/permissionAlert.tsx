@@ -29,9 +29,11 @@ function PermissionAlert({
     <Access access={access} project={project} team={team}>
       {({hasAccess}) =>
         !hasAccess && (
-          <Alert data-test-id="project-permission-alert" type="warning" {...props}>
-            {permissionAlertText}
-          </Alert>
+          <Alert.Container>
+            <Alert data-test-id="project-permission-alert" type="warning" {...props}>
+              {permissionAlertText}
+            </Alert>
+          </Alert.Container>
         )
       }
     </Access>

@@ -88,5 +88,4 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
 
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
-  margin-bottom: 0;
 `;

@@ -118,27 +118,29 @@ function IntegrationRow(props: Props) {
       </FlexContainer>
       {alertText && (
         <AlertContainer>
-          <Alert
-            type="warning"
-            showIcon
-            trailingItems={
-              <ResolveNowButton
-                href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
-                size="xs"
-                onClick={() =>
-                  trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-                    integration_type: convertIntegrationTypeToSnakeCase(type),
-                    integration: slug,
-                    organization,
-                  })
-                }
-              >
-                {resolveText || t('Resolve Now')}
-              </ResolveNowButton>
-            }
-          >
-            {alertText}
-          </Alert>
+          <Alert.Container>
+            <Alert
+              type="warning"
+              showIcon
+              trailingItems={
+                <ResolveNowButton
+                  href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+                  size="xs"
+                  onClick={() =>
+                    trackIntegrationAnalytics('integrations.resolve_now_clicked', {
+                      integration_type: convertIntegrationTypeToSnakeCase(type),
+                      integration: slug,
+                      organization,
+                    })
+                  }
+                >
+                  {resolveText || t('Resolve Now')}
+                </ResolveNowButton>
+              }
+            >
+              {alertText}
+            </Alert>
+          </Alert.Container>
         </AlertContainer>
       )}
       {customAlert}

@@ -830,7 +830,6 @@ const StyledAlert = styled(Alert)`
   border-top: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
-  margin-bottom: 0;
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

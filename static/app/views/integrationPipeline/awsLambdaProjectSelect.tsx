@@ -57,9 +57,11 @@ export default class AwsLambdaProjectSelect extends Component<Props> {
                 flexibleControlStateSize
                 stacked
               />
-              <Alert type="info">
-                {t('Currently only supports Node and Python Lambda functions')}
-              </Alert>
+              <Alert.Container>
+                <Alert type="info">
+                  {t('Currently only supports Node and Python Lambda functions')}
+                </Alert>
+              </Alert.Container>
             </Form>
           </ListItem>
         </StyledList>

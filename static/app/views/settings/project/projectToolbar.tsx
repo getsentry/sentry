@@ -95,13 +95,15 @@ export default function ProjectToolbarSettings({
         </TextBlock>
         <ProjectPermissionAlert project={project} />
         {domain && (
-          <Alert type="info" showIcon>
-            {tct(
-              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
-              {domain: <strong>{domain}</strong>}
-            )}
-            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {tct(
+                'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+                {domain: <strong>{domain}</strong>}
+              )}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+            </Alert>
+          </Alert.Container>
         )}
 
         <Form

@@ -331,9 +331,11 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error.message}
+        </Alert>
+      </Alert.Container>
     );
   }
 

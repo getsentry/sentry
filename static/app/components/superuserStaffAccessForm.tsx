@@ -202,9 +202,9 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
           ) : (
             <React.Fragment>
               {error && (
-                <StyledAlert type="error" showIcon>
+                <Alert type="error" showIcon>
                   {errorType}
-                </StyledAlert>
+                </Alert>
               )}
               <U2fContainer
                 authenticators={authenticators}
@@ -228,9 +228,9 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             resetOnError
           >
             {error && (
-              <StyledAlert type="error" showIcon>
+              <Alert type="error" showIcon>
                 {errorType}
-              </StyledAlert>
+              </Alert>
             )}
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
@@ -260,10 +260,6 @@ export default function SuperuserStaffAccessForm({hasStaff}: Props) {
   );
   return <RouterProvider router={router} />;
 }
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;
 
 const BackWrapper = styled('div')`
   width: 100%;

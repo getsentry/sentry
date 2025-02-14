@@ -101,7 +101,9 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
           skipWrapper
           body={
             <Fragment>
-              <Alert type="warning">{alertMessage}</Alert>
+              <Alert.Container>
+                <Alert type="warning">{alertMessage}</Alert>
+              </Alert.Container>
               <ServiceIncidentDetails incident={inc} />
             </Fragment>
           }

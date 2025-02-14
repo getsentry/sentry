@@ -255,14 +255,16 @@ export function FeedbackModal<T extends Data>({
         <Body>
           {bodyChildren}
           {isSelfHosted && showSelfHostedMessage && (
-            <Alert type="info">
-              {tct(
-                "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
-                {
-                  privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
-                }
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info">
+                {tct(
+                  "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
+                  {
+                    privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
           )}
         </Body>
       );

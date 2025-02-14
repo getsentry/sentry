@@ -167,9 +167,11 @@ function VitalDetailContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error}
+        </Alert>
+      </Alert.Container>
     );
   }
 

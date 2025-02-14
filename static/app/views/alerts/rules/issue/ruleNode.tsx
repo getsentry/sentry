@@ -632,6 +632,5 @@ const MarginlessAlert = styled(Alert)`
   border-top-right-radius: 0;
   border-width: 0;
   border-top: 1px ${p => p.theme.innerBorder} solid;
-  margin: 0;
   padding: ${space(1)} ${space(1)};
 `;

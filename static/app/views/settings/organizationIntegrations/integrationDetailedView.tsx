@@ -289,9 +289,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <Fragment>
         {alertText && (
-          <Alert type="warning" showIcon>
-            {alertText}
-          </Alert>
+          <Alert.Container>
+            <Alert type="warning" showIcon>
+              {alertText}
+            </Alert>
+          </Alert.Container>
         )}
         <Panel>
           {configurations.map(integration => (

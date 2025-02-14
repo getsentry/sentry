@@ -41,20 +41,22 @@ export function SampleDataAlert({query}: {query?: string}) {
   }
 
   return (
-    <Alert type="warning" showIcon>
-      <AlertContent>
-        {t(
-          'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
-        )}
-        <DismissButton
-          priority="link"
-          icon={<IconClose />}
-          onClick={dismiss}
-          aria-label={t('Dismiss Alert')}
-          title={t('Dismiss Alert')}
-        />
-      </AlertContent>
-    </Alert>
+    <Alert.Container>
+      <Alert type="warning" showIcon>
+        <AlertContent>
+          {t(
+            'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
+          )}
+          <DismissButton
+            priority="link"
+            icon={<IconClose />}
+            onClick={dismiss}
+            aria-label={t('Dismiss Alert')}
+            title={t('Dismiss Alert')}
+          />
+        </AlertContent>
+      </Alert>
+    </Alert.Container>
   );
 }
 

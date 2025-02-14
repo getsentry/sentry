@@ -90,14 +90,16 @@ export function GroupTagsTab() {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="info">
-          {tct(
-            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-            {
-              link: <ExternalLink href={TAGS_DOCS_LINK} />,
-            }
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            {tct(
+              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+              {
+                link: <ExternalLink href={TAGS_DOCS_LINK} />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
         <Container>
           {alphabeticalTags.map((tag, tagIdx) => (
             <TagItem key={tagIdx}>

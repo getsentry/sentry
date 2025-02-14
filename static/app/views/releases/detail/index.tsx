@@ -180,9 +180,11 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     if (possiblyWrongProject) {
       return (
         <Layout.Page>
-          <Alert type="error" showIcon>
-            {t('This release may not be in your selected project.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {t('This release may not be in your selected project.')}
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       );
     }
@@ -311,9 +313,11 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
         <Layout.Page withPadding>
-          <Alert type="error" showIcon>
-            {t('This release could not be found.')}
-          </Alert>
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              {t('This release could not be found.')}
+            </Alert>
+          </Alert.Container>
         </Layout.Page>
       );
     }

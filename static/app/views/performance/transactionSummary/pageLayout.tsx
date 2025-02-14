@@ -328,12 +328,15 @@ function PageLayout(props: Props) {
 }
 
 export function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  return (
+    <Alert.Container>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Alert.Container>
+  );
 }
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
-  margin: 0;
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`

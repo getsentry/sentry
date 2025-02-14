@@ -439,14 +439,16 @@ function CreateProject() {
           </CreateProjectForm>
 
           {errors && (
-            <Alert type="error">
-              {Object.keys(errors).map(key => (
-                <div key={key}>
-                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                  {(errors as any)[key]}
-                </div>
-              ))}
-            </Alert>
+            <Alert.Container>
+              <Alert type="error">
+                {Object.keys(errors).map(key => (
+                  <div key={key}>
+                    <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
+                    {(errors as any)[key]}
+                  </div>
+                ))}
+              </Alert>
+            </Alert.Container>
           )}
         </List>
       </div>
