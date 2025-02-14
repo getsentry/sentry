@@ -70,7 +70,11 @@ function SentryApplicationRowButtons({
 
         // feature flag new publishing flow features
         if (organization.features.includes(`streamlined-publishing-flow`)) {
-          if (hasInvalidStatus(app)) {
+          if (app.status === 'publish_request_inprogress') {
+            disablePublishReason = t(
+              'This integration has already been submitted for publishing'
+            );
+          } else if (hasInvalidStatus(app)) {
             disablePublishReason = t('Only unpublished integrations can be published');
           } else if (!hasUploadedSentryAppPhoto(app.avatars, 'logo')) {
             disablePublishReason = t('A logo is required to publish an integration');
