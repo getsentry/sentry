@@ -217,7 +217,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 {t('All Open Periods')}
               </LinkButton>
             )}
-            {issueTypeConfig.pages.cronChecks.enabled && (
+            {issueTypeConfig.pages.checkIns.enabled && (
               <LinkButton
                 to={{
                   pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
