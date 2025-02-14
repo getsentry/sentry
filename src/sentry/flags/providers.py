@@ -366,17 +366,16 @@ def _handle_unleash_actions(action: str) -> int:
 
 SUPPORTED_STATSIG_EVENTS = {"statsig::config_change"}
 
-# config_change is subclassed by the type of Statsig feature. There's "Gate",
-# "Experiment", and more. Feature gates are boolean release flags, but all
-# other types are unstructured JSON. To reduce noise, Gate is the only type
-# we audit for now.
+# Case-insensitive set. Config_change is subclassed by the type of Statsig
+# feature. There's "Gate", "Experiment", and more. Feature gates are boolean
+# release flags, but all other types are unstructured JSON. To reduce noise,
+# Gate is the only type we audit for now.
 SUPPORTED_STATSIG_TYPES = {
-    "Gate",
-    "gate",  # Supporting this just in case. Statsig docs and sample events use capitalization.
+    "gate",
 }
 
 
-class _StatsigEventSerializer(serializers.Serializer):
+class StatsigEventSerializer(serializers.Serializer):
     eventName = serializers.CharField(required=True)
     timestamp = serializers.CharField(required=True)  # Custom serializer defined below.
     metadata = serializers.DictField(required=True)
@@ -388,37 +387,27 @@ class _StatsigEventSerializer(serializers.Serializer):
     timeUUID = serializers.UUIDField(required=False)
     unitID = serializers.CharField(required=False)
 
-    def validate_timestamp(self, value: str):
-        try:
-            float(value)
-        except ValueError:
-            raise serializers.ValidationError(
-                '"timestamp" field must be a string number, representing milliseconds since epoch.'
-            )
-        return value
-
 
 class StatsigItemSerializer(serializers.Serializer):
-    data = serializers.ListField(child=_StatsigEventSerializer(), required=True)  # type: ignore[assignment]
+    data = serializers.ListField(child=StatsigEventSerializer(), required=True)  # type: ignore[assignment]
 
 
 class StatsigProvider:
     provider_name = "statsig"
+    version = "v0"
 
     def __init__(
         self,
         organization_id: int,
-        signature: str | None,
-        request_timestamp: str | None,
-        version: str = "v0",
+        signature: str | None = None,
+        request_timestamp: str | None = None,
     ) -> None:
         self.organization_id = organization_id
         self.signature = signature
         self.request_timestamp = request_timestamp
-        self.version = version
 
         # Strip the signature's version prefix. For example, signature format for v0 is "v0+{hash}"
-        prefix_len = len(version) + 1
+        prefix_len = len(self.version) + 1
         if signature and len(signature) > prefix_len:
             self.signature = signature[prefix_len:]
 
@@ -440,7 +429,11 @@ class StatsigProvider:
             statsig_type = metadata.get("type")
             action = (metadata.get("action") or "").lower()
 
-            if not flag or statsig_type not in SUPPORTED_STATSIG_TYPES or action not in ACTION_MAP:
+            if (
+                not flag
+                or statsig_type.lower() not in SUPPORTED_STATSIG_TYPES
+                or action not in ACTION_MAP
+            ):
                 continue
 
             action = ACTION_MAP[action]
