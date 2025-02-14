@@ -36,7 +36,9 @@ const hasUploadedSentryAppPhoto = (
 };
 
 const hasUIComponent = (elements: SentryAppSchemaElement[] | undefined): boolean => {
-  return elements ? elements.some(element => element.type in UI_COMPONENT_TYPES) : false;
+  return elements
+    ? elements.some(element => UI_COMPONENT_TYPES.includes(element.type))
+    : false;
 };
 
 function SentryApplicationRowButtons({
