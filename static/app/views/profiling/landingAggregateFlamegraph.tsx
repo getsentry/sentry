@@ -680,7 +680,7 @@ function AggregateFlamegraphProfileReference(props: {
     <AggregateFlamegraphProfileReferenceContainer>
       <AggregateFlamegraphProfileReferenceProject>
         <ProjectAvatar project={project} />
-        {project.name || project.slug}
+        {project.slug}
       </AggregateFlamegraphProfileReferenceProject>
       <Link to={to}>
         <TextOverflow>{reference.substring(0, 8)}</TextOverflow>
