@@ -46,13 +46,10 @@ import IntegrationMainSettings from './integrationMainSettings';
 import IntegrationRepos from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-type Props = RouteComponentProps<
-  {
-    integrationId: string;
-    providerKey: string;
-  },
-  {}
->;
+type Props = RouteComponentProps<{
+  integrationId: string;
+  providerKey: string;
+}>;
 
 const TABS = [
   'repos',

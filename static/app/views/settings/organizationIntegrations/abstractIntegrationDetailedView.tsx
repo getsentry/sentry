@@ -49,7 +49,7 @@ type State = {
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{integrationSlug: string}, {}> &
+} & RouteComponentProps<{integrationSlug: string}> &
   DeprecatedAsyncComponent['props'];
 
 abstract class AbstractIntegrationDetailedView<

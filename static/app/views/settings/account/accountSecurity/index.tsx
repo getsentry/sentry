@@ -37,7 +37,7 @@ type Props = {
   hasVerifiedEmail: boolean;
   onDisable: (auth: Authenticator) => void;
   orgsRequire2fa: OrganizationSummary[];
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 /**
  * Lists 2fa devices + password change form

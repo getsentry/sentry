@@ -32,7 +32,7 @@ import AlertListRow from './row';
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   organization: Organization;
 };
 

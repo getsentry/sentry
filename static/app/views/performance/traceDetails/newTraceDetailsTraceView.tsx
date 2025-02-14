@@ -59,7 +59,7 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type Props = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
   onRowClick: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   organization: Organization;

@@ -56,7 +56,7 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> &
+type Props = RouteComponentProps<RouteParams> &
   WithRouteAnalyticsProps & {
     children: React.ReactNode;
     organization: Organization;

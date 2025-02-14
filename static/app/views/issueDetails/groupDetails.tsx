@@ -74,9 +74,9 @@ import {
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type RouterParams = {groupId: string; eventId?: string};
-type RouteProps = RouteComponentProps<RouterParams, {}>;
+type RouteProps = RouteComponentProps<RouterParams>;
 
-interface GroupDetailsProps extends RouteComponentProps<{groupId: string}, {}> {
+interface GroupDetailsProps extends RouteComponentProps<{groupId: string}> {
   children: React.ReactNode;
 }
 

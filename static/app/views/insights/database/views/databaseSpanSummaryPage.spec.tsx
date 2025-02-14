@@ -151,9 +151,6 @@ describe('DatabaseSpanSummaryPage', function () {
         {...RouteComponentPropsFixture()}
         params={{
           groupId: '1756baf8fd19c116',
-          transaction: '',
-          transactionMethod: '',
-          transactionsSort: '',
         }}
       />,
       {organization}

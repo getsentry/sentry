@@ -24,7 +24,7 @@ type RouteParams = {
   ruleId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   hasUptimeAlerts: boolean;
   members: Member[] | undefined;

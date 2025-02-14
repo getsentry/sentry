@@ -18,7 +18,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{filterType: string; projectId: string}, {}>;
+} & RouteComponentProps<{filterType: string; projectId: string}>;
 
 function ProjectFilters(props: Props) {
   const {project, params} = props;

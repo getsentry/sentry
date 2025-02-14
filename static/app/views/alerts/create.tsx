@@ -37,7 +37,7 @@ type RouteParams = {
   projectId?: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;

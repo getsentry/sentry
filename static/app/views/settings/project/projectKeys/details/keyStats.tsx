@@ -19,13 +19,10 @@ type Props = {
   organization: Organization;
   theme: Theme;
 } & Pick<
-  RouteComponentProps<
-    {
-      keyId: string;
-      projectId: string;
-    },
-    {}
-  >,
+  RouteComponentProps<{
+    keyId: string;
+    projectId: string;
+  }>,
   'params'
 >;
 

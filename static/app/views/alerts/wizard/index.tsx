@@ -36,7 +36,7 @@ type RouteParams = {
   projectId?: string;
 };
 
-type AlertWizardProps = RouteComponentProps<RouteParams, {}> & {
+type AlertWizardProps = RouteComponentProps<RouteParams> & {
   organization: Organization;
   projectId: string;
 };

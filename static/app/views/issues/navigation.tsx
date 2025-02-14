@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface IssuesWrapperProps extends RouteComponentProps<{}, {}> {
+interface IssuesWrapperProps extends RouteComponentProps {
   children: React.ReactNode;
 }
 

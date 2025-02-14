@@ -5,7 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   children: React.ReactNode;
 };
 

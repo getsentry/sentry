@@ -6,7 +6,7 @@ import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
-type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}, {}>;
+type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}>;
 
 function getCurrentTab({router}: {router: RouteProps['router']}) {
   const currentRoute = router.routes[router.routes.length - 1];

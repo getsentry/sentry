@@ -23,7 +23,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };

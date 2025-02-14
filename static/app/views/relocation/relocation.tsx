@@ -34,7 +34,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [

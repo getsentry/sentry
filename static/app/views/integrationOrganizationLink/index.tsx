@@ -29,7 +29,7 @@ import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abs
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
-type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
+type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   installationData?: GitHubIntegrationInstallation;

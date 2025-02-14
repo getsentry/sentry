@@ -27,7 +27,7 @@ type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 export function UptimeRulesEdit({params, onChangeTitle, organization, project}: Props) {
   const api = useApi();

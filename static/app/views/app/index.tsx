@@ -43,7 +43,7 @@ import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{orgId?: string}, {}>;
+} & RouteComponentProps<{orgId?: string}>;
 
 const InstallWizard = lazy(
   () => import('sentry/views/admin/installWizard')

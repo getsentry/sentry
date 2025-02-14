@@ -28,7 +28,7 @@ type Props = {
     plugins: Plugin[];
   };
   project: Project;
-} & RouteComponentProps<{pluginId: string; projectId: string}, {}>;
+} & RouteComponentProps<{pluginId: string; projectId: string}>;
 
 type State = {
   pluginDetails?: Plugin;

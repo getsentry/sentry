@@ -15,7 +15,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = {
   projectKey: ProjectKey;
-} & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
+} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
 export function LoaderScript({projectKey, routes, params, location}: Props) {
   const loaderLink = getDynamicText({

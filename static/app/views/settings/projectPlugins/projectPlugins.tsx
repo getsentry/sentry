@@ -24,7 +24,7 @@ type Props = {
   organization: Organization;
   plugins: Plugin[];
   project: Project;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 class ProjectPlugins extends Component<Props> {
   render() {

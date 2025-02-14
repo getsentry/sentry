@@ -56,7 +56,7 @@ type IndexedFusedTransaction = {
   indexed: string[];
 };
 
-type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
   error: QueryError | null;
   isLoading: boolean;

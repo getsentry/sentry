@@ -146,7 +146,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;

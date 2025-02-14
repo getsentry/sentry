@@ -78,7 +78,7 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   api: Client;
   organization: Organization;
   selection: PageFilters;

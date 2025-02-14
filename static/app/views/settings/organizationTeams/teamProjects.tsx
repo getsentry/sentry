@@ -31,7 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-interface TeamProjectsProps extends RouteComponentProps<{teamId: string}, {}> {
+interface TeamProjectsProps extends RouteComponentProps<{teamId: string}> {
   team: Team;
 }
 
