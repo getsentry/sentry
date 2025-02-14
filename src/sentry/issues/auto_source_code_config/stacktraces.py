@@ -20,6 +20,9 @@ def get_frames_to_process(
     for stacktrace in stacktraces:
         frames = stacktrace["frames"]
         for frame in frames:
+            if frame is None:
+                continue
+
             if platform in PROCESS_ALL_FRAMES:
                 frames_to_process.append(frame)
 
