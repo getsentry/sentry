@@ -67,13 +67,13 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
     def get_initial_form_data(self, request: Request, group, event, **kwargs):
         return {
-            "description": self._get_group_description(request, group, event),
-            "title": self._get_group_title(request, group, event),
+            "description": self._get_group_description(group, event),
+            "title": self._get_group_title(group, event),
         }
 
-    def _get_group_description(self, request: Request, group, event):
+    def _get_group_description(self, group, event):
         output = [absolute_uri(group.get_absolute_url())]
-        body = self._get_group_body(request, group, event)
+        body = self._get_group_body(group, event)
         if body:
             output.extend(["", "<pre>", body, "</pre>"])
         return "\n".join(output)
