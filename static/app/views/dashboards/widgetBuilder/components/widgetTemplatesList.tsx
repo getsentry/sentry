@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -30,7 +29,6 @@ function WidgetTemplatesList({
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
 }: WidgetTemplatesListProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 

@@ -33,11 +33,7 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-<<<<<<< HEAD
-=======
-import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
->>>>>>> bffd366bd20 (charts: correct usage of getColorTheme)
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,

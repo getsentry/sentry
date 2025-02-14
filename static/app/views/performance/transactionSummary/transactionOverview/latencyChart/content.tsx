@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -57,7 +56,6 @@ function Content({
   queryExtras,
   totalCount,
 }: Props) {
-  const theme = useTheme();
   const [zoomError, setZoomError] = useState(false);
 
   function handleMouseOver() {
