@@ -51,26 +51,28 @@ export function Title({tree, traceSlug, representativeTransaction}: TitleProps) 
           '\u2014'
         )
       ) : (
-        <Tooltip
-          title={tct(
-            'Might be due to sampling, ad blockers, permissions or more.[break][link:Read the docs]',
-            {
-              break: <br />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#troubleshooting" />
-              ),
-            }
-          )}
-          showUnderline
-          position="right"
-          isHoverable
-        >
-          <strong>
-            {tree.shape === TraceShape.ONLY_ERRORS
-              ? t('Missing Trace Spans')
-              : t('Missing Trace Root')}
-          </strong>
-        </Tooltip>
+        <TitleText>
+          <Tooltip
+            title={tct(
+              'Might be due to sampling, ad blockers, permissions or more.[break][link:Read the docs]',
+              {
+                break: <br />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#troubleshooting" />
+                ),
+              }
+            )}
+            showUnderline
+            position="right"
+            isHoverable
+          >
+            <strong>
+              {tree.shape === TraceShape.ONLY_ERRORS
+                ? t('Missing Trace Spans')
+                : t('Missing Trace Root')}
+            </strong>
+          </Tooltip>
+        </TitleText>
       )}
       <SubtitleText>
         Trace ID: {traceSlug}
