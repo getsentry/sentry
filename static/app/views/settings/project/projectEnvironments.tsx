@@ -30,7 +30,7 @@ type Props = {
   api: Client;
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 type State = {
   environments: null | Environment[];

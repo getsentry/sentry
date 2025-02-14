@@ -26,7 +26,7 @@ type Props = {
   organization: Organization;
   project: Project;
 } & Plugin &
-  Pick<RouteComponentProps<{}, {}>, 'params' | 'routes'>;
+  Pick<RouteComponentProps, 'params' | 'routes'>;
 
 class ProjectPluginRow extends PureComponent<Props> {
   handleChange = () => {

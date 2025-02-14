@@ -22,7 +22,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 function ApiApplications({router}: Props) {
   const api = useApi();

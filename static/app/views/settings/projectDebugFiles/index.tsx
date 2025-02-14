@@ -36,7 +36,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 import DebugFileRow from './debugFileRow';
 import Sources from './sources';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };

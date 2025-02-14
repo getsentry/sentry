@@ -10,7 +10,7 @@ import withApi from 'sentry/utils/withApi';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
 
-type Props = RouteComponentProps<{}, {}> & {api: Client};
+type Props = RouteComponentProps & {api: Client};
 
 type State = {
   loading: boolean;

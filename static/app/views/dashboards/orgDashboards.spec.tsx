@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -85,7 +86,7 @@ describe('OrgDashboards', () => {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.routerProps}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
@@ -148,7 +149,7 @@ describe('OrgDashboards', () => {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.routerProps}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
@@ -220,7 +221,7 @@ describe('OrgDashboards', () => {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.routerProps}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
@@ -249,7 +250,7 @@ describe('OrgDashboards', () => {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.routerProps}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
@@ -295,7 +296,7 @@ describe('OrgDashboards', () => {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.routerProps}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>
@@ -316,7 +317,7 @@ describe('OrgDashboards', () => {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.routerProps}
+              {...(initialData.routerProps as RouteComponentProps)}
             />
           ) : (
             <div>loading</div>

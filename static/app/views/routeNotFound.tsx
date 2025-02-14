@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 function RouteNotFound({router, location}: Props) {
   const {pathname, search, hash} = location;

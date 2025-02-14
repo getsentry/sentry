@@ -20,7 +20,7 @@ import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 
-interface MetricRuleDuplicateProps extends RouteComponentProps<{}, {}> {
+interface MetricRuleDuplicateProps extends RouteComponentProps {
   project: Project;
   userTeamIds: string[];
   eventView?: EventView;

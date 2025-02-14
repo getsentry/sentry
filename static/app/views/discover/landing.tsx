@@ -42,7 +42,7 @@ const SORT_OPTIONS: Array<SelectValue<string>> = [
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{}, {}> &
+} & RouteComponentProps &
   DeprecatedAsyncComponent['props'];
 
 type State = {

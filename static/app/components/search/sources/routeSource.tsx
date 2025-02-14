@@ -56,7 +56,7 @@ type DefaultProps = {
   searchOptions: Fuse.IFuseOptions<NavigationItem>;
 };
 
-type Props = RouteComponentProps<{}, {}> &
+type Props = RouteComponentProps &
   DefaultProps & {
     /**
      * Render function that renders the route matches

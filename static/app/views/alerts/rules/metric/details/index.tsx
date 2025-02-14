@@ -38,7 +38,7 @@ import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
 
-interface Props extends RouteComponentProps<{ruleId: string}, {}> {
+interface Props extends RouteComponentProps<{ruleId: string}> {
   api: Client;
   location: Location;
   organization: Organization;

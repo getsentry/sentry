@@ -6,7 +6,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import RelocationOnboarding from './relocation';
 
-type Props = RouteComponentProps<{step: string}, {}>;
+type Props = RouteComponentProps<{step: string}>;
 
 export default function RelocationOnboardingContainer(props: Props) {
   return (

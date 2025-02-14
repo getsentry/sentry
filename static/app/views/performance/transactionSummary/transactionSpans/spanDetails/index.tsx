@@ -15,7 +15,7 @@ import {generateSpansEventView, parseSpanSlug} from '../utils';
 
 import SpanDetailsContent from './content';
 
-type Props = Pick<RouteComponentProps<{spanSlug: string}, {}>, 'location' | 'params'>;
+type Props = Pick<RouteComponentProps<{spanSlug: string}>, 'location' | 'params'>;
 
 export default function SpanDetails(props: Props) {
   const {location, params} = props;

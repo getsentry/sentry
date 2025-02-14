@@ -11,7 +11,7 @@ import GettingStarted from './gettingStarted';
 import {ProjectInstallPlatform} from './platform';
 import {PlatformIntegrationSetup} from './platformIntegrationSetup';
 
-type Props = RouteComponentProps<{projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}>;
 
 function PlatformOrIntegration({params}: Props) {
   const organization = useOrganization();

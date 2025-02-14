@@ -99,7 +99,7 @@ export enum DetectorConfigCustomer {
 
 type RouteParams = {orgId: string; projectId: string};
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };

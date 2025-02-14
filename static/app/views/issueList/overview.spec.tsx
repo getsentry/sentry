@@ -62,7 +62,7 @@ const {organization, projects, router} = initializeOrg({
 const routerProps = {
   params: router.params,
   location: router.location,
-} as RouteComponentProps<{}, {searchId?: string}>;
+} as RouteComponentProps<Record<PropertyKey, string | undefined>, {searchId?: string}>;
 
 const initialRouterConfig = {
   routes: [

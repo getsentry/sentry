@@ -63,7 +63,7 @@ const fuseOptions = {
   keys: ['slug', 'key', 'name', 'id'],
 };
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   hideHeader: boolean;
   organization: Organization;
 };

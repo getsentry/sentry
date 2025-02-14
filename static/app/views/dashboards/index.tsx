@@ -14,7 +14,7 @@ import OrgDashboards from './orgDashboards';
 import {DashboardState} from './types';
 import {DashboardBasicFeature} from './view';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   api: Client;
   children: React.ReactNode;
   organization: Organization;

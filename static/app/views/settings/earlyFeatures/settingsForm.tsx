@@ -13,7 +13,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props extends RouteComponentProps<{}, {}> {
+interface Props extends RouteComponentProps {
   access: Set<Scope>;
   location: Location;
 }

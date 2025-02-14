@@ -71,7 +71,7 @@ function initializeData({
 function TestComponent({
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
-  router: InjectedRouter<Record<string, string>, any>;
+  router: InjectedRouter;
 }) {
   if (!props.organization) {
     throw new Error('Missing organization');

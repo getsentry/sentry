@@ -64,7 +64,7 @@ function WrappedComponent({
   organization,
   ...props
 }: React.ComponentProps<typeof SummaryContent> & {
-  router: InjectedRouter<Record<string, string>, any>;
+  router: InjectedRouter;
 }) {
   return (
     <MEPSettingProvider>

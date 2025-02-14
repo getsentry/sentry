@@ -33,13 +33,10 @@ type Props = {
   disabled: boolean;
   organization: Organization;
 } & Pick<
-  RouteComponentProps<
-    {
-      keyId: string;
-      projectId: string;
-    },
-    {}
-  >,
+  RouteComponentProps<{
+    keyId: string;
+    projectId: string;
+  }>,
   'params'
 >;
 

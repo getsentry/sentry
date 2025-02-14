@@ -32,7 +32,6 @@ import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTr
 
 type Props = RouteComponentProps<
   {replaySlug: string},
-  {},
   any,
   TimeOffsetLocationQueryParams
 >;

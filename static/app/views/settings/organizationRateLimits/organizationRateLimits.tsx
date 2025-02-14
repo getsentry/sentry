@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export type OrganizationRateLimitProps = RouteComponentProps<{}, {}> & {
+export type OrganizationRateLimitProps = RouteComponentProps & {
   organization: Organization;
 };
 

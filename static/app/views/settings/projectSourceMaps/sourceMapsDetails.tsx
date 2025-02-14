@@ -99,10 +99,7 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = RouteComponentProps<
-  {bundleId: string; orgId: string; projectId: string},
-  {}
-> & {
+type Props = RouteComponentProps<{bundleId: string; orgId: string; projectId: string}> & {
   project: Project;
 };
 

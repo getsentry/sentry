@@ -31,7 +31,7 @@ import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-interface Props extends RouteComponentProps<{}, {}> {}
+interface Props extends RouteComponentProps {}
 
 function OrganizationUserFeedback({location: {search, pathname, query}, router}: Props) {
   const organization = useOrganization();

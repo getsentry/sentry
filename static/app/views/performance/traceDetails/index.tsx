@@ -28,7 +28,7 @@ import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import NewTraceDetailsContent from './newTraceDetailsContent';
 import {getTraceSplitResults} from './utils';
 
-type Props = RouteComponentProps<{traceSlug: string}, {}> & {
+type Props = RouteComponentProps<{traceSlug: string}> & {
   api: Client;
   organization: Organization;
 };

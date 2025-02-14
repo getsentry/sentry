@@ -106,7 +106,7 @@ const ProjectDetails = withApi(ProjectDetailsInner);
 
 type Params = {orgId: string; projectId: string} & Record<string, any>;
 
-type Props = RouteComponentProps<Params, {}>;
+type Props = RouteComponentProps<Params>;
 
 type RedirectOptions = {
   orgId: string;

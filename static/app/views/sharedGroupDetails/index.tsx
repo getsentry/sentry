@@ -18,7 +18,7 @@ import {OrganizationContext} from '../organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
-type Props = RouteComponentProps<{shareId: string; orgId?: string}, {}>;
+type Props = RouteComponentProps<{shareId: string; orgId?: string}>;
 
 function SharedGroupDetails({params}: Props) {
   useLayoutEffect(() => {

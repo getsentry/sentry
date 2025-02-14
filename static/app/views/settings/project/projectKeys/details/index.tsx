@@ -19,13 +19,10 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<
-  {
-    keyId: string;
-    projectId: string;
-  },
-  {}
->;
+} & RouteComponentProps<{
+  keyId: string;
+  projectId: string;
+}>;
 
 export default function ProjectKeyDetails({organization, params, project}: Props) {
   const {keyId, projectId} = params;
