@@ -142,7 +142,8 @@ export type SentryAppStatus =
   | 'unpublished'
   | 'published'
   | 'internal'
-  | 'publish_request_inprogress';
+  | 'publish_request_inprogress'
+  | 'deletion_in_progress';
 
 export type SentryAppSchemaIssueLink = {
   create: {

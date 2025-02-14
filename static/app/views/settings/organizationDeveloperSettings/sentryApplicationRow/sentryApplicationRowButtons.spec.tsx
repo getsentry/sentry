@@ -9,6 +9,7 @@ describe('Sentry App Row Buttons', function () {
   const removeApp = jest.fn();
   const publishApp = jest.fn();
   const sentryApp = SentryAppFixture();
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -24,7 +25,7 @@ describe('Sentry App Row Buttons', function () {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+    expect(publishButton).toHaveAttribute('aria-disabled', 'false');
     await userEvent.hover(publishButton);
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
@@ -75,6 +76,10 @@ describe('Sentry App Row Buttons', function () {
   });
 
   it('disables the publish button if the sentry app has a UI feature and no icon', async () => {
+    const organization = OrganizationFixture({
+      features: [`streamlined-publishing-flow`],
+    });
+
     const internalSentryApp = SentryAppFixture({
       status: 'unpublished',
       avatars: [
@@ -125,7 +130,32 @@ describe('Sentry App Row Buttons', function () {
     });
     render(
       <SentryApplicationRowButtons
-        organization={OrganizationFixture()}
+        organization={organization}
+        app={internalSentryApp}
+        onClickRemove={removeApp}
+        onClickPublish={publishApp}
+      />
+    );
+
+    const publishButton = await screen.findByRole('button', {name: 'Publish'});
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+
+    const deleteButton = await screen.findByRole('button', {name: 'Delete'});
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+
+    const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
+    expect(dashboardButton).toHaveAttribute('aria-disabled', 'false');
+  });
+
+  it('disables the publish button if the app is in progress of publishing', async () => {
+    const organization = OrganizationFixture({
+      features: [`streamlined-publishing-flow`],
+    });
+    const internalSentryApp = SentryAppFixture({status: 'publish_request_inprogress'});
+
+    render(
+      <SentryApplicationRowButtons
+        organization={organization}
         app={internalSentryApp}
         onClickRemove={removeApp}
         onClickPublish={publishApp}
