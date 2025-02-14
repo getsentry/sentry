@@ -162,6 +162,9 @@ def uptime_options() -> list[click.Option]:
             default=None,
             help="The maximum number of threads to spawn in parallel mode.",
         ),
+        click.Option(["--processes", "num_processes"], default=1, type=int),
+        click.Option(["--input-block-size"], type=int, default=None),
+        click.Option(["--output-block-size"], type=int, default=None),
     ]
     return options
 

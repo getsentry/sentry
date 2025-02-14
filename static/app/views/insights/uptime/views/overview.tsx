@@ -26,7 +26,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -109,10 +108,7 @@ export default function UptimeOverview() {
               }
               size="sm"
               priority="primary"
-              to={makeAlertsPathname({
-                path: `/new/uptime/`,
-                organization,
-              })}
+              to={`/organizations/${organization.slug}/alerts/new/uptime/`}
               icon={<IconAdd isCircled />}
             >
               {t('Add Uptime Monitor')}
@@ -161,10 +157,7 @@ export default function UptimeOverview() {
                   <LinkButton
                     size="sm"
                     priority="primary"
-                    to={makeAlertsPathname({
-                      path: `/new/uptime/`,
-                      organization,
-                    })}
+                    to={`/organizations/${organization.slug}/alerts/new/uptime/`}
                     icon={<IconAdd isCircled />}
                   >
                     {t('Add Uptime Monitor')}

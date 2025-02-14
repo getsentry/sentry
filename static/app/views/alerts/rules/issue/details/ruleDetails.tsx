@@ -38,7 +38,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {getRuleActionCategory} from 'sentry/views/alerts/rules/utils';
@@ -48,7 +47,7 @@ import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
 interface AlertRuleDetailsProps
-  extends RouteComponentProps<{projectId: string; ruleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; ruleId: string}> {}
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -271,10 +270,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const ruleActionCategory = getRuleActionCategory(rule);
 
   const duplicateLink = {
-    pathname: makeAlertsPathname({
-      path: `/new/issue/`,
-      organization,
-    }),
+    pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
     query: {
       project: project.slug,
       duplicateRuleId: rule.id,
@@ -292,10 +288,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             {
               link: (
                 <Link
-                  to={makeAlertsPathname({
-                    path: `/rules/${projectSlug}/${ruleId}/`,
-                    organization,
-                  })}
+                  to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
                 />
               ),
             }
@@ -386,10 +379,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             crumbs={[
               {
                 label: t('Alerts'),
-                to: makeAlertsPathname({
-                  path: `/rules/`,
-                  organization,
-                }),
+                to: `/organizations/${organization.slug}/alerts/rules/`,
               },
               {
                 label: t('Issue Alert'),
@@ -433,10 +423,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             <LinkButton
               size="sm"
               icon={<IconEdit />}
-              to={makeAlertsPathname({
-                path: `/rules/${projectSlug}/${ruleId}/`,
-                organization,
-              })}
+              to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
               onClick={() =>
                 trackAnalytics('issue_alert_rule_details.edit_clicked', {
                   organization,

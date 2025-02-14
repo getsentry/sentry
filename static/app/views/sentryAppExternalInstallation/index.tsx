@@ -24,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 
 import {OrganizationContext} from '../organizationContext';
 
-type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
+type Props = RouteComponentProps<{sentryAppSlug: string}>;
 
 // Page Layout
 export default function SentryAppExternalInstallation(props: Props) {

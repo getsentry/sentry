@@ -99,7 +99,6 @@ module = [
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
     "rb.*",
-    "sqlparse.*",
     "statsd.*",
     "u2flib_server.model.*",
 ]
@@ -136,7 +135,6 @@ module = [
     "sentry.api.invite_helper",
     "sentry.api.paginator",
     "sentry.api.permissions",
-    "sentry.api.serializers.models.event",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.db.mixin",
@@ -217,7 +215,6 @@ module = [
     "sentry.shared_integrations.client.proxy",
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
-    "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.query_builder",
     "sentry.snuba.spans_metrics",
     "sentry.tasks.auth",
