@@ -143,6 +143,7 @@ function BackendOverviewPage() {
 
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addOp('(');
+  existingQuery.addOp('(');
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
@@ -157,6 +158,7 @@ function BackendOverviewPage() {
   existingQuery.addOp(')');
   existingQuery.addOp('OR');
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
