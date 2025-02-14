@@ -1,17 +1,22 @@
 import type {Reducer} from 'react';
 import {useCallback, useReducer} from 'react';
+import type {Key} from '@react-types/shared';
 
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
-import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {defined} from 'sentry/utils';
 
 type ArithmeticBuilderUpdateResetFocusOverrideAction = {
   type: 'RESET_FOCUS_OVERRIDE';
 };
 
+type FocusOverride = {
+  itemKey: Key;
+};
+
 type ArithmeticBuilderDeleteAction = {
   token: Token;
   type: 'DELETE_TOKEN';
+  focusOverride?: FocusOverride;
 };
 
 type ArithmeticBuilderReplaceAction = {
@@ -99,6 +104,9 @@ function deleteToken(
   return {
     ...state,
     query,
+    focusOverride: defined(action.focusOverride)
+      ? action.focusOverride
+      : state.focusOverride,
   };
 }
 
