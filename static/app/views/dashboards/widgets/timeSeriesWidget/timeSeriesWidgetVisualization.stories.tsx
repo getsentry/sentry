@@ -19,6 +19,9 @@ import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
   field: 'p50(span.duration)',
@@ -38,7 +41,9 @@ const sampleDurationTimeSeries2 = {
   },
 };
 
-export default storyBook('TimeSeriesWidgetVisualization', story => {
+export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
+  APIReference(types.TimeSeriesWidgetVisualization);
+
   story('Getting Started', () => {
     return (
       <Fragment>
