@@ -11,7 +11,6 @@ import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {DescriptionProps} from '../widget/description';
-import {ErrorPanel} from '../widget/errorPanel';
 import {Widget} from '../widget/widget';
 
 import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
@@ -150,10 +149,10 @@ export function WidgetFrame(props: WidgetFrameProps) {
       }
       Visualization={
         props.error ? (
-          <ErrorPanel error={error} />
+          <Widget.Error error={error} />
         ) : (
           <ErrorBoundary
-            customComponent={() => <ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
+            customComponent={() => <Widget.Error error={WIDGET_RENDER_ERROR_MESSAGE} />}
           >
             {props.children}
           </ErrorBoundary>

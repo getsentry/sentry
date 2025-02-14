@@ -7,11 +7,11 @@ import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 
 import {X_GUTTER, Y_GUTTER} from '../common/settings';
 
-interface ErrorPanelProps {
+interface ErrorProps {
   error: StateProps['error'];
 }
 
-export function ErrorPanel({error}: ErrorPanelProps) {
+export function Error({error}: ErrorProps) {
   return (
     <Panel>
       <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />

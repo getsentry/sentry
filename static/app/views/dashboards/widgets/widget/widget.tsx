@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {Description} from './description';
+import {Error} from './error';
 import {TextTitle} from './textTitle';
 import {Toolbar} from './toolbar';
 
@@ -59,6 +60,7 @@ const exported = Object.assign(WidgetLayout, {
   Description,
   TextTitle,
   Toolbar,
+  Error,
 });
 
 export {exported as Widget};

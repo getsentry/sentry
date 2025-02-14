@@ -17,7 +17,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {ErrorPanel} from 'sentry/views/dashboards/widgets/widget/errorPanel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
@@ -202,7 +201,7 @@ export function ExploreCharts({
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<ErrorPanel error={chartInfo.error} />}
+                Visualization={<Widget.Error error={chartInfo.error} />}
                 revealActions="always"
               />
             );
