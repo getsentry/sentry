@@ -274,8 +274,8 @@ export function SelectRow({
                   function: newFunction,
                 },
                 fieldOptions,
-                // If no column filter method is provided, show all options
-                columnFilterMethod ?? (() => true)
+                // If no aggregate filter method is provided, show all options
+                datasetConfig.filterAggregateParams ?? (() => true)
               );
               if (
                 selectedAggregate?.value.meta &&
