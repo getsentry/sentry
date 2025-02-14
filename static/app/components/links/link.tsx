@@ -49,6 +49,7 @@ export interface LinkProps
  */
 function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
   const location = useLocation();
+  console.log('to', to);
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {
