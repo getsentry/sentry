@@ -25,14 +25,14 @@ describe('Sentry App Row Buttons', function () {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toHaveAttribute('aria-disabled', 'false');
+    expect(publishButton).toBeEnabled();
     await userEvent.hover(publishButton);
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+    expect(deleteButton).toBeEnabled();
 
     const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
-    expect(dashboardButton).toHaveAttribute('aria-disabled', 'false');
+    expect(dashboardButton).toBeEnabled();
   });
 
   it('hides the publish button if the app is internal', async () => {
@@ -49,10 +49,10 @@ describe('Sentry App Row Buttons', function () {
     expect(screen.queryByText('Publish')).not.toBeInTheDocument();
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+    expect(deleteButton).toBeEnabled();
 
     const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
-    expect(dashboardButton).toHaveAttribute('aria-disabled', 'false');
+    expect(dashboardButton).toBeEnabled();
   });
 
   it('disables the delete and publish button if the app is published', async () => {
@@ -66,13 +66,13 @@ describe('Sentry App Row Buttons', function () {
       />
     );
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+    expect(publishButton).toBeDisabled();
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+    expect(deleteButton).toBeDisabled();
 
     const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
-    expect(dashboardButton).toHaveAttribute('aria-disabled', 'false');
+    expect(dashboardButton).toBeEnabled();
   });
 
   it('disables the publish button if the sentry app has a UI feature and no icon', async () => {
@@ -138,13 +138,13 @@ describe('Sentry App Row Buttons', function () {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+    expect(publishButton).toBeDisabled();
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+    expect(deleteButton).toBeEnabled();
 
     const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
-    expect(dashboardButton).toHaveAttribute('aria-disabled', 'false');
+    expect(dashboardButton).toBeEnabled();
   });
 
   it('disables the publish button if the app is in progress of publishing', async () => {
@@ -163,12 +163,12 @@ describe('Sentry App Row Buttons', function () {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+    expect(publishButton).toBeDisabled();
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+    expect(deleteButton).toBeEnabled();
 
     const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
-    expect(dashboardButton).toHaveAttribute('aria-disabled', 'false');
+    expect(dashboardButton).toBeEnabled();
   });
 });
