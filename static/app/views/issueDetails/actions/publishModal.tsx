@@ -18,7 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-interface ShareIssueModalProps extends ModalRenderProps {
+interface PublishIssueModalProps extends ModalRenderProps {
   groupId: string;
   onToggle: () => void;
   organization: Organization;
@@ -41,7 +41,7 @@ export default function PublishIssueModal({
   groupId,
   onToggle,
   closeModal,
-}: ShareIssueModalProps) {
+}: PublishIssueModalProps) {
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
   const urlRef = useRef<UrlRef>(null);
