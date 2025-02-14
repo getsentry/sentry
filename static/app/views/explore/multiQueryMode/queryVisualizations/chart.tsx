@@ -9,8 +9,8 @@ import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loading
 import {WidgetLayout} from 'sentry/views/dashboards/widgets/widgetLayout/widgetLayout';
 import {WidgetTitle} from 'sentry/views/dashboards/widgets/widgetLayout/widgetTitle';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/queryVisualizations/hooks/useMultiQueryTimeseries';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -36,46 +36,53 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
 
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
-  const getSeries = useCallback(
-    (yAxes: string[], formattedYAxes: Array<string | undefined>) => {
-      const shouldUsePreviousResults =
-        timeseriesResult.isPending &&
-        canUsePreviousResults &&
-        yAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
+  const getSeries = useCallback(() => {
+    const shouldUsePreviousResults =
+      timeseriesResult.isPending &&
+      canUsePreviousResults &&
+      yAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
 
-      const data = yAxes.flatMap((yAxis, i) => {
-        const series = shouldUsePreviousResults
-          ? previousTimeseriesResult.data[yAxis]
-          : timeseriesResult.data[yAxis];
-        return (series ?? []).map(s => {
-          // We replace the series name with the formatted series name here
-          // when possible as it's cleaner to read.
-          //
-          // We can't do this in top N mode as the series name uses the row
-          // values instead of the aggregate function.
-          if (s.field === yAxis) {
-            return {
-              ...s,
-              seriesName: formattedYAxes[i] ?? yAxis,
-            };
-          }
-          return s;
-        });
+    const data = yAxes.flatMap((yAxis, i) => {
+      const series = shouldUsePreviousResults
+        ? previousTimeseriesResult.data[yAxis]
+        : timeseriesResult.data[yAxis];
+      return (series ?? []).map(s => {
+        // We replace the series name with the formatted series name here
+        // when possible as it's cleaner to read.
+        //
+        // We can't do this in top N mode as the series name uses the row
+        // values instead of the aggregate function.
+        if (s.field === yAxis) {
+          return {
+            ...s,
+            seriesName: formattedYAxes[i] ?? yAxis,
+          };
+        }
+        return s;
       });
-      return {
-        data,
-        error: shouldUsePreviousResults
-          ? previousTimeseriesResult.error
-          : timeseriesResult.error,
-        loading: shouldUsePreviousResults
-          ? previousTimeseriesResult.isPending
-          : timeseriesResult.isPending,
-      };
-    },
-    [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
-  );
+    });
+    return {
+      data,
+      error: shouldUsePreviousResults
+        ? previousTimeseriesResult.error
+        : timeseriesResult.error,
+      loading: shouldUsePreviousResults
+        ? previousTimeseriesResult.isPending
+        : timeseriesResult.isPending,
+    };
+  }, [
+    timeseriesResult.isPending,
+    timeseriesResult.error,
+    timeseriesResult.data,
+    canUsePreviousResults,
+    yAxes,
+    previousTimeseriesResult.error,
+    previousTimeseriesResult.isPending,
+    previousTimeseriesResult.data,
+    formattedYAxes,
+  ]);
 
-  const {data, error, loading} = getSeries(yAxes, formattedYAxes);
+  const {data, error, loading} = getSeries();
 
   const chartInfo = {
     chartIcon: <IconGraph type={'line'} />,

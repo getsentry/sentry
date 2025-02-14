@@ -49,6 +49,11 @@ export function useMultiQueryTableAggregateMode({
   const eventView = useMemo(() => {
     const search = new MutableSearch(query);
 
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Multi Query Mode - Span Aggregates',
@@ -85,6 +90,11 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
   }, [yAxes]);
   const eventView = useMemo(() => {
     const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
 
     const discoverQuery: NewQuery = {
       id: undefined,

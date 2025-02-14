@@ -36,14 +36,14 @@ import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansT
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import {
+  useMultiQueryTableAggregateMode,
+  useMultiQueryTableSampleMode,
+} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
+import {
   getSamplesTargetAtIndex,
   type ReadableExploreQueryParts,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {
-  useMultiQueryTableAggregateMode,
-  useMultiQueryTableSampleMode,
-} from 'sentry/views/explore/multiQueryMode/queryVisualizations/hooks/useMultiQueryTable';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
 interface MultiQueryTableProps {
@@ -184,7 +184,7 @@ function AggregatesTable({
                   <TableBodyCell key={`samples-${i}`}>
                     {topEvents && i < topEvents && <TopResultsIndicator index={i} />}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target}>
+                      <StyledLink to={target} data-test-id={'unstack-link'}>
                         <IconStack />
                       </StyledLink>
                     </Tooltip>
@@ -244,7 +244,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={200}>
+      <Table ref={tableRef} styles={initialTableStyles} scrollable height={258}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
