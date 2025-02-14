@@ -17,6 +17,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
+    ScheduleType,
 )
 from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
@@ -334,7 +335,9 @@ class MonitorCheckInSerializer(Serializer):
             obj.monitor_config.copy() if obj.monitor_config else {}
         )
         if "schedule_type" in config:
-            config["schedule_type"] = obj.get_schedule_type_display()
+            # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
+            # config saved on the check-in
+            config["schedule_type"] = ScheduleType.get_name(config["schedule_type"])
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
