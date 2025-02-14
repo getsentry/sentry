@@ -24,11 +24,11 @@ export function ConfidenceFooter({sampleCount, confidence}: Props) {
                 insufficientSamples: (
                   <Tooltip
                     title={t(
-                      'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
+                      'Increase your sampling rates to get more samples and more accurate trends.'
                     )}
                   >
                     <InsufficientSamples>
-                      {t('insufficient for accuracy')}
+                      {t('Sampling rate may be low for accuracy')}
                     </InsufficientSamples>
                   </Tooltip>
                 ),
