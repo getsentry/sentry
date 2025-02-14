@@ -227,7 +227,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_checks_ins_clicked"
                 analyticsEventName="Issue Details: All Checks-Ins Clicked"
               >
-                {t('All Checks-Ins')}
+                {t('All Check-Ins')}
               </LinkButton>
             )}
             {issueTypeConfig.pages.uptimeChecks.enabled && (
