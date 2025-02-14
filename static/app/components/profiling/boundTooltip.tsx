@@ -1,4 +1,5 @@
 import {useCallback, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -7,7 +8,6 @@ import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import theme from 'sentry/utils/theme';
 
 // The cursor icon is drawn with an origin in the top left, which means that if we render
 // a tooltip directly at the cursor's position, it will overlap with the cursor icon.
@@ -79,6 +79,7 @@ function BoundTooltip({
   canvasView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
+  const theme = useTheme();
   const flamegraphTheme = useFlamegraphTheme();
 
   const physicalSpaceCursor = vec2.transformMat3(

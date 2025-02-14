@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,7 +7,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import {
   IssueDetailsContext,
@@ -32,6 +32,7 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
+  const theme = useTheme();
   const {issueDetails, dispatch} = useIssueDetailsReducer();
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
