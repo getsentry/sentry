@@ -337,22 +337,23 @@ def create_event_unique_user_frequency_condition_with_conditions(
 
     comparison_filters = []
 
-    for condition in conditions:
-        if condition["id"] in (EventAttributeFilter.id, TaggedEventFilter.id):
-            comparison_filter = {
-                "match": condition["match"],
-                "key": (
-                    condition["attribute"]
-                    if condition["id"] == EventAttributeFilter.id
-                    else condition["key"]
-                ),
-            }
-            if comparison_filter["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
-                comparison_filter["value"] = condition["value"]
-        else:
-            raise ValueError(f"Unsupported nested condition: {condition["id"]}")
+    if conditions:
+        for condition in conditions:
+            if condition["id"] in (EventAttributeFilter.id, TaggedEventFilter.id):
+                comparison_filter = {
+                    "match": condition["match"],
+                    "key": (
+                        condition["attribute"]
+                        if condition["id"] == EventAttributeFilter.id
+                        else condition["key"]
+                    ),
+                }
+                if comparison_filter["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+                    comparison_filter["value"] = condition["value"]
+            else:
+                raise ValueError(f"Unsupported nested condition: {condition["id"]}")
 
-        comparison_filters.append(comparison_filter)
+            comparison_filters.append(comparison_filter)
 
     comparison["filters"] = comparison_filters
 
