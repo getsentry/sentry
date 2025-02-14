@@ -136,6 +136,26 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
+    it('autocompletes function token when they reach the open parenthesis even if there is more text', async function () {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'foo bar  avg(');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      expect(input).toHaveValue('foo bar');
+    });
+
     it('autocompletes addition', async function () {
       render(<Tokens expression="" />);
 
