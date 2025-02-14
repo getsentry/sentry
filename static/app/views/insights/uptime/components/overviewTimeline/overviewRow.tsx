@@ -53,7 +53,7 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
       <DetailsLink
         to={{
           pathname: makeAlertsPathname({
-            path: `/uptime-rules/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
+            path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
             organization,
           }),
           query,
