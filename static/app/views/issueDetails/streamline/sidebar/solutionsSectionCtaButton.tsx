@@ -106,7 +106,6 @@ export function SolutionsSectionCtaButton({
       if (!hasStepType(AutofixStepType.CHANGES)) {
         return t('Writing Code');
       }
-      return t('Autofix Running');
     }
 
     if (isAutofixCompleted) {
@@ -118,15 +117,6 @@ export function SolutionsSectionCtaButton({
       }
       if (lastStep.type === AutofixStepType.CHANGES) {
         return t('View Code Changes');
-      }
-      if (!hasStepType(AutofixStepType.ROOT_CAUSE_ANALYSIS)) {
-        return t('Find Root Cause');
-      }
-      if (!hasStepType(AutofixStepType.SOLUTION)) {
-        return t('Find Solution');
-      }
-      if (!hasStepType(AutofixStepType.CHANGES)) {
-        return t('Code Solution');
       }
     }
 
