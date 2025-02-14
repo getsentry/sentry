@@ -4,8 +4,10 @@ from typing import Any
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
+from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.processing.processor import split_conditions_and_filters
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
+    create_event_unique_user_frequency_condition_with_conditions,
     translate_to_data_condition,
 )
 from sentry.workflow_engine.migration_helpers.rule_action import (
@@ -24,6 +26,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.workflow import WorkflowDataConditionGroupType
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,10 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
 
     conditions, filters = split_conditions_and_filters(data["conditions"])
     when_dcg = create_when_dcg(
-        organization=organization, conditions=conditions, action_match=data["action_match"]
+        organization=organization,
+        conditions=conditions,
+        filters=filters,
+        action_match=data["action_match"],
     )
     workflow = create_workflow(
         organization=organization,
@@ -56,29 +62,47 @@ def migrate_issue_alert(rule: Rule, user_id: int | None = None):
     AlertRuleWorkflow.objects.create(rule=rule, workflow=workflow)
 
     if_dcg = create_if_dcg(
-        workflow=workflow, filters=filters, filter_match=data.get("filter_match")
+        workflow=workflow,
+        conditions=conditions,
+        filters=filters,
+        filter_match=data.get("filter_match"),
     )
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
 
-def bulk_create_data_conditions(conditions: list[dict[str, Any]], dcg: DataConditionGroup):
+def bulk_create_data_conditions(
+    conditions: list[dict[str, Any]],
+    dcg: DataConditionGroup,
+    filters: list[dict[str, Any]] | None = None,
+):
     dcg_conditions: list[DataCondition] = []
+
     for condition in conditions:
-        dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
+        if condition["id"] == EventUniqueUserFrequencyConditionWithConditions.id:  # special case
+            dcg_conditions = [
+                create_event_unique_user_frequency_condition_with_conditions(
+                    dict(condition), dcg, filters
+                )
+            ]
+        else:
+            dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
 
     filtered_data_conditions = [dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS]
     DataCondition.objects.bulk_create(filtered_data_conditions)
 
 
 def create_when_dcg(
-    organization: Organization, conditions: list[dict[str, Any]], action_match: str
+    organization: Organization,
+    conditions: list[dict[str, Any]],
+    filters: list[dict[str, Any]],
+    action_match: str,
 ):
     if action_match == "any":
         action_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
     when_dcg = DataConditionGroup.objects.create(logic_type=action_match, organization=organization)
 
-    bulk_create_data_conditions(conditions=conditions, dcg=when_dcg)
+    bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=when_dcg)
 
     return when_dcg
 
@@ -110,7 +134,10 @@ def create_workflow(
 
 
 def create_if_dcg(
-    workflow: Workflow, filters: list[dict[str, Any]], filter_match: str | None = None
+    workflow: Workflow,
+    conditions: list[dict[str, Any]],
+    filters: list[dict[str, Any]],
+    filter_match: str | None = None,
 ):
     if (
         filter_match == "any" or filter_match is None
@@ -122,7 +149,10 @@ def create_if_dcg(
     )
     WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
 
-    bulk_create_data_conditions(conditions=filters, dcg=if_dcg)
+    conditions_ids = [condition["id"] for condition in conditions]
+    # skip migrating filters for special case
+    if EventUniqueUserFrequencyConditionWithConditions.id not in conditions_ids:
+        bulk_create_data_conditions(conditions=filters, dcg=if_dcg)
 
     return if_dcg
 
@@ -156,7 +186,9 @@ def update_migrated_issue_alert(rule: Rule):
 
     update_dcg(
         dcg=workflow.when_condition_group,
+        type=WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
         conditions=conditions,
+        filters=filters,
         match=data["action_match"],
     )
 
@@ -168,11 +200,20 @@ def update_migrated_issue_alert(rule: Rule):
         )
         # if no IF DCG exists, create one
         if_dcg = create_if_dcg(
-            workflow=workflow, filters=filters, filter_match=data["filter_match"]
+            workflow=workflow,
+            conditions=conditions,
+            filters=filters,
+            filter_match=data["filter_match"],
         )
         WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
 
-    update_dcg(dcg=if_dcg, conditions=filters, match=data["filter_match"])
+    update_dcg(
+        dcg=if_dcg,
+        type=WorkflowDataConditionGroupType.ACTION_FILTER,
+        conditions=conditions,
+        match=data["filter_match"],
+        filters=filters,
+    )
 
     delete_workflow_actions(if_dcg=if_dcg)
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
@@ -193,6 +234,8 @@ def update_migrated_issue_alert(rule: Rule):
 def update_dcg(
     dcg: DataConditionGroup,
     conditions: list[dict[str, Any]],
+    type: WorkflowDataConditionGroupType,
+    filters: list[dict[str, Any]],
     match: str | None = None,
 ):
     DataCondition.objects.filter(condition_group=dcg).delete()
@@ -203,7 +246,13 @@ def update_dcg(
 
         dcg.update(logic_type=match)
 
-    bulk_create_data_conditions(conditions=conditions, dcg=dcg)
+    if type == WorkflowDataConditionGroupType.ACTION_FILTER:
+        conditions_ids = [condition["id"] for condition in conditions]
+        # skip migrating filters for special case
+        if EventUniqueUserFrequencyConditionWithConditions.id in conditions_ids:
+            return dcg
+
+    bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=dcg)
 
     return dcg
 
