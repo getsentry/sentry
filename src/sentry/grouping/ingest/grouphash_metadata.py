@@ -124,7 +124,9 @@ def create_or_update_grouphash_metadata_if_needed(
     # we'll have to override the metadata creation date for them.
 
     if grouphash_is_new:
-        hash_basis, hashing_metadata = get_grouphash_metadata_data(event, project, variants)
+        hash_basis, hashing_metadata = get_grouphash_metadata_data(
+            event, project, variants, grouping_config
+        )
 
         GroupHashMetadata.objects.create(
             grouphash=grouphash,
@@ -144,6 +146,7 @@ def get_grouphash_metadata_data(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
+    grouping_config: str,
 ) -> tuple[HashBasis, HashingMetadata]:
     hashing_metadata: HashingMetadata = {}
     # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
