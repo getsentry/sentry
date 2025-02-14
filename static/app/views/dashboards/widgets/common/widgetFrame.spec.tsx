@@ -4,6 +4,14 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 describe('WidgetFrame', () => {
   describe('Layout', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.resetAllMocks();
+    });
+
     it('Renders the title and description', async () => {
       render(<WidgetFrame title="EPS" description="Number of events per second" />);
 
@@ -14,8 +22,6 @@ describe('WidgetFrame', () => {
     });
 
     it('Catches errors in the visualization', async () => {
-      jest.spyOn(console, 'error').mockImplementation();
-
       render(
         <WidgetFrame title="Uh Oh">
           <UhOh />
@@ -24,11 +30,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.getByText('Uh Oh')).toBeInTheDocument();
 
-      expect(
-        await screen.findByText('Sorry, something went wrong when rendering this widget.')
-      ).toBeInTheDocument();
-
-      jest.resetAllMocks();
+      expect(await screen.findByText(/cannot read properties/i)).toBeInTheDocument();
     });
   });
 
