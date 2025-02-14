@@ -139,7 +139,7 @@ def _assert_and_snapshot_results(
     lines: list[str] = []
     variants = event.get_grouping_variants()
 
-    hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants, {})
+    hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
 
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
