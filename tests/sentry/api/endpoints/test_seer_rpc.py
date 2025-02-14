@@ -60,8 +60,9 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
 
         issue_ids = [issue["id"] for issue in issues_with_event_details]
         function_names = [issue["function_name"] for issue in issues_with_event_details]
-        assert issue_ids == [group_id, self.group_id]
-        assert function_names == ["planet", "world"]
+        assert group_id != self.group_id
+        assert set(issue_ids) == {group_id, self.group_id}
+        assert set(function_names) == {"planet", "world"}
 
     def test_filename_mismatch(self):
         group_id = self._create_event(
@@ -92,7 +93,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         issue_ids = [issue["id"] for issue in issues]
         function_names = [issue["function_name"] for issue in issues]
         assert group_id != self.group_id
-        assert issue_ids == [self.group_id, group_id]
+        assert set(issue_ids) == {self.group_id, group_id}
         assert function_names == ["world", "world"]
 
     def test_not_within_frame_limit(self):

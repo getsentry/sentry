@@ -28,6 +28,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers.models.event import EventSerializerResponse
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github.constants import STACKFRAME_COUNT
@@ -54,7 +55,16 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
-MAX_NUM_ISSUES = 5
+MAX_NUM_ISSUES_DEFAULT = 5
+"""
+The maximum number of related issues to return for one file.
+"""
+
+NUM_DAYS_AGO = 14
+"""
+The number of previous days from now to find issues and events.
+This number is global so that fetching issues and events is consistent.
+"""
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -192,8 +202,10 @@ def _get_issues_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
-    max_num_issues: int = MAX_NUM_ISSUES,
-) -> list[dict[str, Any]]:
+    event_timestamp_start: datetime,
+    event_timestamp_end: datetime,
+    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
+):
     """
     Fetch issues with their latest event if its stacktrace frames match the function names
     and file names.
@@ -215,7 +227,7 @@ def _get_issues_for_file(
     group_ids: list[int] = list(
         Group.objects.filter(
             first_seen__gte=datetime.now(UTC) - timedelta(days=90),
-            last_seen__gte=datetime.now(UTC) - timedelta(days=14),
+            last_seen__gte=event_timestamp_start,
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
         )
@@ -266,17 +278,17 @@ def _get_issues_for_file(
                 Condition(
                     Function("toStartOfDay", [Column("timestamp")]),
                     Op.GTE,
-                    datetime.now().date() - timedelta(days=14),
+                    event_timestamp_start.date(),
                 ),
                 Condition(
                     Function("toStartOfDay", [Column("timestamp")]),
                     Op.LT,
-                    datetime.now().date() + timedelta(days=1),
+                    event_timestamp_end.date() + timedelta(days=1),
                 ),
-                # Apply toStartOfDay to take advantage of the sorting key. TODO: measure.
+                # Apply toStartOfDay b/c it's part of the sorting key. TODO: measure.
                 # Then, for precision, add the granular timestamp filters:
-                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Column("timestamp"), Op.GTE, event_timestamp_start),
+                Condition(Column("timestamp"), Op.LT, event_timestamp_end),
                 Condition(Function("notHandled", []), Op.EQ, 1),
             ]
         )
@@ -328,33 +340,47 @@ def _get_issues_for_file(
         query=query,
     )
     # TODO: error handling.
-    return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
+    issues_result_set: list[dict[str, Any]] = raw_snql_query(
+        request, referrer=Referrer.SEER_RPC.value
+    )["data"]
+    return issues_result_set
 
 
 def _add_event_details(
     projects: list[Project],
     issues_result_set: list[dict[str, Any]],
+    event_timestamp_start: datetime,
+    event_timestamp_end: datetime,
 ) -> list[dict[str, Any]]:
     """
     Bulk-fetch the events corresponding to the issues, and bulk-serialize them.
     """
-    project_ids = [project.id for project in projects]
-    event_ids = [group_dict["event_id"] for group_dict in issues_result_set]
-    event_filter = eventstore.Filter(event_ids=event_ids, project_ids=project_ids)
+    group_id_to_group_dict = {
+        group_dict["group_id"]: group_dict for group_dict in issues_result_set
+    }
+    event_filter = eventstore.Filter(
+        start=event_timestamp_start,
+        end=event_timestamp_end,
+        event_ids=[group_dict["event_id"] for group_dict in issues_result_set],
+        project_ids=[project.id for project in projects],
+    )
     events = eventstore.backend.get_events(
         filter=event_filter,
         referrer=Referrer.SEER_RPC.value,
         tenant_ids={"organization_id": projects[0].organization_id},
     )
-    serialized_events = serialize(events, serializer=EventSerializer())
+    serialized_events: list[EventSerializerResponse] = serialize(
+        events, serializer=EventSerializer()
+    )
     return [
-        {
-            "id": group_dict["group_id"],
-            "title": group_dict["title"],
-            "function_name": group_dict["function_name"],
-            "events": [serialized_event],
+        {  # Structured like seer.automation.models.IssueDetails
+            "id": int(event_dict["groupID"]),
+            "title": event_dict["title"],
+            "events": [event_dict],
+            "function_name": group_id_to_group_dict[int(event_dict["groupID"])]["function_name"],
+            # function_name is used for testing
         }
-        for group_dict, serialized_event in zip(issues_result_set, serialized_events, strict=True)
+        for event_dict in serialized_events
     ]
 
 
@@ -362,12 +388,21 @@ def get_issues_with_event_details_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
-    max_num_issues: int = MAX_NUM_ISSUES,
+    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
 ) -> list[dict[str, Any]]:
+    event_timestamp_start = datetime.now(UTC) - timedelta(days=NUM_DAYS_AGO)
+    event_timestamp_end = datetime.now(UTC)
     issues_result_set = _get_issues_for_file(
-        projects, sentry_filenames, function_names, max_num_issues=max_num_issues
+        projects,
+        sentry_filenames,
+        function_names,
+        event_timestamp_start,
+        event_timestamp_end,
+        max_num_issues=max_num_issues,
     )
-    return _add_event_details(projects, issues_result_set)
+    return _add_event_details(
+        projects, issues_result_set, event_timestamp_start, event_timestamp_end
+    )
 
 
 def get_issues_related_to_file_patches(
@@ -376,7 +411,7 @@ def get_issues_related_to_file_patches(
     provider: str,
     external_id: str,
     filename_to_patch: dict[str, str],
-    max_num_issues: int = MAX_NUM_ISSUES,
+    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
 ) -> dict[str, list[dict[str, Any]]]:
     """
     Get the top issues related to each file by looking at matches between functions in the patch
