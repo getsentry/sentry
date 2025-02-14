@@ -19,6 +19,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -107,7 +108,10 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
         action={
           <LinkButton
             to={{
-              pathname: `/organizations/${organization.slug}/alerts/rules/`,
+              pathname: makeAlertsPathname({
+                path: `/rules/`,
+                organization,
+              }),
               query: {project: project?.id},
             }}
             size="sm"
