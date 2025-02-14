@@ -795,6 +795,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
         result = self.create_uptime_result(
             self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         self.send_result(result)
@@ -805,7 +806,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         parsed_value = json.loads(mock_produce.call_args.args[1].value)
         assert parsed_value["organization_id"] == self.project.organization_id
         assert parsed_value["project_id"] == self.project.id
+        assert parsed_value["incident_status"] == 0
         assert parsed_value["retention_days"] == 90
+
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @mock.patch(
+        "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+        new=1,
+    )
+    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    def test_produces_snuba_uptime_results_in_incident(self, mock_produce) -> None:
+        """
+        Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_FAILURE,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+        mock_produce.assert_called_once()
+
+        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+
+        parsed_value = json.loads(mock_produce.call_args.args[1].value)
+        assert parsed_value["incident_status"] == 1
 
     def run_check_and_update_region_test(
         self,
