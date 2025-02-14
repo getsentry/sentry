@@ -152,15 +152,18 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         )
 
         groups: list[Group] = list(Group.objects.all())
-        issues_result_set = [
-            {
-                "group_id": group.id,
-                "event_id": group.get_latest_event().event_id,
-                "title": f"title_{i}",
-                "function_name": f"function_{i}",
-            }
-            for i, group in enumerate(groups)
-        ]
+        issues_result_set = []
+        for group_num, group in enumerate(groups):
+            event = group.get_latest_event()
+            assert event is not None
+            issues_result_set.append(
+                {
+                    "group_id": group.id,
+                    "event_id": event.event_id,
+                    "title": f"title_{group_num}",
+                    "function_name": f"function_{group_num}",
+                }
+            )
         self.issues_with_event_details = _add_event_details(
             projects=[self.project],
             issues_result_set=issues_result_set,
@@ -189,6 +192,9 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         filename_to_issues_expected = {
             filename: self.issues_with_event_details for filename in filename_to_patch
         }
+
+        assert self.gh_repo.provider is not None
+        assert self.gh_repo.external_id is not None
 
         filename_to_issues = get_issues_related_to_file_patches(
             organization_id=self.organization.id,

@@ -346,8 +346,8 @@ def _get_issues_for_file(
 def _add_event_details(
     projects: list[Project],
     issues_result_set: list[dict[str, Any]],
-    event_timestamp_start: datetime,
-    event_timestamp_end: datetime,
+    event_timestamp_start: datetime | None,
+    event_timestamp_end: datetime | None,
 ) -> list[dict[str, Any]]:
     """
     Bulk-fetch the events corresponding to the issues, and bulk-serialize them.
