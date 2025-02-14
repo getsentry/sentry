@@ -2,8 +2,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import type {Monitor} from '../types';
 
@@ -20,15 +18,11 @@ interface Props {
 }
 
 export function MonitorHeader({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
-  const organization = useOrganization();
   const crumbs = [
     {
       label: linkToAlerts ? t('Alerts') : t('Crons'),
       to: linkToAlerts
-        ? makeAlertsPathname({
-            path: `/rules/`,
-            organization,
-          })
+        ? `/organizations/${orgSlug}/alerts/rules/`
         : `/organizations/${orgSlug}/crons/`,
       preservePageFilters: true,
     },

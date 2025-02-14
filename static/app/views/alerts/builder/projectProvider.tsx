@@ -11,7 +11,6 @@ import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
@@ -58,10 +57,7 @@ function AlertBuilderProjectProvider(props: Props) {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      makeAlertsPathname({
-        path: '/wizard/',
-        organization,
-      }) + `?referrer=${props.location.query.referrer}&project=:projectId`,
+      `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`,
       props.router
     );
   }

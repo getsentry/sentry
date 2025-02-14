@@ -284,7 +284,7 @@ function AlertRulesList() {
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
-                          organization={organization}
+                          orgId={organization.slug}
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}

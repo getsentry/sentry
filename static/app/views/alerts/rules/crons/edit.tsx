@@ -11,7 +11,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
@@ -55,10 +54,7 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
     setApiQueryData(queryClient, queryKey, data);
     navigate(
       normalizeUrl({
-        pathname: makeAlertsPathname({
-          path: `/rules/crons/${data.project.slug}/${data.slug}/details/`,
-          organization,
-        }),
+        pathname: `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
         query: {
           environment: selection.environments,
           project: selection.projects,

@@ -15,7 +15,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
@@ -75,10 +74,7 @@ function Create(props: Props) {
       router.replace(
         normalizeUrl({
           ...location,
-          pathname: makeAlertsPathname({
-            path: `/new/${alertType}/`,
-            organization,
-          }),
+          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
           query: {
             ...location.query,
             ...DEFAULT_WIZARD_TEMPLATE,
@@ -97,7 +93,6 @@ function Create(props: Props) {
     location,
     organization.slug,
     project.slug,
-    organization,
   ]);
 
   const {teams, isLoading} = useUserTeams();
@@ -159,10 +154,9 @@ function Create(props: Props) {
                 apiEndpoint={`/organizations/${organization.slug}/monitors/`}
                 onSubmitSuccess={(data: Monitor) =>
                   navigate(
-                    makeAlertsPathname({
-                      path: `/rules/crons/${data.project.slug}/${data.slug}/details/`,
-                      organization,
-                    })
+                    normalizeUrl(
+                      `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`
+                    )
                   )
                 }
                 submitLabel={t('Create')}

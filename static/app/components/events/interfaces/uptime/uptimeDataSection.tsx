@@ -25,11 +25,11 @@ import type {Event} from 'sentry/types/event';
 import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -133,10 +133,9 @@ export function UptimeDataSection({group, event, project}: Props) {
         <LinkButton
           icon={<IconSettings />}
           size="xs"
-          to={makeAlertsPathname({
-            path: `/rules/uptime/${project.slug}/${alertRuleId}/details/`,
-            organization,
-          })}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${alertRuleId}/details/`
+          )}
         >
           {t('Uptime Alert Rule')}
         </LinkButton>

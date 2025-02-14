@@ -55,7 +55,6 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AI_LANDING_SUB_PATH,
@@ -329,10 +328,7 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      })}
+      to={`/organizations/${organization.slug}/alerts/rules/`}
       id="alerts"
     />
   );
