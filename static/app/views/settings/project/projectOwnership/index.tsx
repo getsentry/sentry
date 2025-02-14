@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
@@ -31,6 +33,7 @@ import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnershi
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 export default function ProjectOwnership({project}: {project: Project}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const ownershipTitle = t('Ownership Rules');
@@ -142,6 +145,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
                   project,
                   ownership: ownership!,
                   onSave: handleOwnershipSave,
+                  theme,
                 })
               }
               disabled={!!ownership && editOwnershipRulesDisabled}

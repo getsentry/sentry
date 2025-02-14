@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {
@@ -6,7 +7,6 @@ import type {
   ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import theme from 'sentry/utils/theme';
 import {EditOwnershipRules} from 'sentry/views/settings/project/projectOwnership/editRulesModal';
 
 type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
@@ -24,7 +24,7 @@ function EditOwnershipRulesModal({Body, Header, onSave, closeModal, ...props}: P
   );
 }
 
-export const modalCss = css`
+export const modalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.small}) {
     width: 80%;
   }
