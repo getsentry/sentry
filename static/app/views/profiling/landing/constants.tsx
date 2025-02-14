@@ -1,1 +1,1 @@
-export const MAX_FUNCTIONS = 5;
+export const MAX_FUNCTIONS = 3;
