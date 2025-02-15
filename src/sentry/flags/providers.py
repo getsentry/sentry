@@ -55,7 +55,9 @@ class ProviderProtocol(Protocol[T]):
     provider_name: str
     signature: str | None
 
-    def __init__(self, organization_id: int, signature: str | None, **kwargs) -> None: ...
+    def __init__(
+        self, organization_id: int, signature: str | None, request_timestamp: str | None
+    ) -> None: ...
     def handle(self, message: T) -> list[FlagAuditLogRow]: ...
     def validate(self, message_bytes: bytes) -> bool: ...
 
@@ -128,7 +130,9 @@ SUPPORTED_LAUNCHDARKLY_ACTIONS = {
 class LaunchDarklyProvider:
     provider_name = "launchdarkly"
 
-    def __init__(self, organization_id: int, signature: str | None) -> None:
+    def __init__(
+        self, organization_id: int, signature: str | None, _request_timestamp: str | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.signature = signature
 
@@ -215,7 +219,9 @@ class GenericRequestSerializer(serializers.Serializer):
 class GenericProvider:
     provider_name = "generic"
 
-    def __init__(self, organization_id: int, signature: str | None) -> None:
+    def __init__(
+        self, organization_id: int, signature: str | None, _request_timestamp: str | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.signature = signature
 
@@ -307,7 +313,9 @@ def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
 class UnleashProvider:
     provider_name = "unleash"
 
-    def __init__(self, organization_id: int, signature: str | None) -> None:
+    def __init__(
+        self, organization_id: int, signature: str | None, _request_timestamp: str | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.signature = signature
 
@@ -377,7 +385,7 @@ SUPPORTED_STATSIG_TYPES = {
 
 class StatsigEventSerializer(serializers.Serializer):
     eventName = serializers.CharField(required=True)
-    timestamp = serializers.CharField(required=True)  # Custom serializer defined below.
+    timestamp = serializers.CharField(required=True)
     metadata = serializers.DictField(required=True)
 
     user = serializers.DictField(required=False, child=serializers.CharField())
@@ -399,8 +407,8 @@ class StatsigProvider:
     def __init__(
         self,
         organization_id: int,
-        signature: str | None = None,
-        request_timestamp: str | None = None,
+        signature: str | None,
+        request_timestamp: str | None,
     ) -> None:
         self.organization_id = organization_id
         self.signature = signature
