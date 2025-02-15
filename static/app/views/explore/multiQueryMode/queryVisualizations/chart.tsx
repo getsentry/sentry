@@ -4,10 +4,7 @@ import {IconGraph} from 'sentry/icons/iconGraph';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import usePrevious from 'sentry/utils/usePrevious';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {ErrorPanel} from 'sentry/views/dashboards/widgets/widgetLayout/errorPanel';
-import {LoadingPanel} from 'sentry/views/dashboards/widgets/widgetLayout/loadingPanel';
-import {WidgetLayout} from 'sentry/views/dashboards/widgets/widgetLayout/widgetLayout';
-import {WidgetTitle} from 'sentry/views/dashboards/widgets/widgetLayout/widgetTitle';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
@@ -97,35 +94,35 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
 
   const Title = (
     <Fragment>
-      <WidgetTitle title={formattedYAxes.filter(Boolean).join(', ')} />
+      <Widget.WidgetTitle title={formattedYAxes.filter(Boolean).join(', ')} />
     </Fragment>
   );
 
   if (chartInfo.loading) {
     return (
-      <WidgetLayout
+      <Widget
         key={index}
         height={CHART_HEIGHT}
         Title={Title}
-        Visualization={<LoadingPanel />}
+        Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
       />
     );
   }
   if (chartInfo.error) {
     return (
-      <WidgetLayout
+      <Widget
         key={index}
         height={CHART_HEIGHT}
         Title={Title}
-        Visualization={<ErrorPanel error={chartInfo.error} />}
+        Visualization={<Widget.WidgetError error={chartInfo.error} />}
         revealActions="always"
       />
     );
   }
 
   return (
-    <WidgetLayout
+    <Widget
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
