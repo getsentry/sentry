@@ -8,9 +8,11 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
+    EMAIL_ACTION_DATA_BLOBS,
     GITHUB_ACTION_DATA_BLOBS,
     JIRA_ACTION_DATA_BLOBS,
     JIRA_SERVER_ACTION_DATA_BLOBS,
+    WEBHOOK_ACTION_DATA_BLOBS,
 )
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
@@ -582,56 +584,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             build_notification_actions_from_rule_data_actions(action_data)
 
     def test_email_migration(self):
-        action_data: list[dict[str, Any]] = [
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "None",
-                "fallthroughType": "ActiveMembers",
-                "uuid": "2e8847d7-8fe4-44d2-8a16-e25040329790",
-            },
-            {
-                "targetType": "IssueOwners",
-                "targetIdentifier": "",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "NoOne",
-                "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
-            },
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": None,
-                "fallthroughType": "AllMembers",
-                "uuid": "41f13756-8f90-4afe-b162-55268c6e3cdb",
-            },
-            {
-                "targetType": "IssueOwners",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "None",
-                "fallthroughType": "NoOne",
-                "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
-            },
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 2160509,
-                "targetType": "Member",
-                "uuid": "42c3e1d6-4004-4a51-a90b-13d3404f1e55",
-            },
-            {
-                "targetType": "Member",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": 3234013,
-                "uuid": "6e83337b-9561-4167-a208-27d6bdf5e613",
-            },
-            {
-                "targetType": "Team",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "fallthroughType": "AllMembers",
-                "uuid": "71b445cf-573b-4e0c-86bc-8dfbad93c480",
-                "targetIdentifier": 188022,
-            },
-        ]
+        action_data = EMAIL_ACTION_DATA_BLOBS
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(
@@ -697,39 +650,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
 
     def test_webhook_action_migration(self):
-        action_data = [
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "bufo-bot-integration-1f946b",
-                "uuid": "02babf2f-d767-483c-bb5d-0eaae85c532a",
-            },
-            {
-                "service": "opsgenie",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "02b91e1d-a91c-4357-8190-a08c9e8c15c4",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "slack",
-                "uuid": "45a8b34b-325d-4efa-b5a1-0c6effc4eba1",
-            },
-            {
-                "service": "webhooks",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "722decb0-bad9-4f5e-ad06-865439169289",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "slack",
-                "uuid": "c19cdf39-8110-43fc-ad15-12b372332ac0",
-            },
-            {
-                "service": "chat-erwiuyhrwejkh",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "add56da2-be45-4182-800e-6b1b7fc4d012",
-            },
-        ]
-
+        action_data = WEBHOOK_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
 

@@ -25,17 +25,19 @@ export function MissingExampleWarning({
   }
 
   return (
-    <Alert type="warning" showIcon>
-      {tct(
-        `Looks like this getting started example is still undergoing some
+    <Alert.Container>
+      <Alert type="warning" showIcon>
+        {tct(
+          `Looks like this getting started example is still undergoing some
          work and doesn't include an example for triggering an event quite
          yet. If you have trouble sending your first event be sure to consult
          the [docsLink:full documentation] for [platform].`,
-        {
-          docsLink: <ExternalLink href={platformDocs?.link} />,
-          platform: platforms.find(p => p.id === platform)?.name,
-        }
-      )}
-    </Alert>
+          {
+            docsLink: <ExternalLink href={platformDocs?.link} />,
+            platform: platforms.find(p => p.id === platform)?.name,
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }

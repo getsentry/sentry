@@ -50,7 +50,7 @@ import TraceNotFound from './traceNotFound';
 import TraceViewDetailPanel from './traceViewDetailPanel';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
-type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
   error: QueryError | null;
   isLoading: boolean;
@@ -251,47 +251,55 @@ function NewTraceDetailsContent(props: Props) {
     switch (traceType) {
       case TraceShape.NO_ROOT:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-              {t(
-                'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-              )}
-            </ExternalLink>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+                {t(
+                  'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+                )}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
         );
         break;
       case TraceShape.BROKEN_SUBTRACES:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-              {t(
-                'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-              )}
-            </ExternalLink>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+                {t(
+                  'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+                )}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
         );
         break;
       case TraceShape.MULTIPLE_ROOTS:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
-              {t('Multiple root transactions have been found with this trace ID.')}
-            </ExternalLink>
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
+                {t('Multiple root transactions have been found with this trace ID.')}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
         );
         break;
       case TraceShape.ONLY_ERRORS:
         warning = (
-          <Alert type="info" showIcon>
-            {tct(
-              "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
-              {
-                tracingLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-                ),
-              }
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon>
+              {tct(
+                "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
+                {
+                  tracingLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
         );
         break;
       default:

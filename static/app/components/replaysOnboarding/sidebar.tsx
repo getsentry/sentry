@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -8,6 +8,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
@@ -29,19 +30,67 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
+export function useReplaysOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Getting Started with Session Replay'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== window.location.pathname,
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+function LegacyReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
   const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
   const {
     hasDocs,
     projects,
@@ -51,7 +100,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel,
+    currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
     targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
     onboardingPlatforms: replayOnboardingPlatforms,
     allPlatforms: replayPlatforms,
@@ -102,16 +151,13 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   }, [supportedProjects, unsupportedProjects]);
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-  if (!isActive || !hasProjectAccess || !selectedProject) {
+
+  if (!selectedProject) {
     return null;
   }
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
@@ -150,7 +196,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
         </HeaderActions>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -445,4 +491,4 @@ const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
 
-export default ReplaysOnboardingSidebar;
+export default LegacyReplaysOnboardingSidebar;

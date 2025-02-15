@@ -151,19 +151,21 @@ export function MonitorProcessingErrors({
   );
 
   return (
-    <ScrollableAlert
-      type="error"
-      showIcon
-      expand={
-        showingMultipleProjects ? (
-          <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
-        ) : (
-          <ErrorsList>{accordionErrors}</ErrorsList>
-        )
-      }
-    >
-      {children}
-    </ScrollableAlert>
+    <Alert.Container>
+      <ScrollableAlert
+        type="error"
+        showIcon
+        expand={
+          showingMultipleProjects ? (
+            <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
+          ) : (
+            <ErrorsList>{accordionErrors}</ErrorsList>
+          )
+        }
+      >
+        {children}
+      </ScrollableAlert>
+    </Alert.Container>
   );
 }
 

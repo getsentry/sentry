@@ -39,7 +39,13 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         status: AutofixStatus.PROCESSING,
         title: 'Starting Autofix...',
         insights: [],
-        progress: [],
+        progress: [
+          {
+            message: 'Ingesting Sentry data...',
+            timestamp: new Date().toISOString(),
+            type: 'INFO',
+          },
+        ],
       },
     ],
     created_at: new Date().toISOString(),
@@ -70,11 +76,30 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
 };
 
 /** Will not poll when the autofix is in an error state or has completed */
-const isPolling = (autofixData?: AutofixData | null) =>
-  !autofixData ||
-  ![AutofixStatus.ERROR, AutofixStatus.COMPLETED, AutofixStatus.CANCELLED].includes(
-    autofixData.status
+const isPolling = (autofixData?: AutofixData | null) => {
+  if (!autofixData?.steps) {
+    return true;
+  }
+
+  const hasSolutionStep = autofixData.steps.some(
+    step => step.type === AutofixStepType.SOLUTION
   );
+
+  if (
+    !hasSolutionStep &&
+    ![AutofixStatus.ERROR, AutofixStatus.CANCELLED].includes(autofixData.status)
+  ) {
+    // we want to keep polling until we have a solution step because that's a stopping point
+    // we need this explicit check in case we get a state for a fraction of a second where the root cause is complete and there is no step after it started
+    return true;
+  }
+  return (
+    !autofixData ||
+    ![AutofixStatus.ERROR, AutofixStatus.COMPLETED, AutofixStatus.CANCELLED].includes(
+      autofixData.status
+    )
+  );
+};
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
@@ -92,6 +117,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   const [isReset, setIsReset] = useState<boolean>(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
 
   const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
     staleTime: 0,
@@ -102,22 +128,13 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       }
       return false;
     },
-    select: useCallback(
-      (response: AutofixResponse) => {
-        if (currentRunId && response.autofix?.run_id !== currentRunId) {
-          return {autofix: null};
-        }
-        return response;
-      },
-      [currentRunId]
-    ),
   } as UseApiQueryOptions<AutofixResponse, RequestError>);
 
   const triggerAutofix = useCallback(
     async (instruction: string) => {
       setIsReset(false);
       setCurrentRunId(null);
-
+      setWaitingForNextRun(true);
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(group.id),
@@ -132,10 +149,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
             instruction,
           },
         });
-        // Save the run_id from the response
-        if (response.autofix?.run_id) {
-          setCurrentRunId(response.autofix.run_id);
-        }
+        setCurrentRunId(response.run_id ?? null);
       } catch (e) {
         setApiQueryData<AutofixResponse>(
           queryClient,
@@ -150,9 +164,25 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const reset = useCallback(() => {
     setIsReset(true);
     setCurrentRunId(null);
+    setWaitingForNextRun(true);
   }, []);
 
-  const autofixData = isReset ? null : apiData?.autofix ?? null;
+  let autofixData = apiData?.autofix ?? null;
+  if (waitingForNextRun) {
+    autofixData = makeInitialAutofixData().autofix;
+  }
+  if (isReset) {
+    autofixData = null;
+  }
+
+  if (
+    apiData?.autofix?.steps?.length &&
+    apiData?.autofix?.steps[0]?.progress.length &&
+    waitingForNextRun &&
+    apiData?.autofix?.run_id === currentRunId
+  ) {
+    setWaitingForNextRun(false);
+  }
 
   return {
     autofixData,
