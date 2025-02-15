@@ -3,7 +3,7 @@ import hmac
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 import orjson
 from django.conf import settings
@@ -39,6 +39,8 @@ from sentry.integrations.github.tasks.language_parsers import (
 )
 from sentry.integrations.github.tasks.open_pr_comment import (
     MAX_RECENT_ISSUES,
+    OPEN_PR_MAX_FILES_CHANGED,
+    OPEN_PR_MAX_LINES_CHANGED,
     get_projects_and_filenames_from_source_file,
 )
 from sentry.integrations.github.tasks.utils import PullRequestFile
@@ -55,7 +57,7 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
-MAX_NUM_ISSUES_DEFAULT = 5
+MAX_NUM_ISSUES_PER_FILE_DEFAULT = 5
 """
 The maximum number of related issues to return for one file.
 """
@@ -198,13 +200,53 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+# Fetch issues from PRs
+
+
+class PrFile(TypedDict):
+    filename: str
+    patch: str
+    status: Literal[
+        "added",
+        "removed",
+        "modified",
+        "renamed",
+        "copied",
+        "changed",
+        "unchanged",
+    ]
+    changes: int
+
+
+def safe_for_fetching_issues(pr_files: list[PrFile]) -> list[PrFile]:
+    changed_file_count = 0
+    changed_lines_count = 0
+    filtered_pr_files = []
+    for file in pr_files:
+        if file["status"] != "modified" or file["filename"].split(".")[-1] not in PATCH_PARSERS:
+            continue
+
+        changed_file_count += 1
+        changed_lines_count += file["changes"]
+        filtered_pr_files.append(file)
+
+        if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+            # TODO: metrics like in open_pr_comment?
+            return []
+        if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+            # TODO: metrics like in open_pr_comment?
+            return []
+
+    return filtered_pr_files
+
+
 def _get_issues_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
     event_timestamp_start: datetime,
     event_timestamp_end: datetime,
-    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
+    max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
 ) -> list[dict[str, Any]]:
     """
     Fetch issues with their latest event if its stacktrace frames match the function names
@@ -331,7 +373,9 @@ def _get_issues_for_file(
                 ),
             ]
         )
-        .set_limit(max_num_issues)  # TODO: order by something? Should be made reproducible.
+        .set_limit(
+            max_num_issues_per_file
+        )  # TODO: order by something? Should be made reproducible.
     )
     request = SnubaRequest(
         dataset=Dataset.Events.value,
@@ -386,7 +430,7 @@ def get_issues_with_event_details_for_file(
     projects: list[Project],
     sentry_filenames: list[str],
     function_names: list[str],
-    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
+    max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
 ) -> list[dict[str, Any]]:
     event_timestamp_start = datetime.now(UTC) - timedelta(days=NUM_DAYS_AGO)
     event_timestamp_end = datetime.now(UTC)
@@ -396,7 +440,7 @@ def get_issues_with_event_details_for_file(
         function_names,
         event_timestamp_start,
         event_timestamp_end,
-        max_num_issues=max_num_issues,
+        max_num_issues_per_file=max_num_issues_per_file,
     )
     return _add_event_details(
         projects, issues_result_set, event_timestamp_start, event_timestamp_end
@@ -408,8 +452,8 @@ def get_issues_related_to_file_patches(
     organization_id: int,
     provider: str,
     external_id: str,
-    filename_to_patch: dict[str, str],
-    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
+    pr_files: list[PrFile],
+    max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
 ) -> dict[str, list[dict[str, Any]]]:
     """
     Get the top issues related to each file by looking at matches between functions in the patch
@@ -433,11 +477,9 @@ def get_issues_related_to_file_patches(
         )
         return {}
 
-    repo_id = repo.id
-
+    pr_files = safe_for_fetching_issues(pr_files)
     pullrequest_files = [
-        PullRequestFile(filename=filename, patch=patch)
-        for filename, patch in filename_to_patch.items()
+        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
     ]
 
     filename_to_issues = {}
@@ -445,7 +487,7 @@ def get_issues_related_to_file_patches(
 
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
-            organization_id, repo_id, file.filename
+            organization_id, repo.id, file.filename
         )
         if not len(projects) or not len(sentry_filenames):
             # TODO: metrics like in open_pr_comment?
@@ -467,7 +509,7 @@ def get_issues_related_to_file_patches(
             list(projects),
             list(sentry_filenames),
             list(function_names),
-            max_num_issues=max_num_issues,
+            max_num_issues_per_file=max_num_issues_per_file,
         )
         filename_to_issues[file.filename] = issues
 

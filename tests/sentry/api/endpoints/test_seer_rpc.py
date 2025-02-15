@@ -5,13 +5,16 @@ import orjson
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import eventstore
 from sentry.api.endpoints.seer_rpc import (
     NUM_DAYS_AGO,
     _add_event_details,
     generate_request_signature,
     get_issues_related_to_file_patches,
     get_issues_with_event_details_for_file,
+    safe_for_fetching_issues,
 )
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.integrations.github.constants import STACKFRAME_COUNT
 from sentry.models.group import Group
 from sentry.models.repository import Repository
@@ -70,6 +73,21 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert set(issue_ids) == {group_id, self.group_id}
         assert set(function_names) == {"planet", "world"}
 
+        # Check that each issue is structured like an IssueDetails
+        assert all(len(issue["events"]) == 1 for issue in issues_with_event_details)
+        events = eventstore.backend.get_events(
+            filter=eventstore.Filter(
+                event_ids=[issue["events"][0]["id"] for issue in issues_with_event_details],
+                project_ids=[self.project.id],
+            ),
+            tenant_ids={"organization_id": self.project.organization_id},
+        )
+        for issue, event in zip(issues_with_event_details, events, strict=True):
+            assert issue["title"] is not None
+            event_dict = issue["events"][0]
+            serialized_event = serialize(event, serializer=EventSerializer())
+            assert event_dict == serialized_event
+
     def test_filename_mismatch(self):
         group_id = self._create_event(
             filenames=["foo.py", "bar.py"],
@@ -123,6 +141,39 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         assert issue_ids == [self.group_id]
 
 
+def test_safe_for_fetching_issues():
+    pr_files = [
+        {"filename": "foo.py", "patch": "a", "changes": 100, "status": "modified"},
+        {"filename": "bar.js", "patch": "b", "changes": 100, "status": "modified"},
+        {"filename": "baz.py", "patch": "c", "changes": 100, "status": "added"},
+        {"filename": "bee.py", "patch": "d", "changes": 100, "status": "removed"},
+        {"filename": "boo.js", "patch": "e", "changes": 0, "status": "renamed"},
+        {"filename": "bop.php", "patch": "f", "changes": 100, "status": "modified"},
+        {"filename": "doo.rb", "patch": "g", "changes": 100, "status": "modified"},
+    ]
+    pr_files_safe = [
+        {"filename": "foo.py", "patch": "a", "changes": 100, "status": "modified"},
+        {"filename": "bar.js", "patch": "b", "changes": 100, "status": "modified"},
+        {"filename": "bop.php", "patch": "f", "changes": 100, "status": "modified"},
+        {"filename": "doo.rb", "patch": "g", "changes": 100, "status": "modified"},
+    ]
+
+    assert safe_for_fetching_issues(pr_files) == pr_files_safe
+
+    pr_files_too_many_files = pr_files + pr_files
+    assert safe_for_fetching_issues(pr_files_too_many_files) == []
+
+    pr_files_too_many_changes = [
+        {"filename": "foo.py", "patch": "a", "changes": 1_000, "status": "modified"},
+    ]
+    assert safe_for_fetching_issues(pr_files_too_many_changes) == []
+
+    pr_files_with_unsupported_language = pr_files + [
+        {"filename": "ahoy.m8y", "patch": "a", "changes": 100, "status": "modified"},
+    ]
+    assert safe_for_fetching_issues(pr_files_with_unsupported_language) == pr_files_safe
+
+
 class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
@@ -171,6 +222,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             event_timestamp_end=None,
         )
 
+    @patch("sentry.api.endpoints.seer_rpc.safe_for_fetching_issues")
     @patch("sentry.api.endpoints.seer_rpc.get_projects_and_filenames_from_source_file")
     @patch(
         "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
@@ -181,16 +233,21 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         mock_get_issues_with_event_details_for_file: Mock,
         mock_extract_functions_from_patch: Mock,
         mock_get_projects_and_filenames_from_source_file: Mock,
+        mock_safe_for_fetching_issues: Mock,
     ):
         mock_get_issues_with_event_details_for_file.side_effect = (
             lambda *args, **kwargs: self.issues_with_event_details
         )
         mock_extract_functions_from_patch.return_value = ["world", "planet"]
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
+        mock_safe_for_fetching_issues.side_effect = lambda x: x
 
-        filename_to_patch = {"foo.py": "a", "bar.py": "b"}
+        pr_files = [
+            {"filename": "foo.py", "patch": "a", "status": "modified", "changes": 1},
+            {"filename": "bar.py", "patch": "b", "status": "modified", "changes": 1},
+        ]
         filename_to_issues_expected = {
-            filename: self.issues_with_event_details for filename in filename_to_patch
+            pr_file["filename"]: self.issues_with_event_details for pr_file in pr_files
         }
 
         assert self.gh_repo.provider is not None
@@ -199,6 +256,6 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             organization_id=self.organization.id,
             provider=self.gh_repo.provider,
             external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
-            filename_to_patch=filename_to_patch,
+            pr_files=pr_files,
         )
         assert filename_to_issues == filename_to_issues_expected
