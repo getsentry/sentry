@@ -227,7 +227,8 @@ export enum SpanIndexedField {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
-  ID = 'span_id',
+  ID = 'id',
+  SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
@@ -282,8 +283,8 @@ export enum SpanIndexedField {
 }
 
 export type SpanIndexedResponse = {
-  id: string;
   [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
@@ -314,7 +315,7 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
@@ -441,7 +442,11 @@ export const subregionCodeToName = {
 export type SubregionCode = keyof typeof subregionCodeToName;
 
 export type OurlogsFields = {
-  'sentry.body': string;
-  'sentry.severity_text': string;
-  'sentry.timestamp': string;
+  'log.body': string;
+  'log.severity_number': number;
+  'log.severity_text': string;
+  'sentry.organization_id': number;
+  'sentry.project_id': number;
+  'sentry.span_id': string;
+  timestamp: string;
 };

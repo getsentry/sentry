@@ -226,9 +226,11 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
         />
       </SearchbarContainer>
       {transactionsError && (
-        <Alert type="error" showIcon>
-          {transactionsError}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {transactionsError}
+          </Alert>
+        </Alert.Container>
       )}
       <ProfileEventsTable
         columns={fields.slice()}

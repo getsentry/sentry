@@ -175,15 +175,17 @@ function ProjectDataForwarding({project}: Props) {
             </TextBlock>
             <ProjectPermissionAlert project={project} />
 
-            <Alert showIcon type="info">
-              {tct(
-                `Sentry forwards [em:all applicable error events] to the provider, in
+            <Alert.Container>
+              <Alert showIcon type="info">
+                {tct(
+                  `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,
-                {
-                  em: <strong />,
-                }
-              )}
-            </Alert>
+                  {
+                    em: <strong />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
 
             {!hasFeature && (
               <FeatureDisabled

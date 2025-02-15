@@ -10,14 +10,8 @@ import {
   type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-import {
-  DEFAULT_FIELD,
-  MISSING_DATA_MESSAGE,
-  NON_FINITE_NUMBER_MESSAGE,
-} from '../common/settings';
+import {DEFAULT_FIELD, MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';
-
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 
 export interface BigNumberWidgetProps
   extends StateProps,
@@ -36,7 +30,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
         revealActions={props.revealActions}
         revealTooltip={props.revealTooltip}
       >
-        <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
+        <BigNumberWidgetVisualization.LoadingPlaceholder />
       </WidgetFrame>
     );
   }
@@ -45,11 +39,6 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
 
   if (!defined(value)) {
     parsingError = MISSING_DATA_MESSAGE;
-  } else if (
-    (typeof value === 'number' && !Number.isFinite(value)) ||
-    Number.isNaN(value)
-  ) {
-    parsingError = NON_FINITE_NUMBER_MESSAGE;
   }
 
   const error = props.error ?? parsingError;
@@ -90,9 +79,4 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
 const BigNumberResizeWrapper = styled('div')`
   position: relative;
   flex-grow: 1;
-`;
-
-const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;

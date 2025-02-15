@@ -1,4 +1,5 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -18,7 +19,6 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 
 type Props = {
   /**
@@ -49,6 +49,7 @@ type Props = {
 };
 
 function SuggestedOwnerHovercard(props: Props) {
+  const theme = useTheme();
   const [commitsExpanded, setCommitsExpanded] = useState<boolean>(false);
   const [rulesExpanded, setRulesExpanded] = useState<boolean>(false);
 
@@ -61,6 +62,18 @@ function SuggestedOwnerHovercard(props: Props) {
     ],
     source: 'suggested_assignees',
   };
+
+  const tagColors = useMemo(
+    () =>
+      ({
+        url: theme.green200,
+        path: theme.purple300,
+        tag: theme.blue300,
+        codeowners: theme.pink300,
+        release: theme.pink200,
+      }) as const,
+    [theme]
+  );
 
   return (
     <StyledHovercard
@@ -120,7 +133,7 @@ function SuggestedOwnerHovercard(props: Props) {
               </Divider>
               <div>
                 <CommitReasonItem>
-                  <OwnershipTag tagType="release" />
+                  <OwnershipTag tagType="release" tagColors={tagColors} />
                   <ReleaseValue>
                     {tct('[actor] [verb] [commits] in [release]', {
                       actor: actor.name,
@@ -165,7 +178,7 @@ function SuggestedOwnerHovercard(props: Props) {
                   .slice(0, rulesExpanded ? rules.length : 3)
                   .map(([type, matched], i) => (
                     <RuleReasonItem key={i}>
-                      <OwnershipTag tagType={type} />
+                      <OwnershipTag tagType={type} tagColors={tagColors} />
                       <OwnershipValue>{matched}</OwnershipValue>
                     </RuleReasonItem>
                   ))}
@@ -187,14 +200,6 @@ function SuggestedOwnerHovercard(props: Props) {
     />
   );
 }
-
-const tagColors = {
-  url: theme.green200,
-  path: theme.purple300,
-  tag: theme.blue300,
-  codeowners: theme.pink300,
-  release: theme.pink200,
-} as const;
 
 const StyledHovercard = styled(Hovercard)`
   width: 400px;
@@ -236,12 +241,14 @@ const RuleReasonItem = styled('div')`
   gap: ${space(1)};
 `;
 
-const OwnershipTag = styled(({tagType, ...props}: any) => (
-  <div {...props}>{tagType}</div>
-))`
+const OwnershipTag = styled(
+  ({tagType, ...props}: {tagColors: Record<string, string>; tagType: string}) => (
+    <div {...props}>{tagType}</div>
+  )
+)`
   background: ${p =>
-    tagColors[
-      p.tagType.indexOf('tags') === -1 ? (p.tagType as keyof typeof tagColors) : 'tag'
+    p.tagColors[
+      p.tagType.indexOf('tags') === -1 ? (p.tagType as keyof typeof p.tagColors) : 'tag'
     ]};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Sequence
 from datetime import timedelta
 from typing import Any
@@ -352,7 +353,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if "confidence" in results:
                 meta["accuracy"] = {
                     "confidence": results["confidence"],
-                    # TODO: add sampleCount and rampleRate here
                 }
                 # Confidence being a top level key is going to be deprecated in favour of confidence being in the meta
                 return {"data": data, "meta": meta, "confidence": results["confidence"]}
@@ -505,15 +505,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                                 results, key, query_columns
                             )
                     else:
+                        column = resolve_axis_column(
+                            query_columns[0], 0, transform_alias_to_input_format
+                        )
                         results[key] = serializer.serialize(
                             event_result,
-                            column=resolve_axis_column(
-                                query_columns[0], 0, transform_alias_to_input_format
-                            ),
+                            column=column,
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
-                        results[key]["meta"] = self.handle_results_with_meta(
+                        meta = self.handle_results_with_meta(
                             request,
                             organization,
                             snuba_params.project_ids,
@@ -521,6 +522,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             True,
                             dataset=dataset,
                         )["meta"]
+                        self.update_meta_with_accuracy(meta, event_result, column)
+                        results[key]["meta"] = meta
 
                 serialized_result = results
             elif is_multiple_axis:
@@ -543,16 +546,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
+                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
                 serialized_result = serializer.serialize(
                     result,
-                    column=resolve_axis_column(
-                        query_columns[0], 0, transform_alias_to_input_format
-                    ),
+                    column=column,
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
+                    confidence_column=column,
                 )
-                serialized_result["meta"] = self.handle_results_with_meta(
+                meta = self.handle_results_with_meta(
                     request,
                     organization,
                     snuba_params.project_ids,
@@ -560,6 +563,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     True,
                     dataset=dataset,
                 )["meta"]
+                self.update_meta_with_accuracy(meta, result, column)
+                serialized_result["meta"] = meta
 
             return serialized_result
 
@@ -613,15 +618,43 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
-            # TODO: confidence is being split up in the serializer right now, need to move that here once its deprecated
-            if "confidence" in result[columns[index]]:
-                meta["accuracy"] = {"confidence": result[columns[index]]["confidence"]}
+            self.update_meta_with_accuracy(meta, event_result, query_column)
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
 
         return result
+
+    def update_meta_with_accuracy(self, meta, event_result, query_column) -> None:
+        if "processed_timeseries" in event_result.data:
+            processed_timeseries = event_result.data["processed_timeseries"]
+            meta["accuracy"] = {
+                "confidence": self.serialize_accuracy_data(
+                    processed_timeseries.confidence, query_column
+                ),
+                "sampleCount": self.serialize_accuracy_data(
+                    processed_timeseries.sample_count, query_column
+                ),
+                "samplingRate": self.serialize_accuracy_data(
+                    processed_timeseries.sampling_rate, query_column, null_zero=True
+                ),
+            }
+
+    def serialize_accuracy_data(
+        self,
+        data: Any,
+        column: str,
+        null_zero: bool = False,
+    ):
+        serialized_values = []
+        for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
+            for row in group:
+                row_value = row.get(column, None)
+                if row_value == 0 and null_zero:
+                    row_value = None
+                serialized_values.append({"timestamp": timestamp, "value": row_value})
+        return serialized_values
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):

@@ -43,8 +43,8 @@ import {
   hasOnDemandMetricAlertFeature,
   shouldShowOnDemandMetricAlertUI,
 } from 'sentry/utils/onDemandMetrics/features';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withProjects from 'sentry/utils/withProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
@@ -115,7 +115,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
+} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 
@@ -271,12 +271,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {router} = this.props;
     const {organization} = this.props;
 
-    router.push(
-      makeAlertsPathname({
-        path: `/rules/`,
-        organization,
-      })
-    );
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   }
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
@@ -1363,14 +1358,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
             {showErrorMigrationWarning && (
-              <Alert type="warning" showIcon>
-                {tct(
-                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
-                  {
-                    code: <code />,
-                  }
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert type="warning" showIcon>
+                  {tct(
+                    "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
+                    {
+                      code: <code />,
+                    }
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
             {triggerForm(formDisabled)}
             {ruleNameOwnerForm(formDisabled)}
