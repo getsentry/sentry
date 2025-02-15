@@ -36,7 +36,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "SentryAppDetailsResponse", list[SentryAppSerializerResponse]
+                "OrganizationSentryAppDetailsResponse", list[SentryAppSerializerResponse]
             ),
         },
         examples=SentryAppExamples.GET_ORGANIZATIONS_SENTRY_APPS,

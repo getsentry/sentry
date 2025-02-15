@@ -8,13 +8,15 @@ class SentryAppExamples:
             value={
                 "allowedOrigins": [],
                 "author": "ACME Corp",
-                "avatars": {
-                    "avatarType": "avatar",
-                    "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
-                    "avatarUrl": "https://example.com/avatar.png",
-                    "color": False,
-                    "photoType": "icon",
-                },
+                "avatars": [
+                    {
+                        "avatarType": "avatar",
+                        "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
+                        "avatarUrl": "https://example.com/avatar.png",
+                        "color": False,
+                        "photoType": "icon",
+                    }
+                ],
                 "events": ["issue"],
                 "isAlertable": False,
                 "metadata": "",
@@ -45,13 +47,15 @@ class SentryAppExamples:
             value={
                 "allowedOrigins": [],
                 "author": "ACME Corp",
-                "avatars": {
-                    "avatarType": "avatar",
-                    "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
-                    "avatarUrl": "https://example.com/avatar.png",
-                    "color": False,
-                    "photoType": "icon",
-                },
+                "avatars": [
+                    {
+                        "avatarType": "avatar",
+                        "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
+                        "avatarUrl": "https://example.com/avatar.png",
+                        "color": False,
+                        "photoType": "icon",
+                    }
+                ],
                 "events": ["issue"],
                 "isAlertable": False,
                 "metadata": "",
@@ -100,13 +104,15 @@ class SentryAppExamples:
                 {
                     "allowedOrigins": [],
                     "author": "ACME Corp",
-                    "avatars": {
-                        "avatarType": "avatar",
-                        "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
-                        "avatarUrl": "https://example.com/avatar.png",
-                        "color": False,
-                        "photoType": "icon",
-                    },
+                    "avatars": [
+                        {
+                            "avatarType": "avatar",
+                            "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
+                            "avatarUrl": "https://example.com/avatar.png",
+                            "color": False,
+                            "photoType": "icon",
+                        }
+                    ],
                     "events": ["issue"],
                     "isAlertable": False,
                     "metadata": "",
