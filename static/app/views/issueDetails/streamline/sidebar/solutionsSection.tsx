@@ -124,7 +124,7 @@ export default function SolutionsSection({
     >
       <SolutionsSectionContainer>
         {renderContent()}
-        {event && (
+        {event && aiConfig.hasAutofix && (
           <SolutionsSectionCtaButton
             aiConfig={aiConfig}
             event={event}
