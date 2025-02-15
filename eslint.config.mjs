@@ -12,10 +12,12 @@
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import filenameExport from 'eslint-plugin-filename-export';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -252,6 +254,7 @@ export default typescript.config([
       'no-extend-native': 'error',
       'no-extra-bind': 'error',
       'no-floating-decimal': 'error',
+      'no-implicit-coercion': 'off', // TODO(ryan953): Fix violations and enable this rule
       'no-implied-eval': 'error',
       'no-inner-declarations': 'error',
       'no-lone-blocks': 'error',
@@ -274,6 +277,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
+      'prefer-destructuring': 'off', // TODO(ryan953): Fix violations and enable this rule?
       radix: 'error',
       'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
       'spaced-comment': [
@@ -301,6 +305,7 @@ export default typescript.config([
     ...importPlugin.flatConfigs.recommended,
     name: 'plugin/import',
     rules: {
+      'import/consistent-type-specifier-style': ['off', 'prefer-top-level'], // TODO(ryan953): Fix violations and enable this rule
       'import/newline-after-import': 'error', // https://prettier.io/docs/en/rationale.html#empty-lines
       'import/no-absolute-path': 'error',
       'import/no-amd': 'error',
@@ -309,6 +314,7 @@ export default typescript.config([
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
+      'import/prefer-default-export': ['off', {target: 'single'}], // TODO(ryan953): Fix violations and enable this rule
 
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
       ...importPlugin.flatConfigs.recommended.rules,
@@ -318,6 +324,26 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/filename-export',
+    // https://github.com/ekwoka/eslint-plugin-filename-export?tab=readme-ov-file#rules
+    plugins: {'filename-export': filenameExport},
+    rules: {
+      'filename-export/match-named-export': 'off', // This is a hard one to enable, we have loads of files like: utils.tsx, styles.tsx, data.tsx...
+      'filename-export/match-default-export': ['off', {casing: 'loose'}], // TODO(ryan953): Fix violations and enable this rule
+    },
+  },
+  {
+    name: 'plugin/no-relative-import-paths',
+    // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
+    plugins: {'no-relative-import-paths': noRelativeImportPaths},
+    rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'off',
+        {prefix: 'sentry', allowSameFolder: true},
+      ], // TODO(ryan953): Fix violations and enable this rule, followup and disable `allowSameFolder`, see also exceptions for *.spec.tsx files
     },
   },
   {
@@ -550,13 +576,48 @@ export default typescript.config([
   },
   {
     name: 'plugin/unicorn',
+    // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
     plugins: {unicorn},
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
 
+      'unicorn/custom-error-definition': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/error-message': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/new-for-builtins': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-abusive-eslint-disable': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-await-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-invalid-remove-event-listener': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-negated-condition': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-negation-in-equality-check': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-unnecessary-await': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-fallback-in-spread': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-length-check': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-node-protocol': 'error',
+      'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
     },
   },
   {
@@ -687,6 +748,11 @@ export default typescript.config([
           ],
         },
       ],
+
+      'no-relative-import-paths/no-relative-import-paths': [
+        'off',
+        {prefix: 'sentry', allowSameFolder: true},
+      ], // TODO(ryan953): Fix violations and enable this rule, keep `allowSameFolder:true`
     },
   },
   {
