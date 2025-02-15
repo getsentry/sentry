@@ -61,13 +61,6 @@ describe('StreamlinedSidebar', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/autofix/`,
-      body: {
-        steps: [],
-      },
-    });
-
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',

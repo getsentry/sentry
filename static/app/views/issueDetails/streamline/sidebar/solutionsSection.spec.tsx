@@ -43,13 +43,6 @@ describe('SolutionsSection', () => {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
-      body: {
-        steps: [],
-      },
-    });
-
     jest.mocked(getConfigForIssueType).mockReturnValue({
       issueSummary: {
         enabled: true,
@@ -197,7 +190,7 @@ describe('SolutionsSection', () => {
   });
 
   describe('Solutions Hub button text', () => {
-    it('shows "Set Up Sentry AI" when AI needs setup', async () => {
+    it('shows "Set up Sentry AI" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
@@ -228,10 +221,10 @@ describe('SolutionsSection', () => {
         screen.getByText('Explore potential root causes and solutions with Sentry AI.')
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Set Up Sentry AI'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up Sentry AI'})).toBeInTheDocument();
     });
 
-    it('shows "Set Up Autofix" when autofix needs setup', async () => {
+    it('shows "Set up Autofix" when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: {
@@ -259,10 +252,52 @@ describe('SolutionsSection', () => {
         expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
 
-      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up Autofix'})).toBeInTheDocument();
     });
 
-    it('shows "Find Root Cause" when autofix is available', async () => {
+    it('shows "Open Resources & Autofix" when both are available', async () => {
+      // Mock successful summary response
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
+      // Mock successful autofix setup
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: true},
+          integration: {ok: true},
+          githubWriteIntegration: {ok: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {name: 'Open Resources & Autofix'})
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Open Autofix" when only autofix is available', async () => {
       // Mock successful autofix setup but disable resources
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
@@ -294,7 +329,7 @@ describe('SolutionsSection', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
       });
     });
 
