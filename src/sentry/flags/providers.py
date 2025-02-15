@@ -439,6 +439,7 @@ class StatsigProvider:
 
             if (
                 not flag
+                or not statsig_type
                 or statsig_type.lower() not in SUPPORTED_STATSIG_TYPES
                 or action not in ACTION_MAP
             ):
