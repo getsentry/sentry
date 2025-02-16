@@ -131,7 +131,6 @@ module = [
     "sentry.api.endpoints.project_ownership",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
-    "sentry.api.endpoints.user_subscriptions",
     "sentry.api.invite_helper",
     "sentry.api.paginator",
     "sentry.api.permissions",
