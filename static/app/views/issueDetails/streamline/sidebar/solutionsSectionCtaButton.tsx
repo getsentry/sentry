@@ -77,6 +77,8 @@ export function SolutionsSectionCtaButton({
   const lastStep = autofixData?.steps?.[autofixData.steps.length - 1];
   const isAutofixInProgress = lastStep?.status === AutofixStatus.PROCESSING;
   const isAutofixCompleted = lastStep?.status === AutofixStatus.COMPLETED;
+  const isAutofixWaitingForUser =
+    autofixData?.status === AutofixStatus.WAITING_FOR_USER_RESPONSE;
 
   const hasStepType = (type: AutofixStepType) =>
     autofixData?.steps?.some(step => step.type === type);
@@ -94,6 +96,10 @@ export function SolutionsSectionCtaButton({
 
     if (!lastStep) {
       return t('Find Root Cause');
+    }
+
+    if (isAutofixWaitingForUser) {
+      return t('Waiting for Your Input');
     }
 
     if (isAutofixInProgress) {
