@@ -76,7 +76,11 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
 };
 
 /** Will not poll when the autofix is in an error state or has completed */
-const isPolling = (autofixData?: AutofixData | null) => {
+const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
+  if (!autofixData && !runStarted) {
+    return false;
+  }
+
   if (!autofixData?.steps) {
     return true;
   }
@@ -95,9 +99,12 @@ const isPolling = (autofixData?: AutofixData | null) => {
   }
   return (
     !autofixData ||
-    ![AutofixStatus.ERROR, AutofixStatus.COMPLETED, AutofixStatus.CANCELLED].includes(
-      autofixData.status
-    )
+    ![
+      AutofixStatus.ERROR,
+      AutofixStatus.COMPLETED,
+      AutofixStatus.CANCELLED,
+      AutofixStatus.NEED_MORE_INFORMATION,
+    ].includes(autofixData.status)
   );
 };
 
@@ -123,7 +130,12 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
     staleTime: 0,
     retry: false,
     refetchInterval: query => {
-      if (isPolling(query.state.data?.[0]?.autofix)) {
+      if (
+        isPolling(
+          query.state.data?.[0]?.autofix || null,
+          !!currentRunId || waitingForNextRun
+        )
+      ) {
         return POLL_INTERVAL;
       }
       return false;
@@ -134,6 +146,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
     async (instruction: string) => {
       setIsReset(false);
       setCurrentRunId(null);
+      setWaitingForNextRun(true);
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(group.id),
@@ -185,7 +198,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
 
   return {
     autofixData,
-    isPolling: isPolling(autofixData),
+    isPolling: isPolling(autofixData, !!currentRunId || waitingForNextRun),
     triggerAutofix,
     reset,
   };
