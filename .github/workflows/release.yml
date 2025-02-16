@@ -16,6 +16,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     name: 'Release a new version'
+    if: github.repository_owner == 'getsentry'
     steps:
       - name: Get auth token
         id: token
