@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -186,7 +187,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.PERFORMANCE
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor | None) -> str:
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
