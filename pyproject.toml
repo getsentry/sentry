@@ -199,7 +199,6 @@ module = [
     "sentry.pipeline.views.base",
     "sentry.pipeline.views.nested",
     "sentry.plugins.config",
-    "sentry.receivers.releases",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.history.preview",
