@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry import eventstore
 from sentry.api.endpoints.seer_rpc import (
     NUM_DAYS_AGO,
+    PrFile,
     _add_event_details,
     generate_request_signature,
     get_issues_related_to_file_patches,
@@ -142,7 +143,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
 
 
 def test_safe_for_fetching_issues():
-    pr_files = [
+    pr_files: list[PrFile] = [
         {"filename": "foo.py", "patch": "a", "changes": 100, "status": "modified"},
         {"filename": "bar.js", "patch": "b", "changes": 100, "status": "modified"},
         {"filename": "baz.py", "patch": "c", "changes": 100, "status": "added"},
@@ -151,7 +152,7 @@ def test_safe_for_fetching_issues():
         {"filename": "bop.php", "patch": "f", "changes": 100, "status": "modified"},
         {"filename": "doo.rb", "patch": "g", "changes": 100, "status": "modified"},
     ]
-    pr_files_safe = [
+    pr_files_safe: list[PrFile] = [
         {"filename": "foo.py", "patch": "a", "changes": 100, "status": "modified"},
         {"filename": "bar.js", "patch": "b", "changes": 100, "status": "modified"},
         {"filename": "bop.php", "patch": "f", "changes": 100, "status": "modified"},
@@ -163,12 +164,12 @@ def test_safe_for_fetching_issues():
     pr_files_too_many_files = pr_files + pr_files
     assert safe_for_fetching_issues(pr_files_too_many_files) == []
 
-    pr_files_too_many_changes = [
+    pr_files_too_many_changes: list[PrFile] = [
         {"filename": "foo.py", "patch": "a", "changes": 1_000, "status": "modified"},
     ]
     assert safe_for_fetching_issues(pr_files_too_many_changes) == []
 
-    pr_files_with_unsupported_language = pr_files + [
+    pr_files_with_unsupported_language: list[PrFile] = pr_files + [
         {"filename": "ahoy.m8y", "patch": "a", "changes": 100, "status": "modified"},
     ]
     assert safe_for_fetching_issues(pr_files_with_unsupported_language) == pr_files_safe
@@ -242,7 +243,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
         mock_safe_for_fetching_issues.side_effect = lambda x: x
 
-        pr_files = [
+        pr_files: list[PrFile] = [
             {"filename": "foo.py", "patch": "a", "status": "modified", "changes": 1},
             {"filename": "bar.py", "patch": "b", "status": "modified", "changes": 1},
         ]
