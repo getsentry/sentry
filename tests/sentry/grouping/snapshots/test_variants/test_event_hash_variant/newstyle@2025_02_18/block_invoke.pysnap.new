@@ -1,0 +1,46 @@
+---
+created: '2025-02-17T13:34:30.670163+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "ff6c4ee7c54f118a9647ee86f0c2b0b0"
+  contributing component: threads
+  component:
+    app*
+      threads*
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            function*
+              "__99+[Something else]_block_invoke_2"
+          frame (non app frame)
+            function*
+              "__00+[Something else]_block_invoke_2"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  component:
+    default (threads of app take precedence)
+      message (threads of app take precedence)
+        "Foo"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  component:
+    system (threads of app take precedence)
+      threads (ignored because hash matches app variant)
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            function*
+              "__99+[Something else]_block_invoke_2"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__00+[Something else]_block_invoke_2"

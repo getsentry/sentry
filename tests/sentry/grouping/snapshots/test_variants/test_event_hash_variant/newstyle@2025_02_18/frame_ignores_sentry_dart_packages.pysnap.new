@@ -1,0 +1,91 @@
+---
+created: '2025-02-17T13:34:32.074917+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app
+      stacktrace (ignored because it contains no in-app frames)
+        frame (marked out of app by stack trace rule (path:package:sentry_logging/** -app -group))
+          filename*
+            "sentry_logging.dart"
+          function*
+            "SentryLogging.log"
+        frame (marked out of app by stack trace rule (path:package:sentry_dio/** -app -group))
+          filename*
+            "sentry_dio.dart"
+          function*
+            "SentryDio.dio"
+        frame (marked out of app by stack trace rule (path:package:sentry_file/** -app -group))
+          filename*
+            "sentry_file.dart"
+          function*
+            "SentryFile.file"
+        frame (marked out of app by stack trace rule (path:package:sentry_hive/** -app -group))
+          filename*
+            "sentry_hive.dart"
+          function*
+            "SentryHive.hive"
+        frame (marked out of app by stack trace rule (path:package:sentry_isar/** -app -group))
+          filename*
+            "sentry_isar.dart"
+          function*
+            "SentryIsar.isar"
+        frame (marked out of app by stack trace rule (path:package:sentry_sqflite/** -app -group))
+          filename*
+            "sentry_sqflite.dart"
+          function*
+            "SentrySqflite.sqflite"
+        frame (marked out of app by stack trace rule (path:package:sentry_drift/** -app -group))
+          filename*
+            "sentry_drift.dart"
+          function*
+            "SentryDrift.drift"
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  component:
+    system
+      stacktrace (ignored because it contains no contributing frames)
+        frame (ignored by stack trace rule (path:package:sentry_logging/** -app -group))
+          filename*
+            "sentry_logging.dart"
+          function*
+            "SentryLogging.log"
+        frame (ignored by stack trace rule (path:package:sentry_dio/** -app -group))
+          filename*
+            "sentry_dio.dart"
+          function*
+            "SentryDio.dio"
+        frame (ignored by stack trace rule (path:package:sentry_file/** -app -group))
+          filename*
+            "sentry_file.dart"
+          function*
+            "SentryFile.file"
+        frame (ignored by stack trace rule (path:package:sentry_hive/** -app -group))
+          filename*
+            "sentry_hive.dart"
+          function*
+            "SentryHive.hive"
+        frame (ignored by stack trace rule (path:package:sentry_isar/** -app -group))
+          filename*
+            "sentry_isar.dart"
+          function*
+            "SentryIsar.isar"
+        frame (ignored by stack trace rule (path:package:sentry_sqflite/** -app -group))
+          filename*
+            "sentry_sqflite.dart"
+          function*
+            "SentrySqflite.sqflite"
+        frame (ignored by stack trace rule (path:package:sentry_drift/** -app -group))
+          filename*
+            "sentry_drift.dart"
+          function*
+            "SentryDrift.drift"

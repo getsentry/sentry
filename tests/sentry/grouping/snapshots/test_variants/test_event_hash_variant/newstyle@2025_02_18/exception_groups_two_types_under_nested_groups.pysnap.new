@@ -1,0 +1,26 @@
+---
+created: '2025-02-17T13:34:31.449785+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "fca0fd23f09e8da4481304ef2a531100"
+  contributing component: chained-exception
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "MyApp.CoolException"
+          value* (stripped event-specific values)
+            "Test <int>"
+        exception*
+          type*
+            "MyApp.BeansException"
+          value* (stripped event-specific values)
+            "Test <int>"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."

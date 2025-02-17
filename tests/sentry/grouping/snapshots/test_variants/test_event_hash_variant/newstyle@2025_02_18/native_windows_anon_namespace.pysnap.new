@@ -1,0 +1,78 @@
+---
+created: '2025-02-17T13:34:33.801531+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+system:
+  hash: "46b84e4da51648cc9f9741abd2bdad51"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

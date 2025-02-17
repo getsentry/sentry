@@ -1,0 +1,47 @@
+---
+created: '2025-02-17T13:34:30.727028+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (custom fingerprint takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            module*
+              "foo.bar"
+            filename (module takes precedence)
+              "bar.tsx"
+            function*
+              "main"
+        type*
+          "ChunkLoadError"
+        value*
+          "ChunkLoadError: something something..."
+--------------------------------------------------------------------------
+built_in_fingerprint:
+  hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
+  info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
+  values: ["chunkloaderror"]
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: exception
+  component:
+    system (custom fingerprint takes precedence)
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "foo.bar"
+            filename (module takes precedence)
+              "bar.tsx"
+            function*
+              "main"
+        type*
+          "ChunkLoadError"
+        value (ignored because stacktrace takes precedence)
+          "ChunkLoadError: something something..."

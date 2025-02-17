@@ -1,0 +1,31 @@
+---
+created: '2025-02-17T13:34:32.110178+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app
+      stacktrace (ignored because it contains no in-app frames)
+        frame (marked out of app by stack trace rule (path:package:sentry_flutter/** -app -group))
+          filename*
+            "sentry_exception_factory.dart"
+          function*
+            "SentryExceptionFactory.getSentryException"
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  component:
+    system
+      stacktrace (ignored because it contains no contributing frames)
+        frame (ignored by stack trace rule (path:package:sentry_flutter/** -app -group))
+          filename*
+            "sentry_exception_factory.dart"
+          function*
+            "SentryExceptionFactory.getSentryException"

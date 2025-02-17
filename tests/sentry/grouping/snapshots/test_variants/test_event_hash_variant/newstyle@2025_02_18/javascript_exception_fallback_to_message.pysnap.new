@@ -1,0 +1,15 @@
+---
+created: '2025-02-17T13:34:32.958310+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "10dfd81e2df31e96fae451b9e205ad81"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        type*
+          "Error"
+        value* (stripped event-specific values)
+          "Loading chunk <int> failed.\n(timeout: <url>"

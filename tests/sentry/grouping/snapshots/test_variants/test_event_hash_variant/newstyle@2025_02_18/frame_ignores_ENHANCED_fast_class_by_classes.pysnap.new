@@ -1,0 +1,28 @@
+---
+created: '2025-02-17T13:34:31.651307+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (non app frame)
+          module* (removed codegen marker)
+            "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "465d672b2d322bf6a1b44499f6dabc1f"
+  contributing component: stacktrace
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+          function*
+            "jipJipManagementApplication"

@@ -1,0 +1,172 @@
+---
+created: '2025-02-17T13:34:32.428224+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "RtlUserThreadStart"
+          frame (non app frame)
+            function*
+              "BaseThreadInitThunk"
+          frame (non app frame)
+            function*
+              "TppWorkerThread"
+          frame (non app frame)
+            function*
+              "TppWorkpExecuteCallback"
+          frame (non app frame)
+            function*
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+          frame (non app frame)
+            function*
+              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
+          frame (non app frame)
+            function*
+              "WEBIO_REQUEST::OnIoComplete"
+          frame (non app frame)
+            function*
+              "HTTP_USER_REQUEST::OnSendRequest"
+          frame (non app frame)
+            function*
+              "HTTP_BASE_OBJECT::Dereference"
+          frame (non app frame)
+            function*
+              "destructor'"
+          frame (non app frame)
+            function*
+              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
+          frame (non app frame)
+            function*
+              "destructor'"
+          frame (non app frame)
+            function*
+              "RtlFreeHeap"
+          frame (non app frame)
+            function*
+              "memset"
+          frame (non app frame)
+            function*
+              "RtlpFreeUserBlock"
+          frame (non app frame)
+            function*
+              "RtlpFreeUserBlockToHeap"
+          frame (non app frame)
+            function*
+              "RtlFreeHeap"
+          frame (non app frame)
+            function*
+              "RtlpFreeHeapInternal"
+          frame (non app frame)
+            function*
+              "RtlpFreeHeap"
+          frame (non app frame)
+            function*
+              "RtlEnterCriticalSection"
+          frame (non app frame)
+            function*
+              "RtlpEnterCriticalSectionContended"
+          frame (non app frame)
+            function*
+              "RtlpWaitOnCriticalSection"
+          frame (non app frame)
+            function*
+              "RtlpWaitOnAddress"
+          frame (non app frame)
+            function*
+              "RtlpOptimizeWaitOnAddressWaitList"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+system:
+  hash: "ca733a48a19d237df8577d09449095d9"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlUserThreadStart"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "BaseThreadInitThunk"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "TppWorkerThread"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "TppWorkpExecuteCallback"
+          frame*
+            function*
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "WEBIO_REQUEST::OnIoComplete"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_USER_REQUEST::OnSendRequest"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_BASE_OBJECT::Dereference"
+          frame*
+            function*
+              "destructor'"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "RtlFreeHeap"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "memset"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeUserBlock"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeUserBlockToHeap"
+          frame*
+            function*
+              "RtlFreeHeap"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeHeapInternal"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeHeap"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlEnterCriticalSection"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpEnterCriticalSectionContended"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpWaitOnCriticalSection"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpWaitOnAddress"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpOptimizeWaitOnAddressWaitList"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

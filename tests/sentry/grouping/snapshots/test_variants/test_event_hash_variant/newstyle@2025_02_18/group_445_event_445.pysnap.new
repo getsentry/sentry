@@ -1,0 +1,298 @@
+---
+created: '2025-02-17T13:34:32.702334+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "RtlUserThreadStart"
+          frame (non app frame)
+            function*
+              "BaseThreadInitThunk"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (non app frame)
+            filename*
+              "winmain.cpp"
+            function*
+              "wWinMain"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::{ctor}"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::_Reallocate_for"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "functional"
+            function*
+              "std::_Func_class<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "DispatchMessageWorker"
+          frame (non app frame)
+            function*
+              "UserCallWinProcCheckWow"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "purevirt.cpp"
+            function*
+              "_purecall"
+          frame (non app frame)
+            function*
+              "abort"
+          frame (non app frame)
+            function*
+              "raise"
+          frame (non app frame)
+            filename*
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "15526a7b64e9b5dc6d89e7ebec864260"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlUserThreadStart"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "BaseThreadInitThunk"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "winmain.cpp"
+            function*
+              "wWinMain"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::{ctor}"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "xstring"
+            function*
+              "std::basic_string<T>::_Reallocate_for"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "functional"
+            function*
+              "std::_Func_class<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "DispatchMessageWorker"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "UserCallWinProcCheckWow"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "purevirt.cpp"
+            function*
+              "_purecall"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "abort"
+          frame*
+            function*
+              "raise"
+          frame (ignored by stack trace rule (category:throw ^-group))
+            filename*
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"

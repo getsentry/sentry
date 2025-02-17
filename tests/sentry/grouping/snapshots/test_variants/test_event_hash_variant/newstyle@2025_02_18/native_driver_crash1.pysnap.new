@@ -1,0 +1,66 @@
+---
+created: '2025-02-17T13:34:33.651044+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame (non app frame)
+            function*
+              "destructor'"
+          frame (non app frame)
+            function*
+              "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function*
+              "CContext::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (non app frame)
+            function*
+              "OpenAdapter10"
+          frame (non app frame)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "2e0d26cae5986fcda5edf66612a78268"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CContext::LUCBeginLayerDestruction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "OpenAdapter10"
+          frame
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

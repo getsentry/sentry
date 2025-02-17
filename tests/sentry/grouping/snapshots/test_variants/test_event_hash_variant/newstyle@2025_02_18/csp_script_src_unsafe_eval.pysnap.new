@@ -1,0 +1,19 @@
+---
+created: '2025-02-17T13:34:30.941149+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "56c6520f35bce2f89ed2c4e725ccef65"
+  contributing component: csp
+  component:
+    default*
+      csp*
+        salt* (a static salt)
+          "script-src"
+        violation*
+          "'unsafe-eval'"
+        uri (violation takes precedence)
+          "'self'"
+      message (csp takes precedence)
+        "Blocked unsafe eval() 'script'"
