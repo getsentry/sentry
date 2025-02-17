@@ -140,3 +140,13 @@ register_strategy_config(
     enhancements_base="newstyle:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )
+
+register_strategy_config(
+    id="newstyle:2025-02-18",
+    base="newstyle:2023-01-11",
+    changelog="""
+        * Better rules for Unreal Engine stack traces.
+    """,
+    initial_context={},
+    enhancements_base="newstyle:2025-02-18",
+)
