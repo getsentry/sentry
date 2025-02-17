@@ -93,7 +93,7 @@ internal_integration_overview = (
 
 class VercelEnvVarDefinition(TypedDict):
     type: str
-    value: str
+    value: str | None
     target: list[str]
 
 
@@ -101,7 +101,7 @@ def get_env_var_map(
     organization: RpcOrganization,
     project: RpcProject,
     project_dsn: str,
-    auth_token: str,
+    auth_token: str | None,
     framework: str,
 ) -> dict[str, VercelEnvVarDefinition]:
     """
