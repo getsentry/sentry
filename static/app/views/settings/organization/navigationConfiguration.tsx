@@ -131,7 +131,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
           title: t('Dynamic Sampling'),
           description: t('Manage your sampling rate'),
-          badge: () => 'alpha',
+          badge: () => 'beta',
           show: ({organization}) =>
             !!organization && hasDynamicSamplingCustomFeature(organization),
         },
