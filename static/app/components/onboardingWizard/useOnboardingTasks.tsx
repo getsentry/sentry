@@ -24,7 +24,6 @@ function mergeTasks({
             serverTask.task === supportedTask.task ||
             serverTask.task === supportedTask.serverTask
         ),
-        requisiteTasks: [],
       }) as OnboardingTask
   );
 }

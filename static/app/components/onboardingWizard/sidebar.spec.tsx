@@ -13,8 +13,6 @@ const gettingStartedTasks: OnboardingTask[] = [
     actionType: 'app',
     location: '',
     display: true,
-    requisites: [],
-    requisiteTasks: [],
     status: 'pending',
   },
   {
@@ -25,8 +23,6 @@ const gettingStartedTasks: OnboardingTask[] = [
     actionType: 'app',
     location: '',
     display: true,
-    requisites: [],
-    requisiteTasks: [],
     status: 'pending',
   },
 ];
@@ -37,11 +33,9 @@ const beyondBasicsTasks: OnboardingTask[] = [
     title: 'Setup Tracing',
     description: 'Capture your first transaction',
     skippable: true,
-    requisites: [],
     actionType: 'app',
     location: '',
     display: true,
-    requisiteTasks: [],
     status: 'pending',
   },
 ];
