@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlencode
 
 from django.utils.translation import gettext_lazy as _
@@ -91,13 +91,19 @@ internal_integration_overview = (
 )
 
 
+class VercelEnvVarDefinition(TypedDict):
+    type: str
+    value: str
+    target: list[str]
+
+
 def get_env_var_map(
     organization: RpcOrganization,
     project: RpcProject,
     project_dsn: str,
     auth_token: str,
     framework: str,
-) -> dict[str, dict[str, str | list[str]]]:
+) -> dict[str, VercelEnvVarDefinition]:
     """
     Returns a dictionary of environment variables to be set in Vercel for a given project.
     """
