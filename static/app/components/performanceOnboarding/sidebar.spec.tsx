@@ -2,6 +2,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -10,6 +11,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -51,6 +53,15 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       },
       new Set()
     );
+
+    const userMock = UserFixture();
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {...userMock.options, quickStartDisplay: {[organization.id]: 2}},
+      })
+    );
+
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [broadcast],

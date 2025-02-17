@@ -66,7 +66,7 @@ function Grid({onDelete, ...props}: GridProps) {
 
 function Component() {
   const [items, setItems] = useState(() =>
-    [1, 2, 3].map(
+    [1, 2].map(
       value =>
         ({
           key: String(value),
@@ -82,27 +82,34 @@ function Component() {
 }
 
 describe('DeletableToken', function () {
-  it('can delete tokens', async function () {
+  it('can delete tokens with clicks', async function () {
     render(<Component />);
 
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('gridcell', {name: 'Delete 1'}));
     expect(screen.queryByText('1')).not.toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('gridcell', {name: 'Delete 2'}));
     expect(screen.queryByText('1')).not.toBeInTheDocument();
     expect(screen.queryByText('2')).not.toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
+  });
 
-    await userEvent.click(screen.getByRole('gridcell', {name: 'Delete 3'}));
+  it('can delete tokens with backspace / delete', async function () {
+    render(<Component />);
+
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('row', {name: '1'}), '{Backspace}');
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('row', {name: '2'}), '{Delete}');
     expect(screen.queryByText('1')).not.toBeInTheDocument();
     expect(screen.queryByText('2')).not.toBeInTheDocument();
-    expect(screen.queryByText('3')).not.toBeInTheDocument();
   });
 
   it('shifts focus to child when clicked', async function () {
@@ -110,24 +117,15 @@ describe('DeletableToken', function () {
 
     expect(screen.getByRole('gridcell', {name: 'Delete 1'})).not.toHaveFocus();
     expect(screen.getByRole('gridcell', {name: 'Delete 2'})).not.toHaveFocus();
-    expect(screen.getByRole('gridcell', {name: 'Delete 2'})).not.toHaveFocus();
 
     await userEvent.click(screen.getByRole('row', {name: '1'}));
 
     expect(screen.getByRole('gridcell', {name: 'Delete 1'})).toHaveFocus();
     expect(screen.getByRole('gridcell', {name: 'Delete 2'})).not.toHaveFocus();
-    expect(screen.getByRole('gridcell', {name: 'Delete 3'})).not.toHaveFocus();
 
     await userEvent.click(screen.getByRole('row', {name: '2'}));
 
     expect(screen.getByRole('gridcell', {name: 'Delete 1'})).not.toHaveFocus();
     expect(screen.getByRole('gridcell', {name: 'Delete 2'})).toHaveFocus();
-    expect(screen.getByRole('gridcell', {name: 'Delete 3'})).not.toHaveFocus();
-
-    await userEvent.click(screen.getByRole('row', {name: '3'}));
-
-    expect(screen.getByRole('gridcell', {name: 'Delete 1'})).not.toHaveFocus();
-    expect(screen.getByRole('gridcell', {name: 'Delete 2'})).not.toHaveFocus();
-    expect(screen.getByRole('gridcell', {name: 'Delete 3'})).toHaveFocus();
   });
 });

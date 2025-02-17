@@ -27,7 +27,7 @@ type Props = {
   userTeamIds: string[];
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.

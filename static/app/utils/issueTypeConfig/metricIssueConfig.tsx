@@ -34,6 +34,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       events: {enabled: false},
       openPeriods: {enabled: true},
       checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: false},
       replays: {enabled: false},

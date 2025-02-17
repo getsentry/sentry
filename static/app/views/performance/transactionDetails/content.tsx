@@ -54,7 +54,7 @@ import {getSelectedProjectPlatforms} from '../utils';
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> &
+type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location'> &
   WithRouteAnalyticsProps & {
     eventSlug: string;
     organization: Organization;
@@ -338,9 +338,11 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error.message}
+        </Alert>
+      </Alert.Container>
     );
   }
 

@@ -6,7 +6,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import RelocationOnboarding from './relocation';
 
-type Props = RouteComponentProps<{step: string}, {}>;
+type Props = RouteComponentProps<{step: string}>;
 
 export default function RelocationOnboardingContainer(props: Props) {
   return (
@@ -15,7 +15,9 @@ export default function RelocationOnboardingContainer(props: Props) {
       organizationAllowNull
       renderDisabled={() => (
         <Layout.Page withPadding>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert.Container>
+            <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          </Alert.Container>
         </Layout.Page>
       )}
     >

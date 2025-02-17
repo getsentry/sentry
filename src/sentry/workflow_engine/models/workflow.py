@@ -30,11 +30,15 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     enabled = models.BooleanField(db_default=True)
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
-    when_condition_group = FlexibleForeignKey("workflow_engine.DataConditionGroup", null=True)
+    when_condition_group = FlexibleForeignKey(
+        "workflow_engine.DataConditionGroup", null=True, blank=True
+    )
 
-    environment = FlexibleForeignKey("sentry.Environment", null=True)
+    environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
 
-    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
+    )
 
     DEFAULT_FREQUENCY = 30
 
