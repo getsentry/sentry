@@ -130,9 +130,9 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
         run: |
           if [ ${{ github.ref }} = 'refs/heads/master' ]; then
-            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --coverage
+            yarn test-ci --forceExit --coverage
           else
-            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+            yarn test-ci --forceExit
           fi
 
       # We only upload coverage data for FE changes since it conflicts with
