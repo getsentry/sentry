@@ -115,6 +115,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
     async (instruction: string) => {
       setIsReset(false);
       setCurrentRunId(null);
+      setWaitingForNextRun(true);
       setApiQueryData<AutofixResponse>(
         queryClient,
         makeAutofixQueryKey(group.id),
@@ -148,15 +149,19 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   }, []);
 
   let autofixData = apiData?.autofix ?? null;
-  let usingInitialData = false;
-  if (waitingForNextRun && apiData?.autofix?.run_id !== currentRunId) {
+  if (waitingForNextRun) {
     autofixData = makeInitialAutofixData().autofix;
-    usingInitialData = true;
   }
   if (isReset) {
     autofixData = null;
   }
-  if (autofixData?.steps?.length && !usingInitialData && waitingForNextRun) {
+
+  if (
+    apiData?.autofix?.steps?.length &&
+    apiData?.autofix?.steps[0]?.progress.length &&
+    waitingForNextRun &&
+    apiData?.autofix?.run_id === currentRunId
+  ) {
     setWaitingForNextRun(false);
   }
 

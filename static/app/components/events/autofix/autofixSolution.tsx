@@ -339,7 +339,11 @@ function AutofixSolutionDisplay({
   const [userCustomSolution, setUserCustomSolution] = useState('');
 
   if (!solution || solution.length === 0) {
-    return <Alert type="error">{t('No solution available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="error">{t('No solution available.')}</Alert>
+      </Alert.Container>
+    );
   }
 
   if (customSolution) {

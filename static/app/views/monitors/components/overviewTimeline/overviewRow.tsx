@@ -80,10 +80,13 @@ export function OverviewRow({
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const to = linkToAlerts
-    ? makeAlertsPathname({
-        path: `/rules/crons/${monitor.project.slug}/${monitor.slug}/details/`,
-        organization,
-      })
+    ? {
+        pathname: makeAlertsPathname({
+          path: `/rules/crons/${monitor.project.slug}/${monitor.slug}/details/`,
+          organization,
+        }),
+        query,
+      }
     : {
         pathname: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`,
         query,

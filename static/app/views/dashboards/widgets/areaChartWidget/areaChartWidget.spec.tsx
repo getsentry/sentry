@@ -19,9 +19,11 @@ describe('AreaChartWidget', () => {
 
   describe('Visualization', () => {
     it('Explains missing data', () => {
+      jest.spyOn(console, 'error').mockImplementation();
       render(<AreaChartWidget />);
 
       expect(screen.getByText('No Data')).toBeInTheDocument();
+      jest.resetAllMocks();
     });
   });
 

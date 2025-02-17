@@ -2,25 +2,61 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {space} from 'sentry/styles/space';
 
 import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
-export interface WidgetLayoutProps {
+import {WidgetDescription} from './widgetDescription';
+import {WidgetError} from './widgetError';
+import {WidgetTitle} from './widgetTitle';
+import {WidgetToolbar} from './widgetToolbar';
+
+export interface Widget {
+  /**
+   * Placed in the top right of the frame
+   */
   Actions?: React.ReactNode;
+  /**
+   * Placed below the visualization, inside the frame
+   */
   Footer?: React.ReactNode;
+  /**
+   * Placed in the top left of the frame
+   */
   Title?: React.ReactNode;
+  /**
+   * Placed in the main area of the frame
+   */
   Visualization?: React.ReactNode;
   ariaLabel?: string;
+  /**
+   * Removes frame border
+   */
   borderless?: boolean;
+  /**
+   * Height in pixels. If omitted, the widget grows to fill the parent element. Avoid this! Setting the height via the parent element is more robust
+   */
   height?: number;
+  /**
+   * Removes padding from the footer area
+   */
   noFooterPadding?: boolean;
+  /**
+   * Removes padding from the header area
+   */
   noHeaderPadding?: boolean;
+  /**
+   * Removes padding from the visualization area
+   */
   noVisualizationPadding?: boolean;
+  /**
+   * If set to `"hover"`, the contents of the `Actions` slot are only shown on mouseover. If set to `"always"`, the contents of `Actions` are always shown
+   */
   revealActions?: 'hover' | 'always';
 }
 
-export function WidgetLayout(props: WidgetLayoutProps) {
+function WidgetLayout(props: Widget) {
   const {revealActions = 'hover'} = props;
 
   return (
@@ -36,9 +72,15 @@ export function WidgetLayout(props: WidgetLayoutProps) {
       </Header>
 
       {props.Visualization && (
-        <VisualizationWrapper noPadding={props.noVisualizationPadding}>
-          {props.Visualization}
-        </VisualizationWrapper>
+        <ErrorBoundary
+          customComponent={({error}) => (
+            <WidgetError error={error?.message ?? undefined} />
+          )}
+        >
+          <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+            {props.Visualization}
+          </VisualizationWrapper>
+        </ErrorBoundary>
       )}
 
       {props.Footer && (
@@ -47,6 +89,18 @@ export function WidgetLayout(props: WidgetLayoutProps) {
     </Frame>
   );
 }
+
+// `Object.assign` ensures correct types by intersection the component with the
+// extra properties. This allows rendering `<Widget>` as well as
+// `<Widget.Description` and others
+const exported = Object.assign(WidgetLayout, {
+  WidgetDescription,
+  WidgetTitle,
+  WidgetToolbar,
+  WidgetError,
+});
+
+export {exported as Widget};
 
 const HEADER_HEIGHT = '26px';
 

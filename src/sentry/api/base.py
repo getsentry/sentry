@@ -229,7 +229,7 @@ class Endpoint(APIView):
     ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:

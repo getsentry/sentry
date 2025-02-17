@@ -40,11 +40,13 @@ export class InstalledPlugin extends Component<Props> {
   getConfirmMessage() {
     return (
       <Fragment>
-        <Alert type="error" showIcon>
-          {t(
-            'Deleting this installation will disable the integration for this project and remove any configurations.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t(
+              'Deleting this installation will disable the integration for this project and remove any configurations.'
+            )}
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   }

@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect, useMemo, useRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -43,7 +43,7 @@ import {DEMO_HEADER_HEIGHT_PX} from '../../components/demo/demoHeader';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{orgId?: string}, {}>;
+} & RouteComponentProps<{orgId?: string}>;
 
 const InstallWizard = lazy(
   () => import('sentry/views/admin/installWizard')
@@ -63,16 +63,15 @@ function App({children, params}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
-  useHotkeys(
-    [
-      {
-        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        includeInputs: true,
-        callback: () => openCommandPalette(),
-      },
-    ],
-    []
-  );
+  const commandPaletteHotkeys = useMemo(() => {
+    return {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => openCommandPalette(),
+    };
+  }, []);
+
+  useHotkeys([commandPaletteHotkeys]);
 
   /**
    * Loads the users organization list into the OrganizationsStore

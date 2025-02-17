@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
+import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
 import {NavContextProvider} from 'sentry/components/nav/context';
+import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
@@ -56,6 +58,9 @@ interface LayoutProps extends Props {
 }
 
 function AppLayout({children, organization}: LayoutProps) {
+  useFeedbackOnboardingDrawer();
+  useReplaysOnboardingDrawer();
+
   return (
     <NavContextProvider>
       <AppContainer>

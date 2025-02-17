@@ -48,7 +48,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
 };
 
