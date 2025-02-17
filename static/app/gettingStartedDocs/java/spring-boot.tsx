@@ -129,7 +129,10 @@ SENTRY_AUTO_INIT=false java -javaagent:sentry-opentelemetry-agent-${getPackageVe
 `;
 
 const getConfigurationPropertiesSnippet = (params: Params) => `
-sentry.dsn=${params.dsn.public}${
+sentry.dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
+sentry.send-default-pii=true${
   params.isPerformanceSelected
     ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
@@ -140,7 +143,10 @@ sentry.traces-sample-rate=1.0`
 
 const getConfigurationYamlSnippet = (params: Params) => `
 sentry:
-  dsn: ${params.dsn.public}${
+  dsn: ${params.dsn.public}
+  # Add data like request headers and IP for users,
+  # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
+  send-default-pii: true${
     params.isPerformanceSelected
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
