@@ -64,7 +64,7 @@ const getConfigurationSnippet = (params: Params) => `
   <!-- Required: set your sentry.io project identifier (DSN) -->
   <meta-data android:name="io.sentry.dsn" android:value="${params.dsn.public}" />
 
-  <!-- Add data like request headers and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info -->
+  <!-- Add data like request headers, user ip adress and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info -->
   <meta-data android:name="io.sentry.send-default-pii" android:value="true" />
 
   <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
