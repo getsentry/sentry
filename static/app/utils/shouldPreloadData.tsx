@@ -45,10 +45,9 @@ export function shouldPreloadData(config: Config): boolean {
 
   const {orgId, memberId, token} = params;
 
-  const inviteRoutes = [
-    `/accept/${orgId}/${memberId}/${token}/`,
-    `/accept/${memberId}/${token}/`,
-  ];
+  const invitePath = orgId
+    ? `/accept/${orgId}/${memberId}/${token}/`
+    : `/accept/${memberId}/${token}/`;
 
-  return !inviteRoutes.includes(path) && config.shouldPreloadData;
+  return path !== invitePath && config.shouldPreloadData;
 }
