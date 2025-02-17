@@ -55,10 +55,8 @@ class DemoUserPermission(SentryPermission):
             assert False, "Failed to fetch organization in determine_access"
 
         if demo_mode.is_demo_user(request.user):
-            if not demo_mode.is_demo_mode_enabled():
-                return
-
-            org_context.member.scopes = demo_mode.get_readonly_scopes()
+            if org_context.member and demo_mode.is_demo_mode_enabled():
+                org_context.member.scopes = demo_mode.get_readonly_scopes()
 
         return super().determine_access(request, org_context)
 
