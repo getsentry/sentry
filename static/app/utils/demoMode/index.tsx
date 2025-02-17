@@ -1,5 +1,6 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
 import ConfigStore from 'sentry/stores/configStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
@@ -31,7 +32,7 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
 }
 
 export function isDemoModeEnabled(): boolean {
-  return ConfigStore.get('demoMode');
+  return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }
 
 export function openDemoSignupModal() {
