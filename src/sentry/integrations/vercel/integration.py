@@ -321,6 +321,7 @@ class VercelIntegrationProvider(IntegrationProvider):
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
     oauth_redirect_url = "/extensions/vercel/configure/"
+    # feature flag handler is in getsentry
     requires_feature_flag = True
 
     def get_pipeline_views(self):
