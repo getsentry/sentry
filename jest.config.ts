@@ -1,7 +1,7 @@
 import type {Config} from '@jest/types';
-const {execFileSync} = require('node:child_process');
 import path from 'node:path';
 import process from 'node:process';
+import {execFileSync} from 'node:child_process';
 
 import babelConfig from './babel.config';
 
@@ -44,27 +44,29 @@ let JEST_TESTS;
 // prevents forkbomb as we don't want jest --listTests --json
 // to reexec itself here
 if (!process.env.JEST_LIST_TESTS_INNER) {
-  execFileSync(
-    'yarn',
-    ['-s', 'jest', '--listTests', '--json'],
-    {
+  try {
+    const stdout = execFileSync('yarn', ['-s', 'jest', '--listTests', '--json'], {
+      stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
-    },
-    (error, stdout, stderr) => {
-      if (error) {
-        throw new Error(`
-Error listing jest tests: ${error}
+    });
+    JEST_TESTS = JSON.parse(stdout);
+  } catch (err) {
+    if (err.code) {
+      throw new Error(`err code ${err.code} when spawning process`);
+    } else {
+      const {stdout, stderr} = err;
+      throw new Error(`
+error listing jest tests
 
 stdout:
 ${stdout}
 
 stderr:
-${stderr}`);
-      }
-      JEST_TESTS = JSON.parse(stdout);
+${stderr}
+`);
     }
-  );
+  }
 }
 
 /**
