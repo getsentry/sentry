@@ -219,7 +219,7 @@ export function EventDetailsContent({
       {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
-      {group.issueCategory === IssueCategory.CRON && (
+      {!hasStreamlinedUI && group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
           organization={organization}
@@ -516,11 +516,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>

@@ -300,14 +300,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       });
 
       const node = new TraceTreeNode(parent, value, {
-        spans: options.meta?.transactiontoSpanChildrenCount[value.event_id] ?? 0,
+        spans: options.meta?.transaction_child_count_map[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
 
       if (isTransactionNode(node)) {
         const spanChildrenCount =
-          options.meta?.transactiontoSpanChildrenCount[node.value.event_id];
+          options.meta?.transaction_child_count_map[node.value.event_id];
 
         // We check for >1 events, as the first one is the transaction node itself
         node.canFetch = spanChildrenCount === undefined ? true : spanChildrenCount > 1;

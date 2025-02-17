@@ -3458,17 +3458,14 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
-        enabled=True,
     ),
 ]
 UPTIME_CONFIG_PARTITIONS = 128
 
-MARKETO: Mapping[str, Any] = {
-    "base-url": os.getenv("MARKETO_BASE_URL"),
-    "client-id": os.getenv("MARKETO_CLIENT_ID"),
-    "client-secret": os.getenv("MARKETO_CLIENT_SECRET"),
-    "form-id": os.getenv("MARKETO_FORM_ID"),
-}
+MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
+MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
+MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
+MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

@@ -53,7 +53,7 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location'> & {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
@@ -100,7 +100,7 @@ function EventDetailsContent(props: Props) {
     }
     const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
-    return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
+    return nextView.getResultsViewUrlTarget(organization, isHomepage);
   };
 
   function renderContent() {
@@ -204,7 +204,7 @@ function EventDetailsContent(props: Props) {
                         getViewChildTransactionTarget: childTransactionProps => {
                           const childTransactionLink = eventDetailsRoute({
                             eventSlug: childTransactionProps.eventSlug,
-                            orgSlug: organization.slug,
+                            organization,
                           });
 
                           return {
@@ -331,9 +331,11 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error.message}
+        </Alert>
+      </Alert.Container>
     );
   }
 

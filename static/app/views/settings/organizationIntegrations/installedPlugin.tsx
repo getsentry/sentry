@@ -40,16 +40,21 @@ export class InstalledPlugin extends Component<Props> {
   getConfirmMessage() {
     return (
       <Fragment>
-        <Alert type="error" showIcon>
-          {t(
-            'Deleting this installation will disable the integration for this project and remove any configurations.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t(
+              'Deleting this installation will disable the integration for this project and remove any configurations.'
+            )}
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   }
 
-  pluginUpdate = async (data: object, method: 'POST' | 'DELETE' = 'POST') => {
+  pluginUpdate = async (
+    data: Record<PropertyKey, unknown>,
+    method: 'POST' | 'DELETE' = 'POST'
+  ) => {
     const {organization, projectItem, plugin} = this.props;
     // no try/catch so the caller will have to have it
     await this.props.api.requestPromise(

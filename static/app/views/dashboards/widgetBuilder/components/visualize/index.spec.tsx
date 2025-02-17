@@ -632,9 +632,9 @@ describe('Visualize', () => {
     expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
 
     // Add 3 fields
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
     expect(screen.getAllByText('count')).toHaveLength(3);
@@ -1013,6 +1013,61 @@ describe('Visualize', () => {
     );
   });
 
+  it('shows the correct aggregate options for release dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    expect(screen.getByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'session.status'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'user'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'session'})).not.toBeInTheDocument();
+  });
+
+  it('adds a separate field when only one function field is present on release tables', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'release'}));
+
+    expect(screen.getAllByRole('button', {name: 'Column Selection'})).toHaveLength(2);
+    expect(
+      screen.getAllByRole('button', {name: 'Column Selection'})[0]
+    ).toHaveTextContent('release');
+    expect(
+      screen.getAllByRole('button', {name: 'Column Selection'})[1]
+    ).toHaveTextContent('session');
+
+    expect(
+      screen.getAllByRole('button', {name: 'Aggregate Selection'})[1]
+    ).toHaveTextContent('crash_free_rate');
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
@@ -1161,6 +1216,50 @@ describe('Visualize', () => {
       const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
       expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
       expect(within(listbox).getByText('span.description')).toBeInTheDocument();
+    });
+
+    it('differentiates between function and column values in selection', async () => {
+      jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
+        if (type === 'number') {
+          return {
+            'tags[count,number]': {
+              key: 'count',
+              name: 'count',
+              kind: 'measurement',
+            },
+          } as TagCollection;
+        }
+
+        return {
+          count: {
+            key: 'count',
+            name: 'count',
+            kind: 'tag',
+          },
+        } as TagCollection;
+      });
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['count(span.duration)'],
+              },
+            }),
+          }),
+        }
+      );
+
+      // Only one count option should be shown as selected
+      expect(
+        await screen.findByRole('button', {name: 'Aggregate Selection'})
+      ).toHaveTextContent(/^count$/);
     });
   });
 });

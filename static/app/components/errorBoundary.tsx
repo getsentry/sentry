@@ -13,11 +13,15 @@ type DefaultProps = {
   mini: boolean;
 };
 
+type CustomComponentRenderProps = {
+  error: Error | null;
+};
+
 type Props = DefaultProps & {
   children?: React.ReactNode;
   // To add context for better UX
   className?: string;
-  customComponent?: React.ReactNode;
+  customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
   // To add context for better error reporting
   errorTag?: Record<string, string>;
 
@@ -96,15 +100,21 @@ class ErrorBoundary extends Component<Props, State> {
 
     const {customComponent, mini, message, className} = this.props;
 
-    if (typeof customComponent !== 'undefined') {
-      return customComponent;
+    if (customComponent === null) {
+      return null;
+    }
+
+    if (customComponent) {
+      return customComponent({error: this.state.error});
     }
 
     if (mini) {
       return (
-        <Alert type="error" showIcon className={className}>
-          {message || t('There was a problem rendering this component')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon className={className}>
+            {message || t('There was a problem rendering this component')}
+          </Alert>
+        </Alert.Container>
       );
     }
 

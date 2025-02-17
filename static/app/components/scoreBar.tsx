@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import theme from 'sentry/utils/theme';
+import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
 
 type Props = {
   score: number;
@@ -20,7 +20,7 @@ function BaseScoreBar({
   size = 40,
   thickness = 4,
   radius = 3,
-  palette = theme.similarity.colors,
+  palette = SIMILARITY_SCORE_COLORS,
   ...props
 }: Props) {
   const maxScore = palette.length;
@@ -72,8 +72,9 @@ type BarProps = {
 const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;
   margin: 2px;
-  ${p => p.empty && `background-color: ${p.theme.similarity.empty};`};
-  ${p => p.color && `background-color: ${p.color};`};
+  /* @TODO(jonasbadalic) This used to be defined on the theme, but is component specific and had no dark mode color. */
+  ${p => p.empty && `background-color: #e2dee6;`}
+  ${p => p.color && `background-color: ${p.color};`}
 
   width: ${p => (!p.vertical ? p.thickness : p.size)}px;
   height: ${p => (!p.vertical ? p.size : p.thickness)}px;

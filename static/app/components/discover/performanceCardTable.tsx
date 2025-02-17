@@ -122,7 +122,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -144,7 +144,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -332,7 +332,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -830,7 +830,6 @@ const StyledAlert = styled(Alert)`
   border-top: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
-  margin-bottom: 0;
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

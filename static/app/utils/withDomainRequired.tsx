@@ -28,7 +28,7 @@ import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReact
  *
  * Whenever https://orgslug.sentry.io/ is accessed in the browser, then both conditions above will be satisfied.
  */
-export default function withDomainRequired<P extends RouteComponentProps<{}, {}>>(
+export default function withDomainRequired<P extends RouteComponentProps>(
   WrappedComponent: RouteComponent
 ) {
   return function withDomainRequiredWrapper(props: P) {

@@ -13,7 +13,22 @@ logger = logging.getLogger(__name__)
 
 
 # We only care about extensions of files which would show up in stacktraces after symbolication
-SUPPORTED_EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
+SUPPORTED_EXTENSIONS = [
+    "clj",
+    "cs",
+    "go",
+    "groovy",
+    "js",
+    "jsx",
+    "mjs",
+    "php",
+    "py",
+    "rake",
+    "rb",
+    "scala",
+    "ts",
+    "tsx",
+]
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
@@ -25,7 +40,7 @@ class RepoAndBranch(NamedTuple):
 
 class RepoTree(NamedTuple):
     repo: RepoAndBranch
-    files: list[str]
+    files: Sequence[str]
 
 
 # Tasks which hit the API multiple connection errors should give up.

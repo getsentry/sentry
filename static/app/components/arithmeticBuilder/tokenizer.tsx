@@ -50,16 +50,7 @@ function tryTokenizeExpression(expression: string): Token[] {
   return grammar.parse(expression, {tc});
 }
 
-export function tokenizeExpression(
-  expression: string,
-  options?: {intersperseSpace: boolean}
-): Token[] {
-  const {intersperseSpace = true} = options || {};
-
-  if (!intersperseSpace) {
-    return tryTokenizeExpression(expression);
-  }
-
+export function tokenizeExpression(expression: string): Token[] {
   let loc: LocationRange | null = null;
 
   const tokens: Token[] = [];

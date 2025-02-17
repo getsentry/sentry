@@ -22,6 +22,7 @@ from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.organizations.services.organization import organization_service
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
@@ -127,6 +128,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     authentication methods from JS endpoints by relying on internal sessions
     and simple HTTP authentication.
     """
+    enforce_rate_limit = True
+    rate_limits = {
+        "PUT": {
+            RateLimitCategory.USER: RateLimit(
+                limit=5, window=60 * 60
+            ),  # 5 PUT requests per hour per user
+        }
+    }
 
     def _validate_superuser(
         self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool

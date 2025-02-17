@@ -1,4 +1,5 @@
 import {Fragment, PureComponent} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -48,7 +49,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -81,7 +81,7 @@ import {
   transformSessionResponseToSeries,
 } from './metricChartOption';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   filter: string[] | null;
   interval: string;
@@ -89,12 +89,13 @@ type Props = WithRouterProps & {
   project: Project;
   query: string;
   rule: MetricRule;
+  theme: Theme;
   timePeriod: TimePeriodType;
   anomalies?: Anomaly[];
   formattedAggregate?: string;
   incidents?: Incident[];
   isOnDemandAlert?: boolean;
-};
+}
 
 type State = Record<string, never>;
 
@@ -107,7 +108,8 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
 
 function getRuleChangeSeries(
   rule: MetricRule,
-  data: AreaChartSeries[]
+  data: AreaChartSeries[],
+  theme: Theme
 ): LineSeriesOption[] {
   const {dateModified} = rule;
   if (!data.length || !data[0]!.data.length || !dateModified) {
@@ -327,15 +329,15 @@ class MetricChart extends PureComponent<Props, State> {
         LineSeries({
           name: comparisonSeriesName,
           data: _data.map(({name, value}) => [name, value]),
-          lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-          itemStyle: {color: theme.gray200},
+          lineStyle: {color: this.props.theme.gray200, type: 'dashed', width: 1},
+          itemStyle: {color: this.props.theme.gray200},
           animation: false,
           animationThreshold: 1,
           animationDuration: 0,
           ...otherSeriesProps,
         })
       ),
-      ...getRuleChangeSeries(rule, timeseriesData),
+      ...getRuleChangeSeries(rule, timeseriesData, this.props.theme),
     ];
 
     const queryFilter =
@@ -437,10 +439,10 @@ class MetricChart extends PureComponent<Props, State> {
 
                         const changeStatusColor =
                           changeStatus === AlertRuleTriggerType.CRITICAL
-                            ? theme.red300
+                            ? this.props.theme.red300
                             : changeStatus === AlertRuleTriggerType.WARNING
-                              ? theme.yellow300
-                              : theme.green300;
+                              ? this.props.theme.yellow300
+                              : this.props.theme.green300;
 
                         return [
                           `<div class="tooltip-series">`,
@@ -547,12 +549,26 @@ class MetricChart extends PureComponent<Props, State> {
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData dataset
-    const viableStartDate = getUtcDateString(
+    let viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
         moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
+
+    // Events Analytics Platform Span queries only support up to 2016 buckets.
+    // 14 day 10m and 7 day 5m interval queries actually exceed this limit because we always extend the end date by an extra bucket.
+    // We push forward the start date by a bucket to counteract this and return to 2016 buckets.
+    if (
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+      timePeriod.usingPeriod &&
+      ((timePeriod.period === TimePeriod.FOURTEEN_DAYS && interval === '10m') ||
+        (timePeriod.period === TimePeriod.SEVEN_DAYS && interval === '5m'))
+    ) {
+      viableStartDate = getUtcDateString(
+        moment.utc(viableStartDate).add(timeWindow, 'minutes')
+      );
+    }
 
     const viableEndDate = getUtcDateString(
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')

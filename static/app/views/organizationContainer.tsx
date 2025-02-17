@@ -9,8 +9,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 
-import {useEnsureOrganization} from './organizationContext';
-
 interface Props {
   children: JSX.Element;
 }
@@ -21,7 +19,6 @@ interface Props {
  */
 function OrganizationContainer({children}: Props) {
   const {loading, error, errorType} = useLegacyStore(OrganizationStore);
-  useEnsureOrganization();
 
   if (loading) {
     return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
@@ -49,13 +46,17 @@ function OrganizationContainer({children}: Props) {
   if (error) {
     const errorBody =
       errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS ? (
-        <Alert type="error" data-test-id="org-access-error">
-          {t('You do not have access to this organization.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" data-test-id="org-access-error">
+            {t('You do not have access to this organization.')}
+          </Alert>
+        </Alert.Container>
       ) : errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND ? (
-        <Alert type="error" data-test-id="org-loading-error">
-          {t('The organization you were looking for was not found.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" data-test-id="org-loading-error">
+            {t('The organization you were looking for was not found.')}
+          </Alert>
+        </Alert.Container>
       ) : (
         <LoadingError />
       );

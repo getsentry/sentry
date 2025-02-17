@@ -16,7 +16,7 @@ import type {Widget} from './types';
 import {DashboardState} from './types';
 import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
-type Props = RouteComponentProps<{templateId?: string; widgetId?: string}, {}> & {
+type Props = RouteComponentProps<{templateId?: string; widgetId?: string}> & {
   children: React.ReactNode;
   organization: Organization;
 };
@@ -28,7 +28,9 @@ function CreateDashboard(props: Props) {
   function renderDisabled() {
     return (
       <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }

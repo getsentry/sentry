@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
-from sentry import features, options
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
@@ -23,6 +22,7 @@ from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
+    should_handle_grouphash_metadata,
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
@@ -228,9 +228,7 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
-        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
-            "organizations:grouphash-metadata-creation", project.organization
-        ):
+        if should_handle_grouphash_metadata(project, created):
             try:
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe

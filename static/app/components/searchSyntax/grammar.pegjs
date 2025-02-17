@@ -229,6 +229,21 @@ quoted_key
       return tc.tokenKeySimple(key.join(''), true);
     }
 
+explicit_flag_key
+  = prefix:"flags" open_bracket key:search_key closed_bracket {
+      return tc.tokenKeyExplicitFlag(prefix, key);
+    }
+
+explicit_string_flag_key
+  = prefix:"flags" open_bracket key:search_key spaces comma spaces 'string' closed_bracket {
+      return tc.tokenKeyExplicitStringFlag(prefix, key)
+    }
+
+explicit_number_flag_key
+  = prefix:"flags" open_bracket key:search_key spaces comma spaces 'number' closed_bracket {
+      return tc.tokenKeyExplicitNumberFlag(prefix, key)
+    }
+
 explicit_tag_key
   = prefix:"tags" open_bracket key:search_key closed_bracket {
       return tc.tokenKeyExplicitTag(prefix, key);
@@ -269,10 +284,10 @@ quoted_aggregate_param
     }
 
 search_key
-  = explicit_number_tag_key / key / quoted_key
+  = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
 
 text_key
-  = explicit_tag_key / explicit_string_tag_key / search_key
+  = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 
 // Filter values
 

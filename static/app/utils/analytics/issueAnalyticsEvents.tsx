@@ -32,6 +32,9 @@ interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsP
 interface StreamlineGroupEventParams extends GroupEventParams {
   streamline: boolean;
 }
+interface StreamlineGroupParams extends CommonGroupAnalyticsData {
+  streamline: boolean;
+}
 
 interface EventDropdownParams {
   event_id: string;
@@ -110,6 +113,9 @@ export type IssueEventParameters = {
   };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
     is_high_priority: boolean;
@@ -132,6 +138,7 @@ export type IssueEventParameters = {
     content: string;
   };
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.issue_tags_click': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.related_trace_issue.trace_issue_clicked': {
@@ -385,12 +392,17 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
   'highlights.project_settings.updated_manually':
     'Highlights: Updated Manually from Settings',
+  'issue_details.copy_issue_short_id_clicked': 'Issue Details: Copy Issue Short ID',
+  'issue_details.copy_issue_url_clicked': 'Issue Details: Copy Issue URL',
+  'issue_details.copy_issue_markdown_link_clicked':
+    'Issue Details: Copy Issue Markdown Link',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
+  'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':

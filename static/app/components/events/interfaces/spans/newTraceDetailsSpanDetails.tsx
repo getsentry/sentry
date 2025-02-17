@@ -169,7 +169,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         data-test-id="view-child-transactions"
         size="xs"
         to={childrenEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
@@ -286,11 +286,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     return (
-      <Alert type="info" showIcon system>
-        {t(
-          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon system>
+          {t(
+            'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

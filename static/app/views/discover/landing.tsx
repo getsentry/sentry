@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import QueryList from './queryList';
@@ -41,7 +42,7 @@ const SORT_OPTIONS: Array<SelectValue<string>> = [
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{}, {}> &
+} & RouteComponentProps &
   DeprecatedAsyncComponent['props'];
 
 type State = {
@@ -229,7 +230,9 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
   renderNoAccess() {
     return (
       <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }
@@ -272,7 +275,10 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const to = `/organizations/${organization.slug}/discover/homepage/`;
+    const to = makeDiscoverPathname({
+      path: `/homepage/`,
+      organization,
+    });
 
     return (
       <Feature

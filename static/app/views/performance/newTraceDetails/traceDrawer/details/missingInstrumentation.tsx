@@ -1,10 +1,8 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSpan} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useProjects from 'sentry/utils/useProjects';
@@ -61,17 +59,14 @@ export function MissingInstrumentationNodeDetails(
         />
       </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
-        <TextBlock>
-          {tct(
-            'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
-            {
-              customInstrumentationLink: (
-                <ExternalLink href={getCustomInstrumentationLink(project)} />
-              ),
-            }
-          )}
-        </TextBlock>
-
+        {tct(
+          'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
+          {
+            customInstrumentationLink: (
+              <ExternalLink href={getCustomInstrumentationLink(project)} />
+            ),
+          }
+        )}
         {event?.projectSlug ? (
           <ProfilesProvider
             orgSlug={organization.slug}
@@ -91,22 +86,13 @@ export function MissingInstrumentationNodeDetails(
             </ProfileContext.Consumer>
           </ProfilesProvider>
         ) : null}
-
-        <TextBlock>
-          {t(
-            "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
-          )}
-        </TextBlock>
+        {t(
+          "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
+        )}
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  line-height: 1.5;
-  margin-bottom: ${space(2)};
-`;
 
 function LegacyMissingInstrumentationNodeDetails({
   node,
@@ -148,7 +134,7 @@ function LegacyMissingInstrumentationNodeDetails({
         <TraceDrawerComponents.CopyableCardValueWithLink
           value={profileId}
           linkTarget={generateProfileFlamechartRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             projectSlug: project.slug,
             profileId,
           })}
