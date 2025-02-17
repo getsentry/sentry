@@ -139,7 +139,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up your provider webhooks'),
-          badge: () => 'beta',
+          badge: () => 'new',
           show: ({organization}) =>
             !!organization && organization.features.includes('feature-flag-ui'),
         },

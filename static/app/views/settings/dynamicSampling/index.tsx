@@ -33,7 +33,7 @@ export default function DynamicSamplingSettings() {
         title={
           <Fragment>
             {t('Dynamic Sampling')}
-            <FeatureBadge type="beta" />
+            <FeatureBadge type="new" />
           </Fragment>
         }
         action={
