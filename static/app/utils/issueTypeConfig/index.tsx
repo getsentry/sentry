@@ -52,6 +52,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     events: {enabled: true},
     openPeriods: {enabled: false},
     checkIns: {enabled: false},
+    uptimeChecks: {enabled: false},
     attachments: {enabled: false},
     userFeedback: {enabled: false},
     replays: {enabled: false},

@@ -71,6 +71,7 @@ describe('SolutionsSection', () => {
         events: {enabled: false},
         openPeriods: {enabled: false},
         checkIns: {enabled: false},
+        uptimeChecks: {enabled: false},
         attachments: {enabled: false},
         userFeedback: {enabled: false},
         replays: {enabled: false},

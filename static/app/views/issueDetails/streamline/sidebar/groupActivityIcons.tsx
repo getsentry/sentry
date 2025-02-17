@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {
   IconAdd,
   IconAsana,
@@ -26,7 +27,6 @@ import {
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
-import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {space} from 'sentry/styles/space';
 import {
   type Group,

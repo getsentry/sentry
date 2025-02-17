@@ -2,7 +2,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.fields import CharField
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.endpoints.api_tokens import get_appropriate_user_id
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.apitoken import ApiToken
 
@@ -30,7 +30,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.SECURITY
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:

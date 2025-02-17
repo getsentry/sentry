@@ -27,7 +27,7 @@ type ActiveTab = keyof typeof FORM_COMPONENTS;
 
 type TabConfig = [key: ActiveTab, label: string, disabled?: boolean];
 
-type Props = RouteComponentProps<{orgId?: string}, {}> & {
+type Props = RouteComponentProps<{orgId?: string}> & {
   api: Client;
 };
 
@@ -124,19 +124,21 @@ class Login extends Component<Props, State> {
         {!loading && authConfig !== null && !error && (
           <FormWrapper hasAuthProviders={this.hasAuthProviders}>
             {orgId !== undefined && (
-              <Alert
-                type="warning"
-                trailingItems={
-                  <LinkButton to="/" size="xs">
-                    Reload
-                  </LinkButton>
-                }
-              >
-                {tct(
-                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
-                  {org: this.props.params.orgId}
-                )}
-              </Alert>
+              <Alert.Container>
+                <Alert
+                  type="warning"
+                  trailingItems={
+                    <LinkButton to="/" size="xs">
+                      Reload
+                    </LinkButton>
+                  }
+                >
+                  {tct(
+                    "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
+                    {org: this.props.params.orgId}
+                  )}
+                </Alert>
+              </Alert.Container>
             )}
             <FormComponent {...{authConfig}} />
           </FormWrapper>

@@ -14,7 +14,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 
 import ProjectPlugins from './projectPlugins';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   plugins: {
     error: React.ComponentProps<typeof ProjectPlugins>['error'];

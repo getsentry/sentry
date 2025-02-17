@@ -107,14 +107,16 @@ export function PageAlert() {
   };
 
   return (
-    <Alert
-      type={pageAlert.type}
-      data-test-id="page-error-alert"
-      showIcon
-      trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
-    >
-      <Fragment>{message}</Fragment>
-    </Alert>
+    <Alert.Container>
+      <Alert
+        type={pageAlert.type}
+        data-test-id="page-error-alert"
+        showIcon
+        trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
+      >
+        <Fragment>{message}</Fragment>
+      </Alert>
+    </Alert.Container>
   );
 }
 

@@ -27,7 +27,7 @@ from .integration_utils import (
     InstallationNotFoundError,
     get_installation,
 )
-from .stacktraces import identify_stacktrace_paths
+from .stacktraces import get_frames_to_process
 from .utils import supported_platform
 
 logger = logging.getLogger(__name__)
@@ -67,15 +67,16 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
     if not supported_platform(event.platform):
         return []
 
-    stacktrace_paths = identify_stacktrace_paths(event.data)
-    if not stacktrace_paths:
+    frames_to_process = get_frames_to_process(event.data, event.platform)
+    if not frames_to_process:
         return []
 
+    code_mappings = []
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
-        code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+        code_mappings = trees_helper.generate_code_mappings(frames_to_process)
         if event.platform not in DRY_RUN_PLATFORMS:
             set_project_codemappings(code_mappings, installation, project)
     except (InstallationNotFoundError, InstallationCannotGetTreesError):

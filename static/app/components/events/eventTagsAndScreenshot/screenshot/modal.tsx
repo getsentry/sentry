@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -72,13 +72,13 @@ export default function ScreenshotModal({
     [attachments, currentAttachmentIndex]
   );
 
-  useHotkeys(
-    [
+  const paginateHotkeys = useMemo(() => {
+    return [
       {match: 'right', callback: () => paginateItems(1)},
       {match: 'left', callback: () => paginateItems(-1)},
-    ],
-    [paginateItems]
-  );
+    ];
+  }, [paginateItems]);
+  useHotkeys(paginateHotkeys);
 
   const {dateCreated, size, mimetype} = currentEventAttachment;
 

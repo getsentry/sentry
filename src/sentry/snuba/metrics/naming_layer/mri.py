@@ -17,21 +17,6 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 metric that is queryable by the API.
 """
 
-__all__ = (
-    "SessionMRI",
-    "TransactionMRI",
-    "SpanMRI",
-    "MRI_SCHEMA_REGEX",
-    "MRI_EXPRESSION_REGEX",
-    "ErrorsMRI",
-    "parse_mri",
-    "get_available_operations",
-    "is_mri_field",
-    "parse_mri_field",
-    "format_mri_field",
-    "format_mri_field_value",
-)
-
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -48,7 +33,21 @@ from sentry.snuba.metrics.utils import (
     OP_REGEX,
     MetricEntity,
     MetricOperationType,
-    MetricUnit,
+)
+
+__all__ = (
+    "SessionMRI",
+    "TransactionMRI",
+    "SpanMRI",
+    "MRI_SCHEMA_REGEX",
+    "MRI_EXPRESSION_REGEX",
+    "ErrorsMRI",
+    "parse_mri",
+    "get_available_operations",
+    "is_mri_field",
+    "parse_mri_field",
+    "format_mri_field",
+    "format_mri_field_value",
 )
 
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
@@ -274,8 +273,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+        return format_value_using_unit_and_op(
+            float(value), parsed_mri_field.mri.unit, parsed_mri_field.op
+        )
 
     except InvalidParams:
         return value

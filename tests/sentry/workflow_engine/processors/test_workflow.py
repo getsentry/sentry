@@ -394,7 +394,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 
         mock_push_to_sorted_set.assert_called_once_with(
             model=Workflow,
-            filters={"project": self.group_event.project_id},
+            filters={"project_id": self.group_event.project_id},
             field=f"{self.workflow.id}:{self.group_event.group_id}:{self.condition.condition_group_id}:workflow_trigger",
             value=json.dumps(
                 {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}

@@ -1,44 +1,45 @@
+from __future__ import annotations
+
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.db.models.fields.node import NodeData
 from sentry.utils.safe import get_path
 
+from .constants import PROCESS_ALL_FRAMES
+
 logger = logging.getLogger(__name__)
 
 
-class Stacktrace(TypedDict):
-    stacktrace: Mapping[str, Sequence[Mapping[str, Any]]]
-
-
-def identify_stacktrace_paths(data: NodeData | Stacktrace) -> list[str]:
-    """
-    Get the stacktrace_paths from the event data.
-    """
-    stacktraces = get_stacktrace(data)
-    stacktrace_paths = set()
+def get_frames_to_process(
+    data: NodeData | dict[str, Any], platform: str | None = None
+) -> list[dict[str, Any]]:
+    """It flattens all processableframes from the event's data."""
+    stacktraces = get_stacktraces(data)
+    frames_to_process = []
     for stacktrace in stacktraces:
-        try:
-            frames = stacktrace["frames"]
-            for frame in frames:
-                if frame is None:
-                    continue
+        frames = stacktrace["frames"]
+        for frame in frames:
+            if frame is None:
+                continue
 
-                if frame.get("in_app"):
-                    stacktrace_paths.add(frame["filename"])
-        except Exception:
-            logger.exception("Error getting filenames for project.")
-    return list(stacktrace_paths)
+            if platform in PROCESS_ALL_FRAMES:
+                frames_to_process.append(frame)
+
+            elif frame.get("in_app") and frame.get("filename"):
+                frames_to_process.append(frame)
+
+    return list(frames_to_process)
 
 
-def get_stacktrace(data: NodeData | Stacktrace) -> list[Mapping[str, Any]]:
+def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
         return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
 
     stacktrace = data.get("stacktrace")
     if stacktrace and stacktrace.get("frames"):
+        logger.warning("Investigate if we use this code path in production.")
         return [stacktrace]
 
     return []

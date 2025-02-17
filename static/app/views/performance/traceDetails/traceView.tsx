@@ -52,7 +52,7 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type TraceViewProps = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type TraceViewProps = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
   organization: Organization;
   traceEventView: EventView;
