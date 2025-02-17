@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import DemoHeader from 'sentry/components/demo/demoHeader';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -82,6 +83,7 @@ function AppLayout({children, organization}: LayoutProps) {
 function LegacyAppLayout({children, organization}: LayoutProps) {
   return (
     <div className="app">
+      <DemoHeader />
       {organization && <OrganizationHeader organization={organization} />}
       {organization && <DevToolInit />}
       <Sidebar />

@@ -82,7 +82,6 @@ import {
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
-import {DEMO_HEADER_HEIGHT_PX} from '../demo/demoHeader';
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
@@ -669,7 +668,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
         ? SIDEBAR_COLLAPSED_WIDTH
         : SIDEBAR_EXPANDED_WIDTH};
   position: fixed;
-  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
+  top: 0;
   left: 0;
   bottom: 0;
   justify-content: space-between;
