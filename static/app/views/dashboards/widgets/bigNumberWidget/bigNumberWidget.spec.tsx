@@ -28,6 +28,14 @@ describe('BigNumberWidget', () => {
   });
 
   describe('Visualization', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.resetAllMocks();
+    });
+
     it('Explains missing data', () => {
       render(
         <BigNumberWidget

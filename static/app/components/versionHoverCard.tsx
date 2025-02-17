@@ -121,27 +121,31 @@ function VersionHoverCard({
             </div>
           </Flex>
           {parsedVersion?.package && (
-            <Flex gap={space(2)} justify="space-between">
+            <Flex column gap={space(2)} justify="space-between">
               {parsedVersion.package && (
                 <div>
                   <h6>{t('Package')}</h6>
                   <div>{parsedVersion.package}</div>
                 </div>
               )}
-              <div>
-                <h6 style={{textAlign: parsedVersion.package ? 'right' : undefined}}>
-                  {release.commitCount}{' '}
-                  {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
-                  {release.authors.length}{' '}
-                  {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
-                </h6>
-                <AvatarList
-                  users={authors}
-                  avatarSize={25}
-                  tooltipOptions={{container: 'body'} as any}
-                  typeAvatars="authors"
-                />
-              </div>
+              {release.commitCount > 0 ? (
+                <div>
+                  <h6>
+                    {release.commitCount}{' '}
+                    {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                    {release.authors.length}{' '}
+                    {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
+                  </h6>
+                  <AvatarListContainer>
+                    <AvatarList
+                      users={authors}
+                      avatarSize={25}
+                      tooltipOptions={{container: 'body'} as any}
+                      typeAvatars="authors"
+                    />
+                  </AvatarListContainer>
+                </div>
+              ) : null}
             </Flex>
           )}
           {release.lastCommit && <LastCommit commit={release.lastCommit} />}
@@ -241,4 +245,9 @@ const StyledVersion = styled(Version)`
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
+`;
+
+const AvatarListContainer = styled('div')`
+  display: flex;
+  padding-left: ${space(0.5)};
 `;

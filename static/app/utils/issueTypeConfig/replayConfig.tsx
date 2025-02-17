@@ -27,6 +27,7 @@ const replayConfig: IssueCategoryConfigMapping = {
       landingPage: Tab.DETAILS,
       events: {enabled: true},
       openPeriods: {enabled: false},
+      uptimeChecks: {enabled: false},
       checkIns: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: true},

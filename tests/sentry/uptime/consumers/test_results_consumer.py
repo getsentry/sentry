@@ -1,6 +1,8 @@
+import abc
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+from typing import Literal
 from unittest import mock
 from unittest.mock import call
 
@@ -9,7 +11,6 @@ from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
-from django.conf import settings
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
@@ -24,6 +25,8 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
@@ -44,7 +47,14 @@ from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
-class ProcessResultTest(ConfigPusherTestMixin):
+class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
+    __test__ = Abstract(__module__, __qualname__)
+
+    @property
+    @abc.abstractmethod
+    def strategy_processing_mode(self) -> Literal["batched-parallel", "parallel", "serial"]:
+        pass
+
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -70,7 +80,7 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             if consumer is None:
-                factory = UptimeResultsStrategyFactory()
+                factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
                 commit = mock.Mock()
                 consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
@@ -95,17 +105,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                            "uptime_region": "us-west",
+                        },
                     ),
                 ]
             )
@@ -121,10 +136,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -159,17 +175,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "default",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "host_provider": "other",
+                            "status": CHECKSTATUS_FAILURE,
+                            "uptime_region": "default",
+                        },
                     ),
                 ]
             )
@@ -199,7 +220,12 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.restricted_by_provider",
                         sample_rate=1.0,
-                        tags={"host_provider_id": "TEST", "uptime_region": "us-west"},
+                        tags={
+                            "host_provider_id": "TEST",
+                            "uptime_region": "us-west",
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                        },
                     ),
                 ],
                 any_order=True,
@@ -230,17 +256,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "uptime_region": "us-west",
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                        },
                     ),
                 ]
             )
@@ -257,10 +288,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -278,17 +310,22 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.active.under_threshold",
                         sample_rate=1.0,
-                        tags={"status": "failure"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "host_provider": "other",
+                            "uptime_region": "us-west",
+                        },
                     ),
                 ]
             )
@@ -314,10 +351,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     )
@@ -350,10 +388,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -371,10 +410,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -403,10 +443,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     )
@@ -504,10 +545,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "failure",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -517,6 +559,7 @@ class ProcessResultTest(ConfigPusherTestMixin):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_active",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -542,8 +585,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                 tags={
                     "status": CHECKSTATUS_MISSED_WINDOW,
                     "mode": "auto_detected_active",
-                    "status_reason": "timeout",
+                    "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                     "uptime_region": "us-west",
+                    "host_provider": "other",
                 },
                 sample_rate=1.0,
             )
@@ -579,8 +623,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                         tags={
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_onboarding",
-                            "status_reason": "timeout",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -613,8 +658,9 @@ class ProcessResultTest(ConfigPusherTestMixin):
                         tags={
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_onboarding",
-                            "status_reason": "timeout",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -623,6 +669,8 @@ class ProcessResultTest(ConfigPusherTestMixin):
                         tags={
                             "failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
                             "uptime_region": "us-west",
+                            "host_provider": "other",
+                            "status": CHECKSTATUS_FAILURE,
                         },
                         sample_rate=1.0,
                     ),
@@ -662,10 +710,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_onboarding",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
@@ -703,16 +752,21 @@ class ProcessResultTest(ConfigPusherTestMixin):
                     call(
                         "uptime.result_processor.handle_result_for_project",
                         tags={
-                            "status_reason": "timeout",
-                            "status": "success",
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
                             "mode": "auto_detected_onboarding",
                             "uptime_region": "us-west",
+                            "host_provider": "other",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.autodetection.graduated_onboarding",
-                        tags={"uptime_region": "us-west"},
+                        tags={
+                            "status": CHECKSTATUS_SUCCESS,
+                            "uptime_region": "us-west",
+                            "host_provider": "other",
+                        },
                         sample_rate=1.0,
                     ),
                 ]
@@ -733,13 +787,195 @@ class ProcessResultTest(ConfigPusherTestMixin):
         )
         assert uptime_subscription.url == new_uptime_subscription.url
 
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    def test_produces_snuba_uptime_results(self, mock_produce) -> None:
+        """
+        Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+        mock_produce.assert_called_once()
+
+        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+
+        parsed_value = json.loads(mock_produce.call_args.args[1].value)
+        assert parsed_value["organization_id"] == self.project.organization_id
+        assert parsed_value["project_id"] == self.project.id
+        assert parsed_value["retention_days"] == 90
+
+    def run_check_and_update_region_test(
+        self,
+        sub: UptimeSubscription,
+        regions: list[str],
+        disabled_regions: list[str],
+        expected_regions_before: set[str],
+        expected_regions_after: set[str],
+        expected_config_updates: list[tuple[str, str | None]],
+        current_minute=5,
+    ):
+        region_configs = [
+            UptimeRegionConfig(slug=slug, name=slug, config_redis_key_prefix=slug)
+            for slug in regions
+        ]
+
+        with (
+            override_settings(UPTIME_REGIONS=region_configs),
+            override_options({"uptime.disabled-checker-regions": disabled_regions}),
+            self.tasks(),
+            freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
+        ):
+            result = self.create_uptime_result(
+                sub.subscription_id,
+                scheduled_check_time=datetime.now(),
+            )
+            assert {r.region_slug for r in sub.regions.all()} == expected_regions_before
+            self.send_result(result)
+            sub.refresh_from_db()
+            assert {r.region_slug for r in sub.regions.all()} == expected_regions_after
+            for expected_region, expected_action in expected_config_updates:
+                self.assert_redis_config(expected_region, sub, expected_action)
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+
+    def test_check_and_update_regions(self):
+        sub = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=5).hex,
+            region_slugs=["region1"],
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1"},
+            [],
+            4,
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1", "region2"},
+            [("region1", "upsert"), ("region2", "upsert")],
+            5,
+        )
+
+    def test_check_and_update_regions_larger_interval(self):
+        # Create subscription with only one region
+        hour_sub = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=4).hex,
+            region_slugs=["region1"],
+            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
+        )
+        self.run_check_and_update_region_test(
+            hour_sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1", "region2"},
+            [("region1", "upsert"), ("region2", "upsert")],
+            37,
+        )
+
+        five_min_sub = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=6).hex,
+            region_slugs=["region1"],
+            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+        )
+        self.run_check_and_update_region_test(
+            five_min_sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1"},
+            [],
+            current_minute=6,
+        )
+        self.run_check_and_update_region_test(
+            five_min_sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1"},
+            [],
+            current_minute=35,
+        )
+        self.run_check_and_update_region_test(
+            five_min_sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1"},
+            [],
+            current_minute=49,
+        )
+        self.run_check_and_update_region_test(
+            five_min_sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1", "region2"},
+            [("region1", "upsert"), ("region2", "upsert")],
+            current_minute=30,
+        )
+        # Make sure it works any time within the valid window
+        five_min_sub = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=66).hex,
+            region_slugs=["region1"],
+            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+        )
+        self.run_check_and_update_region_test(
+            five_min_sub,
+            ["region1", "region2"],
+            [],
+            {"region1"},
+            {"region1", "region2"},
+            [("region1", "upsert"), ("region2", "upsert")],
+            current_minute=34,
+        )
+
+    def test_check_and_update_regions_removes_disabled(self):
+        sub = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=5).hex, region_slugs=["region1", "region2"]
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            ["region2"],
+            {"region1", "region2"},
+            {"region1", "region2"},
+            [],
+            current_minute=4,
+        )
+        self.run_check_and_update_region_test(
+            sub,
+            ["region1", "region2"],
+            ["region2"],
+            {"region1", "region2"},
+            {"region1"},
+            [("region1", "upsert"), ("region2", "delete")],
+            current_minute=5,
+        )
+
+
+class ProcessResultSerialTest(ProcessResultTest):
+    strategy_processing_mode = "serial"
+
     def test_parallel(self) -> None:
         """
         Validates that the consumer in parallel mode correctly groups check-ins
         into groups by their monitor slug / environment
         """
 
-        factory = UptimeResultsStrategyFactory(mode="parallel", max_batch_size=3, max_workers=1)
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
         consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
         with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
             subscription_2 = self.create_uptime_subscription(
@@ -787,7 +1023,11 @@ class ProcessResultTest(ConfigPusherTestMixin):
         into groups by their monitor slug / environment
         """
 
-        factory = UptimeResultsStrategyFactory(mode="parallel", max_batch_size=3, max_workers=1)
+        factory = UptimeResultsStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=3,
+            max_workers=1,
+        )
         consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
         subscription_2 = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
@@ -821,125 +1061,6 @@ class ProcessResultTest(ConfigPusherTestMixin):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
-    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
-    @override_options({"uptime.snuba_uptime_results.enabled": True})
-    def test_produces_snuba_uptime_results(self, mock_produce) -> None:
-        """
-        Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
-        """
-        result = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-        )
-        self.send_result(result)
-        mock_produce.assert_called_once()
 
-        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
-
-        parsed_value = json.loads(mock_produce.call_args.args[1].value)
-        assert parsed_value["organization_id"] == self.project.organization_id
-        assert parsed_value["project_id"] == self.project.id
-        assert parsed_value["retention_days"] == 90
-
-    @mock.patch("random.random")
-    def test_check_and_update_regions(self, mock_random):
-        # Force the check to run
-        mock_random.return_value = 0
-
-        regions = [
-            UptimeRegionConfig(
-                slug="region1",
-                name="Region 1",
-                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
-                config_redis_key_prefix="r1",
-                enabled=True,
-            ),
-            UptimeRegionConfig(
-                slug="region2",
-                name="Region 2",
-                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
-                config_redis_key_prefix="r2",
-                enabled=True,
-            ),
-        ]
-
-        with override_settings(UPTIME_REGIONS=regions), self.tasks():
-            # Create subscription with only one region
-            sub = self.create_uptime_subscription(
-                subscription_id=uuid.uuid4().hex,
-                region_slugs=["region1"],
-            )
-            result = self.create_uptime_result(
-                sub.subscription_id,
-                scheduled_check_time=datetime.now() - timedelta(minutes=1),
-            )
-            assert {r.region_slug for r in sub.regions.all()} == {"region1"}
-            self.send_result(result)
-            sub.refresh_from_db()
-            assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
-            self.assert_redis_config("region1", sub, "upsert")
-            self.assert_redis_config("region2", sub, "upsert")
-            assert sub.status == UptimeSubscription.Status.ACTIVE.value
-
-    @mock.patch("random.random")
-    def test_check_and_update_regions_removes_disabled(self, mock_random):
-        mock_random.return_value = 0
-        sub = self.create_uptime_subscription(
-            subscription_id=uuid.uuid4().hex, region_slugs=["region1", "region2"]
-        )
-        regions = [
-            UptimeRegionConfig(
-                slug="region1",
-                name="Region 1",
-                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
-                config_redis_key_prefix="r1",
-                enabled=True,
-            ),
-            UptimeRegionConfig(
-                slug="region2",
-                name="Region 2",
-                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
-                config_redis_key_prefix="r2",
-                enabled=False,
-            ),
-        ]
-
-        with override_settings(UPTIME_REGIONS=regions), self.tasks():
-            result = self.create_uptime_result(
-                sub.subscription_id,
-                scheduled_check_time=datetime.now() - timedelta(minutes=1),
-            )
-            assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
-            self.send_result(result)
-            sub.refresh_from_db()
-            assert {r.region_slug for r in sub.regions.all()} == {"region1"}
-            assert sub.subscription_id
-            self.assert_redis_config("region1", sub, "upsert")
-            self.assert_redis_config("region2", sub, "delete")
-            assert sub.status == UptimeSubscription.Status.ACTIVE.value
-
-    @mock.patch("random.random")
-    def test_check_and_update_regions_random_skip(self, mock_random):
-        # Force the check to NOT run
-        mock_random.return_value = 1
-
-        regions = [
-            UptimeRegionConfig(
-                slug="region1",
-                name="Region 1",
-                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
-                enabled=True,
-            ),
-        ]
-
-        with override_settings(UPTIME_REGIONS=regions), self.tasks():
-            sub = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex, region_slugs=[])
-            result = self.create_uptime_result(
-                sub.subscription_id,
-                scheduled_check_time=datetime.now() - timedelta(minutes=1),
-            )
-            assert {r.region_slug for r in sub.regions.all()} == set()
-            self.send_result(result)
-            sub.refresh_from_db()
-            assert {r.region_slug for r in sub.regions.all()} == set()
-            self.assert_redis_config("region1", sub, None)
+class ProcessResultParallelTest(ProcessResultTest):
+    strategy_processing_mode = "parallel"

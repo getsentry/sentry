@@ -9,17 +9,20 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import accountSettingsNavigation from 'sentry/views/settings/account/navigationConfiguration';
-import organizationSettingsNavigation from 'sentry/views/settings/organization/navigationConfiguration';
+import {getOrganizationNavigationConfiguration} from 'sentry/views/settings/organization/navigationConfiguration';
 import projectSettingsNavigation from 'sentry/views/settings/project/navigationConfiguration';
-import type {NavigationItem} from 'sentry/views/settings/types';
+import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ChildProps, ResultItem} from './types';
 import {strGetFn} from './utils';
 
-type Config =
-  | typeof accountSettingsNavigation
-  | typeof organizationSettingsNavigation
-  | typeof projectSettingsNavigation;
+type ConfigParams = {
+  debugFilesNeedsReview?: boolean;
+  organization?: Organization;
+  project?: Project;
+};
+
+type Config = ((params: ConfigParams) => NavigationSection[]) | NavigationSection[];
 
 // XXX(epurkhiser): We use the context in mapFunc to handle both producing the
 // NavigationSection list AND filtering out items in the sections that should
@@ -53,7 +56,7 @@ type DefaultProps = {
   searchOptions: Fuse.IFuseOptions<NavigationItem>;
 };
 
-type Props = RouteComponentProps<{}, {}> &
+type Props = RouteComponentProps &
   DefaultProps & {
     /**
      * Render function that renders the route matches
@@ -121,7 +124,7 @@ class RouteSource extends Component<Props, State> {
     const searchMap: NavigationItem[] = [
       mapFunc(accountSettingsNavigation, context),
       mapFunc(projectSettingsNavigation, context),
-      mapFunc(organizationSettingsNavigation, context),
+      mapFunc(getOrganizationNavigationConfiguration, context),
       mapFunc(this.getHookConfigs(), context),
     ].flat(2);
 

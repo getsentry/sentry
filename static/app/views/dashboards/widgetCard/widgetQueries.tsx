@@ -1,7 +1,6 @@
 import type {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -9,8 +8,6 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -28,27 +25,6 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
-
-export function transformSeries(
-  stats: EventsStats,
-  seriesName: string,
-  field: string
-): Series {
-  const unit = stats.meta?.units?.[getAggregateAlias(field)];
-  // Scale series values to milliseconds or bytes depending on units from meta
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
-  return {
-    seriesName,
-    data:
-      stats?.data?.map(([timestamp, counts]) => {
-        return {
-          name: timestamp * 1000,
-          value: counts.reduce((acc, {count}) => acc + count, 0) * scale,
-        };
-      }) ?? [],
-  };
-}
 
 export function getIsMetricsDataFromSeriesResponse(
   result: SeriesResult

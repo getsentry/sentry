@@ -13,6 +13,7 @@ class SentryAppExamples:
                     "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
                     "avatarUrl": "https://example.com/avatar.png",
                     "color": False,
+                    "photoType": "icon",
                 },
                 "events": ["issue"],
                 "isAlertable": False,
@@ -49,6 +50,7 @@ class SentryAppExamples:
                     "avatarUuid": "6c25b771-a576-4c18-a1c3-ab059c1d42ba",
                     "avatarUrl": "https://example.com/avatar.png",
                     "color": False,
+                    "photoType": "icon",
                 },
                 "events": ["issue"],
                 "isAlertable": False,
@@ -69,6 +71,23 @@ class SentryAppExamples:
                 "clientSecret": "**********",
                 "owner": {"id": 42, "slug": "acme-corp"},
             },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    GET_PLATFORM_EXTERNAL_ISSUE = [
+        OpenApiExample(
+            "Retrieve the custom integrations associated with an issue id",
+            value=[
+                {
+                    "id": "123456",
+                    "issueId": "1234567890",
+                    "serviceType": "example-app",
+                    "displayName": "example-issue#2",
+                    "webUrl": "https://example.com/my-test-project/issue/example-issue-2/this-is-an-example-python-exception",
+                }
+            ],
             status_codes=["200"],
             response_only=True,
         )

@@ -25,7 +25,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
+import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
@@ -190,6 +190,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
     const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
+    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -198,7 +199,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: translucentGray300,
+            color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -224,7 +225,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: translucentGray300,
+            color: lightGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,

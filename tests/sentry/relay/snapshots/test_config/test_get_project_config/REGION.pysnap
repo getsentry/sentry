@@ -1,5 +1,5 @@
 ---
-created: '2025-01-21T09:32:06.138893+00:00'
+created: '2025-02-12T13:41:06.264032+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -117,13 +117,6 @@ config:
     - id: spans
       limit: 10000
       namespace: spans
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: custom
-      limit: 10000
-      namespace: custom
       scope: organization
       window:
         granularitySeconds: 600

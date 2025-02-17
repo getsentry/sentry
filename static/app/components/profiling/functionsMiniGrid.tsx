@@ -43,7 +43,7 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
         const example = f['all_examples()']?.[0];
         if (defined(example)) {
           const target = generateProfileRouteFromProfileReference({
-            orgSlug: organization.slug,
+            organization,
             projectSlug: project?.slug ?? '',
             frameName: f.function as string,
             framePackage: f.package as string,

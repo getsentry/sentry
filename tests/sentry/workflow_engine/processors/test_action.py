@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.types import WorkflowJob
@@ -35,7 +35,9 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         _, action = self.create_workflow_action(workflow=self.workflow)
         status_2 = ActionGroupStatus.objects.create(action=action, group=self.group)
 
-        triggered_actions = filter_recently_fired_workflow_actions(Action.objects.all(), self.group)
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.group
+        )
         assert set(triggered_actions) == {self.action}
 
         for status in [status_1, status_2]:
@@ -55,7 +57,9 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_3 = ActionGroupStatus.objects.create(action=action_3, group=self.group)
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
-        triggered_actions = filter_recently_fired_workflow_actions(Action.objects.all(), self.group)
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.group
+        )
         assert set(triggered_actions) == {self.action, action_3}
 
         for status in [status_1, status_2, status_3]:

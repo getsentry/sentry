@@ -83,11 +83,13 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             confirmText={t('Disconnect')}
             message={
               <Fragment>
-                <Alert type="error" showIcon>
-                  {tct('Disconnect Your [provider] Identity?', {
-                    provider: identity.provider.name,
-                  })}
-                </Alert>
+                <Alert.Container>
+                  <Alert type="error" showIcon>
+                    {tct('Disconnect Your [provider] Identity?', {
+                      provider: identity.provider.name,
+                    })}
+                  </Alert>
+                </Alert.Container>
                 <TextBlock>
                   {identity.isLogin
                     ? t(

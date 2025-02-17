@@ -61,29 +61,31 @@ class TransactionDetail extends Component<Props> {
     }
 
     return (
-      <Alert
-        system
-        type="error"
-        expand={[...errors, ...performance_issues].map(error => (
-          <ErrorMessageContent key={error.event_id}>
-            <ErrorDot level={error.level} />
-            <ErrorLevel>{error.level}</ErrorLevel>
-            <ErrorTitle>
-              <Link to={generateIssueEventTarget(error, organization)}>
-                {error.title}
-              </Link>
-            </ErrorTitle>
-          </ErrorMessageContent>
-        ))}
-      >
-        <ErrorMessageTitle>
-          {tn(
-            '%s issue occurred in this transaction.',
-            '%s issues occurred in this transaction.',
-            errors.length + performance_issues.length
-          )}
-        </ErrorMessageTitle>
-      </Alert>
+      <Alert.Container>
+        <Alert
+          system
+          type="error"
+          expand={[...errors, ...performance_issues].map(error => (
+            <ErrorMessageContent key={error.event_id}>
+              <ErrorDot level={error.level} />
+              <ErrorLevel>{error.level}</ErrorLevel>
+              <ErrorTitle>
+                <Link to={generateIssueEventTarget(error, organization)}>
+                  {error.title}
+                </Link>
+              </ErrorTitle>
+            </ErrorMessageContent>
+          ))}
+        >
+          <ErrorMessageTitle>
+            {tn(
+              '%s issue occurred in this transaction.',
+              '%s issues occurred in this transaction.',
+              errors.length + performance_issues.length
+            )}
+          </ErrorMessageTitle>
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -134,7 +136,7 @@ class TransactionDetail extends Component<Props> {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: transaction.project_slug,
       profileId: transaction.profile_id,
     });

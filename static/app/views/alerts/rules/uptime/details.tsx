@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
+import {Alert} from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
@@ -46,7 +47,7 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
@@ -158,15 +159,36 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <StyledPageFilterBar condensed>
             <DatePageFilter />
           </StyledPageFilterBar>
+          {uptimeRule.status === 'disabled' && (
+            <Alert.Container>
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    uptimeRule={uptimeRule}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and not recording uptime checks.')}
+              </Alert>
+            </Alert.Container>
+          )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
           <UptimeChecksTable uptimeRule={uptimeRule} />
         </Layout.Main>
         <Layout.Side>
-          <SectionHeading>{t('Checked URL')}</SectionHeading>
-          <CodeSnippet
-            hideCopyButton
-          >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          <MonitorUrlContainer>
+            <SectionHeading>{t('Checked URL')}</SectionHeading>
+            <CodeSnippet
+              hideCopyButton
+            >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          </MonitorUrlContainer>
           <SectionHeading>{t('Legend')}</SectionHeading>
           <CheckLegend>
             <CheckLegendItem>
@@ -277,4 +299,12 @@ const LegendText = styled(Text)`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const MonitorUrlContainer = styled('div')`
+  margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
 `;

@@ -1,7 +1,7 @@
 import type {Config} from '@jest/types';
-const {execFileSync} = require('node:child_process');
 import path from 'node:path';
 import process from 'node:process';
+import {execFileSync} from 'node:child_process';
 
 import babelConfig from './babel.config';
 
@@ -44,33 +44,35 @@ let JEST_TESTS;
 // prevents forkbomb as we don't want jest --listTests --json
 // to reexec itself here
 if (!process.env.JEST_LIST_TESTS_INNER) {
-  execFileSync(
-    'yarn',
-    ['-s', 'jest', '--listTests', '--json'],
-    {
+  try {
+    const stdout = execFileSync('yarn', ['-s', 'jest', '--listTests', '--json'], {
+      stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
-    },
-    (error, stdout, stderr) => {
-      if (error) {
-        throw new Error(`
-Error listing jest tests: ${error}
+    });
+    JEST_TESTS = JSON.parse(stdout);
+  } catch (err) {
+    if (err.code) {
+      throw new Error(`err code ${err.code} when spawning process`);
+    } else {
+      const {stdout, stderr} = err;
+      throw new Error(`
+error listing jest tests
 
 stdout:
 ${stdout}
 
 stderr:
-${stderr}`);
-      }
-      JEST_TESTS = JSON.parse(stdout);
+${stderr}
+`);
     }
-  );
+  }
 }
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
- * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests`
+ * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests --json`
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
  */
@@ -192,16 +194,16 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const testList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
+  const envTestList: string[] = JEST_TESTS.map(file => file.replace(__dirname, ''));
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
   if (balance) {
     optionalTags.balancer = true;
     optionalTags.balancer_strategy = 'by_path';
-    testMatch = getTestsForGroup(nodeIndex, nodeTotal, testList, balance);
+    testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
   } else {
-    const tests = testList.sort((a, b) => b.localeCompare(a));
+    const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
     const length = tests.length;
     const size = Math.floor(length / nodeTotal);

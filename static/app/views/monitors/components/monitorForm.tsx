@@ -5,7 +5,7 @@ import {Observer} from 'mobx-react';
 
 import {Alert} from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -30,6 +30,7 @@ import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
@@ -310,11 +311,11 @@ function MonitorForm({
         </ListItemSubText>
         <InputGroup noPadding>
           {monitor !== undefined && (
-            <StyledAlert type="info">
+            <Alert type="info">
               {t(
                 'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}
-            </StyledAlert>
+            </Alert>
           )}
           <SelectField
             name="config.scheduleType"
@@ -494,7 +495,10 @@ function MonitorForm({
           {monitor?.config.alert_rule_id && (
             <AlertLink
               priority="muted"
-              to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
+              to={makeAlertsPathname({
+                path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
+                organization,
+              })}
               withoutMarginBottom
             >
               {t('Customize this monitors notification configuration in Alerts')}
@@ -551,10 +555,6 @@ export default MonitorForm;
 
 const StyledList = styled(List)`
   width: 800px;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledListItem = styled(ListItem)`

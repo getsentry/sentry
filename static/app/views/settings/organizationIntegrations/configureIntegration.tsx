@@ -46,13 +46,10 @@ import IntegrationMainSettings from './integrationMainSettings';
 import IntegrationRepos from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-type Props = RouteComponentProps<
-  {
-    integrationId: string;
-    providerKey: string;
-  },
-  {}
->;
+type Props = RouteComponentProps<{
+  integrationId: string;
+  providerKey: string;
+}>;
 
 const TABS = [
   'repos',
@@ -379,23 +376,27 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         )}
 
         {instructions && instructions.length > 0 && (
-          <Alert type="info">
-            {instructions.length === 1 ? (
-              <span
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
-              />
-            ) : (
-              <List symbol={<IconArrow size="xs" direction="right" />}>
-                {instructions.map((instruction, i) => (
-                  <ListItem key={i}>
-                    <span
-                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
-                    />
-                  </ListItem>
-                )) ?? null}
-              </List>
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info">
+              {instructions.length === 1 ? (
+                <span
+                  dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
+                />
+              ) : (
+                <List symbol={<IconArrow size="xs" direction="right" />}>
+                  {instructions.map((instruction, i) => (
+                    <ListItem key={i}>
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: singleLineRenderer(instruction),
+                        }}
+                      />
+                    </ListItem>
+                  )) ?? null}
+                </List>
+              )}
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider.features.includes('alert-rule') && <IntegrationAlertRules />}

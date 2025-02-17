@@ -434,6 +434,8 @@ export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
+export const LOGS_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/logs/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;

@@ -58,6 +58,12 @@ class RpcProject(RpcModel):
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
     platform: str | None = None
+    external_id: str | None = None
+
+    def __hash__(self) -> int:
+        # Mimic the behavior of hashing a Django ORM entity, for compatibility with
+        # serializers, as this project object is often used for that.
+        return hash((self.id, self.organization_id, self.slug))
 
     def get_option(
         self,

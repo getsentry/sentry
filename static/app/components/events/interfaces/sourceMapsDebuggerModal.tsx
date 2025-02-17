@@ -1354,7 +1354,6 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
 const CheckListInstruction = styled(Alert)`
   width: 100%;
   margin-top: ${space(1)};
-  margin-bottom: 0;
   overflow-x: auto;
 
   h6 {

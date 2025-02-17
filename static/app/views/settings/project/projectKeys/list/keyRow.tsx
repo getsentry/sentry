@@ -24,7 +24,7 @@ type Props = {
   orgId: string;
   project: Project;
   projectId: string;
-} & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
+} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
 function KeyRow({
   data,

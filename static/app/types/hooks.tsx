@@ -76,7 +76,7 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
+type DisabledMemberViewProps = RouteComponentProps<{orgId: string}>;
 
 type MemberListHeaderProps = {
   members: Member[];
@@ -490,7 +490,7 @@ type MetricsEvent = (
   /**
    * An additional tags object
    */
-  tags?: object
+  tags?: Record<PropertyKey, unknown>
 ) => void;
 
 /**
