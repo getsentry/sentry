@@ -1,24 +1,17 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import type {BadgeProps} from 'sentry/components/badge/badge';
-import {LinkButton} from 'sentry/components/button';
+import Badge from 'sentry/components/badge/badge';
+import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ErrorPanel} from '../widgetLayout/errorPanel';
-import {WidgetBadge} from '../widgetLayout/widgetBadge';
-import {WidgetButton} from '../widgetLayout/widgetButton';
-import {
-  WidgetDescription,
-  type WidgetDescriptionProps,
-} from '../widgetLayout/widgetDescription';
-import {WidgetLayout} from '../widgetLayout/widgetLayout';
-import {WidgetTitle} from '../widgetLayout/widgetTitle';
+import {Widget} from '../widget/widget';
+import type {WidgetDescriptionProps} from '../widget/widgetDescription';
 
-import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -61,7 +54,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const shouldShowActions = actions && actions.length > 0;
 
   return (
-    <WidgetLayout
+    <Widget
       ariaLabel="Widget panel"
       borderless={props.borderless}
       Title={
@@ -74,7 +67,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <WidgetTitle title={props.title} />
+          <Widget.WidgetTitle title={props.title} />
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
@@ -89,7 +82,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <WidgetDescription
+            <Widget.WidgetDescription
               title={props.title}
               description={props.description}
               revealTooltip={props.revealTooltip ?? 'hover'}
@@ -112,12 +105,13 @@ export function WidgetFrame(props: WidgetFrameProps) {
                     {actions[0]!.label}
                   </LinkButton>
                 ) : (
-                  <WidgetButton
+                  <Button
+                    size="xs"
                     disabled={props.actionsDisabled}
                     onClick={actions[0]!.onAction}
                   >
                     {actions[0]!.label}
-                  </WidgetButton>
+                  </Button>
                 )
               ) : null}
 
@@ -139,7 +133,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
 
           {shouldShowFullScreenViewButton && (
-            <WidgetButton
+            <Button
+              size="xs"
               aria-label={t('Open Full-Screen View')}
               borderless
               icon={<IconExpand />}
@@ -150,17 +145,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
         </Fragment>
       }
-      Visualization={
-        props.error ? (
-          <ErrorPanel error={error} />
-        ) : (
-          <ErrorBoundary
-            customComponent={() => <ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
-          >
-            {props.children}
-          </ErrorBoundary>
-        )
-      }
+      Visualization={props.error ? <Widget.WidgetError error={error} /> : props.children}
       noVisualizationPadding={props.noVisualizationPadding}
     />
   );
@@ -171,6 +156,10 @@ interface TitleActionsProps {
   disabled: boolean;
   disabledMessage: string;
 }
+
+const WidgetBadge = styled(Badge)`
+  flex-shrink: 0;
+`;
 
 function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActionsProps) {
   if (!disabled || !disabledMessage) {

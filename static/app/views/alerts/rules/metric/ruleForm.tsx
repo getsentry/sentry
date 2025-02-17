@@ -116,7 +116,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
+} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 

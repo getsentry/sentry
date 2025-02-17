@@ -40,7 +40,7 @@ import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
-type Props = RouteComponentProps<{monitorSlug: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
@@ -157,21 +157,23 @@ function MonitorDetails({params, location}: Props) {
             <EnvironmentPageFilter />
           </StyledPageFilterBar>
           {monitor.status === 'disabled' && (
-            <Alert
-              type="muted"
-              showIcon
-              trailingItems={
-                <StatusToggleButton
-                  monitor={monitor}
-                  size="xs"
-                  onToggleStatus={status => handleUpdate({status})}
-                >
-                  {t('Enable')}
-                </StatusToggleButton>
-              }
-            >
-              {t('This monitor is disabled and is not accepting check-ins.')}
-            </Alert>
+            <Alert.Container>
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    monitor={monitor}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and is not accepting check-ins.')}
+              </Alert>
+            </Alert.Container>
           )}
           {!!checkinErrors?.length && (
             <MonitorProcessingErrors

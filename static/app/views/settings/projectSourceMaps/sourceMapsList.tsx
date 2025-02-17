@@ -31,10 +31,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
-type Props = RouteComponentProps<
-  {orgId: string; projectId: string; bundleId?: string},
-  {}
-> & {
+type Props = RouteComponentProps<{
+  orgId: string;
+  projectId: string;
+  bundleId?: string;
+}> & {
   project: Project;
 };
 

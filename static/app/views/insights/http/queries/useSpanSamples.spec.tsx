@@ -61,7 +61,7 @@ describe('useSpanSamples', () => {
         initialProps: {
           fields: [
             SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
+            SpanIndexedField.SPAN_ID,
           ] as SpanIndexedProperty[],
           enabled: false,
         },
@@ -105,7 +105,7 @@ describe('useSpanSamples', () => {
           },
           fields: [
             SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
+            SpanIndexedField.SPAN_ID,
           ] as SpanIndexedProperty[],
           referrer: 'api-spec',
         },

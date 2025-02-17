@@ -44,7 +44,7 @@ const LINKS = {
 
 const HOME_ICON_SIZE = 56;
 
-interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
+interface SettingsIndexProps extends RouteComponentProps {
   organization: Organization;
 }
 

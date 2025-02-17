@@ -54,18 +54,20 @@ export function OnDemandMetricAlert({
   }
 
   return (
-    <InfoAlert type="info" showIcon>
-      {message}
-      {dismissable && (
-        <DismissButton
-          priority="link"
-          size="sm"
-          icon={<IconClose />}
-          aria-label={t('Close Alert')}
-          onClick={dismiss}
-        />
-      )}
-    </InfoAlert>
+    <Alert.Container>
+      <InfoAlert type="info" showIcon>
+        {message}
+        {dismissable && (
+          <DismissButton
+            priority="link"
+            size="sm"
+            icon={<IconClose />}
+            aria-label={t('Close Alert')}
+            onClick={dismiss}
+          />
+        )}
+      </InfoAlert>
+    </Alert.Container>
   );
 }
 

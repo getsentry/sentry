@@ -253,9 +253,11 @@ class ProjectContextProvider extends Component<Props, State> {
         // TODO(chrissy): use scale for margin values
         return (
           <Layout.Page withPadding>
-            <Alert type="warning">
-              {t('The project you were looking for was not found.')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {t('The project you were looking for was not found.')}
+              </Alert>
+            </Alert.Container>
           </Layout.Page>
         );
       case ErrorTypes.MISSING_MEMBERSHIP:

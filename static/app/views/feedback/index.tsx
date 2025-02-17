@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   children: React.ReactNode;
 };
 
@@ -41,7 +41,9 @@ export default function FeedbackContainer({children}: Props) {
 function NoAccess() {
   return (
     <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert.Container>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Alert.Container>
     </Layout.Page>
   );
 }

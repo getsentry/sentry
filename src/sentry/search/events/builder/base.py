@@ -985,7 +985,7 @@ class BaseQueryBuilder:
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
         try:
-            result: Sequence[MetricMeta] = get_custom_measurements(
+            result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
                 start=datetime.today() - timedelta(days=90),

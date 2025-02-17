@@ -42,7 +42,7 @@ function ChartContextMenu({
       query,
       pageFilters: pageFilters.selection,
       aggregate: yAxis,
-      orgSlug: organization.slug,
+      organization,
       dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       interval,
     }),
