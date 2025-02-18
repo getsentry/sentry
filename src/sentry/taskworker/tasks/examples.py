@@ -61,3 +61,9 @@ def fail_task() -> None:
 @exampletasks.register(name="examples.at_most_once", at_most_once=True)
 def at_most_once_task() -> None:
     pass
+
+
+@exampletasks.register(name="examples.timed")
+def timed_task(sleep_seconds: int) -> None:
+    sleep(sleep_seconds)
+    logger.info("timed_task complete")
