@@ -113,20 +113,21 @@ export const sortedFlags = ({
   }
 };
 
-//
+// Supported Feature Flag Providers. Ordered by display order in FeatureFlagOnboardingDrawer.
 export enum ProviderEnum {
-  GENERIC = 'Generic',
   LAUNCHDARKLY = 'LaunchDarkly',
   STATSIG = 'Statsig',
   UNLEASH = 'Unleash',
+  GENERIC = 'Generic',
 }
 
+// Feature Flag SDKs we support integrations for. Ordered by display order in FeatureFlagOnboardingDrawer.
 export enum SdkIntegrationEnum {
-  GENERIC = 'Generic',
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
   STATSIG = 'Statsig',
   UNLEASH = 'Unleash',
+  GENERIC = 'Generic',
 }
 
 export const PROVIDER_TO_SETUP_WEBHOOK_URL: Record<ProviderEnum, string> = {
