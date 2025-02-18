@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {validateTokens} from 'sentry/components/arithmeticBuilder/validator';
 import {inputStyles} from 'sentry/components/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
@@ -14,22 +12,19 @@ export interface ArithmeticBuilderProps {
   expression: string;
   className?: string;
   disabled?: boolean;
+  setExpression?: (expression: string) => void;
 }
 
 export function ArithmeticBuilder({
   expression,
+  setExpression,
   className,
   disabled,
 }: ArithmeticBuilderProps) {
   const {state, dispatch} = useArithmeticBuilderAction({
-    initialQuery: expression || '',
+    initialExpression: expression || '',
+    setExpression,
   });
-
-  const tokens = useMemo(() => tokenizeExpression(state.query), [state.query]);
-
-  const validated = useMemo(() => {
-    return validateTokens(tokens) ? ('valid' as const) : ('invalid' as const);
-  }, [tokens]);
 
   const contextValue = useMemo(() => {
     return {
@@ -45,9 +40,9 @@ export function ArithmeticBuilder({
           className={className}
           aria-disabled={disabled}
           data-test-id="arithmetic-builder"
-          state={validated}
+          state={state.validated}
         >
-          <TokenGrid tokens={tokens} />
+          <TokenGrid tokens={state.tokens} />
         </Wrapper>
       </ArithmeticBuilderContext.Provider>
     </PanelProvider>

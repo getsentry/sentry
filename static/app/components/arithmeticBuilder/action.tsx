@@ -3,6 +3,8 @@ import {useCallback, useReducer} from 'react';
 import type {Key} from '@react-types/shared';
 
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
+import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {validateTokens} from 'sentry/components/arithmeticBuilder/validator';
 import {defined} from 'sentry/utils';
 
 type ArithmeticBuilderUpdateResetFocusOverrideAction = {
@@ -50,42 +52,82 @@ function isArithmeticBuilderReplaceAction(
 }
 
 export interface ArithmeticBuilderState {
+  expression: string;
   focusOverride: FocusOverride | null;
-  query: string;
+  tokens: Token[];
+  validated: 'valid' | 'invalid';
 }
 
 interface UseArithmeticBuilderActionOptions {
-  initialQuery: string;
+  initialExpression: string;
+  setExpression?: (expression: string) => void;
 }
 
 export function useArithmeticBuilderAction({
-  initialQuery,
+  initialExpression,
+  setExpression,
 }: UseArithmeticBuilderActionOptions) {
   const reducer: Reducer<ArithmeticBuilderState, ArithmeticBuilderAction> = useCallback(
     (state, action): ArithmeticBuilderState => {
-      if (isArithmeticBuilderUpdateResetFocusOverrideAction(action)) {
-        return resetFocusOverride(state);
+      const newState = handleAction(state, action);
+
+      if (state.expression !== newState.expression) {
+        newState.tokens = tokenizeExpression(newState.expression);
+        newState.validated = validateTokens(newState.tokens)
+          ? ('valid' as const)
+          : ('invalid' as const);
+        // when the expression changes and is valid, propogate the update
+        if (newState.validated === 'valid') {
+          setExpression?.(newState.expression);
+        }
       }
 
-      if (isArithmeticBuilderDeleteAction(action)) {
-        return deleteToken(state, action);
-      }
-
-      if (isArithmeticBuilderReplaceAction(action)) {
-        return replaceToken(state, action);
-      }
-
-      return state;
+      return newState;
     },
-    []
+    [setExpression]
   );
 
-  const [state, dispatch] = useReducer(reducer, {
-    query: initialQuery,
-    focusOverride: null,
-  });
+  const [state, dispatch] = useReducer(
+    reducer,
+    {
+      expression: initialExpression,
+      focusOverride: null,
+      tokens: [],
+      validated: 'invalid',
+    },
+    (initialState: ArithmeticBuilderState): ArithmeticBuilderState => {
+      const tokens = tokenizeExpression(initialState.expression);
+      const validated = validateTokens(tokens)
+        ? ('valid' as const)
+        : ('invalid' as const);
+      return {
+        ...initialState,
+        tokens,
+        validated,
+      };
+    }
+  );
 
   return {state, dispatch};
+}
+
+function handleAction(
+  state: ArithmeticBuilderState,
+  action: ArithmeticBuilderAction
+): ArithmeticBuilderState {
+  if (isArithmeticBuilderUpdateResetFocusOverrideAction(action)) {
+    return resetFocusOverride(state);
+  }
+
+  if (isArithmeticBuilderDeleteAction(action)) {
+    return deleteToken(state, action);
+  }
+
+  if (isArithmeticBuilderReplaceAction(action)) {
+    return replaceToken(state, action);
+  }
+
+  return state;
 }
 
 function resetFocusOverride(state: ArithmeticBuilderState) {
@@ -99,11 +141,11 @@ function deleteToken(
   state: ArithmeticBuilderState,
   action: ArithmeticBuilderDeleteAction
 ): ArithmeticBuilderState {
-  const [head, tail] = queryHeadTail(state.query, action.token);
-  const query = removeExcessWhitespaceFromParts(head, tail);
+  const [head, tail] = queryHeadTail(state.expression, action.token);
+  const expression = removeExcessWhitespaceFromParts(head, tail);
   return {
     ...state,
-    query,
+    expression,
     focusOverride: defined(action.focusOverride)
       ? action.focusOverride
       : state.focusOverride,
@@ -114,20 +156,20 @@ function replaceToken(
   state: ArithmeticBuilderState,
   action: ArithmeticBuilderReplaceAction
 ): ArithmeticBuilderState {
-  const [head, tail] = queryHeadTail(state.query, action.token);
-  const query = removeExcessWhitespaceFromParts(head, action.text, tail);
+  const [head, tail] = queryHeadTail(state.expression, action.token);
+  const expression = removeExcessWhitespaceFromParts(head, action.text, tail);
   return {
     ...state,
-    query,
+    expression,
     focusOverride: defined(action.focusOverride)
       ? action.focusOverride
       : state.focusOverride,
   };
 }
 
-function queryHeadTail(query: string, token: Token): [string, string] {
-  const head = query.substring(0, token.location.start.offset);
-  const tail = query.substring(token.location.end.offset);
+function queryHeadTail(expression: string, token: Token): [string, string] {
+  const head = expression.substring(0, token.location.start.offset);
+  const tail = expression.substring(token.location.end.offset);
   return [head, tail];
 }
 

@@ -21,12 +21,12 @@ interface TokensProp {
 
 function Tokens(props: TokensProp) {
   const {state, dispatch} = useArithmeticBuilderAction({
-    initialQuery: props.expression,
+    initialExpression: props.expression,
   });
 
   const tokens = useMemo(() => {
-    return tokenizeExpression(state.query);
-  }, [state.query]);
+    return tokenizeExpression(state.expression);
+  }, [state.expression]);
 
   const wrappedDispatch = useCallback(
     (action: ArithmeticBuilderAction) => {

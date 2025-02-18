@@ -115,6 +115,15 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
 
+  const setChartYAxis = useCallback(
+    (group: number, index: number, yAxis: string) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group]!.yAxes[index] = yAxis;
+      setVisualizes(newVisualizes);
+    },
+    [setVisualizes, visualizes]
+  );
+
   const deleteOverlay = useCallback(
     (group: number, index: number) => {
       const newVisualizes: Visualize[] = visualizes
@@ -134,10 +143,10 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
     [setVisualizes, visualizes]
   );
 
-  const lastVisualization =
+  const canDelete =
     parsedVisualizeGroups
       .map(parsedVisualizeGroup => parsedVisualizeGroup.length)
-      .reduce((a, b) => a + b, 0) <= 1;
+      .reduce((a, b) => a + b, 0) > 1;
 
   const shouldRenderLabel = visualizes.length > 1;
 
@@ -168,45 +177,32 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
           return (
             <Fragment key={group}>
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
-                <ToolbarRow key={index}>
-                  {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
-                  <AggregateCompactSelect
-                    options={aggregateOptions}
-                    value={parsedVisualize.func.name}
-                    onChange={newAggregate =>
-                      setChartAggregate(group, index, newAggregate)
-                    }
+                <Fragment key={index}>
+                  <VisualizeDropdown
+                    aggregateOptions={aggregateOptions}
+                    fieldOptions={fieldOptions}
+                    deleteOverlay={deleteOverlay}
+                    group={group}
+                    index={index}
+                    canDelete={canDelete}
+                    shouldRenderLabel={shouldRenderLabel}
+                    parsedVisualize={parsedVisualize}
+                    setChartAggregate={setChartAggregate}
+                    setChartField={setChartField}
                   />
-                  <ColumnCompactSelect
-                    searchable
-                    options={fieldOptions}
-                    value={parsedVisualize.func.arguments[0]}
-                    onChange={newField => setChartField(group, index, newField)}
-                  />
-                  <Button
-                    borderless
-                    icon={<IconDelete />}
-                    size="zero"
-                    disabled={lastVisualization}
-                    onClick={() => deleteOverlay(group, index)}
-                    aria-label={t('Remove Overlay')}
-                  />
-                </ToolbarRow>
-              ))}
-              {equationSupport &&
-                parsedVisualizeGroup.map((_, index) => (
-                  <ToolbarRow key={index}>
-                    <ArithmeticBuilder expression="" />
-                    <Button
-                      borderless
-                      icon={<IconDelete />}
-                      size="zero"
-                      disabled={lastVisualization}
-                      onClick={() => deleteOverlay(group, index)}
-                      aria-label={t('Remove Overlay')}
+                  {equationSupport ? (
+                    <VisualizeEquation
+                      canDelete={canDelete}
+                      deleteOverlay={deleteOverlay}
+                      group={group}
+                      index={index}
+                      label={shouldRenderLabel ? parsedVisualize.label : undefined}
+                      setChartYAxis={setChartYAxis}
+                      yAxis={visualizes[group]?.yAxes?.[index]}
                     />
-                  </ToolbarRow>
-                ))}
+                  ) : null}
+                </Fragment>
+              ))}
               <ToolbarFooter>
                 <ToolbarFooterButton
                   borderless
@@ -224,6 +220,101 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
         })}
       </div>
     </ToolbarSection>
+  );
+}
+
+interface VisualizeDropdownProps {
+  aggregateOptions: Array<SelectOption<string>>;
+  canDelete: boolean;
+  deleteOverlay: (group: number, index: number) => void;
+  fieldOptions: Array<SelectOption<string>>;
+  group: number;
+  index: number;
+  parsedVisualize: ParsedVisualize;
+  setChartAggregate: (
+    group: number,
+    index: number,
+    {value}: SelectOption<SelectKey>
+  ) => void;
+  setChartField: (group: number, index: number, {value}: SelectOption<SelectKey>) => void;
+  shouldRenderLabel: boolean;
+}
+
+function VisualizeDropdown({
+  aggregateOptions,
+  canDelete,
+  deleteOverlay,
+  fieldOptions,
+  group,
+  index,
+  parsedVisualize,
+  setChartAggregate,
+  setChartField,
+  shouldRenderLabel,
+}: VisualizeDropdownProps) {
+  return (
+    <ToolbarRow>
+      {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
+      <AggregateCompactSelect
+        options={aggregateOptions}
+        value={parsedVisualize.func.name}
+        onChange={newAggregate => setChartAggregate(group, index, newAggregate)}
+      />
+      <ColumnCompactSelect
+        searchable
+        options={fieldOptions}
+        value={parsedVisualize.func.arguments[0]}
+        onChange={newField => setChartField(group, index, newField)}
+      />
+      <Button
+        borderless
+        icon={<IconDelete />}
+        size="zero"
+        disabled={!canDelete}
+        onClick={() => deleteOverlay(group, index)}
+        aria-label={t('Remove Overlay')}
+      />
+    </ToolbarRow>
+  );
+}
+
+interface VisualizeEquationProps {
+  canDelete: boolean;
+  deleteOverlay: (group: number, index: number) => void;
+  group: number;
+  index: number;
+  setChartYAxis: (group: number, index: number, yAxis: string) => void;
+  label?: string;
+  yAxis?: string;
+}
+
+function VisualizeEquation({
+  canDelete,
+  deleteOverlay,
+  group,
+  index,
+  setChartYAxis,
+  label,
+  yAxis,
+}: VisualizeEquationProps) {
+  const setExpression = useCallback(
+    (expression: string) => setChartYAxis(group, index, expression),
+    [group, index, setChartYAxis]
+  );
+
+  return (
+    <ToolbarRow>
+      {label && <ChartLabel>{label}</ChartLabel>}
+      <ArithmeticBuilder expression={yAxis || ''} setExpression={setExpression} />
+      <Button
+        borderless
+        icon={<IconDelete />}
+        size="zero"
+        disabled={!canDelete}
+        onClick={() => deleteOverlay(group, index)}
+        aria-label={t('Remove Overlay')}
+      />
+    </ToolbarRow>
   );
 }
 
