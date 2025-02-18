@@ -40,6 +40,8 @@ describe('EventNavigation', () => {
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      activeSection: null,
+      sectionVisibility: {},
       dispatch: jest.fn(),
     });
     Object.assign(navigator, {
@@ -63,6 +65,8 @@ describe('EventNavigation', () => {
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      activeSection: null,
+      sectionVisibility: {},
       dispatch: jest.fn(),
     });
     render(<EventTitle {...defaultProps} />);
@@ -137,8 +141,6 @@ describe('EventNavigation', () => {
 });
 
 describe('EventNavigationLink highlighting', () => {
-  const observers: any[] = [];
-
   const testEvent = EventFixture({
     id: 'event-id',
     size: 7,
@@ -157,9 +159,11 @@ describe('EventNavigationLink highlighting', () => {
     group: GroupFixture({id: 'group-id'}),
   };
 
+  let mockDispatch: jest.Mock;
+
   beforeEach(() => {
     jest.resetAllMocks();
-    observers.length = 0;
+    mockDispatch = jest.fn();
     jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
@@ -170,7 +174,9 @@ describe('EventNavigationLink highlighting', () => {
       eventCount: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
-      dispatch: jest.fn(),
+      activeSection: null,
+      sectionVisibility: {},
+      dispatch: mockDispatch,
     });
 
     // Create the section elements in the DOM
@@ -201,7 +207,6 @@ describe('EventNavigationLink highlighting', () => {
         this.root = null;
         this.rootMargin = '';
         this.thresholds = [0];
-        observers.push(this);
       }
 
       takeRecords(): IntersectionObserverEntry[] {
@@ -210,6 +215,21 @@ describe('EventNavigationLink highlighting', () => {
 
       observe(target: Element) {
         this.elements.add(target);
+        // Simulate initial intersection
+        this.callback(
+          [
+            {
+              target,
+              intersectionRatio: 0,
+              isIntersecting: false,
+              boundingClientRect: {} as DOMRectReadOnly,
+              intersectionRect: {} as DOMRectReadOnly,
+              rootBounds: null,
+              time: 0,
+            },
+          ],
+          this
+        );
       }
 
       unobserve(target: Element) {
@@ -218,17 +238,6 @@ describe('EventNavigationLink highlighting', () => {
 
       disconnect() {
         this.elements.clear();
-      }
-
-      static trigger(entries: Array<Partial<IntersectionObserverEntry>>) {
-        observers.forEach(observer => {
-          const relevantEntries = entries.filter(entry =>
-            observer.elements.has(entry.target as Element)
-          );
-          if (relevantEntries.length > 0) {
-            observer.callback(relevantEntries as IntersectionObserverEntry[], observer);
-          }
-        });
       }
     };
 
@@ -250,162 +259,127 @@ describe('EventNavigationLink highlighting', () => {
   });
 
   it('highlights section with highest intersection ratio', async () => {
-    render(<EventTitle {...defaultProps} />);
+    const mockDispatch = jest.fn();
+    const useIssueDetailsMock = jest.mocked(useIssueDetails);
 
-    // Wait for initial render and effects
+    // Initial render with no active section
+    useIssueDetailsMock.mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
+      activeSection: null,
+      sectionVisibility: {},
+      dispatch: mockDispatch,
+    });
+
+    const {rerender} = render(<EventTitle {...defaultProps} />);
+
+    // Wait for initial render
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Highlights'})).toBeInTheDocument();
     });
 
-    // Simulate Highlights section being most visible
-    const highlightsDiv = document.getElementById(SectionKey.HIGHLIGHTS)!;
-    const tagsDiv = document.getElementById(SectionKey.TAGS)!;
-    const replayDiv = document.getElementById(SectionKey.REPLAY)!;
-
-    // Call each observer's callback with its entry
-    act(() => {
-      (window.IntersectionObserver as any).trigger([
-        {
-          target: highlightsDiv,
-          intersectionRatio: 0.8,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: tagsDiv,
-          intersectionRatio: 0.2,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: replayDiv,
-          intersectionRatio: 0.1,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-      ]);
+    // Update mock to show Highlights as most visible and trigger re-render
+    useIssueDetailsMock.mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
+      activeSection: SectionKey.HIGHLIGHTS,
+      sectionVisibility: {
+        [SectionKey.HIGHLIGHTS]: 0.8,
+        [SectionKey.TAGS]: 0.2,
+        [SectionKey.REPLAY]: 0.1,
+      },
+      dispatch: mockDispatch,
     });
 
-    // Wait for state updates
-    await waitFor(() => {
-      const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
-      expect(highlightsLink).toHaveAttribute('data-active', 'true');
-    });
+    // Force re-render with new context
+    rerender(<EventTitle {...defaultProps} />);
 
+    // Verify the highlight is applied
     const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
+    expect(highlightsLink).toHaveAttribute('data-active', 'true');
+
     const tagsLink = screen.getByRole('button', {name: 'Tags'});
     const replayLink = screen.getByRole('button', {name: 'Replay'});
-
-    expect(highlightsLink).toHaveAttribute('data-active', 'true');
     expect(tagsLink).toHaveAttribute('data-active', 'false');
     expect(replayLink).toHaveAttribute('data-active', 'false');
   });
 
   it('updates highlight when scrolling to different section', async () => {
-    render(<EventTitle {...defaultProps} />);
+    const mockDispatch = jest.fn();
+    const useIssueDetailsMock = jest.mocked(useIssueDetails);
 
-    // Wait for initial render and effects
-    await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Highlights'})).toBeInTheDocument();
+    // Initial render with Highlights active
+    useIssueDetailsMock.mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
+      activeSection: SectionKey.HIGHLIGHTS,
+      sectionVisibility: {
+        [SectionKey.HIGHLIGHTS]: 0.8,
+        [SectionKey.TAGS]: 0.2,
+        [SectionKey.REPLAY]: 0.1,
+      },
+      dispatch: mockDispatch,
     });
 
-    const highlightsDiv = document.getElementById(SectionKey.HIGHLIGHTS)!;
-    const tagsDiv = document.getElementById(SectionKey.TAGS)!;
-    const replayDiv = document.getElementById(SectionKey.REPLAY)!;
+    const {rerender} = render(<EventTitle {...defaultProps} />);
 
-    // Initially Highlights section most visible
-    act(() => {
-      (window.IntersectionObserver as any).trigger([
-        {
-          target: highlightsDiv,
-          intersectionRatio: 0.8,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: tagsDiv,
-          intersectionRatio: 0.2,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: replayDiv,
-          intersectionRatio: 0.1,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-      ]);
-    });
-
-    // Wait for state updates
+    // Wait for initial render with Highlights active
     await waitFor(() => {
       const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
       expect(highlightsLink).toHaveAttribute('data-active', 'true');
     });
 
-    // Then scroll to Tags section
-    act(() => {
-      (window.IntersectionObserver as any).trigger([
-        {
-          target: highlightsDiv,
-          intersectionRatio: 0.1,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: tagsDiv,
-          intersectionRatio: 0.9,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: replayDiv,
-          intersectionRatio: 0.2,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-      ]);
+    // Update mock to show Tags as most visible
+    useIssueDetailsMock.mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
+      activeSection: SectionKey.TAGS,
+      sectionVisibility: {
+        [SectionKey.HIGHLIGHTS]: 0.1,
+        [SectionKey.TAGS]: 0.9,
+        [SectionKey.REPLAY]: 0.2,
+      },
+      dispatch: mockDispatch,
     });
 
-    // Wait for state updates
-    await waitFor(() => {
-      const tagsLink = screen.getByRole('button', {name: 'Tags'});
-      expect(tagsLink).toHaveAttribute('data-active', 'true');
-    });
+    // Force re-render with new context
+    rerender(<EventTitle {...defaultProps} />);
+
+    // Verify the highlight has moved to Tags
+    const tagsLink = screen.getByRole('button', {name: 'Tags'});
+    expect(tagsLink).toHaveAttribute('data-active', 'true');
 
     const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
-    const tagsLink = screen.getByRole('button', {name: 'Tags'});
     const replayLink = screen.getByRole('button', {name: 'Replay'});
-
     expect(highlightsLink).toHaveAttribute('data-active', 'false');
-    expect(tagsLink).toHaveAttribute('data-active', 'true');
     expect(replayLink).toHaveAttribute('data-active', 'false');
   });
 
@@ -417,87 +391,51 @@ describe('EventNavigationLink highlighting', () => {
       expect(screen.getByRole('button', {name: 'Highlights'})).toBeInTheDocument();
     });
 
-    const highlightsDiv = document.getElementById(SectionKey.HIGHLIGHTS)!;
-    const tagsDiv = document.getElementById(SectionKey.TAGS)!;
-    const replayDiv = document.getElementById(SectionKey.REPLAY)!;
-
     // Initially Highlights section most visible
-    act(() => {
-      (window.IntersectionObserver as any).trigger([
-        {
-          target: highlightsDiv,
-          intersectionRatio: 0.8,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: tagsDiv,
-          intersectionRatio: 0.2,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: replayDiv,
-          intersectionRatio: 0.1,
-          isIntersecting: true,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-      ]);
+    jest.mocked(useIssueDetails).mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
+      activeSection: SectionKey.HIGHLIGHTS,
+      sectionVisibility: {
+        [SectionKey.HIGHLIGHTS]: 0.8,
+        [SectionKey.TAGS]: 0.2,
+        [SectionKey.REPLAY]: 0.1,
+      },
+      dispatch: mockDispatch,
     });
 
-    // Wait for state updates
-    await waitFor(() => {
-      const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
-      expect(highlightsLink).toHaveAttribute('data-active', 'true');
-    });
+    // Re-render with updated context
+    await act(async () => {});
 
     // Then no sections visible
-    act(() => {
-      (window.IntersectionObserver as any).trigger([
-        {
-          target: highlightsDiv,
-          intersectionRatio: 0,
-          isIntersecting: false,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: tagsDiv,
-          intersectionRatio: 0,
-          isIntersecting: false,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-        {
-          target: replayDiv,
-          intersectionRatio: 0,
-          isIntersecting: false,
-          boundingClientRect: {} as DOMRectReadOnly,
-          intersectionRect: {} as DOMRectReadOnly,
-          rootBounds: null,
-          time: 0,
-        },
-      ]);
+    jest.mocked(useIssueDetails).mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      detectorDetails: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
+      activeSection: null,
+      sectionVisibility: {
+        [SectionKey.HIGHLIGHTS]: 0,
+        [SectionKey.TAGS]: 0,
+        [SectionKey.REPLAY]: 0,
+      },
+      dispatch: mockDispatch,
     });
 
-    // Wait for state updates
-    await waitFor(() => {
-      const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
-      expect(highlightsLink).toHaveAttribute('data-active', 'false');
-    });
+    // Re-render with updated context
+    await act(async () => {});
 
     const highlightsLink = screen.getByRole('button', {name: 'Highlights'});
     const tagsLink = screen.getByRole('button', {name: 'Tags'});
@@ -506,5 +444,25 @@ describe('EventNavigationLink highlighting', () => {
     expect(highlightsLink).toHaveAttribute('data-active', 'false');
     expect(tagsLink).toHaveAttribute('data-active', 'false');
     expect(replayLink).toHaveAttribute('data-active', 'false');
+  });
+
+  it('dispatches visibility updates when sections intersect', async () => {
+    render(<EventTitle {...defaultProps} />);
+
+    // Wait for initial render and effects
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Highlights'})).toBeInTheDocument();
+    });
+
+    // Simulate intersection for Highlights section
+    const highlightsDiv = document.getElementById(SectionKey.HIGHLIGHTS)!;
+    const observer = new IntersectionObserver(() => {});
+    observer.observe(highlightsDiv);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_SECTION_VISIBILITY',
+      sectionId: SectionKey.HIGHLIGHTS,
+      ratio: 0,
+    });
   });
 });

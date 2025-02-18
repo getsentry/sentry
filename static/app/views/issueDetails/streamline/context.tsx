@@ -101,6 +101,8 @@ export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   isSidebarOpen: true,
   navScrollMargin: 0,
   eventCount: 0,
+  activeSection: null,
+  sectionVisibility: {},
   dispatch: () => {},
 });
 
@@ -131,6 +133,14 @@ export interface IssueDetailsState {
   sectionData: {
     [key in SectionKey]?: SectionConfig;
   };
+  /**
+   * Tracks which section is currently most visible in the viewport
+   */
+  activeSection: string | null;
+  /**
+   * Tracks intersection ratios for all sections (0 to 1)
+   */
+  sectionVisibility: Record<string, number>;
 }
 
 type UpdateEventSectionAction = {
@@ -159,12 +169,19 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
+type UpdateSectionVisibilityAction = {
+  type: 'UPDATE_SECTION_VISIBILITY';
+  sectionId: string;
+  ratio: number;
+};
+
 export type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
   | UpdateSidebarAction
-  | UpdateDetectorDetailsAction;
+  | UpdateDetectorDetailsAction
+  | UpdateSectionVisibilityAction;
 
 function updateEventSection(
   state: IssueDetailsState,
@@ -193,6 +210,8 @@ export function useIssueDetailsReducer() {
     isSidebarOpen: true,
     eventCount: 0,
     navScrollMargin: 0,
+    activeSection: null,
+    sectionVisibility: {},
   };
 
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
@@ -208,6 +227,28 @@ export function useIssueDetailsReducer() {
           return {...state, eventCount: action.count};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
+        case 'UPDATE_SECTION_VISIBILITY': {
+          const nextVisibility = {
+            ...state.sectionVisibility,
+            [action.sectionId]: action.ratio,
+          };
+
+          // Find section with highest visibility ratio
+          let maxRatio = 0;
+          let maxSection: string | null = null;
+          Object.entries(nextVisibility).forEach(([section, ratio]) => {
+            if (ratio > maxRatio) {
+              maxRatio = ratio;
+              maxSection = section;
+            }
+          });
+
+          return {
+            ...state,
+            sectionVisibility: nextVisibility,
+            activeSection: maxRatio > 0 ? maxSection : null,
+          };
+        }
         default:
           return state;
       }

@@ -71,78 +71,6 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 export const MIN_NAV_HEIGHT = 44;
 
-type SectionVisibility = {
-  activeSection: string | null;
-  setIntersectionRatio: (sectionId: string, ratio: number) => void;
-};
-
-/**
- * Context for tracking which sections are visible in the viewport and which section
- * should be considered "active" (most visible) for highlighting in the navigation.
- *
- * This context allows child components to:
- * 1. Access the currently active section
- * 2. Update intersection ratios for their sections
- */
-const SectionVisibilityContext = createContext<SectionVisibility>({
-  activeSection: null,
-  setIntersectionRatio: () => {},
-});
-
-/**
- * Hook that manages the visibility state of all sections and determines which section
- * should be considered "active" based on their intersection ratios.
- *
- * The hook maintains two pieces of state:
- * 1. A map of section IDs to their current intersection ratios
- * 2. The currently active section ID (the one with highest intersection ratio)
- *
- * @returns {Object} An object containing:
- *   - activeSection: The ID of the section with highest intersection ratio, or null if no sections visible
- *   - setIntersectionRatio: Function to update a section's intersection ratio
- */
-function useSectionVisibility() {
-  // Track intersection ratios for all sections (0 to 1)
-  const [_sectionRatios, setSectionRatios] = useState<Record<string, number>>({});
-  // Track which section is currently most visible
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-
-  // Update which section should be considered active based on intersection ratios
-  const updateActiveSection = useCallback((ratios: Record<string, number>) => {
-    let maxRatio = 0;
-    let maxSection: string | null = null;
-
-    // Find the section with the highest intersection ratio
-    Object.entries(ratios).forEach(([section, ratio]) => {
-      if (ratio > maxRatio) {
-        maxRatio = ratio;
-        maxSection = section;
-      }
-    });
-
-    // Only consider a section active if it has some visibility (ratio > 0)
-    if (maxRatio > 0) {
-      setActiveSection(maxSection);
-    } else {
-      setActiveSection(null);
-    }
-  }, []);
-
-  // Update a section's intersection ratio and recalculate active section
-  const setIntersectionRatio = useCallback(
-    (sectionId: string, ratio: number) => {
-      setSectionRatios(prev => {
-        const next = {...prev, [sectionId]: ratio};
-        updateActiveSection(next);
-        return next;
-      });
-    },
-    [updateActiveSection]
-  );
-
-  return {activeSection, setIntersectionRatio};
-}
-
 /**
  * Hook that sets up an IntersectionObserver to track how much of a section is visible
  * in the viewport. The observer uses multiple thresholds to accurately track the
@@ -151,13 +79,13 @@ function useSectionVisibility() {
  * The hook will:
  * 1. Find the DOM element for the section by ID
  * 2. Create an IntersectionObserver to track its visibility
- * 3. Update the section's intersection ratio in the SectionVisibilityContext
+ * 3. Update the section's intersection ratio in the IssueDetailsContext
  * 4. Clean up the observer when the component unmounts
  *
  * @param elementId - The ID of the DOM element to observe
  */
 function useIntersectionObserver(elementId: string) {
-  const {setIntersectionRatio} = useContext(SectionVisibilityContext);
+  const {dispatch} = useIssueDetails();
 
   useEffect(() => {
     const element = document.getElementById(elementId);
@@ -170,7 +98,11 @@ function useIntersectionObserver(elementId: string) {
       entries => {
         const entry = entries[0];
         if (entry) {
-          setIntersectionRatio(elementId, entry.intersectionRatio);
+          dispatch({
+            type: 'UPDATE_SECTION_VISIBILITY',
+            sectionId: elementId,
+            ratio: entry.intersectionRatio,
+          });
         }
       },
       {
@@ -181,7 +113,7 @@ function useIntersectionObserver(elementId: string) {
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [elementId, setIntersectionRatio]);
+  }, [elementId, dispatch]);
 }
 
 export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
@@ -249,108 +181,104 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
         }),
     });
 
-    const sectionVisibility = useSectionVisibility();
-
     return (
-      <SectionVisibilityContext.Provider value={sectionVisibility}>
-        <div {...props} ref={ref}>
-          <EventInfoJumpToWrapper>
-            <EventInfo>
-              <DropdownMenu
-                trigger={(triggerProps, isOpen) => (
-                  <EventIdDropdownButton
-                    {...triggerProps}
-                    aria-label={t('Event actions')}
-                    size="sm"
-                    borderless
-                    isOpen={isOpen}
-                  >
-                    {getShortEventId(event.id)}
-                  </EventIdDropdownButton>
-                )}
-                position="bottom-start"
-                offset={4}
-                size="xs"
-                items={[
-                  {
-                    key: 'copy-event-id',
-                    label: t('Copy Event ID'),
-                    onAction: copyEventId,
-                  },
-                  {
-                    key: 'copy-event-link',
-                    label: t('Copy Event Link'),
-                    onAction: copyLink,
-                  },
-                  {
-                    key: 'view-json',
-                    label: t('View JSON'),
-                    onAction: downloadJson,
-                    className: 'hidden-sm hidden-md hidden-lg',
-                  },
-                ]}
-              />
-              <StyledTimeSince
-                tooltipBody={<EventCreatedTooltip event={event} />}
-                tooltipProps={{maxWidth: 300, isHoverable: true}}
-                date={event.dateCreated ?? event.dateReceived}
-                css={grayText}
-                aria-label={t('Event timestamp')}
-              />
-              <JsonLinkWrapper className="hidden-xs">
-                <Divider />
-                <JsonLink
-                  href={jsonUrl}
-                  onClick={() =>
-                    trackAnalytics('issue_details.event_json_clicked', {
-                      organization,
-                      group_id: parseInt(`${event.groupID}`, 10),
-                      streamline: true,
-                    })
-                  }
+      <div {...props} ref={ref}>
+        <EventInfoJumpToWrapper>
+          <EventInfo>
+            <DropdownMenu
+              trigger={(triggerProps, isOpen) => (
+                <EventIdDropdownButton
+                  {...triggerProps}
+                  aria-label={t('Event actions')}
+                  size="sm"
+                  borderless
+                  isOpen={isOpen}
                 >
-                  {t('JSON')}
-                </JsonLink>
-              </JsonLinkWrapper>
-              {hasEventError && (
-                <Fragment>
-                  <Divider />
-                  <ProcessingErrorButton
-                    title={t(
-                      'Sentry has detected configuration issues with this event. Click for more info.'
-                    )}
-                    borderless
-                    size="zero"
-                    icon={<IconWarning color="red300" />}
-                    onClick={() => {
-                      document
-                        .getElementById(SectionKey.PROCESSING_ERROR)
-                        ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                      setEventErrorCollapsed(false);
-                    }}
-                  >
-                    {t('Processing Error')}
-                  </ProcessingErrorButton>
-                </Fragment>
+                  {getShortEventId(event.id)}
+                </EventIdDropdownButton>
               )}
-            </EventInfo>
-            {eventSectionConfigs.length > 0 && (
-              <JumpTo>
-                <div aria-hidden>{t('Jump to:')}</div>
-                <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
-                  {eventSectionConfigs.map(config => (
-                    <EventNavigationLink
-                      key={config.key}
-                      config={config}
-                      propCss={grayText}
-                    />
-                  ))}
-                </ScrollCarousel>
-              </JumpTo>
+              position="bottom-start"
+              offset={4}
+              size="xs"
+              items={[
+                {
+                  key: 'copy-event-id',
+                  label: t('Copy Event ID'),
+                  onAction: copyEventId,
+                },
+                {
+                  key: 'copy-event-link',
+                  label: t('Copy Event Link'),
+                  onAction: copyLink,
+                },
+                {
+                  key: 'view-json',
+                  label: t('View JSON'),
+                  onAction: downloadJson,
+                  className: 'hidden-sm hidden-md hidden-lg',
+                },
+              ]}
+            />
+            <StyledTimeSince
+              tooltipBody={<EventCreatedTooltip event={event} />}
+              tooltipProps={{maxWidth: 300, isHoverable: true}}
+              date={event.dateCreated ?? event.dateReceived}
+              css={grayText}
+              aria-label={t('Event timestamp')}
+            />
+            <JsonLinkWrapper className="hidden-xs">
+              <Divider />
+              <JsonLink
+                href={jsonUrl}
+                onClick={() =>
+                  trackAnalytics('issue_details.event_json_clicked', {
+                    organization,
+                    group_id: parseInt(`${event.groupID}`, 10),
+                    streamline: true,
+                  })
+                }
+              >
+                {t('JSON')}
+              </JsonLink>
+            </JsonLinkWrapper>
+            {hasEventError && (
+              <Fragment>
+                <Divider />
+                <ProcessingErrorButton
+                  title={t(
+                    'Sentry has detected configuration issues with this event. Click for more info.'
+                  )}
+                  borderless
+                  size="zero"
+                  icon={<IconWarning color="red300" />}
+                  onClick={() => {
+                    document
+                      .getElementById(SectionKey.PROCESSING_ERROR)
+                      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                    setEventErrorCollapsed(false);
+                  }}
+                >
+                  {t('Processing Error')}
+                </ProcessingErrorButton>
+              </Fragment>
             )}
-          </EventInfoJumpToWrapper>
-        </div>
-      </SectionVisibilityContext.Provider>
+          </EventInfo>
+          {eventSectionConfigs.length > 0 && (
+            <JumpTo>
+              <div aria-hidden>{t('Jump to:')}</div>
+              <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
+                {eventSectionConfigs.map(config => (
+                  <EventNavigationLink
+                    key={config.key}
+                    config={config}
+                    propCss={grayText}
+                  />
+                ))}
+              </ScrollCarousel>
+            </JumpTo>
+          )}
+        </EventInfoJumpToWrapper>
+      </div>
     );
   }
 );
@@ -367,7 +295,7 @@ function EventNavigationLink({
     getFoldSectionKey(config.key),
     config?.initialCollapse ?? false
   );
-  const {activeSection} = useContext(SectionVisibilityContext);
+  const {activeSection} = useIssueDetails();
   useIntersectionObserver(config.key);
 
   const activeCss = css`
