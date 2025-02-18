@@ -1,3 +1,58 @@
+25.2.0
+------
+
+### Automate Code Mappings & In-App Stack Trace Rules for Java projects (ongoing)
+
+Currently, we ask developers to set up their Java code mappings manually (because the SDK cannot determine it):
+https://docs.sentry.io/platforms/java/source-context/&#35;setting-up-code-mappings
+
+Unfortunately, many stack traces do not contain in-app frames, thus, many Sentry features are not available (e.g. SCM linking, suspect commit).
+
+This tracks using the code mappings derivation system to automatically add the code mappings and stack trace rules to mark in-app frames as such.
+
+This will automatically enable the following Sentry features :
+- Suspect Commits
+- GitHub pull request comments
+- Auto-assignments (if Codeowners imported)
+- Stack trace linking
+- Code coverage (if the customer also has an account)
+
+This will only be available to customers with the GitHub integration installed.
+
+You can read more about the system here:
+https://blog.sentry.io/code-mappings-and-why-they-matter/
+
+By: @armenzg (#85174, #85065)
+
+### Various fixes & improvements
+
+- Revert "feat(autofix): Add Autofix status to sidebar button (#85287)" (b20e50ed) by @getsentry-bot
+- fix(autofix): Fix flash on initial run (#85299) by @roaga
+- feat(autofix): Add Autofix status to sidebar button (#85287) by @roaga
+- fix(issues): Left align commit authors (#85291) by @scttcper
+- :sparkles: feat(aci): add support for sentry apps for issue alerts in NOA (#85218) by @iamrajjoshi
+- feat(crons): Implement an all checks page for crons (#85202) by @leeandher
+- fix(apidocs): fix typo in user feedback api (#85280) by @michellewzhang
+- ref(dashboards): Namespaced `Widget` components (#85238) by @gggritso
+- ref(uptime): Remove config_topic from UptimeRegionConfig (#85155) by @evanpurkhiser
+- ref(seer grouping): Add ability to ignore useless filenames (#85277) by @lobsterkatie
+- fix(auto_source_config): Handle when the frame is None (#85235) by @armenzg
+- feat(issues): Disable delete on missing permission (#85278) by @scttcper
+- fix(widget-builder): Visualize field overflows on long field names (#85271) by @nikkikapadia
+- feat(nav): Update rest of alert links to use new pathname builder (#85257) by @malwilley
+- fix(profiling): Prevent landing page from scrolling on context menu (#85273) by @Zylphrex
+- ref: remove default margin from Alert in sentry (#85128) by @michellewzhang
+- feat(taskworker) Add metrics for RPC durations (#85194) by @markstory
+- feat(nav): Update alert links from explore/insights/crons (#85254) by @malwilley
+- feat(nav): Update replay onboarding to use drawer (#85267) by @malwilley
+- ref(crons): Rename parallel field -> batched_parallel (#85261) by @evanpurkhiser
+- Reapply "ref(crons): Remove parallel mode (batched-parallel replaced it)" (#85262) by @evanpurkhiser
+- ref(widget-builder): Extract selection components (#85248) by @narsaynorath
+- chore(apis): Publish GroupExternalIssue endpoint (#85184) by @Christinarlong
+- ref: get_group_{body,title,description} to not need request (#85263) by @asottile-sentry
+
+_Plus 1429 more_
+
 25.1.0
 ------
 
