@@ -122,7 +122,12 @@ class AssignedNotificationAPITest(APITestCase):
                 data={"assignedTo": user1.username, "assignedBy": user1.username},
             )
         assert response.status_code == 200, response.content
-        data = {"assignee": str(user1.id), "assigneeEmail": user1.email, "assigneeName": user1.name, "assigneeType": "user"}
+        data = {
+            "assignee": str(user1.id),
+            "assigneeEmail": user1.email,
+            "assigneeName": user1.name,
+            "assigneeType": "user",
+        }
         assert Activity.objects.filter(
             group_id=self.group.id, type=ActivityType.ASSIGNED.value, user_id=user1.id, data=data
         ).exists()
@@ -143,7 +148,12 @@ class AssignedNotificationAPITest(APITestCase):
                 data={"assignedTo": user2.username, "assignedBy": user1.username},
             )
         assert response.status_code == 200, response.content
-        data = {"assignee": str(user2.id), "assigneeEmail": user2.email, "assigneeName": user2.name, "assigneeType": "user"}
+        data = {
+            "assignee": str(user2.id),
+            "assigneeEmail": user2.email,
+            "assigneeName": user2.name,
+            "assigneeType": "user",
+        }
         assert Activity.objects.filter(
             group_id=self.group.id, type=ActivityType.ASSIGNED.value, user_id=user1.id, data=data
         ).exists()
@@ -190,7 +200,12 @@ class AssignedNotificationAPITest(APITestCase):
                 data={"assignedTo": f"team:{team1.id}", "assignedBy": self.user.username},
             )
         assert response.status_code == 200, response.content
-        data = {"assignee": str(team1.id), "assigneeEmail": None, "assigneeName": team1.name, "assigneeType": "team"}
+        data = {
+            "assignee": str(team1.id),
+            "assigneeEmail": None,
+            "assigneeName": team1.name,
+            "assigneeType": "team",
+        }
         assert Activity.objects.filter(
             group_id=group.id, user_id=user1.id, type=ActivityType.ASSIGNED.value, data=data
         ).exists()
@@ -213,7 +228,12 @@ class AssignedNotificationAPITest(APITestCase):
                 data={"assignedTo": f"team:{team2.id}", "assignedBy": self.user.username},
             )
         assert response.status_code == 200, response.content
-        data = {"assignee": str(team2.id), "assigneeEmail": None, "assigneeName": team2.name, "assigneeType": "team"}
+        data = {
+            "assignee": str(team2.id),
+            "assigneeEmail": None,
+            "assigneeName": team2.name,
+            "assigneeType": "team"
+        }
         assert Activity.objects.filter(
             group_id=group.id, user_id=user1.id, type=ActivityType.ASSIGNED.value, data=data
         ).exists()

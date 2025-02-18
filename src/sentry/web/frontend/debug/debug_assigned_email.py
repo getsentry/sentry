@@ -37,5 +37,10 @@ class DebugSelfAssignedTeamEmailView(ActivityMailDebugView):
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,
-            "data": {"assignee": "1", "assigneeEmail": None, "assigneeName": "example-team", "assigneeType": "team"},
+            "data": {
+                "assignee": "1",
+                "assigneeEmail": None,
+                "assigneeName": "example-team",
+                "assigneeType": "team",
+            },
         }
