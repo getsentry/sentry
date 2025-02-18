@@ -34,7 +34,7 @@ import {
   MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import PerformanceOnboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 export function ModulesOnboarding({
   children,
@@ -61,7 +61,7 @@ export function ModulesOnboarding({
   if (onboardingProject) {
     return (
       <ModuleLayout.Full>
-        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+        <LegacyOnboarding organization={organization} project={onboardingProject} />
       </ModuleLayout.Full>
     );
   }
