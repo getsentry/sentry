@@ -40,7 +40,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -240,7 +239,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
-    @override_options({"sentryapps.send_alert_event.use-eventid": 1.0})
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_groupevent(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
