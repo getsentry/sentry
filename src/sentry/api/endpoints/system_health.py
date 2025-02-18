@@ -19,7 +19,7 @@ class SystemHealthEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.DEV_INFRA
     permission_classes = (IsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")
 

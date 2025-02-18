@@ -28,7 +28,7 @@ class SystemOptionsEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.DEV_INFRA
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
