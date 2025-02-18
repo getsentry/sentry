@@ -54,7 +54,7 @@ class IssueAlertMigrator:
             detector=error_detector,
         )
         if_dcg = self._create_if_dcg(
-            filter_match=self.data["filter_match"],
+            filter_match=self.data.get("filter_match", "all"),
             workflow=workflow,
             conditions=conditions,
             filters=filters,
