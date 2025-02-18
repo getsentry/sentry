@@ -1,19 +1,19 @@
 ---
-created: '2025-02-18T19:53:18.539610+00:00'
+created: '2025-02-18T19:55:31.288048+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "a424c136c24c189dd19058d8caec08ef"
+  hash: "8c134ce2a43a0b2c55654902491307c2"
   contributing component: exception
   component:
     app*
       exception*
         stacktrace*
-          frame* (un-ignored by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group))
+          frame (marked out of app by stack trace rule (family:native function:__start_thread -app))
             function*
               "__start_thread"
-          frame* (un-ignored by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group))
+          frame (marked out of app by stack trace rule (family:native function:__pthread_start -app))
             function*
               "__pthread_start"
           frame* (un-ignored by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group))
@@ -84,16 +84,16 @@ app:
           "Trap"
 --------------------------------------------------------------------------
 system:
-  hash: null
-  contributing component: null
+  hash: "a424c136c24c189dd19058d8caec08ef"
+  contributing component: exception
   component:
-    system (exception of app takes precedence)
-      exception (ignored because hash matches app variant)
+    system*
+      exception*
         stacktrace*
-          frame* (un-ignored by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group))
+          frame* (marked out of app by stack trace rule (family:native function:__start_thread -app))
             function*
               "__start_thread"
-          frame* (un-ignored by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group))
+          frame* (marked out of app by stack trace rule (family:native function:__pthread_start -app))
             function*
               "__pthread_start"
           frame* (un-ignored by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* ^-app -app v+app ^-group -group v+group))
