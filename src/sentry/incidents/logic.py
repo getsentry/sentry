@@ -1270,6 +1270,8 @@ def create_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
+
     target_display: str | None = None
     if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
         raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
@@ -1303,16 +1305,23 @@ def create_alert_rule_trigger_action(
         else:
             sentry_app_config = {"priority": priority}
 
-    return AlertRuleTriggerAction.objects.create(
-        alert_rule_trigger=trigger,
-        type=type.value,
-        target_type=target_type.value,
-        target_identifier=str(target.identifier) if target.identifier is not None else None,
-        target_display=target.display,
-        integration_id=integration_id,
-        sentry_app_id=sentry_app_id,
-        sentry_app_config=sentry_app_config,
-    )
+    with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
+        trigger_action = AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=trigger,
+            type=type.value,
+            target_type=target_type.value,
+            target_identifier=str(target.identifier) if target.identifier is not None else None,
+            target_display=target.display,
+            integration_id=integration_id,
+            sentry_app_id=sentry_app_id,
+            sentry_app_config=sentry_app_config,
+        )
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-write",
+            trigger.alert_rule.organization,
+        ):
+            migrate_metric_action(trigger_action)
+    return trigger_action
 
 
 def update_alert_rule_trigger_action(
