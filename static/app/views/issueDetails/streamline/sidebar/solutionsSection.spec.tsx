@@ -338,22 +338,34 @@ describe('SolutionsSection', () => {
       expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
     });
 
-    it('does not show CTA button when region is de', async () => {
+    it('does not show CTA button when region is de', () => {
       jest.mock('sentry/utils/regions');
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
         name: 'de',
         displayName: 'Europe (Frankfurt)',
         url: 'https://sentry.de.example.com',
       }));
+
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: true},
+          integration: {ok: true},
+          githubWriteIntegration: {ok: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
       jest.mocked(getConfigForIssueType).mockReturnValue({
         ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
-        autofix: true,
-        issueSummary: {enabled: true},
-        resources: {
-          description: '',
-          links: [],
-          linksByPlatform: {},
-        },
+        resources: null,
       });
 
       render(
@@ -363,11 +375,7 @@ describe('SolutionsSection', () => {
         }
       );
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      // Verify that none of the CTA button variants are present
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set Up Sentry AI'})
       ).not.toBeInTheDocument();
