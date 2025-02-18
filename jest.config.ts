@@ -237,7 +237,8 @@ const config: Config.InitialOptions = {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
+    '\\.(css|less|png|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
 
     // Disable echarts in test, since they're very slow and take time to
