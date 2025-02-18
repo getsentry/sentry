@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
@@ -40,23 +40,26 @@ export function useFeatureFlagOnboardingDrawer() {
   const currentPanel = useLegacyStore(SidebarPanelStore);
   const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
 
   const {openDrawer} = useDrawer();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
       openDrawer(() => <DrawerContent />, {
         ariaLabel: t('Debug Issues with Feature Flag Context'),
         // Prevent the drawer from closing when the query params change
         shouldCloseOnLocationChange: location =>
-          location.pathname !== window.location.pathname,
+          location.pathname !== initialPathname.current,
       });
     }
   }, [isActive, hasProjectAccess, openDrawer]);
 }
 
 function DrawerContent() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       SidebarPanelStore.hidePanel();
     };
@@ -65,7 +68,9 @@ function DrawerContent() {
   return <SidebarContent />;
 }
 
-// Used by legacy navigation
+/**
+ * @deprecated Use useFeatureFlagOnboardingDrawer instead.
+ */
 function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
