@@ -27,7 +27,10 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  type Configuration,
+  TabbedCodeSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type DocsParams,
   ProductSolution,
@@ -327,6 +330,88 @@ const ButtonList = styled(ButtonBar)`
   margin-bottom: 16px;
 `;
 
+function WaitingIndicator({
+  api,
+  organization,
+  project,
+}: {
+  api: Client;
+  organization: Organization;
+  project: Project;
+}) {
+  const [received, setReceived] = useState<boolean>(false);
+
+  return (
+    <EventWaiter
+      api={api}
+      organization={organization}
+      project={project}
+      eventType="transaction"
+      onIssueReceived={() => {
+        setReceived(true);
+      }}
+    >
+      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+    </EventWaiter>
+  );
+}
+
+type ConfigurationStepProps = {
+  api: Client;
+  configuration: Configuration;
+  organization: Organization;
+  project: Project;
+  showWaitingIndicator: boolean;
+  stepKey: string;
+  title: React.ReactNode;
+};
+
+function ConfigurationStep({
+  stepKey,
+  title,
+  api,
+  organization,
+  project,
+  configuration,
+  showWaitingIndicator,
+}: ConfigurationStepProps) {
+  return (
+    <GuidedSteps.Step stepKey={stepKey} title={title}>
+      <div>
+        <div>
+          <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+          <CodeSnippetWrapper>
+            {configuration.code ? (
+              Array.isArray(configuration.code) ? (
+                <TabbedCodeSnippet tabs={configuration.code} />
+              ) : (
+                <OnboardingCodeSnippet language={configuration.language}>
+                  {configuration.code}
+                </OnboardingCodeSnippet>
+              )
+            ) : null}
+          </CodeSnippetWrapper>
+          <CodeSnippetWrapper>
+            {configuration.configurations && configuration.configurations.length > 0 ? (
+              Array.isArray(configuration.configurations[0]!.code) ? (
+                <TabbedCodeSnippet tabs={configuration.configurations[0]!.code} />
+              ) : null
+            ) : null}
+          </CodeSnippetWrapper>
+          <DescriptionWrapper>{configuration.additionalInfo}</DescriptionWrapper>
+          {showWaitingIndicator ? (
+            <WaitingIndicator api={api} organization={organization} project={project} />
+          ) : null}
+        </div>
+        <GuidedSteps.ButtonWrapper>
+          <GuidedSteps.BackButton size="md" />
+          <GuidedSteps.NextButton size="md" />
+        </GuidedSteps.ButtonWrapper>
+      </div>
+    </GuidedSteps.Step>
+  );
+}
+
 function NewOnboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
@@ -417,8 +502,12 @@ function NewOnboarding({organization, project}: OnboardingProps) {
   };
 
   const installStep = performanceDocs.install(docParams)[0]!;
+
   const configureStep = performanceDocs.configure(docParams)[0]!;
+  const [sentryConfiguration, addingDistributedTracing] = configureStep.configurations!;
+
   const verifyStep = performanceDocs.verify(docParams)[0]!;
+  const hasVerifyStep = !!(verifyStep.configurations || verifyStep.description);
 
   const eventWaitingIndicator = (
     <EventWaiter
@@ -506,60 +595,30 @@ function NewOnboarding({organization, project}: OnboardingProps) {
                       </GuidedSteps.ButtonWrapper>
                     </div>
                   </GuidedSteps.Step>
-                  {configureStep.configurations ? (
-                    <GuidedSteps.Step
-                      stepKey="configure-sentry"
+                  {sentryConfiguration ? (
+                    <ConfigurationStep
+                      stepKey={'configure-sentry'}
                       title={t('Configure Sentry')}
-                    >
-                      <div>
-                        <div>
-                          <DescriptionWrapper>
-                            {configureStep.description}
-                          </DescriptionWrapper>
-                          {configureStep.configurations.map((configuration, index) => (
-                            <div key={index}>
-                              <DescriptionWrapper>
-                                {configuration.description}
-                              </DescriptionWrapper>
-                              <CodeSnippetWrapper>
-                                {configuration.code ? (
-                                  Array.isArray(configuration.code) ? (
-                                    <TabbedCodeSnippet tabs={configuration.code} />
-                                  ) : (
-                                    <OnboardingCodeSnippet
-                                      language={configuration.language}
-                                    >
-                                      {configuration.code}
-                                    </OnboardingCodeSnippet>
-                                  )
-                                ) : null}
-                              </CodeSnippetWrapper>
-                              <CodeSnippetWrapper>
-                                {configuration.configurations &&
-                                configuration.configurations.length > 0 ? (
-                                  Array.isArray(configuration.configurations[0]!.code) ? (
-                                    <TabbedCodeSnippet
-                                      tabs={configuration.configurations[0]!.code}
-                                    />
-                                  ) : null
-                                ) : null}
-                              </CodeSnippetWrapper>
-                              <DescriptionWrapper>
-                                {configuration.additionalInfo}
-                              </DescriptionWrapper>
-                            </div>
-                          ))}
-                          {!verifyStep.configurations ? eventWaitingIndicator : null}
-                        </div>
-                        <GuidedSteps.ButtonWrapper>
-                          <GuidedSteps.BackButton size="md" />
-                          <GuidedSteps.NextButton size="md" />
-                        </GuidedSteps.ButtonWrapper>
-                      </div>
-                    </GuidedSteps.Step>
-                  ) : (
-                    <Fragment />
-                  )}
+                      configuration={sentryConfiguration}
+                      api={api}
+                      organization={organization}
+                      project={project}
+                      showWaitingIndicator={!hasVerifyStep}
+                    />
+                  ) : null}
+                  {addingDistributedTracing ? (
+                    <ConfigurationStep
+                      stepKey={'add-distributed-tracing'}
+                      title={tct('Add Distributed Tracing [optional:(Optional)]', {
+                        optional: <OptionalText />,
+                      })}
+                      configuration={addingDistributedTracing}
+                      api={api}
+                      organization={organization}
+                      project={project}
+                      showWaitingIndicator={!hasVerifyStep}
+                    />
+                  ) : null}
                   {verifyStep.configurations || verifyStep.description ? (
                     <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                       <div>
@@ -627,6 +686,8 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 ))`
   display: flex;
   align-items: center;
+  position: relative;
+  z-index: 10;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.pink400};
@@ -635,6 +696,11 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
   margin-left: ${space(1)};
+`;
+
+const OptionalText = styled('span')`
+  color: ${p => p.theme.purple300};
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -752,6 +818,10 @@ const CodeSnippetWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
+
+  code {
+    color: ${p => p.theme.pink400};
+  }
 `;
 
 function Onboarding(props: OnboardingProps) {

@@ -79,6 +79,10 @@ describe('Testing new onboarding ui', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
+    expect(await screen.findByText(/Add Distributed Tracing/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+
     expect(
       await screen.findByText(/Verify that performance monitoring is working correctly/)
     ).toBeInTheDocument();
