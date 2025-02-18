@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -56,16 +56,20 @@ export function useProfilingOnboardingDrawer() {
   const currentPanel = useLegacyStore(SidebarPanelStore);
   const isActive = currentPanel === SidebarPanelKey.PROFILING_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
 
   const {openDrawer} = useDrawer();
 
   useLayoutEffect(() => {
     if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
       openDrawer(() => <DrawerContent />, {
         ariaLabel: t('Profile Code'),
         // Prevent the drawer from closing when the query params change
-        shouldCloseOnLocationChange: location =>
-          location.pathname !== window.location.pathname,
+        shouldCloseOnLocationChange: location => {
+          return location.pathname !== initialPathname.current;
+        },
       });
     }
   }, [isActive, hasProjectAccess, openDrawer]);
