@@ -227,12 +227,14 @@ const DEFAULT_SORT = {
 function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
-      <Alert {...props} type="info" showIcon />
+      <Alert.Container>
+        <Alert {...props} type="info" showIcon />
+      </Alert.Container>
     </ModuleLayout.Full>
   );
 }
 
-const LIMIT: number = 25;
+const LIMIT = 25;
 
 function PageWithProviders() {
   return (

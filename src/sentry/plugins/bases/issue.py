@@ -33,7 +33,7 @@ class IssueTrackingPlugin(Plugin):
     def get_plugin_type(self):
         return "issue-tracking"
 
-    def _get_group_body(self, request: Request, group, event, **kwargs):
+    def _get_group_body(self, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event)
@@ -41,15 +41,15 @@ class IssueTrackingPlugin(Plugin):
                 result.append(output)
         return "\n\n".join(result)
 
-    def _get_group_description(self, request: Request, group, event):
+    def _get_group_description(self, group, event):
         referrer = self.get_conf_key() + "_plugin"
         output = [absolute_uri(group.get_absolute_url(params={"referrer": referrer}))]
-        body = self._get_group_body(request, group, event)
+        body = self._get_group_body(group, event)
         if body:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def _get_group_title(self, request: Request, group, event):
+    def _get_group_title(self, group, event):
         return event.title
 
     def is_configured(self, project) -> bool:
@@ -135,8 +135,8 @@ class IssueTrackingPlugin(Plugin):
 
     def get_initial_form_data(self, request: Request, group, event, **kwargs):
         return {
-            "description": self._get_group_description(request, group, event),
-            "title": self._get_group_title(request, group, event),
+            "description": self._get_group_description(group, event),
+            "title": self._get_group_title(group, event),
         }
 
     def has_auth_configured(self, **kwargs):
