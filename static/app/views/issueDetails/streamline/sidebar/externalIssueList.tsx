@@ -9,7 +9,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import Placeholder from 'sentry/components/placeholder';
-import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -70,17 +69,6 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
     project,
   });
 
-  if (isLoading) {
-    return (
-      <div data-test-id="linked-issues">
-        <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
-        <SidebarSection.Content>
-          <Placeholder height="25px" testId="issue-tracking-loading" />
-        </SidebarSection.Content>
-      </div>
-    );
-  }
-
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
 
   return (
@@ -89,7 +77,9 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
       title={<SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>}
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
-      {hasLinkedIssuesOrIntegrations ? (
+      {isLoading ? (
+        <Placeholder height="25px" testId="issue-tracking-loading" />
+      ) : hasLinkedIssuesOrIntegrations ? (
         <Fragment>
           {linkedIssues.length > 0 && (
             <IssueActionWrapper>
