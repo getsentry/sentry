@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';

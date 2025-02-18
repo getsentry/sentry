@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

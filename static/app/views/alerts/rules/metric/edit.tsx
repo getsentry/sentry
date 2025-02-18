@@ -1,7 +1,7 @@
 import {useCallback, useEffect} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

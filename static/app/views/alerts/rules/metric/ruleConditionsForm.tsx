@@ -7,11 +7,11 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
+import {Alert} from 'sentry/components/core/alert';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,

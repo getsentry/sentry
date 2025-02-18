@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

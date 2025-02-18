@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';

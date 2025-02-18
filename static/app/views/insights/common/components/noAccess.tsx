@@ -1,4 +1,4 @@
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 

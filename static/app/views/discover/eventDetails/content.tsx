@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';

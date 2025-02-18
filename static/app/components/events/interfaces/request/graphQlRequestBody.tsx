@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import Prism from 'prismjs';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';

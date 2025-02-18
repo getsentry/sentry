@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';

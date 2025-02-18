@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import ExternalLink from 'sentry/components/links/externalLink';

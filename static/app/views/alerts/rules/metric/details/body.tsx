@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';

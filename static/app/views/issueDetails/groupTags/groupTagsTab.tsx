@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
