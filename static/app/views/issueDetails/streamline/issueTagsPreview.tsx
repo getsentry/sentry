@@ -102,9 +102,12 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   }
 
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
-  const otherPercentage = segments.reduce((sum, s) => sum - s.percentage, 100);
-  const otherPercentageString =
-    otherPercentage === 0 ? null : getRoundedPercentage(otherPercentage);
+  const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+  const otherPercentage = Math.floor(
+    percent(tag.totalValues - totalVisible, tag.totalValues)
+  );
+  const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
     <TooltipLegend>
@@ -121,7 +124,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
             </LegendPercentage>
           </Fragment>
         ))}
-        {otherPercentageString && (
+        {hasOther && (
           <Fragment>
             <LegendColor style={{backgroundColor: theme.gray200}} />
             <LegendText>{t('Other')}</LegendText>
