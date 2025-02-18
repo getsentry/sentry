@@ -234,3 +234,10 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.SESSIONS]: ['insights-entry-points', ...SESSIONS_MODULE_VISIBLE_FEATURES],
   [ModuleName.OTHER]: ['insights-entry-points'],
 };
+
+/**
+ * Modules that are considered "new", e.g. used to show a badge on the tab.
+ */
+export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
+  ModuleName.MOBILE_VITALS,
+]);
