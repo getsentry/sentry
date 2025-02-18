@@ -133,11 +133,10 @@ function AutofixInsightCard({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
-    const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
     updateInsight({
       message: editText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCardAboveIndex,
+      retain_insight_card_index: index,
     });
   };
 
@@ -483,7 +482,7 @@ function ChainLink({
     updateInsight({
       message: newInsightText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCount - 1,
+      retain_insight_card_index: insightCount,
     });
     setNewInsightText('');
   };

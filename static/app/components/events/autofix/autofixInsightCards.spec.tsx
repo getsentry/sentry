@@ -134,7 +134,7 @@ describe('AutofixInsightCards', () => {
             type: 'restart_from_point_with_feedback',
             message: 'Here is my insight.',
             step_index: 0,
-            retain_insight_card_index: 0,
+            retain_insight_card_index: 1,
           }),
         }),
       })
