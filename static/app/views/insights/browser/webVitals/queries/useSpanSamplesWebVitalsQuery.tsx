@@ -14,13 +14,13 @@ export const INTERACTION_SPANS_FILTER =
   'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]';
 
 export const LCP_SPANS_FILTER =
-  'span.op:[ui.webvitals.lcp,pageload] (!measurements.score.weight.lcp:0)';
+  'span.op:[ui.webvital.lcp,pageload] (!measurements.score.weight.lcp:0)';
 
 export const CLS_SPANS_FILTER =
-  'span.op:[ui.webvitals.cls,pageload] (!measurements.score.weight.cls:0)';
+  'span.op:[ui.webvital.cls,pageload] (!measurements.score.weight.cls:0)';
 
 export const SPANS_FILTER =
-  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvitals.lcp,ui.webvitals.cls,pageload] (!measurements.score.weight.inp:0 OR !measurements.score.weight.lcp:0 OR !measurements.score.weight.cls:0)';
+  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.lcp,ui.webvital.cls,pageload] (!measurements.score.weight.inp:0 OR !measurements.score.weight.lcp:0 OR !measurements.score.weight.cls:0)';
 
 export function useSpanSamplesWebVitalsQuery({
   transaction,
