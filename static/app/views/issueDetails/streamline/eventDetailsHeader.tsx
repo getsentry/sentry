@@ -121,7 +121,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               <EventGraph event={event} group={group} style={{flex: 1}} />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssuesChart group={group} project={project} event={event} />
+              <MetricIssuesChart group={group} project={project} />
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />
