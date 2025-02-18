@@ -33,7 +33,7 @@ export type TimeSeriesData = {
   originalPreviousTimeseriesData?: EventsStatsData | null;
   originalTimeseriesData?: EventsStatsData;
   previousTimeseriesData?: Series[] | null;
-  timeAggregatedData?: Series | {};
+  timeAggregatedData?: Series | Record<string, unknown>;
   timeframe?: {end: number; start: number};
   // timeseries data
   timeseriesData?: Series[];

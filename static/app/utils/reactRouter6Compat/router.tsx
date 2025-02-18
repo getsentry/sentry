@@ -42,7 +42,7 @@ function withReactRouter3Props(Component: React.ComponentType<any>) {
     const router = useRouter();
     const routes = useRoutes();
     const location = useLocation();
-    const outletContext = useOutletContext<{}>();
+    const outletContext = useOutletContext<Record<string, unknown>>();
 
     return (
       <Component

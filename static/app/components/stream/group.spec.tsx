@@ -101,10 +101,10 @@ describe('StreamGroup', function () {
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
-    const data: GroupStatusResolution = {
+    const data = {
       status: GroupStatus.RESOLVED,
       statusDetails: {},
-    };
+    } satisfies GroupStatusResolution;
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
