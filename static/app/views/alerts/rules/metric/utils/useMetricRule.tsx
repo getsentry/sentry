@@ -8,7 +8,9 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 interface MetricRuleParams {
   orgSlug: string;
   ruleId: string;
-  query?: Record<string, string>;
+  query?: {
+    expand?: 'latestIncident';
+  };
 }
 
 export function makeMetricRuleQueryKey({
