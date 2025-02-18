@@ -175,9 +175,11 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             scope.set_tag("stacktrace_link.used_version", False)
             source_url = self.check_file(repo, filepath, default)
 
-            # Encode elements of the filepath like square brackets
-            # Preserve path separators and query params etc.
-            return urlquote(source_url, safe="/:?=&")
+            if source_url:
+                # Encode elements of the filepath like square brackets
+                # Preserve path separators and query params etc.
+                return urlquote(source_url, safe="/:?=&")
+            return None
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None
