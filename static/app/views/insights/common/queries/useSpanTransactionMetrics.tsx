@@ -29,7 +29,7 @@ export const useSpanTransactionMetrics = (
   sorts?: Sort[],
   cursor?: string,
   extraFields?: string[],
-  enabled: boolean = true,
+  enabled = true,
   referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();

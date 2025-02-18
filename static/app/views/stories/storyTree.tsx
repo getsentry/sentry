@@ -301,7 +301,7 @@ function File(props: {node: StoryTreeNode}) {
 }
 
 function StoryIcon(props: {
-  category: 'components' | 'icons' | 'styles' | 'utils' | 'views' | string | {};
+  category: 'components' | 'icons' | 'styles' | 'utils' | 'views' | (string & {});
 }) {
   const iconProps: SVGIconProps = {size: 'xs'};
   switch (props.category) {
