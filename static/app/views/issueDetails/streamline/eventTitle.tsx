@@ -180,9 +180,7 @@ function useIntersectionObserver(elementId: string) {
     );
     observer.observe(element);
 
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [elementId, setIntersectionRatio]);
 }
 
