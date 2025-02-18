@@ -88,8 +88,7 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   closeGuide(dismissed?: boolean): void;
 
   fetchSucceeded(data: GuidesServerData): void;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  modalStoreListener: null | Function;
+  modalStoreListener: null | ReturnType<typeof ModalStore.listen>;
   nextStep(): void;
   onURLChange(): void;
   recordCue(guide: string): void;
