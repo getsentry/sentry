@@ -136,6 +136,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: user.id,
             assigneeEmail: user.email,
+            assigneeName: user.name,
             assigneeType: 'user',
             user,
           },
@@ -159,6 +160,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: '123',
             assigneeEmail: 'anotheruser@sentry.io',
+            assigneeName: 'Another User',
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
@@ -185,6 +187,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: '123',
             assigneeEmail: 'anotheruser@sentry.io',
+            assigneeName: 'Another User',
             assigneeType: 'user',
             integration: 'slack',
             user: UserFixture(),
@@ -209,6 +212,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: '123',
             assigneeEmail: 'anotheruser@sentry.io',
+            assigneeName: 'Another User',
             assigneeType: 'user',
             integration: 'suspectCommitter',
             user: UserFixture(),
@@ -236,6 +240,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: '123',
             assigneeEmail: 'anotheruser@sentry.io',
+            assigneeName: 'Another User',
             assigneeType: 'user',
             integration: 'lottery',
             user: UserFixture(),

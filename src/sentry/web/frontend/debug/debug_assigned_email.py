@@ -12,6 +12,7 @@ class DebugAssignedEmailView(ActivityMailDebugView):
             "data": {
                 "assignee": "10000000",
                 "assigneeEmail": "foo@example.com",
+                "assigneeName": "Example User",
                 "assigneeType": "user",
             },
         }
@@ -25,6 +26,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
             "data": {
                 "assignee": str(request.user.id),
                 "assigneeEmail": request.user.email,
+                "assigneeName": request.user.name,
                 "assigneeType": "user",
             },
         }
@@ -35,5 +37,5 @@ class DebugSelfAssignedTeamEmailView(ActivityMailDebugView):
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,
-            "data": {"assignee": "1", "assigneeEmail": None, "assigneeType": "team"},
+            "data": {"assignee": "1", "assigneeEmail": None, "assigneeName": "example-team", "assigneeType": "team"},
         }
