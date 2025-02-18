@@ -10,16 +10,16 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.api.validators.external_actor import (
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_choices
+from sentry.integrations.validators.external_actor import (
     is_valid_provider,
     validate_external_id_option,
     validate_external_name,
     validate_integration_id,
 )
-from sentry.api.validators.integrations import validate_provider
-from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.types import ExternalProviders
-from sentry.integrations.utils.providers import get_provider_choices
+from sentry.integrations.validators.integrations import validate_provider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.organizations.services.organization import organization_service
