@@ -18,7 +18,6 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 function getActionLabelAndTextValue({
   action,
@@ -74,7 +73,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
   return (
     <SidebarFoldSection
       data-test-id="linked-issues"
-      title={<SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>}
+      title={<Title>{t('Issue Tracking')}</Title>}
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
       {isLoading ? (
@@ -197,6 +196,10 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
     </SidebarFoldSection>
   );
 }
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const IssueActionWrapper = styled('div')`
   display: flex;
