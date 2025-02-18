@@ -168,13 +168,13 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure the Sentry SDK, initialize it in your [code:settings.py] file:',
-        {code: <code />}
-      ),
       configurations: [
         {
           language: 'python',
+          description: tct(
+            'To configure the Sentry SDK, initialize it in your [code:settings.py] file:',
+            {code: <code />}
+          ),
           code: `
 import sentry-sdk
 
@@ -186,7 +186,7 @@ sentry_sdk.init(
   traces_sample_rate=1.0,
 )`,
           additionalInfo: tct(
-            'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               linkTracingOptions: (
                 <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/options/#tracing-options" />
@@ -211,14 +211,6 @@ sentry_sdk.init(
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
-          ),
-        }
-      ),
-      additionalInfo: tct(
-        'You have the option to manually construct a transaction using [link:custom instrumentation].',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
           ),
         }
       ),

@@ -309,13 +309,13 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:sentry.client.config.js], and [code:sentry.edge.config.js]:',
-        {code: <code />}
-      ),
       configurations: [
         {
           language: 'javascript',
+          description: tct(
+            'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:sentry.client.config.js], and [code:sentry.edge.config.js]:',
+            {code: <code />}
+          ),
           code: `
 import * as Sentry from "@sentry/nextjs";
 
@@ -344,6 +344,36 @@ Sentry.init({
             }
           ),
         },
+        {
+          language: 'javascript',
+          description: tct(
+            "If you're using the current version of our Next.js SDK, distributed tracing will work out of the box for the client, server, and edge runtimes.[break][break]For client-side you might have to define [code: tracePropagationTargets] to get around possible [link:Browser CORS] issues.",
+            {
+              break: <br />,
+              code: <code />,
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" />
+              ),
+            }
+          ),
+          code: `
+// sentry.client.config.js
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+  tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+});
+`,
+          additionalInfo: tct(
+            "If you're using version [code:7.57.x] or below, you'll need to have our [link:tracing feature enabled] in order for distributed tracing to work.",
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/" />
+              ),
+            }
+          ),
+        },
       ],
     },
   ],
@@ -355,14 +385,6 @@ Sentry.init({
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/automatic-instrumentation/" />
-          ),
-        }
-      ),
-      additionalInfo: tct(
-        'You have the option to manually construct a transaction using [link:custom instrumentation].',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/custom-instrumentation/" />
           ),
         }
       ),

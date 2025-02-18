@@ -24,7 +24,7 @@ import {
 } from 'sentry/views/insights/mobile/screenload/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 export function PageloadModule() {
   const organization = useOrganization();
@@ -62,7 +62,7 @@ export function PageloadModule() {
                 <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
                   {onboardingProject && (
                     <OnboardingContainer>
-                      <Onboarding
+                      <LegacyOnboarding
                         organization={organization}
                         project={onboardingProject}
                       />

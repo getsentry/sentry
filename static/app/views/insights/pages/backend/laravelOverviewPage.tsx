@@ -24,7 +24,7 @@ import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 function getFreeTextFromQuery(query: string) {
@@ -142,7 +142,10 @@ export function LaravelOverviewPage() {
               )}
 
               {showOnboarding && (
-                <Onboarding project={onboardingProject} organization={organization} />
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
