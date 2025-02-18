@@ -39,6 +39,7 @@ import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineCh
 import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
 import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
 import {formatTooltipValue} from './formatTooltipValue';
+import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 import {formatYAxisValue} from './formatYAxisValue';
 import {markDelayedData} from './markDelayedData';
 import {ReleaseSeries} from './releaseSeries';
@@ -321,6 +322,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
+          formatter: (value: number) => {
+            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            return string;
+          },
         },
         splitNumber: 5,
       }}
