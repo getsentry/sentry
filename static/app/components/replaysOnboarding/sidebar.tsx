@@ -415,7 +415,6 @@ function OnboardingContent({
         projectSlug={currentProject.slug}
         configType={
           setupMode() === 'npm' || // switched to NPM option
-          (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
           npmOnlyFramework ||
           mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
             ? 'replayOnboarding'
