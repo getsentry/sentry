@@ -192,5 +192,9 @@ class DatabaseBackedProjectService(ProjectService):
             id=project_id,
             organization_id=organization_id,
         )
+        allowed_fields = set(ProjectUpdates.__annotations__.keys())
+        invalid_fields = [field for field in updates if field not in allowed_fields]
+        if invalid_fields:
+            raise ValueError(f"Invalid fields: {', '.join(invalid_fields)}")
         update(project, **updates)
         return serialize_project(project)

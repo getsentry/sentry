@@ -30,3 +30,54 @@ def test_get_or_create_project() -> None:
         add_org_default_team=True,
     )
     assert Project.objects.all().count() == 1
+
+
+@django_db_all(transaction=True)
+def test_update_project() -> None:
+    org = Factories.create_organization()
+    Factories.create_user(email="test@sentry.io")
+    Factories.create_team(org)
+    project = Factories.create_project(organization=org, name="test-project", platform="python")
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        updates={"platform": "java"},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.platform == "java"
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        updates={"slug": "test-project-slug"},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.slug == "test-project-slug"
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        updates={"name": "New Name"},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.name == "New Name"
+
+    project_service.update_project(
+        organization_id=org.id,
+        project_id=project.id,
+        updates={"external_id": "abcde"},
+    )
+    project = Project.objects.get(id=project.id)
+    assert project.external_id == "abcde"
+
+    import pytest
+
+    with pytest.raises(Exception):
+        project_service.update_project(
+            organization_id=org.id,
+            project_id=project.id,
+            updates={"does_not_exist": "test"},
+        )
+        project = Project.objects.get(id=project.id)
+        assert project.external_id == "abcde"
