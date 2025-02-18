@@ -252,7 +252,7 @@ function SolutionDescription({
             retainInsightCardIndex={
               previousInsightCount !== undefined && previousInsightCount >= 0
                 ? previousInsightCount
-                : -1
+                : null
             }
           />
         )}
