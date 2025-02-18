@@ -50,14 +50,14 @@ export function getMyContextData({
         return {
           key: ctxKey,
           subject: t('User Age'),
-          value: data[MyContextKeys.AGE] + t(' years old'),
+          value: tct('[age] years old', {age: data[MyContextKeys.AGE]}),
           meta: meta?.[ctxKey]?.[''],
         };
       case MyContextKeys.SLUG:
         return {
           key: ctxKey,
           subject: t('User Slug'),
-          value: data[MyContextKeys.SLUG],
+          value: <MyCustomSlugRenderer slug={data[MyContextKeys.SLUG]} />,
           meta: meta?.[ctxKey]?.[''],
         };
       default:
