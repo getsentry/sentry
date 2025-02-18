@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
@@ -54,23 +54,26 @@ export function usePerformanceOnboardingDrawer() {
   const currentPanel = useLegacyStore(SidebarPanelStore);
   const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
 
   const {openDrawer} = useDrawer();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
       openDrawer(() => <DrawerContent />, {
         ariaLabel: t('Boost Performance'),
         // Prevent the drawer from closing when the query params change
         shouldCloseOnLocationChange: location =>
-          location.pathname !== window.location.pathname,
+          location.pathname !== initialPathname.current,
       });
     }
   }, [isActive, hasProjectAccess, openDrawer]);
 }
 
 function DrawerContent() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       SidebarPanelStore.hidePanel();
     };
@@ -79,6 +82,9 @@ function DrawerContent() {
   return <SidebarContent />;
 }
 
+/**
+ * @deprecated Use usePerformanceOnboardingDrawer instead.
+ */
 function LegacyPerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
