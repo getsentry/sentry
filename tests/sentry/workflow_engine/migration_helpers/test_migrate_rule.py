@@ -517,7 +517,9 @@ class IssueAlertMigratorTest(TestCase):
         Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         Detector.objects.get(id=issue_alert_detector.detector.id)
 
-    @patch("sentry.workflow_engine.migration_helpers.rule.enforce_data_condition_json_schema")
+    @patch(
+        "sentry.workflow_engine.migration_helpers.issue_alert_migration.enforce_data_condition_json_schema"
+    )
     def test_dry_run__data_condition_validation_fails(self, mock_enforce):
         mock_enforce.side_effect = ValidationError("oopsie")
 
