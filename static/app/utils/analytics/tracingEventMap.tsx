@@ -45,10 +45,10 @@ export type TracingEventParameters = {
   'trace.preferences.missing_instrumentation_change': {
     enabled: boolean;
   };
-  'trace.quality.missing_spans.doc_link_clicked': {};
-  'trace.quality.performance_setup.banner_loaded': {};
-  'trace.quality.performance_setup.checklist_triggered': {};
-  'trace.quality.performance_setup.learn_more_clicked': {};
+  'trace.quality.missing_spans.doc_link_clicked': Record<string, unknown>;
+  'trace.quality.performance_setup.banner_loaded': Record<string, unknown>;
+  'trace.quality.performance_setup.checklist_triggered': Record<string, unknown>;
+  'trace.quality.performance_setup.learn_more_clicked': Record<string, unknown>;
   'trace.quality.quota_exceeded.banner_loaded': {
     traceType: string;
   };
@@ -66,15 +66,15 @@ export type TracingEventParameters = {
   'trace.trace_layout.change': {
     layout: string;
   };
-  'trace.trace_layout.drawer_minimize': {};
-  'trace.trace_layout.reset_zoom': {};
-  'trace.trace_layout.search_clear': {};
-  'trace.trace_layout.search_focus': {};
+  'trace.trace_layout.drawer_minimize': Record<string, unknown>;
+  'trace.trace_layout.reset_zoom': Record<string, unknown>;
+  'trace.trace_layout.search_clear': Record<string, unknown>;
+  'trace.trace_layout.search_focus': Record<string, unknown>;
   'trace.trace_layout.search_match_navigate': {
     direction: string;
     interaction: string;
   };
-  'trace.trace_layout.show_in_view': {};
+  'trace.trace_layout.show_in_view': Record<string, unknown>;
   'trace.trace_layout.span_row_click': {
     num_children: number;
     project_platform: string;
@@ -83,15 +83,15 @@ export type TracingEventParameters = {
     parent_op?: string;
     previous_op?: string;
   };
-  'trace.trace_layout.tab_pin': {};
+  'trace.trace_layout.tab_pin': Record<string, unknown>;
   'trace.trace_layout.tab_view': {
     tab: string;
   };
-  'trace.trace_layout.view_event_json': {};
+  'trace.trace_layout.view_event_json': Record<string, unknown>;
   'trace.trace_layout.view_in_insight_module': {
     module: string;
   };
-  'trace.trace_layout.view_shortcuts': {};
+  'trace.trace_layout.view_shortcuts': Record<string, unknown>;
   'trace.trace_layout.view_similar_spans': {
     module: string;
     source: string;
@@ -99,19 +99,19 @@ export type TracingEventParameters = {
   'trace.trace_layout.view_span_summary': {
     module: string;
   };
-  'trace.trace_layout.zoom_to_fill': {};
+  'trace.trace_layout.zoom_to_fill': Record<string, unknown>;
   'trace.trace_warning_type': {
     type: string;
   };
-  'trace_explorer.add_span_condition': {};
-  'trace_explorer.open_in_issues': {};
+  'trace_explorer.add_span_condition': Record<string, unknown>;
+  'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
   };
   'trace_explorer.open_trace_span': {
     source: 'trace explorer' | 'new explore';
   };
-  'trace_explorer.remove_span_condition': {};
+  'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard';
     ui_source: 'toolbar' | 'chart';

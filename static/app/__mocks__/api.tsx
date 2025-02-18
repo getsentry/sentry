@@ -193,7 +193,7 @@ class Client implements ApiNamespace.Client {
   wrapCallback<T extends any[]>(
     _id: string,
     func: FunctionCallback<T> | undefined,
-    _cleanup: boolean = false
+    _cleanup = false
   ) {
     const asyncDelay = Client.asyncDelay;
 
