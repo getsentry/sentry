@@ -16,7 +16,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
-from sentry.tasks.relocation import TASK_MAP
+from sentry.relocation.tasks import TASK_MAP
 from sentry.utils.relocation import OrderedTask
 
 ERR_NOT_RECOVERABLE_STATUS = Template(

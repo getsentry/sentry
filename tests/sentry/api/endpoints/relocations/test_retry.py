@@ -86,7 +86,7 @@ class RetryRelocationTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_good_simple(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
@@ -136,7 +136,7 @@ class RetryRelocationTest(APITestCase):
     @override_options(
         {"relocation.enabled": False, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
     )
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_good_staff_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -174,7 +174,7 @@ class RetryRelocationTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_good_superuser_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -212,7 +212,7 @@ class RetryRelocationTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_without_superuser_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -237,7 +237,7 @@ class RetryRelocationTest(APITestCase):
         assert uploading_start_mock.call_count == 0
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_expired_superuser_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -263,7 +263,7 @@ class RetryRelocationTest(APITestCase):
         analytics_record_mock.assert_not_called()
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_relocation_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -275,7 +275,7 @@ class RetryRelocationTest(APITestCase):
         analytics_record_mock.assert_not_called()
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_relocation_file_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -289,7 +289,7 @@ class RetryRelocationTest(APITestCase):
         analytics_record_mock.assert_not_called()
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_file_not_found(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
         self.login_as(user=self.owner, superuser=False)
         File.objects.all().delete()
@@ -302,7 +302,7 @@ class RetryRelocationTest(APITestCase):
     @override_options(
         {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
     )
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_staff_owner_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -317,7 +317,7 @@ class RetryRelocationTest(APITestCase):
         analytics_record_mock.assert_not_called()
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_superuser_owner_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
@@ -332,7 +332,7 @@ class RetryRelocationTest(APITestCase):
         analytics_record_mock.assert_not_called()
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.relocation.tasks.uploading_start.delay")
     def test_bad_throttled(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
         self.login_as(user=self.owner, superuser=False)
 
@@ -348,7 +348,7 @@ class RetryRelocationTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-        @patch("sentry.tasks.relocation.uploading_start.delay")
+        @patch("sentry.relocation.tasks.uploading_start.delay")
         def test_bad_relocation_still_ongoing(
             self, uploading_start_mock: Mock, analytics_record_mock: Mock, stat=stat
         ):
@@ -371,7 +371,7 @@ class RetryRelocationTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 3})
-        @patch("sentry.tasks.relocation.uploading_start.delay")
+        @patch("sentry.relocation.tasks.uploading_start.delay")
         def test_bad_owner_has_another_active_relocation(
             self, uploading_start_mock: Mock, analytics_record_mock: Mock, stat=stat
         ):

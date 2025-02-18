@@ -20,7 +20,7 @@ from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organization import OrganizationStatus
 from sentry.models.relocation import Relocation
-from sentry.tasks.relocation import uploading_start
+from sentry.relocation.tasks import uploading_start
 from sentry.types.region import get_local_region
 from sentry.utils.db import atomic_transaction
 

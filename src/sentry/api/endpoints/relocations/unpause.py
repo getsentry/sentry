@@ -16,7 +16,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
-from sentry.tasks.relocation import get_first_task_for_step
+from sentry.relocation.tasks import get_first_task_for_step
 
 ERR_NOT_UNPAUSABLE_STATUS = Template(
     """Relocations can only be unpaused if they are already paused; this relocation is

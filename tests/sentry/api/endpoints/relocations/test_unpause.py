@@ -41,7 +41,7 @@ class UnpauseRelocationTest(APITestCase):
         )
 
     @override_options({"staff.ga-rollout": True})
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_good_staff_unpause_until_validating(self, async_task_scheduled: Mock):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
@@ -55,7 +55,7 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_good_unpause_until_validating(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
@@ -69,7 +69,7 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @patch("sentry.tasks.relocation.validating_start.delay")
+    @patch("sentry.relocation.tasks.validating_start.delay")
     def test_good_unpause_until_importing(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.VALIDATING.value
@@ -85,7 +85,7 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @patch("sentry.tasks.relocation.importing.delay")
+    @patch("sentry.relocation.tasks.importing.delay")
     def test_good_unpause_until_postprocessing(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.IMPORTING.value
@@ -101,7 +101,7 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @patch("sentry.tasks.relocation.postprocessing.delay")
+    @patch("sentry.relocation.tasks.postprocessing.delay")
     def test_good_unpause_until_notifying(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
@@ -117,7 +117,7 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_good_change_pending_pause_later(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.IN_PROGRESS.value
@@ -134,7 +134,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_good_change_pending_pause_sooner(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.IN_PROGRESS.value
@@ -151,7 +151,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_good_remove_pending_pause(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.IN_PROGRESS.value
@@ -167,7 +167,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.notifying_unhide.delay")
+    @patch("sentry.relocation.tasks.notifying_unhide.delay")
     def test_good_unpause_no_follow_up_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.NOTIFYING.value
@@ -182,13 +182,13 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_not_found(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(does_not_exist_uuid, status_code=404)
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_already_completed(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.FAILURE.value
@@ -202,7 +202,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_already_paused(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.IN_PROGRESS.value
@@ -216,7 +216,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_invalid_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
@@ -230,7 +230,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_unknown_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
@@ -244,7 +244,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_current_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
@@ -258,7 +258,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_past_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
@@ -272,7 +272,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_last_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
@@ -286,13 +286,13 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_no_auth(self, async_task_scheduled: Mock):
         self.get_error_response(self.relocation.uuid, status_code=401)
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    @patch("sentry.relocation.tasks.preprocessing_scan.delay")
     def test_bad_no_superuser(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=False)
         self.get_error_response(self.relocation.uuid, status_code=403)

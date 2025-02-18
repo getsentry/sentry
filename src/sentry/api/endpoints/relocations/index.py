@@ -26,10 +26,10 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.options import get
+from sentry.relocation.tasks import uploading_start
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
-from sentry.tasks.relocation import uploading_start
 from sentry.users.models.user import MAX_USERNAME_LENGTH, User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service

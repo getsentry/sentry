@@ -41,7 +41,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
-        from sentry.tasks.relocation import fulfill_cross_region_export_request
+        from sentry.relocation.tasks import fulfill_cross_region_export_request
 
         logger_data = {
             "uuid": relocation_uuid,
@@ -81,7 +81,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         encrypted_contents: bytes | None,
         encrypted_bytes: list[int] | None = None,
     ) -> None:
-        from sentry.tasks.relocation import uploading_complete
+        from sentry.relocation.tasks import uploading_complete
 
         with atomic_transaction(
             using=(

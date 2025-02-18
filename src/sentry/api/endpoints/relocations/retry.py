@@ -21,8 +21,8 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.tasks import uploading_start
 from sentry.signals import relocation_retry_link_promo_code
-from sentry.tasks.relocation import uploading_start
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
 
