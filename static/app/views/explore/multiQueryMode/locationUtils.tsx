@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -146,13 +147,14 @@ function getUpdatedLocationWithQueries(
   location: Location,
   queries: WritableExploreQueryParts[] | null | undefined
 ) {
-  if (defined(queries)) {
-    location.query.queries = getQueriesAsUrlParam(queries);
-  } else if (queries === null) {
-    delete location.query.queries;
-  }
-
-  return location;
+  const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
+  return {
+    ...location,
+    query: {
+      ...location.query,
+      queries: targetQueries,
+    },
+  };
 }
 
 export function useUpdateQueryAtIndex(index: number) {
@@ -203,6 +205,34 @@ export function useDeleteQueryAtIndex() {
     },
     [location, navigate, queries]
   );
+}
+
+export function getSamplesTargetAtIndex(
+  index: number,
+  queries: ReadableExploreQueryParts[],
+  row: Record<string, any>,
+  location: Location
+): Location {
+  const queryToUpdate = queries[index];
+  if (!queryToUpdate) {
+    return location;
+  }
+
+  const queryString = queryToUpdate.query ?? '';
+  const search = new MutableSearch(queryString);
+  for (const groupBy of queryToUpdate.groupBys) {
+    const value = row[groupBy];
+    search.setFilterValues(groupBy, [value]);
+  }
+
+  const newQuery = {...queryToUpdate, groupBys: [], query: search.formatString()};
+  newQuery.fields = getFieldsForConstructedQuery(newQuery.yAxes);
+  const newQueries = [...queries];
+  newQueries[index] = newQuery;
+
+  const target = getUpdatedLocationWithQueries(location, newQueries);
+
+  return target;
 }
 
 // Write utils end
