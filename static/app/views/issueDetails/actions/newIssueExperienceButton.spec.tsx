@@ -61,7 +61,7 @@ describe('NewIssueExperienceButton', function () {
         },
       }
     );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
     unmountOptionFalse();
   });
 
