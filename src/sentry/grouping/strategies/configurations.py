@@ -144,9 +144,7 @@ register_strategy_config(
 register_strategy_config(
     id="newstyle:2025-02-18",
     base="newstyle:2023-01-11",
-    changelog="""
-        * Better rules for Unreal Engine stack traces.
-    """,
+    changelog="",
     initial_context={},
     enhancements_base="newstyle:2025-02-18",
 )

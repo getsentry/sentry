@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from typing import cast
 from unittest import mock
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.grouping.fingerprinting import FingerprintRuleJSON
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.helpers.options import override_options
@@ -102,3 +105,29 @@ def _assert_and_snapshot_results(
             __file__, input_file, "test_event_hash_variant", config_name
         ),
     )
+
+
+@django_db_all
+# TODO: This can be deleted after Jan 2025, when affected events have aged out
+def test_old_event_with_no_fingerprint_rule_text():
+    variant = CustomFingerprintVariant(
+        ["dogs are great"],
+        {
+            # Cast here to compensate for missing `text` entry. (This allows us to avoid creating
+            # another place we have to remember to update when this temporary test (and the
+            # temporary fix it tests) is removed.)
+            "matched_rule": cast(
+                FingerprintRuleJSON,
+                {
+                    "attributes": {},
+                    "fingerprint": ["dogs are great"],
+                    "matchers": [["message", "*dogs*"]],
+                    # newer events have a `text` entry here
+                },
+            )
+        },
+    )
+    assert expose_fingerprint_dict(variant.values, variant.info) == {
+        "values": ["dogs are great"],
+        "matched_rule": 'message:"*dogs*" -> "dogs are great"',
+    }
