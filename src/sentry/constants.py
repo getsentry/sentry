@@ -544,6 +544,16 @@ class SentryAppStatus:
         else:
             raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
+    @classmethod
+    def as_int_choices(cls) -> Sequence[int]:
+        return [
+            cls.UNPUBLISHED,
+            cls.PUBLISHED,
+            cls.INTERNAL,
+            cls.PUBLISH_REQUEST_INPROGRESS,
+            cls.DELETION_IN_PROGRESS,
+        ]
+
 
 class SentryAppInstallationStatus:
     PENDING = 0

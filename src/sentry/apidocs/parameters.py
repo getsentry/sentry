@@ -5,6 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.constants import SentryAppStatus
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -365,6 +366,18 @@ class SentryAppParams:
         many=False,
         type=str,
         description="The ID or slug of the custom integration.",
+    )
+
+
+class SentryAppStatusParams:
+    SENTRY_APP_STATUS = OpenApiParameter(
+        name="sentry_app_status",
+        location="query",
+        required=False,
+        many=False,
+        type=int,
+        description=f"The status of the custom integration, values translate to the following: {SentryAppStatus.as_choices()}",
+        enum=SentryAppStatus.as_int_choices(),
     )
 
 
