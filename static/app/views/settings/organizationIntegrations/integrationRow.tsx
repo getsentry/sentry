@@ -12,6 +12,7 @@ import type {
   IntegrationInstallationStatus,
   PluginWithProjectList,
   SentryApp,
+  SentryAppStatus,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -28,7 +29,7 @@ type Props = {
   configurations: number;
   displayName: string;
   organization: Organization;
-  publishStatus: 'unpublished' | 'published' | 'internal';
+  publishStatus: SentryAppStatus;
   slug: string;
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
   /**

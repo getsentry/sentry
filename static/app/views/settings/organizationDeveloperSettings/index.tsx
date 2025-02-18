@@ -82,6 +82,7 @@ function OrganizationDeveloperSettings() {
         app={app}
         organization={organization}
         onRemoveApp={removeApp}
+        onPublishSubmission={refetch}
       />
     );
   };
