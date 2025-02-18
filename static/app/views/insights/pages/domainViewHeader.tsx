@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -9,6 +10,7 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +20,11 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
+import {
+  isModuleConsideredNew,
+  isModuleEnabled,
+  isModuleVisible,
+} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -132,7 +138,16 @@ function TabLabel({moduleName}: TabLabelProps) {
     );
   }
 
-  return <Fragment>{moduleTitles[moduleName]}</Fragment>;
+  return (
+    <Fragment>
+      {moduleTitles[moduleName]}
+      {isModuleConsideredNew(moduleName) && (
+        <Fragment>
+          &nbsp;<Tag>{t('New')}</Tag>
+        </Fragment>
+      )}
+    </Fragment>
+  );
 }
 
 const TabWithIconContainer = styled('div')`
