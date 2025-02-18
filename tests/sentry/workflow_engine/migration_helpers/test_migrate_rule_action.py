@@ -1080,3 +1080,30 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data)
+
+    def test_dry_run_flag(self):
+        """Test that the dry_run flag prevents database writes."""
+        action_data = [
+            {
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test-channel",
+                "channel_id": "C123456",
+                "uuid": "test-uuid",
+            }
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+        assert len(actions) == 1
+        assert Action.objects.count() == 0
+
+        # With dry_run=False (default)
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.target_display == "#test-channel"
+        assert action.target_identifier == "C123456"
