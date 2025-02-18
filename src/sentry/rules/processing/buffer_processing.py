@@ -32,6 +32,7 @@ class BufferHashKeys:
 
 class DelayedProcessingBase(ABC):
     buffer_key: ClassVar[str]
+    option: ClassVar[str | None]
 
     def __init__(self, project_id: int):
         self.project_id = project_id
@@ -139,6 +140,9 @@ def process_buffer() -> None:
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
+        if handler.option and not options.get(handler.option):
+            continue
+
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
             project_ids = buffer.backend.get_sorted_set(
                 handler.buffer_key, min=0, max=fetch_time.timestamp()
