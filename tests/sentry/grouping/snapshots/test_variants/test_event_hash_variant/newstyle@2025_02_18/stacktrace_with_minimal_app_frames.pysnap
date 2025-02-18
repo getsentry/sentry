@@ -1,0 +1,90 @@
+---
+created: '2025-02-17T13:44:07.073511+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "1effb24729ae4c43efa36b460511136a"
+  contributing component: stacktrace
+  component:
+    app*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+        frame (non app frame)
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+system:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  contributing component: stacktrace
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"

@@ -1,0 +1,17 @@
+---
+created: '2025-02-17T13:44:05.689574+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "e3d593b4335190212ca7c18b8e967fb1"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        type*
+          "FailedToFetchError"
+        value*
+          "FailedToFetchError: Charlie didn't bring the ball back!"
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+  values: ["{{ default }}","dogs are great"]

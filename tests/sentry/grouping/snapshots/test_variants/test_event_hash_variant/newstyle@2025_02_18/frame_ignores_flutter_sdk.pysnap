@@ -1,0 +1,32 @@
+---
+created: '2025-02-17T13:44:04.723445+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (ignored because frame points to a URL)
+            "binding.dart"
+          function* (trimmed javascript function)
+            "_flushPointerEventQueue"
+--------------------------------------------------------------------------
+system:
+  hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+  contributing component: stacktrace
+  component:
+    system*
+      stacktrace*
+        frame* (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (ignored because frame points to a URL)
+            "binding.dart"
+          function* (trimmed javascript function)
+            "_flushPointerEventQueue"

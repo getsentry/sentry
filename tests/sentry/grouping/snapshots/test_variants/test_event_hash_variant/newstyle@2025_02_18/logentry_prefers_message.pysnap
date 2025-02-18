@@ -1,0 +1,12 @@
+---
+created: '2025-02-17T13:44:06.254374+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "8ec8bbc71eb6e2af7fbe5076a8534f96"
+  contributing component: message
+  component:
+    default*
+      message*
+        "Hello there %s!"

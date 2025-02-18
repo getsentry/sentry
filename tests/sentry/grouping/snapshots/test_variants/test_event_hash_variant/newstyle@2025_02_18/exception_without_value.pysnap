@@ -1,0 +1,13 @@
+---
+created: '2025-02-17T13:44:04.300583+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "5a2cfd89b7b171fd7b4794b08023d04f"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        type*
+          "ValueError"

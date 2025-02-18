@@ -1,0 +1,15 @@
+---
+created: '2025-02-17T13:44:05.656671+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "1e37a374cb33572622d02ff7a6237c44"
+  contributing component: hpkp
+  component:
+    default*
+      hpkp*
+        salt* (a static salt)
+          "hpkp"
+        hostname*
+          "example.com"

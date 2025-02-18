@@ -1,0 +1,64 @@
+---
+created: '2025-02-17T13:44:06.535026+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "application_frame"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "malloc_zone_malloc"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "nanov2_malloc"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "nanov2_allocate"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "nanov2_allocate_from_block"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "nanov2_allocate_from_block.cold.1"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value*
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+system:
+  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "malloc_zone_malloc"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_malloc"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_allocate"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_allocate_from_block"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "nanov2_allocate_from_block.cold.1"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"

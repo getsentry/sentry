@@ -1,0 +1,28 @@
+---
+created: '2025-02-17T13:44:04.745418+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (non app frame)
+          module* (removed codegen marker)
+            "com.example.model.User$HibernateProxy$<auto>"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "c32a94349d9e9b72d31a46610c6c9589"
+  contributing component: stacktrace
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.model.User$HibernateProxy$<auto>"
+          function*
+            "jipJipManagementApplication"

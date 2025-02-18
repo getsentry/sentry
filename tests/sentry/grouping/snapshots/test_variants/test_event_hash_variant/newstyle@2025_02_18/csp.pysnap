@@ -1,0 +1,18 @@
+---
+created: '2025-02-17T13:44:03.843211+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "666766514295bb52812324097cdaf53e"
+  contributing component: csp
+  component:
+    default*
+      csp*
+        salt* (a static salt)
+          "script-src"
+        violation (not a local script violation)
+        uri*
+          "YYY"
+      message (csp takes precedence)
+        "Blocked 'script' from 'YYY'"

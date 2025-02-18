@@ -1,0 +1,26 @@
+---
+created: '2025-02-17T13:44:04.242974+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "bca604b98cb4637167eb6190a92e8933"
+  contributing component: chained-exception
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "MyApp.SuchWowException"
+          value* (stripped event-specific values)
+            "Test <int>"
+        exception*
+          type*
+            "MyApp.AmazingException"
+          value* (stripped event-specific values)
+            "Test <int>"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."

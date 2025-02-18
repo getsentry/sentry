@@ -1,0 +1,188 @@
+---
+created: '2025-02-17T13:44:05.351078+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            filename*
+              "thread.cpp"
+            function*
+              "boost::thread::start_thread_noexcept"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame (non app frame)
+            filename*
+              "thread.cpp"
+            function*
+              "boost::`anonymous namespace'::thread_proxy"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "glDeleteTextures_Exec"
+          frame (non app frame)
+            function*
+              "gleUnbindDeleteHashNamesAndObjects"
+          frame (non app frame)
+            function*
+              "gleUnbindTextureObject"
+          frame (non app frame)
+            function*
+              "gldUpdateDispatch"
+          frame (non app frame)
+            function*
+              "gldUpdateDispatch"
+          frame (non app frame)
+            function*
+              "gpusSubmitDataBuffers"
+          frame (non app frame)
+            function*
+              "gldCreateDevice"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "9c336f632f6764c0f082a6a66edbf22d"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "thread.cpp"
+            function*
+              "boost::thread::start_thread_noexcept"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "thread_start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "thread.cpp"
+            function*
+              "boost::`anonymous namespace'::thread_proxy"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "glDeleteTextures_Exec"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "gleUnbindDeleteHashNamesAndObjects"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "gleUnbindTextureObject"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "gldUpdateDispatch"
+          frame (ignored due to recursion)
+            function*
+              "gldUpdateDispatch"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "gpusSubmitDataBuffers"
+          frame*
+            function*
+              "gldCreateDevice"
+          frame (ignored by stack trace rule (category:telemetry -group))
+            function*
+              "gpusGenerateCrashLog"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (ignored by stack trace rule (category:throw ^-group))
+            function*
+              "__abort"
+          frame (ignored by stack trace rule (category:throw ^-group))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
