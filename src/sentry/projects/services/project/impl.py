@@ -6,7 +6,6 @@ from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.serializers import ProjectSerializer
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
-from sentry.db.models.query import update
 from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.options.project_option import ProjectOption
@@ -196,5 +195,9 @@ class DatabaseBackedProjectService(ProjectService):
         invalid_fields = [field for field in updates if field not in allowed_fields]
         if invalid_fields:
             raise ValueError(f"Invalid fields: {', '.join(invalid_fields)}")
-        update(project, **updates)
+
+        for key, value in updates.items():
+            setattr(project, key, value)
+        project.save()
+
         return serialize_project(project)
