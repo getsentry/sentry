@@ -6,6 +6,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
 import {NavContextProvider} from 'sentry/components/nav/context';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
+import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
@@ -62,6 +63,7 @@ function AppLayout({children, organization}: LayoutProps) {
   useFeedbackOnboardingDrawer();
   useReplaysOnboardingDrawer();
   usePerformanceOnboardingDrawer();
+  useProfilingOnboardingDrawer();
 
   return (
     <NavContextProvider>
