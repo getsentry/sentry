@@ -22,7 +22,7 @@ export type HistogramTag = {
 
 export type TableData = {
   histogram: {data: TableDataRow[]};
-  meta: {};
+  meta: Record<string, unknown>;
   tags: {data: HistogramTag[]};
 };
 

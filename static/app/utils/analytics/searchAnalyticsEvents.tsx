@@ -8,7 +8,7 @@ type SearchEventBase = {
   search_source?: string;
 };
 
-type OpenEvent = {};
+type OpenEvent = Record<string, unknown>;
 type SelectEvent = {result_type: string; source_type: string; query?: string};
 type QueryEvent = {query: string};
 type ProjectSelectorEvent = {path: string};
