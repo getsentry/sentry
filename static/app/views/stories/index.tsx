@@ -47,7 +47,10 @@ export default function Stories() {
     [location.query, navigate]
   );
 
-  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
+  const storiesSearchHotkeys = useMemo(() => {
+    return [{match: '/', callback: () => searchInput.current?.focus()}];
+  }, []);
+  useHotkeys(storiesSearchHotkeys);
 
   return (
     <RouteAnalyticsContextProvider>
@@ -81,9 +84,11 @@ export default function Stories() {
             </VerticalScroll>
           ) : story.isError ? (
             <VerticalScroll style={{gridArea: 'body'}}>
-              <Alert type="error" showIcon>
-                <strong>{story.error.name}:</strong> {story.error.message}
-              </Alert>
+              <Alert.Container>
+                <Alert type="error" showIcon>
+                  <strong>{story.error.name}:</strong> {story.error.message}
+                </Alert>
+              </Alert.Container>
             </VerticalScroll>
           ) : story.isSuccess ? (
             <StoryMainContainer>

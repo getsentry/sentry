@@ -579,11 +579,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 />
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert showIcon type="warning">
-                  {t(
-                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
-                  )}
-                </Alert>
+                <Alert.Container>
+                  <Alert showIcon type="warning">
+                    {t(
+                      'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                    )}
+                  </Alert>
+                </Alert.Container>
               )}
               {!isErrorMigration && this.renderInterval()}
               <StyledListItem>{t('Filter events')}</StyledListItem>

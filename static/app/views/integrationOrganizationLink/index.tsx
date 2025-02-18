@@ -29,7 +29,7 @@ import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abs
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
-type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
+type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   installationData?: GitHubIntegrationInstallation;
@@ -273,17 +273,19 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" showIcon>
-            <p>
-              {tct(
-                `You do not have permission to install integrations in
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              <p>
+                {tct(
+                  `You do not have permission to install integrations in
                 [organization]. Ask an organization owner or manager to
                 visit this page to finish installing this integration.`,
-                {organization: <strong>{organization.slug}</strong>}
-              )}
-            </p>
-            <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
-          </Alert>
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider && organization && this.hasAccess() && FeatureList && (
@@ -320,11 +322,13 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
       }
 
       return (
-        <Alert type="warning" showIcon>
-          {t(
-            'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {t(
+              'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -354,9 +358,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     );
 
     return (
-      <Alert type="info" showIcon>
-        {alertText}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          {alertText}
+        </Alert>
+      </Alert.Container>
     );
   }
 

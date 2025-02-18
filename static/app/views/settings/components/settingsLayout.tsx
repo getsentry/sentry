@@ -17,7 +17,7 @@ import SettingsSearch from './settingsSearch';
 type Props = {
   children: React.ReactNode;
   renderNavigation?: (opts: {isMobileNavVisible: boolean}) => React.ReactNode;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 function SettingsLayout(props: Props) {
   // This is used when the screen is small enough that the navigation should be

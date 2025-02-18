@@ -47,7 +47,7 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const api = useApi();
@@ -160,21 +160,23 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <DatePageFilter />
           </StyledPageFilterBar>
           {uptimeRule.status === 'disabled' && (
-            <Alert
-              type="muted"
-              showIcon
-              trailingItems={
-                <StatusToggleButton
-                  uptimeRule={uptimeRule}
-                  size="xs"
-                  onToggleStatus={status => handleUpdate({status})}
-                >
-                  {t('Enable')}
-                </StatusToggleButton>
-              }
-            >
-              {t('This monitor is disabled and not recording uptime checks.')}
-            </Alert>
+            <Alert.Container>
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    uptimeRule={uptimeRule}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and not recording uptime checks.')}
+              </Alert>
+            </Alert.Container>
           )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
