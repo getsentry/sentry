@@ -345,6 +345,16 @@ describe('SolutionsSection', () => {
         displayName: 'Europe (Frankfurt)',
         url: 'https://sentry.de.example.com',
       }));
+      jest.mocked(getConfigForIssueType).mockReturnValue({
+        ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
+        autofix: true,
+        issueSummary: {enabled: true},
+        resources: {
+          description: '',
+          links: [],
+          linksByPlatform: {},
+        },
+      });
 
       render(
         <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
