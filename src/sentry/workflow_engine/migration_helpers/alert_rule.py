@@ -741,7 +741,7 @@ def dual_delete_migrated_alert_rule(
     except AlertRuleDetector.DoesNotExist:
         # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
-            "alert rule was not dual written, returning early",
+            "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": alert_rule.id},
         )
         return
