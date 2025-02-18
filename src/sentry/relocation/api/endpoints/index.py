@@ -17,15 +17,15 @@ from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.relocation import RelocationSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.file import File
-from sentry.models.relocation import Relocation, RelocationFile
 from sentry.options import get
+from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
+from sentry.relocation.api.serializers.relocation import RelocationSerializer
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.tasks import uploading_start
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code

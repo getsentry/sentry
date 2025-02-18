@@ -9,7 +9,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 
 logger = logging.getLogger(__name__)
 

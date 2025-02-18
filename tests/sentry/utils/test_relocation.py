@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 from sentry.testutils.cases import TestCase
 from sentry.utils.relocation import (
     OrderedTask,

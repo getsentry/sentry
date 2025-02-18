@@ -10,7 +10,7 @@ from sentry.api.endpoints.organization_fork import (
 )
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options

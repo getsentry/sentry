@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sentry.api.endpoints.relocations.abort import ERR_NOT_ABORTABLE_STATUS
-from sentry.models.relocation import Relocation
+from sentry.relocation.api.endpoints.abort import ERR_NOT_ABORTABLE_STATUS
+from sentry.relocation.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.relocation import OrderedTask

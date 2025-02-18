@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from google_crc32c import value as crc32c
 
-from sentry.api.endpoints.relocations.artifacts.index import ERR_NEED_RELOCATION_ADMIN
 from sentry.backup.crypto import (
     LocalFileDecryptor,
     LocalFileEncryptor,
@@ -16,7 +15,8 @@ from sentry.backup.crypto import (
     unwrap_encrypted_export_tarball,
 )
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation
+from sentry.relocation.api.endpoints.artifacts.index import ERR_NEED_RELOCATION_ADMIN
+from sentry.relocation.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options

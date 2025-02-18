@@ -33,7 +33,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.backup.services.import_export.model import RpcExportOk
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 

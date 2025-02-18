@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from google.api_core.exceptions import GoogleAPIError
 
-from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options

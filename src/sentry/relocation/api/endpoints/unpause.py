@@ -8,14 +8,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.relocations import (
-    ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP,
-    ERR_UNKNOWN_RELOCATION_STEP,
-)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
-from sentry.models.relocation import Relocation
+from sentry.relocation.api.endpoints import (
+    ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP,
+    ERR_UNKNOWN_RELOCATION_STEP,
+)
+from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks import get_first_task_for_step
 
 ERR_NOT_UNPAUSABLE_STATUS = Template(

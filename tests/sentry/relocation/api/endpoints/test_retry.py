@@ -6,19 +6,16 @@ from uuid import uuid4
 
 import orjson
 
-from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
-from sentry.api.endpoints.relocations.index import (
-    ERR_DUPLICATE_RELOCATION,
-    ERR_THROTTLED_RELOCATION,
-)
-from sentry.api.endpoints.relocations.retry import (
+from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
+from sentry.models.files.file import File
+from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
+from sentry.relocation.api.endpoints.index import ERR_DUPLICATE_RELOCATION, ERR_THROTTLED_RELOCATION
+from sentry.relocation.api.endpoints.retry import (
     ERR_FILE_NO_LONGER_EXISTS,
     ERR_NOT_RETRYABLE_STATUS,
     ERR_OWNER_NO_LONGER_EXISTS,
 )
-from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
-from sentry.models.files.file import File
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path

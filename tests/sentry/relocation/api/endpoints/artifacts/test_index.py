@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 from io import StringIO
 from uuid import uuid4
 
-from sentry.api.endpoints.relocations.artifacts.index import ERR_NEED_RELOCATION_ADMIN
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation
+from sentry.relocation.api.endpoints.artifacts.index import ERR_NEED_RELOCATION_ADMIN
+from sentry.relocation.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.relocation import OrderedTask

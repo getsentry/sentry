@@ -11,16 +11,16 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.relocations.index import (
-    get_autopause_value,
-    validate_new_relocation_request,
-    validate_relocation_uniqueness,
-)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.files.file import File
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.api.endpoints.index import (
+    get_autopause_value,
+    validate_new_relocation_request,
+    validate_relocation_uniqueness,
+)
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.tasks import uploading_start
 from sentry.signals import relocation_retry_link_promo_code
 from sentry.users.services.user.service import user_service

@@ -46,14 +46,14 @@ from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.relocation import (
+from sentry.organizations.services.organization import organization_service
+from sentry.relocation.models.relocation import (
     Relocation,
     RelocationFile,
     RelocationValidation,
     RelocationValidationAttempt,
     ValidationStatus,
 )
-from sentry.organizations.services.organization import organization_service
 from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
 )

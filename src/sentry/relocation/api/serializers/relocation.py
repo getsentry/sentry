@@ -7,7 +7,7 @@ from django.db.models import QuerySet
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.importchunk import BaseImportChunk, ControlImportChunkReplica, RegionImportChunk
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service

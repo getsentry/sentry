@@ -16,7 +16,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
     RelocationExportRequestNewExportParameters,

@@ -12,7 +12,7 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.staff import has_staff_option
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 
 ERR_NEED_RELOCATION_ADMIN = (
     "Cannot view relocation artifacts, as you do not have the appropriate permissions."

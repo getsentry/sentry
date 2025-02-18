@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from sentry.api.serializers import serialize
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.relocation import OrderedTask

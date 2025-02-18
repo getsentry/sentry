@@ -34,7 +34,7 @@ from sentry.models.importchunk import (
 )
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.relocation import (
+from sentry.relocation.models.relocation import (
     Relocation,
     RelocationFile,
     RelocationValidation,

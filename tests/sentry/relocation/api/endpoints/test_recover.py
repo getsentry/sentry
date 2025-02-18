@@ -2,15 +2,15 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from sentry.api.endpoints.relocations import (
+from sentry.relocation.api.endpoints import (
     ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP,
     ERR_UNKNOWN_RELOCATION_STEP,
 )
-from sentry.api.endpoints.relocations.recover import (
+from sentry.relocation.api.endpoints.recover import (
     ERR_NOT_RECOVERABLE_STATUS,
     ERR_NOT_RECOVERABLE_STEP,
 )
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks import MAX_FAST_TASK_ATTEMPTS
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options

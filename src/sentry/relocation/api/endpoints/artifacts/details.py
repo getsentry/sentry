@@ -21,7 +21,7 @@ from sentry.backup.crypto import (
     unwrap_encrypted_export_tarball,
 )
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.relocation import Relocation
+from sentry.relocation.models.relocation import Relocation
 
 ERR_NEED_RELOCATION_ADMIN = (
     "Cannot view relocation artifacts, as you do not have the appropriate permissions."

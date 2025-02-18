@@ -8,9 +8,9 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.backup.crypto import GCPKMSEncryptor, get_default_crypto_key_version
+from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.utils.env import log_gcp_credentials_details
 
 logger = logging.getLogger(__name__)
