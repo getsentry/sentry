@@ -94,8 +94,6 @@ async function fetchProjectsAndTeams(
  *
  * @param api A reference to the api client
  * @param slug The organization slug
- * @param silent Should we silently update the organization (do not clear the
- *               current organization in the store)
  */
 export async function fetchOrganizationDetails(api: Client, slug: string): Promise<void> {
   const getErrorMessage = (err: RequestError) => {
