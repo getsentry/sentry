@@ -16,7 +16,7 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
@@ -198,11 +198,6 @@ export default function SolutionsSection({
     </SidebarFoldSection>
   );
 }
-
-const SidebarFoldSection = styled(FoldSection)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: -${space(1)};
-`;
 
 const SolutionsSectionContainer = styled('div')`
   display: flex;

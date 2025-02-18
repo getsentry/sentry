@@ -17,6 +17,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 function getActionLabelAndTextValue({
@@ -79,12 +81,17 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
     );
   }
 
+  const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
+
   return (
-    <div data-test-id="linked-issues">
-      <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
-      <SidebarSection.Content>
-        {integrations.length || linkedIssues.length ? (
-          <Fragment>
+    <SidebarFoldSection
+      data-test-id="linked-issues"
+      title={<SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>}
+      sectionKey={SectionKey.EXTERNAL_ISSUES}
+    >
+      {hasLinkedIssuesOrIntegrations ? (
+        <Fragment>
+          {linkedIssues.length > 0 && (
             <IssueActionWrapper>
               {linkedIssues.map(linkedIssue => (
                 <ErrorBoundary key={linkedIssue.key} mini>
@@ -118,6 +125,8 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                 </ErrorBoundary>
               ))}
             </IssueActionWrapper>
+          )}
+          {integrations.length > 0 && (
             <IssueActionWrapper>
               {integrations.map(integration => {
                 const sharedButtonProps: ButtonProps = {
@@ -183,19 +192,19 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                 );
               })}
             </IssueActionWrapper>
-          </Fragment>
-        ) : (
-          <AlertLink
-            priority="muted"
-            size="small"
-            to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-            withoutMarginBottom
-          >
-            {t('Track this issue in Jira, GitHub, etc.')}
-          </AlertLink>
-        )}
-      </SidebarSection.Content>
-    </div>
+          )}
+        </Fragment>
+      ) : (
+        <AlertLink
+          priority="muted"
+          size="small"
+          to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
+          withoutMarginBottom
+        >
+          {t('Track this issue in Jira, GitHub, etc.')}
+        </AlertLink>
+      )}
+    </SidebarFoldSection>
   );
 }
 
