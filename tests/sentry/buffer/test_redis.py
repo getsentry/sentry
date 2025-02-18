@@ -289,7 +289,7 @@ class TestRedisBuffer:
         redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         assert mock.call_count == 1
 
-    @mock.patch("sentry.rules.processing.buffer_processing.metrics.timer")
+    @mock.patch("sentry.rules.processing.delayed_processing.metrics.timer")
     def test_callback(self, mock_metrics_timer):
         redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
         self.buf.process_batch()
