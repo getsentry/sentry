@@ -324,7 +324,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           width: 60,
           formatter: (value: number) => {
             const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
-            return string;
+
+            // Adding whitespace around the label is equivalent to padding.
+            // ECharts doesn't respect padding when calculating overlaps, but it
+            // does respect whitespace. This prevents overlapping X axis labels
+            return ` ${string} `;
           },
         },
         splitNumber: 5,
