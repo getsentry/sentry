@@ -18,7 +18,9 @@ export function getSelectedProjectList(
     acc[project.id] = project;
     return acc;
   }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
+  return selectedProjects
+    .map(id => projectsByProjectId[id])
+    .filter((project): project is Project => !!project);
 }
 
 export default function useSelectedProjectsHaveField(field: keyof Project) {

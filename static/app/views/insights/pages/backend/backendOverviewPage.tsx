@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -33,6 +34,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravelOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -87,6 +89,27 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const selectedProjects: Project[] = useMemo(
+    () => getSelectedProjectList(selection.projects, projects),
+    [projects, selection.projects]
+  );
+
+  const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
+  if (
+    selectedProject?.platform === 'php-laravel' &&
+    organization.features.includes('laravel-insights')
+  ) {
+    return <LaravelOverviewPage />;
+  }
+
+  return <GenericBackendOverviewPage />;
+}
+
+function GenericBackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
