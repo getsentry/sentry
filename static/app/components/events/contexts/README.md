@@ -36,7 +36,7 @@ export interface MyContext {
 
 3. Implement and export the getter function for the context (e.g. `getCultureContextData`). It should take in the context dictionary and `meta` (which is the metadata for the context, which is used for redacting data), and return `KeyValueListData`. A helpful utility function is `getContextKeys`, which returns an array of the keys in the context for switch/case statements.
 
-```ts
+```tsx
 export function getMyContextData({
   data,
   meta,
@@ -72,7 +72,7 @@ export function getMyContextData({
 }
 ```
 
-4. If you are adding a new _Known_ context, modify the `EventContexts` enum in `app/types/event.tsx` to include the new context. The key should be the same one being set by the SDK.For platform contexts, skip this step.
+4. If you are adding a new _known_ context, modify the `EventContexts` enum in `app/types/event.tsx` to include the new context. The key should be the same one being set by the SDK.For platform contexts, skip this step.
 
 ```ts
 export type EventContexts = {
@@ -97,7 +97,7 @@ export function getFormattedContextData({...}) {
 
 6. To add an icon for the context, add a new case to the `getContextIcon` or `getPlatformContextIcon` function. The `generateIconName` utility is useful for company logos.
 
-```ts
+```tsx
 export function getContextIcon({...}) {
     switch (type) {
         case 'my_context':
