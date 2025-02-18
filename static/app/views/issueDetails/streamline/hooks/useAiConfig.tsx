@@ -48,7 +48,7 @@ export const useAiConfig = (
 
   const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
   const isAutofixEnabled = issueTypeConfig.autofix;
-  const hasResources = !!issueTypeConfig.resources;
+  const hasResources = issueTypeConfig.resources;
 
   const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? organization.genAIConsent;
 

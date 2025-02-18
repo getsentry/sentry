@@ -152,7 +152,7 @@ export function getDefaultNodeImports({
 
 export function getImportInstrumentSnippet(
   defaultMode?: 'esm' | 'cjs',
-  fileExtension: string = 'js'
+  fileExtension = 'js'
 ): string {
   const filename = `instrument.${fileExtension}`;
 

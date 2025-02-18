@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {Button} from 'sentry/components/button';
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -40,7 +41,11 @@ type ParsedVisualize = {
   label: string;
 };
 
-export function ToolbarVisualize() {
+interface ToolbarVisualizeProps {
+  equationSupport?: boolean;
+}
+
+export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
 
@@ -188,6 +193,20 @@ export function ToolbarVisualize() {
                   />
                 </ToolbarRow>
               ))}
+              {equationSupport &&
+                parsedVisualizeGroup.map((_, index) => (
+                  <ToolbarRow key={index}>
+                    <ArithmeticBuilder expression="" />
+                    <Button
+                      borderless
+                      icon={<IconDelete />}
+                      size="zero"
+                      disabled={lastVisualization}
+                      onClick={() => deleteOverlay(group, index)}
+                      aria-label={t('Remove Overlay')}
+                    />
+                  </ToolbarRow>
+                ))}
               <ToolbarFooter>
                 <ToolbarFooterButton
                   borderless

@@ -13,7 +13,7 @@ type Props = {
   plugin: PluginWithProjectList;
 };
 
-type State = {};
+type State = Record<string, unknown>;
 
 class PluginDeprecationAlert extends Component<Props, State> {
   render() {

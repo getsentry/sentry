@@ -234,7 +234,7 @@ function AlertBanner(props: any) {
   );
 }
 
-const LIMIT: number = 25;
+const LIMIT = 25;
 
 function PageWithProviders() {
   return (
