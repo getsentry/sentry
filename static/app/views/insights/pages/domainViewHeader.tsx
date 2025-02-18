@@ -129,28 +129,21 @@ function TabLabel({moduleName}: TabLabelProps) {
   const moduleTitles = useModuleTitles();
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
-  if (showBusinessIcon) {
+
+  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
     return (
-      <TabWithIconContainer>
+      <TabContainer>
         {moduleTitles[moduleName]}
-        <IconBusiness />
-      </TabWithIconContainer>
+        {isModuleConsideredNew(moduleName) && <Tag>{t('New')}</Tag>}
+        {showBusinessIcon && <IconBusiness />}
+      </TabContainer>
     );
   }
 
-  return (
-    <Fragment>
-      {moduleTitles[moduleName]}
-      {isModuleConsideredNew(moduleName) && (
-        <Fragment>
-          &nbsp;<Tag>{t('New')}</Tag>
-        </Fragment>
-      )}
-    </Fragment>
-  );
+  return moduleTitles[moduleName];
 }
 
-const TabWithIconContainer = styled('div')`
+const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;

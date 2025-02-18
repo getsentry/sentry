@@ -15,7 +15,7 @@ const useLocationMock = jest.mocked(useLocation);
 
 describe('DomainViewHeader', function () {
   const organization = OrganizationFixture({
-    features: ['insights-entry-points'],
+    features: ['insights-entry-points', 'insights-mobile-screens-module'],
   });
 
   beforeEach(() => {
@@ -116,8 +116,10 @@ describe('DomainViewHeader', function () {
         hasOverviewPage={false}
       />
     );
-    expect(screen.getByText('Network Requests')).toBeInTheDocument();
-    expect(screen.getByText('Mobile Vitals')).toBeInTheDocument();
-    expect(screen.getAllByText('New')).toHaveLength(1);
+    expect(screen.getByRole('tab', {name: 'Mobile Vitals New'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', {name: 'Network Requests New'})
+    ).not.toBeInTheDocument();
   });
 });
