@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
