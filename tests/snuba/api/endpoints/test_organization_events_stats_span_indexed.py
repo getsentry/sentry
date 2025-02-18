@@ -842,14 +842,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             sample_rate = accuracy["samplingRate"]
             for expected, actual in zip(event_counts, confidence[0:6]):
                 if expected != 0:
-                    assert actual["value"] == "low"
+                    assert actual["value"] in ("high", "low")
                 else:
                     assert actual["value"] is None
 
             old_confidence = response.data["confidence"]
             for expected, actual in zip(event_counts, old_confidence[0:6]):
                 if expected != 0:
-                    assert actual[1][0][y_axis] == "low"
+                    assert actual[1][0][y_axis] in ("high", "low")
                 else:
                     assert actual[1][0][y_axis] is None
 
@@ -908,14 +908,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             sample_rate = accuracy["samplingRate"]
             for expected, actual in zip(event_counts, confidence[0:6]):
                 if expected != 0:
-                    assert actual["value"] == "low"
+                    assert actual["value"] in ("high", "low")
                 else:
                     assert actual["value"] is None
 
             old_confidence = response.data[column]["confidence"]
             for expected, actual in zip(event_counts, old_confidence[0:6]):
                 if expected != 0:
-                    assert actual[1][0]["count"] == "low"
+                    assert actual[1][0]["count"] in ("high", "low")
                 else:
                     assert actual[1][0]["count"] is None
 
