@@ -9,10 +9,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import * as RegionUtils from 'sentry/utils/regions';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 jest.mock('sentry/utils/issueTypeConfig');
+jest.mock('sentry/utils/regions');
 
 describe('SolutionsSection', () => {
   const mockEvent = EventFixture({
@@ -334,6 +336,37 @@ describe('SolutionsSection', () => {
       });
 
       expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
+    });
+
+    it('does not show CTA button when region is de', async () => {
+      jest.mock('sentry/utils/regions');
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+        name: 'de',
+        displayName: 'Europe (Frankfurt)',
+        url: 'https://sentry.de.example.com',
+      }));
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      });
+
+      // Verify that none of the CTA button variants are present
+      expect(
+        screen.queryByRole('button', {name: 'Set Up Sentry AI'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set Up Autofix'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Find Root Cause'})
+      ).not.toBeInTheDocument();
     });
   });
 });
